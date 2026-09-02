@@ -1672,16 +1672,28 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.preventDefault(); go('reg', activeEvent.slug); }}
-                    onTouchEnd={(e) => { e.preventDefault(); go('reg', activeEvent.slug); }}
-                    className="ev-btn"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 700, background: '#0E9F6E', color: '#FFFFFF', borderRadius: '10px', padding: '12px 22px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: '0 4px 16px rgba(14, 159, 110, 0.35)', border: 'none', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.9 }}><path d="M3 8.5A2.5 2.5 0 015.5 6h13A2.5 2.5 0 0121 8.5v.5a2 2 0 000 6v.5A2.5 2.5 0 0118.5 18h-13A2.5 2.5 0 013 15.5V15a2 2 0 000-6Z"></path></svg>
-                    Register
-                  </button>
+                  {(activeEvent?.registration?.enabled === false || String(activeEvent?.registration?.enabled).toLowerCase() === 'false') ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="ev-btn"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 700, background: 'var(--panel2)', color: 'var(--muted)', borderRadius: '10px', padding: '12px 22px', cursor: 'not-allowed', border: '1px solid var(--line)', outline: 'none' }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.9 }}><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                      Registrations Closed
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); go('reg', activeEvent.slug); }}
+                      onTouchEnd={(e) => { e.preventDefault(); go('reg', activeEvent.slug); }}
+                      className="ev-btn"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 700, background: '#0E9F6E', color: '#FFFFFF', borderRadius: '10px', padding: '12px 22px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: '0 4px 16px rgba(14, 159, 110, 0.35)', border: 'none', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.9 }}><path d="M3 8.5A2.5 2.5 0 015.5 6h13A2.5 2.5 0 0121 8.5v.5a2 2 0 000 6v.5A2.5 2.5 0 0118.5 18h-13A2.5 2.5 0 013 15.5V15a2 2 0 000-6Z"></path></svg>
+                      Register
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={(e) => { e.preventDefault(); handleDownloadHandbook(); }}
