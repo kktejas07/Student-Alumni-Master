@@ -20,6 +20,7 @@ import PaymentStatusScreen, { PaymentResult } from '@/src/views/components/Payme
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { EchoTicketsConfirmationPage } from './EchoTicketsConfirmationPage';
+import { EchoMarketplace } from './EchoMarketplace';
 
 interface EchoEventsPageProps {
   initialView?: 'list' | 'detail' | 'reg';
