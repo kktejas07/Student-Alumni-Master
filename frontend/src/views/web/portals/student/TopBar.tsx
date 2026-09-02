@@ -23,6 +23,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { displayName, displayInitials } from '@/src/lib/portalHome';
 import { Av } from './atoms';
 import { api } from '@/src/models/services/api';
+import { trackClick, logger as analyticsLogger } from '@/src/analytics';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { useBreakpoint } from '@/src/theme/breakpoints';
@@ -93,9 +94,14 @@ export function TopBar({
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    api.notifications()
-      .then(res => setUnreadCount(res.unread || 0))
-      .catch(console.error);
+    const fetchNotifs = () => {
+      api.notifications()
+        .then(res => setUnreadCount(res.unread || 0))
+        .catch(console.error);
+    };
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   // Hide search box on tablets to save space; phones already hide sidebar

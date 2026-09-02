@@ -593,7 +593,11 @@ def _parse_iso(s: Optional[str]):
     if not s:
         return None
     try:
-        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+        if len(s) == 10 and "-" in s:
+            # Date-only format e.g. "2026-09-04" -> set to 1:00 PM IST (13:00:00+05:30)
+            dt = datetime.fromisoformat(f"{s}T13:00:00+05:30")
+        else:
+            dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
     except Exception:
         return None
     if dt.tzinfo is None:
@@ -609,7 +613,13 @@ async def _assert_registration_open(db, showcase: dict) -> None:
     if showcase.get("event_status_badge") == "Completed":
         raise HTTPException(status_code=400, detail="This event has ended — registrations are closed")
 
-    deadline = _parse_iso(reg_cfg.get("deadline"))
+    slug = (showcase.get("slug") or "").lower()
+    if slug in ("snist", "hackwave-3.0", "hackwave-3", "hackwave"):
+        # For HackWave 3.0 SNIST, deadline is Sep 4, 2026 1:00 PM IST
+        deadline = datetime.fromisoformat("2026-09-04T13:00:00+05:30")
+    else:
+        deadline = _parse_iso(reg_cfg.get("deadline") or showcase.get("reg_closes"))
+
     if deadline and deadline < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Registrations have closed for this event")
 
@@ -2839,12 +2849,12 @@ DEFAULT_SHOWCASE_SEED = {
         { "question": "Do I need to know AI/ML to attend?", "answer": "No. The keynotes and workshops are beginner-friendly. You can join a team with mixed skills." }
     ],
     "eligibility": "Open to all undergrad and postgrad students. Teams of 4–5 encouraged; individual starts welcome.",
-    "prize_pool": { "total": "₹30,000", "first": "₹15,000", "second": "₹10,000", "third": "₹5,000", "other_prizes": ["Internship offers for top 3 teams"] },
+    "prize_pool": { "total": "₹17,50,000+", "tracks": "₹50,000", "grand_pool": "₹2,00,000", "wehive_germany": "₹15,00,000", "visas": "2 Business Visas", "other_prizes": ["2 Business Visas sponsored in full", "Up to ₹15,00,000 Germany Master's Sponsorship", "₹2,00,000 Mega Grand Pool", "₹50,000 Hackathon Tracks"] },
     "team_composition": "4–5 members, at least one member from each of design, coding and presentation.",
     "partners": [
-        { "name": "Microsoft", "kind": "association", "logo_url": None },
-        { "name": "Google", "kind": "association", "logo_url": None },
-        { "name": "LinkedIn", "kind": "association", "logo_url": None }
+        { "name": "WeHive", "kind": "visa_partner", "logo_url": None },
+        { "name": "CodeSpectra", "kind": "sponsor", "logo_url": None },
+        { "name": "Featherless", "kind": "sponsor", "logo_url": None }
     ],
     "sponsors": [
         { "name": "Tech Corp", "tier": "Title Sponsor", "website_url": "https://example.com", "logo_url": None, "priority": 0 },
@@ -2963,6 +2973,18 @@ async def seed_echo_showcase(db: AsyncIOMotorDatabase):
             print("[ECHO CMS] Seeded default vnr-echo-2026 showcase")
         else:
             await db.echo_showcases.update_many({"gallery_layout": {"$exists": False}}, {"$set": {"gallery_layout": "grid"}})
+        
+        # Ensure SNIST / HackWave 3.0 showcase registration is open till Sep 4, 1:00 PM IST
+        await db.echo_showcases.update_many(
+            {"slug": {"$in": ["snist", "hackwave-3.0", "hackwave-3", "hackwave"]}},
+            {"$set": {
+                "reg_closes": "Sep 02, 2026 · 7:00 PM IST (Closing in 30 mins)",
+                "registration.deadline": "2026-09-02T19:00:00+05:30",
+                "registration.enabled": True,
+                "registration.status": "closing_soon",
+                "event_status_badge": "Closing in 30 Mins"
+            }}
+        )
     except Exception as e:
         print(f"[ECHO CMS] Seed warning: {e}")
 
@@ -3037,8 +3059,15 @@ async def get_showcase(slug: str, request: Request):
                     "team_fee": 2495,
                     "available_seats": 985,
                     "team_slots_available": 197,
-                    "prize_pool": "₹2,00,000 Mega Grand Pool (₹50,000 Track Prize Pool)",
-                    "reg_closes": "2026-09-01",
+                    "prize_pool": "₹17,50,000+ Total Prize & Sponsorship Pool (including 2 fully sponsored business visas)",
+                    "prize_pool_detail": {
+                        "total": "₹17,50,000+",
+                        "tracks": "₹50,000",
+                        "grand_pool": "₹2,00,000",
+                        "wehive_germany": "₹15,00,000",
+                        "visas": "2 Business Visas fully sponsored by WeHive"
+                    },
+                    "reg_closes": "Sep 02, 2026 · 7:00 PM IST (Closing in 30 mins)",
                     "hero_image_url": "/images/hackwave/hackwave_main_poster.png",
                     "banner_url": "/images/hackwave/hackwave_main_poster.png",
                     "poster_url": "/images/hackwave/hackwave_main_poster.png",
@@ -3054,7 +3083,7 @@ async def get_showcase(slug: str, request: Request):
                             "title": "HackWave 3.0 SNIST Official Teaser",
                             "video_url": "https://www.youtube.com/watch?v=M576WGiDBdQ",
                             "thumbnail_url": "/images/hackwave/hackwave_main_poster.png",
-                            "description": "Watch the official teaser for HackWave 3.0 at SNIST — 7 Verticals, ₹2,00,000 Grand Pool.",
+                            "description": "Watch the official teaser for HackWave 3.0 at SNIST — 7 Verticals, ₹17,50,000+ Prize & Sponsorship Pool.",
                             "platform": "youtube"
                         },
                         {
@@ -3132,7 +3161,7 @@ async def get_showcase(slug: str, request: Request):
                         "currency": "INR",
                         "available_seats": 985,
                         "team_slots_available": 197,
-                        "deadline": "2026-09-01T23:59:59Z",
+                        "deadline": "2026-09-04T13:00:00+05:30",
                         "external_url": None,
                         "payment_url": None
                     },

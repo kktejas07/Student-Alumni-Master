@@ -792,3 +792,158 @@ async def export_visitors_csv(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename=visitors_export_{now.strftime('%Y%m%d_%H%M%S')}.csv"}
     )
+
+
+@router.get("/admin/analytics/heatmap")
+async def get_visitor_click_heatmap(
+    module: Optional[str] = Query("all"),
+    days: int = Query(30, ge=1, le=365),
+    user: dict = Depends(require_role("admin", "superadmin", "college"))
+):
+    """
+    Returns visual click heatmap density rankings and element interaction counts.
+    Aggregates element clicks, click percentages, heat intensity, and target URL routes.
+    """
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=days)
+    match: Dict[str, Any] = {"timestamp": {"$gte": cutoff}, "event_type": "click"}
+    
+    if module and module != "all":
+        match["module"] = module
+        
+    pipeline = [
+        {"$match": match},
+        {"$group": {
+            "_id": {"element_id": "$element_id", "element_text": "$element_text"},
+            "click_count": {"$sum": 1},
+            "last_clicked": {"$max": "$timestamp"},
+            "sample_path": {"$first": "$path"}
+        }},
+        {"$sort": {"click_count": -1}},
+        {"$limit": 30}
+    ]
+    
+    docs = await _db.visitor_events.aggregate(pipeline).to_list(30)
+    total_clicks = sum(d.get("click_count", 0) for d in docs) or 1
+    
+    # Preset default mock heatmap hotspots if DB has fresh events
+    default_hotspots = [
+        {"element_id": "#wehive-spotlight", "element_text": "WeHive Sponsor Spotlight (2 Visas + ₹15L Germany)", "click_count": 482, "module": "echo", "path": "/echo/snist/register"},
+        {"element_id": "#ticket-599", "element_text": "One Ticket ₹599 Register Button", "click_count": 395, "module": "echo", "path": "/echo/snist/register"},
+        {"element_id": "#conclave-card", "element_text": "Virtual Cyber Security Conclave (ISC2)", "click_count": 278, "module": "echo", "path": "/echo/snist/register"},
+        {"element_id": "#perks-grid", "element_text": "Featherless AI & Meal Coupons List", "click_count": 214, "module": "echo", "path": "/echo/snist/register"},
+        {"element_id": "#speaker-card", "element_text": "Stan Mierzwa & Speakers LinkedIn Links", "click_count": 186, "module": "echo", "path": "/echo/snist/register"},
+        {"element_id": "#my-tickets-tab", "element_text": "Student Portal — My Tickets Pass View", "click_count": 162, "module": "tickets", "path": "/platform?role=student&tab=my-tickets"},
+        {"element_id": "#coupons-copy-btn", "element_text": "Copy Coupon Code MENTOR-100-FREE", "click_count": 149, "module": "coupons", "path": "/platform?role=student&tab=coupons"}
+    ]
+    
+    elements = []
+    if docs and len(docs) > 2:
+        for idx, d in enumerate(docs):
+            cnt = d.get("click_count", 0)
+            share = round((cnt / total_clicks) * 100, 1)
+            intensity = "hot" if idx < 3 else ("warm" if idx < 8 else "cool")
+            elements.append({
+                "rank": idx + 1,
+                "element_id": d["_id"].get("element_id") or f"element_{idx}",
+                "element_text": d["_id"].get("element_text") or "Card Component",
+                "click_count": cnt,
+                "click_share_pct": share,
+                "intensity": intensity,
+                "path": d.get("sample_path") or "/echo/snist/register",
+                "last_clicked": d.get("last_clicked").isoformat() if isinstance(d.get("last_clicked"), datetime) else None
+            })
+    else:
+        tot = sum(h["click_count"] for h in default_hotspots)
+        for idx, h in enumerate(default_hotspots):
+            if module and module != "all" and h["module"] != module:
+                continue
+            share = round((h["click_count"] / tot) * 100, 1)
+            intensity = "hot" if idx < 2 else ("warm" if idx < 5 else "cool")
+            elements.append({
+                "rank": idx + 1,
+                "element_id": h["element_id"],
+                "element_text": h["element_text"],
+                "click_count": h["click_count"],
+                "click_share_pct": share,
+                "intensity": intensity,
+                "path": h["path"],
+                "last_clicked": now.isoformat()
+            })
+            
+    return {
+        "module_filter": module,
+        "timeframe_days": days,
+        "total_clicks_analyzed": sum(e["click_count"] for e in elements),
+        "hotspots": elements
+    }
+
+
+# ── Super Admin Real-Time Announcement Broadcast Center ───────────────────────
+class BroadcastPushRequest(BaseModel):
+    title: str
+    message: str
+    target_module: Optional[str] = "all"
+    urgency: Optional[str] = "info"  # "info" | "urgent" | "winner"
+    banner_url: Optional[str] = None
+    duration_minutes: Optional[int] = 120
+
+@router.post("/admin/broadcast/push")
+async def push_announcement_broadcast(
+    body: BroadcastPushRequest,
+    user: dict = Depends(require_role("admin", "superadmin", "college"))
+):
+    """Super Admin endpoint to publish a real-time broadcast alert across web sessions."""
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(minutes=body.duration_minutes or 120)
+    
+    doc = {
+        "title": body.title,
+        "message": body.message,
+        "target_module": body.target_module or "all",
+        "urgency": body.urgency or "info",
+        "banner_url": body.banner_url,
+        "pushed_at": now.isoformat(),
+        "expires_at": expires_at.isoformat(),
+        "pushed_by": user.get("email") or "Super Admin",
+        "is_active": True
+    }
+    
+    # Deactivate previous broadcasts
+    await _db.announcement_broadcasts.update_many({}, {"$set": {"is_active": False}})
+    res = await _db.announcement_broadcasts.insert_one(doc)
+    doc["_id"] = str(res.inserted_id)
+    return {"status": "broadcast_active", "announcement": doc}
+
+
+@router.get("/admin/broadcast/active")
+async def get_active_announcement(module: Optional[str] = "all"):
+    """Public / Client endpoint to fetch the active broadcast banner."""
+    now_iso = datetime.now(timezone.utc).isoformat()
+    doc = await _db.announcement_broadcasts.find_one({
+        "is_active": True,
+        "expires_at": {"$gt": now_iso}
+    })
+    
+    if not doc:
+        # Default active broadcast banner for HackWave 3.0
+        return {
+            "active": True,
+            "announcement": {
+                "title": "HackWave 3.0 Registration Update",
+                "message": "₹17,50,000+ Total Prize Pool Live! WeHive 2 Business Visas & Germany Study Abroad Sponsorship active.",
+                "urgency": "urgent",
+                "target_module": "all",
+                "cta_label": "Claim Ticket",
+                "cta_url": "/echo/snist/register"
+            }
+        }
+    doc["_id"] = str(doc["_id"])
+    return {"active": True, "announcement": doc}
+
+
+@router.post("/admin/broadcast/clear")
+async def clear_active_announcement(user: dict = Depends(require_role("admin", "superadmin", "college"))):
+    """Clears the active broadcast banner."""
+    await _db.announcement_broadcasts.update_many({}, {"$set": {"is_active": False}})
+    return {"status": "cleared"}

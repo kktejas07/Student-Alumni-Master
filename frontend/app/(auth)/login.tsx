@@ -130,7 +130,10 @@ export default function LoginScreen() {
         if (REGISTERED_EMAILS.includes(clean)) {
           setEmailStatus('registered');
         } else {
-          setEmailStatus('new');
+          // DO NOT assume it's a new account if the server request failed.
+          // It could be a network error or the backend is down.
+          setErrorMsg('Unable to reach the server. Please check your connection or try again later.');
+          setEmailStatus('idle');
         }
       }
     }, 400);

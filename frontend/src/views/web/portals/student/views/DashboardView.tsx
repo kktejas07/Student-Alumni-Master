@@ -108,15 +108,15 @@ export function DashboardView() {
       title: 'HackWave 3.0 — 2026',
       sub: 'SEP 04 — 05 2026 · Sreenidhi Institute of Science and Technology, Hyderabad',
       desc: 'In strategic collaboration with CDC & Student Alumni. ₹100 Off with code SAHW100.',
-      link: 'http://localhost:8081/echo/snist/register',
-      cta: 'Register on Unstop →',
+      link: '/echo/snist/register',
+      cta: 'Register for HackWave →',
     },
     {
       tag: 'VOICE OF GENERATIONS · VNRVJIT',
       title: 'Alumni took the stage, students took notes.',
       sub: '26 photos, 3 workshops and 5 testimonials from the last showcase.',
       desc: 'Annual flagship networking conference at VNR Vignana Jyothi.',
-      link: 'http://localhost:8081/echo/vnrvjit/register',
+      link: '/echo/snist',
       cta: 'Open ECHO Showcase →',
     },
     {
@@ -291,6 +291,85 @@ export function DashboardView() {
                 }}
               />
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Official Student Alumni Community Channels Banner ── */}
+      <div style={{ marginTop: '16px', background: 'linear-gradient(135deg, rgba(124,92,252,0.12) 0%, rgba(16,185,129,0.1) 100%)', border: '1px solid rgba(124,92,252,0.3)', borderRadius: '16px', padding: '18px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1.4px', color: '#38BDF8', marginBottom: '4px' }}>
+              JOIN OFFICIAL STUDENT ALUMNI COMMUNITY CHANNELS
+            </div>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>
+              Connect with 95,000+ verified students & alumni across India
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <a
+              href="https://chat.whatsapp.com/G2kc2u0gzh68DKSjlOyCxu"
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                textDecoration: 'none',
+                padding: '9px 16px',
+                borderRadius: '10px',
+                background: 'rgba(16,185,129,0.18)',
+                border: '1px solid rgba(16,185,129,0.4)',
+                color: '#34D399',
+                fontSize: '13px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <span>💬</span> WhatsApp Community
+            </a>
+
+            <a
+              href="https://www.instagram.com/studentalumni.ai/"
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                textDecoration: 'none',
+                padding: '9px 16px',
+                borderRadius: '10px',
+                background: 'rgba(236,72,153,0.18)',
+                border: '1px solid rgba(236,72,153,0.4)',
+                color: '#F472B6',
+                fontSize: '13px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <span>📸</span> Instagram (@studentalumni.ai)
+            </a>
+
+            <a
+              href="https://linkedin.com/company/student-alumni"
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                textDecoration: 'none',
+                padding: '9px 16px',
+                borderRadius: '10px',
+                background: 'rgba(56,189,248,0.18)',
+                border: '1px solid rgba(56,189,248,0.4)',
+                color: '#38BDF8',
+                fontSize: '13px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <span>💼</span> LinkedIn Page
+            </a>
           </div>
         </div>
       </div>
@@ -863,6 +942,201 @@ export function DashboardView() {
           </div>
         </div>
       )}
+      {/* ── Verticals Perks, Tips & Offers Board ── */}
+      <div id="db-verticals-board" style={{ marginTop: '12px' }}>
+        <div className="db-card" style={{ padding: '28px 30px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '14px' }}>
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.8px', color: '#A78BFA', marginBottom: '6px' }}>
+                PLATFORM VERTICAL PERKS & PRO TIPS
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#FFF' }}>
+                Tips, Coupons & Offers across all StudentAlumni Verticals
+              </div>
+              <div style={{ fontSize: '14px', color: '#8A8A9E', marginTop: '6px' }}>
+                Curated guidance, verified promo codes, and special benefits for Career, ECHO Events, Mentorship, Startups, and Health.
+              </div>
+            </div>
+            <span
+              onClick={() => router.push('/deals')}
+              style={{
+                fontSize: '13px', fontWeight: 700, color: '#FFF',
+                background: '#7C5CFC', borderRadius: '100px',
+                padding: '10px 20px', cursor: 'pointer', whiteSpace: 'nowrap'
+              }}
+            >
+              Explore All Deals →
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '18px' }}>
+            {/* 1. Career & Placement */}
+            <div style={{ border: '1px solid #3A2E72', borderRadius: '18px', background: 'linear-gradient(145deg, rgba(124,92,252,0.08) 0%, #14141F 100%)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: '#A78BFA' }}>CAREER & PLACEMENT</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '4px 8px' }}>FEATURED</span>
+              </div>
+              <div style={{ fontSize: '17px', fontWeight: 700, color: '#FFF' }}>Resume & Mock Interview Pass</div>
+              
+              <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #232338', borderRadius: '12px', padding: '12px 14px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#8A8A9E', marginBottom: '4px' }}>PRO TIP</div>
+                <div style={{ fontSize: '13px', color: '#B4B4CB', lineHeight: 1.5 }}>
+                  Upload your ATS resume 48h before campus CDC drives for 3.2x higher interview callback rates.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed #4B3FA8', borderRadius: '12px', padding: '12px 14px', background: 'rgba(124,92,252,0.06)' }}>
+                <div>
+                  <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#FFF', fontFamily: 'monospace' }}>SA-CAREER-PRO</div>
+                  <div style={{ fontSize: '11.5px', color: '#8A8A9E' }}>100% Free Unlimited ATS Scans</div>
+                </div>
+                <span
+                  onClick={() => {
+                    if (navigator.clipboard) navigator.clipboard.writeText('SA-CAREER-PRO');
+                    setCopiedCoupon('SA-CAREER-PRO');
+                    setTimeout(() => setCopiedCoupon(null), 2500);
+                  }}
+                  style={{ fontSize: '12px', fontWeight: 700, color: '#A78BFA', cursor: 'pointer', background: 'rgba(124,92,252,0.18)', borderRadius: '6px', padding: '6px 12px' }}
+                >
+                  {copiedCoupon === 'SA-CAREER-PRO' ? 'COPIED ✓' : 'COPY'}
+                </span>
+              </div>
+            </div>
+
+            {/* 2. ECHO Events & Hackathons */}
+            <div style={{ border: '1px solid rgba(52,211,153,0.3)', borderRadius: '18px', background: 'linear-gradient(145deg, rgba(52,211,153,0.08) 0%, #14141F 100%)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: '#34D399' }}>ECHO EVENTS & HACKATHONS</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '4px 8px' }}>LIVE OFFER</span>
+              </div>
+              <div style={{ fontSize: '17px', fontWeight: 700, color: '#FFF' }}>VIP Gate Pass & Meal Voucher</div>
+              
+              <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #232338', borderRadius: '12px', padding: '12px 14px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#8A8A9E', marginBottom: '4px' }}>PRO TIP</div>
+                <div style={{ fontSize: '13px', color: '#B4B4CB', lineHeight: 1.5 }}>
+                  Check in early at Gate 2 with your SA ID to receive VIP front-row seating & complimentary breakfast combos.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed rgba(52,211,153,0.4)', borderRadius: '12px', padding: '12px 14px', background: 'rgba(52,211,153,0.06)' }}>
+                <div>
+                  <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#FFF', fontFamily: 'monospace' }}>ECHO-VIP-500</div>
+                  <div style={{ fontSize: '11.5px', color: '#8A8A9E' }}>₹500 OFF Premium Pass</div>
+                </div>
+                <span
+                  onClick={() => {
+                    if (navigator.clipboard) navigator.clipboard.writeText('ECHO-VIP-500');
+                    setCopiedCoupon('ECHO-VIP-500');
+                    setTimeout(() => setCopiedCoupon(null), 2500);
+                  }}
+                  style={{ fontSize: '12px', fontWeight: 700, color: '#34D399', cursor: 'pointer', background: 'rgba(52,211,153,0.18)', borderRadius: '6px', padding: '6px 12px' }}
+                >
+                  {copiedCoupon === 'ECHO-VIP-500' ? 'COPIED ✓' : 'COPY'}
+                </span>
+              </div>
+            </div>
+
+            {/* 3. Alumni Mentorship */}
+            <div style={{ border: '1px solid rgba(245,179,66,0.3)', borderRadius: '18px', background: 'linear-gradient(145deg, rgba(245,179,66,0.08) 0%, #14141F 100%)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: '#F59E0B' }}>ALUMNI MENTORSHIP</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#F59E0B', background: 'rgba(245,179,66,0.12)', border: '1px solid rgba(245,179,66,0.3)', borderRadius: '6px', padding: '4px 8px' }}>POPULAR</span>
+              </div>
+              <div style={{ fontSize: '17px', fontWeight: 700, color: '#FFF' }}>1-on-1 Mentor Session Credit</div>
+              
+              <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #232338', borderRadius: '12px', padding: '12px 14px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#8A8A9E', marginBottom: '4px' }}>PRO TIP</div>
+                <div style={{ fontSize: '13px', color: '#B4B4CB', lineHeight: 1.5 }}>
+                  Prepare 3 specific domain questions before booking a 1-on-1 session to receive direct referral recommendations.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed rgba(245,179,66,0.4)', borderRadius: '12px', padding: '12px 14px', background: 'rgba(245,179,66,0.06)' }}>
+                <div>
+                  <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#FFF', fontFamily: 'monospace' }}>MENTOR-100-FREE</div>
+                  <div style={{ fontSize: '11.5px', color: '#8A8A9E' }}>100% OFF First 1-on-1 Booking</div>
+                </div>
+                <span
+                  onClick={() => {
+                    if (navigator.clipboard) navigator.clipboard.writeText('MENTOR-100-FREE');
+                    setCopiedCoupon('MENTOR-100-FREE');
+                    setTimeout(() => setCopiedCoupon(null), 2500);
+                  }}
+                  style={{ fontSize: '12px', fontWeight: 700, color: '#F59E0B', cursor: 'pointer', background: 'rgba(245,179,66,0.18)', borderRadius: '6px', padding: '6px 12px' }}
+                >
+                  {copiedCoupon === 'MENTOR-100-FREE' ? 'COPIED ✓' : 'COPY'}
+                </span>
+              </div>
+            </div>
+
+            {/* 4. Startups & Incubator */}
+            <div style={{ border: '1px solid #3A2E72', borderRadius: '18px', background: 'linear-gradient(145deg, rgba(124,92,252,0.08) 0%, #14141F 100%)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: '#A78BFA' }}>STARTUPS & INCUBATOR</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#A78BFA', background: 'rgba(124,92,252,0.15)', border: '1px solid rgba(124,92,252,0.3)', borderRadius: '6px', padding: '4px 8px' }}>GRANT PERK</span>
+              </div>
+              <div style={{ fontSize: '17px', fontWeight: 700, color: '#FFF' }}>$1,000 Cloud Credits & Legal Support</div>
+              
+              <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #232338', borderRadius: '12px', padding: '12px 14px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#8A8A9E', marginBottom: '4px' }}>PRO TIP</div>
+                <div style={{ fontSize: '13px', color: '#B4B4CB', lineHeight: 1.5 }}>
+                  Submit your prototype pitch deck before Friday to qualify for the $5,000 SA Innovation Seed Grant.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed #4B3FA8', borderRadius: '12px', padding: '12px 14px', background: 'rgba(124,92,252,0.06)' }}>
+                <div>
+                  <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#FFF', fontFamily: 'monospace' }}>AWS-CLOUD-1000</div>
+                  <div style={{ fontSize: '11.5px', color: '#8A8A9E' }}>$1,000 AWS & Cloud Vouchers</div>
+                </div>
+                <span
+                  onClick={() => {
+                    if (navigator.clipboard) navigator.clipboard.writeText('AWS-CLOUD-1000');
+                    setCopiedCoupon('AWS-CLOUD-1000');
+                    setTimeout(() => setCopiedCoupon(null), 2500);
+                  }}
+                  style={{ fontSize: '12px', fontWeight: 700, color: '#A78BFA', cursor: 'pointer', background: 'rgba(124,92,252,0.18)', borderRadius: '6px', padding: '6px 12px' }}
+                >
+                  {copiedCoupon === 'AWS-CLOUD-1000' ? 'COPIED ✓' : 'COPY'}
+                </span>
+              </div>
+            </div>
+
+            {/* 5. Student Health & SA Care */}
+            <div style={{ border: '1px solid rgba(52,211,153,0.3)', borderRadius: '18px', background: 'linear-gradient(145deg, rgba(52,211,153,0.08) 0%, #14141F 100%)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: '#34D399' }}>STUDENT HEALTH & CARE</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '4px 8px' }}>WELLNESS PERK</span>
+              </div>
+              <div style={{ fontSize: '17px', fontWeight: 700, color: '#FFF' }}>Annual Health & Telehealth Pass</div>
+              
+              <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #232338', borderRadius: '12px', padding: '12px 14px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#8A8A9E', marginBottom: '4px' }}>PRO TIP</div>
+                <div style={{ fontSize: '13.5px', color: '#B4B4CB', lineHeight: 1.5 }}>
+                  Schedule your annual preventive health checkup on campus to claim your free fitness & wellness passes.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed rgba(52,211,153,0.4)', borderRadius: '12px', padding: '12px 14px', background: 'rgba(52,211,153,0.06)' }}>
+                <div>
+                  <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#FFF', fontFamily: 'monospace' }}>CARE-CHECKUP-FREE</div>
+                  <div style={{ fontSize: '11.5px', color: '#8A8A9E' }}>100% Covered Dental & Health Scan</div>
+                </div>
+                <span
+                  onClick={() => {
+                    if (navigator.clipboard) navigator.clipboard.writeText('CARE-CHECKUP-FREE');
+                    setCopiedCoupon('CARE-CHECKUP-FREE');
+                    setTimeout(() => setCopiedCoupon(null), 2500);
+                  }}
+                  style={{ fontSize: '12px', fontWeight: 700, color: '#34D399', cursor: 'pointer', background: 'rgba(52,211,153,0.18)', borderRadius: '6px', padding: '6px 12px' }}
+                >
+                  {copiedCoupon === 'CARE-CHECKUP-FREE' ? 'COPIED ✓' : 'COPY'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

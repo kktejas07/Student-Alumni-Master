@@ -250,7 +250,22 @@ export function inferModuleFromPath(path: string): string {
   if (p.startsWith('/login') || p.startsWith('/register') || p.startsWith('/auth') || p.startsWith('/onboarding')) {
     return 'auth';
   }
-  if (p.startsWith('/courses') || p.startsWith('/skills') || p.startsWith('/cert')) {
+  if (p.startsWith('/tickets') || p.includes('/tickets')) {
+    return 'tickets';
+  }
+  if (p.startsWith('/workshops') || p.startsWith('/workshop')) {
+    return 'workshops';
+  }
+  if (p.startsWith('/coupons') || p.includes('/coupons')) {
+    return 'coupons';
+  }
+  if (p.startsWith('/teams')) {
+    return 'teams';
+  }
+  if (p.startsWith('/certificates') || p.startsWith('/verify')) {
+    return 'certificates';
+  }
+  if (p.startsWith('/courses') || p.startsWith('/skills')) {
     return 'courses';
   }
   if (p.startsWith('/events') || p.startsWith('/hackathon') || p.startsWith('/webinar')) {

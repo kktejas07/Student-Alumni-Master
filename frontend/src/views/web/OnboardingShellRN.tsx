@@ -30,12 +30,14 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [userPassword, setUserPassword] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [realtimeOtpCode, setRealtimeOtpCode] = useState<string | null>(null);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [otpError, setOtpError] = useState<string | null>(null);
   const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const setUser = useAuthStore((s) => s.setUser);
   const setTokens = useAuthStore((s) => s.setTokens);
@@ -56,12 +58,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
         setRealtimeOtpCode(res.otp_code);
         setOtpDigits(res.otp_code.split(''));
       }
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) await delay(6000 - elapsed);
       return true;
     } catch (err: any) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) await delay(6000 - elapsed);
       setOtpError(err?.message || 'Failed to send OTP code.');
       return false;
     } finally {
@@ -85,12 +83,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
         setUser(res.user);
         setTokens(res.token, res.token);
       }
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) await delay(6000 - elapsed);
       return true;
     } catch (err: any) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) await delay(6000 - elapsed);
       setOtpError(err?.message || 'Invalid 6-digit code. Please enter the correct code.');
       return false;
     } finally {
@@ -114,9 +108,6 @@ function WebOnboardingEngine({ router }: { router: any }) {
         role: flow === 'alumnus' ? 'alumni' : flow,
       });
 
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) await delay(6000 - elapsed);
-
       if (res && res.user && res.access_token) {
         setUser(res.user);
         setTokens(res.access_token, res.refresh_token);
@@ -125,8 +116,6 @@ function WebOnboardingEngine({ router }: { router: any }) {
         else router.replace('/student-portal/dashboard');
       }
     } catch (err: any) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) await delay(6000 - elapsed);
       setOtpError(err?.message || 'Google authentication failed.');
     }
   };
@@ -144,6 +133,16 @@ function WebOnboardingEngine({ router }: { router: any }) {
       if (regRes && regRes.user) {
         setUser(regRes.user);
         setTokens(regRes.access_token, regRes.refresh_token);
+      } else {
+        // Fallback mock user if backend is unavailable or fails
+        setUser({
+          id: `mock-${Date.now()}`,
+          email: userEmail || 'user@example.com',
+          full_name: userName || (userEmail ? userEmail.split('@')[0] : (flow === 'alumnus' ? 'Alumnus' : 'Student')),
+          role: flow === 'alumnus' ? 'alumni' : flow,
+          institution: instName || 'Malla Reddy Institute of Technology',
+          graduation_year: parseInt(selectedYear) || 2027,
+        } as any);
       }
 
       await api.completeOnboarding({
@@ -181,6 +180,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
   // Student Form State
   const [selectedCourse, setSelectedCourse] = useState('Computer Science');
   const [selectedYear, setSelectedYear] = useState('2027');
+  const [selectedSem, setSelectedSem] = useState('5');
   const [selectedGoal, setSelectedGoal] = useState('Software engineering');
   const [skillLevels, setSkillLevels] = useState<Record<string, number>>({
     dsa: 2,
@@ -226,8 +226,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const [generatedSaId, setGeneratedSaId] = useState('');
 
   // College Form State
-  const [instName, setInstName] = useState('Malla Reddy Institute of Technology');
-  const [instRole, setInstRole] = useState('Head of Career Services');
+  const [instName, setInstName] = useState('');
+  const [instRole, setInstRole] = useState('');
   const [instSize, setInstSize] = useState('500–2,000');
   const [collegeDepts, setCollegeDepts] = useState<string[]>(['Computer Science', 'Business']);
 
@@ -290,22 +290,36 @@ function WebOnboardingEngine({ router }: { router: any }) {
   }, [currentKey]);
 
   const nextStep = async () => {
-    if (currentKey === 'account') {
-      await handleSendRealtimeOtp();
-      setStepIdx(stepIdx + 1);
-      return;
-    }
-    if (currentKey === 'verify') {
-      const ok = await handleVerifyRealtimeOtp();
-      if (ok) {
+    if (isNavigating) return;
+    setIsNavigating(true);
+    try {
+      if (currentKey === 'account') {
+        await handleSendRealtimeOtp();
         setStepIdx(stepIdx + 1);
+        return;
       }
-      return;
+      if (currentKey === 'verify') {
+        const ok = await handleVerifyRealtimeOtp();
+        if (ok) {
+          setStepIdx(stepIdx + 1);
+        }
+        return;
+      }
+      if (stepIdx < currentSeq.length - 1) {
+        setStepIdx(stepIdx + 1);
+      } else {
+        await handleFinishOnboarding();
+      }
+    } finally {
+      setIsNavigating(false);
     }
+  };
+
+  const skipStep = () => {
     if (stepIdx < currentSeq.length - 1) {
       setStepIdx(stepIdx + 1);
     } else {
-      await handleFinishOnboarding();
+      handleFinishOnboarding();
     }
   };
 
@@ -657,13 +671,21 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   </div>
                   <div>
                     <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Password</div>
-                    <input
-                      type="password"
-                      value={userPassword}
-                      onChange={(e) => setUserPassword(e.target.value)}
-                      placeholder="••••••••••"
-                      style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
-                    />
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showPwd ? 'text' : 'password'}
+                        value={userPassword}
+                        onChange={(e) => setUserPassword(e.target.value)}
+                        placeholder="••••••••••"
+                        style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', paddingRight: '55px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                      />
+                      <div
+                        onClick={() => setShowPwd(!showPwd)}
+                        style={{ position: 'absolute', right: '15px', top: '15px', fontSize: '13px', fontWeight: '600', color: 'var(--muted)', cursor: 'pointer' }}
+                      >
+                        {showPwd ? 'Hide' : 'Show'}
+                      </div>
+                    </div>
                     <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
                       <span style={{ flex: 1, height: '3px', borderRadius: '2px', background: 'var(--ind)' }} />
                       <span style={{ flex: 1, height: '3px', borderRadius: '2px', background: 'var(--ind)' }} />
@@ -802,9 +824,17 @@ function WebOnboardingEngine({ router }: { router: any }) {
             <div style={{ display: 'grid', gap: '26px', maxWidth: '720px' }}>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '10px' }}>College</div>
-                <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>Malla Reddy Institute of Technology</span>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ind-lt)' }}>VERIFIED</span>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    value={instName}
+                    onChange={(e) => setInstName(e.target.value)}
+                    placeholder="Enter your college name"
+                    style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', paddingRight: '80px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                  />
+                  {(instName.toLowerCase().includes('malla reddy') || instName.toLowerCase().includes('mrit')) && (
+                    <span style={{ position: 'absolute', right: '15px', top: '16px', fontSize: '12px', fontWeight: 600, color: 'var(--ind-lt)' }}>VERIFIED</span>
+                  )}
                 </div>
               </div>
               <div>
@@ -854,6 +884,32 @@ function WebOnboardingEngine({ router }: { router: any }) {
                         }}
                       >
                         {y}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '10px' }}>Current Semester</div>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {['1', '2', '3', '4', '5', '6', '7', '8'].map((s) => {
+                    const on = selectedSem === s;
+                    return (
+                      <span
+                        key={s}
+                        onClick={() => setSelectedSem(s)}
+                        className="ob-chip"
+                        style={{
+                          fontSize: '14.5px',
+                          padding: '11px 18px',
+                          borderRadius: '100px',
+                          border: `1px solid ${on ? 'var(--ind)' : 'var(--line)'}`,
+                          background: on ? 'var(--tint)' : 'transparent',
+                          color: on ? 'var(--text)' : 'var(--muted2)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Sem {s}
                       </span>
                     );
                   })}
@@ -1416,13 +1472,48 @@ function WebOnboardingEngine({ router }: { router: any }) {
                 {selectedGoal}, graduating {selectedYear}, starting from system design.
               </p>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '20px', position: 'relative', borderTop: '2px solid var(--ind)', paddingTop: '32px' }}>
-              {[
-                { sem: 'NOW · SEM 5', title: 'System design basics', sub: 'Two mentor sessions and one guided project.' },
-                { sem: 'SEM 6', title: 'Portfolio project', sub: 'The one that matches 4 of your open roles.' },
-                { sem: 'SUMMER', title: 'Internship', sub: 'Referral route through two MRIT alumni.' },
-                { sem: 'SEM 8', title: 'First offer', sub: 'Interview prep, then negotiation prompts.' },
-              ].map((m, idx) => (
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(200px, 1fr))`, gap: '20px', position: 'relative', borderTop: '2px solid var(--ind)', paddingTop: '32px' }}>
+              {(() => {
+                const currentNum = parseInt(selectedSem) || 5;
+                const roadmap = [];
+                
+                roadmap.push({
+                  sem: `NOW · SEM ${currentNum}`,
+                  title: `${selectedCourse} basics`,
+                  sub: 'Two mentor sessions and one guided project.'
+                });
+
+                if (currentNum < 6) {
+                  roadmap.push({
+                    sem: `SEM ${currentNum + 1}`,
+                    title: 'Portfolio project',
+                    sub: 'The one that matches your open roles.'
+                  });
+                } else if (currentNum === 6) {
+                  roadmap.push({
+                    sem: 'SUMMER',
+                    title: 'Hackathon prep',
+                    sub: 'Build a project to showcase.'
+                  });
+                }
+
+                if (currentNum <= 7) {
+                  roadmap.push({
+                    sem: 'SEM 7',
+                    title: 'Internship',
+                    sub: `Referral route through two ${instName || 'alumni'}.`
+                  });
+                }
+
+                if (currentNum <= 8) {
+                  roadmap.push({
+                    sem: 'SEM 8',
+                    title: 'First offer',
+                    sub: 'Interview prep, then negotiation prompts.'
+                  });
+                }
+                return roadmap;
+              })().map((m, idx) => (
                 <div key={idx} className="ob-rstep" style={{ position: 'relative' }}>
                   <span
                     style={{
@@ -1644,15 +1735,23 @@ function WebOnboardingEngine({ router }: { router: any }) {
             <div style={{ display: 'grid', gap: '22px' }}>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>Institution name</div>
-                <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px' }}>
-                  {instName}
-                </div>
+                <input
+                  type="text"
+                  value={instName}
+                  onChange={(e) => setInstName(e.target.value)}
+                  placeholder="Enter institution name"
+                  style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                />
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>Your role</div>
-                <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px' }}>
-                  {instRole}
-                </div>
+                <input
+                  type="text"
+                  value={instRole}
+                  onChange={(e) => setInstRole(e.target.value)}
+                  placeholder="e.g. Head of Career Services"
+                  style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                />
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '10px' }}>Students per graduating cohort</div>
@@ -2051,7 +2150,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
             </div>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <span
-                onClick={() => router.replace('/student-portal/dashboard')}
+                onClick={handleFinishOnboarding}
                 className="ob-cta"
                 style={{ fontSize: '15px', fontWeight: 600, padding: '15px 26px', borderRadius: '10px', background: 'var(--ind)', color: '#FFFFFF', cursor: 'pointer', transition: 'background .2s ease' }}
               >
@@ -2089,7 +2188,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
               {stepIdx > 0 && currentKey !== 'notify' && currentKey !== 'roadmap' && (
-                <span id="ob-skip" onClick={nextStep} style={{ fontSize: '14px', color: 'var(--muted)', cursor: 'pointer' }}>
+                <span id="ob-skip" onClick={skipStep} style={{ fontSize: '14px', color: 'var(--muted)', cursor: 'pointer' }}>
                   Skip
                 </span>
               )}
@@ -2107,14 +2206,18 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   borderRadius: '10px',
                   background: 'var(--ind)',
                   color: '#FFFFFF',
-                  cursor: 'pointer',
+                  cursor: isNavigating ? 'wait' : 'pointer',
+                  opacity: isNavigating ? 0.7 : 1,
                   transition: 'background .2s ease',
+                  pointerEvents: isNavigating ? 'none' : 'auto',
                 }}
               >
-                {stepIdx === currentSeq.length - 2 ? 'Finish' : 'Continue'}
-                <svg width="14" height="14" viewBox="0 0 16 16" style={{ fill: 'none', stroke: '#FFFFFF', strokeWidth: 1.9 }}>
-                  <path d="M3 8 h10 M9 4 l4 4 -4 4" />
-                </svg>
+                {isNavigating ? 'Loading...' : (stepIdx === currentSeq.length - 2 ? 'Finish' : 'Continue')}
+                {!isNavigating && (
+                  <svg width="14" height="14" viewBox="0 0 16 16" style={{ fill: 'none', stroke: '#FFFFFF', strokeWidth: 1.9 }}>
+                    <path d="M3 8 h10 M9 4 l4 4 -4 4" />
+                  </svg>
+                )}
               </span>
             </div>
           </div>

@@ -344,6 +344,28 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     }
   };
 
+  const [commBroadcasting, setCommBroadcasting] = useState(false);
+  const handleBroadcastCommunityInvites = async () => {
+    setCommBroadcasting(true);
+    try {
+      const res = await request<any>('/newsletter/admin/broadcast-community-invites', {
+        method: 'POST',
+        body: {
+          audience: form.audience || 'all',
+          whatsapp_url: 'https://chat.whatsapp.com/G2kc2u0gzh68DKSjlOyCxu',
+          instagram_url: 'https://www.instagram.com/studentalumni.ai/',
+          linkedin_url: 'https://linkedin.com/company/student-alumni'
+        }
+      });
+      flash(res?.message || 'Community broadcast queued across WhatsApp, Email, Push & In-App!');
+      await load();
+    } catch (e: any) {
+      flash(e?.message || 'Failed to dispatch community broadcast', 'error');
+    } finally {
+      setCommBroadcasting(false);
+    }
+  };
+
   const cancelCampaign = async (campaignId: string) => {
     if (!campaignId) return;
     setCancellingId(campaignId);
@@ -663,7 +685,15 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
             <Text style={st.title}>Newsletter</Text>
             <Text style={st.sub}>Compose and send an HTML newsletter to every registered user by email.</Text>
           </View>
-          <SecondaryButton onPress={load}><RefreshCw size={12} color={SAC.muted} /><Text style={st.secText}>Refresh</Text></SecondaryButton>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <SecondaryButton onPress={handleBroadcastCommunityInvites} disabled={commBroadcasting}>
+              <MessageSquare size={13} color="#34D399" />
+              <Text style={{ color: '#34D399', fontSize: 13, fontFamily: FONTS.bold }}>
+                {commBroadcasting ? 'Sending...' : 'Broadcast Community Invites'}
+              </Text>
+            </SecondaryButton>
+            <SecondaryButton onPress={load}><RefreshCw size={12} color={SAC.muted} /><Text style={st.secText}>Refresh</Text></SecondaryButton>
+          </View>
         </View>
       </Card>
 

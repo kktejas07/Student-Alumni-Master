@@ -8,7 +8,9 @@ import { useRouter } from 'expo-router';
 import { Ticket, CheckCircle, Download, ShieldCheck, QrCode, X, Lock, Calendar, MapPin, User, ArrowRight, AlertCircle, Clock } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { EmptyState } from '../EmptyState';
-import { api } from '@/src/models/services/api';
+import { api, tokenStore } from '@/src/models/services/api';
+import { resolveImageUrl } from '@/src/models/services/api';
+import { EchoTicketsConfirmationPage } from '../../../echo/EchoTicketsConfirmationPage';
 
 type Coupon = {
   coupon_code: string;
@@ -106,15 +108,10 @@ export function MyTicketsView() {
     finally { setDownloading(null); }
   };
 
-  const openTicket = async (regId: string) => {
-    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
-    const w = window.open('', '_blank');
-    if (!w) { alert('Popup blocked! Please allow popups to view your event pass.'); return; }
-    w.document.write('<div style="font-family:sans-serif;padding:20px;color:#888;">Loading event pass...</div>');
-    try {
-      const data = await api.getEchoTicket(regId);
-      w.document.open(); w.document.write(data.html); w.document.close(); w.focus();
-    } catch { w.close(); alert('Failed to load event pass.'); }
+  const openTicket = async (regId: string, eventTitle?: string) => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      router.push(`/echo/tickets?tab=tickets${regId ? `&ticketId=${regId}` : ''}${eventTitle ? `&eventName=${encodeURIComponent(eventTitle)}` : ''}`);
+    }
   };
 
   const totalPaid = items.reduce((a, i) => a + Number(i.invoice?.amount || 0), 0);
@@ -126,6 +123,15 @@ export function MyTicketsView() {
       <View style={{ alignItems: 'center', paddingVertical: 60 }}>
         <ActivityIndicator size="large" color={SC.accentBright} />
         <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 12 }}>Loading tickets...</Text>
+      </View>
+    );
+  }
+
+  if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    return (
+      <View style={{ gap: 24 }}>
+        <EchoTicketsConfirmationPage initialTab="tickets" hideHeaderNav />
+        <EchoTicketsConfirmationPage initialTab="coupons" hideHeaderNav />
       </View>
     );
   }
@@ -148,7 +154,19 @@ export function MyTicketsView() {
         )}
       </View>
 
-      {items.length === 0 ? (
+      <Pressable
+        onPress={() => router.push('/echo/tickets')}
+        style={{ backgroundColor: '#7C5CFC', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+      >
+        <Ticket size={16} color="#fff" />
+        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Open Interactive Tickets Console →</Text>
+      </Pressable>
+
+      {loading ? (
+        <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={SC.accentBright} />
+        </View>
+      ) : items.length === 0 ? (
         <EmptyState
           variant="generic"
           title="No tickets yet"

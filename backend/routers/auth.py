@@ -1123,7 +1123,11 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
     if user:
         update = {"oauth_provider": provider, "oauth_picture": picture, "last_login": datetime.now(timezone.utc)}
         if picture:
-            update["photo_data"] = picture
+            is_custom = bool(user.get("face_image_base64"))
+            if user.get("photo_data") and str(user.get("photo_data")).startswith("data:"):
+                is_custom = True
+            if not is_custom:
+                update["photo_data"] = picture
         await db.users.update_one({"_id": user["_id"]}, {"$set": update})
         updated = await db.users.find_one({"_id": user["_id"]})
         return updated if updated is not None else user

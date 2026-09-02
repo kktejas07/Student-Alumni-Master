@@ -100,6 +100,7 @@ export default function StudentPlatform() {
           <StudentDashboardView
             userName={(user?.full_name || 'there').split(' ')[0]}
             onOpenNotifications={() => router.push('/notifications')}
+            onOpenProfile={() => setScreen('profile')}
             onSeeAllInternships={() => setScreen('internships')}
           />
         )}

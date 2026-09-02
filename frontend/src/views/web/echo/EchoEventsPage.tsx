@@ -19,7 +19,7 @@ import CommonFooter from '@/src/views/components/CommonFooter';
 import PaymentStatusScreen, { PaymentResult } from '@/src/views/components/PaymentStatusScreen';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { useTheme } from '@/src/theme/ThemeContext';
-import { EchoMarketplace } from './EchoMarketplace';
+import { EchoTicketsConfirmationPage } from './EchoTicketsConfirmationPage';
 
 interface EchoEventsPageProps {
   initialView?: 'list' | 'detail' | 'reg';
@@ -34,7 +34,7 @@ const SAMPLE_EVENTS = [
     college: 'SNIST',
     college_name: 'Sreenidhi Institute of Science and Technology',
     college_full: 'Sreenidhi Institute of Science & Technology, Hyderabad',
-    status: 'UPCOMING',
+    status: 'CLOSING IN 30 MINS',
     organizer: 'Career Development Center · SNIST in collaboration with StudentAlumni.ai',
     description: "Build something real. In one overnight sprint. National-Level 24-Hour Tech Fest with 7 Verticals across AI, Security, Hiring and Firesides.",
     dates: 'September 04 – 05, 2026',
@@ -43,8 +43,8 @@ const SAMPLE_EVENTS = [
     time: 'Sep 4th, 08:00 AM — Sep 5th, 01:00 PM',
     venue: 'Sreenidhi Institute of Science & Technology (SNIST), Hyderabad',
     location_short: 'SNIST Campus, Hyderabad',
-    prize_pool: '₹2,00,000 Mega Grand Pool (₹50,000 Track Pool)',
-    reg_closes: '2026-09-01',
+    prize_pool: '₹17,50,000+ Total Pool (₹2,00,000 Mega Grand Pool · ₹50,000 Track Pool · WeHive Visas & Germany Study Abroad)',
+    reg_closes: 'Sep 02, 2026 · 7:00 PM IST (Closing in 30 mins)',
     individual_fee: 599,
     team_fee: 2495,
     individual_seats: '985 seats available',
@@ -320,7 +320,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 venue: item.venue || existing.venue || 'Sreenidhi Institute of Science & Technology',
                 location_short: item.venue || existing.location_short || 'Hyderabad',
                 prize_pool: item.prize_pool ? (String(item.prize_pool).includes('₹') ? item.prize_pool : `₹${item.prize_pool} prize pool`) : existing.prize_pool || '₹50,000 prize pool',
-                reg_closes: item.reg_closes || existing.reg_closes || '2026-09-01',
+                reg_closes: item.reg_closes || existing.reg_closes || 'Sep 02, 2026 · 7:00 PM IST (Closing in 30 mins)',
                 individual_fee: item.fee ?? item.individual_fee ?? existing.individual_fee ?? 599,
                 team_fee: item.team_fee ?? existing.team_fee ?? 2495,
                 individual_seats: item.available_seats ? `${item.available_seats} seats available` : existing.individual_seats || '985 seats available',
@@ -527,16 +527,30 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       showToast('Please enter your full name and email to proceed.');
       return;
     }
+    const cleanMainPhoneDigits = (phone || '').replace(/^\+91\s*/, '').replace(/\D/g, '');
+    if (!phone || cleanMainPhoneDigits.length !== 10) {
+      showToast('Please enter a valid 10-digit mobile number.');
+      return;
+    }
     if (isTeam && !teamName.trim()) {
       showToast('Please enter a team name to proceed.');
       return;
     }
-    setShowTermsErr(false);
-    setIsPaying(true);
-
     const validMembers = isTeam
       ? teamMembers.filter((m) => m.name.trim() || m.email.trim())
       : [];
+    for (let i = 0; i < validMembers.length; i++) {
+      const m = validMembers[i];
+      if (m.phone) {
+        const mDigits = m.phone.replace(/^\+91\s*/, '').replace(/\D/g, '');
+        if (mDigits.length !== 10) {
+          showToast(`Please enter a valid 10-digit phone number for Team Member ${i + 2}.`);
+          return;
+        }
+      }
+    }
+    setShowTermsErr(false);
+    setIsPaying(true);
     
     const payload = {
       full_name: fullName || 'Student Attendee',
@@ -1281,7 +1295,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ₹2,00,000 Mega Grand Pool (₹50,000 Track Pool)</span>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ₹17,50,000+ Total Prize & Sponsorship Pool (WeHive 2 Business Visas & Germany Study Abroad)</span>
               <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
@@ -1308,7 +1322,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ₹2,00,000 Mega Grand Pool (₹50,000 Track Pool)</span>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ₹17,50,000+ Total Prize & Sponsorship Pool (WeHive 2 Business Visas & Germany Study Abroad)</span>
               <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
@@ -2042,12 +2056,21 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
                 {[
-                  { poster: '/images/hackwave/m_avinash_rao_poster.png', name: 'M Avinash Rao, PMP®', title: 'Client Account Manager', org: 'Deloitte', location: 'Hyderabad, Telangana', country: 'India', takeaway: 'Managing the account is really managing the relationship.', highlights: ['Client delivery at scale', 'Project management, practically', 'PMP® in the real world'], li: 'in/avi-thestoryteller' },
-                  { poster: '/images/hackwave/gopichand_anumolu_poster.png', name: 'Gopichand Anumolu', title: 'Founder', org: 'ATLAST', location: 'Hyderabad, Telangana', country: 'India', takeaway: 'Founding is mostly the unglamorous part.', highlights: ['Building ATLAST from zero', 'Finding the first customers', 'What nobody tells founders'], li: 'in/gopichand-anumolu-83b3801a4' },
-                  { poster: '/images/hackwave/harish_kotra_poster.png', name: 'Harish Kotra', title: 'DevX Lead', org: 'Quirq', location: 'New York', country: 'USA', takeaway: 'Beyond Benchmarks: Building an Intelligent AI Router for Production', highlights: ['200+ hackathons run', '13+ years in DevRel', '95K+ devs in community'], li: 'in/harishkotra' },
-                  { poster: '/images/hackwave/jonna_dheeraj_poster.png', name: 'Jonna Dheeraj', title: 'Account Delivery & Program Management', org: 'Embedded SW · AI · VLSI · 5G · IoT', location: 'Hyderabad, Telangana', country: 'India', takeaway: 'Delivery is where good engineering meets a hard deadline.', highlights: ['Programme and account delivery', 'Embedded, AI, VLSI and 5G', 'Shipping across time zones'], li: 'in/jonna-dheeraj-9a91ab34' },
-                  { poster: '/images/hackwave/venkatesh_hanmantraya_poster.png', name: 'Venkatesh Hanmantraya', title: 'Speaker', org: 'Voices That Build', location: 'Telangana', country: 'India', takeaway: 'Bringing industry practice into the classroom.', highlights: ['Industry-to-campus perspective', 'Practical engineering habits', 'Session detail to be confirmed'], li: 'in/venkatesh-hanmantraya-9b9a42101' },
-                  { poster: '/images/hackwave/mohit_bhalla_poster.png', name: 'Mohit Bhalla', title: 'Leadership Address', org: 'StudentAlumni', location: 'Delhi', country: 'India', takeaway: 'Leadership is deciding what not to build.', highlights: ['Leading engineering organisations', 'Judgement over process', 'Session detail to be confirmed'], li: 'in/mohit-bhalla-9028671a' }
+                  { poster: '/images/hackwave/aditya_pramod_kotha_poster.png', name: 'Aditya Pramod Kotha', title: 'ATLAST', org: 'ATLAST', location: 'Greater Hyderabad', country: 'India', role: 'SPEAKER', takeaway: 'Building scalable products with precision.', li: 'in/aditya-pramod-kotha' },
+                  { poster: '/images/hackwave/harish_kotra_poster.png', name: 'Harish Kotra', title: 'Hackathon Specialist · DevX Lead', org: 'quirq', location: 'New York', country: 'USA', role: 'SPEAKER', takeaway: 'Beyond Benchmarks: Building an Intelligent AI Router for Production', li: 'in/harishkotra' },
+                  { poster: '/images/hackwave/jeremy_livingston_poster.png', name: 'Jeremy Livingston', title: 'CISO & Deputy CIO', org: 'Stevens Institute of Technology', location: 'Effort, Pennsylvania', country: 'USA', role: 'PANELIST', takeaway: 'Cybersecurity governance & enterprise AI resilience.', li: 'in/jeremylivin' },
+                  { poster: '/images/hackwave/jonna_dheeraj_poster.png', name: 'Jonna Dheeraj', title: 'Account Delivery & Program Management', org: 'Embedded SW · AI · VLSI · 5G · IoT', location: 'Hyderabad, Telangana', country: 'India', role: 'SPEAKER', takeaway: 'Delivery is where good engineering meets a hard deadline.', li: 'in/jonna-dheeraj-9a91ab34' },
+                  { poster: '/images/hackwave/gopichand_anumolu_poster.png', name: 'Gopichand Anumolu', title: 'Founder', org: 'ATLAST', location: 'Hyderabad, Telangana', country: 'India', role: 'SPEAKER', takeaway: 'Founding is mostly the unglamorous part.', li: 'in/gopichand-anumolu-83b3801a4' },
+                  { poster: '/images/hackwave/suman_kalia_poster.png', name: 'Suman Kalia', title: 'Associate Professor & Chair, CS', org: "Saint Peter's University", location: 'Jersey City, New Jersey', country: 'USA', role: 'PANELIST', takeaway: 'Bridging academic CS with industry AI breakthroughs.', li: 'in/suman-kalia-300b521' },
+                  { poster: '/images/hackwave/m_avinash_rao_poster.png', name: 'M Avinash Rao, PMP®', title: 'Client Account Manager', org: 'Deloitte', location: 'Hyderabad, Telangana', country: 'India', role: 'SPEAKER', takeaway: 'Managing the account is really managing the relationship.', li: 'in/avi-thestoryteller' },
+                  { poster: '/images/hackwave/mohit_bhalla_poster.png', name: 'Mohit Bhalla', title: 'Leadership Address', org: 'StudentAlumni', location: 'Delhi', country: 'India', role: 'LEADERSHIP', takeaway: 'Leadership is deciding what not to build.', li: 'in/mohit-bhalla-9028671a' },
+                  { poster: '/images/hackwave/stan_mierzwa_poster.png', name: 'Stan Mierzwa, Ph.D.', title: 'Director, Center for Cybersecurity', org: 'Kean University', location: 'Union, New Jersey', country: 'USA', role: 'PANELIST', takeaway: 'Defending national infrastructure in the age of generative threats.', li: 'in/stanmierzwa' },
+                  { poster: '/images/hackwave/sharon_kelley_poster.png', name: 'Sharon Kelley', title: 'Board Member', org: 'ISC2 New Jersey Chapter', location: 'Hoboken, New Jersey', country: 'USA', role: 'PANELIST', takeaway: 'Navigating CISSP & CCSP career pathways for engineers.', li: 'in/sharon-kelley-0292181' },
+                  { poster: '/images/hackwave/sunil_kumar_poster.png', name: 'Sunil Kumar', title: 'Operations, Manufacturing & Consulting', org: 'Jaaji Technologies', location: 'Andhra Pradesh', country: 'India', role: 'SPEAKER', takeaway: 'Scaling operations & consulting across emerging tech.', li: 'in/sunil-kumar-5495485' },
+                  { poster: '/images/hackwave/ken_fishkin_poster.png', name: 'Ken Fishkin', title: 'President', org: 'ISC2 New Jersey Chapter', location: 'New Jersey', country: 'USA', role: 'PANELIST', takeaway: 'Building global security leadership & community standards.', li: 'in/kfishkin' },
+                  { poster: '/images/hackwave/vinod_kumar_shalva_poster.png', name: 'Vinod Kumar Shalva', title: 'Talent Acquisition Professional', org: 'UBS', location: 'Hyderabad', country: 'India', role: 'SPEAKER', takeaway: 'How global banks recruit top engineering talent.', li: 'in/vinod-kumar-shalva-8b248722' },
+                  { poster: '/images/hackwave/venkatesh_hanmantraya_poster.png', name: 'Venkatesh Hanmantraya', title: 'Android Developer', org: 'Cognizant Technology Solutions', location: 'Telangana', country: 'India', role: 'SPEAKER', takeaway: 'Bringing industry practice into mobile engineering.', li: 'in/venkatesh-hanmantraya-9b9a42101' },
+                  { poster: '/images/hackwave/venkatamurali_gottuparthi_poster.png', name: 'Venkatamurali Gottuparthi', title: 'Solutions Architect', org: 'Cognizant', location: 'Telangana', country: 'India', role: 'SPEAKER', takeaway: 'Architecting high-concurrency cloud systems.', li: 'in/gvmk2000' }
                 ].map((spk, idx) => (
                   <div key={idx} className="ev-mini" style={{ border: '1px solid var(--line2)', borderRadius: '18px', overflow: 'hidden', background: '#090B18', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ width: '100%', aspectRatio: '4/5', borderRadius: '14px', overflow: 'hidden', background: '#000' }}>
@@ -2101,7 +2124,94 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           </div>
 
           {/* ────────────────────────────────────────────────────────── */}
-          {/* ONE TICKET. ₹599. MEGA GRAND POOL & ALL PERKS (BANNER 5)   */}
+          {/* ────────────────────────────────────────────────────────── */}
+          {/* WEHIVE SPONSOR SPOTLIGHT — TWO REWARDS BEYOND PRIZE POOL  */}
+          {/* ────────────────────────────────────────────────────────── */}
+          <div style={{ marginBottom: '32px', border: '1px solid #7C5CFC', borderRadius: '22px', background: 'linear-gradient(135deg, #1C1236 0%, #0D091F 100%)', padding: '32px 30px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1.4px', color: '#A78BFA', background: 'rgba(124,92,252,0.2)', border: '1px solid rgba(124,92,252,0.4)', borderRadius: '100px', padding: '5px 14px' }}>
+                  SPONSOR SPOTLIGHT · WE HIRE
+                </span>
+                <span style={{ fontSize: '12px', color: '#9CA3AF' }}>Official Visa & Study-Abroad Partner</span>
+              </div>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#38BDF8', background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: '100px', padding: '4px 12px' }}>
+                Awarded on Merit
+              </span>
+            </div>
+
+            <div style={{ fontSize: '28px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.8px', marginBottom: '20px' }}>
+              Two rewards, beyond the prize pool
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+              <div style={{ background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '18px', padding: '22px' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(56, 189, 248, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" strokeWidth="2"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2.5"/><path d="M15 8h2M15 12h2M7 16h10"/></svg>
+                </div>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: '#FFFFFF' }}>2 Business Visas</div>
+                <div style={{ fontSize: '13px', color: '#94A3B8', marginTop: '4px' }}>Sponsored in full, for two winners by WeHive</div>
+              </div>
+
+              <div style={{ background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.3)', borderRadius: '18px', padding: '22px' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(251, 191, 36, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FCD34D" strokeWidth="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                </div>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: '#FFFFFF' }}>Up to ₹15,00,000</div>
+                <div style={{ fontSize: '13px', color: '#FDE68A', marginTop: '4px' }}>Toward a Master's programme in Germany</div>
+              </div>
+            </div>
+
+            {/* Terms & Conditions */}
+            <div style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '18px 22px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1.2px', color: '#9CA3AF', marginBottom: '10px' }}>WEHIVE PERKS — TERMS & CONDITIONS</div>
+              <ol style={{ margin: 0, paddingLeft: '18px', color: '#CBD5E1', fontSize: '12.5px', lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <li>Awarded at the sole discretion of WeHive and the organisers.</li>
+                <li>Winners must be registered HackWave 3.0 participants.</li>
+                <li>Awards are non-transferable and cannot be exchanged for cash.</li>
+                <li>Visa award covers processing and service fees only; travel, insurance and consular fees are excluded.</li>
+                <li>The Germany sponsorship is subject to the recipient securing admission to an eligible programme.</li>
+                <li>Sponsorship is disbursed directly to the institution, not to the individual.</li>
+                <li>Applicants must meet WeHive's eligibility, documentation and verification requirements.</li>
+                <li>Full terms are published at studentalumni.ai/echo/snist and prevail over this summary.</li>
+              </ol>
+            </div>
+
+            {/* Official Community Channels */}
+            <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1.4px', color: '#38BDF8' }}>
+                JOIN OFFICIAL STUDENT ALUMNI COMMUNITY CHANNELS
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                <a href="https://chat.whatsapp.com/G2kc2u0gzh68DKSjlOyCxu" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', background: 'rgba(16, 185, 129, 0.14)', border: '1px solid rgba(16, 185, 129, 0.35)', borderRadius: '14px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '24px' }}>💬</span>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF' }}>WhatsApp Community</div>
+                    <div style={{ fontSize: '11.5px', color: '#34D399' }}>Instant campus & event alerts</div>
+                  </div>
+                </a>
+
+                <a href="https://www.instagram.com/studentalumni.ai/" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', background: 'rgba(236, 72, 153, 0.14)', border: '1px solid rgba(236, 72, 153, 0.35)', borderRadius: '14px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '24px' }}>📸</span>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF' }}>Instagram Channel</div>
+                    <div style={{ fontSize: '11.5px', color: '#F472B6' }}>@studentalumni.ai</div>
+                  </div>
+                </a>
+
+                <a href="https://linkedin.com/company/student-alumni" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', background: 'rgba(56, 189, 248, 0.14)', border: '1px solid rgba(56, 189, 248, 0.35)', borderRadius: '14px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '24px' }}>💼</span>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF' }}>LinkedIn Page</div>
+                    <div style={{ fontSize: '11.5px', color: '#38BDF8' }}>Student Alumni Official</div>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* ────────────────────────────────────────────────────────── */}
+          {/* ONE TICKET. ₹599. TOTAL PRIZE & SPONSORSHIP POOL           */}
           {/* ────────────────────────────────────────────────────────── */}
           <div style={{ marginBottom: '32px', border: '1px solid #F59E0B', borderRadius: '22px', background: 'linear-gradient(135deg, #2D1A04 0%, #1A130B 100%)', padding: '32px 30px' }}>
             <div style={{ textAlign: 'center', marginBottom: '24px' }}>
@@ -2111,31 +2221,37 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
             </div>
 
-            {/* Prize Pools */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 220px', gap: '16px', padding: '20px 24px', background: 'rgba(245,158,11,0.12)', border: '1px solid #78350F', borderRadius: '16px', marginBottom: '22px' }}>
+            {/* Total Prize & Sponsorship Pool */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) 1fr 1fr', gap: '14px', padding: '20px 24px', background: 'rgba(245,158,11,0.12)', border: '1px solid #78350F', borderRadius: '16px', marginBottom: '22px' }}>
               <div>
-                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#FCD34D' }}>MEGA GRAND POOL</div>
-                <div style={{ fontSize: '34px', fontWeight: 900, color: '#FFFFFF', letterSpacing: '-1px' }}>₹2,00,000</div>
-                <div style={{ fontSize: '12.5px', color: '#FDE68A', marginTop: '2px' }}>Open to every hackathon participant, not only winners</div>
+                <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1.3px', color: '#FCD34D' }}>TOTAL PRIZE & SPONSORSHIP POOL</div>
+                <div style={{ fontSize: '32px', fontWeight: 900, color: '#FFFFFF', letterSpacing: '-1px' }}>₹17,50,000+</div>
+                <div style={{ fontSize: '12px', color: '#FDE68A', marginTop: '2px' }}>Including 2 fully sponsored business visas</div>
               </div>
-              <div style={{ textAlign: 'right', borderLeft: '1px solid rgba(245,158,11,0.3)', paddingLeft: '18px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#FCD34D' }}>TRACK PRIZE POOL</div>
-                <div style={{ fontSize: '26px', fontWeight: 800, color: '#34D399', marginTop: '2px' }}>₹50,000</div>
+              <div style={{ borderLeft: '1px solid rgba(245,158,11,0.3)', paddingLeft: '16px' }}>
+                <div style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '1.2px', color: '#FCD34D' }}>MEGA GRAND POOL</div>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: '#FFFFFF', marginTop: '2px' }}>₹2,00,000</div>
+                <div style={{ fontSize: '11px', color: '#9CA3AF' }}>Open to every participant</div>
+              </div>
+              <div style={{ borderLeft: '1px solid rgba(245,158,11,0.3)', paddingLeft: '16px' }}>
+                <div style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '1.2px', color: '#FCD34D' }}>HACKATHON TRACKS</div>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: '#34D399', marginTop: '2px' }}>₹50,000</div>
+                <div style={{ fontSize: '11px', color: '#9CA3AF' }}>5 AI Tracks</div>
               </div>
             </div>
 
             {/* Perks Cards List */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
               {((activeEvent.perks && activeEvent.perks.length > 0) ? activeEvent.perks : [
+                { name: '2 Business Visas', description: 'Sponsored in full by WeHive', value: 'Visa Perk' },
+                { name: 'Germany Study Abroad', description: 'Up to ₹15,00,000 Master\'s sponsorship', value: '₹15,00,000' },
                 { name: 'Featherless AI', description: 'A full account, free', value: '$29 value' },
                 { name: 'SetupMark AI', description: '50 credits, 2 months free', value: '$50 value' },
                 { name: 'CodeSpectra AI', description: '3 months completely free', value: 'Assessments' },
                 { name: 'Bandiwala', description: '15% off food', value: 'Coupon' },
-                { name: 'WeHive Consulting', description: '15% off services', value: 'Coupon' },
                 { name: 'Four meal coupons', description: 'Lunch, dinner, midnight, breakfast', value: 'Included' },
                 { name: 'Certificates for all', description: 'Participation and winner certificates', value: 'Verifiable' },
-                { name: 'On-the-spot offers', description: 'Internship and placement offers, in the room', value: 'Live' },
-                { name: 'Surprise goodies', description: 'Extra prizes and drops announced on the day', value: 'Surprise' }
+                { name: 'On-the-spot offers', description: 'Internship and placement offers, in the room', value: 'Live' }
               ]).map((perk: any, pidx: number) => (
                 <div key={pidx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '11px' }}>
                   <div>
@@ -2420,15 +2536,23 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   {/* Phone */}
                   <div>
                     <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>
-                      {isTeam ? 'TEAM CAPTAIN PHONE NUMBER *' : 'PHONE NUMBER *'}
+                      {isTeam ? 'TEAM CAPTAIN PHONE NUMBER (10 DIGITS) *' : 'PHONE NUMBER (10 DIGITS) *'}
                     </div>
-                    <div className="ev-field" style={{ border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '14px 15px', display: 'flex', alignItems: 'center' }}>
+                    <div className="ev-field" style={{ border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(124,92,252,0.14)', border: '1px solid #3A2E72', borderRadius: '8px', padding: '6px 10px', flexShrink: 0 }}>
+                        <span style={{ fontSize: '14px' }}>🇮🇳</span>
+                        <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#A78BFA' }}>+91</span>
+                      </div>
                       <input
                         type="tel"
-                        placeholder="+91 …"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#FFFFFF', fontSize: '14.5px', fontFamily: 'inherit' }}
+                        placeholder="10-digit mobile number"
+                        maxLength={10}
+                        value={(phone || '').replace(/^\+91\s*/, '').replace(/\D/g, '').slice(0, 10)}
+                        onChange={(e) => {
+                          const rawDigits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          setPhone(rawDigits ? `+91 ${rawDigits}` : '');
+                        }}
+                        style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#FFFFFF', fontSize: '14.5px', fontFamily: 'inherit', letterSpacing: '0.5px' }}
                       />
                     </div>
                   </div>
@@ -2661,17 +2785,25 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                               }}
                               style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
                             />
-                            <input
-                              type="tel"
-                              placeholder={`Member ${idx + 2} Phone (optional)`}
-                              value={member.phone}
-                              onChange={(e) => {
-                                const updated = [...teamMembers];
-                                updated[idx] = { ...updated[idx], phone: e.target.value };
-                                setTeamMembers(updated);
-                              }}
-                              style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
-                            />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--line)', borderRadius: '8px', padding: '6px 8px', flexShrink: 0 }}>
+                                <span style={{ fontSize: '12px' }}>🇮🇳</span>
+                                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)' }}>+91</span>
+                              </div>
+                              <input
+                                type="tel"
+                                placeholder={`Member ${idx + 2} Phone (10 digits, optional)`}
+                                maxLength={10}
+                                value={(member.phone || '').replace(/^\+91\s*/, '').replace(/\D/g, '').slice(0, 10)}
+                                onChange={(e) => {
+                                  const rawDigits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                  const updated = [...teamMembers];
+                                  updated[idx] = { ...updated[idx], phone: rawDigits ? `+91 ${rawDigits}` : '' };
+                                  setTeamMembers(updated);
+                                }}
+                                style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
+                              />
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -2849,55 +2981,35 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         </div>
       )}
 
-      {/* Payment Status Screens */}
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* SUCCESS CONFIRMATION FULLSCREEN PAGE */}
       {paymentSuccess && ticketData && (
-         <PaymentStatusScreen
-           result={{
-             mode: 'success',
-             ticketId: ticketData.ticketId,
-             eventName: ticketData.eventName,
-             attendeeName: ticketData.attendeeName,
-             type: ticketData.type,
-             amount: ticketData.amount,
-             date: ticketData.date,
-             venue: ticketData.venue,
-             email: ticketData.email,
-             slug: ticketData.slug,
-             time: ticketData.time,
-           }}
-           onPrimaryAction={() => router.push('/platform?role=student&tab=my-tickets')}
-           onSecondaryAction={() => {
-             if (ticketData.slug) {
-               const link = document.createElement('a');
-               link.href = `/api/echo/ics/${ticketData.slug}`;
-               link.download = `${ticketData.slug}.ics`;
-               link.style.display = 'none';
-               document.body.appendChild(link);
-               link.click();
-               document.body.removeChild(link);
-             } else {
-               showToast('Calendar download unavailable for this event.');
-              }
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, overflowY: 'auto', background: '#08080F' }}>
+          <div style={{ position: 'absolute', top: 16, right: 24, zIndex: 1001 }}>
+            <button
+              onClick={() => {
+                setPaymentSuccess(false);
+                go('list');
+              }}
+              style={{ background: 'rgba(255,255,255,0.1)', color: '#FFF', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '100px', padding: '10px 20px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', backdropFilter: 'blur(10px)' }}
+            >
+              ✕ Close Confirmation
+            </button>
+          </div>
+          <EchoTicketsConfirmationPage
+            initialTab="success"
+            ticketInfo={{
+              ticketId: ticketData.ticketId,
+              eventName: ticketData.eventName,
+              attendeeName: ticketData.attendeeName,
+              email: ticketData.email,
+              type: ticketData.type,
+              amount: ticketData.amount,
+              date: ticketData.date,
+              venue: ticketData.venue,
             }}
-           onClose={() => {
-            setPaymentSuccess(false);
-            go('list');
-          }}
-        />
-      )}
-
-      {paymentFailure && (
-        <PaymentStatusScreen
-          result={paymentFailure}
-          onPrimaryAction={() => {
-            setPaymentFailure(null);
-            handlePay();
-          }}
-          onClose={() => {
-            setPaymentFailure(null);
-            go('detail');
-          }}
-        />
+          />
+        </div>
       )}
 
       {/* Toast Notification */}
