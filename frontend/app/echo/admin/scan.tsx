@@ -22,7 +22,25 @@ function QRScanner({ onScan, onClose }: { onScan: (code: string) => void; onClos
     const start = async () => {
       if (!containerRef.current || !mounted) return;
       try {
-        const { Html5Qrcode } = await import('html5-qrcode');
+        if (typeof window === 'undefined') return;
+        
+        const loadScript = () => {
+          return new Promise<void>((resolve, reject) => {
+            if ((window as any).Html5Qrcode) {
+              resolve();
+              return;
+            }
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/html5-qrcode';
+            script.async = true;
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error("Failed to load html5-qrcode"));
+            document.body.appendChild(script);
+          });
+        };
+        
+        await loadScript();
+        const Html5Qrcode = (window as any).Html5Qrcode;
         scanner = new Html5Qrcode('qr-reader');
         scannerRef.current = scanner;
 

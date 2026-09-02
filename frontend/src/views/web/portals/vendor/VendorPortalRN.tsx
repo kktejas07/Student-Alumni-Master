@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useVendorAuthStore } from '@/src/viewmodels/stores/vendorAuthStore';
 import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
 import { TopBar } from '@/src/views/web/portals/student/TopBar';
-import { Sidebar } from '@/src/views/web/portals/student/Sidebar'; // We will create VendorSidebar later
+import { VendorSidebar } from '@/src/views/web/portals/vendor/components/VendorSidebar';
+import { VendorDashboardView } from '@/src/views/web/portals/vendor/views/VendorDashboardView';
+import { VendorCatalogView } from '@/src/views/web/portals/vendor/views/VendorCatalogView';
+import { VendorScannerView } from '@/src/views/web/portals/vendor/views/VendorScannerView';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SP } from '@/src/theme/apple';
 import { useBreakpoint } from '@/src/theme/breakpoints';
@@ -12,7 +15,7 @@ import { Text } from 'react-native';
 
 export function VendorPortalRN() {
   const router = useRouter();
-  const logout = useAuthStore((s: any) => s.logout);
+  const { token, logout } = useVendorAuthStore();
   const { tab, go } = usePortalUrl();
   const active = tab || 'dashboard';
   const bp = useBreakpoint();
@@ -22,13 +25,21 @@ export function VendorPortalRN() {
     setScrolled(e.nativeEvent.contentOffset.y > 8);
   };
 
+  React.useEffect(() => {
+    if (!token) {
+      router.replace('/vendor-portal/login');
+    }
+  }, [token, router]);
+
+  if (!token) return null;
+
   const handleNav = (id: string) => {
     go(id);
   };
 
   const onLogout = () => {
-    logout?.();
-    router.replace('/');
+    logout();
+    router.replace('/vendor-portal/login');
   };
 
   const padH = bp.isPhone ? SP.md : SP.xxl;
@@ -42,7 +53,9 @@ export function VendorPortalRN() {
         style={StyleSheet.absoluteFillObject as any}
       />
       
-      {/* TODO: VendorSidebar */}
+      {!bp.isPhone && (
+        <VendorSidebar activeView={active} onNavigate={handleNav} onLogout={onLogout} />
+      )}
       
       <View style={{ flex: 1, minWidth: 0 }}>
         <TopBar scrolled={scrolled} activeView={active} onAvatarPress={() => {}} onBellPress={() => {}} />
@@ -53,9 +66,9 @@ export function VendorPortalRN() {
           scrollEventThrottle={16}
         >
           <View style={{ flex: 1, padding: 40, gap: 20 }}>
-            {active === 'dashboard' && <Text style={{ color: 'white', fontSize: 32 }}>Vendor Dashboard</Text>}
-            {active === 'catalog' && <Text style={{ color: 'white', fontSize: 32 }}>Vendor Catalog (Coming Soon)</Text>}
-            {active === 'scanner' && <Text style={{ color: 'white', fontSize: 32 }}>QR Scanner (Coming Soon)</Text>}
+            {active === 'dashboard' && <VendorDashboardView />}
+            {active === 'catalog' && <VendorCatalogView />}
+            {active === 'scanner' && <VendorScannerView />}
             {active === 'orders' && <Text style={{ color: 'white', fontSize: 32 }}>Orders History (Coming Soon)</Text>}
           </View>
         </ScrollView>
