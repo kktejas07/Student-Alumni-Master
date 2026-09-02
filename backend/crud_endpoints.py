@@ -713,7 +713,7 @@ async def progress_workshop(req: WorkshopProgressReq):
         # with a unique verification code + public verify URL, replacing the
         # old placeholder certificates.example.com link.
         cert = await _issue_workshop_certificate(
-            reg, student, req.student_email or student.get("email")
+            reg, student, req.student_email or student.get("email") or ""
         )
         if cert:
             update_doc["certificate_url"] = cert["verify_url"]
@@ -1014,14 +1014,14 @@ async def create_college_event(req: EventCreate):
             ]
             await _db.notifications.insert_many(notification_docs)
     except Exception as e:
-        logger.warning(f"Failed to notify students: {e}")
+        print(f"Failed to notify students: {e}")
 
     # 2. Clear portals events cache so the new event shows up immediately on frontend
     try:
         from portals import events_cache
         events_cache.clear()
     except Exception as e:
-        logger.warning(f"Failed to clear events_cache: {e}")
+        print(f"Failed to clear events_cache: {e}")
 
     return {"ok": True, "event_id": event_id_str}
 
