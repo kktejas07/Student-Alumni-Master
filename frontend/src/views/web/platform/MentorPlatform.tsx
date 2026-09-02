@@ -11,6 +11,7 @@ import {
   Sidebar, GlassCard, KpiTile, Avatar, BellIcon, PageHeader, PrimaryButton,
   SectionLabel, EmptyState, NavItem,
 } from './components';
+import { Check } from 'lucide-react-native';
 import { SA, SAGradients } from './tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { api } from '@/src/models/services/api';

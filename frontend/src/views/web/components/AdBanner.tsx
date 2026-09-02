@@ -10,9 +10,19 @@ import { fetchPortal } from '@/src/lib/portalApi';
 import { resolveImageUrl } from '@/src/models/services/api';
 
 type AdItem = {
-  label: string;
-  image_url: string;
-  redirect_url: string;
+  key?: string;
+  type?: string;
+  tag?: string;
+  title?: string;
+  sub?: string;
+  cta?: string;
+  bg?: string;
+  tagColor?: string;
+  ctaStyle?: string;
+  visual?: string;
+  label?: string;
+  image_url?: string;
+  redirect_url?: string;
 };
 
 const DEFAULT_PROMO_SLIDES: AdItem[] = [
@@ -20,6 +30,21 @@ const DEFAULT_PROMO_SLIDES: AdItem[] = [
   { key: 'p2', type: 'rich', tag: 'VOICE OF GENERATIONS · VNRVJIT', title: 'Alumni took the stage, students took notes.', sub: '26 photos, 3 workshops and 5 testimonials from the last showcase.', cta: 'Open ECHO Showcase', redirect_url: '/echo/vnrvjit/register', bg: '#14324D', tagColor: '#34D399', ctaStyle: 'ghost', visual: 'photo_grid' },
   { key: 'p3', type: 'rich', tag: 'CAREER AI · NEW', title: 'Your readiness is up 8% this week.', sub: 'Agent K rebuilt your roadmap. Next milestone: build your professional resume.', cta: 'Continue now', redirect_url: '/agent-k', bg: '#3A2352', tagColor: '#F1B8D9', ctaStyle: 'ghost', visual: 'trend_chart' },
 ];
+
+function PhotoGrid() {
+  return (
+    <View style={{ flexDirection: 'row', gap: 4 }}>
+      <View style={{ width: 32, height: 32, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 6 }} />
+      <View style={{ width: 32, height: 32, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 6 }} />
+    </View>
+  );
+}
+
+function TrendChart() {
+  return (
+    <View style={{ width: 48, height: 28, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 6 }} />
+  );
+}
 
 export function AdBanner() {
   const router = useRouter();
@@ -99,8 +124,23 @@ export function AdBanner() {
 
   return (
     <View style={s.root}>
-      <Pressable onPress={() => ad.redirect_url && Linking.openURL(ad.redirect_url)} style={s.wrap}>
-        <Image source={{ uri: resolveImageUrl(ad.image_url) }} style={s.img} resizeMode="cover" />
+      <Pressable onPress={handleCtaPress} style={[s.wrap, { backgroundColor: ad.bg || 'rgba(0,0,0,0.3)' }]}>
+        {ad.image_url ? (
+          <Image source={{ uri: resolveImageUrl(ad.image_url) }} style={s.img} resizeMode="cover" />
+        ) : (
+          <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              {ad.tag && (
+                <Text style={{ fontSize: 11, fontWeight: '700', color: ad.tagColor || '#A78BFA', marginBottom: 4 }}>
+                  {ad.tag}
+                </Text>
+              )}
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 }}>{ad.title}</Text>
+              {ad.sub && <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{ad.sub}</Text>}
+            </View>
+            {visualElement}
+          </View>
+        )}
       </Pressable>
       {ads.length > 1 && (
         <View style={s.dots}>
@@ -130,6 +170,24 @@ const s = StyleSheet.create({
     ...Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '200ms' } as any) : {},
   },
   dotActive: {
+    backgroundColor: '#fff', width: 24, borderRadius: 4,
+  },
+  imageRoot: { gap: 8 },
+  imageWrap: {
+    borderRadius: 12, overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    ...Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {},
+  },
+  imageImg: { width: '100%', maxHeight: 320, aspectRatio: 16 / 9 },
+  imageDots: {
+    flexDirection: 'row', justifyContent: 'center', gap: 8,
+  },
+  imageDot: {
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    ...Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '200ms' } as any) : {},
+  },
+  imageDotActive: {
     backgroundColor: '#fff', width: 24, borderRadius: 4,
   },
 });

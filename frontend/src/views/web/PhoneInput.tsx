@@ -102,9 +102,10 @@ export const PhoneInput = React.forwardRef<RNTextInput, {
   }, [search]);
 
   const commit = (c: Country, n: string) => {
+    const rawDigits = n.replace(/\D/g, '').slice(0, 10);
     setCountry(c);
-    setLocal(n);
-    const joined = n ? `${c.dial} ${n.replace(/^\s+/, '')}` : '';
+    setLocal(rawDigits);
+    const joined = rawDigits ? `${c.dial} ${rawDigits}` : '';
     onChangeText(joined);
   };
 
@@ -124,9 +125,10 @@ export const PhoneInput = React.forwardRef<RNTextInput, {
               ref={ref}
               value={local}
               onChangeText={(n) => commit(country, n)}
-              placeholder={placeholder}
+              placeholder="10-digit mobile number"
               placeholderTextColor="#9CA3AF"
               keyboardType="phone-pad"
+              maxLength={10}
               autoComplete="tel"
               textContentType="telephoneNumber"
               autoCorrect={false}

@@ -16,6 +16,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, Platform } from 'react-native';
+import { X } from 'lucide-react-native';
 
 export function RentalsView() {
   const [selectedCity, setSelectedCity] = useState('All Cities');

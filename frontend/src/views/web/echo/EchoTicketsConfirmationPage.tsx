@@ -262,6 +262,16 @@ END:VCALENDAR`;
     setTimeout(() => setSubscribed(false), 3000);
   };
 
+  // Interactive cards state
+  const [showQuestions, setShowQuestions] = useState(false);
+  const [pickedQuestions, setPickedQuestions] = useState<Record<number, boolean>>({ 0: true });
+  const toggleQuestion = (idx: number) => {
+    setPickedQuestions((prev) => ({ ...prev, [idx]: !prev[idx] }));
+  };
+  const [showSavings, setShowSavings] = useState(false);
+  const saveBarWidth = 82;
+
+
   // Dynamic ticket details fallback
   const tId = ticketInfo?.ticketId || 'SA-TKT-448120';
   const eName = ticketInfo?.eventName || 'Hack Wave 3.0';
@@ -409,7 +419,7 @@ END:VCALENDAR`;
               {/* Payment Received */}
               <div className="tk-hover-card" style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 24px 24px' }}>
                 <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '4px', background: 'linear-gradient(90deg, #0E9F6E, #34D399)' }} />
-                <span style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--ok-tint)', border: '1px solid var(--ok-line)', display: 'flex', alignItems: 'center', justifyCenter: 'center', marginBottom: '16px', justifyContent: 'center' }}>
+                <span style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--ok-tint)', border: '1px solid var(--ok-line)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2.4" strokeLinecap="round">
                     <path d="M5 12.5l4 4 10-10.5" />
                   </svg>
@@ -600,7 +610,7 @@ END:VCALENDAR`;
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
               <div className="tk-hover-card" style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 24px 24px' }}>
                 <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '4px', background: 'linear-gradient(90deg, #B31B38, #F87186)' }} />
-                <span style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--danger-tint)', border: '1px solid var(--danger-line)', display: 'flex', alignItems: 'center', justifyCenter: 'center', marginBottom: '16px', justifyContent: 'center' }}>
+                <span style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--danger-tint)', border: '1px solid var(--danger-line)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2"><path d="M4 4l16 16M20 4L4 20" /></svg>
                 </span>
                 <div style={{ fontSize: '16.5px', fontWeight: 700, letterSpacing: '-.3px' }}>Event is full</div>
@@ -610,7 +620,7 @@ END:VCALENDAR`;
 
               <div className="tk-hover-card" style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 24px 24px' }}>
                 <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '4px', background: 'linear-gradient(90deg, #B45309, #F5B342)' }} />
-                <span style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--warn-tint)', border: '1px solid var(--warn-line)', display: 'flex', alignItems: 'center', justifyCenter: 'center', marginBottom: '16px', justifyContent: 'center' }}>
+                <span style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--warn-tint)', border: '1px solid var(--warn-line)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="2"><path d="M12 4l9 16H3Z" /><path d="M12 10v4M12 17v.01" /></svg>
                 </span>
                 <div style={{ fontSize: '16.5px', fontWeight: 700, letterSpacing: '-.3px' }}>Coupon expired</div>
@@ -620,7 +630,7 @@ END:VCALENDAR`;
 
               <div className="tk-hover-card" style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 24px 24px' }}>
                 <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '4px', background: 'linear-gradient(90deg, #4F46C7, #A78BFA)' }} />
-                <span style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(124,92,252,.14)', border: '1px solid #2E2A55', display: 'flex', alignItems: 'center', justifyCenter: 'center', marginBottom: '16px', justifyContent: 'center' }}>
+                <span style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(124,92,252,.14)', border: '1px solid #2E2A55', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="1.9"><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6Z" /><path d="M12 9v3.5M12 15.5v.01" /></svg>
                 </span>
                 <div style={{ fontSize: '16.5px', fontWeight: 700, letterSpacing: '-.3px' }}>Verification pending</div>

@@ -527,16 +527,30 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       showToast('Please enter your full name and email to proceed.');
       return;
     }
+    const cleanMainPhoneDigits = (phone || '').replace(/^\+91\s*/, '').replace(/\D/g, '');
+    if (!phone || cleanMainPhoneDigits.length !== 10) {
+      showToast('Please enter a valid 10-digit mobile number.');
+      return;
+    }
     if (isTeam && !teamName.trim()) {
       showToast('Please enter a team name to proceed.');
       return;
     }
-    setShowTermsErr(false);
-    setIsPaying(true);
-
     const validMembers = isTeam
       ? teamMembers.filter((m) => m.name.trim() || m.email.trim())
       : [];
+    for (let i = 0; i < validMembers.length; i++) {
+      const m = validMembers[i];
+      if (m.phone) {
+        const mDigits = m.phone.replace(/^\+91\s*/, '').replace(/\D/g, '');
+        if (mDigits.length !== 10) {
+          showToast(`Please enter a valid 10-digit phone number for Team Member ${i + 2}.`);
+          return;
+        }
+      }
+    }
+    setShowTermsErr(false);
+    setIsPaying(true);
     
     const payload = {
       full_name: fullName || 'Student Attendee',
@@ -2506,15 +2520,23 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   {/* Phone */}
                   <div>
                     <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>
-                      {isTeam ? 'TEAM CAPTAIN PHONE NUMBER *' : 'PHONE NUMBER *'}
+                      {isTeam ? 'TEAM CAPTAIN PHONE NUMBER (10 DIGITS) *' : 'PHONE NUMBER (10 DIGITS) *'}
                     </div>
-                    <div className="ev-field" style={{ border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '14px 15px', display: 'flex', alignItems: 'center' }}>
+                    <div className="ev-field" style={{ border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(124,92,252,0.14)', border: '1px solid #3A2E72', borderRadius: '8px', padding: '6px 10px', flexShrink: 0 }}>
+                        <span style={{ fontSize: '14px' }}>🇮🇳</span>
+                        <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#A78BFA' }}>+91</span>
+                      </div>
                       <input
                         type="tel"
-                        placeholder="+91 …"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#FFFFFF', fontSize: '14.5px', fontFamily: 'inherit' }}
+                        placeholder="10-digit mobile number"
+                        maxLength={10}
+                        value={(phone || '').replace(/^\+91\s*/, '').replace(/\D/g, '').slice(0, 10)}
+                        onChange={(e) => {
+                          const rawDigits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          setPhone(rawDigits ? `+91 ${rawDigits}` : '');
+                        }}
+                        style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#FFFFFF', fontSize: '14.5px', fontFamily: 'inherit', letterSpacing: '0.5px' }}
                       />
                     </div>
                   </div>
@@ -2747,17 +2769,25 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                               }}
                               style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
                             />
-                            <input
-                              type="tel"
-                              placeholder={`Member ${idx + 2} Phone (optional)`}
-                              value={member.phone}
-                              onChange={(e) => {
-                                const updated = [...teamMembers];
-                                updated[idx] = { ...updated[idx], phone: e.target.value };
-                                setTeamMembers(updated);
-                              }}
-                              style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
-                            />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--line)', borderRadius: '8px', padding: '6px 8px', flexShrink: 0 }}>
+                                <span style={{ fontSize: '12px' }}>🇮🇳</span>
+                                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)' }}>+91</span>
+                              </div>
+                              <input
+                                type="tel"
+                                placeholder={`Member ${idx + 2} Phone (10 digits, optional)`}
+                                maxLength={10}
+                                value={(member.phone || '').replace(/^\+91\s*/, '').replace(/\D/g, '').slice(0, 10)}
+                                onChange={(e) => {
+                                  const rawDigits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                  const updated = [...teamMembers];
+                                  updated[idx] = { ...updated[idx], phone: rawDigits ? `+91 ${rawDigits}` : '' };
+                                  setTeamMembers(updated);
+                                }}
+                                style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
+                              />
+                            </div>
                           </div>
                         </div>
                       ))}
