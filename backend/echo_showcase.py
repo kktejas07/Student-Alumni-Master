@@ -2617,6 +2617,8 @@ DEFAULT_SECTIONS = {
 class EchoCatalogItem(BaseModel):
     id: Optional[str] = Field(default=None, alias="_id")
     event_id: str
+    vendor_id: Optional[str] = None
+    vendor_name: Optional[str] = None
     name: str
     description: Optional[str] = None
     category: str = "food" # 'food' or 'handcraft'
@@ -2641,6 +2643,8 @@ class EchoOrderItem(BaseModel):
     name: str
     quantity: int
     price_at_time: float
+    vendor_id: Optional[str] = None
+    status: str = "pending" # pending, fulfilled
 
 class EchoOrder(BaseModel):
     id: Optional[str] = Field(default=None, alias="_id")

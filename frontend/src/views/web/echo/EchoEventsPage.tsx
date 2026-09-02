@@ -35,7 +35,7 @@ const SAMPLE_EVENTS = [
     college: 'SNIST',
     college_name: 'Sreenidhi Institute of Science and Technology',
     college_full: 'Sreenidhi Institute of Science & Technology, Hyderabad',
-    status: 'CLOSING IN 30 MINS',
+    status: 'OPEN',
     organizer: 'Career Development Center · SNIST in collaboration with StudentAlumni.ai',
     description: "Build something real. In one overnight sprint. National-Level 24-Hour Tech Fest with 7 Verticals across AI, Security, Hiring and Firesides.",
     dates: 'September 04 – 05, 2026',
@@ -45,7 +45,7 @@ const SAMPLE_EVENTS = [
     venue: 'Sreenidhi Institute of Science & Technology (SNIST), Hyderabad',
     location_short: 'SNIST Campus, Hyderabad',
     prize_pool: '₹17,50,000+ Total Pool (₹2,00,000 Mega Grand Pool · ₹50,000 Track Pool · WeHive Visas & Germany Study Abroad)',
-    reg_closes: 'Sep 02, 2026 · 7:00 PM IST (Closing in 30 mins)',
+    reg_closes: 'Registrations Open',
     individual_fee: 599,
     team_fee: 2495,
     individual_seats: '985 seats available',
@@ -311,7 +311,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 title: item.title || existing.title || 'ECHO Event',
                 college: item.college_name || item.college || existing.college || 'ECHO Campus',
                 college_full: item.college_name || item.college || item.venue || existing.college_full || 'ECHO Campus',
-                status: (item.event_status_badge || item.status || existing.status || 'UPCOMING').toUpperCase(),
+                status: item.registration?.enabled === false ? 'CLOSED' : (item.event_status_badge || item.status || existing.status || 'UPCOMING').toUpperCase(),
                 organizer: item.organizer_name || existing.organizer || 'CDC SNIST and in collaboration with StudentAlumni.ai',
                 description: item.subtitle || item.description || existing.description || "Empowering Tomorrow's Leaders",
                 dates: item.date || item.dates || existing.dates || 'September 04, 2026',
@@ -321,7 +321,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 venue: item.venue || existing.venue || 'Sreenidhi Institute of Science & Technology',
                 location_short: item.venue || existing.location_short || 'Hyderabad',
                 prize_pool: item.prize_pool ? (String(item.prize_pool).includes('₹') ? item.prize_pool : `₹${item.prize_pool} prize pool`) : existing.prize_pool || '₹50,000 prize pool',
-                reg_closes: item.reg_closes || existing.reg_closes || 'Sep 02, 2026 · 7:00 PM IST (Closing in 30 mins)',
+                reg_closes: item.registration?.enabled === false ? 'Registrations Closed' : (item.reg_closes || existing.reg_closes || 'Registration Open'),
                 individual_fee: item.fee ?? item.individual_fee ?? existing.individual_fee ?? 599,
                 team_fee: item.team_fee ?? existing.team_fee ?? 2495,
                 individual_seats: item.available_seats ? `${item.available_seats} seats available` : existing.individual_seats || '985 seats available',
@@ -383,14 +383,14 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   title: item.title || e.title,
                   college: item.college_name || item.college || e.college,
                   college_full: item.college_name || item.college || item.venue || e.college_full,
-                  status: (item.event_status_badge || item.status || e.status).toUpperCase(),
+                  status: item.registration?.enabled === false ? 'CLOSED' : (item.event_status_badge || item.status || e.status).toUpperCase(),
                   organizer: item.organizer_name || e.organizer,
                   description: item.subtitle || item.description || e.description,
                   dates: item.date || item.dates || e.dates,
                   time: item.time || e.time,
                   venue: item.venue || e.venue,
                   prize_pool: item.prize_pool ? (String(item.prize_pool).includes('₹') ? item.prize_pool : `₹${item.prize_pool} prize pool`) : e.prize_pool,
-                  reg_closes: item.reg_closes || e.reg_closes,
+                  reg_closes: item.registration?.enabled === false ? 'Registrations Closed' : (item.reg_closes || e.reg_closes),
                   individual_fee: item.fee ?? item.individual_fee ?? e.individual_fee,
                   team_fee: item.team_fee ?? e.team_fee,
                   individual_seats: item.available_seats ? `${item.available_seats} seats available` : e.individual_seats,
@@ -403,6 +403,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   videos: (item.videos && item.videos.length > 0) ? item.videos : ((item.gallery_videos && item.gallery_videos.length > 0) ? item.gallery_videos : (e.videos || [])),
                   highlights: item.highlights || e.highlights,
                   handbook_url: item.handbook_url || e.handbook_url,
+                  registration: item.registration || e.registration,
                 };
               }
               return e;
@@ -520,6 +521,10 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   };
 
   const handlePay = async () => {
+    if (activeEvent?.registration?.enabled === false || String(activeEvent?.registration?.enabled).toLowerCase() === 'false') {
+      showToast('Registrations are currently closed for this event.');
+      return;
+    }
     if (!acceptedTerms) {
       setShowTermsErr(true);
       return;

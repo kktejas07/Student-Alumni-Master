@@ -3,7 +3,7 @@
  * Spec: /tmp/ui_specs/platform-student.jsx
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
@@ -535,21 +535,23 @@ function MyPurchasesView() {
   if (loading) return <View style={{ padding: 40 }}><ActivityIndicator color="#5B4FE9" /></View>;
 
   return (
-    <View style={{ padding: 40, maxWidth: 1000, width: '100%', margin: '0 auto' }}>
+    <View style={{ padding: 40, maxWidth: 1000, width: '100%', marginHorizontal: 'auto' }}>
       <Text style={{ fontSize: 28, fontWeight: '700', color: '#FFF', marginBottom: 24 }}>My Purchases</Text>
       {orders.length === 0 ? (
-        <EmptyState 
-          icon={<ShoppingCart size={32} color="#888" />} 
-          title="No Purchases Yet" 
-          subtitle="You haven't bought anything from the marketplace." 
-        />
+        <View style={{ padding: 40, alignItems: 'center', justifyContent: 'center' }}>
+          <ShoppingCart size={40} color="#888" style={{ marginBottom: 12 }} />
+          <Text style={{ fontSize: 18, fontWeight: '600', color: '#FFF', marginBottom: 6 }}>No Purchases Yet</Text>
+          <Text style={{ color: '#888' }}>You haven't bought anything from the marketplace.</Text>
+        </View>
       ) : (
         <View style={{ gap: 20 }}>
           {orders.map((order, i) => (
             <GlassCard key={i}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
                 <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFF' }}>Order #{order.id.slice(-6).toUpperCase()}</Text>
-                <Badge label={order.payment_status} variant={order.payment_status === 'PAID' ? 'success' : 'warning'} />
+                <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, backgroundColor: order.payment_status === 'PAID' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(234, 179, 8, 0.2)' }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: order.payment_status === 'PAID' ? '#4ade80' : '#facc15' }}>{order.payment_status}</Text>
+                </View>
               </View>
               <Text style={{ color: '#aaa', marginBottom: 12 }}>Event: {order.event_id}</Text>
               
