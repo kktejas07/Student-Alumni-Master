@@ -33,9 +33,9 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
       setLoading(true);
       if (!showcaseId) return;
       const [resItems, resOrders, resCoupons] = await Promise.all([
-        request<any>(`/api/echo/admin/showcases/${showcaseId}/catalog`),
-        request<any>(`/api/echo/admin/showcases/${showcaseId}/orders`),
-        request<any>(`/api/echo/admin/coupons?event_slug=${slug}`)
+        request<any>(`/echo/admin/showcases/${showcaseId}/catalog`),
+        request<any>(`/echo/admin/showcases/${showcaseId}/orders`),
+        request<any>(`/echo/admin/coupons?event_slug=${slug}`)
       ]);
       if (resItems.success) setItems(resItems.data || []);
       if (resOrders.success) setOrders(resOrders.data || []);
@@ -58,9 +58,9 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
     try {
       let res;
       if (item.id || item._id) {
-        res = await request<any>(`/api/echo/admin/catalog/${item.id || item._id}`, { method: 'PUT', body: item });
+        res = await request<any>(`/echo/admin/catalog/${item.id || item._id}`, { method: 'PUT', body: item });
       } else {
-        res = await request<any>(`/api/echo/admin/showcases/${showcaseId}/catalog`, { method: 'POST', body: item });
+        res = await request<any>(`/echo/admin/showcases/${showcaseId}/catalog`, { method: 'POST', body: item });
       }
       if (res.success) {
         setEditingItem(null);
@@ -76,7 +76,7 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
   const deleteItem = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this catalog item?')) return;
     try {
-      const res = await request<any>(`/api/echo/admin/catalog/${id}`, { method: 'DELETE' });
+      const res = await request<any>(`/echo/admin/catalog/${id}`, { method: 'DELETE' });
       if (res.success) load();
     } catch (e: any) {
       alert(e.message);
@@ -90,7 +90,7 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
     if (!coupon.code || !coupon.discount_value) return alert('Code and Discount Value are required');
     try {
       coupon.event_id = slug; // ensure it's tied to event
-      const res = await request<any>(`/api/echo/admin/coupons`, { method: 'POST', body: coupon });
+      const res = await request<any>(`/echo/admin/coupons`, { method: 'POST', body: coupon });
       if (res.success) {
         setEditingCoupon(null);
         load();
@@ -153,6 +153,10 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
                 <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Vendor ID</Text>
                 <Field value={editingItem.vendor_id || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, vendor_id: v })} placeholder="vendor123" />
               </View>
+            </View>
+            <View>
+              <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Image URL (Optional)</Text>
+              <Field value={editingItem.images?.[0] || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, images: v ? [v] : [] })} placeholder="https://..." />
             </View>
             <View>
               <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Description</Text>

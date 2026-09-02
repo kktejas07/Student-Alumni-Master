@@ -142,6 +142,10 @@ export function VendorCatalogView({ eventSlug }: { eventSlug?: string }) {
               </View>
             </View>
             <View>
+              <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Image URL (Optional)</Text>
+              <Field value={editingItem.images?.[0] || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, images: v ? [v] : [] })} placeholder="https://..." />
+            </View>
+            <View>
               <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Description</Text>
               <Field value={editingItem.description || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, description: v })} placeholder="Description" multiline />
             </View>

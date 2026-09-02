@@ -1,8 +1,16 @@
 import asyncio
-from motor.motor_asyncio import AsyncIOMotorClient
-async def main():
-    db = AsyncIOMotorClient("mongodb://localhost:27017")["studentalumni"]
-    doc = await db.echo_showcases.find_one({"slug": "snist"})
-    print(doc.get("registration"))
-    print(doc.get("registration_config"))
-asyncio.run(main())
+import sys
+
+sys.path.append("/Users/devendervutukuru/Desktop/My Projects/Student-Alumni-Master/backend")
+
+from core.db import db
+
+async def update_events():
+    res = await db.echo_catalog_items.update_many(
+        {"event_id": "master"}, 
+        {"$set": {"event_id": "6a9161b18b098e04bc94b054"}} # VNRVJIET showcase ID
+    )
+    print(f"Updated {res.modified_count} items to point to VNRVJIET showcase.")
+
+if __name__ == "__main__":
+    asyncio.run(update_events())
