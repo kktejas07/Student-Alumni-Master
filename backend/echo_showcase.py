@@ -2604,6 +2604,49 @@ DEFAULT_SECTIONS = {
     "registration": True,
 }
 
+class EchoCatalogItem(BaseModel):
+    id: Optional[str] = Field(default=None, alias="_id")
+    event_id: str
+    name: str
+    description: Optional[str] = None
+    category: str = "food" # 'food' or 'handcraft'
+    price: float = 0.0
+    stock: int = 0
+    images: List[str] = []
+    is_active: bool = True
+    created_at: Optional[datetime] = None
+
+class EchoCoupon(BaseModel):
+    code: str
+    discount_type: str = "percentage" # 'percentage', 'fixed'
+    discount_value: float = 0.0
+    event_id: Optional[str] = None
+    valid_until: Optional[datetime] = None
+    max_uses: int = 0
+    times_used: int = 0
+    created_at: Optional[datetime] = None
+
+class EchoOrderItem(BaseModel):
+    item_id: str
+    name: str
+    quantity: int
+    price_at_time: float
+
+class EchoOrder(BaseModel):
+    id: Optional[str] = Field(default=None, alias="_id")
+    event_id: str
+    user_id: str
+    user_email: str
+    items: List[EchoOrderItem] = []
+    total_amount: float = 0.0
+    discount_applied: float = 0.0
+    coupon_code: Optional[str] = None
+    final_amount: float = 0.0
+    status: str = "pending" # pending, paid, fulfilled, cancelled
+    payment_id: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+
 
 class ShowcaseCreateSchema(BaseModel):
     title: str
@@ -6405,3 +6448,148 @@ async def check_scan_access(request: Request, user=Depends(_get_current_user_dep
         return {"access": True, "role": vol.get("role", "volunteer"), "slug": vol.get("slug")}
 
     return {"access": False}
+
+# ── Catalog & Orders ──────────────────────────────────────────────────────────
+
+@router.get("/showcases/{slug}/catalog")
+async def get_catalog(slug: str, request: Request):
+    db = _get_db(request)
+    showcase = await db.echo_showcases.find_one({"slug": slug})
+    if not showcase:
+        raise HTTPException(404, "Showcase not found")
+    
+    event_id = str(showcase["_id"])
+    items = await db.echo_catalog_items.find({"event_id": event_id, "is_active": True}).to_list(1000)
+    for i in items:
+        i["id"] = str(i["_id"])
+        del i["_id"]
+    return {"items": items}
+
+@router.get("/admin/showcases/{showcase_id}/catalog")
+async def admin_get_catalog(showcase_id: str, request: Request, _=Depends(_require_admin)):
+    db = _get_db(request)
+    items = await db.echo_catalog_items.find({"event_id": showcase_id}).to_list(1000)
+    for i in items:
+        i["id"] = str(i["_id"])
+        del i["_id"]
+    return {"items": items}
+
+@router.post("/admin/showcases/{showcase_id}/catalog")
+async def admin_create_catalog_item(showcase_id: str, item: EchoCatalogItem, request: Request, _=Depends(_require_admin)):
+    db = _get_db(request)
+    item_dict = item.dict(exclude={"id"})
+    item_dict["event_id"] = showcase_id
+    item_dict["created_at"] = datetime.now(timezone.utc)
+    res = await db.echo_catalog_items.insert_one(item_dict)
+    item_dict["id"] = str(res.inserted_id)
+    del item_dict["_id"]
+    return {"ok": True, "item": item_dict}
+
+@router.put("/admin/catalog/{item_id}")
+async def admin_update_catalog_item(item_id: str, updates: dict, request: Request, _=Depends(_require_admin)):
+    db = _get_db(request)
+    from bson import ObjectId
+    try:
+        oid = ObjectId(item_id)
+    except:
+        raise HTTPException(400, "Invalid item ID")
+    updates.pop("id", None)
+    updates.pop("_id", None)
+    updates.pop("event_id", None)
+    await db.echo_catalog_items.update_one({"_id": oid}, {"$set": updates})
+    return {"ok": True}
+
+@router.delete("/admin/catalog/{item_id}")
+async def admin_delete_catalog_item(item_id: str, request: Request, _=Depends(_require_admin)):
+    db = _get_db(request)
+    from bson import ObjectId
+    try:
+        oid = ObjectId(item_id)
+    except:
+        raise HTTPException(400, "Invalid item ID")
+    await db.echo_catalog_items.delete_one({"_id": oid})
+    return {"ok": True}
+
+@router.post("/orders/checkout")
+async def checkout_order(order: EchoOrder, request: Request, user=Depends(_get_current_user_dependency())):
+    db = _get_db(request)
+    order_dict = order.dict(exclude={"id"})
+    order_dict["user_id"] = user["_id"] if "_id" in user else str(user.get("id"))
+    order_dict["user_email"] = user.get("email", "")
+    order_dict["created_at"] = datetime.now(timezone.utc)
+    order_dict["status"] = "pending" # Or "paid" if mocking payment
+    
+    # Calculate total and discount
+    total = sum(item["price_at_time"] * item["quantity"] for item in order_dict["items"])
+    discount = 0.0
+    if order_dict.get("coupon_code"):
+        coupon = await db.echo_coupons.find_one({"code": order_dict["coupon_code"]})
+        if coupon and (not coupon.get("valid_until") or coupon["valid_until"] > datetime.now(timezone.utc)) and (not coupon.get("max_uses") or coupon.get("times_used", 0) < coupon["max_uses"]):
+            if coupon["discount_type"] == "percentage":
+                discount = total * (coupon["discount_value"] / 100)
+            else:
+                discount = coupon["discount_value"]
+            await db.echo_coupons.update_one({"_id": coupon["_id"]}, {"$inc": {"times_used": 1}})
+    
+    order_dict["total_amount"] = total
+    order_dict["discount_applied"] = discount
+    order_dict["final_amount"] = max(0, total - discount)
+    
+    # In a real scenario, initiate payment gateway here and store payment_id
+    # For now, mark as paid if amount is 0, else pending.
+    if order_dict["final_amount"] == 0:
+        order_dict["status"] = "paid"
+    
+    res = await db.echo_orders.insert_one(order_dict)
+    order_dict["id"] = str(res.inserted_id)
+    del order_dict["_id"]
+    return {"ok": True, "order": order_dict}
+
+@router.post("/orders/{order_id}/mark-paid")
+async def mark_order_paid(order_id: str, request: Request, user=Depends(_get_current_user_dependency())):
+    db = _get_db(request)
+    from bson import ObjectId
+    try:
+        oid = ObjectId(order_id)
+    except:
+        raise HTTPException(400, "Invalid order ID")
+    
+    user_id = user["_id"] if "_id" in user else str(user.get("id"))
+    await db.echo_orders.update_one({"_id": oid, "user_id": user_id}, {"$set": {"status": "paid"}})
+    return {"ok": True}
+
+@router.get("/user/orders")
+async def user_get_orders(request: Request, user=Depends(_get_current_user_dependency())):
+    db = _get_db(request)
+    user_id = user["_id"] if "_id" in user else str(user.get("id"))
+    orders = await db.echo_orders.find({"user_id": user_id}).sort("created_at", -1).to_list(100)
+    for o in orders:
+        o["id"] = str(o["_id"])
+        del o["_id"]
+    return {"orders": orders}
+
+@router.get("/admin/showcases/{showcase_id}/orders")
+async def admin_get_orders(showcase_id: str, request: Request, _=Depends(_require_admin)):
+    db = _get_db(request)
+    orders = await db.echo_orders.find({"event_id": showcase_id}).sort("created_at", -1).to_list(1000)
+    for o in orders:
+        o["id"] = str(o["_id"])
+        del o["_id"]
+    return {"orders": orders}
+
+@router.post("/admin/coupons")
+async def admin_create_coupon(coupon: EchoCoupon, request: Request, _=Depends(_require_admin)):
+    db = _get_db(request)
+    coupon_dict = coupon.dict()
+    coupon_dict["created_at"] = datetime.now(timezone.utc)
+    await db.echo_coupons.insert_one(coupon_dict)
+    return {"ok": True}
+
+@router.get("/admin/showcases/{showcase_id}/coupons")
+async def admin_get_coupons(showcase_id: str, request: Request, _=Depends(_require_admin)):
+    db = _get_db(request)
+    coupons = await db.echo_coupons.find({"$or": [{"event_id": showcase_id}, {"event_id": None}]}).to_list(100)
+    for c in coupons:
+        c["id"] = str(c["_id"])
+        del c["_id"]
+    return {"coupons": coupons}

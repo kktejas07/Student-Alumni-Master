@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   Home as HomeIcon, Sparkles, Briefcase, BookOpen, Users, Calendar,
-  Wallet, Shield, Building2, Gift, User as UserIcon, GraduationCap,
+  Wallet, Shield, Building2, Gift, User as UserIcon, GraduationCap, ShoppingCart,
 } from 'lucide-react-native';
 import {
   Sidebar, GlassCard, KpiTile, Avatar, Badge, SearchBar, ProgressStrip,
@@ -35,6 +35,7 @@ const NAV: NavItem[] = [
   { id: 'insurance',         Icon: Shield,         label: 'Insurance',        color: '#60A5FA' },
   { id: 'rentals',           Icon: Building2,      label: 'Rentals',          color: '#A78BFA' },
   { id: 'deals',             Icon: Gift,           label: 'Deals',            color: '#F472B6' },
+  { id: 'purchases',         Icon: ShoppingCart,   label: 'My Purchases',     color: '#34D399' },
   { id: 'profile',           Icon: UserIcon,       label: 'Profile',          color: '#A78BFA' },
 ];
 
@@ -107,6 +108,7 @@ export default function StudentPlatform() {
         {screen === 'courses' && <StudentCourses />}
         {screen === 'resources' && <StudentResources />}
         {screen === 'network' && <StudentNetwork />}
+        {screen === 'purchases' && <MyPurchasesView />}
       </ScrollView>
     </LinearGradient>
   );
@@ -513,3 +515,59 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
 });
+
+function MyPurchasesView() {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const user = useAuthStore(s => s.user);
+
+  useEffect(() => {
+    if (user) {
+      api.get(`/api/echo/orders/user/${user.id}`)
+        .then(res => {
+          if (res.success) setOrders(res.data || []);
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [user]);
+
+  if (loading) return <View style={{ padding: 40 }}><ActivityIndicator color="#5B4FE9" /></View>;
+
+  return (
+    <View style={{ padding: 40, maxWidth: 1000, width: '100%', margin: '0 auto' }}>
+      <Text style={{ fontSize: 28, fontWeight: '700', color: '#FFF', marginBottom: 24 }}>My Purchases</Text>
+      {orders.length === 0 ? (
+        <EmptyState 
+          icon={<ShoppingCart size={32} color="#888" />} 
+          title="No Purchases Yet" 
+          subtitle="You haven't bought anything from the marketplace." 
+        />
+      ) : (
+        <View style={{ gap: 20 }}>
+          {orders.map((order, i) => (
+            <GlassCard key={i}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFF' }}>Order #{order.id.slice(-6).toUpperCase()}</Text>
+                <Badge label={order.payment_status} variant={order.payment_status === 'PAID' ? 'success' : 'warning'} />
+              </View>
+              <Text style={{ color: '#aaa', marginBottom: 12 }}>Event: {order.event_id}</Text>
+              
+              <View style={{ gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderColor: '#333' }}>
+                {order.items.map((it: any, j: number) => (
+                  <View key={j} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#FFF' }}>{it.quantity}x Item</Text>
+                    <Text style={{ color: '#FFF' }}>₹{it.price_at_purchase * it.quantity}</Text>
+                  </View>
+                ))}
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderColor: '#333' }}>
+                <Text style={{ color: '#FFF', fontWeight: '700' }}>Total</Text>
+                <Text style={{ color: '#34D399', fontWeight: '700', fontSize: 18 }}>₹{order.total_amount}</Text>
+              </View>
+            </GlassCard>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}

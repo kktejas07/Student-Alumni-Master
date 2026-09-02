@@ -244,7 +244,7 @@ type FormTab =
   | 'general' | 'hero' | 'statistics' | 'about' | 'gallery'
   | 'testimonials' | 'highlights' | 'speakers' | 'categories' | 'schedule'
   | 'panels' | 'faqs' | 'sponsors' | 'videos' | 'downloads'
-  | 'sections' | 'registration' | 'seo' | 'publish';
+  | 'sections' | 'registration' | 'catalog' | 'seo' | 'publish';
 
 const PAGE_TABS: Array<{ id: PageTab; label: string; icon?: any }> = [
   { id: 'all', label: 'All Showcases', icon: Layout },
@@ -281,6 +281,7 @@ const FORM_TABS: Array<{ id: FormTab; label: string }> = [
   { id: 'downloads',    label: 'Downloads' },
   { id: 'sections',     label: 'Sections' },
   { id: 'registration', label: 'Registration' },
+  { id: 'catalog',      label: 'Catalog & Orders' },
   { id: 'seo',          label: 'SEO' },
   { id: 'publish',      label: 'Publish' },
 ];
@@ -2829,6 +2830,11 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                 })}
               </Card>
             </>}
+
+            {/* ── CATALOG TAB ── */}
+            {tab === 'catalog' && (
+              <CatalogOrdersManager showcaseId={form._id || form.id} slug={form.slug} />
+            )}
 
             {/* ── SEO TAB ── */}
             {tab === 'seo' && <>

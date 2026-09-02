@@ -19,6 +19,7 @@ import CommonFooter from '@/src/views/components/CommonFooter';
 import PaymentStatusScreen, { PaymentResult } from '@/src/views/components/PaymentStatusScreen';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { useTheme } from '@/src/theme/ThemeContext';
+import { EchoMarketplace } from './EchoMarketplace';
 
 interface EchoEventsPageProps {
   initialView?: 'list' | 'detail' | 'reg';
@@ -2171,6 +2172,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             </button>
           </div>
 
+          <EchoMarketplace slug={activeEvent.slug} isDark={isDark} />
         </div>
       )}
 
@@ -2180,6 +2182,21 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       {view === 'reg' && (
         <div className="ev-anim-in ev-reg-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '90px 28px 90px' }}>
           
+          {(activeEvent?.registration?.enabled === false || String(activeEvent?.registration?.enabled).toLowerCase() === 'false') ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--panel)', borderRadius: '18px', border: '1px solid var(--line)' }}>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text)', marginBottom: '12px' }}>Registrations Closed</div>
+              <div style={{ fontSize: '15px', color: 'var(--muted)', marginBottom: '24px' }}>We are no longer accepting new registrations for this event.</div>
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); go('detail', activeEvent.slug); }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)', borderRadius: '100px', padding: '10px 18px', background: 'var(--panel2)', color: 'var(--text)', cursor: 'pointer' }}
+              >
+                Back to event
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Back to Event Button */}
           {/* Back to Event Button */}
           <button
             type="button"
@@ -2826,8 +2843,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
              </div>
 
-           </div>
-
+            </div>
+            </>
+          )}
         </div>
       )}
 
