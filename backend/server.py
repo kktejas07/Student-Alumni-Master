@@ -55,6 +55,7 @@ from typing import List, Optional, Literal, Dict, Any
 
 import bcrypt
 import jwt
+import httpx
 import pyotp
 import qrcode
 from bson import ObjectId
@@ -410,7 +411,9 @@ async def upload_file(
         import subprocess
         try:
             subprocess.run(["chmod", "-R", "777", str(ROOT_DIR / "uploads")], check=False, timeout=5)
-            subprocess.run(["chown", "-R", f"{os.getuid()}:{os.getgid()}", str(ROOT_DIR / "uploads")], check=False, timeout=5)
+            uid = getattr(os, "getuid", lambda: 1000)()
+            gid = getattr(os, "getgid", lambda: 1000)()
+            subprocess.run(["chown", "-R", f"{uid}:{gid}", str(ROOT_DIR / "uploads")], check=False, timeout=5)
         except Exception:
             pass
         try:
@@ -2349,7 +2352,7 @@ async def create_teams_meeting_endpoint(payload: TeamsMeetingCreate, user: dict 
 
 
 @api_router.get("/integrations/teams/meetings")
-async def list_teams_meetings(user: dict = Depends(get_current_user), event_slug: str = None):
+async def list_teams_meetings(user: dict = Depends(get_current_user), event_slug: Optional[str] = None):
     """List all Teams meetings (admin only). Optionally filter by event_slug."""
     if user.get("role") not in ("admin", "super_admin", "organizer"):
         raise HTTPException(403, "Access required")
@@ -2604,18 +2607,17 @@ async def update_teams_meeting(meeting_id: str, payload: TeamsMeetingCreate, use
         raise HTTPException(404, "Meeting not found")
 
     try:
-        from datetime import datetime as _dt
         from zoneinfo import ZoneInfo
         IST = ZoneInfo("Asia/Kolkata")
         raw = (payload.start_time or "").strip()
-        parsed = _dt.fromisoformat(raw.replace("Z", "+00:00")) if raw else _dt.now(IST)
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00")) if raw else datetime.now(IST)
         if parsed.tzinfo is None:
             parsed = parsed.replace(tzinfo=IST)
         else:
             parsed = parsed.astimezone(IST)
         start_dt = parsed
-    except (ValueError, AttributeError):
-        start_dt = _dt.now(timezone.utc)
+    except Exception:
+        start_dt = datetime.now(timezone.utc)
 
     update_data = {
         "subject": payload.title,
@@ -2626,7 +2628,7 @@ async def update_teams_meeting(meeting_id: str, payload: TeamsMeetingCreate, use
         "description": payload.description,
         "event_slug": (payload.event_slug or "").strip() or None,
         "organizer_email": (payload.organizer_email or "").strip() or None,
-        "updated_at": _dt.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
         "updated_by": str(user.get("_id", "")),
     }
 
