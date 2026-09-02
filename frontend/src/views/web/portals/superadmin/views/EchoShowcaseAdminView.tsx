@@ -4950,7 +4950,7 @@ function LiveScanMonitorPanel() {
               </View>
               
               <View style={{ flex: 1, justifyContent: 'center' }}>
-                <StatusPill kind={reg.ticket_issued ? 'success' : 'warning'} label={reg.ticket_issued ? 'Issued' : 'Pending'} />
+                <StatusPill kind={reg.ticket_issued ? 'success' : 'warn'} label={reg.ticket_issued ? 'Issued' : 'Pending'} />
               </View>
 
               <View style={{ flex: 1.5, justifyContent: 'center', paddingRight: 10 }}>
@@ -4994,7 +4994,7 @@ function LiveScanMonitorPanel() {
                               style={{ fontFamily: FONTS.med, fontSize: 8.5, color: '#A78BFA', marginTop: 1, textDecorationLine: 'underline', cursor: 'pointer' } as any}
                               onPress={() => window.open(`https://www.google.com/maps/search/?api=1&query=${c.scanned_lat},${c.scanned_lng}`, '_blank')}
                             >
-                              Map <MapPin size={8} color="#A78BFA" style={{ display: 'inline' }} />
+                              Map <MapPin size={8} color="#A78BFA" />
                             </Text>
                           )}
                         </View>

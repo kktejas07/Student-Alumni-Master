@@ -14,8 +14,8 @@ const DANGER_LINE = '#5A1E2B';
 const VIOLET_LT = '#A78BFA';
 const VIOLET = '#7C5CFC';
 
-const AnimatedCircle = Animated.createAnimatedComponent('circle');
-const AnimatedPath = Animated.createAnimatedComponent('path');
+const AnimatedCircle = Animated.createAnimatedComponent('circle' as any);
+const AnimatedPath = Animated.createAnimatedComponent('path' as any);
 
 export type PaymentResult = {
   mode: 'success' | 'failure';

@@ -116,7 +116,7 @@ export function SuperAdminPortalRN() {
 
       <Sidebar active={active} onNav={nav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0, position: 'relative', zIndex: 2 }}>
-        <TopBar title={titleFor(active)} onAvatarPress={() => setActive('settings')} />
+        <TopBar title={titleFor(active)} onAvatarPress={() => nav('settings')} />
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ padding: 22, paddingBottom: 22 }}

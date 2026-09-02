@@ -23,7 +23,8 @@ import {
   Radar, Users, Globe, Monitor, Smartphone, Laptop, Cpu, HardDrive,
   Sparkles, Eye, Clock, Download, RefreshCw, Search, Filter, ShieldCheck,
   UserX, UserCheck, ExternalLink, ChevronRight, Activity, Zap, Compass,
-  Layers, MapPin, Hash, MousePointer, X, CheckCircle2, Server, HelpCircle
+  Layers, MapPin, Hash, MousePointer, X, CheckCircle2, Server, HelpCircle,
+  Radio,
 } from 'lucide-react-native';
 
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';

@@ -77,6 +77,13 @@ export default function TeamsMeetingRegisterPage() {
       alert('Name and email are required.');
       return;
     }
+    if (form.phone) {
+      const cleanDigits = form.phone.replace(/^\+91\s*/, '').replace(/\D/g, '');
+      if (cleanDigits.length !== 10) {
+        alert('Please enter a valid 10-digit mobile number.');
+        return;
+      }
+    }
     if (!meeting) return;
 
     setRegistering(true);
@@ -249,15 +256,25 @@ export default function TeamsMeetingRegisterPage() {
             </View>
 
             <View style={s.inputGroup}>
-              <Text style={s.inputLabel}>Phone Number</Text>
-              <TextInput
-                placeholder="+91 98765 43210"
-                placeholderTextColor="rgba(255,255,255,0.3)"
-                style={s.input}
-                value={form.phone}
-                onChangeText={(t) => setForm({ ...form, phone: t })}
-                keyboardType="phone-pad"
-              />
+              <Text style={s.inputLabel}>Phone Number (10 Digits)</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 12 }}>
+                  <Text style={{ fontSize: 13 }}>🇮🇳</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#A78BFA' }}>+91</Text>
+                </View>
+                <TextInput
+                  placeholder="10-digit mobile number"
+                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  style={[s.input, { flex: 1 }]}
+                  value={(form.phone || '').replace(/^\+91\s*/, '').replace(/\D/g, '').slice(0, 10)}
+                  onChangeText={(t) => {
+                    const rawDigits = t.replace(/\D/g, '').slice(0, 10);
+                    setForm({ ...form, phone: rawDigits ? `+91 ${rawDigits}` : '' });
+                  }}
+                  maxLength={10}
+                  keyboardType="phone-pad"
+                />
+              </View>
             </View>
 
             {error ? (
