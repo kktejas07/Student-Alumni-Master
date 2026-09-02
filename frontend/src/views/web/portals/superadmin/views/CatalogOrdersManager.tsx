@@ -3,7 +3,24 @@ import { View, Text, Pressable, ScrollView, TextInput, StyleSheet } from 'react-
 import { Plus, Trash2, Edit2, Check, X, RefreshCw } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { SAC, FONTS } from '../tokens';
-import { Card, Field, GradientButton, SecondaryButton } from '../applekit';
+import { Card, GradientButton, SecondaryButton } from '../applekit';
+
+const Field = (props: any) => (
+  <TextInput
+    style={[{
+      backgroundColor: SAC.bg,
+      color: SAC.text,
+      borderWidth: 1,
+      borderColor: SAC.border,
+      borderRadius: 8,
+      padding: 10,
+      fontSize: 14,
+      fontFamily: FONTS.regular
+    }, props.style]}
+    placeholderTextColor={SAC.muted}
+    {...props}
+  />
+);
 
 export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string; slug: string }) {
   const [items, setItems] = useState<any[]>([]);
@@ -101,7 +118,7 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
       <Card>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 18, color: SAC.text }}>Catalog Items ({items.length})</Text>
-          <SecondaryButton icon={Plus} label="Add Item" onPress={() => setEditingItem({ category: 'handcraft', stock_limit: 0 })} />
+          <SecondaryButton onPress={() => setEditingItem({ category: 'handcraft', stock_limit: 0 })}><Text style={{ color: SAC.text }}>Add Item</Text></SecondaryButton>
         </View>
 
         {editingItem && (
@@ -127,13 +144,23 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
                 <Field value={String(editingItem.stock_limit || 0)} onChangeText={(v: string) => setEditingItem({ ...editingItem, stock_limit: Number(v) })} placeholder="0" />
               </View>
             </View>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Vendor Name</Text>
+                <Field value={editingItem.vendor_name || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, vendor_name: v })} placeholder="e.g. Tasty Tacos" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Vendor ID</Text>
+                <Field value={editingItem.vendor_id || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, vendor_id: v })} placeholder="vendor123" />
+              </View>
+            </View>
             <View>
               <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Description</Text>
               <Field value={editingItem.description || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, description: v })} placeholder="Description" multiline />
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
-              <SecondaryButton label="Cancel" onPress={() => setEditingItem(null)} />
-              <GradientButton label="Save Item" onPress={() => saveItem(editingItem)} />
+              <SecondaryButton onPress={() => setEditingItem(null)}><Text style={{ color: SAC.text }}>Cancel</Text></SecondaryButton>
+              <GradientButton onPress={() => saveItem(editingItem)}><Text style={{ color: SAC.text }}>Save Item</Text></GradientButton>
             </View>
           </View>
         )}
@@ -163,7 +190,7 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
       <Card>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 18, color: SAC.text }}>Coupons ({coupons.length})</Text>
-          <SecondaryButton icon={Plus} label="Create Coupon" onPress={() => setEditingCoupon({ discount_type: 'percentage' })} />
+          <SecondaryButton onPress={() => setEditingCoupon({ discount_type: 'percentage' })}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Plus size={16} color={SAC.text} /><Text style={{ color: SAC.text }}>Create Coupon</Text></View></SecondaryButton>
         </View>
 
         {editingCoupon && (
@@ -184,8 +211,8 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
               </View>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
-              <SecondaryButton label="Cancel" onPress={() => setEditingCoupon(null)} />
-              <GradientButton label="Save Coupon" onPress={() => saveCoupon(editingCoupon)} />
+              <SecondaryButton onPress={() => setEditingCoupon(null)}><Text style={{ color: SAC.text }}>Cancel</Text></SecondaryButton>
+              <GradientButton onPress={() => saveCoupon(editingCoupon)}><Text style={{ color: SAC.text }}>Save Coupon</Text></GradientButton>
             </View>
           </View>
         )}
