@@ -511,8 +511,8 @@ async def apply_internship(internship_id: str, req: ApplyRequest, request: Reque
     except Exception:
         pass
     if not internship:
-        async for i in _db.internships.find({}, {"_id": 1, "title": 1, "company": 1}):
-            if str(i["_id"]).endswith(internship_id):
+        async for i in _db.internships.find({}, {"_id": 1, "id": 1, "title": 1, "company": 1}):
+            if str(i["_id"]).endswith(internship_id) or i.get("id") == internship_id:
                 internship = i; break
     if not internship:
         # Support external feed jobs stored in jobs_cache
@@ -581,6 +581,7 @@ async def my_applications(email: Optional[str] = None):
     async for a in _db.internship_applications.find({"student_id": str(student["_id"])}).sort("applied_at", -1).limit(50):
         out.append({
             "id": _short_id(a["_id"]),
+            "job_id": a.get("internship_id"),
             "internship_title": a.get("internship_title"),
             "company": a.get("company"),
             "status": a.get("status"),
