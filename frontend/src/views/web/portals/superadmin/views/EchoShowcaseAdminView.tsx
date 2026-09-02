@@ -184,6 +184,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 import { DarkDropdown } from '@/src/views/web/components/DarkDropdown';
 import { getBaseUrl } from '@/src/lib/env';
+import { CatalogOrdersManager } from './CatalogOrdersManager';
 
 export const triggerExportCsv = (slugVal?: string, statusVal?: string) => {
   let base = '';
