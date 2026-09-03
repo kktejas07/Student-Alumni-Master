@@ -102,19 +102,24 @@ jobs:
           FRONTEND="${{ steps.env.outputs.FRONTEND_SERVICE }}"
           BACKEND="${{ steps.env.outputs.BACKEND_SERVICE }}"
           ENV="${{ steps.env.outputs.environment }}"
+          REPO_LOWER="${GITHUB_REPOSITORY,,}"
+          REGISTRY="ghcr.io/$REPO_LOWER"
 
           echo "🚀 Deploying $ENV environment"
           echo "   Host: $SSH_HOST"
           echo "   Tag: $TAG"
           echo "   Frontend: $FRONTEND"
           echo "   Backend: $BACKEND"
+          echo "   Registry: $REGISTRY"
 
-          ssh "$SSH_USER@$SSH_HOST" bash -s << 'DEPLOYSCRIPT'
+          ssh "$SSH_USER@$SSH_HOST" bash -s -- "$ENV" "$TAG" "$REGISTRY" "$FRONTEND" "$BACKEND" << 'DEPLOYSCRIPT'
             set -e
 
-            ENV="{{ ENV }}"
-            TAG="{{ TAG }}"
-            REGISTRY="ghcr.io/{{ github.repository }}"
+            ENV="$1"
+            TAG="$2"
+            REGISTRY="$3"
+            FRONTEND="$4"
+            BACKEND="$5"
 
             echo "📥 Pulling latest images..."
             docker pull "$REGISTRY/frontend:$TAG" || echo "Frontend image not found, skipping"

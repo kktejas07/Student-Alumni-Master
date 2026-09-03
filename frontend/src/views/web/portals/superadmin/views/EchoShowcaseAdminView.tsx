@@ -2162,6 +2162,9 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
   const [activeUploads, setActiveUploads] = useState(0);
   const autosaveTimer = useRef<any>(null);
 
+  const [tempOpenMin, setTempOpenMin] = useState('60');
+  const [tempOpening, setTempOpening] = useState(false);
+
   const onUploadStart = () => setActiveUploads((c) => c + 1);
   const onUploadEnd = () => setActiveUploads((c) => Math.max(0, c - 1));
 
@@ -2219,6 +2222,28 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
     }
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     onClose();
+  };
+
+  const onTemporaryOpen = async () => {
+    if (!editing?._id) return;
+    const mins = Math.max(1, Math.min(Number(tempOpenMin) || 60, 7 * 24 * 60));
+    setTempOpening(true);
+    try {
+      const res = await api.temporaryOpenEchoShowcase(editing._id, mins);
+      const reg = res?.registration || {};
+      const closeAt = res?.temporary_open?.closes_at || reg.temporary_close_at || '';
+      set('registration', {
+        ...(form.registration || {}),
+        enabled: true,
+        temporary_open: true,
+        temporary_close_at: closeAt,
+      });
+      flash(`Registration opened temporarily — auto-closes in ${mins} min`);
+    } catch (e: any) {
+      flash(e?.message || 'Failed to open temporarily');
+    } finally {
+      setTempOpening(false);
+    }
   };
 
   const autoSlug = (title: string) => {
@@ -2653,7 +2678,15 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                 <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Registration & Payment</Text>
                 <FieldRow label="Registrations Enabled">
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <Pressable onPress={() => set('registration', { ...(form.registration || {}), enabled: !((form.registration || {}).enabled) })} style={{
+                    <Pressable onPress={() => {
+                      const cur = form.registration || {};
+                      const nextEnabled = !cur.enabled;
+                      set('registration', {
+                        ...cur,
+                        enabled: nextEnabled,
+                        ...(nextEnabled ? {} : { temporary_open: false, temporary_close_at: '' }),
+                      });
+                    }} style={{
                       width: 44, height: 24, borderRadius: 12, padding: 2, backgroundColor: (form.registration || {}).enabled ? '#10B981' : '#334155',
                     }}>
                       <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', transform: [{ translateX: (form.registration || {}).enabled ? 20 : 0 }] }} />
@@ -2663,6 +2696,48 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                     </Text>
                   </View>
                 </FieldRow>
+
+                <View style={{ borderTopWidth: 1, borderTopColor: SAC.border, paddingTop: 12, gap: 8 }}>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>Open temporarily (auto-close)</Text>
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
+                    Re-enable registration now for a limited window. It re-opens only until the countdown ends, then closes automatically — no need to remember to switch it off.
+                  </Text>
+                  {(form.registration || {}).temporary_open && (form.registration || {}).temporary_close_at ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(16,185,129,0.12)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 }}>
+                      <Clock size={14} color="#34D399" />
+                      <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: '#34D399', flex: 1 }}>
+                        Active — auto-closes at {new Date((form.registration || {}).temporary_close_at).toLocaleString()}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>No temporary window active.</Text>
+                  )}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                    <Field
+                      value={tempOpenMin}
+                      onChangeText={(v: string) => setTempOpenMin(v.replace(/[^0-9]/g, ''))}
+                      placeholder="60"
+                      keyboardType="number-pad"
+                      style={{ width: 90 }}
+                    />
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>minutes</Text>
+                    <Pressable
+                      onPress={onTemporaryOpen}
+                      disabled={tempOpening || !editing?._id}
+                      style={{
+                        flexDirection: 'row', alignItems: 'center', gap: 6,
+                        backgroundColor: tempOpening || !editing?._id ? 'rgba(16,185,129,0.2)' : '#059669',
+                        borderRadius: 8, paddingHorizontal: 14, paddingVertical: 9,
+                        opacity: tempOpening || !editing?._id ? 0.6 : 1,
+                      }}
+                    >
+                      {tempOpening ? <ActivityIndicator size="small" color="#fff" /> : <Clock size={14} color="#fff" />}
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>
+                        {tempOpening ? 'Opening…' : 'Open for this long'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
                 <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
                   <View style={{ flex: 1, minWidth: 140 }}>
                     <FieldRow label="Fee (0 = free)">

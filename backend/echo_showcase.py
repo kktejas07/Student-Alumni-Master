@@ -586,11 +586,33 @@ async def sweep_expired_echo_payments(db) -> dict:
 
     Idempotent & safe to run every minute. Returns a small summary for logs.
     """
-    result = {"checked": 0, "failed": 0, "reminded": 0, "rescued": 0}
+    result = {"checked": 0, "failed": 0, "reminded": 0, "rescued": 0, "closed": 0}
     try:
         now = datetime.now(timezone.utc)
         cutoff_fail = now.timestamp() - ECHO_PAYMENT_SESSION_TTL_SECONDS
         cutoff_remind = now.timestamp() - ECHO_PAYMENT_REMINDER_SECONDS
+
+        # Auto-close any showcase whose temporary open window has expired.
+        try:
+            expired = await db.echo_showcases.find({
+                "registration.temporary_open": True,
+                "registration.temporary_close_at": {"$ne": ""},
+            }).to_list(200)
+            for sc in expired:
+                close_at = _parse_iso((sc.get("registration") or {}).get("temporary_close_at"))
+                if close_at and close_at < now:
+                    reg_upd = dict((sc.get("registration") or {}))
+                    reg_upd["enabled"] = False
+                    reg_upd["temporary_open"] = False
+                    reg_upd["temporary_close_at"] = ""
+                    await db.echo_showcases.update_one(
+                        {"_id": sc["_id"]},
+                        {"$set": {"registration": reg_upd, "updated_at": _now()}},
+                    )
+                    result["closed"] += 1
+                    print(f"[ECHO-SWEEP] Auto-closed temporary registration window for {sc.get('slug')}")
+        except Exception as _temp_err:
+            print(f"[ECHO-SWEEP] temporary-close scan failed: {_temp_err}")
 
         pending = await db.echo_registrations.find({"payment.status": "pending"}).to_list(500)
         cfg = await _razorpay_config(db)
@@ -781,6 +803,14 @@ async def _assert_registration_open(db, showcase: dict) -> None:
         raise HTTPException(status_code=400, detail="Registrations are closed for this event")
     if showcase.get("event_status_badge") == "Completed":
         raise HTTPException(status_code=400, detail="This event has ended — registrations are closed")
+
+    # Temporary auto-close window: if the showcase was opened for a limited window
+    # and that window has passed, treat registrations as closed (fail-closed) even
+    # before the background sweep flips enabled to False.
+    if reg_cfg.get("temporary_open"):
+        temp_close = _parse_iso(reg_cfg.get("temporary_close_at"))
+        if temp_close and temp_close < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="Registrations have closed for this event")
 
     slug = (showcase.get("slug") or "").lower()
     if slug in ("snist", "hackwave-3.0", "hackwave-3", "hackwave"):
@@ -2753,6 +2783,8 @@ class RegistrationConfig(BaseModel):
     max_seats: Optional[int] = 0
     seat_leverage: Optional[float] = 0.8  # 0.0-1.0 — fraction of registrations that consume seats (0.8 = 20% buffer)
     deadline: Optional[str] = ""
+    temporary_open: Optional[bool] = False
+    temporary_close_at: Optional[str] = ""
     payment_note: Optional[str] = ""
     payment_url: Optional[str] = None  # External payment gateway link (e.g. Razorpay/Stripe) shown on the register page
     poster_images: Optional[List[str]] = []  # Poster images displayed on the register page
@@ -5964,6 +5996,51 @@ async def update_showcase(showcase_id: str, payload: ShowcaseUpdateSchema, reque
         recon = await _reconcile_coupons_for_paid(db, doc or {})
         outcome["coupon_sync"] = recon
     return outcome
+
+
+class TemporaryOpenSchema(BaseModel):
+    duration_minutes: int = 60
+
+
+@router.post("/admin/showcases/{showcase_id}/temporary-open")
+async def temporary_open_showcase(
+    showcase_id: str,
+    payload: TemporaryOpenSchema,
+    request: Request,
+    _=Depends(_require_admin),
+):
+    """Open ECHO registration for a limited window, then auto-close it.
+
+    Sets registration.enabled=True and registration.temporary_open=True with a
+    temporary_close_at timestamp = now + duration. A background sweep (and the
+    registration gate itself) auto-closes the showcase once that window passes.
+    """
+    from datetime import timedelta
+    db = _get_db(request)
+    minutes = max(1, min(int(payload.duration_minutes or 60), 7 * 24 * 60))  # 1 min .. 7 days
+    now = datetime.now(timezone.utc)
+    close_at = now + timedelta(minutes=minutes)
+
+    result = await db.echo_showcases.update_one(
+        {"_id": _oid(showcase_id)},
+        {"$set": {
+            "registration.enabled": True,
+            "registration.temporary_open": True,
+            "registration.temporary_close_at": close_at.isoformat(),
+            "updated_at": _now(),
+        }},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Showcase not found")
+
+    doc = await db.echo_showcases.find_one({"_id": _oid(showcase_id)})
+    ser = _ser(doc or {})
+    ser["temporary_open"] = {
+        "active": True,
+        "closes_at": close_at.isoformat(),
+        "duration_minutes": minutes,
+    }
+    return ser
 
 
 @router.delete("/admin/showcases/{showcase_id}")
