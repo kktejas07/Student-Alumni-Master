@@ -217,10 +217,11 @@ async def _catalog_for_event(event_id: str) -> list[dict]:
 
 
 # ── Smart coupon evaluation ──────────────────────────────────────────────────
-async def _evaluate_coupon(code: str, subtotal: float, event_id: str, user_id: str) -> tuple[float, str, dict]:
+async def _evaluate_coupon(code: str, subtotal: float, event_id: str, user_id: str, cart_items: list[dict] | None = None) -> tuple[float, str, dict]:
     """Validate a coupon and return (discount_amount, applied_code, coupon_doc).
     Supports: percentage / fixed, min_order_value, max_discount cap,
-    max_uses global, per_user_limit, event scoping.
+    max_uses global, per_user_limit, event scoping, vendor scoping.
+    If coupon has vendor_id, discount only applies to that vendor's items.
     Raises HTTPException on failure. Returns (0, None, {}) if no code.
     """
     if not code:
@@ -235,6 +236,19 @@ async def _evaluate_coupon(code: str, subtotal: float, event_id: str, user_id: s
     c_event = coupon.get("event_id")
     if c_event and c_event != event_id:
         raise HTTPException(status_code=400, detail="Coupon is not valid for this event")
+
+    # Vendor scope — compute vendor-specific subtotal if coupon is vendor-scoped
+    c_vendor = coupon.get("vendor_id")
+    effective_subtotal = subtotal
+    if c_vendor and cart_items:
+        # Only count items from this vendor
+        effective_subtotal = sum(
+            float(it.get("price", 0)) * it.get("quantity", 1)
+            for it in cart_items
+            if it.get("vendor_id") == c_vendor
+        )
+        if effective_subtotal <= 0:
+            raise HTTPException(status_code=400, detail="This coupon is only valid for items from a specific vendor")
 
     # Global usage cap
     uses = int(coupon.get("uses_count", 0) or 0)
@@ -253,26 +267,26 @@ async def _evaluate_coupon(code: str, subtotal: float, event_id: str, user_id: s
         if user_uses >= per_user:
             raise HTTPException(status_code=400, detail="You have already used this coupon the maximum number of times")
 
-    # Min order value
+    # Min order value (checked against effective subtotal)
     min_order = float(coupon.get("min_order_value", 0) or 0)
-    if min_order and subtotal < min_order:
+    if min_order and effective_subtotal < min_order:
         raise HTTPException(
             status_code=400,
             detail=f"Coupon requires a minimum order of ₹{min_order:.0f}",
         )
 
-    # Compute discount
+    # Compute discount on effective subtotal
     if coupon.get("discount_type") == "fixed":
         discount = float(coupon.get("discount_value", 0) or 0)
     else:
-        discount = round(subtotal * float(coupon.get("discount_value", 0) or 0) / 100.0, 2)
+        discount = round(effective_subtotal * float(coupon.get("discount_value", 0) or 0) / 100.0, 2)
 
     # Max discount cap
     max_disc = float(coupon.get("max_discount", 0) or 0)
     if max_disc and discount > max_disc:
         discount = max_disc
 
-    discount = min(discount, subtotal)
+    discount = min(discount, effective_subtotal)
     return round(discount, 2), code_upper, coupon
 
 
@@ -763,9 +777,9 @@ async def marketplace_checkout(payload: CheckoutRequest, request: Request):
             "stall_location": item.get("stall_location"),
         })
 
-    # Smart coupon evaluation
+    # Smart coupon evaluation (vendor-aware)
     discount, applied_coupon, coupon_doc = await _evaluate_coupon(
-        payload.coupon_code or "", subtotal, event_key, user_id,
+        payload.coupon_code or "", subtotal, event_key, user_id, cart_items=order_items,
     )
 
     gst_total = round(gst_total, 2)
@@ -1030,8 +1044,32 @@ async def coupon_preview(payload: dict, request: Request):
     applied = None
     doc = {}
     if code:
+        # Build enriched cart items with vendor_id for vendor-scoped coupons
+        enriched_items = []
+        if cart_items:
+            showcase2 = await db.echo_showcases.find_one({
+                "$or": [{"slug": event_id}, {"aliases": event_id}],
+            })
+            event_key2 = event_id
+            if showcase2 and showcase2.get("_id"):
+                event_key2 = str(showcase2.get("_id"))
+            by_id2 = {}
+            for scope in [event_key2, event_id, "master"]:
+                for it in await _catalog_for_event(scope):
+                    if it.get("id"):
+                        by_id2[it["id"]] = it
+                    if it.get("_id"):
+                        by_id2[str(it["_id"])] = it
+            for line in cart_items:
+                item = by_id2.get(str(line.get("item_id"))) if line.get("item_id") else None
+                if item:
+                    enriched_items.append({
+                        "vendor_id": item.get("vendor_id"),
+                        "price": float(item.get("price", 0)),
+                        "quantity": int(line.get("quantity", 1) or 1),
+                    })
         try:
-            discount, applied, doc = await _evaluate_coupon(code, subtotal, event_id, user_id)
+            discount, applied, doc = await _evaluate_coupon(code, subtotal, event_id, user_id, cart_items=enriched_items or None)
         except HTTPException as e:
             return {"success": False, "error": e.detail}
 
@@ -1130,6 +1168,8 @@ class AdminCouponInput(BaseModel):
     discount_type: str = "percentage"
     discount_value: float = 0
     event_id: Optional[str] = None
+    vendor_id: Optional[str] = None
+    vendor_name: Optional[str] = None
     max_uses: int = 0
     min_order_value: float = 0
     max_discount: float = 0
@@ -1175,6 +1215,8 @@ async def list_available_coupons(event_id: str):
             "discount_value": c.get("discount_value", 0),
             "min_order_value": c.get("min_order_value", 0),
             "max_discount": c.get("max_discount", 0),
+            "vendor_id": c.get("vendor_id"),
+            "vendor_name": c.get("vendor_name"),
         })
     return {"success": True, "data": out}
 
@@ -1192,6 +1234,8 @@ async def admin_create_coupon(payload: AdminCouponInput, request: Request, _=Dep
         "discount_type": payload.discount_type,
         "discount_value": payload.discount_value,
         "event_id": payload.event_id,
+        "vendor_id": payload.vendor_id or None,
+        "vendor_name": payload.vendor_name or None,
         "max_uses": payload.max_uses,
         "min_order_value": payload.min_order_value,
         "max_discount": payload.max_discount,

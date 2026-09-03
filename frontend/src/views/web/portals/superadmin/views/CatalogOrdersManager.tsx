@@ -393,6 +393,31 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
                 <Field value={String(editingCoupon.discount_value || '')} onChangeText={(v: string) => setEditingCoupon({ ...editingCoupon, discount_value: Number(v) })} placeholder="20" />
               </View>
             </View>
+            <View>
+              <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Vendor (leave empty for all vendors)</Text>
+              {Platform.OS === 'web' ? (
+                <select
+                  value={editingCoupon.vendor_id || ''}
+                  onChange={(e) => {
+                    const vid = e.target.value;
+                    const vname = vendors.find((v: any) => v.vendor_id === vid)?.name || '';
+                    setEditingCoupon({ ...editingCoupon, vendor_id: vid || null, vendor_name: vname || null });
+                  }}
+                  style={{
+                    backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1,
+                    borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 14,
+                    fontFamily: FONTS.regular, width: '100%', outline: 'none',
+                  }}
+                >
+                  <option value="">All Vendors (global)</option>
+                  {vendors.map((v: any) => (
+                    <option key={v.vendor_id} value={v.vendor_id}>{v.name || v.vendor_id}</option>
+                  ))}
+                </select>
+              ) : (
+                <Field value={editingCoupon.vendor_id || ''} onChangeText={(v: string) => setEditingCoupon({ ...editingCoupon, vendor_id: v })} placeholder="Vendor ID (optional)" />
+              )}
+            </View>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
               <SecondaryButton onPress={() => setEditingCoupon(null)}><Text style={{ color: SAC.text }}>Cancel</Text></SecondaryButton>
               <GradientButton onPress={() => saveCoupon(editingCoupon)}><Text style={{ color: SAC.text }}>Save Coupon</Text></GradientButton>
@@ -403,9 +428,9 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
         <View style={{ gap: 12 }}>
           {coupons.map(coupon => (
             <View key={coupon.code} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderWidth: 1, borderColor: SAC.border, borderRadius: 8 }}>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={{ fontFamily: FONTS.med, color: SAC.text }}>{coupon.code}</Text>
-                <Text style={{ fontSize: 12, color: SAC.muted }}>{coupon.discount_value}{coupon.discount_type === 'percentage' ? '%' : ' INR'} off</Text>
+                <Text style={{ fontSize: 12, color: SAC.muted }}>{coupon.discount_value}{coupon.discount_type === 'percentage' ? '%' : ' INR'} off{coupon.vendor_name ? ` · ${coupon.vendor_name}` : ' · All vendors'}</Text>
               </View>
               <Text style={{ fontSize: 12, color: SAC.muted }}>Uses: {coupon.uses_count || 0}</Text>
             </View>
