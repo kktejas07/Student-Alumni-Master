@@ -6208,6 +6208,76 @@ async def toggle_session_lock(slug: str, session_key: str, request: Request, adm
     return {"ok": True, "session_key": session_key, "locked": locked}
 
 
+# ── Registration tab passcode (server-side, hashed) ─────────────────────────
+_PASSCODE_SALT = "studentalumni::echo::registration::v1"
+_PASSCODE_COLL = "echo_admin_config"
+
+
+def _hash_passcode(passcode: str) -> str:
+    return hashlib.sha256((_PASSCODE_SALT + passcode).encode("utf-8")).hexdigest()
+
+
+async def _get_passcode_config(db) -> dict:
+    return await db[_PASSCODE_COLL].find_one({"key": "registration_passcode"})
+
+
+@router.get("/admin/registration-passcode")
+async def get_registration_passcode(request: Request, admin=Depends(_require_admin)):
+    """Return whether a registration-tab passcode is enabled. Never returns the value."""
+    db = _get_db(request)
+    cfg = await _get_passcode_config(db)
+    return {
+        "ok": True,
+        "enabled": bool(cfg and cfg.get("enabled")),
+        "has_passcode": bool(cfg and cfg.get("hash")),
+    }
+
+
+@router.put("/admin/registration-passcode")
+async def set_registration_passcode(request: Request, admin=Depends(_require_admin)):
+    """Set/update the registration-tab passcode and enable it, or disable it."""
+    db = _get_db(request)
+    body = await request.json()
+    if body.get("disable"):
+        await db[_PASSCODE_COLL].update_one(
+            {"key": "registration_passcode"},
+            {"$set": {"enabled": False}},
+            upsert=True,
+        )
+        return {"ok": True, "enabled": False}
+
+    passcode = (body.get("passcode") or "").strip()
+    if not passcode:
+        raise HTTPException(status_code=400, detail="Passcode required")
+    if not (4 <= len(passcode) <= 12):
+        raise HTTPException(
+            status_code=400,
+            detail="Passcode must be 4-12 characters",
+        )
+    await db[_PASSCODE_COLL].update_one(
+        {"key": "registration_passcode"},
+        {"$set": {"hash": _hash_passcode(passcode), "enabled": True}},
+        upsert=True,
+    )
+    return {"ok": True, "enabled": True}
+
+
+@router.post("/admin/registration-passcode/verify")
+async def verify_registration_passcode(request: Request, admin=Depends(_require_admin)):
+    """Verify a submitted passcode against the stored (hashed) value."""
+    db = _get_db(request)
+    cfg = await _get_passcode_config(db)
+    if not (cfg and cfg.get("enabled") and cfg.get("hash")):
+        return {"ok": False, "enabled": False, "reason": "not_configured"}
+    body = await request.json()
+    guess = (body.get("passcode") or "").strip()
+    if not guess:
+        return {"ok": False, "enabled": True, "reason": "empty"}
+    if _hash_passcode(guess) != cfg.get("hash"):
+        return {"ok": False, "enabled": True, "reason": "invalid"}
+    return {"ok": True, "enabled": True}
+
+
 @router.get("/{slug}/my-coupons")
 async def my_coupons(slug: str, request: Request, email: Optional[str] = Query(None)):
     """Get current user's coupons for an event. Supports guest access via ?email= param."""

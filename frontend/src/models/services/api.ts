@@ -503,6 +503,14 @@ export const api = {
     request<any>(`/echo/admin/registrations/${regId}/team`, { method: 'PUT', body: { team_members: teamMembers, team_name: teamName } }),
   adminEchoResendTickets: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}/resend-tickets`, { method: 'POST' }),
+  getEchoRegistrationPasscode: () =>
+    request<any>('/echo/admin/registration-passcode'),
+  setEchoRegistrationPasscode: (passcode: string) =>
+    request<any>('/echo/admin/registration-passcode', { method: 'PUT', body: { passcode } }),
+  disableEchoRegistrationPasscode: () =>
+    request<any>('/echo/admin/registration-passcode', { method: 'PUT', body: { disable: true } }),
+  verifyEchoRegistrationPasscode: (passcode: string) =>
+    request<any>('/echo/admin/registration-passcode/verify', { method: 'POST', body: { passcode } }),
   adminEchoRevenue: () =>
     request<any>('/echo/admin/revenue'),
   adminRevenueAudit: () =>
