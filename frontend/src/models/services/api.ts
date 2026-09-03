@@ -448,6 +448,8 @@ export const api = {
     request<any>('/echo/admin/showcases', { method: 'POST', body: payload }),
   updateEchoShowcase: (id: string, payload: any) =>
     request<any>(`/echo/admin/showcases/${id}`, { method: 'PUT', body: payload }),
+  temporaryOpenEchoShowcase: (id: string, durationMinutes: number) =>
+    request<any>(`/echo/admin/showcases/${id}/temporary-open`, { method: 'POST', body: { duration_minutes: durationMinutes } }),
   deleteEchoShowcase: (id: string) =>
     request<any>(`/echo/admin/showcases/${id}`, { method: 'DELETE' }),
   publishEchoShowcase: (id: string) =>
