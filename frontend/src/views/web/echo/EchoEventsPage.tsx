@@ -1777,7 +1777,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <div style={{ width: '46px', height: '46px', borderRadius: '14px', background: 'linear-gradient(135deg, #4F46E5, #3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(79, 70, 229, 0.4)' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#FFF', strokeWidth: 2 }}><polygon points="10 4 4 8 4 16 10 20 16 16 16 8z"></polygon><line x1="10" y1="4" x2="22" y2="12"></line><path d="M10 12l0 6"></path></svg>
+                      <svg width="22" height="22" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#FFF', strokeWidth: 2 }}><polygon points="10 4 4 8 4 16 10 20 16 16 16 8"></polygon><line x1="10" y1="4" x2="22" y2="12"></line><path d="M10 12v6"></path></svg>
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>

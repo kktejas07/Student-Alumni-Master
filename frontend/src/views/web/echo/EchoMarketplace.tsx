@@ -4,6 +4,22 @@ import { ShoppingCart, Plus, Minus, Tag, Store, PackageX, CheckCircle2 } from 'l
 import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
+let razorpaySDKPromise: Promise<boolean> | null = null;
+const loadRazorpaySDK = (): Promise<boolean> => {
+  if ((window as any).Razorpay) return Promise.resolve(true);
+  if (razorpaySDKPromise) return razorpaySDKPromise;
+  razorpaySDKPromise = new Promise<boolean>((resolve) => {
+    if (typeof window === 'undefined') { resolve(false); return; }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve(!!(window as any).Razorpay);
+    script.onerror = () => { resolve(false); };
+    document.body.appendChild(script);
+  });
+  return razorpaySDKPromise;
+};
+
 export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolean }) {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -12,7 +28,7 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<any>(null);
   const [qrImage, setQrImage] = useState('');
-  const [couponPreview, setCouponPreview] = useState<{ discount: number; code?: string | null; error?: string } | null>(null);
+  const [couponPreview, setCouponPreview] = useState<{ discount: number; code?: string | null; gst?: number; gstSplit?: any; error?: string } | null>(null);
   const user = useAuthStore(s => s.user);
 
   useEffect(() => {
@@ -76,6 +92,10 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
       }
 
       // Initiate Razorpay
+      const isLoaded = await loadRazorpaySDK();
+      if (!isLoaded || !(window as any).Razorpay) {
+        throw new Error("Razorpay failed to load. Check internet connection and try again.");
+      }
       const options = {
         key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_YourKeyHere',
         amount: res.razorpay_order.amount,
@@ -143,27 +163,48 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
       try {
         const res = await request<any>('/echo/orders/coupon-preview', {
           method: 'POST',
-          body: { code: couponCode.trim(), subtotal: cartTotal, event_id: slug },
+          body: {
+            code: couponCode.trim(),
+            subtotal: cartTotal,
+            event_id: slug,
+            items: Object.entries(cart).map(([item_id, quantity]) => ({ item_id, quantity })),
+          },
         });
         if (!active) return;
         if (res.success) {
-          if (res.discount > 0) setCouponPreview({ discount: Number(res.discount) || 0, code: res.code });
-          else setCouponPreview({ discount: 0, code: res.code, error: 'Coupon not applicable' });
+          if (res.discount > 0) setCouponPreview({ discount: Number(res.discount) || 0, code: res.code, gst: Number(res.gst) || 0, gstSplit: res.gst_split });
+          else setCouponPreview({ discount: 0, code: res.code, gst: Number(res.gst) || 0, gstSplit: res.gst_split, error: 'Coupon not applicable' });
         } else {
-          setCouponPreview({ discount: 0, error: res.error || 'Invalid coupon' });
+          setCouponPreview({ discount: 0, gst: Number(res.gst) || 0, gstSplit: res.gst_split, error: res.error || 'Invalid coupon' });
         }
       } catch (e) {
         if (active) setCouponPreview(null);
       }
     }, 500);
     return () => { active = false; clearTimeout(t); };
-  }, [couponCode, cartTotal, slug]);
+  }, [couponCode, cartTotal, slug, cart, items]);
 
   if (loading) return null;
   if (items.length === 0) return null;
 
+  const gstRateFor = (category?: string): number => {
+    const rates: Record<string, number> = { food: 0.05, beverage: 0.05, cafe: 0.05, snacks: 0.05, drink: 0.05, beverages: 0.05, handcraft: 0.12, handicraft: 0.12, merch: 0.18, merchandise: 0.18 };
+    return rates[(category || '').toLowerCase()] ?? 0.18;
+  };
+
+  const computeGst = () => {
+    let g = 0;
+    Object.entries(cart).forEach(([id, qty]) => {
+      const item = items.find(i => i.id === id || i._id === id);
+      if (item) g += (item.price || 0) * qty * gstRateFor(item.category);
+    });
+    return Math.round(g * 100) / 100;
+  };
+
   const discount = couponPreview?.discount ?? 0;
-  const grandTotal = Math.max(0, cartTotal - discount);
+  const gstTotal = couponPreview?.gst != null ? couponPreview.gst : computeGst();
+  const taxable = Math.max(0, cartTotal - discount);
+  const grandTotal = Math.max(0, taxable + gstTotal);
 
   const isAvailable = (item: any): boolean => {
     if (item.is_active === false) return false;
@@ -307,14 +348,34 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
                 </div>
               );
             })}
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, fontSize: 14, color: fg }}>
+              <span>Subtotal</span>
+              <span>₹{cartTotal}</span>
+            </div>
             {discount > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, fontSize: 14, color: '#10B981' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6, fontSize: 14, color: '#10B981' }}>
                 <span>Coupon discount{couponPreview?.code ? ` (${couponPreview.code})` : ''}</span>
                 <span>− ₹{discount}</span>
               </div>
             )}
+            {gstTotal > 0 && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6, fontSize: 14, color: 'var(--muted)' }}>
+                  <span>Taxable</span>
+                  <span>₹{taxable}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6, fontSize: 13.5, color: 'var(--muted)' }}>
+                  <span>CGST</span>
+                  <span>₹{(gstTotal / 2).toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6, fontSize: 13.5, color: 'var(--muted)' }}>
+                  <span>SGST</span>
+                  <span>₹{(gstTotal / 2).toFixed(2)}</span>
+                </div>
+              </>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, paddingTop: 16, borderTop: `1px solid ${border}`, fontSize: 20, fontWeight: 800, color: fg }}>
-              <span>Total</span>
+              <span>Total (incl. GST)</span>
               <span>₹{grandTotal}</span>
             </div>
           </div>
