@@ -172,6 +172,7 @@ import {
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users,
   Ticket, Mail, ScanLine, Phone,
   CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle, Download, FileSpreadsheet, MapPin,
+  UserCheck, GraduationCap, CreditCard,
 } from 'lucide-react-native';
 import {
   GRAD, GradientButton, SecondaryButton, Card,
@@ -238,7 +239,7 @@ const GALLERY_LAYOUT_OPTIONS = ['grid', 'masonry', 'mixed', 'featured-grid', 'ca
 const VIDEO_PLATFORM_OPTIONS = ['youtube', 'vimeo', 'mp4'];
 const DOWNLOAD_CATEGORY_OPTIONS = ['Brochure', 'Schedule', 'Certificate', 'Presentation', 'Report', 'Document'];
 
-type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'volunteers' | 'scan-monitor';
+type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'interns' | 'volunteers' | 'scan-monitor';
 type StatusFilter = 'all' | 'published' | 'draft' | 'archived';
 type FormTab =
   | 'general' | 'hero' | 'statistics' | 'about' | 'gallery'
@@ -251,6 +252,7 @@ const PAGE_TABS: Array<{ id: PageTab; label: string; icon?: any }> = [
   { id: 'create', label: 'Create Showcase', icon: PlusCircle },
   { id: 'drafts', label: 'Drafts', icon: FileText },
   { id: 'registrations', label: 'Registrations & Payments', icon: Users },
+  { id: 'interns', label: 'Internal Hiring & Interns', icon: UserCheck },
   { id: 'volunteers', label: 'Volunteers', icon: Users },
   { id: 'scan-monitor', label: 'Live Scan Monitor', icon: ScanLine },
   { id: 'media', label: 'Media Library', icon: Images },
@@ -3828,6 +3830,28 @@ function RegistrationsPanel() {
                   </View>
                   <View style={{ width: 110, flexDirection: 'row', gap: 4, justifyContent: 'center' }}>
                     <IconAction icon={<Eye size={14} color="#818CF8" />} label="View" color="#818CF8" onPress={() => setDetailRow(r)} />
+                    <IconAction
+                      icon={<UserCheck size={14} color="#34D399" />}
+                      label="Hire / Convert to Intern"
+                      color="#34D399"
+                      bg="rgba(16,185,129,0.18)"
+                      onPress={async () => {
+                        try {
+                          await api.adminEchoConvertIntern({
+                            reg_id: r.id,
+                            target_stage: 'unpaid_intern',
+                            full_name: r.full_name,
+                            email: r.email,
+                            phone: r.phone,
+                            college: r.college,
+                            slug: r.slug,
+                          });
+                          flash(`Converted ${r.full_name} to Unpaid Intern candidate!`);
+                        } catch (e: any) {
+                          flash(e?.message || 'Conversion failed');
+                        }
+                      }}
+                    />
                     {(r.payment_status === 'paid' || Number(r.fee || 0) === 0) && (
                       <IconAction
                         icon={<Send size={14} color="#A78BFA" />}
@@ -5029,11 +5053,706 @@ function LiveScanMonitorPanel() {
   );
 }
 
+
+// ── Internal Hiring & Interns Pipeline Panel ───────────────────────────────
+function InternalHiringPanel() {
+  const { flash } = useToast();
+  const { confirm } = useConfirm();
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({
+    applicant_pool: 0, shortlisted: 0, unpaid_intern: 0, paid_intern: 0, full_time: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [eventFilter, setEventFilter] = useState('all');
+  const [stageTab, setStageTab] = useState<string>('all');
+  const [domainFilter, setDomainFilter] = useState<string>('all');
+  const [actioningId, setActioningId] = useState<string | null>(null);
+
+  // Edit candidate modal state
+  const [editingCandidate, setEditingCandidate] = useState<any | null>(null);
+  const [editStage, setEditStage] = useState('shortlisted');
+  const [editSkills, setEditSkills] = useState<string[]>(['Technical']);
+  const [editStipend, setEditStipend] = useState('');
+  const [editRoleTitle, setEditRoleTitle] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.adminEchoListInterns({
+        slug: eventFilter,
+        stage: stageTab,
+        search,
+        domain: domainFilter,
+      });
+      setCandidates(res?.items || []);
+      if (res?.counts) setCounts(res.counts);
+    } catch (err: any) {
+      flash(err?.message || 'Failed to load internal hiring pipeline');
+    } finally {
+      setLoading(false);
+    }
+  }, [eventFilter, stageTab, search, domainFilter]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const handleAdvanceStage = async (c: any, nextStage?: string) => {
+    const candidateId = c._id || c.id;
+    setActioningId(candidateId);
+    try {
+      const res = await api.adminEchoAdvanceIntern(candidateId, { next_stage: nextStage });
+      flash(res?.message || `Advanced ${c.full_name}`);
+      await loadData();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to advance stage');
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const handleSyncAll = async () => {
+    setLoading(true);
+    try {
+      const res = await api.adminEchoSyncAllInterns();
+      flash(`Successfully synced ${res?.synced_count || 0} event registrants from Echo VNRVJIET & SNIST!`);
+      await loadData();
+    } catch (err: any) {
+      flash(err?.message || 'Sync failed');
+      setLoading(false);
+    }
+  };
+
+  const openEditModal = (c: any) => {
+    setEditingCandidate(c);
+    setEditStage(c.stage || 'shortlisted');
+    setEditSkills(c.skills || ['Technical']);
+    setEditStipend(c.stipend ? String(c.stipend) : '');
+    setEditRoleTitle(c.role_title || 'Intern Prospect');
+    setEditNotes(c.notes || '');
+  };
+
+  const handleSaveModal = async () => {
+    if (!editingCandidate) return;
+    const cid = editingCandidate._id || editingCandidate.id;
+    setActioningId(cid);
+    try {
+      await api.adminEchoUpdateIntern(cid, {
+        stage: editStage,
+        skills: editSkills,
+        stipend: parseFloat(editStipend) || 0,
+        role_title: editRoleTitle,
+        notes: editNotes,
+      });
+      flash('Candidate profile updated');
+      setEditingCandidate(null);
+      await loadData();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to update candidate');
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const handleDelete = async (c: any) => {
+    const cid = c._id || c.id;
+    const ok = await confirm({
+      title: 'Remove Candidate',
+      message: `Delete ${c.full_name} from internal hiring pipeline?`,
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await api.adminEchoDeleteIntern(cid);
+      flash('Candidate deleted');
+      await loadData();
+    } catch (err: any) {
+      flash(err?.message || 'Delete failed');
+    }
+  };
+
+  const toggleSkillInModal = (sk: string) => {
+    if (editSkills.includes(sk)) {
+      setEditSkills(editSkills.filter((s) => s !== sk));
+    } else {
+      setEditSkills([...editSkills, sk]);
+    }
+  };
+
+  const exportRosterCsv = () => {
+    const headers = ['Full Name', 'Email', 'Phone', 'College', 'Event Registered', 'Stage', 'Domain Skills', 'Stipend (INR)', 'Role Title', 'Notes'];
+    const rows = [headers.join(',')];
+    for (const c of candidates) {
+      rows.push([
+        `"${(c.full_name || '').replace(/"/g, '""')}"`,
+        `"${(c.email || '').replace(/"/g, '""')}"`,
+        `"${(c.phone || '').replace(/"/g, '""')}"`,
+        `"${(c.college || '').replace(/"/g, '""')}"`,
+        `"${(c.event_title || c.slug || '').replace(/"/g, '""')}"`,
+        c.stage || '',
+        `"${(c.skills || []).join('; ')}"`,
+        c.stipend || 0,
+        `"${(c.role_title || '').replace(/"/g, '""')}"`,
+        `"${(c.notes || '').replace(/"/g, '""')}"`,
+      ].join(','));
+    }
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `internal-hiring-interns-roster-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  };
+
+  const STAGES = [
+    { id: 'all', label: 'All Candidates', count: candidates.length },
+    { id: 'applicant_pool', label: '📥 Applicant Pool', count: counts.applicant_pool || 0 },
+    { id: 'shortlisted', label: '⭐️ Shortlisted', count: counts.shortlisted || 0 },
+    { id: 'unpaid_intern', label: '🎓 Unpaid Intern', count: counts.unpaid_intern || 0 },
+    { id: 'paid_intern', label: '💰 Paid Intern', count: counts.paid_intern || 0 },
+    { id: 'full_time', label: '💼 Full Time', count: counts.full_time || 0 },
+  ];
+
+  const DOMAINS = ['Technical', 'Marketing', 'Operations', 'Design', 'AI/ML', 'Event Management'];
+
+  const getStageBadge = (st: string) => {
+    switch (st) {
+      case 'applicant_pool':
+        return { label: 'APPLICANT', color: '#94A3B8', bg: 'rgba(148,163,184,0.15)', border: 'rgba(148,163,184,0.3)' };
+      case 'shortlisted':
+        return { label: 'SHORTLISTED', color: '#FBBF24', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' };
+      case 'unpaid_intern':
+        return { label: 'UNPAID INTERN', color: '#38BDF8', bg: 'rgba(56,189,248,0.15)', border: 'rgba(56,189,248,0.3)' };
+      case 'paid_intern':
+        return { label: 'PAID INTERN', color: '#34D399', bg: 'rgba(52,211,153,0.18)', border: 'rgba(52,211,153,0.35)' };
+      case 'full_time':
+        return { label: 'FULL TIME HIRE', color: '#A78BFA', bg: 'rgba(167,139,250,0.2)', border: 'rgba(167,139,250,0.4)' };
+      default:
+        return { label: st.toUpperCase(), color: SAC.muted, bg: 'rgba(255,255,255,0.08)', border: SAC.border };
+    }
+  };
+
+  const getNextStageLabel = (st: string) => {
+    switch (st) {
+      case 'applicant_pool': return '✓ Shortlist Candidate';
+      case 'shortlisted': return '✓ Hire as Unpaid Intern';
+      case 'unpaid_intern': return '✓ Promote to Paid Intern';
+      case 'paid_intern': return '✓ Convert to Full Time';
+      case 'full_time': return '✓ Full Time Hired';
+      default: return '✓ Advance Stage';
+    }
+  };
+
+  return (
+    <View style={{ gap: 16 }}>
+      {/* Top Header & KPIs */}
+      <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+        <KpiTile Icon={Users} label="Total Applicants" value={String(candidates.length)} />
+        <KpiTile Icon={Star} label="Shortlisted" value={String(counts.shortlisted || 0)} />
+        <KpiTile Icon={GraduationCap} label="Unpaid Interns" value={String(counts.unpaid_intern || 0)} />
+        <KpiTile Icon={CreditCard} label="Paid Interns" value={String(counts.paid_intern || 0)} />
+        <KpiTile Icon={UserCheck} label="Full Time Hires" value={String(counts.full_time || 0)} delta="Active" deltaKind="success" />
+      </View>
+
+      {/* Toolbar */}
+      <Card style={{ padding: 14, gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 260 }}>
+            <SearchField value={search} onChange={setSearch} placeholder="Search name, email, college, skill..." width="100%" />
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            <Pressable
+              onPress={handleSyncAll}
+              disabled={loading}
+              style={{
+                flexDirection: 'row', alignItems: 'center', gap: 6,
+                backgroundColor: 'rgba(124,58,237,0.18)', borderWidth: 1, borderColor: '#7C3AED',
+                borderRadius: 9, paddingHorizontal: 12, paddingVertical: 8, cursor: 'pointer',
+              }}
+            >
+              <RefreshCw size={13} color="#A78BFA" />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#C4B5FD' }}>Sync Event Registrations</Text>
+            </Pressable>
+            <Pressable
+              onPress={exportRosterCsv}
+              style={{
+                flexDirection: 'row', alignItems: 'center', gap: 6,
+                backgroundColor: '#059669', borderRadius: 9, paddingHorizontal: 12, paddingVertical: 8, cursor: 'pointer',
+              }}
+            >
+              <Download size={13} color="#fff" />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export Roster CSV</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Stage Pills Navigation */}
+        <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', paddingTop: 12 }}>
+          {STAGES.map((st) => {
+            const isActive = stageTab === st.id;
+            return (
+              <Pressable
+                key={st.id}
+                onPress={() => setStageTab(st.id)}
+                style={{
+                  paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
+                  backgroundColor: isActive ? '#7C3AED' : 'rgba(255,255,255,0.05)',
+                  borderWidth: 1, borderColor: isActive ? '#9E7BFF' : 'rgba(255,255,255,0.08)',
+                  flexDirection: 'row', alignItems: 'center', gap: 6, cursor: 'pointer',
+                }}
+              >
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: isActive ? '#FFFFFF' : SAC.text }}>{st.label}</Text>
+                <View style={{
+                  paddingHorizontal: 6, paddingVertical: 1, borderRadius: 10,
+                  backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
+                }}>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: isActive ? '#FFFFFF' : SAC.muted }}>{st.count}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Card>
+
+      {/* Candidates List / Pipeline Grid */}
+      <Card style={{ overflow: 'hidden' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderBottomWidth: 1, borderBottomColor: SAC.border }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>
+            {candidates.length} Candidate{candidates.length !== 1 ? 's' : ''} in Pipeline
+          </Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>
+            Click checkmark button to advance candidates to next stage (Shortlisted → Unpaid Intern → Paid Intern → Full Time)
+          </Text>
+        </View>
+
+        {loading ? (
+          <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={GRAD.from} />
+          </View>
+        ) : candidates.length === 0 ? (
+          <View style={{ padding: 40, alignItems: 'center', gap: 10 }}>
+            <IconBox size={46}><UserCheck size={18} color={GRAD.to} /></IconBox>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>No candidates in this view</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: SAC.muted, textAlign: 'center', maxWidth: 340 }}>
+              Click "Sync Event Registrations" above or convert registrations from Echo VNRVJIET & SNIST into intern candidates.
+            </Text>
+          </View>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
+            <View style={{ minWidth: 1050, flex: 1 }}>
+              {/* Header */}
+              <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: SAC.border }}>
+                <Text style={{ flex: 1.5, minWidth: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>CANDIDATE</Text>
+                <Text style={{ flex: 1.2, minWidth: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>COLLEGE & EVENT</Text>
+                <Text style={{ width: 130, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>STAGE</Text>
+                <Text style={{ flex: 1.2, minWidth: 160, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SKILLS / DOMAIN</Text>
+                <Text style={{ width: 110, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>STIPEND</Text>
+                <Text style={{ width: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>QUICK ACTION</Text>
+              </View>
+
+              {candidates.map((c: any, i: number) => {
+                const badge = getStageBadge(c.stage || 'applicant_pool');
+                const cid = c._id || c.id;
+                const isActioning = actioningId === cid;
+
+                return (
+                  <View key={cid || i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
+                    {/* Candidate */}
+                    <View style={{ flex: 1.5, minWidth: 180 }}>
+                      <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>{c.full_name || '—'}</Text>
+                      <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim, marginTop: 1 }}>{c.email || ''}</Text>
+                      {c.phone ? (
+                        <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, marginTop: 1 }}>{c.phone}</Text>
+                      ) : null}
+                    </View>
+
+                    {/* College & Event */}
+                    <View style={{ flex: 1.2, minWidth: 150 }}>
+                      <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 11.5, color: '#E2E8F0' }}>{c.college || 'VNRVJIET / SNIST'}</Text>
+                      <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: '#A78BFA', marginTop: 1 }}>{c.event_title || c.slug || ''}</Text>
+                      {c.branch ? <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9.5, color: SAC.dim }}>{c.branch}</Text> : null}
+                    </View>
+
+                    {/* Stage Badge */}
+                    <View style={{ width: 130 }}>
+                      <View style={{
+                        paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
+                        backgroundColor: badge.bg, borderWidth: 1, borderColor: badge.border,
+                        alignSelf: 'flex-start',
+                      }}>
+                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 9.5, color: badge.color }}>
+                          {badge.label}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Skills / Domain */}
+                    <View style={{ flex: 1.2, minWidth: 160, flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+                      {(c.skills || ['Technical']).map((sk: string, sIdx: number) => (
+                        <View key={sIdx} style={{
+                          paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+                          backgroundColor: sk === 'Marketing' ? 'rgba(245,158,11,0.15)' : 'rgba(99,102,241,0.15)',
+                          borderWidth: 1, borderColor: sk === 'Marketing' ? 'rgba(245,158,11,0.3)' : 'rgba(99,102,241,0.3)',
+                        }}>
+                          <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: sk === 'Marketing' ? '#FBBF24' : '#818CF8' }}>{sk}</Text>
+                        </View>
+                      ))}
+                    </View>
+
+                    {/* Stipend */}
+                    <View style={{ width: 110 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: Number(c.stipend || 0) > 0 ? '#34D399' : SAC.muted }}>
+                        {Number(c.stipend || 0) > 0 ? `₹${Number(c.stipend).toLocaleString('en-IN')}/mo` : 'Unpaid'}
+                      </Text>
+                    </View>
+
+                    {/* Quick Action Button */}
+                    <View style={{ width: 180, flexDirection: 'row', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+                      {c.stage !== 'full_time' ? (
+                        <Pressable
+                          onPress={() => handleAdvanceStage(c)}
+                          disabled={isActioning}
+                          style={{
+                            flexDirection: 'row', alignItems: 'center', gap: 5,
+                            backgroundColor: c.stage === 'unpaid_intern' ? '#059669' : c.stage === 'shortlisted' ? '#2563EB' : '#7C3AED',
+                            paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7, cursor: 'pointer',
+                            opacity: isActioning ? 0.6 : 1,
+                          }}
+                        >
+                          {isActioning ? <ActivityIndicator size="small" color="#fff" /> : <CheckCircle size={13} color="#fff" />}
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#fff' }}>
+                            {getNextStageLabel(c.stage)}
+                          </Text>
+                        </Pressable>
+                      ) : (
+                        <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(52,211,153,0.2)', borderWidth: 1, borderColor: '#34D399' }}>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 10.5, color: '#34D399' }}>✓ Hired Full-Time</Text>
+                        </View>
+                      )}
+
+                      <IconAction icon={<Pencil size={13} color="#94A3B8" />} label="Edit / Offer" color="#94A3B8" onPress={() => openEditModal(c)} />
+                      <IconAction icon={<Trash2 size={13} color="#F87171" />} label="Delete" color="#F87171" danger onPress={() => handleDelete(c)} />
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </ScrollView>
+        )}
+      </Card>
+
+      {/* Edit / Offer Details Modal */}
+      {editingCandidate && (
+        <Modal visible transparent animationType="fade" onRequestClose={() => setEditingCandidate(null)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <View style={{ backgroundColor: '#0F172A', borderRadius: 16, borderWidth: 1, borderColor: SAC.border, width: '100%', maxWidth: 520, padding: 22, gap: 16 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>Candidate Evaluation & Offer</Text>
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginTop: 2 }}>{editingCandidate.full_name} ({editingCandidate.email})</Text>
+                </View>
+                <Pressable onPress={() => setEditingCandidate(null)}><X size={18} color={SAC.muted} /></Pressable>
+              </View>
+
+              <FieldRow label="Hiring Pipeline Stage">
+                <SelectNative
+                  value={editStage}
+                  onChange={setEditStage}
+                  options={['applicant_pool', 'shortlisted', 'unpaid_intern', 'paid_intern', 'full_time']}
+                />
+              </FieldRow>
+
+              <FieldRow label="Domain Skills / Track">
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {DOMAINS.map((sk) => {
+                    const sel = editSkills.includes(sk);
+                    return (
+                      <Pressable
+                        key={sk}
+                        onPress={() => toggleSkillInModal(sk)}
+                        style={{
+                          paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6,
+                          backgroundColor: sel ? '#7C3AED' : 'rgba(255,255,255,0.06)',
+                          borderWidth: 1, borderColor: sel ? '#9E7BFF' : 'rgba(255,255,255,0.1)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: sel ? '#FFF' : SAC.text }}>{sk}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </FieldRow>
+
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <FieldRow label="Role Title">
+                    <Field value={editRoleTitle} onChangeText={setEditRoleTitle} placeholder="e.g. Software Intern" />
+                  </FieldRow>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <FieldRow label="Monthly Stipend (₹)">
+                    <Field value={editStipend} onChangeText={setEditStipend} placeholder="0 for Unpaid" />
+                  </FieldRow>
+                </View>
+              </View>
+
+              <FieldRow label="Recruiter / Interviewer Notes">
+                <Field value={editNotes} onChangeText={setEditNotes} placeholder="Notes on technical skill, marketing proficiency, interview feedback..." multiline rows={3} />
+              </FieldRow>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+                <SecondaryButton onPress={() => setEditingCandidate(null)}>
+                  <Text style={{ color: SAC.text, fontFamily: FONTS.semi, fontSize: 12 }}>Cancel</Text>
+                </SecondaryButton>
+                <GradientButton onPress={handleSaveModal} loading={actioningId === (editingCandidate._id || editingCandidate.id)}>
+                  <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Save Profile</Text>
+                </GradientButton>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+    </View>
+  );
+}
+
+
+// ── Passcode Lock Modal (Key: 050499) ─────────────────────────────────────────
+const ECHO_CMS_PASSCODE = '050499';
+
+function EchoPasscodeLockModal({ onUnlock }: { onUnlock: () => void }) {
+  const [pin, setPin] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  const handleDigit = (digit: string) => {
+    if (pin.length >= 6) return;
+    setErrorMsg('');
+    const nextPin = pin + digit;
+    setPin(nextPin);
+
+    if (nextPin.length === 6) {
+      verifyPin(nextPin);
+    }
+  };
+
+  const handleBackspace = () => {
+    if (pin.length > 0) {
+      setPin(pin.slice(0, -1));
+      setErrorMsg('');
+    }
+  };
+
+  const handleClear = () => {
+    setPin('');
+    setErrorMsg('');
+  };
+
+  const verifyPin = (pinToTest: string) => {
+    if (pinToTest === ECHO_CMS_PASSCODE) {
+      setSuccess(true);
+      setErrorMsg('');
+      if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('echo_showcase_unlocked', 'true');
+      }
+      setTimeout(() => {
+        onUnlock();
+      }, 400);
+    } else {
+      setErrorMsg('Incorrect passcode key (050499). Access denied.');
+      setPin('');
+    }
+  };
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key >= '0' && e.key <= '9') {
+        handleDigit(e.key);
+      } else if (e.key === 'Backspace') {
+        handleBackspace();
+      } else if (e.key === 'Enter') {
+        if (pin.length === 6) verifyPin(pin);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pin]);
+
+  return (
+    <View style={{
+      minHeight: 520,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 50,
+      paddingHorizontal: 20,
+    }}>
+      <View style={{
+        width: '100%',
+        maxWidth: 420,
+        backgroundColor: '#0B0F1E',
+        borderRadius: 24,
+        borderWidth: 1.5,
+        borderColor: errorMsg ? 'rgba(239,68,68,0.5)' : success ? 'rgba(52,211,153,0.5)' : 'rgba(124,58,237,0.35)',
+        padding: 32,
+        alignItems: 'center',
+        ...(Platform.OS === 'web' ? {
+          boxShadow: errorMsg
+            ? '0 16px 40px rgba(239,68,68,0.25)'
+            : success
+            ? '0 16px 40px rgba(52,211,153,0.25)'
+            : '0 16px 40px rgba(124,58,237,0.25)',
+        } : {}),
+      } as any}>
+        {/* Lock Icon Badge */}
+        <View style={{
+          width: 60, height: 60, borderRadius: 30,
+          backgroundColor: success ? 'rgba(52,211,153,0.2)' : errorMsg ? 'rgba(239,68,68,0.2)' : 'rgba(124,58,237,0.2)',
+          borderWidth: 2,
+          borderColor: success ? '#34D399' : errorMsg ? '#EF4444' : '#9E7BFF',
+          alignItems: 'center', justifyContent: 'center',
+          marginBottom: 16,
+        }}>
+          {success ? (
+            <CheckCircle size={30} color="#34D399" />
+          ) : (
+            <Lock size={28} color={errorMsg ? '#F87171' : '#A78BFA'} />
+          )}
+        </View>
+
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 19, color: '#FFFFFF', textAlign: 'center' }}>
+          ECHO Showcase Protected
+        </Text>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: SAC.muted, textAlign: 'center', marginTop: 4, marginBottom: 22, lineHeight: 18 }}>
+          Enter the 6-digit numeric key passcode to unlock ECHO Showcase CMS (studentalumni.ai/super-admin/echo-showcase)
+        </Text>
+
+        {/* 6 Masked PIN Dots */}
+        <View style={{ flexDirection: 'row', gap: 14, marginBottom: 20 }}>
+          {[0, 1, 2, 3, 4, 5].map((idx) => {
+            const filled = pin.length > idx;
+            return (
+              <View
+                key={idx}
+                style={{
+                  width: 16, height: 16, borderRadius: 8,
+                  borderWidth: 2,
+                  borderColor: filled ? (success ? '#34D399' : '#A78BFA') : 'rgba(255,255,255,0.2)',
+                  backgroundColor: filled ? (success ? '#34D399' : '#7C3AED') : 'transparent',
+                }}
+              />
+            );
+          })}
+        </View>
+
+        {/* Status / Error Banner */}
+        {errorMsg ? (
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#F87171', textAlign: 'center', marginBottom: 16 }}>
+            {errorMsg}
+          </Text>
+        ) : success ? (
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#34D399', textAlign: 'center', marginBottom: 16 }}>
+            ✓ Access Granted! Unlocking CMS...
+          </Text>
+        ) : (
+          <View style={{ height: 28 }} />
+        )}
+
+        {/* Custom Numeric Keypad System (0-9) */}
+        <View style={{ width: '100%', gap: 10 }}>
+          {[
+            ['1', '2', '3'],
+            ['4', '5', '6'],
+            ['7', '8', '9'],
+            ['CLEAR', '0', '⌫'],
+          ].map((row, rIdx) => (
+            <View key={rIdx} style={{ flexDirection: 'row', gap: 10, justifyContent: 'center' }}>
+              {row.map((btn) => {
+                if (btn === 'CLEAR') {
+                  return (
+                    <Pressable
+                      key={btn}
+                      onPress={handleClear}
+                      style={{
+                        flex: 1, height: 48, borderRadius: 12,
+                        backgroundColor: 'rgba(255,255,255,0.05)',
+                        borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+                        alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                      }}
+                    >
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted }}>CLEAR</Text>
+                    </Pressable>
+                  );
+                }
+                if (btn === '⌫') {
+                  return (
+                    <Pressable
+                      key={btn}
+                      onPress={handleBackspace}
+                      style={{
+                        flex: 1, height: 48, borderRadius: 12,
+                        backgroundColor: 'rgba(255,255,255,0.05)',
+                        borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+                        alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                      }}
+                    >
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.muted }}>⌫</Text>
+                    </Pressable>
+                  );
+                }
+                return (
+                  <Pressable
+                    key={btn}
+                    onPress={() => handleDigit(btn)}
+                    style={{
+                      flex: 1, height: 48, borderRadius: 12,
+                      backgroundColor: 'rgba(255,255,255,0.08)',
+                      borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)',
+                      alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                    }}
+                  >
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 19, color: '#FFFFFF' }}>{btn}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ))}
+        </View>
+
+        {/* Unlock Action Button */}
+        <Pressable
+          onPress={() => verifyPin(pin)}
+          disabled={pin.length !== 6}
+          style={{
+            width: '100%', height: 46, borderRadius: 12,
+            backgroundColor: pin.length === 6 ? '#7C3AED' : 'rgba(255,255,255,0.06)',
+            alignItems: 'center', justifyContent: 'center', marginTop: 16, cursor: 'pointer',
+            opacity: pin.length === 6 ? 1 : 0.4,
+          }}
+        >
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#FFFFFF' }}>Unlock ECHO Showcase</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+
 // ── Main View ─────────────────────────────────────────────────────────────────
 export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const T = useSAC();
   Object.assign(fi, resolveColors(fi, T));
-  const [pageTab, setPageTab] = useSubTab<PageTab>(['all', 'create', 'drafts', 'registrations', 'volunteers', 'media', 'scan-monitor'], 'all', { sub, onSub });
+
+  const [unlocked, setUnlocked] = useState<boolean>(() => {
+    if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
+      return sessionStorage.getItem('echo_showcase_unlocked') === 'true';
+    }
+    return false;
+  });
+
+  const [pageTab, setPageTab] = useSubTab<PageTab>(['all', 'create', 'drafts', 'registrations', 'interns', 'volunteers', 'media', 'scan-monitor'], 'all', { sub, onSub });
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -5049,6 +5768,10 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
   const { toast, flash, hide } = useToast();
   const { confirm } = useConfirm();
   const user = useAuthStore((s) => s.user);
+
+  if (!unlocked) {
+    return <EchoPasscodeLockModal onUnlock={() => setUnlocked(true)} />;
+  }
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return; }
@@ -5173,10 +5896,28 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
             Create and manage showcase pages. Published showcases appear in the Student Portal.
           </Text>
         </View>
-        <GradientButton onPress={onCreate} size="md">
-          <PlusCircle size={14} color="#fff" />
-          <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>New Showcase</Text>
-        </GradientButton>
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          <Pressable
+            onPress={() => {
+              if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
+                sessionStorage.removeItem('echo_showcase_unlocked');
+              }
+              setUnlocked(false);
+            }}
+            style={{
+              flexDirection: 'row', alignItems: 'center', gap: 6,
+              backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)',
+              borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, cursor: 'pointer',
+            }}
+          >
+            <Lock size={13} color="#F87171" />
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#F87171' }}>Lock CMS</Text>
+          </Pressable>
+          <GradientButton onPress={onCreate} size="md">
+            <PlusCircle size={14} color="#fff" />
+            <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>New Showcase</Text>
+          </GradientButton>
+        </View>
       </View>
 
       {/* Page-level navigation tabs */}
@@ -5190,6 +5931,9 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
 
       {/* ── REGISTRATIONS & PAYMENTS ── */}
       {pageTab === 'registrations' && <RegistrationsPanel />}
+
+      {/* ── INTERNAL HIRING & INTERNS ── */}
+      {pageTab === 'interns' && <InternalHiringPanel />}
 
       {/* ── VOLUNTEERS ── */}
       {pageTab === 'volunteers' && <VolunteersPanel />}
