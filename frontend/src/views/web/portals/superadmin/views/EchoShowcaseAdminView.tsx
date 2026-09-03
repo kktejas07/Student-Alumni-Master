@@ -5949,6 +5949,52 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
   const { confirm } = useConfirm();
   const user = useAuthStore((s) => s.user);
 
+  const [regPassEnabled, setRegPassEnabled] = useState<boolean | null>(null);
+  const [regPassUnlocked, setRegPassUnlocked] = useState(false);
+
+  const loadPasscodeStatus = useCallback(async () => {
+    try {
+      const res = await api.getEchoRegistrationPasscode();
+      setRegPassEnabled(res?.enabled ? true : false);
+    } catch {
+      setRegPassEnabled(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (pageTab === 'registrations') {
+      loadPasscodeStatus();
+      if (Platform.OS === 'web') {
+        try {
+          const unlocked = sessionStorage.getItem('echo_reg_pass_unlocked') === '1';
+          setRegPassUnlocked(unlocked);
+        } catch {}
+      }
+    }
+  }, [pageTab, loadPasscodeStatus]);
+
+  const regPassUnlock = () => {
+    setRegPassUnlocked(true);
+    if (Platform.OS === 'web') {
+      try { sessionStorage.setItem('echo_reg_pass_unlocked', '1'); } catch {}
+    }
+  };
+
+  const onPasscodeChanged = (newEnabled: boolean) => {
+    setRegPassEnabled(newEnabled);
+    if (newEnabled) {
+      setRegPassUnlocked(false);
+      if (Platform.OS === 'web') {
+        try { sessionStorage.removeItem('echo_reg_pass_unlocked'); } catch {}
+      }
+    } else {
+      setRegPassUnlocked(true);
+      if (Platform.OS === 'web') {
+        try { sessionStorage.setItem('echo_reg_pass_unlocked', '1'); } catch {}
+      }
+    }
+  };
+
   const load = useCallback(async () => {
     if (!user || !unlocked) { setLoading(false); return; }
     try {
@@ -6112,7 +6158,23 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
       {pageTab === 'scan-monitor' && <LiveScanMonitorPanel />}
 
       {/* ── REGISTRATIONS & PAYMENTS ── */}
-      {pageTab === 'registrations' && <RegistrationsPanel />}
+      {pageTab === 'registrations' && (
+        regPassEnabled === null
+          ? <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
+              <ActivityIndicator size="large" color="#8B5CF6" />
+            </View>
+          : (regPassEnabled
+              ? (!regPassUnlocked
+                  ? <RegistrationPasscodeGate onUnlocked={regPassUnlock} onChange={onPasscodeChanged} enabled={regPassEnabled} />
+                  : <View style={{ gap: 14 }}>
+                      <RegistrationPasscodeControl enabled={regPassEnabled} onChange={onPasscodeChanged} />
+                      <RegistrationsPanel />
+                    </View>)
+              : <View style={{ gap: 14 }}>
+                  <RegistrationPasscodeControl enabled={false} onChange={onPasscodeChanged} />
+                  <RegistrationsPanel />
+                </View>)
+      )}
 
       {/* ── INTERNAL HIRING & INTERNS ── */}
       {pageTab === 'interns' && <InternalHiringPanel />}
