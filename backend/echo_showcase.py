@@ -471,6 +471,83 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+async def _reverse_geocode(lat: float, lng: float) -> str:
+    """Convert lat/lng to a human-readable address using Nominatim (free, no API key)."""
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(
+                "https://nominatim.openstreetmap.org/reverse",
+                params={"lat": lat, "lon": lng, "format": "json", "zoom": 18},
+                headers={"User-Agent": "StudentAlumni-ECHO/1.0"},
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                return data.get("display_name", "")
+    except Exception:
+        pass
+    return ""
+
+
+async def _send_checkin_email(reg: dict, event_title: str, checked_in_at: str, address: str = ""):
+    """Send a check-in confirmation email to the attendee."""
+    email = reg.get("email")
+    if not email:
+        return
+    name = reg.get("full_name", "Attendee")
+    subject = f"Welcome to {event_title} — You're Checked In!"
+    body = render_html_email(f"""
+    <div style="text-align:center;padding:32px 0">
+        <div style="font-size:48px;margin-bottom:16px">✅</div>
+        <h1 style="font-size:24px;color:#1a1a2e;margin:0 0 8px">You're Checked In!</h1>
+        <p style="font-size:15px;color:#666;margin:0 0 24px">Welcome to <strong>{event_title}</strong></p>
+    </div>
+    <div style="background:#f8f9fa;border-radius:12px;padding:20px;margin:0 0 20px">
+        <table style="width:100%;font-size:14px;color:#333">
+            <tr><td style="padding:6px 0;color:#888">Attendee</td><td style="padding:6px 0;font-weight:600">{name}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Event</td><td style="padding:6px 0;font-weight:600">{event_title}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Checked In At</td><td style="padding:6px 0;font-weight:600">{checked_in_at}</td></tr>
+            {"<tr><td style='padding:6px 0;color:#888'>Location</td><td style='padding:6px 0;font-weight:600'>" + address + "</td></tr>" if address else ""}
+        </table>
+    </div>
+    <p style="font-size:13px;color:#999;text-align:center">Show this email or your QR code at the venue counters.</p>
+    """)
+    try:
+        await send_email(email, subject, body)
+    except Exception:
+        pass
+
+
+async def _send_coupon_scan_email(reg: dict, session_name: str, coupon_code: str, scanned_at: str, address: str = ""):
+    """Send an email when a session coupon is scanned/used."""
+    email = reg.get("email")
+    if not email:
+        return
+    name = reg.get("full_name", "Attendee")
+    subject = f"{session_name} Pass Used — ECHO"
+    body = render_html_email(f"""
+    <div style="text-align:center;padding:32px 0">
+        <div style="font-size:48px;margin-bottom:16px">🎫</div>
+        <h1 style="font-size:22px;color:#1a1a2e;margin:0 0 8px">{session_name} Pass Confirmed</h1>
+        <p style="font-size:15px;color:#666;margin:0 0 24px">Your session pass has been scanned successfully</p>
+    </div>
+    <div style="background:#f8f9fa;border-radius:12px;padding:20px;margin:0 0 20px">
+        <table style="width:100%;font-size:14px;color:#333">
+            <tr><td style="padding:6px 0;color:#888">Attendee</td><td style="padding:6px 0;font-weight:600">{name}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Session</td><td style="padding:6px 0;font-weight:600">{session_name}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Coupon Code</td><td style="padding:6px 0;font-weight:600;font-family:monospace">{coupon_code}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Scanned At</td><td style="padding:6px 0;font-weight:600">{scanned_at}</td></tr>
+            {"<tr><td style='padding:6px 0;color:#888'>Location</td><td style='padding:6px 0;font-weight:600'>" + address + "</td></tr>" if address else ""}
+        </table>
+    </div>
+    <p style="font-size:13px;color:#999;text-align:center">Show this email at the {session_name.lower()} counter to collect your item.</p>
+    """)
+    try:
+        await send_email(email, subject, body)
+    except Exception:
+        pass
+
+
 def _slug_query(slug: str) -> dict:
     """Match a showcase by its canonical slug OR any of its legacy aliases."""
     slug = (slug or "").strip()
@@ -5729,9 +5806,13 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
     first_checkin = not bool(reg.get("checked_in_at"))
 
     update_data: dict[str, Any] = {"checked_in_at": now_iso}
+    address = ""
     if payload.lat is not None and payload.lng is not None:
         update_data["scanned_lat"] = payload.lat
         update_data["scanned_lng"] = payload.lng
+        address = await _reverse_geocode(payload.lat, payload.lng)
+        if address:
+            update_data["scanned_location"] = address
 
     await db.echo_registrations.update_one(
         {"_id": reg["_id"]},
@@ -5741,6 +5822,11 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
         await db.echo_registrations.update_one(
             {"_id": reg["_id"]}, {"$inc": {"checked_in_count": 1}}
         )
+
+    # Send check-in email (fire-and-forget)
+    if first_checkin:
+        event_title = reg.get("showcase_title") or reg.get("slug", "ECHO Event")
+        await _send_checkin_email(reg, event_title, now_iso, address)
 
     updated = _ser(await db.echo_registrations.find_one({"_id": reg["_id"]}))
     return {
@@ -6608,9 +6694,13 @@ async def scan_coupon(request: Request, admin=Depends(_require_scan_access)):
         "used_at": now,
         "scanned_by": admin.get("email", "admin")
     }
+    address = ""
     if lat is not None and lng is not None:
         update_data["scanned_lat"] = lat
         update_data["scanned_lng"] = lng
+        address = await _reverse_geocode(lat, lng)
+        if address:
+            update_data["scanned_location"] = address
 
     await db.echo_coupons.update_one(
         {"_id": coupon["_id"]},
@@ -6619,6 +6709,16 @@ async def scan_coupon(request: Request, admin=Depends(_require_scan_access)):
 
     # Get attendee info
     reg = await db.echo_registrations.find_one({"id": coupon.get("reg_id")})
+
+    # Send coupon scan email (fire-and-forget)
+    if reg:
+        await _send_coupon_scan_email(
+            reg,
+            coupon.get("session_name", "Session"),
+            code,
+            now.strftime("%b %d, %Y · %I:%M %p"),
+            address,
+        )
 
     return {
         "ok": True,
