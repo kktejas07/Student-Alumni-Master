@@ -3146,18 +3146,6 @@ async def seed_echo_showcase(db: AsyncIOMotorDatabase):
             print("[ECHO CMS] Seeded default vnr-echo-2026 showcase")
         else:
             await db.echo_showcases.update_many({"gallery_layout": {"$exists": False}}, {"$set": {"gallery_layout": "grid"}})
-        
-        # Ensure SNIST / HackWave 3.0 showcase registration is open till Sep 4, 1:00 PM IST
-        await db.echo_showcases.update_many(
-            {"slug": {"$in": ["snist", "hackwave-3.0", "hackwave-3", "hackwave"]}},
-            {"$set": {
-                "reg_closes": "Sep 02, 2026 · 7:00 PM IST (Closing in 30 mins)",
-                "registration.deadline": "2026-09-02T19:00:00+05:30",
-                "registration.enabled": True,
-                "registration.status": "closing_soon",
-                "event_status_badge": "Closing in 30 Mins"
-            }}
-        )
     except Exception as e:
         print(f"[ECHO CMS] Seed warning: {e}")
 
@@ -4681,7 +4669,7 @@ async def admin_echo_registrations(
     slug: Optional[str] = None,
     status: Optional[str] = None,
     search: Optional[str] = None,
-    limit: int = Query(500, ge=1, le=2000),
+    limit: int = Query(100000, ge=1, le=1000000),
     _=Depends(_require_admin),
 ):
     """List ECHO registrations with attendee + payment details for super-admin."""

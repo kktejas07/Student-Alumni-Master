@@ -5248,6 +5248,8 @@ function InternalHiringPanel() {
   const [stageTab, setStageTab] = useState<string>('all');
   const [domainFilter, setDomainFilter] = useState<string>('all');
   const [actioningId, setActioningId] = useState<string | null>(null);
+  const [candPage, setCandPage] = useState(0);
+  const CAND_PER_PAGE = 20;
 
   // Edit candidate modal state
   const [editingCandidate, setEditingCandidate] = useState<any | null>(null);
@@ -5276,6 +5278,12 @@ function InternalHiringPanel() {
   }, [eventFilter, stageTab, search, domainFilter]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => { setCandPage(0); }, [eventFilter, stageTab, search, domainFilter]);
+
+  const candTotalPages = Math.max(1, Math.ceil(candidates.length / CAND_PER_PAGE));
+  const candSafePage = Math.min(candPage, candTotalPages - 1);
+  const pagedCandidates = candidates.slice(candSafePage * CAND_PER_PAGE, candSafePage * CAND_PER_PAGE + CAND_PER_PAGE);
 
   const handleAdvanceStage = async (c: any, nextStage?: string) => {
     const candidateId = c._id || c.id;
@@ -5531,7 +5539,7 @@ function InternalHiringPanel() {
                 <Text style={{ width: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>QUICK ACTION</Text>
               </View>
 
-              {candidates.map((c: any, i: number) => {
+              {pagedCandidates.map((c: any, i: number) => {
                 const badge = getStageBadge(c.stage || 'applicant_pool');
                 const cid = c._id || c.id;
                 const isActioning = actioningId === cid;
@@ -5619,6 +5627,60 @@ function InternalHiringPanel() {
               })}
             </View>
           </ScrollView>
+        )}
+
+        {/* Pagination */}
+        {candidates.length > CAND_PER_PAGE && (
+          <View style={{
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+            paddingVertical: 10, paddingHorizontal: 14,
+            borderTopWidth: 1, borderTopColor: SAC.border, flexWrap: 'wrap', gap: 10,
+          }}>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
+              Showing {candSafePage * CAND_PER_PAGE + 1}–{Math.min((candSafePage + 1) * CAND_PER_PAGE, candidates.length)} of {candidates.length}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+              <Pressable
+                onPress={() => setCandPage(candSafePage - 1)}
+                disabled={candSafePage === 0}
+                style={{
+                  paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7,
+                  backgroundColor: candSafePage === 0 ? 'rgba(255,255,255,0.04)' : 'rgba(167,139,250,0.15)',
+                  borderWidth: 1, borderColor: candSafePage === 0 ? SAC.border : 'rgba(167,139,250,0.3)',
+                  opacity: candSafePage === 0 ? 0.4 : 1,
+                }}
+              >
+                <ChevronLeft size={14} color={SAC.text} />
+              </Pressable>
+              {Array.from({ length: candTotalPages }, (_, p) => p).map((p) => {
+                if (candTotalPages > 7 && Math.abs(p - candSafePage) > 2 && p !== 0 && p !== candTotalPages - 1) {
+                  return null;
+                }
+                return (
+                  <Pressable key={p} onPress={() => setCandPage(p)} style={{
+                    minWidth: 30, alignItems: 'center', justifyContent: 'center',
+                    paddingVertical: 6, borderRadius: 7,
+                    backgroundColor: p === candSafePage ? '#7C3AED' : 'rgba(255,255,255,0.05)',
+                    borderWidth: 1, borderColor: p === candSafePage ? '#7C3AED' : SAC.border,
+                  }}>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: p === candSafePage ? '#fff' : SAC.text }}>{p + 1}</Text>
+                  </Pressable>
+                );
+              })}
+              <Pressable
+                onPress={() => setCandPage(candSafePage + 1)}
+                disabled={candSafePage >= candTotalPages - 1}
+                style={{
+                  paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7,
+                  backgroundColor: candSafePage >= candTotalPages - 1 ? 'rgba(255,255,255,0.04)' : 'rgba(167,139,250,0.15)',
+                  borderWidth: 1, borderColor: candSafePage >= candTotalPages - 1 ? SAC.border : 'rgba(167,139,250,0.3)',
+                  opacity: candSafePage >= candTotalPages - 1 ? 0.4 : 1,
+                }}
+              >
+                <ChevronRight size={14} color={SAC.text} />
+              </Pressable>
+            </View>
+          </View>
         )}
       </Card>
 
