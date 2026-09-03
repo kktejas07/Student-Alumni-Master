@@ -29,6 +29,7 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
   const [placedOrder, setPlacedOrder] = useState<any>(null);
   const [qrImage, setQrImage] = useState('');
   const [couponPreview, setCouponPreview] = useState<{ discount: number; code?: string | null; gst?: number; gstSplit?: any; error?: string } | null>(null);
+  const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
   const user = useAuthStore(s => s.user);
 
   useEffect(() => {
@@ -38,6 +39,12 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
           if (res.success) setItems(res.data || []);
         })
         .finally(() => setLoading(false));
+      // Fetch available discount coupons for this event (public endpoint)
+      request<any>(`/echo/available-coupons?event_id=${slug}`)
+        .then(res => {
+          if (res.success && res.data) setAvailableCoupons(res.data.filter((c: any) => c.active !== false));
+        })
+        .catch(() => {});
     }
   }, [slug]);
 
@@ -241,6 +248,36 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
       </div>
       <p style={{ color: 'var(--muted)', marginBottom: 28, fontSize: 14.5 }}>Pre-order food, beverages, and exclusive handcrafts to collect at the event!</p>
 
+      {/* Available Coupons Banner */}
+      {availableCoupons.length > 0 && (
+        <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
+          {availableCoupons.map((c: any) => (
+            <div
+              key={c._id || c.code}
+              onClick={() => { setCouponCode(c.code); setCouponPreview(null); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: 'linear-gradient(135deg, rgba(124,92,252,0.15), rgba(99,102,241,0.08))',
+                border: '1px solid rgba(124,92,252,0.3)', borderRadius: 12,
+                padding: '10px 16px', cursor: 'pointer', transition: 'all .15s ease',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(124,92,252,0.6)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(124,92,252,0.3)'; }}
+            >
+              <Tag size={14} color="var(--violet-lt)" />
+              <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 13, color: 'var(--violet-lt)', letterSpacing: 1 }}>{c.code}</span>
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>—</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
+                {c.discount_type === 'percentage' ? `${c.discount_value}% OFF` : `₹${c.discount_value} OFF`}
+              </span>
+              {c.min_order_value > 0 && (
+                <span style={{ fontSize: 10, color: 'var(--muted)' }}>Min ₹{c.min_order_value}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
         {items.map(item => {
           const id = item.id || item._id;
@@ -274,10 +311,16 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
               </div>
 
               <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.8px', color: 'var(--violet-lt)', background: 'rgba(124,92,252,0.12)', border: '1px solid rgba(124,92,252,0.25)', borderRadius: 100, padding: '4px 10px' }}>
                     {item.category}
                   </span>
+                  {item.vendor_name && (
+                    <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--ok, #34D399)', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', borderRadius: 100, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Store size={10} color="var(--ok, #34D399)" />
+                      {item.vendor_name}
+                    </span>
+                  )}
                   {!available && (
                     <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text)', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 100, padding: '3px 9px' }}>OUT OF STOCK</span>
                   )}

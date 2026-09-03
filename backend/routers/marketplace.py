@@ -1158,6 +1158,27 @@ async def admin_list_coupons(request: Request, event_slug: Optional[str] = None,
     return {"success": True, "data": out}
 
 
+@router.get("/available-coupons")
+async def list_available_coupons(event_id: str):
+    """Public endpoint: return active discount coupons for an event."""
+    query: dict = {"active": True}
+    if event_id:
+        query["event_id"] = event_id
+    docs = await db.echo_discount_coupons.find(query).sort("created_at", -1).to_list(50)
+    out = []
+    for d in docs:
+        c = _serialize(d)
+        # Only return safe fields — no internal IDs or usage counts
+        out.append({
+            "code": c.get("code", ""),
+            "discount_type": c.get("discount_type", "percentage"),
+            "discount_value": c.get("discount_value", 0),
+            "min_order_value": c.get("min_order_value", 0),
+            "max_discount": c.get("max_discount", 0),
+        })
+    return {"success": True, "data": out}
+
+
 @router.post("/admin/coupons")
 async def admin_create_coupon(payload: AdminCouponInput, request: Request, _=Depends(_require_admin)):
     code = (payload.code or "").strip().upper()
