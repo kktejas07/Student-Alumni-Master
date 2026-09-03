@@ -3513,7 +3513,16 @@ async def get_showcase(slug: str, request: Request):
     reg_cfg = result.get("registration") or {}
     reg_cfg["paid_count"] = paid_count
     reg_cfg["total_registrations"] = total_count
+    # Truthful seat availability derived from the real capacity gate (max_seats),
+    # not the hardcoded seed default. max_seats=0 means unlimited.
+    max_seats = int(reg_cfg.get("max_seats") or 0)
+    if max_seats > 0:
+        available = max_seats - paid_count
+        reg_cfg["available_seats"] = max(available, 0)
+    else:
+        reg_cfg["available_seats"] = None
     result["registration"] = reg_cfg
+    result["available_seats"] = reg_cfg["available_seats"]
     return result
 
 
