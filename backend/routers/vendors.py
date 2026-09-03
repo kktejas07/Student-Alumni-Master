@@ -374,6 +374,7 @@ class VendorCatalogItemInput(BaseModel):
     stock_limit: Optional[int] = None
     stock_remaining: Optional[int] = None
     description: Optional[str] = None
+    servings: Optional[str] = None
     event_id: str
     images: List[str] = []
     image_base64: Optional[str] = None

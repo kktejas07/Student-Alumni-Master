@@ -103,6 +103,7 @@ export function VendorCatalogView({ eventSlug }: { eventSlug?: string }) {
         stock: Number(item.stock_limit || 0),
         stock_limit: Number(item.stock_limit || 0),
         description: item.description || '',
+        servings: item.servings || undefined,
         images: item.images || [],
         image_base64: item.image_base64 || undefined,
         stall_no: item.stall_no || undefined,
@@ -194,7 +195,32 @@ export function VendorCatalogView({ eventSlug }: { eventSlug?: string }) {
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Category</Text>
-                <Field value={editingItem.category || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, category: v })} placeholder="food / handcraft" />
+                {Platform.OS === 'web' ? (
+                  <select
+                    value={editingItem.category || 'food'}
+                    onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
+                    style={{
+                      backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1,
+                      borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 14,
+                      fontFamily: FONTS.regular, width: '100%', outline: 'none',
+                    }}
+                  >
+                    <option value="food">Food</option>
+                    <option value="beverages">Beverages</option>
+                    <option value="snacks">Snacks</option>
+                    <option value="cafe">Cafe / Coffee</option>
+                    <option value="handcraft">Handcraft</option>
+                    <option value="merchandise">Merchandise</option>
+                    <option value="stationery">Stationery</option>
+                    <option value="apparel">Apparel / Clothing</option>
+                    <option value="accessories">Accessories</option>
+                    <option value="electronics">Electronics</option>
+                    <option value="health">Health & Wellness</option>
+                    <option value="other">Other</option>
+                  </select>
+                ) : (
+                  <Field value={editingItem.category || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, category: v })} placeholder="Select category" />
+                )}
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Stock Limit (0 = unlimited)</Text>
@@ -211,6 +237,11 @@ export function VendorCatalogView({ eventSlug }: { eventSlug?: string }) {
                 <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Stall Location</Text>
                 <Field value={editingItem.stall_location || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, stall_location: v })} placeholder="e.g. Food Court, Block A" />
               </View>
+            </View>
+
+            <View>
+              <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Servings / Portion Info</Text>
+              <Field value={editingItem.servings || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, servings: v })} placeholder="e.g. Serves 2-3, 500ml, 1 piece" />
             </View>
 
             <View>

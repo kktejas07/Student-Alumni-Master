@@ -278,7 +278,7 @@ async def _evaluate_coupon(code: str, subtotal: float, event_id: str, user_id: s
 
 # ── Email + invoice for marketplace orders ───────────────────────────────────
 async def _send_marketplace_order_email(order: dict):
-    """Send payment confirmation + invoice link to the order's email."""
+    """Send payment confirmation + QR code + PDF invoice to the order's email."""
     from core.email import send_email, render_html_email
 
     email = (order.get("user_email") or "").strip()
@@ -298,7 +298,152 @@ async def _send_marketplace_order_email(order: dict):
     currency = order.get("currency") or "INR"
     invoice_url = f"https://studentalumni.ai/api/echo/marketplace-invoices/{order_id}"
 
-    # Build item rows
+    # ── Generate pickup QR code as base64 data URL ──
+    qr_data_url = ""
+    try:
+        import qrcode as _qrcode
+        import io, base64
+        qr = _qrcode.QRCode(version=1, box_size=8, border=2, error_correction=_qrcode.constants.ERROR_CORRECT_M)
+        qr.add_data(order_id)
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color="#5F259F", back_color="#FFFFFF")
+        buf = io.BytesIO()
+        qr_img.save(buf, format="PNG")
+        qr_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+        qr_data_url = f"data:image/png;base64,{qr_b64}"
+    except Exception as e:
+        print(f"[MARKETPLACE] QR generation failed for email: {e}")
+
+    # ── Generate PDF invoice attachment ──
+    pdf_attachment = None
+    try:
+        from fpdf import FPDF
+        import io as _io
+
+        class InvoicePDF(FPDF):
+            def header(self):
+                self.set_font("Helvetica", "B", 18)
+                self.set_text_color(91, 79, 233)
+                self.cell(0, 12, "STUDENT ALUMNI", new_x="LMARGIN", new_y="NEXT", align="C")
+                self.set_font("Helvetica", "", 10)
+                self.set_text_color(120, 120, 120)
+                self.cell(0, 6, "MARKETPLACE INVOICE", new_x="LMARGIN", new_y="NEXT", align="C")
+                self.ln(4)
+
+            def footer(self):
+                self.set_y(-15)
+                self.set_font("Helvetica", "I", 8)
+                self.set_text_color(160, 160, 160)
+                self.cell(0, 10, f"Order {order_id} | studentalumni.ai", align="C")
+
+        pdf = InvoicePDF()
+        pdf.add_page()
+        pdf.set_auto_page_break(auto=True, margin=20)
+
+        # Status badge
+        pdf.set_font("Helvetica", "B", 11)
+        pdf.set_text_color(22, 163, 74)
+        pdf.cell(0, 8, f"{'FREE ORDER' if is_free else 'PAYMENT CONFIRMED'} — {currency} {total:,.2f}", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(4)
+
+        # Order info
+        pdf.set_font("Helvetica", "", 10)
+        pdf.set_text_color(60, 60, 60)
+        pdf.cell(0, 6, f"Order ID: {order_id}", new_x="LMARGIN", new_y="NEXT")
+        if payment_id:
+            pdf.cell(0, 6, f"Payment ID: {payment_id}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 6, f"Date: {order.get('created_at', '')[:10]}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 6, f"Billed to: {order.get('user_name', 'Customer')}", new_x="LMARGIN", new_y="NEXT")
+        if order.get("user_email"):
+            pdf.cell(0, 6, f"Email: {order['user_email']}", new_x="LMARGIN", new_y="NEXT")
+        if order.get("user_phone"):
+            pdf.cell(0, 6, f"Phone: {order['user_phone']}", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(6)
+
+        # Items table header
+        pdf.set_fill_color(248, 250, 252)
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_text_color(100, 100, 100)
+        pdf.cell(90, 7, "ITEM", border=1, fill=True)
+        pdf.cell(25, 7, "QTY", border=1, fill=True, align="C")
+        pdf.cell(25, 7, "RATE", border=1, fill=True, align="C")
+        pdf.cell(30, 7, "AMOUNT", border=1, fill=True, align="R")
+        pdf.ln()
+
+        # Item rows
+        pdf.set_font("Helvetica", "", 10)
+        pdf.set_text_color(30, 30, 30)
+        for item in order.get("items", []):
+            name = str(item.get("name", "Item"))[:40]
+            qty = item.get("quantity", 1)
+            rate = float(item.get("price", 0) or 0)
+            line_total = float(item.get("line_total", 0) or rate * qty)
+            gst_rate = item.get("gst_rate", 0)
+            pdf.cell(90, 7, name, border=1)
+            pdf.cell(25, 7, str(qty), border=1, align="C")
+            pdf.cell(25, 7, f"{rate:,.0f}", border=1, align="C")
+            pdf.cell(30, 7, f"{line_total:,.2f}", border=1, align="R")
+            pdf.ln()
+            if gst_rate:
+                pdf.set_font("Helvetica", "I", 8)
+                pdf.set_text_color(120, 120, 120)
+                pdf.cell(90, 5, f"  incl. GST {gst_rate*100:.0f}%")
+                pdf.ln()
+                pdf.set_font("Helvetica", "", 10)
+                pdf.set_text_color(30, 30, 30)
+
+        # Discount
+        if discount > 0:
+            pdf.set_text_color(22, 163, 74)
+            pdf.cell(115, 7, f"Discount ({coupon_code})", border=1)
+            pdf.cell(30, 7, f"-{discount:,.2f}", border=1, align="R")
+            pdf.ln()
+            pdf.set_text_color(30, 30, 30)
+
+        # Totals
+        pdf.ln(2)
+        pdf.set_font("Helvetica", "", 10)
+        pdf.cell(115, 7, "Subtotal")
+        pdf.cell(30, 7, f"{subtotal:,.2f}", align="R")
+        pdf.ln()
+        if discount > 0:
+            pdf.set_text_color(22, 163, 74)
+            pdf.cell(115, 7, "Discount")
+            pdf.cell(30, 7, f"-{discount:,.2f}", align="R")
+            pdf.ln()
+            pdf.set_text_color(30, 30, 30)
+        gst_total = float(order.get("gst_total", 0) or 0)
+        if gst_total > 0:
+            pdf.cell(115, 7, "GST (CGST + SGST)")
+            pdf.cell(30, 7, f"{gst_total:,.2f}", align="R")
+            pdf.ln()
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(115, 9, "Total (incl. GST)")
+        pdf.cell(30, 9, f"{currency} {total:,.2f}", align="R")
+        pdf.ln(12)
+
+        # Pickup QR
+        if qr_data_url:
+            import base64 as _b64
+            qr_bytes = _b64.b64decode(qr_b64)
+            qr_path = _io.BytesIO(qr_bytes)
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.set_text_color(60, 60, 60)
+            pdf.cell(0, 7, "Pickup QR Code", new_x="LMARGIN", new_y="NEXT")
+            pdf.image(qr_path, x=60, w=40)
+            pdf.ln(2)
+            pdf.set_font("Helvetica", "I", 9)
+            pdf.set_text_color(120, 120, 120)
+            pdf.cell(0, 6, "Show this QR code at the stall to collect your order.", new_x="LMARGIN", new_y="NEXT")
+
+        pdf_buf = _io.BytesIO()
+        pdf.output(pdf_buf)
+        pdf_bytes = pdf_buf.getvalue()
+        pdf_attachment = [{"filename": f"Invoice-{order_id}.pdf", "content": pdf_bytes}]
+    except Exception as e:
+        print(f"[MARKETPLACE] PDF generation failed: {e}")
+
+    # ── Build item rows for HTML email ──
     item_rows = ""
     for item in order.get("items", []):
         item_rows += f"""<tr>
@@ -328,7 +473,18 @@ async def _send_marketplace_order_email(order: dict):
           <tr><td style="padding:14px 20px;background:#eff6ff;border-left:4px solid #3b82f6;border-radius:0 10px 10px 0;">
             <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:#3b82f6;margin-bottom:4px;">Pickup Location</div>
             <div style="font-size:15px;font-weight:700;color:#1e293b;">{esc(stall_info)}</div>
-            <div style="font-size:12px;color:#64748b;margin-top:3px;">Show the QR code below at the stall to collect your order.</div>
+          </td></tr>
+        </table>"""
+
+    # QR code inline in email
+    qr_section = ""
+    if qr_data_url:
+        qr_section = f"""
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
+          <tr><td align="center">
+            <div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Pickup QR Code</div>
+            <img src="{qr_data_url}" width="160" height="160" alt="Pickup QR Code" style="border:2px solid #e2e8f0;border-radius:12px;" />
+            <div style="font-size:12px;color:#64748b;margin-top:8px;">Show this QR at the stall to collect your order</div>
           </td></tr>
         </table>"""
 
@@ -343,7 +499,7 @@ async def _send_marketplace_order_email(order: dict):
 
     body = render_html_email(f"""
       <h2 style="margin:0 0 8px;font-size:22px;color:#111827;">Order Confirmed!</h2>
-      <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hi {user_name}, your marketplace order has been confirmed.</p>
+      <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hi {user_name}, your marketplace order has been confirmed. The PDF invoice is attached to this email.</p>
 
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
         <tr><td style="padding:16px 20px;background:#f0fdf4;border-left:4px solid {status_color};border-radius:0 10px 10px 0;">
@@ -365,17 +521,19 @@ async def _send_marketplace_order_email(order: dict):
           <th style="text-align:right;padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#94a3b8;background:#f8fafc;border-bottom:1px solid #e2e8f0;">Amount</th></tr>
         {item_rows}
         {discount_block}
-        <tr><td style="padding:12px 16px;font-size:14px;font-weight:700;color:#111827;">Total</td>
+        <tr><td style="padding:12px 16px;font-size:14px;font-weight:700;color:#111827;">Total (incl. GST)</td>
           <td style="padding:12px 16px;text-align:right;font-size:16px;font-weight:800;color:#111827;">{currency} {total:,.2f}</td></tr>
       </table>
 
-      <a href="{invoice_url}" style="display:inline-block;padding:12px 24px;background:#4F46E5;color:#fff;text-decoration:none;border-radius:10px;font-weight:700;font-size:14px;margin-top:8px;">View Invoice</a>
+      {qr_section}
 
-      <p style="margin:20px 0 0;color:#6b7280;font-size:13px;">Show the pickup QR code at the event stall to collect your items. You can view your QR code in the Marketplace section.</p>
+      <a href="{invoice_url}" style="display:inline-block;padding:12px 24px;background:#4F46E5;color:#fff;text-decoration:none;border-radius:10px;font-weight:700;font-size:14px;margin-top:8px;">View Invoice Online</a>
+
+      <p style="margin:20px 0 0;color:#6b7280;font-size:13px;">Your PDF invoice is attached above. You can also view it online via the button above or in the Marketplace section of your Student Alumni dashboard.</p>
     """)
 
     try:
-        ok = await send_email(email, f"Marketplace Order Confirmed — {order_id}", body)
+        ok = await send_email(email, f"Marketplace Order Confirmed — {order_id}", body, attachments=pdf_attachment)
         if ok:
             print(f"[MARKETPLACE] Order confirmation email sent to {email} for order {order_id}")
         else:

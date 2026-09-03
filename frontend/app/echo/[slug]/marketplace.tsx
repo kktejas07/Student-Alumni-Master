@@ -8,24 +8,34 @@ import { useLocalSearchParams } from 'expo-router';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 import { EchoMarketplace } from '@/src/views/web/echo/EchoMarketplace';
 
+const THEME_VARS = {
+  '--bg': '#05060F',
+  '--card': '#0C0E1B',
+  '--card2': '#0E1020',
+  '--panel': '#0C0E1B',
+  '--panel2': '#10121E',
+  '--line': '#1B1E33',
+  '--line2': '#171A2C',
+  '--text': '#F4F5FB',
+  '--text2': '#D5D8E4',
+  '--muted': '#9AA0B4',
+  '--violet': '#7C5CFC',
+  '--violet-lt': '#A78BFA',
+  '--ok': '#34D399',
+  '--warn': '#F59E0B',
+  '--danger': '#F87186',
+} as React.CSSProperties;
+
 export default function EchoMarketplacePage() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
 
   return (
-    <View style={s.root}>
+    <div style={{ ...THEME_VARS, minHeight: '100vh', background: '#05060F', color: '#F4F5FB' }}>
       <EchoHeader />
-      <ScrollView contentContainerStyle={s.scrollContent}>
-        <View style={s.content}>
-          <EchoMarketplace slug={slug || ''} isDark />
-        </View>
-        <EchoFooter />
-      </ScrollView>
-    </View>
+      <div style={{ paddingTop: ECHO_TOP_PADDING, maxWidth: 1200, width: '100%', margin: '0 auto', padding: '0 20px' }}>
+        <EchoMarketplace slug={slug || ''} isDark />
+      </div>
+      <EchoFooter />
+    </div>
   );
 }
-
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0a0f1e' },
-  scrollContent: { paddingTop: ECHO_TOP_PADDING },
-  content: { maxWidth: 1200, width: '100%', alignSelf: 'center', paddingHorizontal: 20 },
-});
