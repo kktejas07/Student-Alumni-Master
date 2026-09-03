@@ -514,6 +514,29 @@ export const api = {
   myEchoRegistrations: () =>
     request<any>('/echo/my-registrations'),
 
+  // ── Internal Hiring & Interns Pipeline ────────────────────────────────────
+  adminEchoListInterns: (params?: any) => {
+    const q = new URLSearchParams();
+    if (params?.slug) q.set('slug', params.slug);
+    if (params?.stage) q.set('stage', params.stage);
+    if (params?.search) q.set('search', params.search);
+    if (params?.domain) q.set('domain', params.domain);
+    const qs = q.toString();
+    return request<any>(`/echo/admin/interns${qs ? '?' + qs : ''}`);
+  },
+  adminEchoConvertIntern: (payload: any) =>
+    request<any>('/echo/admin/interns/convert', { method: 'POST', body: payload }),
+  adminEchoAdvanceIntern: (id: string, payload?: any) =>
+    request<any>(`/echo/admin/interns/${id}/advance`, { method: 'POST', body: payload || {} }),
+  adminEchoUpdateIntern: (id: string, payload: any) =>
+    request<any>(`/echo/admin/interns/${id}`, { method: 'PUT', body: payload }),
+  adminEchoDeleteIntern: (id: string) =>
+    request<any>(`/echo/admin/interns/${id}`, { method: 'DELETE' }),
+  adminEchoSyncAllInterns: () =>
+    request<any>('/echo/admin/interns/sync-registrations', { method: 'POST' }),
+
+
+
   // ── Echo Settings & Branding ──────────────────────────────────────────────
   getEchoSettings: () => request<any>('/echo/admin/settings'),
   getEchoHeroConfig: () => request<any>('/echo/admin/settings').then((s: any) => s?.hero_config || null),
