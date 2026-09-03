@@ -5836,227 +5836,6 @@ function InternalHiringPanel() {
 }
 
 
-// ── Passcode Lock Modal (Key: 050499) ─────────────────────────────────────────
-const ECHO_CMS_PASSCODE = '050499';
-
-function EchoPasscodeLockModal({ onUnlock }: { onUnlock: () => void }) {
-  const [pin, setPin] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
-  const [success, setSuccess] = useState(false);
-
-  const handleDigit = (digit: string) => {
-    if (pin.length >= 6) return;
-    setErrorMsg('');
-    const nextPin = pin + digit;
-    setPin(nextPin);
-
-    if (nextPin.length === 6) {
-      verifyPin(nextPin);
-    }
-  };
-
-  const handleBackspace = () => {
-    if (pin.length > 0) {
-      setPin(pin.slice(0, -1));
-      setErrorMsg('');
-    }
-  };
-
-  const handleClear = () => {
-    setPin('');
-    setErrorMsg('');
-  };
-
-  const verifyPin = (pinToTest: string) => {
-    if (pinToTest === ECHO_CMS_PASSCODE) {
-      setSuccess(true);
-      setErrorMsg('');
-      if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
-        sessionStorage.setItem('echo_showcase_unlocked', 'true');
-      }
-      setTimeout(() => {
-        onUnlock();
-      }, 400);
-    } else {
-      setErrorMsg('Incorrect passcode key (050499). Access denied.');
-      setPin('');
-    }
-  };
-
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key >= '0' && e.key <= '9') {
-        handleDigit(e.key);
-      } else if (e.key === 'Backspace') {
-        handleBackspace();
-      } else if (e.key === 'Enter') {
-        if (pin.length === 6) verifyPin(pin);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [pin]);
-
-  return (
-    <View style={{
-      minHeight: 520,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: 50,
-      paddingHorizontal: 20,
-    }}>
-      <View style={{
-        width: '100%',
-        maxWidth: 420,
-        backgroundColor: '#0B0F1E',
-        borderRadius: 24,
-        borderWidth: 1.5,
-        borderColor: errorMsg ? 'rgba(239,68,68,0.5)' : success ? 'rgba(52,211,153,0.5)' : 'rgba(124,58,237,0.35)',
-        padding: 32,
-        alignItems: 'center',
-        ...(Platform.OS === 'web' ? {
-          boxShadow: errorMsg
-            ? '0 16px 40px rgba(239,68,68,0.25)'
-            : success
-            ? '0 16px 40px rgba(52,211,153,0.25)'
-            : '0 16px 40px rgba(124,58,237,0.25)',
-        } : {}),
-      } as any}>
-        {/* Lock Icon Badge */}
-        <View style={{
-          width: 60, height: 60, borderRadius: 30,
-          backgroundColor: success ? 'rgba(52,211,153,0.2)' : errorMsg ? 'rgba(239,68,68,0.2)' : 'rgba(124,58,237,0.2)',
-          borderWidth: 2,
-          borderColor: success ? '#34D399' : errorMsg ? '#EF4444' : '#9E7BFF',
-          alignItems: 'center', justifyContent: 'center',
-          marginBottom: 16,
-        }}>
-          {success ? (
-            <CheckCircle size={30} color="#34D399" />
-          ) : (
-            <Lock size={28} color={errorMsg ? '#F87171' : '#A78BFA'} />
-          )}
-        </View>
-
-        <Text style={{ fontFamily: FONTS.bold, fontSize: 19, color: '#FFFFFF', textAlign: 'center' }}>
-          ECHO Showcase Protected
-        </Text>
-        <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: SAC.muted, textAlign: 'center', marginTop: 4, marginBottom: 22, lineHeight: 18 }}>
-          Enter the 6-digit numeric key passcode to unlock ECHO Showcase CMS (studentalumni.ai/super-admin/echo-showcase)
-        </Text>
-
-        {/* 6 Masked PIN Dots */}
-        <View style={{ flexDirection: 'row', gap: 14, marginBottom: 20 }}>
-          {[0, 1, 2, 3, 4, 5].map((idx) => {
-            const filled = pin.length > idx;
-            return (
-              <View
-                key={idx}
-                style={{
-                  width: 16, height: 16, borderRadius: 8,
-                  borderWidth: 2,
-                  borderColor: filled ? (success ? '#34D399' : '#A78BFA') : 'rgba(255,255,255,0.2)',
-                  backgroundColor: filled ? (success ? '#34D399' : '#7C3AED') : 'transparent',
-                }}
-              />
-            );
-          })}
-        </View>
-
-        {/* Status / Error Banner */}
-        {errorMsg ? (
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#F87171', textAlign: 'center', marginBottom: 16 }}>
-            {errorMsg}
-          </Text>
-        ) : success ? (
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#34D399', textAlign: 'center', marginBottom: 16 }}>
-            ✓ Access Granted! Unlocking CMS...
-          </Text>
-        ) : (
-          <View style={{ height: 28 }} />
-        )}
-
-        {/* Custom Numeric Keypad System (0-9) */}
-        <View style={{ width: '100%', gap: 10 }}>
-          {[
-            ['1', '2', '3'],
-            ['4', '5', '6'],
-            ['7', '8', '9'],
-            ['CLEAR', '0', '⌫'],
-          ].map((row, rIdx) => (
-            <View key={rIdx} style={{ flexDirection: 'row', gap: 10, justifyContent: 'center' }}>
-              {row.map((btn) => {
-                if (btn === 'CLEAR') {
-                  return (
-                    <Pressable
-                      key={btn}
-                      onPress={handleClear}
-                      style={{
-                        flex: 1, height: 48, borderRadius: 12,
-                        backgroundColor: 'rgba(255,255,255,0.05)',
-                        borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
-                        alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                      }}
-                    >
-                      <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted }}>CLEAR</Text>
-                    </Pressable>
-                  );
-                }
-                if (btn === '⌫') {
-                  return (
-                    <Pressable
-                      key={btn}
-                      onPress={handleBackspace}
-                      style={{
-                        flex: 1, height: 48, borderRadius: 12,
-                        backgroundColor: 'rgba(255,255,255,0.05)',
-                        borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
-                        alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                      }}
-                    >
-                      <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.muted }}>⌫</Text>
-                    </Pressable>
-                  );
-                }
-                return (
-                  <Pressable
-                    key={btn}
-                    onPress={() => handleDigit(btn)}
-                    style={{
-                      flex: 1, height: 48, borderRadius: 12,
-                      backgroundColor: 'rgba(255,255,255,0.08)',
-                      borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)',
-                      alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                    }}
-                  >
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 19, color: '#FFFFFF' }}>{btn}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ))}
-        </View>
-
-        {/* Unlock Action Button */}
-        <Pressable
-          onPress={() => verifyPin(pin)}
-          disabled={pin.length !== 6}
-          style={{
-            width: '100%', height: 46, borderRadius: 12,
-            backgroundColor: pin.length === 6 ? '#7C3AED' : 'rgba(255,255,255,0.06)',
-            alignItems: 'center', justifyContent: 'center', marginTop: 16, cursor: 'pointer',
-            opacity: pin.length === 6 ? 1 : 0.4,
-          }}
-        >
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#FFFFFF' }}>Unlock ECHO Showcase</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
-
 // ── Registration tab passcode control (server-side configured) ───────────────
 function RegistrationPasscodeControl({
   enabled,
@@ -6303,13 +6082,6 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
   const T = useSAC();
   Object.assign(fi, resolveColors(fi, T));
 
-  const [unlocked, setUnlocked] = useState<boolean>(() => {
-    if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
-      return sessionStorage.getItem('echo_showcase_unlocked') === 'true';
-    }
-    return false;
-  });
-
   const [pageTab, setPageTab] = useSubTab<PageTab>(['all', 'create', 'drafts', 'registrations', 'interns', 'volunteers', 'media', 'scan-monitor'], 'all', { sub, onSub });
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -6374,7 +6146,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
   };
 
   const load = useCallback(async () => {
-    if (!user || !unlocked) { setLoading(false); return; }
+    if (!user) { setLoading(false); return; }
     try {
       const res = await api.adminListEchoShowcases();
       setItems(res?.items || []);
@@ -6383,17 +6155,17 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
     } finally {
       setLoading(false);
     }
-  }, [user, unlocked]);
+  }, [user]);
 
-  useEffect(() => { if (unlocked) load(); }, [load, unlocked]);
+  useEffect(() => { load(); }, [load]);
 
   // When user clicks "Create Showcase" tab → open modal immediately
   useEffect(() => {
-    if (pageTab === 'create' && unlocked) {
+    if (pageTab === 'create') {
       setEditing(null);
       setModalOpen(true);
     }
-  }, [pageTab, unlocked]);
+  }, [pageTab]);
 
   const filtered = useMemo(() => {
     return items.filter((i) => {
@@ -6408,10 +6180,6 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
   useEffect(() => {
     setPage(1);
   }, [search, statusFilter, pageTab, items]);
-
-  if (!unlocked) {
-    return <EchoPasscodeLockModal onUnlock={() => setUnlocked(true)} />;
-  }
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const safePage = Math.min(page, totalPages);
@@ -6503,22 +6271,6 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
           </Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-          <Pressable
-            onPress={() => {
-              if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
-                sessionStorage.removeItem('echo_showcase_unlocked');
-              }
-              setUnlocked(false);
-            }}
-            style={{
-              flexDirection: 'row', alignItems: 'center', gap: 6,
-              backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)',
-              borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, cursor: 'pointer',
-            }}
-          >
-            <Lock size={13} color="#F87171" />
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#F87171' }}>Lock CMS</Text>
-          </Pressable>
           <GradientButton onPress={onCreate} size="md">
             <PlusCircle size={14} color="#fff" />
             <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>New Showcase</Text>
