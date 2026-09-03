@@ -6123,6 +6123,19 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
     }
   }, [pageTab, loadPasscodeStatus]);
 
+  // Re-lock when browser tab becomes hidden (tab switch, window blur)
+  useEffect(() => {
+    if (Platform.OS !== 'web' || pageTab !== 'registrations' || !regPassEnabled) return;
+    const onVisChange = () => {
+      if (document.hidden) {
+        setRegPassUnlocked(false);
+        try { sessionStorage.removeItem('echo_reg_pass_unlocked'); } catch {}
+      }
+    };
+    document.addEventListener('visibilitychange', onVisChange);
+    return () => document.removeEventListener('visibilitychange', onVisChange);
+  }, [pageTab, regPassEnabled]);
+
   const regPassUnlock = () => {
     setRegPassUnlocked(true);
     if (Platform.OS === 'web') {
