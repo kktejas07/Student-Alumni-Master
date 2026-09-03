@@ -48,8 +48,8 @@ const SAMPLE_EVENTS = [
     reg_closes: 'Registrations Open',
     individual_fee: 599,
     team_fee: 2495,
-    individual_seats: '985 seats available',
-    team_slots: '197 team slots available',
+    individual_seats: 'Open — no seat limit',
+    team_slots: 'Open — no seat limit',
     partners: ['CodeSpectra', 'Featherless', 'Stepupmark', 'Bandiwala', 'WeHive'],
     poster_banner: '/images/hackwave/hackwave_main_poster.png',
     gallery_images: [
@@ -213,6 +213,33 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
     return () => clearInterval(timer);
   }, [view, regPosters.length]);
   
+  // Live countdown for temporary auto-close windows
+  const [tempCloseRemaining, setTempCloseRemaining] = useState(0);
+  useEffect(() => {
+    const closeAt = activeEvent?.registration?.temporary_close_at;
+    const isTempOpen = !!activeEvent?.registration?.temporary_open && !!closeAt;
+    if (!isTempOpen) {
+      setTempCloseRemaining(0);
+      return;
+    }
+    const tick = () => {
+      const ms = new Date(closeAt).getTime() - Date.now();
+      setTempCloseRemaining(ms > 0 ? ms : 0);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [view, activeEvent?.slug, activeEvent?.registration?.temporary_open, activeEvent?.registration?.temporary_close_at]);
+  const fmtCountdown = (ms: number) => {
+    if (ms <= 0) return 'Closing now…';
+    const sec = Math.floor(ms / 1000);
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    const p = (n: number) => String(n).padStart(2, '0');
+    return h > 0 ? `${h}h ${p(m)}m ${p(s)}s` : `${p(m)}m ${p(s)}s`;
+  };
+  
   // Form fields
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -324,8 +351,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 reg_closes: item.registration?.enabled === false ? 'Registrations Closed' : (item.reg_closes || existing.reg_closes || 'Registration Open'),
                 individual_fee: item.fee ?? item.individual_fee ?? existing.individual_fee ?? 599,
                 team_fee: item.team_fee ?? existing.team_fee ?? 2495,
-                individual_seats: item.available_seats ? `${item.available_seats} seats available` : existing.individual_seats || '985 seats available',
-                team_slots: item.team_slots_available ? `${item.team_slots_available} team slots available` : existing.team_slots || '197 team slots available',
+                individual_seats: item.available_seats == null ? 'Open — no seat limit' : `${item.available_seats} seats available`,
+                team_slots: item.team_slots_available ? `${item.team_slots_available} team slots available` : (item.available_seats == null ? 'Open — no seat limit' : existing.team_slots || ''),
+                registration: item.registration || existing.registration || {},
                 partners: item.partners?.map((p: any) => (typeof p === 'string' ? p : p.name || p.title)) || existing.partners || ['CodeSpectra', 'Featherless', 'Stepupmark'],
                 poster_banner: item.hero_image_url || item.banner_url || item.poster_url || existing.poster_banner || '',
                 categories: item.categories || existing.categories || [],
@@ -393,8 +421,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   reg_closes: item.registration?.enabled === false ? 'Registrations Closed' : (item.reg_closes || e.reg_closes),
                   individual_fee: item.fee ?? item.individual_fee ?? e.individual_fee,
                   team_fee: item.team_fee ?? e.team_fee,
-                  individual_seats: item.available_seats ? `${item.available_seats} seats available` : e.individual_seats,
-                  team_slots: item.team_slots_available ? `${item.team_slots_available} team slots available` : e.team_slots,
+                  individual_seats: item.available_seats == null ? 'Open — no seat limit' : `${item.available_seats} seats available`,
+                  team_slots: item.team_slots_available ? `${item.team_slots_available} team slots available` : (item.available_seats == null ? 'Open — no seat limit' : e.team_slots),
+                  registration: item.registration || e.registration || {},
                   partners: item.partners?.map((p: any) => (typeof p === 'string' ? p : p.name || p.title)) || e.partners,
                   poster_banner: item.hero_image_url || item.banner_url || item.poster_url || e.poster_banner,
                   categories: item.categories || e.categories,
@@ -2441,6 +2470,19 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             {/* Right Column: Registration Form & Payment */}
             <div style={{ display: 'grid', gap: '18px' }}>
               
+              {/* Temporary auto-close countdown banner */}
+              {activeEvent?.registration?.temporary_open && activeEvent?.registration?.temporary_close_at ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid rgba(245,158,11,.45)', borderRadius: '14px', background: 'rgba(245,158,11,.10)', padding: '14px 18px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '20px', lineHeight: 1 }}>⏳</span>
+                  <div style={{ flex: '1 1 160px', minWidth: 0 }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1.1px', color: 'var(--amber,#f59e0b)' }}>REGISTRATION WINDOW OPEN</div>
+                    <div style={{ fontSize: '13.5px', color: 'var(--text)', marginTop: '3px' }}>
+                      Auto-closes in <strong style={{ color: '#F59E0B', fontVariantNumeric: 'tabular-nums' }}>{fmtCountdown(tempCloseRemaining)}</strong>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
               {/* Individual vs Team Segmented Selector */}
               <div className="ev-reg-seg" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
                 <span
