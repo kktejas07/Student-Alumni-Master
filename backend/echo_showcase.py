@@ -81,8 +81,8 @@ async def import_tickets_preview(
         raise HTTPException(status_code=400, detail="CSV is empty or has no valid rows with email addresses")
     result = build_registrations(rows, slug="", showcase_title="", source=source)
     stats = result["stats"]
-    # Return first 50 registrations as preview + stats
-    preview = result["registrations"][:50]
+    # Return all parsed registrations as preview
+    preview = result["registrations"]
     return {
         "stats": stats,
         "preview": preview,

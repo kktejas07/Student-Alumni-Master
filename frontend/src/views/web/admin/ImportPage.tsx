@@ -3,7 +3,7 @@
  * Student Alumni, or other), preview the parsed data, then import it into
  * ECHO registrations + StudentAlumni accounts.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import { UploadCloud, FileSpreadsheet, Users, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react-native';
 import { AdminLayout } from './AdminLayout';
@@ -52,6 +52,19 @@ function ImportInner({ file, setFile }: { file: File | null; setFile: (f: File |
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showcases, setShowcases] = useState<{ slug: string; title: string }[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.adminListEchoShowcases();
+        const list = Array.isArray(res) ? res : (res?.items || res?.showcases || []);
+        setShowcases(list.map((s: any) => ({ slug: s.slug, title: s.title || s.slug })));
+      } catch {
+        setShowcases([]);
+      }
+    })();
+  }, []);
 
   const resolveSource = () => (source === 'other' && customSource.trim() ? customSource.trim() : source);
 
@@ -173,16 +186,32 @@ function ImportInner({ file, setFile }: { file: File | null; setFile: (f: File |
       {/* Slug input appears once a file is chosen */}
       {file && !result && (
         <GlassCard padding={20}>
-          <Text style={styles.fieldLabel}>ECHO Event Slug</Text>
+          <Text style={styles.fieldLabel}>ECHO Event</Text>
+          <select
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            style={styles.select as any}
+          >
+            {showcases.length === 0 ? (
+              <option value="" style={{ background: '#1e1b4b', color: T.text }}>No events found — type a slug below</option>
+            ) : (
+              <option value="" style={{ background: '#1e1b4b', color: T.text }}>Select an event…</option>
+            )}
+            {showcases.map((s) => (
+              <option key={s.slug} value={s.slug} style={{ background: '#1e1b4b', color: T.text }}>
+                {s.title} ({s.slug})
+              </option>
+            ))}
+          </select>
+          <Text style={styles.uploadHint}>
+            Choose the ECHO showcase these tickets belong to, or type a slug manually below if it's not listed.
+          </Text>
           <input
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
-            placeholder="e.g. hackwave-3.0"
-            style={styles.input as any}
+            placeholder="e.g. hackwave-3.0 (optional if selected above)"
+            style={[styles.input, { marginTop: 10 }] as any}
           />
-          <Text style={styles.uploadHint}>
-            The slug of the ECHO showcase these tickets belong to (e.g. the hackathon or event you sold tickets for).
-          </Text>
         </GlassCard>
       )}
 
@@ -215,7 +244,7 @@ function ImportInner({ file, setFile }: { file: File | null; setFile: (f: File |
           </View>
 
           <GlassCard padding={16}>
-            <Text style={styles.sectionTitle}>Preview ({preview.length} shown)</Text>
+            <Text style={styles.sectionTitle}>Preview — all {stats.total} buyers</Text>
           <ScrollView horizontal>
             <table style={tableStyle}>
               <thead>
@@ -328,6 +357,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.25)', borderColor: T.border, borderWidth: 1, borderRadius: 10,
     color: T.text, fontFamily: 'DMSans_500Medium', fontSize: 13,
     ...({ outlineStyle: 'none' } as any),
+  },
+  select: {
+    paddingHorizontal: 12, paddingVertical: 10, width: '100%',
+    backgroundColor: '#0a0a1a', borderColor: T.border, borderWidth: 1, borderRadius: 10,
+    color: T.text, fontFamily: 'DMSans_500Medium', fontSize: 13,
+    ...({ outlineStyle: 'none', cursor: 'pointer' } as any),
   },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 12, flexWrap: 'wrap' },
   sectionTitle: { color: T.text, fontFamily: 'DMSans_700Bold', fontSize: 14, marginBottom: 12 },
