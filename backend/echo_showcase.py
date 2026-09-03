@@ -5699,7 +5699,7 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
     db = _get_db(request)
     parsed = _parse_ticket(payload.ticket)
     if not parsed:
-        raise HTTPException(status_code=400, detail="Invalid ticket code")
+        return {"ok": False, "status": "invalid", "message": "Invalid ticket code — could not parse"}
 
     query: Dict[str, Any] = {}
     if parsed.get("slug"):
@@ -5711,23 +5711,23 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
     if not reg:
         reg = await db.echo_registrations.find_one({"id": parsed.get("reg_id")})
     if not reg:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        return {"ok": False, "status": "invalid", "message": "Ticket not found in registrations"}
 
     payment = reg.get("payment") or {}
     payment_status = payment.get("status") or reg.get("payment_status") or "pending"
     reg_status = reg.get("status") or "pending"
     fee = float(reg.get("fee") or 0)
-    
+
     is_free = fee <= 0 and (payment_status == "paid" or reg_status in ("registered", "confirmed"))
     is_paid = payment_status == "paid" and reg_status in ("registered", "confirmed")
     verified = is_free or is_paid
-    
+
     if not verified:
-        raise HTTPException(status_code=400, detail="Ticket not confirmed — attendee cannot be checked in")
+        return {"ok": False, "status": "unconfirmed", "message": "Ticket not confirmed — attendee cannot be checked in. Payment may be pending."}
 
     now_iso = _now()
     first_checkin = not bool(reg.get("checked_in_at"))
-    
+
     update_data: dict[str, Any] = {"checked_in_at": now_iso}
     if payload.lat is not None and payload.lng is not None:
         update_data["scanned_lat"] = payload.lat
@@ -6576,11 +6576,11 @@ async def scan_coupon(request: Request, admin=Depends(_require_scan_access)):
     body = await request.json()
     code = (body.get("code") or "").strip().upper()
     if not code:
-        raise HTTPException(400, "Coupon code required")
+        return {"ok": False, "status": "invalid", "message": "Coupon code is required"}
 
     coupon = await db.echo_coupons.find_one({"coupon_code": code})
     if not coupon:
-        raise HTTPException(404, "Invalid coupon code")
+        return {"ok": False, "status": "invalid", "message": f"Coupon '{code}' not found. Make sure this is a valid session pass from My Tickets."}
     # Check if session is locked
     if coupon.get("session_locked"):
         return {
@@ -6589,7 +6589,7 @@ async def scan_coupon(request: Request, admin=Depends(_require_scan_access)):
             "message": f"This session ({coupon.get('session_name', '')}) is currently locked. It will be available soon.",
             "coupon": {k: v for k, v in coupon.items() if k != "_id"},
         }
-    if coupon["used"]:
+    if coupon.get("used"):
         return {
             "ok": False,
             "status": "already_used",
@@ -6602,31 +6602,31 @@ async def scan_coupon(request: Request, admin=Depends(_require_scan_access)):
 
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc)
-    
+
     update_data = {
-        "used": True, 
-        "used_at": now, 
+        "used": True,
+        "used_at": now,
         "scanned_by": admin.get("email", "admin")
     }
     if lat is not None and lng is not None:
         update_data["scanned_lat"] = lat
         update_data["scanned_lng"] = lng
-        
+
     await db.echo_coupons.update_one(
         {"_id": coupon["_id"]},
         {"$set": update_data}
     )
 
     # Get attendee info
-    reg = await db.echo_registrations.find_one({"id": coupon["reg_id"]})
+    reg = await db.echo_registrations.find_one({"id": coupon.get("reg_id")})
 
     return {
         "ok": True,
         "status": "valid",
-        "message": f"Valid — {coupon['session_name']} for {reg.get('full_name', 'Unknown') if reg else 'Unknown'}",
+        "message": f"Valid — {coupon.get('session_name', 'Session')} for {reg.get('full_name', 'Attendee') if reg else 'Attendee'}",
         "coupon": {
             "code": code,
-            "session_name": coupon["session_name"],
+            "session_name": coupon.get("session_name", "Session"),
             "session_day": coupon.get("session_day") or 1,
             "attendee_name": reg.get("full_name", "") if reg else "",
             "attendee_email": reg.get("email", "") if reg else "",
