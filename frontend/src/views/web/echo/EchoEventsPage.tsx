@@ -2344,8 +2344,8 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
           {/* Marketplace CTA Card */}
           <a
-            href={`/echo/${activeEvent.slug}/marketplace`}
-            onClick={(e) => { e.preventDefault(); window.location.href = `/echo/${activeEvent.slug}/marketplace`; }}
+            href="/echo/marketplace"
+            onClick={(e) => { e.preventDefault(); window.location.href = '/echo/marketplace'; }}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px',
               border: '1px solid rgba(139,92,246,0.35)', borderRadius: '18px',
