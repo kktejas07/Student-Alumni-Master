@@ -5949,12 +5949,8 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
   const { confirm } = useConfirm();
   const user = useAuthStore((s) => s.user);
 
-  if (!unlocked) {
-    return <EchoPasscodeLockModal onUnlock={() => setUnlocked(true)} />;
-  }
-
   const load = useCallback(async () => {
-    if (!user) { setLoading(false); return; }
+    if (!user || !unlocked) { setLoading(false); return; }
     try {
       const res = await api.adminListEchoShowcases();
       setItems(res?.items || []);
@@ -5963,29 +5959,35 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, unlocked]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (unlocked) load(); }, [load, unlocked]);
 
   // When user clicks "Create Showcase" tab → open modal immediately
   useEffect(() => {
-    if (pageTab === 'create') {
+    if (pageTab === 'create' && unlocked) {
       setEditing(null);
       setModalOpen(true);
     }
-  }, [pageTab]);
+  }, [pageTab, unlocked]);
 
-  const filtered = items.filter((i) => {
-    const q = search.toLowerCase();
-    const matchQ = !q || i.title?.toLowerCase().includes(q) || i.slug?.toLowerCase().includes(q);
-    const matchStatus = statusFilter === 'all' || i.status === statusFilter;
-    const matchPage = pageTab === 'drafts' ? i.status === 'draft' : true;
-    return matchQ && matchStatus && matchPage;
-  });
+  const filtered = useMemo(() => {
+    return items.filter((i) => {
+      const q = search.toLowerCase();
+      const matchQ = !q || i.title?.toLowerCase().includes(q) || i.slug?.toLowerCase().includes(q);
+      const matchStatus = statusFilter === 'all' || i.status === statusFilter;
+      const matchPage = pageTab === 'drafts' ? i.status === 'draft' : true;
+      return matchQ && matchStatus && matchPage;
+    });
+  }, [items, search, statusFilter, pageTab]);
 
   useEffect(() => {
     setPage(1);
   }, [search, statusFilter, pageTab, items]);
+
+  if (!unlocked) {
+    return <EchoPasscodeLockModal onUnlock={() => setUnlocked(true)} />;
+  }
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const safePage = Math.min(page, totalPages);
