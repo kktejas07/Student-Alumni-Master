@@ -42,6 +42,38 @@ JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
 JWT_ALGORITHM = "HS256"
 
 
+# ── GST configuration ────────────────────────────────────────────────────────
+# Per-category GST slabs (India). GST is EXCLUSIVE — added on top of item prices
+# and included in the final payable amount. CGST + SGST are split 50/50 for
+# intra-state invoices.
+GST_RATES = {
+    "food": 0.05,
+    "beverage": 0.05,
+    "cafe": 0.05,
+    "snacks": 0.05,
+    "drink": 0.05,
+    "beverages": 0.05,
+    "handcraft": 0.12,
+    "handicraft": 0.12,
+    "merch": 0.18,
+    "merchandise": 0.18,
+}
+GST_DEFAULT_RATE = 0.18
+
+
+def gst_rate_for(category: str | None) -> float:
+    """Return the GST rate (0..1) for a catalog category, defaulting to 18%."""
+    cat = (category or "").strip().lower()
+    return GST_RATES.get(cat, GST_DEFAULT_RATE)
+
+
+def gst_split(total: float) -> dict:
+    """Split a GST total into CGST + SGST halves (intra-state)."""
+    half = round(total / 2, 2)
+    return {"cgst": round(half, 2), "sgst": round(total - half, 2)}
+
+
+
 # ── Auth helpers ─────────────────────────────────────────────────────────────
 async def _require_admin(request: Request):
     auth = request.headers.get("Authorization", "")
@@ -359,6 +391,9 @@ def _build_marketplace_invoice_html(order: dict) -> str:
     total = float(order.get("final_amount", 0) or 0)
     discount = float(order.get("discount", 0) or 0)
     subtotal = float(order.get("subtotal", 0) or 0)
+    taxable = float(order.get("taxable", subtotal) or 0)
+    gst_total = float(order.get("gst_total", 0) or 0)
+    gst_split = order.get("gst_split") or {}
     coupon_code = order.get("coupon_code") or ""
     currency = order.get("currency") or "INR"
     created = order.get("created_at") or ""
@@ -372,10 +407,12 @@ def _build_marketplace_invoice_html(order: dict) -> str:
         name = esc(item.get("name", "Item"))
         qty = item.get("quantity", 1)
         line_total = float(item.get("line_total", 0) or 0)
+        gst_rate = float(item.get("gst_rate", 0) or 0)
         stall = item.get("stall_no") or ""
         stall_str = f" <span style='color:#94a3b8;font-size:11px;'>(Stall {esc(stall)})</span>" if stall else ""
+        rate_note = f"<span style='color:#94a3b8;font-size:11px;'> incl. GST {gst_rate*100:.0f}%</span>" if gst_rate else ""
         rows += f"""<tr>
-          <td style="padding:12px 16px;border-bottom:1px solid #f1f5f9;color:#0f172a;font-size:13px;">{name}{stall_str}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid #f1f5f9;color:#0f172a;font-size:13px;">{name}{stall_str}{rate_note}</td>
           <td style="padding:12px 16px;border-bottom:1px solid #f1f5f9;text-align:center;color:#64748b;font-size:13px;">{qty}</td>
           <td style="padding:12px 16px;border-bottom:1px solid #f1f5f9;text-align:right;color:#0f172a;font-weight:600;font-size:13px;">{currency} {line_total:,.2f}</td>
         </tr>"""
@@ -387,6 +424,15 @@ def _build_marketplace_invoice_html(order: dict) -> str:
           <td style="padding:12px 16px;border-bottom:1px solid #f1f5f9;"></td>
           <td style="padding:12px 16px;border-bottom:1px solid #f1f5f9;text-align:right;color:#16a34a;font-weight:600;font-size:13px;">-{currency} {discount:,.2f}</td>
         </tr>"""
+
+    gst_rows = ""
+    if gst_total > 0:
+        cgst = float(gst_split.get("cgst", gst_total / 2) or 0)
+        sgst = float(gst_split.get("sgst", gst_total / 2) or 0)
+        gst_rows = f"""
+          <tr><td style="padding:10px 16px;color:#475569;font-size:13px;">Taxable Amount</td><td style="padding:10px 16px;"></td><td style="padding:10px 16px;text-align:right;color:#0f172a;font-weight:600;font-size:13px;">{currency} {taxable:,.2f}</td></tr>
+          <tr><td style="padding:10px 16px;color:#475569;font-size:13px;">CGST (50%)</td><td style="padding:10px 16px;"></td><td style="padding:10px 16px;text-align:right;color:#0f172a;font-weight:600;font-size:13px;">{currency} {cgst:,.2f}</td></tr>
+          <tr><td style="padding:10px 16px;color:#475569;font-size:13px;">SGST (50%)</td><td style="padding:10px 16px;"></td><td style="padding:10px 16px;text-align:right;color:#0f172a;font-weight:600;font-size:13px;">{currency} {sgst:,.2f}</td></tr>"""
 
     paid_str = "FREE" if is_free else f"{currency} {total:,.2f}"
     badge_text = "FREE ORDER" if is_free else "PAID"
@@ -441,7 +487,8 @@ def _build_marketplace_invoice_html(order: dict) -> str:
         <div class="meta-col"><div class="meta-label">Billed To</div><div class="meta-val">{user_name}</div><div class="meta-sub">{user_email}</div></div>
         <div class="meta-col"><div class="meta-label">Payment</div><div class="meta-val">{paid_str}</div><div class="meta-sub">{esc(payment_id) or '—'}</div></div>
       </div>
-      <table style="margin-top:20px;"><tr><th>Description</th><th style="text-align:center;">Qty</th><th class="r">Amount</th></tr>{rows}{discount_row}</table>
+      <table style="margin-top:20px;"><tr><th>Description</th><th style="text-align:center;">Qty</th><th class="r">Amount</th></tr>{rows}{discount_row}{gst_rows}
+        <tr style="border-top:2px solid #e2e8f0;"><td style="padding:12px 16px;color:#0f172a;font-size:13px;font-weight:700;">Total (incl. GST)</td><td style="padding:12px 16px;"></td><td class="r" style="padding:12px 16px;color:#0f172a;font-weight:800;font-size:15px;">{currency} {total:,.2f}</td></tr></table>
       <div class="total"><div class="total-box"><div class="total-label">Total</div><div class="total-amt">{currency} {total:,.2f}</div></div></div>
     </div>
     <div class="foot"><div class="foot-text">Thank you for your purchase. Show your pickup QR at the event stall to collect your items.</div></div>
@@ -515,6 +562,7 @@ async def marketplace_checkout(payload: CheckoutRequest, request: Request):
 
     order_items = []
     subtotal = 0.0
+    gst_total = 0.0
     for line in payload.items:
         item = by_id.get(line.item_id) or by_id.get(str(line.item_id))
         if not item:
@@ -531,7 +579,10 @@ async def marketplace_checkout(payload: CheckoutRequest, request: Request):
             )
         price = float(item.get("price", 0))
         line_total = round(price * line.quantity, 2)
+        gst_rate = gst_rate_for(item.get("category"))
+        gst_amount = round(line_total * gst_rate, 2)
         subtotal += line_total
+        gst_total += gst_amount
         order_items.append({
             "item_id": item.get("id") or item.get("_id"),
             "vendor_id": item.get("vendor_id"),
@@ -542,6 +593,8 @@ async def marketplace_checkout(payload: CheckoutRequest, request: Request):
             "price_at_time": price,
             "quantity": line.quantity,
             "line_total": line_total,
+            "gst_rate": gst_rate,
+            "gst_amount": round(gst_amount, 2),
             "fulfillment_status": None,
             "stall_no": item.get("stall_no"),
             "stall_location": item.get("stall_location"),
@@ -552,7 +605,9 @@ async def marketplace_checkout(payload: CheckoutRequest, request: Request):
         payload.coupon_code or "", subtotal, event_key, user_id,
     )
 
-    total = round(subtotal - discount, 2)
+    gst_total = round(gst_total, 2)
+    taxable = round(subtotal - discount, 2)
+    total = round(taxable + gst_total, 2)
     currency = "INR"
     user_name = (user.get("name") if user else None) or (payload.user_id or "Guest")
     user_email = (user.get("email") if user else None) or None
@@ -569,7 +624,10 @@ async def marketplace_checkout(payload: CheckoutRequest, request: Request):
         "user_email": user_email,
         "items": order_items,
         "subtotal": round(subtotal, 2),
+        "taxable": taxable,
         "discount": round(discount, 2),
+        "gst_total": gst_total,
+        "gst_split": gst_split(gst_total),
         "currency": currency,
         "coupon_code": applied_coupon,
         "created_at": now_iso,
@@ -770,24 +828,56 @@ async def marketplace_invoice(order_id: str, request: Request):
 
 @router.post("/orders/coupon-preview")
 async def coupon_preview(payload: dict, request: Request):
-    """Preview coupon discount without placing an order. Returns discount amount."""
+    """Preview coupon discount + GST without placing an order."""
     code = (payload.get("code") or "").strip()
     subtotal = float(payload.get("subtotal", 0) or 0)
     event_id = payload.get("event_id", "")
+    cart_items = payload.get("items") or []
     user = await _resolve_user(request)
     user_id = str(user["_id"]) if user else "anon"
 
-    if not code:
-        return {"success": True, "discount": 0, "code": None}
+    # Compute GST on the cart (per-category rates) for an accurate preview.
+    gst_total = 0.0
+    if cart_items:
+        showcase = await db.echo_showcases.find_one({
+            "$or": [{"slug": event_id}, {"aliases": event_id}],
+        })
+        event_key = event_id
+        if showcase and showcase.get("_id"):
+            event_key = str(showcase.get("_id"))
+        by_id = {}
+        for scope in [event_key, event_id, "master"]:
+            for it in await _catalog_for_event(scope):
+                if it.get("id"):
+                    by_id[it["id"]] = it
+                if it.get("_id"):
+                    by_id[str(it["_id"])] = it
+        for line in cart_items:
+            item = by_id.get(str(line.get("item_id"))) if line.get("item_id") else None
+            if not item:
+                continue
+            rate = gst_rate_for(item.get("category"))
+            qty = int(line.get("quantity", 1) or 1)
+            gst_total += float(item.get("price", 0)) * qty * rate
+    gst_total = round(gst_total, 2)
 
-    try:
-        discount, applied, doc = await _evaluate_coupon(code, subtotal, event_id, user_id)
-        return {"success": True, "discount": discount, "code": applied,
-                "type": doc.get("discount_type"), "value": doc.get("discount_value"),
-                "min_order_value": doc.get("min_order_value", 0),
-                "max_discount": doc.get("max_discount", 0)}
-    except HTTPException as e:
-        return {"success": False, "error": e.detail}
+    discount = 0.0
+    applied = None
+    doc = {}
+    if code:
+        try:
+            discount, applied, doc = await _evaluate_coupon(code, subtotal, event_id, user_id)
+        except HTTPException as e:
+            return {"success": False, "error": e.detail}
+
+    taxable = round(subtotal - discount, 2)
+    return {"success": True, "discount": discount, "code": applied,
+            "type": doc.get("discount_type"), "value": doc.get("discount_value"),
+            "min_order_value": doc.get("min_order_value", 0),
+            "max_discount": doc.get("max_discount", 0),
+            "subtotal": round(subtotal, 2), "taxable": taxable,
+            "gst": gst_total, "gst_split": gst_split(gst_total),
+            "grand_total": round(taxable + gst_total, 2)}
 
 
 # ── Admin: catalog ──────────────────────────────────────────────────────────

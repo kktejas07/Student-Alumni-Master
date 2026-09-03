@@ -100,6 +100,7 @@ type MarketplaceOrder = {
   items?: MarketplaceItem[];
   subtotal?: number;
   discount?: number;
+  gst_total?: number;
   final_amount?: number;
   currency?: string;
   coupon_code?: string | null;
@@ -524,8 +525,14 @@ export function MyTicketsView() {
                       <Text style={[s.mpTotalValue, { color: '#34D399' }]}>−₹{inr(order.discount)}</Text>
                     </View>
                   )}
+                  {(order.gst_total ?? 0) > 0 && (
+                    <View style={s.mpTotalRow}>
+                      <Text style={s.mpTotalLabel}>GST</Text>
+                      <Text style={s.mpTotalValue}>₹{inr(order.gst_total)}</Text>
+                    </View>
+                  )}
                   <View style={[s.mpTotalRow, s.mpGrandRow]}>
-                    <Text style={s.mpGrandLabel}>Total</Text>
+                    <Text style={s.mpGrandLabel}>Total (incl. GST)</Text>
                     <Text style={s.mpGrandValue}>₹{inr(order.final_amount)}</Text>
                   </View>
                 </View>
