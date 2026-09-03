@@ -2,7 +2,7 @@ import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
 
 from core.db import db
@@ -296,6 +296,8 @@ async def get_vendor_dashboard(vendor: dict = Depends(get_current_vendor)):
             order_summary = {
                 "order_id": order.get("id"),
                 "user_name": order.get("user_name"),
+                "user_email": order.get("user_email"),
+                "user_phone": order.get("user_phone"),
                 "created_at": order.get("created_at"),
                 "items": vendor_items
             }
@@ -334,19 +336,32 @@ async def fulfill_vendor_order(req: FulfillRequest, vendor: dict = Depends(get_c
         
     has_vendor_items = False
     all_items = order.get("items", [])
+    already_fulfilled = []
     
     for item in all_items:
         if item.get("vendor_id") == vendor_id:
             has_vendor_items = True
-            item["fulfillment_status"] = "FULFILLED"
+            if item.get("fulfillment_status") == "FULFILLED":
+                already_fulfilled.append(item.get("name", "Item"))
+            else:
+                item["fulfillment_status"] = "FULFILLED"
             
     if not has_vendor_items:
         raise HTTPException(400, "No items found for this vendor in this order")
         
+    if already_fulfilled:
+        return {
+            "success": False,
+            "status": "already_fulfilled",
+            "message": f"Already collected: {', '.join(already_fulfilled)}",
+            "already_fulfilled": already_fulfilled,
+        }
+        
     # Update the order
+    now_iso = datetime.now(timezone.utc).isoformat()
     await db.echo_orders.update_one(
         {"id": order_id},
-        {"$set": {"items": all_items}}
+        {"$set": {"items": all_items, "updated_at": now_iso}}
     )
     
     return {"success": True, "message": "Order fulfilled successfully"}
