@@ -29,7 +29,6 @@ import { EchoShowcaseView } from './portals/student/views/EchoShowcaseView';
 import { NetworkView } from './portals/student/views/NetworkView';
 import { MyBookingsView } from './portals/student/views/MyBookingsView';
 import { MyTicketsView } from './portals/student/views/MyTicketsView';
-import { EchoTicketsConfirmationPage } from './echo/EchoTicketsConfirmationPage';
 import { EventsView } from './portals/student/views/EventsView';
 import { MyWorkshopsView } from './portals/student/views/MyWorkshopsView';
 import CoursesPage from '@/app/courses';
@@ -864,7 +863,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
             {currentView === 'echo' && <EchoShowcaseView />}
             {currentView === 'net' && <NetworkView />}
             {currentView === 'bookings' && <MyBookingsView />}
-            {currentView === 'tickets' && <EchoTicketsConfirmationPage initialTab="tickets" />}
+            {currentView === 'tickets' && <MyTicketsView />}
             {currentView === 'events' && <EventsView />}
             {currentView === 'workshops' && <MyWorkshopsView />}
             {currentView === 'courses' && <CoursesPage />}
