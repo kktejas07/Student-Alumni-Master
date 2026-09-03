@@ -246,6 +246,7 @@ export default function WalletScreen() {
   const [couponFilter, setCouponFilter] = useState<'all' | 'active' | 'used' | 'locked'>('all');
   const [couponSearch, setCouponSearch] = useState('');
   const [selectedCouponModal, setSelectedCouponModal] = useState<CouponItem | null>(null);
+  const [instructionModal, setInstructionModal] = useState<{ title: string; instructions: string; website?: string } | null>(null);
 
   // Top-Up & Withdraw State
   const [topupAmount, setTopupAmount] = useState<string>('500');
@@ -914,10 +915,12 @@ export default function WalletScreen() {
               <View style={s.couponsGrid}>
                 {filteredMyCoupons.map((c) => (
                   <View key={c.id} style={[s.couponCard, { borderColor: c.locked ? 'rgba(239,68,68,0.25)' : c.accent + '33', opacity: c.locked ? 0.8 : 1 }]}>
-                    <View style={s.couponCardHeader}>
-                      <View style={[s.couponBrandBadge, { backgroundColor: c.accent + '20', borderColor: c.accent + '40' }]}>
-                        <Text style={[s.couponBrandText, { color: c.accent }]}>{c.brand}</Text>
-                      </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                      {c.brand && !c.brand.includes('Student Alumni') ? (
+                        <View style={[s.couponBrandBadge, { backgroundColor: c.accent + '20', borderColor: c.accent + '40' }]}>
+                          <Text style={[s.couponBrandText, { color: c.accent }]}>{c.brand}</Text>
+                        </View>
+                      ) : null}
                       {c.locked ? (
                         <View style={[s.statusPill, { backgroundColor: 'rgba(239,68,68,0.12)' }]}>
                           <Lock size={10} color="#EF4444" />
@@ -926,7 +929,7 @@ export default function WalletScreen() {
                       ) : (
                         <View style={[s.statusPill, { backgroundColor: c.status === 'active' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(240, 238, 255, 0.1)' }]}>
                           <Text style={[s.statusPillText, { color: c.status === 'active' ? C.green : C.dim }]}>
-                            {c.status === 'active' ? '● Ready to Use' : '✓ Used'}
+                            {c.status === 'active' ? '● Ready' : '✓ Used'}
                           </Text>
                         </View>
                       )}
@@ -934,12 +937,15 @@ export default function WalletScreen() {
 
                     <Text style={s.couponTitle}>{c.title}</Text>
                     {c.instructions ? (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, marginBottom: 4 }}>
+                      <Pressable
+                        onPress={() => setInstructionModal({ title: c.brand || c.code, instructions: c.instructions || '', website: c.url })}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, marginBottom: 4, paddingVertical: 2 }}
+                      >
                         <Info size={11} color="#3B82F6" />
                         <Text style={{ fontSize: 11, color: '#3B82F6', flex: 1 }} numberOfLines={2}>{c.instructions}</Text>
-                      </View>
+                        <Text style={{ fontSize: 10, color: '#3B82F6', fontWeight: '700' }}>Details →</Text>
+                      </Pressable>
                     ) : null}
-                    <Text style={s.couponExpiry}>{c.expiry}</Text>
 
                     {/* Voucher Code Box */}
                     {!c.locked && (
@@ -1214,6 +1220,33 @@ export default function WalletScreen() {
           </View>
         </View>
       )}
+
+      {/* Instruction Detail Modal */}
+      <Modal visible={!!instructionModal} transparent animationType="fade" onRequestClose={() => setInstructionModal(null)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 }} onPress={() => setInstructionModal(null)}>
+          <View style={{ backgroundColor: '#12162A', borderRadius: 20, padding: 28, maxWidth: 400, width: '100%', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }} onStartShouldSetResponder={() => true}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFF', flex: 1 }}>{instructionModal?.title}</Text>
+              <Pressable onPress={() => setInstructionModal(null)} style={{ padding: 4 }}>
+                <X size={20} color="#9CA3AF" />
+              </Pressable>
+            </View>
+            <View style={{ backgroundColor: 'rgba(59,130,246,0.1)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <Info size={14} color="#3B82F6" />
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#3B82F6' }}>How to Redeem</Text>
+              </View>
+              <Text style={{ fontSize: 14, color: '#D1D5DB', lineHeight: 20 }}>{instructionModal?.instructions}</Text>
+            </View>
+            {instructionModal?.website ? (
+              <Pressable onPress={() => Linking.openURL(instructionModal.website!)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 14, backgroundColor: 'rgba(139,92,246,0.15)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(139,92,246,0.3)' }}>
+                <ExternalLink size={16} color="#A78BFA" />
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#A78BFA' }}>Open Website</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </Pressable>
+      </Modal>
 
     </Container>
   );
