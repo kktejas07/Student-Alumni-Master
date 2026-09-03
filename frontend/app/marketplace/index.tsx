@@ -1,5 +1,5 @@
 /**
- * /echo/marketplace — Event Marketplace (no slug required).
+ * /marketplace — Event Marketplace (no slug required).
  * Shows available events with marketplaces, or redirects if only one exists.
  */
 import React, { useEffect, useState } from 'react';
@@ -33,7 +33,7 @@ export default function MarketplaceIndexPage() {
 
   useEffect(() => {
     if (!loading && events.length === 1 && events[0]?.slug) {
-      window.location.href = `/echo/${events[0].slug}/marketplace`;
+      window.location.href = `/marketplace/${events[0].slug}`;
     }
   }, [loading, events]);
 
@@ -47,7 +47,7 @@ export default function MarketplaceIndexPage() {
           </a>
           <nav style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
             <a href="/echo" style={{ fontSize: 14, fontWeight: 600, color: '#9AA0B4', textDecoration: 'none' }}>Events</a>
-            <a href="/echo/marketplace" style={{ fontSize: 14, fontWeight: 600, color: '#A78BFA', textDecoration: 'none' }}>Marketplace</a>
+            <a href="/marketplace" style={{ fontSize: 14, fontWeight: 600, color: '#A78BFA', textDecoration: 'none' }}>Marketplace</a>
           </nav>
         </div>
       </header>
@@ -81,8 +81,8 @@ export default function MarketplaceIndexPage() {
             {events.map((ev) => (
               <a
                 key={ev.id || ev.slug}
-                href={`/echo/${ev.slug}/marketplace`}
-                onClick={(e) => { e.preventDefault(); window.location.href = `/echo/${ev.slug}/marketplace`; }}
+                href={`/marketplace/${ev.slug}`}
+                onClick={(e) => { e.preventDefault(); window.location.href = `/marketplace/${ev.slug}`; }}
                 style={{
                   borderRadius: 18, overflow: 'hidden', textDecoration: 'none', color: '#F4F5FB',
                   background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(167,139,250,0.2)',

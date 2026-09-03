@@ -1,5 +1,5 @@
 /**
- * /echo/{slug}/marketplace — Dedicated Event Marketplace page.
+ * /marketplace/{slug} — Dedicated Event Marketplace page.
  * Pre-order food, beverages, and exclusive handcrafts to collect at the event.
  */
 import React from 'react';
