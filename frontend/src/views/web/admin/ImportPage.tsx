@@ -210,7 +210,7 @@ function ImportInner({ file, setFile }: { file: File | null; setFile: (f: File |
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
             placeholder="e.g. hackwave-3.0 (optional if selected above)"
-            style={[styles.input, { marginTop: 10 }] as any}
+            style={Object.assign({}, styles.input, { marginTop: 10 }) as any}
           />
         </GlassCard>
       )}
