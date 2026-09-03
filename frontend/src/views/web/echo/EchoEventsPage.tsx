@@ -213,33 +213,6 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
     return () => clearInterval(timer);
   }, [view, regPosters.length]);
   
-  // Live countdown for temporary auto-close windows
-  const [tempCloseRemaining, setTempCloseRemaining] = useState(0);
-  useEffect(() => {
-    const closeAt = activeEvent?.registration?.temporary_close_at;
-    const isTempOpen = !!activeEvent?.registration?.temporary_open && !!closeAt;
-    if (!isTempOpen) {
-      setTempCloseRemaining(0);
-      return;
-    }
-    const tick = () => {
-      const ms = new Date(closeAt).getTime() - Date.now();
-      setTempCloseRemaining(ms > 0 ? ms : 0);
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [view, activeEvent?.slug, activeEvent?.registration?.temporary_open, activeEvent?.registration?.temporary_close_at]);
-  const fmtCountdown = (ms: number) => {
-    if (ms <= 0) return 'Closing now…';
-    const sec = Math.floor(ms / 1000);
-    const h = Math.floor(sec / 3600);
-    const m = Math.floor((sec % 3600) / 60);
-    const s = sec % 60;
-    const p = (n: number) => String(n).padStart(2, '0');
-    return h > 0 ? `${h}h ${p(m)}m ${p(s)}s` : `${p(m)}m ${p(s)}s`;
-  };
-  
   // Form fields
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -285,6 +258,33 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
   // Active event resolution
   const activeEvent = events.find((e) => e.slug === selectedSlug) || events[0] || SAMPLE_EVENTS[0];
+
+  // Live countdown for temporary auto-close windows
+  const [tempCloseRemaining, setTempCloseRemaining] = useState(0);
+  useEffect(() => {
+    const closeAt = activeEvent?.registration?.temporary_close_at;
+    const isTempOpen = !!activeEvent?.registration?.temporary_open && !!closeAt;
+    if (!isTempOpen) {
+      setTempCloseRemaining(0);
+      return;
+    }
+    const tick = () => {
+      const ms = new Date(closeAt).getTime() - Date.now();
+      setTempCloseRemaining(ms > 0 ? ms : 0);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [view, activeEvent?.slug, activeEvent?.registration?.temporary_open, activeEvent?.registration?.temporary_close_at]);
+  const fmtCountdown = (ms: number) => {
+    if (ms <= 0) return 'Closing now…';
+    const sec = Math.floor(ms / 1000);
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    const p = (n: number) => String(n).padStart(2, '0');
+    return h > 0 ? `${h}h ${p(m)}m ${p(s)}s` : `${p(m)}m ${p(s)}s`;
+  };
 
   // Derived dynamic team calculations
   const validMembers = isTeam
