@@ -463,13 +463,16 @@ export function MyTicketsView() {
           const paid = order.payment_status === 'paid' || order.status === 'paid';
           const free = order.payment_status === 'free' || (order.final_amount === 0 && paid);
           const pending = order.payment_status === 'pending' || order.status === 'pending';
-          const orderStatus = free
-            ? { c: '#34D399', label: 'PAID · COLLECT AT STALL', icon: CheckCircle }
-            : paid
+          const allFulfilled = oItems.length > 0 && oItems.every((it: any) => it.fulfillment_status === 'FULFILLED');
+          const orderStatus = allFulfilled
+            ? { c: '#6366F1', label: 'COLLECTED', icon: CheckCircle }
+            : free
               ? { c: '#34D399', label: 'PAID · COLLECT AT STALL', icon: CheckCircle }
-              : pending
-                ? { c: '#FBBF24', label: 'PENDING PAYMENT', icon: Clock }
-                : { c: '#FB7185', label: 'NOT PAID', icon: AlertCircle };
+              : paid
+                ? { c: '#34D399', label: 'PAID · COLLECT AT STALL', icon: CheckCircle }
+                : pending
+                  ? { c: '#FBBF24', label: 'PENDING PAYMENT', icon: Clock }
+                  : { c: '#FB7185', label: 'NOT PAID', icon: AlertCircle };
           const OrderStatusIcon = orderStatus.icon;
 
           return (
@@ -486,7 +489,7 @@ export function MyTicketsView() {
                       {order.event_id ? ` · ${order.event_id}` : ''}
                     </Text>
                   </View>
-                  <View style={[s.statusChip, { backgroundColor: 'rgba(52,211,153,0.12)', borderColor: 'rgba(52,211,153,0.28)' }]}>
+                  <View style={[s.statusChip, { backgroundColor: allFulfilled ? 'rgba(99,102,241,0.12)' : 'rgba(52,211,153,0.12)', borderColor: allFulfilled ? 'rgba(99,102,241,0.28)' : 'rgba(52,211,153,0.28)' }]}>
                     <OrderStatusIcon size={10} color={orderStatus.c} />
                     <Text style={[s.statusText, { color: orderStatus.c }]}>{orderStatus.label}</Text>
                   </View>
@@ -496,8 +499,10 @@ export function MyTicketsView() {
                 <View style={s.mpItems}>
                   {oItems.map((it, i) => (
                     <View key={it.item_id || i} style={s.mpItemRow}>
-                      <View style={[s.mpCat, { backgroundColor: 'rgba(124,58,237,0.12)' }]}>
-                        <Tag size={11} color={GRAD.from} />
+                      <View style={[s.mpCat, { backgroundColor: it.fulfillment_status === 'FULFILLED' ? 'rgba(52,211,153,0.12)' : 'rgba(124,58,237,0.12)' }]}>
+                        {it.fulfillment_status === 'FULFILLED'
+                          ? <CheckCircle size={11} color="#34D399" />
+                          : <Tag size={11} color={GRAD.from} />}
                       </View>
                       <View style={{ flex: 1, minWidth: 0 }}>
                         <Text style={s.mpItemName} numberOfLines={1}>{it.name}</Text>
@@ -507,6 +512,9 @@ export function MyTicketsView() {
                           {it.stall_location ? ` · ${it.stall_location}` : ''}
                         </Text>
                       </View>
+                      {it.fulfillment_status === 'FULFILLED' && (
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#34D399', marginRight: 6 }}>DONE</Text>
+                      )}
                       <Text style={s.mpQty}>{it.quantity}×</Text>
                       <Text style={s.mpPrice}>₹{inr(it.line_total ?? (it.price_at_time ?? it.price) ?? 0)}</Text>
                     </View>
@@ -541,12 +549,12 @@ export function MyTicketsView() {
                 {(paid || free) && (
                   <View style={s.mpActions}>
                     <Pressable
-                      onPress={() => openMarketplaceQr(order.id)}
-                      style={({ hovered }: any) => [s.primaryBtn, hovered && { opacity: 0.85 }]}
+                      onPress={() => !allFulfilled && openMarketplaceQr(order.id)}
+                      style={({ hovered }: any) => [s.primaryBtn, allFulfilled && { opacity: 0.5, backgroundColor: 'rgba(99,102,241,0.4)' }, hovered && !allFulfilled && { opacity: 0.85 }]}
                     >
                       {downloading === 'qr_' + order.id
                         ? <ActivityIndicator size="small" color="#fff" />
-                        : <><QrCode size={12} color="#fff" /><Text style={s.btnText}>Pickup QR</Text></>}
+                        : <><QrCode size={12} color="#fff" /><Text style={s.btnText}>{allFulfilled ? 'Collected' : 'Pickup QR'}</Text></>}
                     </Pressable>
                     <Pressable
                       onPress={() => openMarketplaceInvoice(order.id)}
