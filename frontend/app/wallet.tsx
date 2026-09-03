@@ -24,7 +24,7 @@ import {
   Wallet, Sparkles, CircleCheck as CheckCircle2, Copy, ExternalLink, Clock,
   Tag, TrendingUp, PlusCircle, ArrowUpRight, ArrowDownLeft, Shield, Award,
   Check, Search, Filter, X, ChevronRight, Gift, Building2, Zap, RefreshCw,
-  CreditCard, DollarSign, Star, Lock,
+  CreditCard, DollarSign, Star, Lock, Info,
 } from 'lucide-react-native';
 import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import MoneyCoach from '@/src/views/web/wallet/MoneyCoach';
@@ -73,10 +73,12 @@ type CouponItem = {
   cost_credits: number;
   url: string;
   expiry: string;
-  status: 'active' | 'used';
+  status: 'active' | 'used' | 'locked';
   used_at?: string;
   category: string;
   accent: string;
+  instructions?: string;
+  locked?: boolean;
 };
 
 type Summary = {
@@ -241,7 +243,7 @@ export default function WalletScreen() {
 
   // Coupon Engine State
   const [myCoupons, setMyCoupons] = useState<CouponItem[]>(INITIAL_COUPONS);
-  const [couponFilter, setCouponFilter] = useState<'all' | 'active' | 'used'>('all');
+  const [couponFilter, setCouponFilter] = useState<'all' | 'active' | 'used' | 'locked'>('all');
   const [couponSearch, setCouponSearch] = useState('');
   const [selectedCouponModal, setSelectedCouponModal] = useState<CouponItem | null>(null);
 
@@ -287,6 +289,41 @@ export default function WalletScreen() {
   }, [user]);
 
   useEffect(() => { fetchSummary(); }, [fetchSummary]);
+
+  // Fetch real coupons from API
+  const fetchCoupons = useCallback(async () => {
+    try {
+      const r = await request<any>('/echo/coupons/by-category');
+      if (r?.success && r.data) {
+        const allCoupons: CouponItem[] = [];
+        const categories = Object.keys(r.data);
+        for (const cat of categories) {
+          for (const c of r.data[cat]) {
+            allCoupons.push({
+              id: `coup-${c.code}`,
+              brand: c.vendor_name || 'Student Alumni',
+              title: c.description || `${c.discount_type === 'percentage' ? c.discount_value + '% Off' : '₹' + c.discount_value + ' Off'}`,
+              discount: c.discount_type === 'percentage' ? `${c.discount_value}% OFF` : `₹${c.discount_value} OFF`,
+              code: c.code,
+              cost_credits: 0,
+              url: '',
+              expiry: '',
+              status: c.locked ? 'locked' : 'active',
+              category: cat,
+              accent: cat === 'partner' ? '#3B82F6' : cat === 'event' ? '#10B981' : cat === 'promo' ? '#F59E0B' : '#8B5CF6',
+              instructions: c.instructions || '',
+              locked: c.locked || false,
+            });
+          }
+        }
+        setMyCoupons(allCoupons.length > 0 ? allCoupons : INITIAL_COUPONS);
+      }
+    } catch (e) {
+      // Keep demo coupons if API fails
+    }
+  }, []);
+
+  useEffect(() => { fetchCoupons(); }, [fetchCoupons]);
 
   // Copy coupon code
   const copyCouponCode = (code: string) => {
@@ -337,7 +374,9 @@ export default function WalletScreen() {
   const filteredMyCoupons = useMemo(() => {
     return myCoupons.filter((c) => {
       const matchesFilter =
-        couponFilter === 'all' ? true : c.status === couponFilter;
+        couponFilter === 'all' ? true :
+        couponFilter === 'locked' ? c.locked :
+        c.status === couponFilter;
       const matchesSearch =
         c.brand.toLowerCase().includes(couponSearch.toLowerCase()) ||
         c.title.toLowerCase().includes(couponSearch.toLowerCase()) ||
@@ -346,8 +385,9 @@ export default function WalletScreen() {
     });
   }, [myCoupons, couponFilter, couponSearch]);
 
-  const activeCount = useMemo(() => myCoupons.filter((c) => c.status === 'active').length, [myCoupons]);
+  const activeCount = useMemo(() => myCoupons.filter((c) => c.status === 'active' && !c.locked).length, [myCoupons]);
   const usedCount = useMemo(() => myCoupons.filter((c) => c.status === 'used').length, [myCoupons]);
+  const lockedCount = useMemo(() => myCoupons.filter((c) => c.locked).length, [myCoupons]);
 
   // Handle Topup Submit — Razorpay payment
   const handleTopupSubmit = async () => {
@@ -820,6 +860,7 @@ export default function WalletScreen() {
                 { id: 'all', label: `All (${myCoupons.length})` },
                 { id: 'active', label: `Active (${activeCount})` },
                 { id: 'used', label: `Used (${usedCount})` },
+                { id: 'locked', label: `Locked (${lockedCount})` },
               ].map((f) => (
                 <Pressable
                   key={f.id}
@@ -869,52 +910,76 @@ export default function WalletScreen() {
             ) : (
               <View style={s.couponsGrid}>
                 {filteredMyCoupons.map((c) => (
-                  <View key={c.id} style={[s.couponCard, { borderColor: c.accent + '33' }]}>
+                  <View key={c.id} style={[s.couponCard, { borderColor: c.locked ? 'rgba(239,68,68,0.25)' : c.accent + '33', opacity: c.locked ? 0.8 : 1 }]}>
                     <View style={s.couponCardHeader}>
                       <View style={[s.couponBrandBadge, { backgroundColor: c.accent + '20', borderColor: c.accent + '40' }]}>
                         <Text style={[s.couponBrandText, { color: c.accent }]}>{c.brand}</Text>
                       </View>
-                      <View style={[s.statusPill, { backgroundColor: c.status === 'active' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(240, 238, 255, 0.1)' }]}>
-                        <Text style={[s.statusPillText, { color: c.status === 'active' ? C.green : C.dim }]}>
-                          {c.status === 'active' ? '● Ready to Use' : '✓ Used'}
-                        </Text>
-                      </View>
+                      {c.locked ? (
+                        <View style={[s.statusPill, { backgroundColor: 'rgba(239,68,68,0.12)' }]}>
+                          <Lock size={10} color="#EF4444" />
+                          <Text style={[s.statusPillText, { color: '#EF4444', marginLeft: 4 }]}>Locked</Text>
+                        </View>
+                      ) : (
+                        <View style={[s.statusPill, { backgroundColor: c.status === 'active' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(240, 238, 255, 0.1)' }]}>
+                          <Text style={[s.statusPillText, { color: c.status === 'active' ? C.green : C.dim }]}>
+                            {c.status === 'active' ? '● Ready to Use' : '✓ Used'}
+                          </Text>
+                        </View>
+                      )}
                     </View>
 
                     <Text style={s.couponTitle}>{c.title}</Text>
+                    {c.instructions ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, marginBottom: 4 }}>
+                        <Info size={11} color="#3B82F6" />
+                        <Text style={{ fontSize: 11, color: '#3B82F6', flex: 1 }} numberOfLines={2}>{c.instructions}</Text>
+                      </View>
+                    ) : null}
                     <Text style={s.couponExpiry}>{c.expiry}</Text>
 
                     {/* Voucher Code Box */}
-                    <View style={s.voucherCodeBox}>
-                      <Text style={s.voucherCodeText}>{c.code}</Text>
-                      <Pressable onPress={() => copyCouponCode(c.code)} style={s.copyBtn}>
-                        <Copy size={13} color={C.purpleL} />
-                        <Text style={s.copyBtnText}>Copy</Text>
-                      </Pressable>
-                    </View>
+                    {!c.locked && (
+                      <View style={s.voucherCodeBox}>
+                        <Text style={s.voucherCodeText}>{c.code}</Text>
+                        <Pressable onPress={() => copyCouponCode(c.code)} style={s.copyBtn}>
+                          <Copy size={13} color={C.purpleL} />
+                          <Text style={s.copyBtnText}>Copy</Text>
+                        </Pressable>
+                      </View>
+                    )}
+
+                    {c.locked && (
+                      <View style={[s.voucherCodeBox, { backgroundColor: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.2)' }]}>
+                        <Lock size={13} color="#EF4444" />
+                        <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600' }}>Available during event</Text>
+                      </View>
+                    )}
 
                     {/* Action Buttons */}
-                    <View style={s.couponActionRow}>
-                      <Pressable
-                        onPress={() => {
-                          if (c.url) Linking.openURL(c.url);
-                        }}
-                        style={s.useNowBtn}
-                      >
-                        <Text style={s.useNowBtnText}>Use Now</Text>
-                        <ExternalLink size={12} color="#FFF" />
-                      </Pressable>
-
-                      {c.status === 'active' && (
+                    {!c.locked && (
+                      <View style={s.couponActionRow}>
                         <Pressable
-                          onPress={() => markCouponAsUsed(c.id)}
-                          style={s.markUsedBtn}
+                          onPress={() => {
+                            if (c.url) Linking.openURL(c.url);
+                          }}
+                          style={s.useNowBtn}
                         >
-                          <CheckCircle2 size={12} color={C.textSub} />
-                          <Text style={s.markUsedText}>Mark Used</Text>
+                          <Text style={s.useNowBtnText}>Use Now</Text>
+                          <ExternalLink size={12} color="#FFF" />
                         </Pressable>
-                      )}
-                    </View>
+
+                        {c.status === 'active' && (
+                          <Pressable
+                            onPress={() => markCouponAsUsed(c.id)}
+                            style={s.markUsedBtn}
+                          >
+                            <CheckCircle2 size={12} color={C.textSub} />
+                            <Text style={s.markUsedText}>Mark Used</Text>
+                          </Pressable>
+                        )}
+                      </View>
+                    )}
                   </View>
                 ))}
               </View>

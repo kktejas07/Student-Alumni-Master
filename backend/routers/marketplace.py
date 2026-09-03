@@ -232,6 +232,10 @@ async def _evaluate_coupon(code: str, subtotal: float, event_id: str, user_id: s
     if not coupon or coupon.get("active", True) is False:
         raise HTTPException(status_code=400, detail="Invalid coupon code")
 
+    # Lock check — locked coupons can't be used
+    if coupon.get("locked", False):
+        raise HTTPException(status_code=400, detail="This coupon is currently locked and cannot be used yet")
+
     # Event scope
     c_event = coupon.get("event_id")
     if c_event and c_event != event_id:
@@ -1175,6 +1179,9 @@ class AdminCouponInput(BaseModel):
     max_discount: float = 0
     per_user_limit: int = 0
     description: Optional[str] = None
+    category: Optional[str] = "marketplace"  # marketplace|partner|event|promo
+    locked: Optional[bool] = False  # locked coupons can't be used at checkout
+    instructions: Optional[str] = None  # how to avail the coupon
 
 
 @router.get("/admin/coupons")
@@ -1199,16 +1206,17 @@ async def admin_list_coupons(request: Request, event_slug: Optional[str] = None,
 
 
 @router.get("/available-coupons")
-async def list_available_coupons(event_id: str):
-    """Public endpoint: return active discount coupons for an event."""
+async def list_available_coupons(event_id: str, category: Optional[str] = None):
+    """Public endpoint: return active discount coupons for an event, optionally filtered by category."""
     query: dict = {"active": True}
     if event_id:
         query["event_id"] = event_id
+    if category:
+        query["category"] = category
     docs = await db.echo_discount_coupons.find(query).sort("created_at", -1).to_list(50)
     out = []
     for d in docs:
         c = _serialize(d)
-        # Only return safe fields — no internal IDs or usage counts
         out.append({
             "code": c.get("code", ""),
             "discount_type": c.get("discount_type", "percentage"),
@@ -1217,8 +1225,40 @@ async def list_available_coupons(event_id: str):
             "max_discount": c.get("max_discount", 0),
             "vendor_id": c.get("vendor_id"),
             "vendor_name": c.get("vendor_name"),
+            "category": c.get("category", "marketplace"),
+            "description": c.get("description", ""),
+            "locked": c.get("locked", False),
+            "instructions": c.get("instructions", ""),
         })
     return {"success": True, "data": out}
+
+
+@router.get("/coupons/by-category")
+async def list_coupons_by_category(category: Optional[str] = None):
+    """Public endpoint: return all active coupons grouped by category (for wallet page)."""
+    query: dict = {"active": True}
+    if category:
+        query["category"] = category
+    docs = await db.echo_discount_coupons.find(query).sort("created_at", -1).to_list(200)
+    grouped: dict = {}
+    for d in docs:
+        c = _serialize(d)
+        cat = c.get("category", "marketplace")
+        if cat not in grouped:
+            grouped[cat] = []
+        grouped[cat].append({
+            "code": c.get("code", ""),
+            "discount_type": c.get("discount_type", "percentage"),
+            "discount_value": c.get("discount_value", 0),
+            "min_order_value": c.get("min_order_value", 0),
+            "max_discount": c.get("max_discount", 0),
+            "vendor_name": c.get("vendor_name"),
+            "description": c.get("description", ""),
+            "category": cat,
+            "locked": c.get("locked", False),
+            "instructions": c.get("instructions", ""),
+        })
+    return {"success": True, "data": grouped}
 
 
 @router.post("/admin/coupons")
@@ -1241,6 +1281,9 @@ async def admin_create_coupon(payload: AdminCouponInput, request: Request, _=Dep
         "max_discount": payload.max_discount,
         "per_user_limit": payload.per_user_limit,
         "description": payload.description or "",
+        "category": payload.category or "marketplace",
+        "locked": payload.locked if payload.locked is not None else False,
+        "instructions": payload.instructions or "",
         "uses_count": 0,
         "active": True,
         "created_at": datetime.now(timezone.utc).isoformat(),

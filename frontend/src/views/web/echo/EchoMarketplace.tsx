@@ -248,42 +248,12 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
       </div>
       <p style={{ color: 'var(--muted)', marginBottom: 28, fontSize: 14.5 }}>Pre-order food, beverages, and exclusive handcrafts to collect at the event!</p>
 
-      {/* Available Coupons Banner */}
-      {availableCoupons.length > 0 && (
-        <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
-          {availableCoupons.map((c: any) => (
-            <div
-              key={c._id || c.code}
-              onClick={() => { setCouponCode(c.code); setCouponPreview(null); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                background: c.vendor_id
-                  ? 'linear-gradient(135deg, rgba(52,211,153,0.12), rgba(16,185,129,0.06))'
-                  : 'linear-gradient(135deg, rgba(124,92,252,0.15), rgba(99,102,241,0.08))',
-                border: `1px solid ${c.vendor_id ? 'rgba(52,211,153,0.3)' : 'rgba(124,92,252,0.3)'}`,
-                borderRadius: 12, padding: '10px 16px', cursor: 'pointer', transition: 'all .15s ease',
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = c.vendor_id ? 'rgba(52,211,153,0.6)' : 'rgba(124,92,252,0.6)'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = c.vendor_id ? 'rgba(52,211,153,0.3)' : 'rgba(124,92,252,0.3)'; }}
-            >
-              <Tag size={14} color={c.vendor_id ? 'var(--ok, #34D399)' : 'var(--violet-lt)'} />
-              <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 13, color: c.vendor_id ? 'var(--ok, #34D399)' : 'var(--violet-lt)', letterSpacing: 1 }}>{c.code}</span>
-              <span style={{ fontSize: 12, color: 'var(--muted)' }}>—</span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
-                {c.discount_type === 'percentage' ? `${c.discount_value}% OFF` : `₹${c.discount_value} OFF`}
-              </span>
-              {c.vendor_name && (
-                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--ok, #34D399)', background: 'rgba(52,211,153,0.12)', borderRadius: 6, padding: '2px 6px' }}>
-                  {c.vendor_name}
-                </span>
-              )}
-              {c.min_order_value > 0 && (
-                <span style={{ fontSize: 10, color: 'var(--muted)' }}>Min ₹{c.min_order_value}</span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Coupon Banner */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24, padding: '12px 18px', background: 'linear-gradient(135deg, rgba(124,92,252,0.1), rgba(245,158,11,0.06))', border: '1px solid rgba(124,92,252,0.2)', borderRadius: 12 }}>
+        <Tag size={16} color="var(--violet-lt)" />
+        <span style={{ flex: 1, fontSize: 13, color: 'var(--text)', fontWeight: 600 }}>Have a coupon code? Enter it below at checkout.</span>
+        <a href="/student-portal?tab=wallet" style={{ fontSize: 12, color: 'var(--violet-lt)', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>Browse coupons in Wallet →</a>
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
         {items.map(item => {
