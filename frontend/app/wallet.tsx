@@ -349,7 +349,7 @@ export default function WalletScreen() {
   const activeCount = useMemo(() => myCoupons.filter((c) => c.status === 'active').length, [myCoupons]);
   const usedCount = useMemo(() => myCoupons.filter((c) => c.status === 'used').length, [myCoupons]);
 
-  // Handle Topup Submit
+  // Handle Topup Submit — Razorpay payment
   const handleTopupSubmit = async () => {
     const amt = parseFloat(topupAmount);
     if (isNaN(amt) || amt <= 0) {
@@ -358,29 +358,94 @@ export default function WalletScreen() {
     }
     setTopupSubmitting(true);
     try {
-      await new Promise((r) => setTimeout(r, 1000));
-      const addedCredits = amt * 25;
-      if (data) {
-        setData({
-          ...data,
-          balance_credits: data.balance_credits + addedCredits,
-          balance_inr: data.balance_inr + amt,
-          history: [
-            {
-              id: `tx-topup-${Date.now()}`,
-              type: 'credit',
-              amount: addedCredits,
-              reason: `Wallet Top-up via ${topupMethod.toUpperCase()}`,
-              balance_after: data.balance_credits + addedCredits,
-              ts: new Date().toISOString(),
-            },
-            ...data.history,
-          ],
-        });
+      // Step 1: Create Razorpay order
+      const orderRes = await request<any>('/wallet/topup/create-order', {
+        method: 'POST',
+        body: { amount_inr: amt },
+      });
+      if (!orderRes.ok) {
+        toast.error('Payment Failed', orderRes.detail || 'Could not create payment order.');
+        setTopupSubmitting(false);
+        return;
       }
-      toast.success('Top-Up Successful!', `Added ${fmtINR(amt)} (+${fmtCredits(addedCredits)} pts) to your wallet.`);
-      setTab('overview');
-    } finally {
+
+      // Step 2: Load Razorpay SDK
+      const loadSDK = (): Promise<boolean> => {
+        if ((window as any).Razorpay) return Promise.resolve(true);
+        return new Promise((resolve) => {
+          const script = document.createElement('script');
+          script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+          script.async = true;
+          script.onload = () => resolve(true);
+          script.onerror = () => resolve(false);
+          document.body.appendChild(script);
+        });
+      };
+      const sdkLoaded = await loadSDK();
+      if (!sdkLoaded) {
+        toast.error('Payment Failed', 'Could not load payment gateway. Check your connection.');
+        setTopupSubmitting(false);
+        return;
+      }
+
+      // Step 3: Open Razorpay checkout
+      const rzp = new (window as any).Razorpay({
+        key: orderRes.key_id,
+        amount: orderRes.amount * 100,
+        currency: 'INR',
+        name: 'Student Alumni',
+        description: `Wallet Top-Up ₹${amt}`,
+        order_id: orderRes.order_id,
+        handler: async (response: any) => {
+          // Step 4: Verify payment and credit wallet
+          try {
+            const verifyRes = await request<any>('/wallet/topup/verify', {
+              method: 'POST',
+              body: {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                amount_inr: amt,
+              },
+            });
+            if (verifyRes.ok) {
+              // Update local state with real balance from backend
+              setData({
+                ...data!,
+                balance_credits: verifyRes.balance_credits,
+                balance_inr: verifyRes.balance_inr,
+                history: [
+                  {
+                    id: `tx-topup-${Date.now()}`,
+                    type: 'credit',
+                    amount: verifyRes.total_credits,
+                    reason: `Wallet Top-Up ₹${amt} via Razorpay (+${verifyRes.bonus_credits} bonus)`,
+                    balance_after: verifyRes.balance_credits,
+                    ts: new Date().toISOString(),
+                  },
+                  ...(data?.history || []),
+                ],
+              });
+              toast.success('Top-Up Successful!', `Added ₹${amt} (+${verifyRes.total_credits.toLocaleString()} pts) to your wallet.`);
+              setTab('overview');
+            } else {
+              toast.error('Verification Failed', 'Payment was received but verification failed. Contact support.');
+            }
+          } catch (e: any) {
+            toast.error('Verification Failed', 'Payment was received but verification failed. Contact support.');
+          }
+          setTopupSubmitting(false);
+        },
+        prefill: { name: user?.full_name || user?.name || '', email: user?.email || '' },
+        theme: { color: '#7C5CFC' },
+      });
+      rzp.on('payment.failed', () => {
+        toast.error('Payment Failed', 'Payment was cancelled or failed. Please try again.');
+        setTopupSubmitting(false);
+      });
+      rzp.open();
+    } catch (e: any) {
+      toast.error('Payment Failed', e?.message || 'Something went wrong. Please try again.');
       setTopupSubmitting(false);
     }
   };
