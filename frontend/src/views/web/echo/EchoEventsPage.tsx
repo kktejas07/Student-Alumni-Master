@@ -20,7 +20,7 @@ import PaymentStatusScreen, { PaymentResult } from '@/src/views/components/Payme
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { EchoTicketsConfirmationPage } from './EchoTicketsConfirmationPage';
-import { EchoMarketplace } from './EchoMarketplace';
+
 
 interface EchoEventsPageProps {
   initialView?: 'list' | 'detail' | 'reg';
@@ -2342,7 +2342,34 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             </button>
           </div>
 
-          <EchoMarketplace slug={activeEvent.slug} isDark={isDark} />
+          {/* Marketplace CTA Card */}
+          <a
+            href={`/echo/${activeEvent.slug}/marketplace`}
+            onClick={(e) => { e.preventDefault(); window.location.href = `/echo/${activeEvent.slug}/marketplace`; }}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px',
+              border: '1px solid rgba(139,92,246,0.35)', borderRadius: '18px',
+              background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(99,102,241,0.08))',
+              padding: '24px 28px', flexWrap: 'wrap', cursor: 'pointer', textDecoration: 'none',
+              transition: 'all .2s ease', width: '100%',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.6)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.35)'; (e.currentTarget as HTMLElement).style.transform = 'none'; }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }}>
+              <span style={{ width: '50px', height: '50px', borderRadius: '14px', background: 'linear-gradient(135deg, #7C3AED, #6366F1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', boxShadow: '0 4px 14px rgba(124,58,237,0.35)' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#fff', strokeWidth: 1.8 }}><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '18px', fontWeight: 700, letterSpacing: '-.3px', color: '#FFFFFF' }}>Event Marketplace</div>
+                <div style={{ fontSize: '13.5px', color: '#C9BFF2', marginTop: '3px' }}>Pre-order food, beverages &amp; exclusive handcrafts to collect at the event</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#A78BFA', fontWeight: 600, fontSize: '14px', flex: 'none' }}>
+              Browse &amp; Order
+              <svg width="16" height="16" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+            </div>
+          </a>
         </div>
       )}
 
