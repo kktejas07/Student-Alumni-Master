@@ -546,15 +546,15 @@ export const api = {
     request<any>(`/echo/admin/${slug}/volunteers/${volunteerId}`, { method: 'DELETE' }),
 
   // ── Unstop CSV Import ─────────────────────────────────────────────────────
-  echoImportUnstopPreview: (file: File) => {
+  echoImportTicketsPreview: (file: File, source: string = 'unstop') => {
     const fd = new FormData();
     fd.append('file', file);
-    return request<any>('/echo/admin/import-unstop/preview', { method: 'POST', body: fd });
+    return request<any>(`/echo/admin/import-tickets/preview?source=${encodeURIComponent(source)}`, { method: 'POST', body: fd });
   },
-  echoImportUnstop: (file: File, slug: string) => {
+  echoImportTickets: (file: File, slug: string, source: string = 'unstop') => {
     const fd = new FormData();
     fd.append('file', file);
-    return request<any>(`/echo/admin/import-unstop?slug=${encodeURIComponent(slug)}`, { method: 'POST', body: fd });
+    return request<any>(`/echo/admin/import-tickets?slug=${encodeURIComponent(slug)}&source=${encodeURIComponent(source)}`, { method: 'POST', body: fd });
   },
 
   // ── Admin Contacts ────────────────────────────────────────────────────────

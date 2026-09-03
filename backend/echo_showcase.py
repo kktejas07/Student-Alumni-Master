@@ -64,12 +64,13 @@ async def sync_unstop_opportunities():
         raise HTTPException(status_code=500, detail=f"Unstop sync failed: {str(e)}")
 
 
-@router.post("/admin/import-unstop/preview")
-async def import_unstop_preview(
+@router.post("/admin/import-tickets/preview")
+async def import_tickets_preview(
     request: Request,
     file: UploadFile = File(...),
+    source: str = Query("unstop", description="Source platform: 'unstop', 'studentalumni', or a custom name"),
 ):
-    """Parse an Unstop CSV export and return a preview of what would be imported.
+    """Parse an import CSV export and return a preview of what would be imported.
     Does NOT write to the database — dry-run only. Admin-only.
     """
     await _require_admin(request)
@@ -78,7 +79,7 @@ async def import_unstop_preview(
     rows = parse_unstop_csv(content)
     if not rows:
         raise HTTPException(status_code=400, detail="CSV is empty or has no valid rows with email addresses")
-    result = build_registrations(rows, slug="", showcase_title="")
+    result = build_registrations(rows, slug="", showcase_title="", source=source)
     stats = result["stats"]
     # Return first 50 registrations as preview + stats
     preview = result["registrations"][:50]
@@ -89,13 +90,14 @@ async def import_unstop_preview(
     }
 
 
-@router.post("/admin/import-unstop")
-async def import_unstop_registrations(
+@router.post("/admin/import-tickets")
+async def import_tickets_registrations(
     request: Request,
     file: UploadFile = File(...),
     slug: str = Query(..., description="ECHO showcase slug to attach registrations to"),
+    source: str = Query("unstop", description="Source platform: 'unstop', 'studentalumni', or a custom name"),
 ):
-    """Import Unstop ticket buyers into ECHO registrations + SA accounts.
+    """Import ticket buyers into ECHO registrations + SA accounts.
 
     - Parses the CSV, groups by Team ID
     - Creates echo_registrations for each buyer
@@ -121,7 +123,7 @@ async def import_unstop_registrations(
     showcase_title = showcase.get("title", "")
     canonical_slug = showcase.get("slug") or slug
 
-    result = build_registrations(rows, slug=canonical_slug, showcase_title=showcase_title)
+    result = build_registrations(rows, slug=canonical_slug, showcase_title=showcase_title, source=source)
     registrations = result["registrations"]
     stats = result["stats"]
 
@@ -177,7 +179,7 @@ async def import_unstop_registrations(
                 "team_members": reg.get("team_members", []),
                 "is_team_member": reg.get("is_team_member", False),
                 "is_team_lead": reg.get("is_team_lead", False),
-                "source": "unstop_import",
+                "source": reg.get("source") or source,
                 "unstop_metadata": reg.get("unstop_metadata", {}),
             }
 
@@ -4759,6 +4761,7 @@ async def admin_echo_registrations(
             "coupons_issued": len(coupons_map.get(rid) or []),
             "invoice_issued": bool(inv_rec.get("issued")),
             "registration_type": s.get("registration_type") or "individual",
+            "source": s.get("source") or "our_platform",
             "team_name": s.get("team_name"),
             "team_size": s.get("team_size") or 1,
             "team_members": s.get("team_members") or [],
