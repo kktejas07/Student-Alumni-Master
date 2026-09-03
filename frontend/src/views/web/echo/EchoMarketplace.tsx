@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { ShoppingCart, Plus, Minus, Tag } from 'lucide-react-native';
+import { ShoppingCart, Plus, Minus, Tag, Store, PackageX, CheckCircle2 } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
@@ -12,6 +12,7 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<any>(null);
   const [qrImage, setQrImage] = useState('');
+  const [couponPreview, setCouponPreview] = useState<{ discount: number; code?: string | null; error?: string } | null>(null);
   const user = useAuthStore(s => s.user);
 
   useEffect(() => {
@@ -47,7 +48,8 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
     }
   };
 
-  const handleCheckout = async () => {    if (!user) {
+  const handleCheckout = async () => {
+    if (!user) {
       alert("Please login to place an order.");
       return;
     }
@@ -65,7 +67,7 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
         setCheckoutLoading(false);
         return;
       }
-      
+
       if (res.amount === 0) {
         alert("Order placed successfully! It was free.");
         await markPlaced(res.order_id);
@@ -82,27 +84,27 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
         description: "Food & Handcrafts",
         order_id: res.razorpay_order.id,
         handler: async function (response: any) {
-           try {
-             const verify = await request<any>(`/echo/orders/verify-payment`, {
-               method: 'POST',
-               body: {
-                 order_id: res.order_id,
-                 razorpay_order_id: res.razorpay_order.id,
-                 razorpay_payment_id: response.razorpay_payment_id,
-                 razorpay_signature: response.razorpay_signature,
-               },
-             });
-             if (verify.success) {
-               alert("Payment successful! Your order has been placed.");
-               await markPlaced(res.order_id);
-             } else {
-               alert("Payment completed but verification failed. Contact support with your order ID: " + res.order_id);
-             }
-           } catch (e: any) {
-             alert("Payment completed but verification failed. Contact support with your order ID: " + res.order_id);
-           }
-           setCart({});
-           setCouponCode('');
+          try {
+            const verify = await request<any>(`/echo/orders/verify-payment`, {
+              method: 'POST',
+              body: {
+                order_id: res.order_id,
+                razorpay_order_id: res.razorpay_order.id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              },
+            });
+            if (verify.success) {
+              alert("Payment successful! Your order has been placed.");
+              await markPlaced(res.order_id);
+            } else {
+              alert("Payment completed but verification failed. Contact support with your order ID: " + res.order_id);
+            }
+          } catch (e: any) {
+            alert("Payment completed but verification failed. Contact support with your order ID: " + res.order_id);
+          }
+          setCart({});
+          setCouponCode('');
         },
         prefill: {
           name: user.name,
@@ -125,95 +127,237 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
     }
   };
 
-  if (loading) return null;
-  if (items.length === 0) return null;
-
   const totalItems = Object.values(cart).reduce((a, b) => a + b, 0);
   const cartTotal = Object.entries(cart).reduce((total, [id, qty]) => {
     const item = items.find(i => i.id === id || i._id === id);
     return total + (item ? item.price * qty : 0);
   }, 0);
 
-  const fg = isDark ? '#FFF' : '#000';
-  const bg = isDark ? 'rgba(255,255,255,0.05)' : '#FFF';
-  const border = isDark ? '#333' : '#E5E5EA';
+  useEffect(() => {
+    if (!couponCode.trim() || cartTotal <= 0) {
+      setCouponPreview(null);
+      return;
+    }
+    let active = true;
+    const t = setTimeout(async () => {
+      try {
+        const res = await request<any>('/echo/orders/coupon-preview', {
+          method: 'POST',
+          body: { code: couponCode.trim(), subtotal: cartTotal, event_id: slug },
+        });
+        if (!active) return;
+        if (res.success) {
+          if (res.discount > 0) setCouponPreview({ discount: Number(res.discount) || 0, code: res.code });
+          else setCouponPreview({ discount: 0, code: res.code, error: 'Coupon not applicable' });
+        } else {
+          setCouponPreview({ discount: 0, error: res.error || 'Invalid coupon' });
+        }
+      } catch (e) {
+        if (active) setCouponPreview(null);
+      }
+    }, 500);
+    return () => { active = false; clearTimeout(t); };
+  }, [couponCode, cartTotal, slug]);
+
+  if (loading) return null;
+  if (items.length === 0) return null;
+
+  const discount = couponPreview?.discount ?? 0;
+  const grandTotal = Math.max(0, cartTotal - discount);
+
+  const isAvailable = (item: any): boolean => {
+    if (item.is_active === false) return false;
+    const stock = Number(item.stock_limit || 0);
+    const remaining = Number(item.stock_remaining ?? stock ?? 0);
+    if (stock > 0 && remaining <= 0) return false;
+    return true;
+  };
+
+  const getImage = (item: any): string => {
+    if (item.image_base64) return item.image_base64;
+    if (Array.isArray(item.images) && item.images.length) return item.images[0];
+    return '';
+  };
+
+  const fg = 'var(--text)';
+  const border = 'var(--line)';
+  const panel = 'var(--panel2)';
 
   return (
-    <div style={{ marginTop: 40, borderTop: `1px solid ${border}`, paddingTop: 40 }}>
-      <h2 style={{ fontSize: 24, fontWeight: 700, color: fg, marginBottom: 20 }}>Event Marketplace</h2>
-      <p style={{ color: isDark ? '#aaa' : '#666', marginBottom: 24 }}>Pre-order food, beverages, and exclusive handcrafts to collect at the event!</p>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+    <div style={{ marginTop: 48, borderTop: `1px solid ${border}`, paddingTop: 44 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+        <span style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(124,92,252,0.14)', border: '1px solid #2E2A55', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+          <ShoppingCart size={20} color="var(--violet-lt)" />
+        </span>
+        <h2 style={{ fontSize: 24, fontWeight: 700, color: fg, margin: 0, letterSpacing: '-.4px' }}>Event Marketplace</h2>
+      </div>
+      <p style={{ color: 'var(--muted)', marginBottom: 28, fontSize: 14.5 }}>Pre-order food, beverages, and exclusive handcrafts to collect at the event!</p>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
         {items.map(item => {
           const id = item.id || item._id;
           const qty = cart[id] || 0;
+          const img = getImage(item);
+          const available = isAvailable(item);
+          const stockLeft = Number(item.stock_remaining ?? item.stock_limit ?? 0);
+          const lowStock = available && Number(item.stock_limit || 0) > 0 && stockLeft <= 5;
           return (
-            <div key={id} style={{ padding: 20, background: bg, borderRadius: 16, border: `1px solid ${border}` }}>
-              <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', color: '#5B4FE9', marginBottom: 8 }}>{item.category}</div>
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: fg, marginBottom: 4 }}>{item.name}</h3>
-              <div style={{ fontSize: 14, color: isDark ? '#aaa' : '#666', marginBottom: 16 }}>₹{item.price}</div>
-              {item.description && <p style={{ fontSize: 13, color: isDark ? '#888' : '#666', marginBottom: 20 }}>{item.description}</p>}
-              
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                {qty === 0 ? (
-                  <button onClick={() => updateCart(id, 1)} style={{ background: '#5B4FE9', color: '#FFF', padding: '8px 16px', borderRadius: 8, border: 'none', fontWeight: 600, cursor: 'pointer' }}>Add to Cart</button>
+            <div
+              key={id}
+              style={{
+                position: 'relative',
+                overflow: 'hidden',
+                border: `1px solid ${available ? 'var(--line)' : 'var(--line)'}`,
+                borderRadius: 18,
+                background: panel,
+                display: 'flex',
+                flexDirection: 'column',
+                opacity: available ? 1 : 0.55,
+                boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.35)' : '0 6px 20px rgba(0,0,0,0.06)',
+              }}
+            >
+              {/* Image */}
+              <div style={{ height: 170, background: 'var(--panel)', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                {img ? (
+                  <img src={img} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: isDark ? '#222' : '#F5F5F7', padding: '4px 8px', borderRadius: 8 }}>
-                    <button onClick={() => updateCart(id, -1)} style={{ background: 'transparent', border: 'none', color: fg, cursor: 'pointer', padding: 4 }}><Minus size={16} color={fg}/></button>
-                    <span style={{ fontSize: 16, fontWeight: 600, color: fg, width: 20, textAlign: 'center' }}>{qty}</span>
-                    <button onClick={() => updateCart(id, 1)} style={{ background: 'transparent', border: 'none', color: fg, cursor: 'pointer', padding: 4 }}><Plus size={16} color={fg}/></button>
+                  <PackageX size={40} color="var(--line2)" />
+                )}
+              </div>
+
+              <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.8px', color: 'var(--violet-lt)', background: 'rgba(124,92,252,0.12)', border: '1px solid rgba(124,92,252,0.25)', borderRadius: 100, padding: '4px 10px' }}>
+                    {item.category}
+                  </span>
+                  {!available && (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text)', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 100, padding: '3px 9px' }}>OUT OF STOCK</span>
+                  )}
+                </div>
+
+                <div style={{ fontSize: 17, fontWeight: 700, color: fg, lineHeight: 1.3 }}>{item.name}</div>
+
+                {item.description ? (
+                  <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5, minHeight: 38 }}>{item.description}</div>
+                ) : (
+                  <div style={{ minHeight: 38 }} />
+                )}
+
+                {(item.stall_no || item.stall_location) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)' }}>
+                    <Store size={13} color="var(--violet-lt)" />
+                    <span>{item.stall_no ? `Stall ${item.stall_no}` : ''}{item.stall_no && item.stall_location ? ' · ' : ''}{item.stall_location || ''}</span>
                   </div>
+                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: 12 }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: fg }}>
+                    ₹{item.price}
+                  </div>
+
+                  {qty === 0 ? (
+                    <button
+                      onClick={() => available && updateCart(id, 1)}
+                      disabled={!available}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 7,
+                        background: 'var(--violet)', color: '#fff',
+                        padding: '9px 16px', borderRadius: 11, border: 'none',
+                        fontWeight: 700, fontSize: 13.5, cursor: available ? 'pointer' : 'not-allowed',
+                        opacity: available ? 1 : 0.5,
+                      }}
+                    >
+                      <ShoppingCart size={15} /> Add to Cart
+                    </button>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--panel)', border: `1px solid ${border}`, padding: '4px 6px', borderRadius: 11 }}>
+                      <button onClick={() => updateCart(id, -1)} style={{ background: 'transparent', border: 'none', color: fg, cursor: 'pointer', padding: 4, display: 'flex' }}><Minus size={16} color={fg} /></button>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: fg, minWidth: 20, textAlign: 'center' }}>{qty}</span>
+                      <button onClick={() => updateCart(id, 1)} style={{ background: 'transparent', border: 'none', color: fg, cursor: 'pointer', padding: 4, display: 'flex' }}><Plus size={16} color={fg} /></button>
+                    </div>
+                  )}
+                </div>
+
+                {lowStock && (
+                  <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--warn, #F59E0B)' }}>Only {stockLeft} left</div>
                 )}
               </div>
             </div>
-          )
+          );
         })}
       </div>
 
       {totalItems > 0 && (
-        <div style={{ marginTop: 40, padding: 24, background: isDark ? '#1a1a24' : '#F8F9FA', borderRadius: 16, border: `1px solid ${border}` }}>
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: fg, marginBottom: 16 }}>Your Cart</h3>
+        <div style={{ marginTop: 36, padding: 24, background: panel, borderRadius: 18, border: `1px solid ${border}` }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: fg, marginBottom: 16 }}>Your Cart <span style={{ color: 'var(--violet-lt)', fontSize: 14, fontWeight: 600 }}>({totalItems} items)</span></h3>
           <div style={{ marginBottom: 20 }}>
             {Object.entries(cart).map(([id, qty]) => {
               const item = items.find(i => i.id === id || i._id === id);
               if (!item) return null;
+              const img = getImage(item);
               return (
-                <div key={id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14, color: fg }}>
-                  <span>{qty}x {item.name}</span>
-                  <span>₹{item.price * qty}</span>
+                <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, padding: 10, border: `1px solid ${border}`, borderRadius: 12, background: 'var(--panel)' }}>
+                  {img ? (
+                    <img src={img} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--line2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><PackageX size={18} color="var(--muted)" /></div>
+                  )}
+                  <span style={{ flex: 1, fontSize: 14, color: fg }}>{qty}x {item.name}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: fg }}>₹{item.price * qty}</span>
                 </div>
               );
             })}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: `1px solid ${border}`, fontSize: 18, fontWeight: 700, color: fg }}>
+            {discount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, fontSize: 14, color: '#10B981' }}>
+                <span>Coupon discount{couponPreview?.code ? ` (${couponPreview.code})` : ''}</span>
+                <span>− ₹{discount}</span>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, paddingTop: 16, borderTop: `1px solid ${border}`, fontSize: 20, fontWeight: 800, color: fg }}>
               <span>Total</span>
-              <span>₹{cartTotal}</span>
+              <span>₹{grandTotal}</span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
-            <input 
-              type="text" 
-              placeholder="Coupon Code" 
-              value={couponCode} 
-              onChange={e => setCouponCode(e.target.value)}
-              style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: `1px solid ${border}`, background: isDark ? '#000' : '#FFF', color: fg }}
-            />
+          <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, border: `1px solid ${border}`, borderRadius: 11, padding: '0 12px', background: 'var(--panel)' }}>
+              <Tag size={15} color="var(--violet-lt)" />
+              <input
+                type="text"
+                placeholder="Coupon Code"
+                value={couponCode}
+                onChange={e => setCouponCode(e.target.value)}
+                style={{ flex: 1, padding: '11px 8px', border: 'none', background: 'transparent', color: fg, outline: 'none' }}
+              />
+            </div>
           </div>
+          {couponPreview?.error && (
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: '#EF4444', marginBottom: 10 }}>{couponPreview.error}</div>
+          )}
+          {discount > 0 && (
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: '#10B981', marginBottom: 10 }}>
+              Coupon applied — save ₹{discount}
+            </div>
+          )}
 
-          <button 
-            onClick={handleCheckout} 
+          <button
+            onClick={handleCheckout}
             disabled={checkoutLoading}
-            style={{ width: '100%', background: '#10B981', color: '#FFF', padding: '14px 20px', borderRadius: 12, border: 'none', fontSize: 16, fontWeight: 700, cursor: checkoutLoading ? 'not-allowed' : 'pointer', opacity: checkoutLoading ? 0.7 : 1 }}
+            style={{ width: '100%', background: '#10B981', color: '#FFF', padding: '15px 20px', borderRadius: 12, border: 'none', fontSize: 16, fontWeight: 700, cursor: checkoutLoading ? 'not-allowed' : 'pointer', opacity: checkoutLoading ? 0.7 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
           >
+            <ShoppingCart size={18} />
             {checkoutLoading ? 'Processing...' : 'Checkout & Pay'}
           </button>
         </div>
       )}
 
       {placedOrder && (
-        <div style={{ marginTop: 40, padding: 24, background: isDark ? '#1a1a24' : '#F8F9FA', borderRadius: 16, border: `1px solid ${border}` }}>
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: fg, marginBottom: 8 }}>Your Pickup QR</h3>
-          <p style={{ color: isDark ? '#aaa' : '#666', marginBottom: 20, fontSize: 14 }}>
+        <div style={{ marginTop: 36, padding: 24, background: panel, borderRadius: 18, border: `1px solid ${border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <CheckCircle2 size={22} color="#10B981" />
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: fg, margin: 0 }}>Your Pickup QR</h3>
+          </div>
+          <p style={{ color: 'var(--muted)', marginBottom: 20, fontSize: 14 }}>
             Show this QR at the stall when collecting your food & beverages. The vendor will scan it to confirm.
           </p>
           <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -224,14 +368,14 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
                 style={{ width: 180, height: 180, borderRadius: 12, border: `1px solid ${border}`, background: '#fff' }}
               />
             ) : (
-              <div style={{ width: 180, height: 180, borderRadius: 12, backgroundColor: isDark ? '#000' : '#EEE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isDark ? '#666' : '#999' }}>
+              <div style={{ width: 180, height: 180, borderRadius: 12, backgroundColor: 'var(--panel)', border: `1px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)' }}>
                 Loading QR…
               </div>
             )}
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', color: '#5B4FE9', letterSpacing: 0.5 }}>Order ID</div>
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--violet-lt)', letterSpacing: 0.5 }}>Order ID</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: fg, marginTop: 4, fontFamily: 'monospace' }}>{placedOrder.id}</div>
-              <div style={{ fontSize: 13, color: isDark ? '#888' : '#666', marginTop: 12 }}>
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 12 }}>
                 Keep this handy until you collect your items.
               </div>
             </div>
