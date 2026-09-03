@@ -433,14 +433,131 @@ async def wallet_track_activity(
     return {"ok": True, **res}
 
 
+@router.post("/wallet/topup/create-order")
+async def wallet_topup_create_order(
+    body: Dict[str, Any],
+    user: dict = Depends(_get_current_user_dependency()),
+):
+    """Create a Razorpay order for wallet top-up. Returns order_id + key_id."""
+    amount_inr = float((body or {}).get("amount_inr") or 0)
+    if amount_inr <= 0:
+        raise HTTPException(400, "amount_inr must be positive")
+    if amount_inr > 100000:
+        raise HTTPException(400, "Max top-up is ₹1,00,000 per txn")
+
+    # Razorpay config
+    tool = await db.installed_tools.find_one({"tool_id": "razorpay", "status": "connected"})
+    if not tool:
+        raise HTTPException(503, "Payment gateway not configured")
+    creds = tool.get("credentials") or {}
+    key_id = (creds.get("key_id") or creds.get("api_key") or "").strip()
+    key_secret = (creds.get("key_secret") or creds.get("api_secret") or "").strip()
+    if not key_id or not key_secret:
+        raise HTTPException(503, "Payment gateway not configured")
+
+    # Create Razorpay order
+    import httpx
+    receipt = f"wallet-topup-{str(user['_id'])[:8]}-{uuid.uuid4().hex[:8]}"
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            r = await client.post(
+                "https://api.razorpay.com/v1/orders",
+                auth=(key_id, key_secret),
+                json={
+                    "amount": round(amount_inr * 100),
+                    "currency": "INR",
+                    "receipt": receipt,
+                    "notes": {"type": "wallet_topup", "user_id": str(user["_id"])},
+                },
+            )
+            if r.status_code not in (200, 201):
+                raise HTTPException(503, "Failed to create payment order")
+            order = r.json()
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(503, "Payment gateway error")
+
+    return {
+        "ok": True,
+        "order_id": order["id"],
+        "key_id": key_id,
+        "amount": amount_inr,
+    }
+
+
+@router.post("/wallet/topup/verify")
+async def wallet_topup_verify(
+    body: Dict[str, Any],
+    user: dict = Depends(_get_current_user_dependency()),
+):
+    """Verify Razorpay payment and credit wallet."""
+    razorpay_order_id = (body or {}).get("razorpay_order_id") or ""
+    razorpay_payment_id = (body or {}).get("razorpay_payment_id") or ""
+    razorpay_signature = (body or {}).get("razorpay_signature") or ""
+    amount_inr = float((body or {}).get("amount_inr") or 0)
+
+    if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
+        raise HTTPException(400, "Missing payment verification fields")
+    if amount_inr <= 0:
+        raise HTTPException(400, "Invalid amount")
+
+    # Razorpay config
+    tool = await db.installed_tools.find_one({"tool_id": "razorpay", "status": "connected"})
+    if not tool:
+        raise HTTPException(503, "Payment gateway not configured")
+    creds = tool.get("credentials") or {}
+    key_secret = (creds.get("key_secret") or creds.get("api_secret") or "").strip()
+
+    # Verify signature
+    import hmac as _hmac
+    import hashlib
+    expected = _hmac.new(
+        key_secret.encode("utf-8"),
+        f"{razorpay_order_id}|{razorpay_payment_id}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    if not _hmac.compare_digest(expected, razorpay_signature):
+        raise HTTPException(400, "Invalid payment signature")
+
+    # Credit wallet
+    base_credits = inr_to_credits(amount_inr)
+    bonus_credits = int(round(base_credits * (TOPUP_BONUS_PCT / 100.0)))
+    total_credits = base_credits + bonus_credits
+    idem = f"topup:{user['_id']}:{razorpay_order_id}"
+
+    u = await _resolve_user(user["_id"])
+    new_bal, dup = await _credit_user(
+        u, total_credits,
+        f"Top-up ₹{amount_inr:.0f} via Razorpay (+{TOPUP_BONUS_PCT}% bonus)",
+        metadata={
+            "kind": "topup",
+            "amount_inr": amount_inr,
+            "base_credits": base_credits,
+            "bonus_credits": bonus_credits,
+            "razorpay_order_id": razorpay_order_id,
+            "razorpay_payment_id": razorpay_payment_id,
+        },
+        idempotency_key=idem,
+    )
+    return {
+        "ok": True,
+        "duplicate": dup,
+        "amount_inr": amount_inr,
+        "base_credits": base_credits,
+        "bonus_credits": bonus_credits,
+        "total_credits": total_credits,
+        "balance_credits": new_bal,
+        "balance_inr": credits_to_inr(new_bal),
+    }
+
+
 @router.post("/wallet/topup")
 async def wallet_topup(
     body: Dict[str, Any],
     user: dict = Depends(_get_current_user_dependency()),
 ):
-    """Mock top-up: convert INR to credits at 25:1 with optional bonus.
-    Body: { amount_inr: number, payment_method?: 'upi'|'card'|'netbanking', idempotency_key? }
-    """
+    """DEPRECATED — Mock top-up kept as fallback. Use /wallet/topup/create-order + /wallet/topup/verify instead."""
     amount_inr = float((body or {}).get("amount_inr") or 0)
     payment_method = (body or {}).get("payment_method") or "upi"
     idem = (body or {}).get("idempotency_key") or f"topup:{user['_id']}:{uuid.uuid4().hex[:12]}"

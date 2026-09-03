@@ -30,7 +30,7 @@ export default function EchoMarketplacePage() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
 
   return (
-    <div style={{ ...THEME_VARS, minHeight: '100vh', background: '#05060F', color: '#F4F5FB' }}>
+    <div style={{ ...THEME_VARS, minHeight: '100vh', background: '#05060F', color: '#F4F5FB', overflowY: 'auto' }}>
       <EchoHeader />
       <div style={{ paddingTop: ECHO_TOP_PADDING, maxWidth: 1200, width: '100%', margin: '0 auto', padding: '0 20px' }}>
         <EchoMarketplace slug={slug || ''} isDark />
