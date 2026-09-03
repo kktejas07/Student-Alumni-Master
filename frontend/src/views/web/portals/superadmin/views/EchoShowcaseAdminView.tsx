@@ -4939,6 +4939,7 @@ function LiveScanMonitorPanel() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [page, setPage] = useState(0);
+  const [detail, setDetail] = useState<{ reg: any; coupon: any } | null>(null);
   const PER_PAGE = 20;
 
   const load = useCallback(async () => {
@@ -4993,6 +4994,33 @@ function LiveScanMonitorPanel() {
   const paginated = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
 
+  const sourceBadge = (s: string | null | undefined) => {
+    if (!s || s === 'our_platform' || s === 'studentalumni') return null;
+    const isUnstop = s === 'unstop';
+    return (
+      <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, alignSelf: 'flex-start',
+        backgroundColor: isUnstop ? 'rgba(124,58,237,0.18)' : 'rgba(14,165,233,0.18)',
+        borderWidth: 1, borderColor: isUnstop ? 'rgba(124,58,237,0.45)' : 'rgba(14,165,233,0.45)' }}>
+        <Text numberOfLines={1} style={{ fontFamily: FONTS.xbold, fontSize: 8, letterSpacing: 0.4, color: isUnstop ? '#C4B5FD' : '#7DD3FC' }}>
+          {s.toUpperCase()}
+        </Text>
+      </View>
+    );
+  };
+
+  const fmtStamp = (v: any) => {
+    if (!v) return null;
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return null;
+    const date = d.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
+    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `${date} · ${time}`;
+  };
+
+  const openMap = (lat: any, lng: any) => {
+    if (Platform.OS === 'web' && window?.open) window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+  };
+
   return (
     <View style={{ flex: 1, gap: 20 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
@@ -5018,10 +5046,11 @@ function LiveScanMonitorPanel() {
 
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <View style={{ flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.02)', padding: 16, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
-          <Text style={{ flex: 2, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Attendee</Text>
-          <Text style={{ flex: 1, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Status</Text>
-          <Text style={{ flex: 1.5, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Event Check-In</Text>
-          <Text style={{ flex: 2, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Session Coupons</Text>
+          <Text style={{ flex: 1.6, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Attendee</Text>
+          <Text style={{ flex: 0.7, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Status</Text>
+          <Text style={{ flex: 0.9, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Source</Text>
+          <Text style={{ flex: 1.5, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Check-In / Time</Text>
+          <Text style={{ flex: 2.2, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Session Coupons</Text>
         </View>
         
         {loading && data.length === 0 ? (
@@ -5031,62 +5060,63 @@ function LiveScanMonitorPanel() {
         ) : (
           paginated.map(reg => (
             <View key={reg.id} style={{ flexDirection: 'row', padding: 16, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
-              <View style={{ flex: 2, justifyContent: 'center', paddingRight: 10 }}>
+              <View style={{ flex: 1.6, justifyContent: 'center', paddingRight: 10 }}>
                 <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text, marginBottom: 2 }}>{reg.full_name || 'Unknown'}</Text>
-                <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginBottom: 4 }}>{reg.email}</Text>
+                <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginBottom: 4 }}>{reg.email}</Text>
                 <Text style={{ fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>ID: {reg.id}</Text>
               </View>
               
-              <View style={{ flex: 1, justifyContent: 'center' }}>
+              <View style={{ flex: 0.7, justifyContent: 'center' }}>
                 <StatusPill kind={reg.ticket_issued ? 'success' : 'warn'} label={reg.ticket_issued ? 'Issued' : 'Pending'} />
+              </View>
+
+              <View style={{ flex: 0.9, justifyContent: 'center', paddingRight: 8 }}>
+                {sourceBadge(reg.source)}
               </View>
 
               <View style={{ flex: 1.5, justifyContent: 'center', paddingRight: 10 }}>
                 {reg.checked_in_at ? (
                   <View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <CheckCircle size={14} color="#34D399" />
-                      <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#34D399' }}>
-                        {new Date(reg.checked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </Text>
+                      <CheckCircle size={13} color="#34D399" />
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#34D399' }}>Checked in</Text>
                     </View>
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: '#6EE7B7', marginTop: 3 }}>
+                      {fmtStamp(reg.checked_in_at)}
+                    </Text>
                   </View>
                 ) : (
-                  <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Not Checked In</Text>
+                  <View>
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Not Checked In</Text>
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: 'rgba(255,255,255,0.25)', marginTop: 3 }}>
+                      Reg: {fmtStamp(reg.registered_at)}
+                    </Text>
+                  </View>
                 )}
               </View>
 
-              <View style={{ flex: 2, justifyContent: 'center' }}>
+              <View style={{ flex: 2.2, justifyContent: 'center' }}>
                 {reg.coupons && reg.coupons.length > 0 ? (
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                     {reg.coupons.map((c: any, idx: number) => (
-                      <View key={idx} style={{
-                        flexDirection: 'row', alignItems: 'center', gap: 4,
-                        backgroundColor: c.used ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)',
-                        borderWidth: 1, borderColor: c.used ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.05)',
-                        borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4
-                      }}>
+                      <Pressable
+                        key={idx}
+                        onPress={() => setDetail({ reg, coupon: c })}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4,
+                          backgroundColor: c.used ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)',
+                          borderWidth: 1, borderColor: c.used ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.08)',
+                          borderRadius: 6, paddingHorizontal: 8, paddingVertical: 5 }}>
                         <Ticket size={12} color={c.used ? '#34D399' : SAC.muted} />
                         <View>
                           <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: c.used ? '#34D399' : SAC.muted }} numberOfLines={1}>
                             {c.session_name}
                           </Text>
-                          {c.used_at && (
-                            <Text style={{ fontFamily: FONTS.med, fontSize: 8.5, color: c.used ? '#6EE7B7' : SAC.muted, marginTop: 1 }}>
-                              {new Date(c.used_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              {c.scanned_location ? ` • ${c.scanned_location}` : ''}
-                            </Text>
-                          )}
-                          {(c.scanned_lat || c.scanned_lng) && (
-                            <Text
-                              style={{ fontFamily: FONTS.med, fontSize: 8.5, color: '#A78BFA', marginTop: 1, textDecorationLine: 'underline', cursor: 'pointer' } as any}
-                              onPress={() => window.open(`https://www.google.com/maps/search/?api=1&query=${c.scanned_lat},${c.scanned_lng}`, '_blank')}
-                            >
-                              Map <MapPin size={8} color="#A78BFA" />
-                            </Text>
-                          )}
+                          <Text style={{ fontFamily: FONTS.med, fontSize: 8.5, color: c.used ? '#6EE7B7' : 'rgba(255,255,255,0.35)', marginTop: 1 }}>
+                            {c.used ? 'Used' : 'Unused'} · tap details
+                          </Text>
                         </View>
-                      </View>
+                        <ChevronRight size={12} color="rgba(255,255,255,0.3)" />
+                      </Pressable>
                     ))}
                   </View>
                 ) : (
@@ -5113,6 +5143,92 @@ function LiveScanMonitorPanel() {
           </View>
         )}
       </Card>
+
+      {/* Coupon detail modal */}
+      <Modal transparent visible={!!detail} animationType="fade" onRequestClose={() => setDetail(null)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 }} onPress={() => setDetail(null)}>
+          <Pressable
+            onPress={(e: any) => e?.stopPropagation?.()}
+            style={{ width: '100%', maxWidth: 460, backgroundColor: SAC.panel, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 22 }}>
+            {detail && (() => {
+              const reg = detail.reg;
+              const c = detail.coupon;
+              const used = !!c.used;
+              return (
+                <View style={{ gap: 16 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Ticket size={18} color={used ? '#34D399' : SAC.text} />
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>{c.session_name}</Text>
+                    </View>
+                    <Pressable onPress={() => setDetail(null)} style={{ padding: 6, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)' }}>
+                      <X size={16} color={SAC.muted} />
+                    </Pressable>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <StatusPill kind={used ? 'success' : 'warn'} label={used ? 'Scanned / Used' : 'Not yet scanned'} />
+                    <Text style={{ fontFamily: 'monospace', fontSize: 12, color: SAC.muted }}>{c.coupon_code}</Text>
+                  </View>
+
+                  <View style={{ gap: 4, padding: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.03)' }}>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.4 }}>Attendee</Text>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>{reg.full_name || 'Unknown'}</Text>
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>{reg.email}</Text>
+                  </View>
+
+                  {used && (
+                    <View style={{ gap: 12 }}>
+                      <View style={{ gap: 4 }}>
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.4 }}>Scanned Time</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Clock size={14} color="#34D399" />
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#34D399' }}>{fmtStamp(c.used_at)}</Text>
+                        </View>
+                      </View>
+
+                      <View style={{ gap: 4 }}>
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.4 }}>Scanned By</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Users size={14} color="#A78BFA" />
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>{c.scanned_by || 'Unknown scanner'}</Text>
+                        </View>
+                        {c.scanned_location ? (
+                          <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginTop: 2 }}>{c.scanned_location}</Text>
+                        ) : null}
+                      </View>
+
+                      {(c.scanned_lat || c.scanned_lng) ? (
+                        <View style={{ gap: 4 }}>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.4 }}>Location / Geo</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                            <View style={{ gap: 2 }}>
+                              <Text style={{ fontFamily: 'monospace', fontSize: 12, color: SAC.text }}>
+                                Lat: {Number(c.scanned_lat ?? 0).toFixed(6)}
+                              </Text>
+                              <Text style={{ fontFamily: 'monospace', fontSize: 12, color: SAC.text }}>
+                                Lng: {Number(c.scanned_lng ?? 0).toFixed(6)}
+                              </Text>
+                            </View>
+                            <SecondaryButton onPress={() => openMap(c.scanned_lat, c.scanned_lng)}>
+                              <MapPin size={14} color="#A78BFA" />
+                              <Text style={{ color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 12, marginLeft: 5 }}>Open in Maps</Text>
+                            </SecondaryButton>
+                          </View>
+                        </View>
+                      ) : (
+                        <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+                          No geo location captured at scan time.
+                        </Text>
+                      )}
+                    </View>
+                  )}
+                </View>
+              );
+            })()}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

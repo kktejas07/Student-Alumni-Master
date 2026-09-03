@@ -37,7 +37,6 @@ import { ProfileSettingsView } from './views/ProfileSettingsView';
 import { MyBookingsView } from './views/MyBookingsView';
 import { MyWorkshopsView } from './views/MyWorkshopsView';
 import { MyTicketsView } from './views/MyTicketsView';
-import { EchoTicketsConfirmationPage } from '../../echo/EchoTicketsConfirmationPage';
 import { EchoShowcaseView } from './views/EchoShowcaseView';
 import { RentalsView } from './views/RentalsView';
 
@@ -138,7 +137,7 @@ function StudentPortalInner() {
                   {active === 'internships'     && <InternshipsView />}
                   {active === 'network'         && <NetworkView />}
                   {active === 'my-bookings'     && <MyBookingsView />}
-                  {active === 'my-tickets'      && <EchoTicketsConfirmationPage initialTab="tickets" />}
+                  {active === 'my-tickets'      && <MyTicketsView />}
                   {(active === 'myevents' || active === 'events') && <EventsView />}
                   {active === 'my-workshops'    && <MyWorkshopsView />}
                   {(active === 'echo-showcase' || (![
