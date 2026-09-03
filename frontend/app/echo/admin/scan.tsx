@@ -170,7 +170,6 @@ export default function EchoScanPage() {
 
   const submitCode = async (c: string) => {
     const original = (c || '').trim();
-    const isTicketPayload = original.startsWith('ECHO:') || original.includes('%3A');
     let raw = original;
     const urlMatch = raw.match(/\/echo\/scan\/([A-Za-z0-9-]+)/);
     if (urlMatch) raw = urlMatch[1];
@@ -183,33 +182,34 @@ export default function EchoScanPage() {
     const token = await tokenStore.getAccess();
     const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     try {
-      // Entry-pass / ticket payload (ECHO:... or URL-wrapped or bare reg id)
-      const isTicketPayload2 = isTicketPayload || raw.startsWith('ECHO:') || /^[a-f0-9]{12}$/i.test(raw);
+      // Determine if this is a ticket (ECHO: prefix, URL-encoded colon, or bare 12-char hex reg_id)
+      const isTicket = original.startsWith('ECHO:') || original.includes('%3A') || /^[a-f0-9]{12}$/i.test(codeUpper);
       const loc = locationRef.current;
-      
-      if (isTicketPayload) {
+
+      if (isTicket) {
+        // Entry-pass / ticket check-in
         const resp = await fetch(`${base}/api/echo/admin/registrations/check-in`, {
           method: 'POST',
           headers,
-          body: JSON.stringify({ ticket: original, ...(loc ? { lat: loc.lat, lng: loc.lng } : {}) }),
+          body: JSON.stringify({ ticket: codeUpper, ...(loc ? { lat: loc.lat, lng: loc.lng } : {}) }),
         });
         const data = await resp.json();
         if (!resp.ok) {
           setResult({ ok: false, status: 'invalid', message: data?.detail || 'Invalid ticket' });
           setRecent((prev) => [{ ok: false, scannedCode: codeUpper, time: new Date().toLocaleTimeString() }, ...prev].slice(0, 50));
         } else {
-          const reg = data.registration || {};
+          const attendee = data.attendee || {};
           const result = {
             ok: true,
             type: 'ticket',
             status: data.first_checkin ? 'valid' : 'checked_in',
-            message: data.message || 'Checked in successfully',
+            message: data.first_checkin ? 'First check-in successful' : 'Already checked in',
             coupon: {
-              session_name: reg.event_title || 'Event pass',
-              attendee_name: reg.full_name || 'Unknown',
-              attendee_email: reg.email || '',
-              code: reg.id || codeUpper,
-              used_at: reg.checked_in_at || null,
+              session_name: attendee.event_title || 'Event pass',
+              attendee_name: attendee.full_name || attendee.name || 'Attendee',
+              attendee_email: attendee.email || '',
+              code: attendee.id || codeUpper,
+              used_at: data.checked_in_at || null,
               verified: true,
               checked_in: true,
             },
@@ -220,7 +220,7 @@ export default function EchoScanPage() {
         return;
       }
 
-      // Coupon code → existing scan-coupon flow
+      // Coupon code → scan-coupon flow
       const resp = await fetch(`${base}/api/echo/admin/scan-coupon`, {
         method: 'POST',
         headers,
@@ -356,18 +356,18 @@ export default function EchoScanPage() {
 
           {/* Result */}
           {result && (
-            <View style={[s.resultCard, { borderColor: result.ok ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)' }]}>
-              <View style={[s.resultIcon, { backgroundColor: result.ok ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)' }]}>
-                {result.ok ? <Check size={28} color="#10B981" /> : <X size={28} color="#EF4444" />}
+            <View style={[s.resultCard, { borderColor: (result.ok !== false) ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)' }]}>
+              <View style={[s.resultIcon, { backgroundColor: (result.ok !== false) ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)' }]}>
+                {(result.ok !== false) ? <Check size={28} color="#10B981" /> : <X size={28} color="#EF4444" />}
               </View>
-              <Text style={[s.resultTitle, { color: result.ok ? '#34D399' : '#FCA5A5' }]}>
-                {result.ok
+              <Text style={[s.resultTitle, { color: (result.ok !== false) ? '#34D399' : '#FCA5A5' }]}>
+                {(result.ok !== false)
                   ? result.type === 'ticket'
-                    ? result.status === 'checked_in' ? 'Already Checked In' : result.status === 'valid' ? 'Valid Ticket' : 'Valid Ticket'
+                    ? result.status === 'checked_in' ? 'Already Checked In' : 'Valid Ticket'
                     : 'Valid Coupon'
-                  : result.status === 'already_used' ? 'Already Used' : 'Invalid'}
+                  : result.status === 'already_used' ? 'Already Used' : result.status === 'locked' ? 'Session Locked' : 'Invalid'}
               </Text>
-              <Text style={s.resultMsg}>{result.message}</Text>
+              <Text style={s.resultMsg}>{result.message || 'No details available'}</Text>
               {result.coupon && (
                 <View style={s.resultDetails}>
                   <Text style={s.resultDetail}>
