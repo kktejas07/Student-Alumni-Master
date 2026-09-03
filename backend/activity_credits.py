@@ -471,11 +471,13 @@ async def wallet_topup_create_order(
                 },
             )
             if r.status_code not in (200, 201):
-                raise HTTPException(503, "Failed to create payment order")
+                print(f"[WALLET] Razorpay order creation failed: {r.status_code} {r.text}")
+                raise HTTPException(503, f"Payment gateway returned error: {r.status_code}")
             order = r.json()
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
+        print(f"[WALLET] Razorpay order creation exception: {e}")
         raise HTTPException(503, "Payment gateway error")
 
     return {
