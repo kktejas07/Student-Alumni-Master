@@ -33,7 +33,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
   // Track active tab state
   const [selectedTab, setSelectedTab] = useState<'home' | 'echo' | 'marketplace' | 'verify' | 'contact'>(() => {
     if (propActiveTab) return propActiveTab;
-    if (pathname?.includes('/echo/marketplace')) return 'marketplace';
+    if (pathname?.includes('/marketplace')) return 'marketplace';
     if (pathname?.includes('/echo')) return 'echo';
     if (pathname?.includes('/verify')) return 'verify';
     if (pathname?.includes('/contact')) return 'contact';
@@ -44,7 +44,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
     if (propActiveTab) {
       setSelectedTab(propActiveTab);
     } else {
-      if (pathname?.includes('/echo/marketplace')) setSelectedTab('marketplace');
+      if (pathname?.includes('/marketplace')) setSelectedTab('marketplace');
       else if (pathname?.includes('/echo')) setSelectedTab('echo');
       else if (pathname?.includes('/verify')) setSelectedTab('verify');
       else if (pathname?.includes('/contact')) setSelectedTab('contact');
@@ -61,7 +61,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
     } else {
       if (tabKey === 'home') router.push('/');
       else if (tabKey === 'echo') router.push('/echo');
-      else if (tabKey === 'marketplace') router.push('/echo/marketplace');
+      else if (tabKey === 'marketplace') router.push('/marketplace');
       else if (tabKey === 'verify') router.push('/certificates/verify');
       else if (tabKey === 'contact') router.push('/contact');
     }
