@@ -195,7 +195,7 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
   if (items.length === 0) return null;
 
   const gstRateFor = (category?: string): number => {
-    const rates: Record<string, number> = { food: 0.05, beverage: 0.05, cafe: 0.05, snacks: 0.05, drink: 0.05, beverages: 0.05, handcraft: 0.12, handicraft: 0.12, merch: 0.18, merchandise: 0.18 };
+    const rates: Record<string, number> = { food: 0.05, beverage: 0.05, beverages: 0.05, cafe: 0.05, snacks: 0.05, drink: 0.05, handcraft: 0.12, handicraft: 0.12, merch: 0.18, merchandise: 0.18, stationery: 0.18, apparel: 0.18, accessories: 0.18, electronics: 0.18, health: 0.12 };
     return rates[(category || '').toLowerCase()] ?? 0.18;
   };
 
@@ -295,6 +295,13 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)' }}>
                     <Store size={13} color="var(--violet-lt)" />
                     <span>{item.stall_no ? `Stall ${item.stall_no}` : ''}{item.stall_no && item.stall_location ? ' · ' : ''}{item.stall_location || ''}</span>
+                  </div>
+                )}
+
+                {item.servings && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--violet-lt)', fontWeight: 600 }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <span>{item.servings}</span>
                   </div>
                 )}
 

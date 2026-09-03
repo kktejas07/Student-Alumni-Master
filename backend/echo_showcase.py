@@ -2822,6 +2822,7 @@ class EchoCatalogItem(BaseModel):
     vendor_name: Optional[str] = None
     name: str
     description: Optional[str] = None
+    servings: Optional[str] = None
     category: str = "food" # 'food' or 'handcraft'
     price: float = 0.0
     stock: int = 0
