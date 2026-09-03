@@ -5971,6 +5971,16 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
     }
   }, [pageTab, unlocked]);
 
+  const filtered = useMemo(() => {
+    return items.filter((i) => {
+      const q = search.toLowerCase();
+      const matchQ = !q || i.title?.toLowerCase().includes(q) || i.slug?.toLowerCase().includes(q);
+      const matchStatus = statusFilter === 'all' || i.status === statusFilter;
+      const matchPage = pageTab === 'drafts' ? i.status === 'draft' : true;
+      return matchQ && matchStatus && matchPage;
+    });
+  }, [items, search, statusFilter, pageTab]);
+
   useEffect(() => {
     setPage(1);
   }, [search, statusFilter, pageTab, items]);
