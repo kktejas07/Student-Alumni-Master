@@ -180,14 +180,11 @@ def build_registrations(rows: List[Dict[str, Any]], slug: str, showcase_title: s
     def _build_reg(row: Dict[str, Any], is_team_lead: bool = False, team_name: str = "") -> Dict[str, Any]:
         email = row.get(COL_EMAIL, "").lower()
         all_emails.append(email)
-        fee_raw = row.get("Fee Amount", row.get("Amount", "0"))
-        try:
-            fee = float(str(fee_raw).replace(",", "").replace("₹", "").strip() or "0")
-        except (ValueError, TypeError):
-            fee = 0.0
 
-        pay_status = _map_payment_status(row.get(COL_PAY_STATUS, "paid"))
-        is_paid = pay_status == "paid"
+        # Unstop buyers are treated as FREE on our platform — they already paid
+        # on Unstop, so fee = 0 and status = "paid" (confirmed) on our side.
+        pay_status = "paid"
+        is_paid = True
 
         return {
             "slug": slug,
@@ -202,19 +199,19 @@ def build_registrations(rows: List[Dict[str, Any]], slug: str, showcase_title: s
             "team_id": row.get(COL_TEAM_ID, ""),
             "is_team_member": not is_team_lead if team_name else False,
             "is_team_lead": is_team_lead,
-            "fee": fee,
+            "fee": 0,
             "currency": "INR",
             "payment": {
                 "payment_id": f"UNSTOP_{secrets.token_hex(6).upper()}",
                 "gateway": "unstop",
-                "amount": fee,
+                "amount": 0,
                 "currency": "INR",
                 "status": pay_status,
-                "paid_at": _parse_reg_time(row.get(COL_REG_TIME, "")) if is_paid else None,
-                "method": "external",
+                "paid_at": _parse_reg_time(row.get(COL_REG_TIME, "")),
+                "method": "free",
             },
             "registered_at": _parse_reg_time(row.get(COL_REG_TIME, "")),
-            "status": "registered" if is_paid else _map_reg_status(row.get(COL_REG_STATUS, "")),
+            "status": "registered",
             "registration_type": "team" if team_name else "individual",
             "source": "unstop_import",
             "unstop_metadata": _extract_metadata(row),
