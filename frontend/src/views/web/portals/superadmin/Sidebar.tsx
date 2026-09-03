@@ -10,7 +10,7 @@ import {
   LayoutDashboard, Building2, GraduationCap, UserCheck, Users, Calendar, CreditCard,
   BarChart3, CheckCircle, Sparkles, Settings, Workflow, LogOut,
   Upload, Handshake, Megaphone, UserPlus, Mail, Award, ShieldOff, ShieldCheck, Bot, Radar,
-  Video, Store,
+  Video, Store, Tag,
 } from 'lucide-react-native';
 import { SAC, useSAC, FONTS, resolveColors } from './tokens';
 import { Badge } from './atoms';
@@ -52,7 +52,7 @@ export type SuperAdminNavId =
   | 'overview' | 'agents' | 'visitor-radar' | 'bgv' | 'colleges' | 'students' | 'mentors' | 'alumni' | 'events'
   | 'payments' | 'analytics' | 'approvals' | 'ai-insights' | 'settings'
   | 'workflows' | 'imports' | 'partners' | 'promotions' | 'talent-pool' | 'echo-showcase'
-  | 'vendors' | 'newsletter' | 'certificates' | 'email-health' | 'teams';
+  | 'vendors' | 'coupons' | 'newsletter' | 'certificates' | 'email-health' | 'teams';
 
 export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?: number; tag?: string }> = [
   { id: 'overview',        label: 'Overview',            Icon: LayoutDashboard,  count: 0 },
@@ -68,6 +68,7 @@ export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?:
   { id: 'events',          label: 'Events',              Icon: Calendar },
   { id: 'echo-showcase',   label: 'Echo Showcase',       Icon: Sparkles,         tag: 'CMS' },
   { id: 'vendors',         label: 'Marketplace Vendors', Icon: Store,            tag: 'NEW' },
+  { id: 'coupons',         label: 'Coupons',             Icon: Tag,              tag: 'NEW' },
   { id: 'partners',        label: 'Partners',            Icon: Handshake,        tag: 'NEW' },
   { id: 'promotions',      label: 'Promotions',          Icon: Megaphone,        tag: 'NEW' },
   { id: 'newsletter',      label: 'Newsletter',          Icon: Mail,             tag: 'NEW' },
