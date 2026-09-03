@@ -523,6 +523,44 @@ export const api = {
     request<any>('/echo/my-invoices'),
   myEchoRegistrations: () =>
     request<any>('/echo/my-registrations'),
+  myMarketplaceOrders: () =>
+    request<any>('/echo/my-marketplace-orders'),
+  myMarketplaceInvoice: (orderId: string) =>
+    request<any>(`/echo/marketplace-invoices/${orderId}`),
+  myMarketplaceOrderQr: (orderId: string) =>
+    request<any>(`/echo/orders/${orderId}/qr`),
+
+  // ── Marketplace admin helpers ─────────────────────────────────────────────
+  adminListMarketplaceCatalog: (showcaseId: string) =>
+    request<any>(`/echo/admin/showcases/${showcaseId}/catalog`),
+  adminCreateMarketplaceItem: (showcaseId: string, payload: any) =>
+    request<any>(`/echo/admin/showcases/${showcaseId}/catalog`, { method: 'POST', body: payload }),
+  adminUpdateMarketplaceItem: (itemId: string, payload: any) =>
+    request<any>(`/echo/admin/catalog/${itemId}`, { method: 'PUT', body: payload }),
+  adminDeleteMarketplaceItem: (itemId: string) =>
+    request<any>(`/echo/admin/catalog/${itemId}`, { method: 'DELETE' }),
+  adminListMarketplaceOrders: (showcaseId: string) =>
+    request<any>(`/echo/admin/showcases/${showcaseId}/orders`),
+  adminListMarketplaceCoupons: (eventSlug?: string) =>
+    request<any>(`/echo/admin/coupons${eventSlug ? `?event_slug=${eventSlug}` : ''}`),
+  adminCreateMarketplaceCoupon: (payload: any) =>
+    request<any>('/echo/admin/coupons', { method: 'POST', body: payload }),
+  adminListVendors: () =>
+    request<any>('/echo/admin/vendors'),
+  adminCreateVendor: (payload: any) =>
+    request<any>('/echo/admin/vendors', { method: 'POST', body: payload }),
+  adminUpdateVendor: (vendorId: string, payload: any) =>
+    request<any>(`/echo/admin/vendors/${vendorId}`, { method: 'PUT', body: payload }),
+  adminDeleteVendor: (vendorId: string) =>
+    request<any>(`/echo/admin/vendors/${vendorId}`, { method: 'DELETE' }),
+  adminVendorStats: () =>
+    request<any>('/echo/admin/vendors/stats'),
+  adminResetVendorPasscode: (vendorId: string, passcode: string) =>
+    request<any>(`/echo/admin/vendors/${vendorId}/password-reset`, { method: 'POST', body: { passcode } }),
+  adminSendVendorCredentials: (vendorId: string) =>
+    request<any>(`/echo/admin/vendors/${vendorId}/send-credentials`, { method: 'POST' }),
+  previewMarketplaceCoupon: (payload: any) =>
+    request<any>('/echo/orders/coupon-preview', { method: 'POST', body: payload }),
 
   // ── Internal Hiring & Interns Pipeline ────────────────────────────────────
   adminEchoListInterns: (params?: any) => {

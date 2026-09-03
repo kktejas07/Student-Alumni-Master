@@ -5,9 +5,12 @@ Mounted at prefix `/api/echo` to match the frontend `request()` helper, which
 prepends `/api` to paths like `/echo/showcases/{slug}/catalog`.
 
 Public routes (no auth):
-  GET  /showcases/{slug}/catalog         active catalog items for an event
+  GET  /showcases/{slug}/catalog         active, in-stock catalog items
   POST /orders/checkout                  create/quote an order (Razorpay or free)
   POST /orders/verify-payment            confirm a paid marketplace order
+  GET  /orders/{order_id}/qr             pickup QR for a paid order
+  GET  /my-marketplace-orders            user's marketplace orders
+  GET  /marketplace-invoices/{order_id}  render marketplace invoice HTML
 
 Admin routes (super-admin JWT required):
   GET  /admin/showcases/{id}/catalog     list catalog items for a showcase
@@ -23,11 +26,12 @@ from __future__ import annotations
 import os
 import hashlib
 import hmac
+import secrets
 from datetime import datetime, timezone
 from typing import Optional, List
 from bson import ObjectId
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from pydantic import BaseModel, Field
 
 from core.db import db
@@ -72,7 +76,7 @@ async def _resolve_user(request: Request):
         return None
 
 
-# ── Razorpay helpers (mirrors echo_showcase) ────────────────────────────────
+# ── Razorpay helpers ─────────────────────────────────────────────────────────
 async def _razorpay_config():
     tool = await db.installed_tools.find_one({"tool_id": "razorpay", "status": "connected"})
     if not tool:
@@ -108,6 +112,7 @@ async def _razorpay_create_order(amount: float, currency: str, receipt: str, not
         return None
 
 
+# ── Serialization ────────────────────────────────────────────────────────────
 def _serialize(item: dict) -> dict:
     out = {}
     for k, v in item.items():
@@ -124,41 +129,332 @@ def _serialize(item: dict) -> dict:
     return out
 
 
+def _oid_or(v: str):
+    try:
+        return ObjectId(v)
+    except Exception:
+        return v
+
+
+def _new_order_id() -> str:
+    return datetime.now(timezone.utc).strftime("%Y%m%d") + secrets.token_hex(5).upper()
+
+
 # ── Catalog helpers ──────────────────────────────────────────────────────────
 def _normalize_item(doc: dict) -> dict:
-    """Return catalog item in the shape the frontend UI expects (id, stock_limit, images)."""
+    """Return catalog item in the shape the frontend UI expects."""
     item = _serialize(doc)
     item["id"] = item.get("_id")
-    # Support both 'stock' (vendor portal) and 'stock_limit' (admin manager)
     item.setdefault("stock_limit", item.get("stock", 0))
-    if not item.get("images"):
-        item["images"] = []
+    item.setdefault("stock_remaining", item.get("stock_remaining", item.get("stock", 0)))
+    item.setdefault("images", [])
+    item.setdefault("image_base64", None)
+    item.setdefault("stall_no", None)
+    item.setdefault("stall_location", None)
+    item.setdefault("is_active", True)
+    item.setdefault("description", "")
+    item.setdefault("category", "food")
     return item
 
 
-async def _catalog_for_event(event_id: str):
-    """Find active catalog items tied to an event, matching by slug, object id, or 'master'."""
+def _filter_active_items(items: list[dict]) -> list[dict]:
+    """Strip inactive and out-of-stock items for the public-facing catalog."""
+    result = []
+    for item in items:
+        if item.get("is_active") is False:
+            continue
+        stock = int(item.get("stock_limit", 0) or 0)
+        remaining = int(item.get("stock_remaining", stock) or 0)
+        if stock > 0 and remaining <= 0:
+            continue
+        result.append(item)
+    return result
+
+
+async def _catalog_for_event(event_id: str) -> list[dict]:
+    """Find catalog items tied to an event, matching by slug, object id, or 'master'."""
     query_lines = [{"event_id": event_id}]
     try:
         query_lines.append({"_id": ObjectId(event_id)})
     except Exception:
         pass
     docs = await db.echo_catalog_items.find(
-        {"$or": query_lines, "is_active": {"$ne": False}}
-    ).to_list(length=1000)
+        {"$or": query_lines}
+    ).to_list(length=5000)
     return [_normalize_item(d) for d in docs]
+
+
+# ── Smart coupon evaluation ──────────────────────────────────────────────────
+async def _evaluate_coupon(code: str, subtotal: float, event_id: str, user_id: str) -> tuple[float, str, dict]:
+    """Validate a coupon and return (discount_amount, applied_code, coupon_doc).
+    Supports: percentage / fixed, min_order_value, max_discount cap,
+    max_uses global, per_user_limit, event scoping.
+    Raises HTTPException on failure. Returns (0, None, {}) if no code.
+    """
+    if not code:
+        return 0.0, None, {}
+
+    code_upper = code.strip().upper()
+    coupon = await db.echo_discount_coupons.find_one({"code": code_upper})
+    if not coupon or coupon.get("active", True) is False:
+        raise HTTPException(status_code=400, detail="Invalid coupon code")
+
+    # Event scope
+    c_event = coupon.get("event_id")
+    if c_event and c_event != event_id:
+        raise HTTPException(status_code=400, detail="Coupon is not valid for this event")
+
+    # Global usage cap
+    uses = int(coupon.get("uses_count", 0) or 0)
+    max_uses = int(coupon.get("max_uses", 0) or 0)
+    if max_uses and uses >= max_uses:
+        raise HTTPException(status_code=400, detail="Coupon has reached its usage limit")
+
+    # Per-user limit
+    per_user = int(coupon.get("per_user_limit", 0) or 0)
+    if per_user and user_id:
+        user_uses = await db.echo_orders.count_documents({
+            "coupon_code": code_upper,
+            "user_id": user_id,
+            "status": "paid",
+        })
+        if user_uses >= per_user:
+            raise HTTPException(status_code=400, detail="You have already used this coupon the maximum number of times")
+
+    # Min order value
+    min_order = float(coupon.get("min_order_value", 0) or 0)
+    if min_order and subtotal < min_order:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Coupon requires a minimum order of ₹{min_order:.0f}",
+        )
+
+    # Compute discount
+    if coupon.get("discount_type") == "fixed":
+        discount = float(coupon.get("discount_value", 0) or 0)
+    else:
+        discount = round(subtotal * float(coupon.get("discount_value", 0) or 0) / 100.0, 2)
+
+    # Max discount cap
+    max_disc = float(coupon.get("max_discount", 0) or 0)
+    if max_disc and discount > max_disc:
+        discount = max_disc
+
+    discount = min(discount, subtotal)
+    return round(discount, 2), code_upper, coupon
+
+
+# ── Email + invoice for marketplace orders ───────────────────────────────────
+async def _send_marketplace_order_email(order: dict):
+    """Send payment confirmation + invoice link to the order's email."""
+    from core.email import send_email, render_html_email
+
+    email = (order.get("user_email") or "").strip()
+    if not email:
+        print(f"[MARKETPLACE] No email for order {order.get('id')}, skipping email")
+        return
+
+    order_id = order.get("id", "")
+    esc = lambda s: str(s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    user_name = esc(order.get("user_name") or "Customer")
+    total = float(order.get("final_amount", 0) or 0)
+    discount = float(order.get("discount", 0) or 0)
+    subtotal = float(order.get("subtotal", 0) or 0)
+    coupon_code = order.get("coupon_code") or ""
+    is_free = order.get("payment_status") == "free"
+    payment_id = order.get("razorpay_payment_id") or ""
+    currency = order.get("currency") or "INR"
+    invoice_url = f"https://studentalumni.ai/api/echo/marketplace-invoices/{order_id}"
+
+    # Build item rows
+    item_rows = ""
+    for item in order.get("items", []):
+        item_rows += f"""<tr>
+          <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#1e293b;">{esc(item.get('name', 'Item'))} × {item.get('quantity', 1)}</td>
+          <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;text-align:right;font-size:13px;color:#1e293b;font-weight:600;">{currency} {float(item.get('line_total', 0) or 0):,.2f}</td>
+        </tr>"""
+
+    discount_block = ""
+    if discount > 0:
+        discount_block = f"""
+        <tr>
+          <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#16a34a;">Discount ({esc(coupon_code)})</td>
+          <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;text-align:right;font-size:13px;color:#16a34a;font-weight:600;">-{currency} {discount:,.2f}</td>
+        </tr>"""
+
+    pickup_section = ""
+    stall_info = ""
+    for item in order.get("items", []):
+        sn = item.get("stall_no") or ""
+        sl = item.get("stall_location") or ""
+        if sn or sl:
+            stall_info = f"Stall {sn}" + (f", {sl}" if sl else "")
+            break
+    if stall_info:
+        pickup_section = f"""
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;">
+          <tr><td style="padding:14px 20px;background:#eff6ff;border-left:4px solid #3b82f6;border-radius:0 10px 10px 0;">
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:#3b82f6;margin-bottom:4px;">Pickup Location</div>
+            <div style="font-size:15px;font-weight:700;color:#1e293b;">{esc(stall_info)}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:3px;">Show the QR code below at the stall to collect your order.</div>
+          </td></tr>
+        </table>"""
+
+    status_text = "FREE ORDER" if is_free else "PAYMENT CONFIRMED"
+    status_color = "#16a34a" if is_free else "#16a34a"
+    paid_line = ""
+    if payment_id:
+        paid_line = f"""<div style="padding:8px 0;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;">
+          <span style="color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Payment ID</span>
+          <span style="font-weight:600;color:#111827;font-size:13px;font-family:monospace;">{esc(payment_id)}</span>
+        </div>"""
+
+    body = render_html_email(f"""
+      <h2 style="margin:0 0 8px;font-size:22px;color:#111827;">Order Confirmed!</h2>
+      <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hi {user_name}, your marketplace order has been confirmed.</p>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+        <tr><td style="padding:16px 20px;background:#f0fdf4;border-left:4px solid {status_color};border-radius:0 10px 10px 0;">
+          <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:{status_color};margin-bottom:4px;">{status_text}</div>
+          <div style="font-size:26px;font-weight:800;color:#111827;">{currency} {total:,.2f}</div>
+        </td></tr>
+      </table>
+
+      {pickup_section}
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px 0;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;"><span style="color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Order ID</span></td>
+          <td style="padding:8px 0;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:600;color:#111827;font-size:13px;font-family:monospace;">{esc(order_id)}</td></tr>
+        {paid_line}
+      </table>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0 20px 0;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
+        <tr><th style="text-align:left;padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#94a3b8;background:#f8fafc;border-bottom:1px solid #e2e8f0;">Item</th>
+          <th style="text-align:right;padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#94a3b8;background:#f8fafc;border-bottom:1px solid #e2e8f0;">Amount</th></tr>
+        {item_rows}
+        {discount_block}
+        <tr><td style="padding:12px 16px;font-size:14px;font-weight:700;color:#111827;">Total</td>
+          <td style="padding:12px 16px;text-align:right;font-size:16px;font-weight:800;color:#111827;">{currency} {total:,.2f}</td></tr>
+      </table>
+
+      <a href="{invoice_url}" style="display:inline-block;padding:12px 24px;background:#4F46E5;color:#fff;text-decoration:none;border-radius:10px;font-weight:700;font-size:14px;margin-top:8px;">View Invoice</a>
+
+      <p style="margin:20px 0 0;color:#6b7280;font-size:13px;">Show the pickup QR code at the event stall to collect your items. You can view your QR code in the Marketplace section.</p>
+    """)
+
+    try:
+        ok = await send_email(email, f"Marketplace Order Confirmed — {order_id}", body)
+        if ok:
+            print(f"[MARKETPLACE] Order confirmation email sent to {email} for order {order_id}")
+        else:
+            print(f"[MARKETPLACE] Email provider failed for {email}")
+    except Exception as e:
+        print(f"[MARKETPLACE] Email error for {email}: {e}")
+
+
+def _build_marketplace_invoice_html(order: dict) -> str:
+    """Render a printable HTML invoice for a marketplace order."""
+    esc = lambda s: str(s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    order_id = order.get("id", "")
+    total = float(order.get("final_amount", 0) or 0)
+    discount = float(order.get("discount", 0) or 0)
+    subtotal = float(order.get("subtotal", 0) or 0)
+    coupon_code = order.get("coupon_code") or ""
+    currency = order.get("currency") or "INR"
+    created = order.get("created_at") or ""
+    payment_id = order.get("razorpay_payment_id") or ""
+    user_name = esc(order.get("user_name") or "Customer")
+    user_email = esc(order.get("user_email") or "")
+    is_free = order.get("payment_status") == "free"
+
+    rows = ""
+    for item in order.get("items", []):
+        name = esc(item.get("name", "Item"))
+        qty = item.get("quantity", 1)
+        line_total = float(item.get("line_total", 0) or 0)
+        stall = item.get("stall_no") or ""
+        stall_str = f" <span style='color:#94a3b8;font-size:11px;'>(Stall {esc(stall)})</span>" if stall else ""
+        rows += f"""<tr>
+          <td style="padding:12px 16px;border-bottom:1px solid #f1f5f9;color:#0f172a;font-size:13px;">{name}{stall_str}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid #f1f5f9;text-align:center;color:#64748b;font-size:13px;">{qty}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid #f1f5f9;text-align:right;color:#0f172a;font-weight:600;font-size:13px;">{currency} {line_total:,.2f}</td>
+        </tr>"""
+
+    discount_row = ""
+    if discount > 0:
+        discount_row = f"""<tr>
+          <td style="padding:12px 16px;border-bottom:1px solid #f1f5f9;color:#16a34a;font-size:13px;">Discount ({esc(coupon_code)})</td>
+          <td style="padding:12px 16px;border-bottom:1px solid #f1f5f9;"></td>
+          <td style="padding:12px 16px;border-bottom:1px solid #f1f5f9;text-align:right;color:#16a34a;font-weight:600;font-size:13px;">-{currency} {discount:,.2f}</td>
+        </tr>"""
+
+    paid_str = "FREE" if is_free else f"{currency} {total:,.2f}"
+    badge_text = "FREE ORDER" if is_free else "PAID"
+
+    if created and "T" in str(created):
+        created = str(created)[:16].replace("T", " ")
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><title>Invoice {esc(order_id)}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  * {{ box-sizing:border-box; margin:0; padding:0; }}
+  body {{ padding:32px; background:#f8fafc; font-family:'Inter',sans-serif; color:#1e293b; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
+  .sheet {{ max-width:700px; margin:0 auto; background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; }}
+  .head {{ padding:28px 36px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; }}
+  .head-brand {{ font-size:18px; font-weight:700; color:#0f172a; }}
+  .head-badge {{ background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; padding:4px 14px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:.5px; }}
+  .body {{ padding:28px 36px; }}
+  .meta-row {{ display:flex; gap:32px; margin-bottom:24px; }}
+  .meta-col {{ flex:1; }}
+  .meta-label {{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; margin-bottom:4px; }}
+  .meta-val {{ font-size:14px; font-weight:600; color:#1e293b; }}
+  .meta-sub {{ font-size:12px; color:#64748b; margin-top:1px; }}
+  table {{ width:100%; border-collapse:collapse; margin-top:8px; }}
+  th {{ text-align:left; padding:8px 12px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:#94a3b8; border-bottom:1px solid #e2e8f0; }}
+  th.r, td.r {{ text-align:right; }}
+  td {{ padding:10px 12px; font-size:13px; color:#334155; border-bottom:1px solid #f1f5f9; }}
+  .total {{ display:flex; justify-content:flex-end; margin-top:16px; padding-top:16px; border-top:2px solid #e2e8f0; }}
+  .total-box {{ text-align:right; }}
+  .total-label {{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; }}
+  .total-amt {{ font-size:24px; font-weight:800; color:#1e293b; margin-top:2px; }}
+  .foot {{ padding:20px 36px; border-top:1px solid #e2e8f0; background:#f8fafc; }}
+  .foot-text {{ font-size:11px; color:#94a3b8; line-height:1.6; }}
+  @media print {{ body {{ background:#fff; padding:0; }} .sheet {{ border:none; border-radius:0; max-width:100%; }} }}
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <div class="head-brand">STUDENT ALUMNI — MARKETPLACE</div>
+      <div class="head-badge">{badge_text}</div>
+    </div>
+    <div class="body">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;">
+        <div><div style="font-size:20px;font-weight:700;">Invoice</div><div style="font-size:12px;color:#64748b;margin-top:2px;">{esc(order_id)}</div></div>
+        <div style="text-align:right;"><div style="font-size:12px;color:#94a3b8;">Date</div><div style="font-size:13px;font-weight:600;">{esc(created)}</div></div>
+      </div>
+      <div class="meta-row">
+        <div class="meta-col"><div class="meta-label">Billed To</div><div class="meta-val">{user_name}</div><div class="meta-sub">{user_email}</div></div>
+        <div class="meta-col"><div class="meta-label">Payment</div><div class="meta-val">{paid_str}</div><div class="meta-sub">{esc(payment_id) or '—'}</div></div>
+      </div>
+      <table style="margin-top:20px;"><tr><th>Description</th><th style="text-align:center;">Qty</th><th class="r">Amount</th></tr>{rows}{discount_row}</table>
+      <div class="total"><div class="total-box"><div class="total-label">Total</div><div class="total-amt">{currency} {total:,.2f}</div></div></div>
+    </div>
+    <div class="foot"><div class="foot-text">Thank you for your purchase. Show your pickup QR at the event stall to collect your items.</div></div>
+  </div>
+</body>
+</html>"""
 
 
 # ── Public: catalog ─────────────────────────────────────────────────────────
 
 @router.get("/showcases/{slug}/catalog")
 async def get_showcase_catalog(slug: str, request: Request):
-    """Return the active marketplace catalog for an ECHO showcase.
-
-    Merges items across scopes (showcase id, slug, and 'master') so items added
-    by vendors via the vendor portal (which default to event_id='master') appear
-    alongside admin-created event-scoped items.
-    """
+    """Return the active, in-stock marketplace catalog for an ECHO showcase."""
     showcase = await db.echo_showcases.find_one({
         "$or": [{"slug": slug}, {"aliases": slug}],
     })
@@ -174,6 +470,7 @@ async def get_showcase_catalog(slug: str, request: Request):
             if key and key not in by_id:
                 by_id[key] = True
                 items.append(it)
+    items = _filter_active_items(items)
     return {"success": True, "data": items, "event_id": event_key}
 
 
@@ -193,13 +490,11 @@ class CheckoutRequest(BaseModel):
 
 @router.post("/orders/checkout")
 async def marketplace_checkout(payload: CheckoutRequest, request: Request):
-    """Create an order for marketplace items. Returns a Razorpay order id for
-    paid orders, or marks the order paid immediately when the total is ₹0."""
+    """Create an order. Validates items are active and in-stock. Applies smart coupon evaluation."""
     if not payload.items:
         raise HTTPException(status_code=400, detail="Cart is empty")
 
-    # Resolve catalog items across all scopes (event, slug, master) so checkout
-    # matches exactly what the merged catalog fetch returns.
+    # Resolve catalog items across all scopes
     showcase = await db.echo_showcases.find_one({
         "$or": [{"slug": payload.event_id}, {"aliases": payload.event_id}],
     })
@@ -214,12 +509,26 @@ async def marketplace_checkout(payload: CheckoutRequest, request: Request):
             if it.get("_id"):
                 by_id[str(it.get("_id"))] = it
 
+    # Resolve user for per-user coupon checks
+    user = await _resolve_user(request)
+    user_id = payload.user_id or (str(user["_id"]) if user else "anon")
+
     order_items = []
     subtotal = 0.0
     for line in payload.items:
         item = by_id.get(line.item_id) or by_id.get(str(line.item_id))
         if not item:
             raise HTTPException(status_code=404, detail=f"Item not found: {line.item_id}")
+        # Validate availability
+        if item.get("is_active") is False:
+            raise HTTPException(status_code=400, detail=f"Item '{item.get('name', line.item_id)}' is currently unavailable")
+        stock_limit = int(item.get("stock_limit", 0) or 0)
+        stock_remaining = int(item.get("stock_remaining", stock_limit) or stock_limit)
+        if stock_limit > 0 and line.quantity > stock_remaining:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Only {stock_remaining} of '{item.get('name', line.item_id)}' remaining in stock",
+            )
         price = float(item.get("price", 0))
         line_total = round(price * line.quantity, 2)
         subtotal += line_total
@@ -234,63 +543,54 @@ async def marketplace_checkout(payload: CheckoutRequest, request: Request):
             "quantity": line.quantity,
             "line_total": line_total,
             "fulfillment_status": None,
+            "stall_no": item.get("stall_no"),
+            "stall_location": item.get("stall_location"),
         })
 
-    # Discount coupon
-    discount = 0.0
-    applied_coupon = None
-    if payload.coupon_code:
-        coupon = await db.echo_discount_coupons.find_one({"code": payload.coupon_code.upper()})
-        if not coupon or coupon.get("active", True) is False:
-            raise HTTPException(status_code=400, detail="Invalid coupon code")
-        if coupon.get("event_id") and coupon.get("event_id") != payload.event_id:
-            raise HTTPException(status_code=400, detail="Coupon is not valid for this event")
-        uses = int(coupon.get("uses_count", 0) or 0)
-        max_uses = int(coupon.get("max_uses", 0) or 0)
-        if max_uses and uses >= max_uses:
-            raise HTTPException(status_code=400, detail="Coupon has reached its usage limit")
-        if coupon.get("discount_type") == "fixed":
-            discount = float(coupon.get("discount_value", 0) or 0)
-        else:
-            discount = round(subtotal * float(coupon.get("discount_value", 0) or 0) / 100.0, 2)
-        discount = min(discount, subtotal)
-        applied_coupon = payload.coupon_code.upper()
+    # Smart coupon evaluation
+    discount, applied_coupon, coupon_doc = await _evaluate_coupon(
+        payload.coupon_code or "", subtotal, event_key, user_id,
+    )
 
     total = round(subtotal - discount, 2)
     currency = "INR"
-
-    user = await _resolve_user(request)
-    user_id = payload.user_id or (str(user["_id"]) if user else "anon")
     user_name = (user.get("name") if user else None) or (payload.user_id or "Guest")
-    user_email = user.get("email") if user else None
+    user_email = (user.get("email") if user else None) or None
 
     order_id = _new_order_id()
     now_iso = datetime.now(timezone.utc).isoformat()
 
+    # Build order doc
+    base_doc = {
+        "id": order_id,
+        "event_id": payload.event_id,
+        "user_id": user_id,
+        "user_name": user_name,
+        "user_email": user_email,
+        "items": order_items,
+        "subtotal": round(subtotal, 2),
+        "discount": round(discount, 2),
+        "currency": currency,
+        "coupon_code": applied_coupon,
+        "created_at": now_iso,
+        "updated_at": now_iso,
+    }
+
     if total <= 0:
-        order_doc = {
-            "id": order_id,
-            "event_id": payload.event_id,
-            "user_id": user_id,
-            "user_name": user_name,
-            "user_email": user_email,
-            "items": order_items,
-            "subtotal": round(subtotal, 2),
-            "discount": round(discount, 2),
-            "final_amount": 0.0,
-            "currency": currency,
-            "coupon_code": applied_coupon,
-            "status": "paid",
-            "payment_status": "free",
-            "created_at": now_iso,
-            "updated_at": now_iso,
-        }
+        order_doc = {**base_doc, "final_amount": 0.0, "status": "paid", "payment_status": "free"}
         await db.echo_orders.insert_one(order_doc)
         if applied_coupon:
             await _bump_coupon_uses(applied_coupon)
+        # Decrement stock
+        for line in payload.items:
+            item = by_id.get(line.item_id) or by_id.get(str(line.item_id))
+            if item:
+                await _decrement_stock(item.get("id") or item.get("_id"), line.quantity)
+        # Send confirmation email
+        await _send_marketplace_order_email(order_doc)
         return {"success": True, "amount": 0, "order_id": order_id, "free": True}
 
-    # Paid: create a Razorpay order and store a pending order.
+    # Paid: create Razorpay order
     cfg = await _razorpay_config()
     if not cfg:
         raise HTTPException(
@@ -305,24 +605,7 @@ async def marketplace_checkout(payload: CheckoutRequest, request: Request):
     if not rzp:
         raise HTTPException(status_code=503, detail="Unable to create payment order")
 
-    order_doc = {
-        "id": order_id,
-        "event_id": payload.event_id,
-        "user_id": user_id,
-        "user_name": user_name,
-        "user_email": user_email,
-        "items": order_items,
-        "subtotal": round(subtotal, 2),
-        "discount": round(discount, 2),
-        "final_amount": total,
-        "currency": currency,
-        "coupon_code": applied_coupon,
-        "status": "pending",
-        "payment_status": "pending",
-        "razorpay_order_id": rzp.get("id"),
-        "created_at": now_iso,
-        "updated_at": now_iso,
-    }
+    order_doc = {**base_doc, "final_amount": total, "status": "pending", "payment_status": "pending", "razorpay_order_id": rzp.get("id")}
     await db.echo_orders.insert_one(order_doc)
 
     return {
@@ -343,7 +626,7 @@ class VerifyPaymentRequest(BaseModel):
 
 @router.post("/orders/verify-payment")
 async def verify_marketplace_payment(payload: VerifyPaymentRequest, request: Request):
-    """Verify a Razorpay payment signature and mark the marketplace order as paid."""
+    """Verify Razorpay signature, mark paid, bump coupon, decrement stock, send email."""
     order = await db.echo_orders.find_one({"id": payload.order_id})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -364,18 +647,147 @@ async def verify_marketplace_payment(payload: VerifyPaymentRequest, request: Req
     if not hmac.compare_digest(expected, payload.razorpay_signature):
         raise HTTPException(status_code=400, detail="Invalid payment signature")
 
+    now_iso = datetime.now(timezone.utc).isoformat()
     await db.echo_orders.update_one(
         {"id": payload.order_id},
         {"$set": {
             "status": "paid",
             "payment_status": "paid",
             "razorpay_payment_id": payload.razorpay_payment_id,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": now_iso,
         }},
     )
+
     if order.get("coupon_code"):
         await _bump_coupon_uses(order["coupon_code"])
+
+    # Decrement stock
+    for item in order.get("items", []):
+        await _decrement_stock(item.get("item_id"), item.get("quantity", 1))
+
+    # Send confirmation email
+    order["status"] = "paid"
+    order["payment_status"] = "paid"
+    order["razorpay_payment_id"] = payload.razorpay_payment_id
+    await _send_marketplace_order_email(order)
+
     return {"success": True, "order_id": payload.order_id}
+
+
+# ── Stock helpers ────────────────────────────────────────────────────────────
+
+async def _decrement_stock(item_id: str, quantity: int):
+    """Decrement stock_remaining for a catalog item after an order is confirmed."""
+    if not item_id:
+        return
+    try:
+        oid = ObjectId(item_id)
+    except Exception:
+        return
+    await db.echo_catalog_items.update_one(
+        {"_id": oid, "stock_limit": {"$gt": 0}},
+        {"$inc": {"stock_remaining": -quantity}},
+    )
+
+
+# ── Attendee pickup QR ──────────────────────────────────────────────────────
+
+@router.get("/orders/{order_id}/qr")
+async def order_pickup_qr(order_id: str, request: Request):
+    """Generate the F&B pickup QR for a paid marketplace order."""
+    order = await db.echo_orders.find_one({"id": order_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.get("status") != "paid":
+        raise HTTPException(status_code=400, detail="Order is not paid yet")
+
+    import qrcode
+    import io
+    import base64
+    qr = qrcode.QRCode(version=1, box_size=10, border=2, error_correction=qrcode.constants.ERROR_CORRECT_M)
+    qr.add_data(order_id)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="#5F259F", back_color="#FFFFFF")
+    buf = io.BytesIO()
+    getattr(img, "save")(buf, format="PNG")
+    qr_image = base64.b64encode(buf.getvalue()).decode("utf-8")
+
+    return {"success": True, "order_id": order_id, "qr_image": qr_image, "status": order.get("status")}
+
+
+# ── User: my marketplace orders ─────────────────────────────────────────────
+
+@router.get("/my-marketplace-orders")
+async def my_marketplace_orders(request: Request):
+    """Return the current user's marketplace orders with item details."""
+    user = await _resolve_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    email = (user.get("email") or "").strip().lower()
+    uid = str(user["_id"])
+    query = {"$or": [{"user_id": uid}]}
+    if email:
+        query = {"$or": [{"user_id": uid}, {"user_email": email}]}
+    orders = await db.echo_orders.find(query).sort("created_at", -1).to_list(100)
+    return {"success": True, "data": [_serialize(o) for o in orders]}
+
+
+# ── User: marketplace invoice ───────────────────────────────────────────────
+
+@router.get("/marketplace-invoices/{order_id}")
+async def marketplace_invoice(order_id: str, request: Request):
+    """Render a printable HTML invoice for a marketplace order."""
+    order = await db.echo_orders.find_one({"id": order_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Authorization: order owner, matching email, or admin
+    user = await _resolve_user(request)
+    is_admin = False
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        try:
+            await _require_admin(request)
+            is_admin = True
+        except HTTPException:
+            is_admin = False
+    if not is_admin:
+        allowed_email = (order.get("user_email") or "").strip().lower()
+        owner_match = user is not None and (
+            order.get("user_id") == str(user["_id"])
+            or (user.get("email") or "").strip().lower() == allowed_email
+        )
+        email_match = request.query_params.get("email", "").strip().lower() == allowed_email
+        if not owner_match and not email_match:
+            raise HTTPException(status_code=403, detail="You do not have access to this invoice")
+
+    html = _build_marketplace_invoice_html(order)
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(content=html)
+
+
+# ── Discount coupon preview (public, for cart UI) ───────────────────────────
+
+@router.post("/orders/coupon-preview")
+async def coupon_preview(payload: dict, request: Request):
+    """Preview coupon discount without placing an order. Returns discount amount."""
+    code = (payload.get("code") or "").strip()
+    subtotal = float(payload.get("subtotal", 0) or 0)
+    event_id = payload.get("event_id", "")
+    user = await _resolve_user(request)
+    user_id = str(user["_id"]) if user else "anon"
+
+    if not code:
+        return {"success": True, "discount": 0, "code": None}
+
+    try:
+        discount, applied, doc = await _evaluate_coupon(code, subtotal, event_id, user_id)
+        return {"success": True, "discount": discount, "code": applied,
+                "type": doc.get("discount_type"), "value": doc.get("discount_value"),
+                "min_order_value": doc.get("min_order_value", 0),
+                "max_discount": doc.get("max_discount", 0)}
+    except HTTPException as e:
+        return {"success": False, "error": e.detail}
 
 
 # ── Admin: catalog ──────────────────────────────────────────────────────────
@@ -390,6 +802,10 @@ class AdminCatalogItemInput(BaseModel):
     vendor_name: Optional[str] = None
     vendor_id: Optional[str] = None
     images: List[str] = []
+    image_base64: Optional[str] = None
+    stall_no: Optional[str] = None
+    stall_location: Optional[str] = None
+    is_active: Optional[bool] = True
 
 
 @router.get("/admin/showcases/{showcase_id}/catalog")
@@ -402,11 +818,12 @@ async def admin_list_catalog(showcase_id: str, request: Request, _=Depends(_requ
 async def admin_create_catalog_item(showcase_id: str, payload: AdminCatalogItemInput, request: Request, _=Depends(_require_admin)):
     showcase = await db.echo_showcases.find_one({"_id": _oid_or(showcase_id)})
     event_id = str(showcase["_id"]) if showcase else showcase_id
-    doc = payload.dict()
+    doc = payload.model_dump(exclude_none=True)
     doc["event_id"] = event_id
     if payload.stock_limit is None:
         doc["stock_limit"] = payload.stock
-    doc["is_active"] = True
+    doc.setdefault("stock_remaining", doc.get("stock_limit", doc.get("stock", 0)))
+    doc["is_active"] = payload.is_active if payload.is_active is not None else True
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
     res = await db.echo_catalog_items.insert_one(doc)
     doc["_id"] = str(res.inserted_id)
@@ -417,8 +834,11 @@ async def admin_create_catalog_item(showcase_id: str, payload: AdminCatalogItemI
 async def admin_update_catalog_item(item_id: str, payload: dict, request: Request, _=Depends(_require_admin)):
     if not ObjectId.is_valid(item_id):
         raise HTTPException(status_code=400, detail="Invalid item ID")
-    allowed = {"name", "price", "category", "stock", "stock_limit", "description",
-               "vendor_name", "vendor_id", "images", "is_active", "event_id"}
+    allowed = {
+        "name", "price", "category", "stock", "stock_limit", "stock_remaining",
+        "description", "vendor_name", "vendor_id", "images", "image_base64",
+        "stall_no", "stall_location", "is_active", "event_id",
+    }
     update = {k: v for k, v in payload.items() if k in allowed and k != "_id"}
     if not update:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -456,6 +876,10 @@ class AdminCouponInput(BaseModel):
     discount_value: float = 0
     event_id: Optional[str] = None
     max_uses: int = 0
+    min_order_value: float = 0
+    max_discount: float = 0
+    per_user_limit: int = 0
+    description: Optional[str] = None
 
 
 @router.get("/admin/coupons")
@@ -472,6 +896,9 @@ async def admin_list_coupons(request: Request, event_slug: Optional[str] = None,
         c["discount_type"] = c.get("discount_type", "percentage")
         c["uses_count"] = c.get("uses_count", 0) or 0
         c["max_uses"] = c.get("max_uses", 0) or 0
+        c["min_order_value"] = c.get("min_order_value", 0) or 0
+        c["max_discount"] = c.get("max_discount", 0) or 0
+        c["per_user_limit"] = c.get("per_user_limit", 0) or 0
         out.append(c)
     return {"success": True, "data": out}
 
@@ -490,6 +917,10 @@ async def admin_create_coupon(payload: AdminCouponInput, request: Request, _=Dep
         "discount_value": payload.discount_value,
         "event_id": payload.event_id,
         "max_uses": payload.max_uses,
+        "min_order_value": payload.min_order_value,
+        "max_discount": payload.max_discount,
+        "per_user_limit": payload.per_user_limit,
+        "description": payload.description or "",
         "uses_count": 0,
         "active": True,
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -500,17 +931,6 @@ async def admin_create_coupon(payload: AdminCouponInput, request: Request, _=Dep
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
-def _new_order_id() -> str:
-    import secrets
-    return datetime.now(timezone.utc).strftime("%Y%m%d") + secrets.token_hex(5).upper()
-
 
 async def _bump_coupon_uses(code: str):
     await db.echo_discount_coupons.update_one({"code": code}, {"$inc": {"uses_count": 1}})
-
-
-def _oid_or(v: str):
-    try:
-        return ObjectId(v)
-    except Exception:
-        return v

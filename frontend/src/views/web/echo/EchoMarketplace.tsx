@@ -10,6 +10,8 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
   const [cart, setCart] = useState<Record<string, number>>({});
   const [couponCode, setCouponCode] = useState('');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [placedOrder, setPlacedOrder] = useState<any>(null);
+  const [qrImage, setQrImage] = useState('');
   const user = useAuthStore(s => s.user);
 
   useEffect(() => {
@@ -33,8 +35,19 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
     });
   };
 
-  const handleCheckout = async () => {
-    if (!user) {
+  const markPlaced = async (orderId: string) => {
+    setPlacedOrder({ id: orderId });
+    setCart({});
+    setCouponCode('');
+    try {
+      const res = await request<any>(`/echo/orders/${orderId}/qr`);
+      if (res.success) setQrImage(res.qr_image || '');
+    } catch (e) {
+      console.error('Failed to load pickup QR', e);
+    }
+  };
+
+  const handleCheckout = async () => {    if (!user) {
       alert("Please login to place an order.");
       return;
     }
@@ -55,8 +68,7 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
       
       if (res.amount === 0) {
         alert("Order placed successfully! It was free.");
-        setCart({});
-        setCouponCode('');
+        await markPlaced(res.order_id);
         setCheckoutLoading(false);
         return;
       }
@@ -82,6 +94,7 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
              });
              if (verify.success) {
                alert("Payment successful! Your order has been placed.");
+               await markPlaced(res.order_id);
              } else {
                alert("Payment completed but verification failed. Contact support with your order ID: " + res.order_id);
              }
@@ -194,6 +207,35 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
           >
             {checkoutLoading ? 'Processing...' : 'Checkout & Pay'}
           </button>
+        </div>
+      )}
+
+      {placedOrder && (
+        <div style={{ marginTop: 40, padding: 24, background: isDark ? '#1a1a24' : '#F8F9FA', borderRadius: 16, border: `1px solid ${border}` }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: fg, marginBottom: 8 }}>Your Pickup QR</h3>
+          <p style={{ color: isDark ? '#aaa' : '#666', marginBottom: 20, fontSize: 14 }}>
+            Show this QR at the stall when collecting your food & beverages. The vendor will scan it to confirm.
+          </p>
+          <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+            {qrImage ? (
+              <img
+                src={`data:image/png;base64,${qrImage}`}
+                alt="Pickup QR"
+                style={{ width: 180, height: 180, borderRadius: 12, border: `1px solid ${border}`, background: '#fff' }}
+              />
+            ) : (
+              <div style={{ width: 180, height: 180, borderRadius: 12, backgroundColor: isDark ? '#000' : '#EEE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isDark ? '#666' : '#999' }}>
+                Loading QR…
+              </div>
+            )}
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', color: '#5B4FE9', letterSpacing: 0.5 }}>Order ID</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: fg, marginTop: 4, fontFamily: 'monospace' }}>{placedOrder.id}</div>
+              <div style={{ fontSize: 13, color: isDark ? '#888' : '#666', marginTop: 12 }}>
+                Keep this handy until you collect your items.
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
