@@ -74,7 +74,14 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
 
     setCheckoutLoading(true);
     try {
-      const payload: any = { event_id: slug, user_id: user.id, items: orderItems };
+      const payload: any = {
+        event_id: slug,
+        user_id: user.id,
+        items: orderItems,
+        user_name: user.full_name || user.name || user.email,
+        user_email: user.email,
+        user_phone: user.phone,
+      };
       if (couponCode.trim()) payload.coupon_code = couponCode.trim();
 
       const res = await request<any>(`/echo/orders/checkout`, { method: 'POST', body: payload });

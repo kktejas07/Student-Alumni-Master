@@ -533,6 +533,9 @@ class CheckoutRequest(BaseModel):
     user_id: Optional[str] = None
     items: List[CheckoutItemInput]
     coupon_code: Optional[str] = None
+    user_name: Optional[str] = None
+    user_email: Optional[str] = None
+    user_phone: Optional[str] = None
 
 
 @router.post("/orders/checkout")
@@ -558,7 +561,9 @@ async def marketplace_checkout(payload: CheckoutRequest, request: Request):
 
     # Resolve user for per-user coupon checks
     user = await _resolve_user(request)
-    user_id = payload.user_id or (str(user["_id"]) if user else "anon")
+    if not user:
+        raise HTTPException(status_code=401, detail="Please log in to place an order")
+    user_id = str(user["_id"])
 
     order_items = []
     subtotal = 0.0
@@ -609,8 +614,9 @@ async def marketplace_checkout(payload: CheckoutRequest, request: Request):
     taxable = round(subtotal - discount, 2)
     total = round(taxable + gst_total, 2)
     currency = "INR"
-    user_name = (user.get("name") if user else None) or (payload.user_id or "Guest")
-    user_email = (user.get("email") if user else None) or None
+    user_name = (user.get("name") if user else None) or (payload.user_name or "Guest")
+    user_email = (user.get("email") if user else None) or (payload.user_email or None)
+    user_phone = (user.get("phone") if user else None) or (payload.user_phone or None)
 
     order_id = _new_order_id()
     now_iso = datetime.now(timezone.utc).isoformat()
@@ -622,6 +628,7 @@ async def marketplace_checkout(payload: CheckoutRequest, request: Request):
         "user_id": user_id,
         "user_name": user_name,
         "user_email": user_email,
+        "user_phone": user_phone,
         "items": order_items,
         "subtotal": round(subtotal, 2),
         "taxable": taxable,
