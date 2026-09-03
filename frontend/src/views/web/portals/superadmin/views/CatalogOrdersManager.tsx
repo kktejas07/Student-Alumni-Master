@@ -117,13 +117,30 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
     if (!coupon.code || !coupon.discount_value) return alert('Code and Discount Value are required');
     try {
       coupon.event_id = slug; // ensure it's tied to event
-      const res = await request<any>(`/echo/admin/coupons`, { method: 'POST', body: coupon });
+      let res;
+      if (coupon._id) {
+        // Update existing
+        res = await request<any>(`/echo/admin/coupons/${coupon._id}`, { method: 'PUT', body: coupon });
+      } else {
+        // Create new
+        res = await request<any>(`/echo/admin/coupons`, { method: 'POST', body: coupon });
+      }
       if (res.success) {
         setEditingCoupon(null);
         load();
       } else {
         alert(res.error || 'Failed to save coupon');
       }
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
+
+  const deleteCoupon = async (couponId: string) => {
+    if (!window.confirm('Delete this coupon?')) return;
+    try {
+      const res = await request<any>(`/echo/admin/coupons/${couponId}`, { method: 'DELETE' });
+      if (res.success) load();
     } catch (e: any) {
       alert(e.message);
     }
@@ -378,7 +395,7 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
 
         {editingCoupon && (
           <View style={{ padding: 16, backgroundColor: SAC.panel, borderRadius: 12, borderWidth: 1, borderColor: SAC.border, marginBottom: 16, gap: 12 }}>
-            <Text style={{ color: SAC.text, fontFamily: FONTS.med }}>New Coupon</Text>
+            <Text style={{ color: SAC.text, fontFamily: FONTS.med }}>{editingCoupon._id ? 'Edit Coupon' : 'New Coupon'}</Text>
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Code</Text>
@@ -432,7 +449,15 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
                 <Text style={{ fontFamily: FONTS.med, color: SAC.text }}>{coupon.code}</Text>
                 <Text style={{ fontSize: 12, color: SAC.muted }}>{coupon.discount_value}{coupon.discount_type === 'percentage' ? '%' : ' INR'} off{coupon.vendor_name ? ` · ${coupon.vendor_name}` : ' · All vendors'}</Text>
               </View>
-              <Text style={{ fontSize: 12, color: SAC.muted }}>Uses: {coupon.uses_count || 0}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 12, color: SAC.muted }}>Uses: {coupon.uses_count || 0}</Text>
+                <Pressable onPress={() => setEditingCoupon(coupon)} style={{ padding: 6 }}>
+                  <Edit2 size={14} color="#A78BFA" />
+                </Pressable>
+                <Pressable onPress={() => deleteCoupon(coupon._id)} style={{ padding: 6 }}>
+                  <Trash2 size={14} color="#EF4444" />
+                </Pressable>
+              </View>
             </View>
           ))}
         </View>
