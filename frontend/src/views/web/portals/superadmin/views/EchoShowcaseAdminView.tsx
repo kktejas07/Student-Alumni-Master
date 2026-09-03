@@ -5920,6 +5920,247 @@ function EchoPasscodeLockModal({ onUnlock }: { onUnlock: () => void }) {
 }
 
 
+// ── Registration tab passcode control (server-side configured) ───────────────
+function RegistrationPasscodeControl({
+  enabled,
+  onChange,
+}: {
+  enabled: boolean;
+  onChange?: (enabled: boolean) => void;
+}) {
+  const { flash } = useToast();
+  const [pass, setPass] = useState('');
+  const [confirmPass, setConfirmPass] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  const save = async () => {
+    if (pass.length < 4 || pass.length > 12) {
+      flash('Passcode must be 4-12 characters');
+      return;
+    }
+    if (pass !== confirmPass) {
+      flash('Passcodes do not match');
+      return;
+    }
+    setBusy(true);
+    try {
+      await api.setEchoRegistrationPasscode(pass);
+      onChange?.(true);
+      flash('Registration passcode saved & enabled');
+      setPass('');
+      setConfirmPass('');
+      setShowForm(false);
+    } catch (e: any) {
+      flash(e?.message || 'Failed to save passcode');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const disable = async () => {
+    setBusy(true);
+    try {
+      await api.disableEchoRegistrationPasscode();
+      onChange?.(false);
+      flash('Registration passcode disabled');
+      setShowForm(false);
+    } catch (e: any) {
+      flash(e?.message || 'Failed to disable passcode');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <IconBox tint={enabled ? '#F59E0B' : '#334155'}>
+            <Lock size={16} color={enabled ? '#F59E0B' : '#94A3B8'} />
+          </IconBox>
+          <View>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>Registrations Access Passcode</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+              <StatusPill kind={enabled ? 'warn' : 'success'} label={enabled ? 'Locked' : 'Unlocked'} />
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+                {enabled
+                  ? 'The Registrations tab requires this passcode to open.'
+                  : 'No passcode required. The Registrations tab is open.'}
+              </Text>
+            </View>
+          </View>
+        </View>
+        <Pressable
+          onPress={() => setShowForm((v) => !v)}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: 'rgba(139,92,246,0.15)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.35)',
+            borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, cursor: 'pointer',
+          }}
+        >
+          <Lock size={13} color="#A78BFA" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#A78BFA' }}>
+            {enabled ? 'Change Passcode' : 'Set Passcode'}
+          </Text>
+        </Pressable>
+      </View>
+
+      {showForm && (
+        <View style={{ marginTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(148,163,184,0.15)', paddingTop: 16, gap: 12 }}>
+          {enabled && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <Lock size={12} color="#F59E0B" />
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+                A passcode is active. The Registrations tab is locked until the correct code is entered.
+              </Text>
+            </View>
+          )}
+          <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+            <View style={{ flex: 1, minWidth: 180 }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginBottom: 6 }}>NEW PASSCODE</Text>
+              <TextInput
+                value={pass}
+                onChangeText={setPass}
+                secureTextEntry
+                placeholder="Enter new passcode"
+                placeholderTextColor="#64748B"
+                autoCapitalize="none"
+                style={{
+                  backgroundColor: 'rgba(15,23,42,0.7)', borderWidth: 1, borderColor: 'rgba(148,163,184,0.25)',
+                  borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, color: SAC.text,
+                  fontFamily: FONTS.med, fontSize: 13,
+                }}
+              />
+            </View>
+            <View style={{ flex: 1, minWidth: 180 }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginBottom: 6 }}>CONFIRM PASSCODE</Text>
+              <TextInput
+                value={confirmPass}
+                onChangeText={setConfirmPass}
+                secureTextEntry
+                placeholder="Re-enter passcode"
+                placeholderTextColor="#64748B"
+                autoCapitalize="none"
+                style={{
+                  backgroundColor: 'rgba(15,23,42,0.7)', borderWidth: 1, borderColor: 'rgba(148,163,184,0.25)',
+                  borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, color: SAC.text,
+                  fontFamily: FONTS.med, fontSize: 13,
+                }}
+              />
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
+            <GradientButton onPress={save} disabled={busy} size="sm">
+              <Lock size={13} color="#fff" />
+              <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12, marginLeft: 6 }}>
+                {busy ? 'Saving…' : enabled ? 'Save & Update' : 'Save & Lock'}
+              </Text>
+            </GradientButton>
+            {enabled && (
+              <SecondaryButton onPress={disable} disabled={busy} size="sm">
+                <Text style={{ color: '#F87171', fontFamily: FONTS.bold, fontSize: 12 }}>
+                  {busy ? 'Working…' : 'Disable & Unlock'}
+                </Text>
+              </SecondaryButton>
+            )}
+            <SecondaryButton onPress={() => setShowForm(false)} size="sm">
+              <Text style={{ color: '#94A3B8', fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
+            </SecondaryButton>
+          </View>
+        </View>
+      )}
+    </Card>
+  );
+}
+
+function RegistrationPasscodeGate({
+  onUnlocked,
+  onChange,
+  enabled,
+}: {
+  onUnlocked: () => void;
+  onChange: (enabled: boolean) => void;
+  enabled: boolean;
+}) {
+  const [input, setInput] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [showSetup, setShowSetup] = useState(false);
+
+  const tryUnlock = async () => {
+    if (!input.trim()) { setError('Enter the passcode to unlock.'); return; }
+    setBusy(true);
+    setError('');
+    try {
+      const res = await api.verifyEchoRegistrationPasscode(input.trim());
+      if (res?.ok) {
+        onUnlocked();
+      } else {
+        setError('Incorrect passcode. Please try again.');
+      }
+    } catch {
+      setError('Could not reach the server. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <View style={{ alignItems: 'center', paddingVertical: 28, paddingHorizontal: 20 }}>
+        <View style={{ width: 64, height: 64, borderRadius: 18, backgroundColor: 'rgba(245,158,11,0.15)', alignItems: 'center', justifyContent: 'center' }}>
+          <Lock size={30} color="#F59E0B" />
+        </View>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: SAC.text, marginTop: 18 }}>
+          Registrations Locked
+        </Text>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: SAC.muted, marginTop: 6, textAlign: 'center', maxWidth: 420 }}>
+          This section contains sensitive payment & registration data. Enter the configured passcode to unlock it.
+        </Text>
+
+        <View style={{ width: '100%', maxWidth: 340, marginTop: 22 }}>
+          <TextInput
+            value={input}
+            onChangeText={(t) => { setInput(t); setError(''); }}
+            secureTextEntry
+            placeholder="Enter passcode"
+            placeholderTextColor="#64748B"
+            autoCapitalize="none"
+            autoFocus
+            onSubmitEditing={tryUnlock}
+            style={{
+              backgroundColor: 'rgba(15,23,42,0.8)', borderWidth: 1,
+              borderColor: error ? '#F87171' : 'rgba(148,163,184,0.3)',
+              borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, color: SAC.text,
+              fontFamily: FONTS.med, fontSize: 16, textAlign: 'center', letterSpacing: 2,
+            }}
+          />
+          {error ? (
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: '#F87171', marginTop: 8, textAlign: 'center' }}>{error}</Text>
+          ) : null}
+          <GradientButton onPress={tryUnlock} disabled={busy} size="md" style={{ marginTop: 14, width: '100%' }}>
+            <Lock size={14} color="#fff" />
+            <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>
+              {busy ? 'Unlocking…' : 'Unlock'}
+            </Text>
+          </GradientButton>
+          <Pressable onPress={() => setShowSetup((v) => !v)} style={{ marginTop: 14, alignItems: 'center' }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#A78BFA' }}>
+              {showSetup ? 'Hide passcode settings' : 'Configure / change the passcode'}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+      {showSetup && (
+        <View style={{ marginTop: 4 }}>
+          <RegistrationPasscodeControl enabled={enabled} onChange={onChange} />
+        </View>
+      )}
+    </Card>
+  );
+}
+
 // ── Main View ─────────────────────────────────────────────────────────────────
 export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const T = useSAC();
