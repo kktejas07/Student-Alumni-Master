@@ -14,7 +14,7 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
 
   useEffect(() => {
     if (slug) {
-      request<any>(`/api/echo/showcases/${slug}/catalog`)
+      request<any>(`/echo/showcases/${slug}/catalog`)
         .then(res => {
           if (res.success) setItems(res.data || []);
         })
@@ -46,7 +46,7 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
       const payload: any = { event_id: slug, user_id: user.id, items: orderItems };
       if (couponCode.trim()) payload.coupon_code = couponCode.trim();
 
-      const res = await request<any>(`/api/echo/orders/checkout`, { method: 'POST', body: payload });
+      const res = await request<any>(`/echo/orders/checkout`, { method: 'POST', body: payload });
       if (!res.success) {
         alert(res.error || "Checkout failed");
         setCheckoutLoading(false);
@@ -70,7 +70,24 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
         description: "Food & Handcrafts",
         order_id: res.razorpay_order.id,
         handler: async function (response: any) {
-           alert("Payment successful! Your order has been placed.");
+           try {
+             const verify = await request<any>(`/echo/orders/verify-payment`, {
+               method: 'POST',
+               body: {
+                 order_id: res.order_id,
+                 razorpay_order_id: res.razorpay_order.id,
+                 razorpay_payment_id: response.razorpay_payment_id,
+                 razorpay_signature: response.razorpay_signature,
+               },
+             });
+             if (verify.success) {
+               alert("Payment successful! Your order has been placed.");
+             } else {
+               alert("Payment completed but verification failed. Contact support with your order ID: " + res.order_id);
+             }
+           } catch (e: any) {
+             alert("Payment completed but verification failed. Contact support with your order ID: " + res.order_id);
+           }
            setCart({});
            setCouponCode('');
         },

@@ -23,7 +23,7 @@ export default function VendorLoginScreen() {
     setError('');
 
     try {
-      const res = await request<any>('/api/vendors/login', {
+      const res = await request<any>('/vendors/login', {
         method: 'POST',
         body: { vendor_id: vendorId, passcode },
       });

@@ -26,20 +26,23 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
   const [items, setItems] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<any[]>([]);
+  const [vendors, setVendors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     try {
       setLoading(true);
       if (!showcaseId) return;
-      const [resItems, resOrders, resCoupons] = await Promise.all([
+      const [resItems, resOrders, resCoupons, resVendors] = await Promise.all([
         request<any>(`/echo/admin/showcases/${showcaseId}/catalog`),
         request<any>(`/echo/admin/showcases/${showcaseId}/orders`),
-        request<any>(`/echo/admin/coupons?event_slug=${slug}`)
+        request<any>(`/echo/admin/coupons?event_slug=${slug}`),
+        request<any>('/echo/admin/vendors').catch(() => ({ success: false }))
       ]);
       if (resItems.success) setItems(resItems.data || []);
       if (resOrders.success) setOrders(resOrders.data || []);
       if (resCoupons.success) setCoupons(resCoupons.data || []);
+      if (resVendors.success) setVendors(resVendors.data || []);
     } catch (e) {
       console.error('Failed to load catalog/orders', e);
     } finally {
@@ -97,6 +100,34 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
       } else {
         alert(res.error || 'Failed to save coupon');
       }
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
+
+  // Vendors (provision login accounts)
+  const [editingVendor, setEditingVendor] = useState<any>(null);
+
+  const saveVendor = async (vendor: any) => {
+    if (!vendor.vendor_id || !vendor.passcode) return alert('Vendor ID and Passcode are required');
+    try {
+      const res = await request<any>(`/echo/admin/vendors`, { method: 'POST', body: vendor });
+      if (res.success) {
+        setEditingVendor(null);
+        load();
+      } else {
+        alert(res.error || 'Failed to create vendor');
+      }
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
+
+  const deleteVendor = async (vendorId: string) => {
+    if (!window.confirm(`Delete vendor "${vendorId}"? This disables their login.`)) return;
+    try {
+      const res = await request<any>(`/echo/admin/vendors/${vendorId}`, { method: 'DELETE' });
+      if (res.success) load();
     } catch (e: any) {
       alert(e.message);
     }
@@ -187,6 +218,54 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
             </View>
           ))}
           {items.length === 0 && !editingItem && <Text style={{ color: SAC.muted, textAlign: 'center', padding: 20 }}>No items in catalog</Text>}
+        </View>
+      </Card>
+
+      {/* VENDORS SECTION */}
+      <Card>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 18, color: SAC.text }}>Vendors ({vendors.length})</Text>
+          <SecondaryButton onPress={() => setEditingVendor({})}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Plus size={16} color={SAC.text} /><Text style={{ color: SAC.text }}>New Vendor</Text></View></SecondaryButton>
+        </View>
+
+        {editingVendor && (
+          <View style={{ padding: 16, backgroundColor: SAC.panel, borderRadius: 12, borderWidth: 1, borderColor: SAC.border, marginBottom: 16, gap: 12 }}>
+            <Text style={{ color: SAC.text, fontFamily: FONTS.med }}>New Vendor Account</Text>
+            <Text style={{ color: SAC.muted, fontSize: 12 }}>Vendors sign in at /vendor-portal/login with these credentials.</Text>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Vendor ID</Text>
+                <Field value={editingVendor.vendor_id || ''} onChangeText={(v: string) => setEditingVendor({ ...editingVendor, vendor_id: v.replace(/\\s+/g, '_') })} placeholder="e.g. tastytacos" autoCapitalize="none" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Passcode</Text>
+                <Field value={editingVendor.passcode || ''} onChangeText={(v: string) => setEditingVendor({ ...editingVendor, passcode: v })} placeholder="e.g. 1234" keyboardType="number-pad" secureTextEntry />
+              </View>
+            </View>
+            <View>
+              <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Name (optional)</Text>
+              <Field value={editingVendor.name || ''} onChangeText={(v: string) => setEditingVendor({ ...editingVendor, name: v })} placeholder="e.g. Tasty Tacos" />
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+              <SecondaryButton onPress={() => setEditingVendor(null)}><Text style={{ color: SAC.text }}>Cancel</Text></SecondaryButton>
+              <GradientButton onPress={() => saveVendor(editingVendor)}><Text style={{ color: SAC.text }}>Create Vendor</Text></GradientButton>
+            </View>
+          </View>
+        )}
+
+        <View style={{ gap: 12 }}>
+          {vendors.map(vendor => (
+            <View key={vendor.vendor_id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderWidth: 1, borderColor: SAC.border, borderRadius: 8 }}>
+              <View>
+                <Text style={{ fontFamily: FONTS.med, color: SAC.text }}>{vendor.name || vendor.vendor_id}</Text>
+                <Text style={{ fontSize: 12, color: SAC.muted }}>ID: {vendor.vendor_id}</Text>
+              </View>
+              <Pressable onPress={() => deleteVendor(vendor.vendor_id)} style={{ padding: 8 }}>
+                <Trash2 size={16} color="#ef4444" />
+              </Pressable>
+            </View>
+          ))}
+          {vendors.length === 0 && <Text style={{ color: SAC.muted, textAlign: 'center', padding: 20 }}>No vendors yet — create one so they can log in</Text>}
         </View>
       </Card>
 

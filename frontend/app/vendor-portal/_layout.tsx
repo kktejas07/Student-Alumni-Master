@@ -1,40 +1,27 @@
 /**
- * /student-portal — auth gate for every nested segment route.
+ * /vendor-portal — auth gate for every nested segment route.
  *
- * Guards /student-portal, /student-portal/events, etc. Only logged-in users
- * reach the portal; everyone else bounces to /login.
+ * Guards /vendor-portal/dashboard, /vendor-portal/catalog, etc. Vendors must be
+ * authenticated via the vendor auth store (token + vendor); otherwise they are
+ * bounced to /vendor-portal/login. The login screen itself is exempt.
  */
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
-import { Slot, useRouter } from 'expo-router';
-import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { portalPathForRole, rolesForPortal } from '@/src/lib/portalHome';
+import { Slot, useRouter, usePathname } from 'expo-router';
+import { useVendorAuthStore } from '@/src/viewmodels/stores/vendorAuthStore';
 
-import { SAModernLoader } from '@/src/views/components/SAModernLoader';
-
-export default function StudentPortalLayoutRoute() {
+export default function VendorPortalLayoutRoute() {
   const router = useRouter();
-  const user = useAuthStore((s) => s.user);
-  const initialized = useAuthStore((s) => s.initialized);
+  const pathname = usePathname();
+  const token = useVendorAuthStore((s) => s.token);
+  const vendor = useVendorAuthStore((s) => s.vendor);
+  const isLogin = pathname === '/vendor-portal/login';
 
   useEffect(() => {
-    if (!initialized) {
-      return;
+    if (isLogin) return;
+    if (!token || !vendor) {
+      router.replace('/vendor-portal/login');
     }
-    if (!user) {
-      router.replace('/login');
-      return;
-    }
-    const role = String(user.role || '').toLowerCase();
-    if (!rolesForPortal('student').includes(role)) {
-      router.replace(portalPathForRole(role) as any);
-    }
-  }, [user, initialized, router]);
+  }, [token, vendor, isLogin, router]);
 
   return <Slot />;
 }
-
-const s = StyleSheet.create({
-  gate: { flex: 1, backgroundColor: '#030614', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  gateText: { color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_500Medium', fontSize: 12.5 },
-});

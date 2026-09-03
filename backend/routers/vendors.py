@@ -14,6 +14,69 @@ class VendorLoginRequest(BaseModel):
     vendor_id: str
     passcode: str
 
+
+# ── Admin vendor provisioning ────────────────────────────────────────────────
+async def _require_admin_token(request: Request):
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        raise HTTPException(401, "Missing token")
+    token = auth.split(" ", 1)[1]
+    import os
+    secret = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
+    try:
+        payload = jwt.decode(token, secret, algorithms=[JWT_ALGORITHM])
+    except Exception:
+        raise HTTPException(401, "Invalid token")
+    if (payload.get("role") or "").lower() not in ("admin", "super_admin", "superadmin"):
+        raise HTTPException(403, "Admin only")
+    return payload
+
+
+class VendorCreateRequest(BaseModel):
+    vendor_id: str
+    passcode: str
+    name: Optional[str] = None
+
+
+@router.get("/api/echo/admin/vendors")
+async def list_vendors(request: Request, _=Depends(_require_admin_token)):
+    vendors = await db.echo_vendors.find({}).to_list(length=1000)
+    out = []
+    for v in vendors:
+        out.append({
+            "vendor_id": v.get("vendor_id"),
+            "name": v.get("name", "Vendor"),
+            "created_at": v.get("created_at"),
+        })
+    return {"success": True, "data": out}
+
+
+@router.post("/api/echo/admin/vendors")
+async def create_vendor(payload: VendorCreateRequest, request: Request, _=Depends(_require_admin_token)):
+    vendor_id = (payload.vendor_id or "").strip()
+    passcode = (payload.passcode or "").strip()
+    if not vendor_id or not passcode:
+        raise HTTPException(400, "Vendor ID and passcode are required")
+    existing = await db.echo_vendors.find_one({"vendor_id": vendor_id})
+    if existing:
+        raise HTTPException(409, "Vendor ID already exists")
+    doc = {
+        "vendor_id": vendor_id,
+        "passcode": passcode,
+        "name": (payload.name or "").strip() or vendor_id,
+        "created_at": datetime.utcnow().isoformat(),
+    }
+    res = await db.echo_vendors.insert_one(doc)
+    return {"success": True, "vendor": {"vendor_id": vendor_id, "name": doc["name"], "_id": str(res.inserted_id)}}
+
+
+@router.delete("/api/echo/admin/vendors/{vendor_id}")
+async def delete_vendor(vendor_id: str, request: Request, _=Depends(_require_admin_token)):
+    res = await db.echo_vendors.delete_one({"vendor_id": vendor_id})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Vendor not found")
+    return {"success": True, "message": "Vendor deleted"}
+
 async def get_current_vendor(request: Request) -> dict:
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):

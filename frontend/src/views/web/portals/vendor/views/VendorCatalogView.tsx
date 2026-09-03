@@ -32,7 +32,7 @@ export function VendorCatalogView({ eventSlug }: { eventSlug?: string }) {
   const load = async () => {
     try {
       setLoading(true);
-      const res = await request<any>(`/api/vendors/catalog`, {
+      const res = await request<any>(`/vendors/catalog`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -60,13 +60,13 @@ export function VendorCatalogView({ eventSlug }: { eventSlug?: string }) {
       };
 
       if (item.id || item._id) {
-        res = await request<any>(`/api/vendors/catalog/${item.id || item._id}`, { 
+        res = await request<any>(`/vendors/catalog/${item.id || item._id}`, { 
           method: 'PUT', 
           body: payload,
           headers: { Authorization: `Bearer ${token}` }
         });
       } else {
-        res = await request<any>(`/api/vendors/catalog`, { 
+        res = await request<any>(`/vendors/catalog`, { 
           method: 'POST', 
           body: payload,
           headers: { Authorization: `Bearer ${token}` }
@@ -86,7 +86,7 @@ export function VendorCatalogView({ eventSlug }: { eventSlug?: string }) {
   const deleteItem = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this catalog item?')) return;
     try {
-      const res = await request<any>(`/api/vendors/catalog/${id}`, { 
+      const res = await request<any>(`/vendors/catalog/${id}`, { 
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
