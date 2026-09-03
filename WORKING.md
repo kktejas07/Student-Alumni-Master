@@ -14,6 +14,7 @@
 | Devender (opencode) | Metro config path alias | `frontend/metro.config.js` | Done | Added `@/` alias resolver for Metro bundler |
 | Devender (opencode) | Backend import fix | `backend/routers/admin/agents.py` | Done | Added missing `Query` import |
 | Antigravity | Echo registration layout/logic and real-time coupons | `frontend/src/views/web/echo/EchoEventsPage.tsx` | Done | Integrated real-time verify-coupon API, added coupon code to registration payload, fixed team size price calculation in Razorpay button, audited poster/gallery admin UI |
+| Devender (opencode) | Page lock re-lock on browser tab switch | `frontend/src/views/web/portals/superadmin/views/EchoShowcaseAdminView.tsx` | Done | Added visibilitychange listener to re-lock registrations page when user switches browser tabs |
 | - | - | - | - | - |
 
 ---
@@ -31,6 +32,7 @@
 | 2026-08-28 | opencode | Fixed Home nav URL not updating | `frontend/src/views/web/LandingPage.tsx` |
 | 2026-08-28 | opencode | Fixed missing Query import in agents.py | `backend/routers/admin/agents.py` |
 | 2026-08-28 | opencode | Restored corrupted register.tsx from git | `frontend/app/echo/[slug]/register.tsx` |
+| 2026-09-03 | opencode | Fixed registrations page lock not re-locking on browser tab switch | `frontend/src/views/web/portals/superadmin/views/EchoShowcaseAdminView.tsx` |
 
 ---
 
