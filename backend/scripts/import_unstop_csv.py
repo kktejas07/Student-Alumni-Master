@@ -152,7 +152,7 @@ def _parse_reg_time(raw: str) -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def build_registrations(rows: List[Dict[str, Any]], slug: str, showcase_title: str = "") -> Dict[str, Any]:
+def build_registrations(rows: List[Dict[str, Any]], slug: str, showcase_title: str = "", source: str = "unstop") -> Dict[str, Any]:
     """Group parsed CSV rows into ECHO-ready registration dicts.
 
     Returns:
@@ -181,10 +181,11 @@ def build_registrations(rows: List[Dict[str, Any]], slug: str, showcase_title: s
         email = row.get(COL_EMAIL, "").lower()
         all_emails.append(email)
 
-        # Unstop buyers are treated as FREE on our platform — they already paid
-        # on Unstop, so fee = 0 and status = "paid" (confirmed) on our side.
+        # Buyers from external platforms are treated as FREE on our platform —
+        # they already paid on the source platform, so fee = 0 and status = "paid".
         pay_status = "paid"
         is_paid = True
+        src_label = "UNSTOP" if source == "unstop" else ("SA" if source == "studentalumni" else (source or "IMPORT").upper())
 
         return {
             "slug": slug,
@@ -202,8 +203,8 @@ def build_registrations(rows: List[Dict[str, Any]], slug: str, showcase_title: s
             "fee": 0,
             "currency": "INR",
             "payment": {
-                "payment_id": f"UNSTOP_{secrets.token_hex(6).upper()}",
-                "gateway": "unstop",
+                "payment_id": f"{src_label}_{secrets.token_hex(6).upper()}",
+                "gateway": "unstop" if source == "unstop" else (source or "import"),
                 "amount": 0,
                 "currency": "INR",
                 "status": pay_status,
@@ -213,8 +214,8 @@ def build_registrations(rows: List[Dict[str, Any]], slug: str, showcase_title: s
             "registered_at": _parse_reg_time(row.get(COL_REG_TIME, "")),
             "status": "registered",
             "registration_type": "team" if team_name else "individual",
-            "source": "unstop_import",
-            "unstop_metadata": _extract_metadata(row),
+            "source": source,
+            "unstop_metadata": _extract_metadata(row) if source == "unstop" else {},
         }
 
     # Process teams

@@ -1,6 +1,7 @@
 /**
- * UnstopImportPage — upload an Unstop CSV of ticket buyers, preview the
- * parsed data, then import it into ECHO registrations + StudentAlumni accounts.
+ * ImportPage — upload a CSV of ticket buyers from any platform (Unstop,
+ * Student Alumni, or other), preview the parsed data, then import it into
+ * ECHO registrations + StudentAlumni accounts.
  */
 import { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView } from 'react-native';
@@ -18,15 +19,41 @@ type Stats = {
   emails: string[];
 };
 
-export default function UnstopImportPage() {
+const SOURCE_OPTIONS = [
+  { value: 'unstop', label: 'Unstop' },
+  { value: 'studentalumni', label: 'Student Alumni' },
+  { value: 'other', label: 'Other platform…' },
+];
+
+export function ImportPanel() {
   const [file, setFile] = useState<File | null>(null);
+
+  return (
+    <ImportInner file={file} setFile={setFile} />
+  );
+}
+
+export default function ImportPage() {
+  const [file, setFile] = useState<File | null>(null);
+  return (
+    <AdminLayout title="Import Ticketed Buyers" subtitle="Link external ticket buyers to Student Alumni accounts">
+      <ImportInner file={file} setFile={setFile} />
+    </AdminLayout>
+  );
+}
+
+function ImportInner({ file, setFile }: { file: File | null; setFile: (f: File | null) => void }) {
   const [slug, setSlug] = useState('');
+  const [source, setSource] = useState('unstop');
+  const [customSource, setCustomSource] = useState('');
   const [preview, setPreview] = useState<any[] | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [parsing, setParsing] = useState(false);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const resolveSource = () => (source === 'other' && customSource.trim() ? customSource.trim() : source);
 
   const onFilePicked = (f: File) => {
     setFile(f);
@@ -41,7 +68,7 @@ export default function UnstopImportPage() {
     setParsing(true);
     setError(null);
     try {
-      const r = await api.echoImportUnstopPreview(f);
+      const r = await api.echoImportTicketsPreview(f, resolveSource());
       setPreview(r.preview || []);
       setStats(r.stats || null);
     } catch (e: any) {
@@ -53,11 +80,15 @@ export default function UnstopImportPage() {
 
   const handleImport = async () => {
     if (!file) return;
+    if (source === 'other' && !customSource.trim()) {
+      setError('Please enter the name of the other platform.');
+      return;
+    }
     setImporting(true);
     setError(null);
     setResult(null);
     try {
-      const r = await api.echoImportUnstop(file, slug.trim());
+      const r = await api.echoImportTickets(file, slug.trim(), resolveSource());
       setResult(r);
       setPreview(null);
       setStats(null);
@@ -69,13 +100,50 @@ export default function UnstopImportPage() {
   };
 
   return (
-    <AdminLayout title="Import Unstop Tickets" subtitle="Link Unstop ticket buyers to Student Alumni accounts">
+    <>
+      <GlassCard padding={20}>
+        <Text style={styles.fieldLabel}>Where do these tickets come from?</Text>
+        <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+          {SOURCE_OPTIONS.map((opt) => (
+            <Pressable
+              key={opt.value}
+              onPress={() => setSource(opt.value)}
+              style={{
+                paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10,
+                backgroundColor: source === opt.value ? 'rgba(124,58,237,0.2)' : 'rgba(0,0,0,0.25)',
+                borderWidth: 1, borderColor: source === opt.value ? '#8B5CF6' : T.border,
+              }}
+            >
+              <Text style={{ color: source === opt.value ? '#C4B5FD' : T.text, fontFamily: 'DMSans_700Bold', fontSize: 13 }}>
+                {opt.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        {source === 'other' && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.fieldLabel}>Platform name</Text>
+            <input
+              value={customSource}
+              onChange={(e) => setCustomSource(e.target.value)}
+              placeholder="e.g. Google Forms, Townscript, MyEvent"
+              style={styles.input as any}
+            />
+          </View>
+        )}
+        <Text style={[styles.uploadHint, { marginTop: 12, textAlign: 'left', maxWidth: 640 }]}>
+          Imported buyers are marked with this platform label in the admin registrations table. They are treated as paid/free on Student Alumni (they already paid on the source platform).
+        </Text>
+      </GlassCard>
+
+      <View style={{ height: 12 }} />
+
       <GlassCard padding={20}>
         <View style={styles.uploadZone}>
           <FileSpreadsheet size={40} color={T.light} />
-          <Text style={styles.uploadTitle}>Unstop CSV Export</Text>
+          <Text style={styles.uploadTitle}>CSV Export</Text>
           <Text style={styles.uploadHint}>
-            Export the participant/buyer list from your Unstop organizer dashboard as CSV, then upload it here.
+            Export the participant/buyer list from your organizer dashboard as CSV, then upload it here.
           </Text>
           <input
             type="file"
@@ -217,7 +285,7 @@ export default function UnstopImportPage() {
           </View>
         </GlassCard>
       )}
-    </AdminLayout>
+    </>
   );
 }
 
