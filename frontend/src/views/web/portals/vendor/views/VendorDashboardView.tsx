@@ -11,7 +11,7 @@ export function VendorDashboardView() {
 
   const fetchDashboard = async () => {
     try {
-      const res = await request<any>('/api/vendors/dashboard', {
+      const res = await request<any>('/vendors/dashboard', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.success) {

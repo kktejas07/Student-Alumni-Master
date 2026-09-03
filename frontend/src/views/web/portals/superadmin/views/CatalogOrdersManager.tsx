@@ -22,24 +22,51 @@ const Field = (props: any) => (
   />
 );
 
+const Toggle = ({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) => (
+  <Pressable onPress={() => onChange(!value)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}>
+    <View
+      style={[{
+        width: 40, height: 22, borderRadius: 11, padding: 2,
+        backgroundColor: value ? '#10B981' : 'rgba(255,255,255,0.12)',
+        justifyContent: value ? 'flex-end' : 'flex-start',
+      }]}
+    >
+      <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff' }} />
+    </View>
+    <Text style={{ color: SAC.text, fontFamily: FONTS.med, fontSize: 13 }}>{label}</Text>
+  </Pressable>
+);
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string; slug: string }) {
   const [items, setItems] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<any[]>([]);
+  const [vendors, setVendors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     try {
       setLoading(true);
       if (!showcaseId) return;
-      const [resItems, resOrders, resCoupons] = await Promise.all([
+      const [resItems, resOrders, resCoupons, resVendors] = await Promise.all([
         request<any>(`/echo/admin/showcases/${showcaseId}/catalog`),
         request<any>(`/echo/admin/showcases/${showcaseId}/orders`),
-        request<any>(`/echo/admin/coupons?event_slug=${slug}`)
+        request<any>(`/echo/admin/coupons?event_slug=${slug}`),
+        request<any>('/echo/admin/vendors').catch(() => ({ success: false }))
       ]);
       if (resItems.success) setItems(resItems.data || []);
       if (resOrders.success) setOrders(resOrders.data || []);
       if (resCoupons.success) setCoupons(resCoupons.data || []);
+      if (resVendors.success) setVendors(resVendors.data || []);
     } catch (e) {
       console.error('Failed to load catalog/orders', e);
     } finally {
@@ -102,6 +129,34 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
     }
   };
 
+  // Vendors (provision login accounts)
+  const [editingVendor, setEditingVendor] = useState<any>(null);
+
+  const saveVendor = async (vendor: any) => {
+    if (!vendor.vendor_id || !vendor.passcode) return alert('Vendor ID and Passcode are required');
+    try {
+      const res = await request<any>(`/echo/admin/vendors`, { method: 'POST', body: vendor });
+      if (res.success) {
+        setEditingVendor(null);
+        load();
+      } else {
+        alert(res.error || 'Failed to create vendor');
+      }
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
+
+  const deleteVendor = async (vendorId: string) => {
+    if (!window.confirm(`Delete vendor "${vendorId}"? This disables their login.`)) return;
+    try {
+      const res = await request<any>(`/echo/admin/vendors/${vendorId}`, { method: 'DELETE' });
+      if (res.success) load();
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
+
   if (loading) {
     return (
       <View style={{ padding: 40, alignItems: 'center' }}>
@@ -154,14 +209,53 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
                 <Field value={editingItem.vendor_id || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, vendor_id: v })} placeholder="vendor123" />
               </View>
             </View>
-            <View>
-              <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Image URL (Optional)</Text>
-              <Field value={editingItem.images?.[0] || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, images: v ? [v] : [] })} placeholder="https://..." />
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Stall No.</Text>
+                <Field value={editingItem.stall_no || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, stall_no: v })} placeholder="e.g. B-12" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Stall Location</Text>
+                <Field value={editingItem.stall_location || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, stall_location: v })} placeholder="e.g. Food Court, Block A" />
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Image URL (Optional)</Text>
+                <Field value={editingItem.images?.[0] || editingItem.image_base64 || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, image_base64: v, images: v ? [v] : [] })} placeholder="https://... or paste base64" />
+              </View>
+              <View style={{ width: 120, justifyContent: 'flex-end', paddingBottom: 4 }}>
+                <Pressable
+                  onPress={() => (document.querySelector('#admin-cat-image') as HTMLInputElement)?.click()}
+                  style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, alignItems: 'center' }}
+                >
+                  <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Upload</Text>
+                </Pressable>
+                <input
+                  id="admin-cat-image"
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      const b64 = await fileToBase64(f);
+                      setEditingItem({ ...editingItem, image_base64: b64, images: [b64] });
+                    }
+                    e.target.value = '';
+                  }}
+                />
+              </View>
             </View>
             <View>
               <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Description</Text>
               <Field value={editingItem.description || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, description: v })} placeholder="Description" multiline />
             </View>
+            <Toggle
+              value={editingItem.is_active !== false}
+              onChange={(v) => setEditingItem({ ...editingItem, is_active: v })}
+              label={editingItem.is_active === false ? 'Unavailable (hidden from shoppers)' : 'Available for purchase'}
+            />
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
               <SecondaryButton onPress={() => setEditingItem(null)}><Text style={{ color: SAC.text }}>Cancel</Text></SecondaryButton>
               <GradientButton onPress={() => saveItem(editingItem)}><Text style={{ color: SAC.text }}>Save Item</Text></GradientButton>
@@ -172,10 +266,18 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
         <View style={{ gap: 12 }}>
           {items.map(item => (
             <View key={item.id || item._id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderWidth: 1, borderColor: SAC.border, borderRadius: 8 }}>
-              <View>
+            <View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Text style={{ fontFamily: FONTS.med, color: SAC.text }}>{item.name}</Text>
-                <Text style={{ fontSize: 12, color: SAC.muted }}>{item.category} • ₹{item.price} • Stock: {item.stock_limit || 'Unlimited'}</Text>
+                {item.is_active === false && (
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#F59E0B', backgroundColor: 'rgba(245,158,11,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>HIDDEN</Text>
+                )}
               </View>
+              <Text style={{ fontSize: 12, color: SAC.muted }}>
+                {item.category} • ₹{item.price}{item.stall_no ? ` • Stall ${item.stall_no}` : ''}
+                {item.stock_limit ? ` • Stock: ${item.stock_remaining ?? item.stock_limit}/${item.stock_limit}` : ' • Unlimited'}
+              </Text>
+            </View>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <Pressable onPress={() => setEditingItem(item)} style={{ padding: 8 }}>
                   <Edit2 size={16} color={SAC.muted} />
@@ -187,6 +289,54 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
             </View>
           ))}
           {items.length === 0 && !editingItem && <Text style={{ color: SAC.muted, textAlign: 'center', padding: 20 }}>No items in catalog</Text>}
+        </View>
+      </Card>
+
+      {/* VENDORS SECTION */}
+      <Card>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 18, color: SAC.text }}>Vendors ({vendors.length})</Text>
+          <SecondaryButton onPress={() => setEditingVendor({})}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Plus size={16} color={SAC.text} /><Text style={{ color: SAC.text }}>New Vendor</Text></View></SecondaryButton>
+        </View>
+
+        {editingVendor && (
+          <View style={{ padding: 16, backgroundColor: SAC.panel, borderRadius: 12, borderWidth: 1, borderColor: SAC.border, marginBottom: 16, gap: 12 }}>
+            <Text style={{ color: SAC.text, fontFamily: FONTS.med }}>New Vendor Account</Text>
+            <Text style={{ color: SAC.muted, fontSize: 12 }}>Vendors sign in at /vendor-portal/login with these credentials.</Text>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Vendor ID</Text>
+                <Field value={editingVendor.vendor_id || ''} onChangeText={(v: string) => setEditingVendor({ ...editingVendor, vendor_id: v.replace(/\\s+/g, '_') })} placeholder="e.g. tastytacos" autoCapitalize="none" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Passcode</Text>
+                <Field value={editingVendor.passcode || ''} onChangeText={(v: string) => setEditingVendor({ ...editingVendor, passcode: v })} placeholder="e.g. 1234" keyboardType="number-pad" secureTextEntry />
+              </View>
+            </View>
+            <View>
+              <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Name (optional)</Text>
+              <Field value={editingVendor.name || ''} onChangeText={(v: string) => setEditingVendor({ ...editingVendor, name: v })} placeholder="e.g. Tasty Tacos" />
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+              <SecondaryButton onPress={() => setEditingVendor(null)}><Text style={{ color: SAC.text }}>Cancel</Text></SecondaryButton>
+              <GradientButton onPress={() => saveVendor(editingVendor)}><Text style={{ color: SAC.text }}>Create Vendor</Text></GradientButton>
+            </View>
+          </View>
+        )}
+
+        <View style={{ gap: 12 }}>
+          {vendors.map(vendor => (
+            <View key={vendor.vendor_id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderWidth: 1, borderColor: SAC.border, borderRadius: 8 }}>
+              <View>
+                <Text style={{ fontFamily: FONTS.med, color: SAC.text }}>{vendor.name || vendor.vendor_id}</Text>
+                <Text style={{ fontSize: 12, color: SAC.muted }}>ID: {vendor.vendor_id}</Text>
+              </View>
+              <Pressable onPress={() => deleteVendor(vendor.vendor_id)} style={{ padding: 8 }}>
+                <Trash2 size={16} color="#ef4444" />
+              </Pressable>
+            </View>
+          ))}
+          {vendors.length === 0 && <Text style={{ color: SAC.muted, textAlign: 'center', padding: 20 }}>No vendors yet — create one so they can log in</Text>}
         </View>
       </Card>
 

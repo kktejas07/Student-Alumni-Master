@@ -59,7 +59,7 @@ export function VendorScannerView() {
     setMessage(null);
 
     try {
-      const res = await request<any>('/api/vendors/fulfill', {
+      const res = await request<any>('/vendors/fulfill', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: { order_id: scannedId }

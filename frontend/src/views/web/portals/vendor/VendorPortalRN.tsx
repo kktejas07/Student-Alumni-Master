@@ -8,6 +8,7 @@ import { VendorSidebar } from '@/src/views/web/portals/vendor/components/VendorS
 import { VendorDashboardView } from '@/src/views/web/portals/vendor/views/VendorDashboardView';
 import { VendorCatalogView } from '@/src/views/web/portals/vendor/views/VendorCatalogView';
 import { VendorScannerView } from '@/src/views/web/portals/vendor/views/VendorScannerView';
+import { VendorOrdersView } from '@/src/views/web/portals/vendor/views/VendorOrdersView';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SP } from '@/src/theme/apple';
 import { useBreakpoint } from '@/src/theme/breakpoints';
@@ -69,7 +70,7 @@ export function VendorPortalRN() {
             {active === 'dashboard' && <VendorDashboardView />}
             {active === 'catalog' && <VendorCatalogView />}
             {active === 'scanner' && <VendorScannerView />}
-            {active === 'orders' && <Text style={{ color: 'white', fontSize: 32 }}>Orders History (Coming Soon)</Text>}
+            {active === 'orders' && <VendorOrdersView />}
           </View>
         </ScrollView>
       </View>

@@ -35,6 +35,7 @@ import { PromotionsView } from './views/PromotionsView';
 import { TalentPoolView } from './views/TalentPoolView';
 import { NewsletterView } from './views/NewsletterView';
 import { EchoShowcaseAdminView } from './views/EchoShowcaseAdminView';
+import { VendorsView } from './views/VendorsView';
 import { CertificatesView } from './views/CertificatesView';
 import { TeamsMeetingsView } from './views/TeamsMeetingsView';
 import { EmailQualityView } from './views/EmailQualityView';
@@ -145,6 +146,7 @@ export function SuperAdminPortalRN() {
           {active === 'email-health' && <EmailQualityView />}
           {active === 'talent-pool' && <TalentPoolView />}
           {active === 'echo-showcase' && <EchoShowcaseAdminView {...subFor('echo-showcase')} />}
+          {active === 'vendors' && <VendorsView />}
           {active === 'certificates' && <CertificatesView {...subFor('certificates')} />}
           {active === 'teams'        && <TeamsMeetingsView />}
           <DashboardFooter portal="super_admin" />
