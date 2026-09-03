@@ -1250,6 +1250,56 @@ async def admin_create_coupon(payload: AdminCouponInput, request: Request, _=Dep
     return {"success": True, "data": doc}
 
 
+@router.put("/admin/coupons/{coupon_id}")
+async def admin_update_coupon(coupon_id: str, payload: AdminCouponInput, request: Request, _=Depends(_require_admin)):
+    """Update an existing discount coupon."""
+    from bson import ObjectId
+    try:
+        oid = ObjectId(coupon_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid coupon ID")
+    existing = await db.echo_discount_coupons.find_one({"_id": oid})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    code = (payload.code or "").strip().upper()
+    if not code:
+        raise HTTPException(status_code=400, detail="Coupon code is required")
+    # Check code uniqueness if changed
+    if code != existing.get("code"):
+        dup = await db.echo_discount_coupons.find_one({"code": code})
+        if dup:
+            raise HTTPException(status_code=409, detail="Coupon code already exists")
+    update = {
+        "code": code,
+        "discount_type": payload.discount_type,
+        "discount_value": payload.discount_value,
+        "event_id": payload.event_id,
+        "vendor_id": payload.vendor_id or None,
+        "vendor_name": payload.vendor_name or None,
+        "max_uses": payload.max_uses,
+        "min_order_value": payload.min_order_value,
+        "max_discount": payload.max_discount,
+        "per_user_limit": payload.per_user_limit,
+        "description": payload.description or "",
+    }
+    await db.echo_discount_coupons.update_one({"_id": oid}, {"$set": update})
+    return {"success": True, "data": {**existing, **update, "_id": coupon_id}}
+
+
+@router.delete("/admin/coupons/{coupon_id}")
+async def admin_delete_coupon(coupon_id: str, request: Request, _=Depends(_require_admin)):
+    """Delete a discount coupon."""
+    from bson import ObjectId
+    try:
+        oid = ObjectId(coupon_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid coupon ID")
+    result = await db.echo_discount_coupons.delete_one({"_id": oid})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    return {"success": True}
+
+
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
 async def _bump_coupon_uses(code: str):
