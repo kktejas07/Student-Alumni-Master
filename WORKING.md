@@ -25,6 +25,7 @@
 | Devender (opencode) | Fix Razorpay checkout "not a constructor" on public marketplace | `frontend/src/views/web/echo/EchoMarketplace.tsx` | Done | Added `loadRazorpaySDK()` that injects `https://checkout.razorpay.com/v1/checkout.js` and awaits it before `new window.Razorpay()` (window.Razorpay was never loaded). tsc clean |
 | Devender (opencode) | Rebuild vendor scanner UI with manual camera controls | `frontend/src/views/web/portals/vendor/views/VendorScannerView.tsx` | Done | Replaced html5-qrcode default chrome with clean custom UI: explicit "Start Camera Scan" / "Stop Camera" buttons, "Scan an Image File" upload (scanFile), picks back camera, stops on detect, styled to dark+violet vendor theme. tsc clean |
 | Devender (opencode) | Fix malformed SVG polygon parse error | `frontend/src/views/web/echo/EchoEventsPage.tsx` | Done | Removed invalid trailing `z` from `<polygon points="...">` ("Expected number" error) + normalized vertical line path |
+| Devender (opencode) | Fix missing vendor-admin mobile navigation | `frontend/src/views/web/portals/vendor/VendorPortalRN.tsx` | Done | On phones the desktop Sidebar is hidden but no mobile nav existed, so users couldn't leave the dashboard. Added a fixed bottom-tab bar (Dashboard/Catalog/Scanner/Orders + Logout) using the vendor FontAwesome5 icons, matching the student-portal mobile-nav pattern; tightened phone padding. tsc clean |
 
 ---
 
@@ -52,6 +53,7 @@
 | 2026-09-03 | opencode | Fixed marketplace Razorpay checkout failing with "window.Razorpay is not a constructor" by injecting and awaiting the Razorpay checkout SDK script before opening payment | `frontend/src/views/web/echo/EchoMarketplace.tsx` |
 | 2026-09-03 | opencode | Rebuilt vendor-portal/scanner with clean manual controls: explicit Start Camera Scan / Stop Camera buttons + image-file upload, back-camera selection, stops on detect, styled to dark+violet vendor theme (replaces html5-qrcode default chrome) | `frontend/src/views/web/portals/vendor/views/VendorScannerView.tsx` |
 | 2026-09-03 | opencode | Fixed malformed `<polygon>` SVG (invalid trailing `z` in points) that caused "attribute points: Expected number" console error | `frontend/src/views/web/echo/EchoEventsPage.tsx` |
+| 2026-09-03 | opencode | Added a mobile bottom-tab navigation bar to the vendor portal (Dashboard / Catalog / Scanner / Orders + Logout) since the desktop Sidebar is hidden on phones — previously mobile users couldn't navigate off the dashboard | `frontend/src/views/web/portals/vendor/VendorPortalRN.tsx` |
 
 ---
 
