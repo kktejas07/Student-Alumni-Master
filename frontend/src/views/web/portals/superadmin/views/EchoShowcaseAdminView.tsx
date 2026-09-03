@@ -185,6 +185,8 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 import { DarkDropdown } from '@/src/views/web/components/DarkDropdown';
 import { getBaseUrl } from '@/src/lib/env';
+import { CatalogOrdersManager } from './CatalogOrdersManager';
+import { ImportPanel } from '@/src/views/web/admin/ImportPage';
 
 export const triggerExportCsv = (slugVal?: string, statusVal?: string) => {
   let base = '';
@@ -245,7 +247,7 @@ type FormTab =
   | 'general' | 'hero' | 'statistics' | 'about' | 'gallery'
   | 'testimonials' | 'highlights' | 'speakers' | 'categories' | 'schedule'
   | 'panels' | 'faqs' | 'sponsors' | 'videos' | 'downloads'
-  | 'sections' | 'registration' | 'seo' | 'publish';
+  | 'sections' | 'registration' | 'catalog' | 'seo' | 'publish';
 
 const PAGE_TABS: Array<{ id: PageTab; label: string; icon?: any }> = [
   { id: 'all', label: 'All Showcases', icon: Layout },
@@ -283,6 +285,7 @@ const FORM_TABS: Array<{ id: FormTab; label: string }> = [
   { id: 'downloads',    label: 'Downloads' },
   { id: 'sections',     label: 'Sections' },
   { id: 'registration', label: 'Registration' },
+  { id: 'catalog',      label: 'Catalog & Orders' },
   { id: 'seo',          label: 'SEO' },
   { id: 'publish',      label: 'Publish' },
 ];
@@ -2037,9 +2040,11 @@ function ShowcaseCard({ item, onEdit, onDelete, onPublish, onDraft, onArchive, o
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>{item.title}</Text>
             <StatusPill label={(item.status || 'draft').toUpperCase()} kind={STATUS_PILL_MAP[item.status] || 'neutral'} />
-            {item.event_status_badge && (
+            {(!item.registration || item.registration?.enabled === false || String(item.registration?.enabled).toLowerCase() === 'false') ? (
+              <StatusPill label="Registrations Closed" kind="danger" />
+            ) : item.event_status_badge ? (
               <StatusPill label={item.event_status_badge} kind={item.event_status_badge === 'Live' ? 'danger' : item.event_status_badge === 'Completed' ? 'success' : 'warn'} />
-            )}
+            ) : null}
           </View>
           {item.subtitle ? <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: SAC.muted }} numberOfLines={1}>{item.subtitle}</Text> : null}
           <View style={{ flexDirection: 'row', gap: 14, marginTop: 3, flexWrap: 'wrap' }}>
@@ -2832,6 +2837,11 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
               </Card>
             </>}
 
+            {/* ── CATALOG TAB ── */}
+            {tab === 'catalog' && (
+              <CatalogOrdersManager showcaseId={form._id || form.id} slug={form.slug} />
+            )}
+
             {/* ── SEO TAB ── */}
             {tab === 'seo' && <>
               <FieldRow label="SEO Page Title">
@@ -3062,6 +3072,7 @@ function RegistrationsPanel() {
   const [page, setPage] = useState(0);
   const PER_PAGE = 20;
   const { flash } = useToast();
+  const [showImport, setShowImport] = useState(false);
 
   useEffect(() => { setPage(0); }, [q, status, eventSlug, rows]);
 
@@ -3667,6 +3678,17 @@ function RegistrationsPanel() {
         />
         <SecondaryButton onPress={load}><RefreshCw size={12} color={SAC.muted} /><Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12, marginLeft: 6 }}>Refresh</Text></SecondaryButton>
         <Pressable
+          onPress={() => setShowImport(true)}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: '#7C3AED',
+            borderRadius: 8, paddingHorizontal: 13, paddingVertical: 8, cursor: 'pointer',
+          }}
+        >
+          <FileSpreadsheet size={13} color="#fff" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Import Tickets</Text>
+        </Pressable>
+        <Pressable
           onPress={() => triggerExportCsv()}
           style={{
             flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -3726,7 +3748,14 @@ function RegistrationsPanel() {
                 return (
                 <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
                   <View style={{ flex: 1.5, minWidth: 180 }}>
-                    <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: SAC.text }}>{r.full_name || '—'}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: SAC.text }}>{r.full_name || '—'}</Text>
+                      {r.source && r.source !== 'our_platform' && r.source !== 'studentalumni' && (
+                        <View style={{ paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4, backgroundColor: r.source === 'unstop' ? 'rgba(124,58,237,0.18)' : 'rgba(14,165,233,0.18)', borderWidth: 1, borderColor: r.source === 'unstop' ? 'rgba(124,58,237,0.45)' : 'rgba(14,165,233,0.45)' }}>
+                          <Text numberOfLines={1} style={{ fontFamily: FONTS.xbold, fontSize: 8, color: r.source === 'unstop' ? '#C4B5FD' : '#7DD3FC', letterSpacing: 0.4 }}>{r.source.toUpperCase()}</Text>
+                        </View>
+                      )}
+                    </View>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{r.email || r.phone || ''}</Text>
                     {isTeam && (
                       <View style={{ marginTop: 6, gap: 4 }}>
@@ -3963,6 +3992,34 @@ function RegistrationsPanel() {
           </View>
         )}
       </Card>
+
+      {/* Import Tickets Modal */}
+      <Modal visible={showImport} transparent animationType="fade" onRequestClose={() => setShowImport(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(6,6,20,0.8)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{
+            width: '100%', maxWidth: 900,
+            backgroundColor: '#10182E',
+            borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
+            borderRadius: 16,
+            shadowColor: '#000', shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.55, shadowRadius: 30,
+            elevation: 12,
+            maxHeight: '88vh' as any,
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+              <View>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>Import Ticketed Buyers</Text>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted, marginTop: 2 }}>
+                  Link buyers from Unstop, Student Alumni, or another platform to accounts
+                </Text>
+              </View>
+              <Pressable onPress={() => setShowImport(false)} style={{ padding: 4 }}><X size={18} color={SAC.muted} /></Pressable>
+            </View>
+            <ScrollView style={{ padding: 20, maxHeight: '78vh' as any }} contentContainerStyle={{ gap: 12 }}>
+              <ImportPanel />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* Detail Modal */}
       {detailRow && (
@@ -4555,7 +4612,14 @@ function RegistrationsPanel() {
                     <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', gap: 6, backgroundColor: hasDiscrepancy ? 'rgba(239,68,68,0.08)' : undefined }}>
                       <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: r.is_free ? '#C4B5FD' : r.is_admin_pay ? '#FBBF24' : r.status === 'paid' ? '#34D399' : r.status === 'pending' ? '#F59E0B' : '#EF4444' }} />
                       <View style={{ flex: 2, minWidth: 0 }}>
-                        <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 10.5 }} numberOfLines={1}>{r.name}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                          <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 10.5 }} numberOfLines={1}>{r.name}</Text>
+                          {r.source && r.source !== 'our_platform' && r.source !== 'studentalumni' && (
+                            <View style={{ paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3, backgroundColor: r.source === 'unstop' ? 'rgba(124,58,237,0.18)' : 'rgba(14,165,233,0.18)', borderWidth: 1, borderColor: r.source === 'unstop' ? 'rgba(124,58,237,0.45)' : 'rgba(14,165,233,0.45)' }}>
+                              <Text style={{ fontFamily: FONTS.xbold, fontSize: 7, color: r.source === 'unstop' ? '#C4B5FD' : '#7DD3FC', letterSpacing: 0.4 }}>{r.source.toUpperCase()}</Text>
+                            </View>
+                          )}
+                        </View>
                         <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 8 }} numberOfLines={1}>{r.email}</Text>
                       </View>
                       <Text style={{ width: 45, color: SAC.muted, fontFamily: FONTS.med, fontSize: 9 }} numberOfLines={1}>{r.reg_type}{r.team_size > 1 ? `(${r.team_size})` : ''}</Text>

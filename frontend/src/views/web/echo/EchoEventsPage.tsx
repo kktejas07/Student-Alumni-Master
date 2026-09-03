@@ -20,6 +20,7 @@ import PaymentStatusScreen, { PaymentResult } from '@/src/views/components/Payme
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { EchoTicketsConfirmationPage } from './EchoTicketsConfirmationPage';
+import { EchoMarketplace } from './EchoMarketplace';
 
 interface EchoEventsPageProps {
   initialView?: 'list' | 'detail' | 'reg';
@@ -34,7 +35,7 @@ const SAMPLE_EVENTS = [
     college: 'SNIST',
     college_name: 'Sreenidhi Institute of Science and Technology',
     college_full: 'Sreenidhi Institute of Science & Technology, Hyderabad',
-    status: 'CLOSING IN 30 MINS',
+    status: 'OPEN',
     organizer: 'Career Development Center · SNIST in collaboration with StudentAlumni.ai',
     description: "Build something real. In one overnight sprint. National-Level 24-Hour Tech Fest with 7 Verticals across AI, Security, Hiring and Firesides.",
     dates: 'September 04 – 05, 2026',
@@ -44,7 +45,7 @@ const SAMPLE_EVENTS = [
     venue: 'Sreenidhi Institute of Science & Technology (SNIST), Hyderabad',
     location_short: 'SNIST Campus, Hyderabad',
     prize_pool: '₹17,50,000+ Total Pool (₹2,00,000 Mega Grand Pool · ₹50,000 Track Pool · WeHive Visas & Germany Study Abroad)',
-    reg_closes: 'Sep 02, 2026 · 7:00 PM IST (Closing in 30 mins)',
+    reg_closes: 'Registrations Open',
     individual_fee: 599,
     team_fee: 2495,
     individual_seats: '985 seats available',
@@ -310,7 +311,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 title: item.title || existing.title || 'ECHO Event',
                 college: item.college_name || item.college || existing.college || 'ECHO Campus',
                 college_full: item.college_name || item.college || item.venue || existing.college_full || 'ECHO Campus',
-                status: (item.event_status_badge || item.status || existing.status || 'UPCOMING').toUpperCase(),
+                status: item.registration?.enabled === false ? 'CLOSED' : (item.event_status_badge || item.status || existing.status || 'UPCOMING').toUpperCase(),
                 organizer: item.organizer_name || existing.organizer || 'CDC SNIST and in collaboration with StudentAlumni.ai',
                 description: item.subtitle || item.description || existing.description || "Empowering Tomorrow's Leaders",
                 dates: item.date || item.dates || existing.dates || 'September 04, 2026',
@@ -320,7 +321,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 venue: item.venue || existing.venue || 'Sreenidhi Institute of Science & Technology',
                 location_short: item.venue || existing.location_short || 'Hyderabad',
                 prize_pool: item.prize_pool ? (String(item.prize_pool).includes('₹') ? item.prize_pool : `₹${item.prize_pool} prize pool`) : existing.prize_pool || '₹50,000 prize pool',
-                reg_closes: item.reg_closes || existing.reg_closes || 'Sep 02, 2026 · 7:00 PM IST (Closing in 30 mins)',
+                reg_closes: item.registration?.enabled === false ? 'Registrations Closed' : (item.reg_closes || existing.reg_closes || 'Registration Open'),
                 individual_fee: item.fee ?? item.individual_fee ?? existing.individual_fee ?? 599,
                 team_fee: item.team_fee ?? existing.team_fee ?? 2495,
                 individual_seats: item.available_seats ? `${item.available_seats} seats available` : existing.individual_seats || '985 seats available',
@@ -382,14 +383,14 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   title: item.title || e.title,
                   college: item.college_name || item.college || e.college,
                   college_full: item.college_name || item.college || item.venue || e.college_full,
-                  status: (item.event_status_badge || item.status || e.status).toUpperCase(),
+                  status: item.registration?.enabled === false ? 'CLOSED' : (item.event_status_badge || item.status || e.status).toUpperCase(),
                   organizer: item.organizer_name || e.organizer,
                   description: item.subtitle || item.description || e.description,
                   dates: item.date || item.dates || e.dates,
                   time: item.time || e.time,
                   venue: item.venue || e.venue,
                   prize_pool: item.prize_pool ? (String(item.prize_pool).includes('₹') ? item.prize_pool : `₹${item.prize_pool} prize pool`) : e.prize_pool,
-                  reg_closes: item.reg_closes || e.reg_closes,
+                  reg_closes: item.registration?.enabled === false ? 'Registrations Closed' : (item.reg_closes || e.reg_closes),
                   individual_fee: item.fee ?? item.individual_fee ?? e.individual_fee,
                   team_fee: item.team_fee ?? e.team_fee,
                   individual_seats: item.available_seats ? `${item.available_seats} seats available` : e.individual_seats,
@@ -402,6 +403,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   videos: (item.videos && item.videos.length > 0) ? item.videos : ((item.gallery_videos && item.gallery_videos.length > 0) ? item.gallery_videos : (e.videos || [])),
                   highlights: item.highlights || e.highlights,
                   handbook_url: item.handbook_url || e.handbook_url,
+                  registration: item.registration || e.registration,
                 };
               }
               return e;
@@ -519,6 +521,10 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   };
 
   const handlePay = async () => {
+    if (activeEvent?.registration?.enabled === false || String(activeEvent?.registration?.enabled).toLowerCase() === 'false') {
+      showToast('Registrations are currently closed for this event.');
+      return;
+    }
     if (!acceptedTerms) {
       setShowTermsErr(true);
       return;
@@ -1647,10 +1653,17 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#6FD6FF', background: 'rgba(47,184,198,.12)', border: '1px solid #1F4E5C', borderRadius: '100px', padding: '8px 14px' }}>
                   {activeEvent.location_short}
                 </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 600, color: 'var(--amber)', border: '1px solid #4A3410', borderRadius: '100px', padding: '8px 14px' }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><circle cx="12" cy="12" r="8.5"></circle><path d="M12 8v4.5l3 1.8"></path></svg>
-                  Registration closes: {activeEvent.reg_closes}
-                </span>
+                {(!activeEvent?.registration || activeEvent?.registration?.enabled === false || String(activeEvent?.registration?.enabled).toLowerCase() === 'false') ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 600, color: 'var(--red)', border: '1px solid #5A1010', borderRadius: '100px', padding: '8px 14px' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><circle cx="12" cy="12" r="8.5"></circle><path d="M15 9l-6 6M9 9l6 6"></path></svg>
+                    Registrations Closed
+                  </span>
+                ) : (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 600, color: 'var(--amber)', border: '1px solid #4A3410', borderRadius: '100px', padding: '8px 14px' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><circle cx="12" cy="12" r="8.5"></circle><path d="M12 8v4.5l3 1.8"></path></svg>
+                    Registration closes: {activeEvent.reg_closes}
+                  </span>
+                )}
               </div>
 
               {/* Meta strip & Action Buttons */}
@@ -1671,16 +1684,28 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.preventDefault(); go('reg', activeEvent.slug); }}
-                    onTouchEnd={(e) => { e.preventDefault(); go('reg', activeEvent.slug); }}
-                    className="ev-btn"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 700, background: '#0E9F6E', color: '#FFFFFF', borderRadius: '10px', padding: '12px 22px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: '0 4px 16px rgba(14, 159, 110, 0.35)', border: 'none', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.9 }}><path d="M3 8.5A2.5 2.5 0 015.5 6h13A2.5 2.5 0 0121 8.5v.5a2 2 0 000 6v.5A2.5 2.5 0 0118.5 18h-13A2.5 2.5 0 013 15.5V15a2 2 0 000-6Z"></path></svg>
-                    Register
-                  </button>
+                  {(!activeEvent?.registration || activeEvent?.registration?.enabled === false || String(activeEvent?.registration?.enabled).toLowerCase() === 'false') ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="ev-btn"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 700, background: 'var(--panel2)', color: 'var(--muted)', borderRadius: '10px', padding: '12px 22px', cursor: 'not-allowed', border: '1px solid var(--line)', outline: 'none' }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.9 }}><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                      Registrations Closed
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); go('reg', activeEvent.slug); }}
+                      onTouchEnd={(e) => { e.preventDefault(); go('reg', activeEvent.slug); }}
+                      className="ev-btn"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 700, background: '#0E9F6E', color: '#FFFFFF', borderRadius: '10px', padding: '12px 22px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: '0 4px 16px rgba(14, 159, 110, 0.35)', border: 'none', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.9 }}><path d="M3 8.5A2.5 2.5 0 015.5 6h13A2.5 2.5 0 0121 8.5v.5a2 2 0 000 6v.5A2.5 2.5 0 0118.5 18h-13A2.5 2.5 0 013 15.5V15a2 2 0 000-6Z"></path></svg>
+                      Register
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={(e) => { e.preventDefault(); handleDownloadHandbook(); }}
@@ -2288,6 +2313,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             </button>
           </div>
 
+          <EchoMarketplace slug={activeEvent.slug} isDark={isDark} />
         </div>
       )}
 
@@ -2297,6 +2323,21 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       {view === 'reg' && (
         <div className="ev-anim-in ev-reg-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '90px 28px 90px' }}>
           
+          {(!activeEvent?.registration || activeEvent?.registration?.enabled === false || String(activeEvent?.registration?.enabled).toLowerCase() === 'false') ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--panel)', borderRadius: '18px', border: '1px solid var(--line)' }}>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text)', marginBottom: '12px' }}>Registrations Closed</div>
+              <div style={{ fontSize: '15px', color: 'var(--muted)', marginBottom: '24px' }}>We are no longer accepting new registrations for this event.</div>
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); go('detail', activeEvent.slug); }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)', borderRadius: '100px', padding: '10px 18px', background: 'var(--panel2)', color: 'var(--text)', cursor: 'pointer' }}
+              >
+                Back to event
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Back to Event Button */}
           {/* Back to Event Button */}
           <button
             type="button"
@@ -2959,8 +3000,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
              </div>
 
-           </div>
-
+            </div>
+            </>
+          )}
         </div>
       )}
 

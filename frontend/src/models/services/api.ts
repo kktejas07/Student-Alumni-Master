@@ -89,9 +89,9 @@ async function refreshAccessToken(): Promise<string | null> {
 
 export async function request<T>(
   path: string,
-  options: { method?: string; body?: any; auth?: boolean } = {},
+  options: { method?: string; body?: any; auth?: boolean; headers?: Record<string, string> } = {},
 ): Promise<T> {
-  const { method = 'GET', body, auth = true } = options;
+  const { method = 'GET', body, auth = true, headers: customHeaders } = options;
   const t0 = typeof Date !== 'undefined' ? Date.now() : 0;
   const fullUrl = `${BASE_URL}/api${path}`;
 
@@ -115,11 +115,11 @@ export async function request<T>(
   }
 
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
-  const headers: Record<string, string> = {};
-  if (!isFormData) {
+  const headers: Record<string, string> = { ...customHeaders };
+  if (!isFormData && !headers['Content-Type']) {
     headers['Content-Type'] = 'application/json';
   }
-  if (auth && token) headers['Authorization'] = `Bearer ${token}`;
+  if (auth && token && !headers['Authorization']) headers['Authorization'] = `Bearer ${token}`;
 
   try {
     const res = await fetch(fullUrl, {
@@ -567,6 +567,18 @@ export const api = {
     request<any>(`/echo/admin/${slug}/volunteers`, { method: 'POST', body: payload }),
   deleteEchoVolunteer: (slug: string, volunteerId: string) =>
     request<any>(`/echo/admin/${slug}/volunteers/${volunteerId}`, { method: 'DELETE' }),
+
+  // ── Unstop CSV Import ─────────────────────────────────────────────────────
+  echoImportTicketsPreview: (file: File, source: string = 'unstop') => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return request<any>(`/echo/admin/import-tickets/preview?source=${encodeURIComponent(source)}`, { method: 'POST', body: fd });
+  },
+  echoImportTickets: (file: File, slug: string, source: string = 'unstop') => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return request<any>(`/echo/admin/import-tickets?slug=${encodeURIComponent(slug)}&source=${encodeURIComponent(source)}`, { method: 'POST', body: fd });
+  },
 
   // ── Admin Contacts ────────────────────────────────────────────────────────
   listContacts: (params: { page?: number; per_page?: number; q?: string; source?: string; include_registered?: boolean }) => {
