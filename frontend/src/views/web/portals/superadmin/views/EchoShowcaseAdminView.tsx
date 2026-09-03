@@ -5276,13 +5276,18 @@ function LiveScanMonitorPanel() {
                       {(c.scanned_lat || c.scanned_lng) ? (
                         <View style={{ gap: 4 }}>
                           <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.4 }}>Location / Geo</Text>
+                          {c.scanned_location ? (
+                            <View style={{ backgroundColor: 'rgba(167,139,250,0.08)', borderRadius: 8, padding: 10, borderWidth: 1, borderColor: 'rgba(167,139,250,0.15)' }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
+                                <MapPin size={13} color="#A78BFA" style={{ marginTop: 2 }} />
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.text, flex: 1, lineHeight: 18 }}>{c.scanned_location}</Text>
+                              </View>
+                            </View>
+                          ) : null}
                           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                             <View style={{ gap: 2 }}>
-                              <Text style={{ fontFamily: 'monospace', fontSize: 12, color: SAC.text }}>
-                                Lat: {Number(c.scanned_lat ?? 0).toFixed(6)}
-                              </Text>
-                              <Text style={{ fontFamily: 'monospace', fontSize: 12, color: SAC.text }}>
-                                Lng: {Number(c.scanned_lng ?? 0).toFixed(6)}
+                              <Text style={{ fontFamily: 'monospace', fontSize: 11, color: SAC.muted }}>
+                                {Number(c.scanned_lat ?? 0).toFixed(6)}, {Number(c.scanned_lng ?? 0).toFixed(6)}
                               </Text>
                             </View>
                             <SecondaryButton onPress={() => openMap(c.scanned_lat, c.scanned_lng)}>
