@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { request } from '@/src/models/services/api';
 import { useVendorAuthStore } from '@/src/viewmodels/stores/vendorAuthStore';
 import { FontAwesome5 } from '@expo/vector-icons';
@@ -11,45 +11,46 @@ export function VendorScannerView() {
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
   const scannerRef = useRef<any>(null);
 
+  const [scanError, setScanError] = useState<string | null>(null);
+
+  const startScanner = async () => {
+    if (scannerRef.current) {
+      try { scannerRef.current.clear(); } catch (_) {}
+      scannerRef.current = null;
+    }
+    setScanError(null);
+    try {
+      const { Html5QrcodeScanner } = await import('html5-qrcode');
+      const scanner = new Html5QrcodeScanner(
+        "reader",
+        { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
+        false
+      );
+      scanner.render(
+        (decodedText: string) => {
+          scanner.pause(true);
+          setScannedId(decodedText.trim());
+        },
+        () => {}
+      );
+      scannerRef.current = scanner;
+    } catch (e: any) {
+      setScanError(e?.message || 'Could not start camera scanner. Allow camera access and reload.');
+      console.error('Scanner init failed', e);
+    }
+  };
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const loadScript = () => {
-        if ((window as any).Html5QrcodeScanner) {
-          initScanner();
-          return;
-        }
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/html5-qrcode';
-        script.async = true;
-        script.onload = initScanner;
-        document.body.appendChild(script);
-      };
-
-      const initScanner = () => {
-        const scanner = new (window as any).Html5QrcodeScanner(
-          "reader",
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          false
-        );
-
-        scanner.render(
-          (decodedText: string) => {
-            scanner.pause(true);
-            setScannedId(decodedText);
-          },
-          (error: any) => {}
-        );
-        scannerRef.current = scanner;
-      };
-
-      loadScript();
-
+      startScanner();
       return () => {
         if (scannerRef.current) {
-          scannerRef.current.clear().catch(console.error);
+          try { scannerRef.current.clear(); } catch (e) {}
+          scannerRef.current = null;
         }
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFulfill = async () => {
@@ -68,6 +69,7 @@ export function VendorScannerView() {
       if (res.success) {
         setMessage({ text: 'Order fulfilled successfully!', type: 'success' });
         setScannedId(null);
+        startScanner();
       } else {
         setMessage({ text: res.error || 'Failed to fulfill order', type: 'error' });
       }
@@ -81,9 +83,7 @@ export function VendorScannerView() {
   const handleReset = () => {
     setScannedId(null);
     setMessage(null);
-    if (scannerRef.current) {
-      scannerRef.current.resume();
-    }
+    startScanner();
   };
 
   return (
@@ -100,32 +100,41 @@ export function VendorScannerView() {
         </View>
       )}
 
-      {!scannedId ? (
-        <View style={styles.scannerWrapper}>
-          <div id="reader" style={{ width: '100%', maxWidth: '400px', margin: '0 auto', borderRadius: 16, overflow: 'hidden' }}></div>
-        </View>
-      ) : (
-        <View style={styles.resultCard}>
-          <Text style={styles.resultLabel}>Scanned Order ID:</Text>
-          <Text style={styles.resultId}>{scannedId}</Text>
-          
-          <Pressable
-            onPress={handleFulfill}
-            disabled={fulfilling}
-            style={styles.fulfillBtn}
-          >
-            {fulfilling ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnText}>Fulfill Order</Text>}
-          </Pressable>
-          
-          <Pressable
-            onPress={handleReset}
-            disabled={fulfilling}
-            style={styles.cancelBtn}
-          >
-            <Text style={styles.cancelText}>Scan Another</Text>
-          </Pressable>
+      {scanError && (
+        <View style={[styles.messageBox, styles.messageError]}>
+          <FontAwesome5 name="exclamation-circle" size={20} color="#EF4444" />
+          <Text style={[styles.messageText, { color: '#EF4444' }]}>
+            {scanError}
+          </Text>
         </View>
       )}
+
+      <View style={styles.scannerWrapper}>
+        <div id="reader" style={{ width: '100%', maxWidth: '400px', margin: '0 auto', borderRadius: 16, overflow: 'hidden' }}></div>
+
+        {scannedId && (
+          <View style={styles.resultCard}>
+            <Text style={styles.resultLabel}>Scanned Order ID:</Text>
+            <Text style={styles.resultId}>{scannedId}</Text>
+
+            <Pressable
+              onPress={handleFulfill}
+              disabled={fulfilling}
+              style={styles.fulfillBtn}
+            >
+              {fulfilling ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnText}>Fulfill Order</Text>}
+            </Pressable>
+
+            <Pressable
+              onPress={handleReset}
+              disabled={fulfilling}
+              style={styles.cancelBtn}
+            >
+              <Text style={styles.cancelText}>Scan Another</Text>
+            </Pressable>
+          </View>
+        )}
+      </View>
     </View>
   );
 }
