@@ -97,7 +97,7 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
         throw new Error("Razorpay failed to load. Check internet connection and try again.");
       }
       const options = {
-        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_YourKeyHere',
+        key: res.key_id || process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_YourKeyHere',
         amount: res.razorpay_order.amount,
         currency: "INR",
         name: "ECHO Marketplace",
