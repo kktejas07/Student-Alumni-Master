@@ -16,7 +16,7 @@ import {
 import {
   Tag, Plus, Pencil, Trash2, RefreshCw, Search, X,
   Percent, DollarSign, Gift, Ticket, Users, BarChart3,
-  Lock, Unlock, Info,
+  Lock, Unlock, Info, Globe, Upload, Image,
 } from 'lucide-react-native';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
@@ -107,9 +107,11 @@ export function CouponsView() {
         code: coupon.code,
         discount_type: coupon.discount_type || 'percentage',
         discount_value: Number(coupon.discount_value) || 0,
+        duration_months: coupon.duration_months || null,
         event_id: coupon.event_id || null,
         vendor_id: coupon.vendor_id || null,
         vendor_name: coupon.vendor_name || null,
+        partner_name: coupon.partner_name || null,
         max_uses: Number(coupon.max_uses) || 0,
         min_order_value: Number(coupon.min_order_value) || 0,
         max_discount: Number(coupon.max_discount) || 0,
@@ -118,6 +120,8 @@ export function CouponsView() {
         category: coupon.category || 'marketplace',
         locked: coupon.locked || false,
         instructions: coupon.instructions || '',
+        website_url: coupon.website_url || null,
+        logo_url: coupon.logo_url || null,
       };
       if (coupon._id) {
         await request(`/echo/admin/coupons/${coupon._id}`, { method: 'PUT', body: payload });
@@ -251,17 +255,35 @@ export function CouponsView() {
                 <Label>Discount Type</Label>
                 <select
                   value={editing.discount_type || 'percentage'}
-                  onChange={(e) => setEditing({ ...editing, discount_type: e.target.value })}
+                  onChange={(e) => setEditing({ ...editing, discount_type: e.target.value, duration_months: e.target.value !== 'duration' ? null : (editing.duration_months || 3) })}
                   style={{ backgroundColor: SAC.cardSolid, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 9, padding: 10, fontSize: 13, fontFamily: FONTS.regular, width: '100%', outline: 'none' } as any}
                 >
                   <option value="percentage">Percentage (%)</option>
                   <option value="fixed">Fixed (₹)</option>
+                  <option value="duration">Duration (months)</option>
                 </select>
               </View>
-              <View style={{ flex: 1 }}>
-                <Label>Discount Value</Label>
-                <Field value={String(editing.discount_value || '')} onChangeText={(v: string) => setEditing({ ...editing, discount_value: Number(v) })} placeholder="20" keyboardType="numeric" />
-              </View>
+              {editing.discount_type === 'duration' ? (
+                <View style={{ flex: 1 }}>
+                  <Label>Duration (months)</Label>
+                  <select
+                    value={String(editing.duration_months || 3)}
+                    onChange={(e) => setEditing({ ...editing, duration_months: Number(e.target.value) })}
+                    style={{ backgroundColor: SAC.cardSolid, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 9, padding: 10, fontSize: 13, fontFamily: FONTS.regular, width: '100%', outline: 'none' } as any}
+                  >
+                    <option value="1">1 Month</option>
+                    <option value="2">2 Months</option>
+                    <option value="3">3 Months</option>
+                    <option value="6">6 Months</option>
+                    <option value="12">12 Months</option>
+                  </select>
+                </View>
+              ) : (
+                <View style={{ flex: 1 }}>
+                  <Label>Discount Value</Label>
+                  <Field value={String(editing.discount_value || '')} onChangeText={(v: string) => setEditing({ ...editing, discount_value: Number(v) })} placeholder="20" keyboardType="numeric" />
+                </View>
+              )}
             </View>
             <View>
               <Label>Vendor (leave empty for all)</Label>
@@ -279,6 +301,18 @@ export function CouponsView() {
                   <option key={v.vendor_id} value={v.vendor_id}>{v.name || v.vendor_id}</option>
                 ))}
               </select>
+            </View>
+            <View>
+              <Label>Partner / Brand Name (for partner coupons)</Label>
+              <Field value={editing.partner_name || ''} onChangeText={(v: string) => setEditing({ ...editing, partner_name: v })} placeholder="e.g. Coursera, Spotify, Uber" />
+            </View>
+            <View>
+              <Label>Website URL (where coupon is redeemed)</Label>
+              <Field value={editing.website_url || ''} onChangeText={(v: string) => setEditing({ ...editing, website_url: v })} placeholder="https://coursera.org" />
+            </View>
+            <View>
+              <Label>Logo URL (brand logo image)</Label>
+              <Field value={editing.logo_url || ''} onChangeText={(v: string) => setEditing({ ...editing, logo_url: v })} placeholder="https://example.com/logo.png or paste image URL" />
             </View>
             <View>
               <Label>Description</Label>
@@ -340,9 +374,13 @@ export function CouponsView() {
             return (
               <Card key={coupon._id || coupon.code} style={{ padding: 14 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <View style={[s.categoryDot, { backgroundColor: catColor + '22', borderColor: catColor + '44' }]}>
-                    <Tag size={14} color={catColor} />
-                  </View>
+                  {coupon.logo_url ? (
+                    <img src={coupon.logo_url} alt="" style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'cover', border: `1px solid ${SAC.border}` } as any} />
+                  ) : (
+                    <View style={[s.categoryDot, { backgroundColor: catColor + '22', borderColor: catColor + '44' }]}>
+                      <Tag size={14} color={catColor} />
+                    </View>
+                  )}
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>{coupon.code}</Text>
@@ -357,12 +395,20 @@ export function CouponsView() {
                       )}
                     </View>
                     <Text style={{ fontSize: 12, color: SAC.muted, marginTop: 2 }}>
-                      {coupon.discount_type === 'percentage' ? `${coupon.discount_value}% off` : `₹${coupon.discount_value} off`}
-                      {coupon.vendor_name ? ` · ${coupon.vendor_name}` : ' · All vendors'}
+                      {coupon.discount_type === 'percentage' ? `${coupon.discount_value}% off` :
+                       coupon.discount_type === 'duration' ? `${coupon.duration_months || '?'} month${(coupon.duration_months || 0) !== 1 ? 's' : ''} access` :
+                       `₹${coupon.discount_value} off`}
+                      {coupon.partner_name ? ` · ${coupon.partner_name}` : coupon.vendor_name ? ` · ${coupon.vendor_name}` : ' · All vendors'}
                       {coupon.min_order_value ? ` · Min ₹${coupon.min_order_value}` : ''}
                     </Text>
                     {coupon.description ? (
                       <Text style={{ fontSize: 11, color: SAC.dim, marginTop: 2 }} numberOfLines={1}>{coupon.description}</Text>
+                    ) : null}
+                    {coupon.website_url ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                        <Globe size={10} color="#10B981" />
+                        <Text style={{ fontSize: 10.5, color: '#10B981' }} numberOfLines={1}>{coupon.website_url}</Text>
+                      </View>
                     ) : null}
                     {coupon.instructions ? (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>

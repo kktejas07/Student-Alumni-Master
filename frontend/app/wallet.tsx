@@ -299,11 +299,14 @@ export default function WalletScreen() {
         const categories = Object.keys(r.data);
         for (const cat of categories) {
           for (const c of r.data[cat]) {
+            const discountLabel = c.discount_type === 'duration'
+              ? `${c.duration_months || '?'} Month${(c.duration_months || 0) !== 1 ? 's' : ''} Access`
+              : c.discount_type === 'percentage' ? `${c.discount_value}% OFF` : `₹${c.discount_value} OFF`;
             allCoupons.push({
               id: `coup-${c.code}`,
               brand: c.vendor_name || 'Student Alumni',
-              title: c.description || `${c.discount_type === 'percentage' ? c.discount_value + '% Off' : '₹' + c.discount_value + ' Off'}`,
-              discount: c.discount_type === 'percentage' ? `${c.discount_value}% OFF` : `₹${c.discount_value} OFF`,
+              title: c.description || discountLabel,
+              discount: discountLabel,
               code: c.code,
               cost_credits: 0,
               url: '',

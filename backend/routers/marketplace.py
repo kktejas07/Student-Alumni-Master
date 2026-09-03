@@ -1169,8 +1169,9 @@ async def admin_list_orders(showcase_id: str, request: Request, _=Depends(_requi
 
 class AdminCouponInput(BaseModel):
     code: str
-    discount_type: str = "percentage"
+    discount_type: str = "percentage"  # percentage|fixed|duration
     discount_value: float = 0
+    duration_months: Optional[int] = None  # for duration type: 1, 2, 3, 6, 12
     event_id: Optional[str] = None
     vendor_id: Optional[str] = None
     vendor_name: Optional[str] = None
@@ -1182,6 +1183,9 @@ class AdminCouponInput(BaseModel):
     category: Optional[str] = "marketplace"  # marketplace|partner|event|promo
     locked: Optional[bool] = False  # locked coupons can't be used at checkout
     instructions: Optional[str] = None  # how to avail the coupon
+    website_url: Optional[str] = None  # partner website URL
+    logo_url: Optional[str] = None  # brand/partner logo (URL or base64 data URL)
+    partner_name: Optional[str] = None  # partner/brand name (e.g. Coursera, Spotify)
 
 
 @router.get("/admin/coupons")
@@ -1221,6 +1225,7 @@ async def list_available_coupons(event_id: str, category: Optional[str] = None):
             "code": c.get("code", ""),
             "discount_type": c.get("discount_type", "percentage"),
             "discount_value": c.get("discount_value", 0),
+            "duration_months": c.get("duration_months"),
             "min_order_value": c.get("min_order_value", 0),
             "max_discount": c.get("max_discount", 0),
             "vendor_id": c.get("vendor_id"),
@@ -1250,6 +1255,7 @@ async def list_coupons_by_category(category: Optional[str] = None):
             "code": c.get("code", ""),
             "discount_type": c.get("discount_type", "percentage"),
             "discount_value": c.get("discount_value", 0),
+            "duration_months": c.get("duration_months"),
             "min_order_value": c.get("min_order_value", 0),
             "max_discount": c.get("max_discount", 0),
             "vendor_name": c.get("vendor_name"),
@@ -1273,6 +1279,7 @@ async def admin_create_coupon(payload: AdminCouponInput, request: Request, _=Dep
         "code": code,
         "discount_type": payload.discount_type,
         "discount_value": payload.discount_value,
+        "duration_months": payload.duration_months,
         "event_id": payload.event_id,
         "vendor_id": payload.vendor_id or None,
         "vendor_name": payload.vendor_name or None,
@@ -1284,6 +1291,9 @@ async def admin_create_coupon(payload: AdminCouponInput, request: Request, _=Dep
         "category": payload.category or "marketplace",
         "locked": payload.locked if payload.locked is not None else False,
         "instructions": payload.instructions or "",
+        "website_url": payload.website_url or None,
+        "logo_url": payload.logo_url or None,
+        "partner_name": payload.partner_name or None,
         "uses_count": 0,
         "active": True,
         "created_at": datetime.now(timezone.utc).isoformat(),
