@@ -418,8 +418,8 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
               const couponVendorId = couponPreview?.vendor_id;
               const itemVendorId = item.vendor_id;
               const isCouponAppliedToItem = couponVendorId && itemVendorId && couponVendorId === itemVendorId && discount > 0;
-              const originalPrice = isCouponAppliedToItem ? itemTotal : null;
-              const discountedPrice = isCouponAppliedToItem ? Math.max(0, itemTotal - (discount * (itemTotal / cartTotal))) : null;
+              const itemDiscount = isCouponAppliedToItem ? Math.round(itemTotal * (discount / cartTotal)) : 0;
+              const discountedPrice = isCouponAppliedToItem ? itemTotal - itemDiscount : itemTotal;
               return (
                 <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, padding: 10, border: `1px solid ${border}`, borderRadius: 12, background: isCouponAppliedToItem ? 'rgba(16,185,129,0.05)' : 'var(--panel)' }}>
                   {img ? (
@@ -438,10 +438,11 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     {isCouponAppliedToItem ? (
-                      <>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#10B981' }}>₹{discountedPrice.toFixed(0)}</div>
-                        <div style={{ fontSize: 12, color: 'var(--muted)', textDecoration: 'line-through' }}>₹{originalPrice}</div>
-                      </>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#10B981' }}>₹{discountedPrice}</div>
+                        <div style={{ fontSize: 11, color: 'var(--muted)', textDecoration: 'line-through' }}>₹{itemTotal}</div>
+                        <div style={{ fontSize: 10, color: '#10B981', fontWeight: 600 }}>−₹{itemDiscount} ({couponPreview?.code})</div>
+                      </div>
                     ) : (
                       <div style={{ fontSize: 14, fontWeight: 700, color: fg }}>₹{itemTotal}</div>
                     )}
