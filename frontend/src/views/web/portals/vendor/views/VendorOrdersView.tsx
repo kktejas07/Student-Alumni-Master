@@ -214,6 +214,14 @@ export function VendorOrdersView() {
                       </View>
                     )}
                   </View>
+                  <View style={{ width: 70, alignItems: 'flex-end' }}>
+                    <Text style={{ color: COLORS.text, fontFamily: '700', fontSize: 12 }}>
+                      ₹{order.final_amount || vendorItems.reduce((sum: number, it: any) => sum + (it.price || 0) * (it.quantity || 1), 0)}
+                    </Text>
+                    {order.refund_status === 'refunded' && (
+                      <Text style={{ color: '#EF4444', fontSize: 9, fontWeight: '600', marginTop: 2 }}>REFUNDED</Text>
+                    )}
+                  </View>
                   <View style={{ width: 80, alignItems: 'flex-end' }}>
                     <Text style={styles.cellTime}>
                       {order.created_at ? new Date(order.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : ''}
