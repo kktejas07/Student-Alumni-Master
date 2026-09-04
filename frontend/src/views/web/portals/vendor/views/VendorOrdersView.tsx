@@ -403,7 +403,7 @@ export function VendorOrdersView() {
               
               <View style={{ marginTop: 16, padding: 12, backgroundColor: 'rgba(245,158,11,0.08)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(245,158,11,0.2)' }}>
                 <Text style={{ color: '#FCD34D', fontSize: 12.5, fontWeight: '600' }}>
-                  This will refund ₹{refundModal.total_amount || refundModal.final_amount || '?'} to {refundModal.user_name || 'the customer'}. This action cannot be undone.
+                  This will refund ₹{refundModal.final_amount || (refundModal.items || []).reduce((sum: number, it: any) => sum + (it.price || 0) * (it.quantity || 1), 0)} to {refundModal.user_name || 'the customer'}. This action cannot be undone.
                 </Text>
               </View>
               

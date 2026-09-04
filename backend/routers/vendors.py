@@ -319,6 +319,7 @@ async def get_vendor_dashboard(vendor: dict = Depends(get_current_vendor)):
                     is_order_pending = True
                     
         if vendor_items:
+            vendor_total = sum(item.get("price", 0) * item.get("quantity", 1) for item in vendor_items)
             order_summary = {
                 "order_id": order.get("id"),
                 "user_name": order.get("user_name"),
@@ -329,6 +330,10 @@ async def get_vendor_dashboard(vendor: dict = Depends(get_current_vendor)):
                 "delivery_method": order.get("delivery_method", "pickup"),
                 "delivery_info": order.get("delivery_info"),
                 "order_status": order.get("order_status", "confirmed"),
+                "refund_status": order.get("refund_status"),
+                "refund_amount": order.get("refund_amount"),
+                "refund_reason": order.get("refund_reason"),
+                "final_amount": order.get("final_amount", vendor_total),
             }
             if is_order_pending:
                 pending_orders.append(order_summary)
