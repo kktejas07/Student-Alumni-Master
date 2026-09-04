@@ -186,7 +186,7 @@ export default function EchoScanPage() {
     const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     try {
       // Determine if this is a ticket (ECHO: prefix, URL-encoded colon, or bare 12-char hex reg_id)
-      const isTicket = original.startsWith('ECHO:') || original.includes('%3A') || /^[a-f0-9]{12}$/i.test(codeUpper);
+      const isTicket = original.startsWith('ECHO:') || original.includes('%3A') || /^[a-f0-9]{8}$/i.test(codeUpper) || /^[a-f0-9]{12}$/i.test(codeUpper) || /^[a-f0-9]{24}$/i.test(codeUpper);
       const loc = locationRef.current;
 
       if (isTicket) {
