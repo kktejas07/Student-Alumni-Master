@@ -229,6 +229,9 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
   };
 
   const getImage = (item: any): string => {
+    // New: use image_url from backend (serves image as proper HTTP response)
+    if (item.image_url) return item.image_url;
+    // Legacy fallback: base64 data
     if (item.image_base64) return item.image_base64;
     if (Array.isArray(item.images) && item.images.length) return item.images[0];
     return '';

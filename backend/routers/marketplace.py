@@ -174,18 +174,31 @@ def _new_order_id() -> str:
 
 # ── Catalog helpers ──────────────────────────────────────────────────────────
 def _normalize_item(doc: dict) -> dict:
-    """Return catalog item in the shape the frontend UI expects."""
+    """Return catalog item in the shape the frontend UI expects.
+    Replaces base64 image data with URLs to reduce payload size."""
     item = _serialize(doc)
     item["id"] = item.get("_id")
     item.setdefault("stock_limit", item.get("stock", 0))
     item.setdefault("stock_remaining", item.get("stock_remaining", item.get("stock", 0)))
-    item.setdefault("images", [])
-    item.setdefault("image_base64", None)
     item.setdefault("stall_no", None)
     item.setdefault("stall_location", None)
     item.setdefault("is_active", True)
     item.setdefault("description", "")
     item.setdefault("category", "food")
+
+    # Replace base64 with URLs to reduce catalog payload size
+    item_id = item.get("id") or item.get("_id") or ""
+    if item.get("image_base64"):
+        item["image_url"] = f"/api/echo/catalog-items/{item_id}/image"
+    elif item.get("images") and len(item.get("images", [])) > 0:
+        item["image_url"] = f"/api/echo/catalog-items/{item_id}/image"
+    else:
+        item["image_url"] = None
+
+    # Remove large base64 data from response
+    item.pop("image_base64", None)
+    item.pop("images", None)
+
     return item
 
 
@@ -705,6 +718,49 @@ async def get_showcase_catalog(slug: str, request: Request):
     response = JSONResponse({"success": True, "data": items, "event_id": event_key})
     # Cache for 30 seconds (catalog doesn't change often)
     response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=60"
+    return response
+
+
+@router.get("/catalog-items/{item_id}/image")
+async def get_catalog_item_image(item_id: str):
+    """Serve a catalog item's image as a proper image response (avoids base64 in JSON)."""
+    from fastapi.responses import Response
+    import base64 as b64
+
+    # Try to find the item by _id or by id field
+    doc = None
+    try:
+        from bson import ObjectId
+        doc = await db.echo_catalog_items.find_one({"_id": ObjectId(item_id)})
+    except Exception:
+        pass
+    if not doc:
+        doc = await db.echo_catalog_items.find_one({"id": item_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    # Get the base64 image data
+    image_b64 = doc.get("image_base64") or ""
+    images = doc.get("images") or []
+    if not image_b64 and images:
+        image_b64 = images[0] if isinstance(images[0], str) else ""
+
+    if not image_b64:
+        raise HTTPException(status_code=404, detail="No image for this item")
+
+    # Handle data URL prefix (data:image/png;base64,...)
+    if image_b64.startswith("data:"):
+        # Extract content type and base64 data
+        header, b64data = image_b64.split(",", 1)
+        content_type = header.split(";")[0].split(":")[1] if ":" in header else "image/png"
+        image_bytes = b64.b64decode(b64data)
+    else:
+        # Raw base64
+        content_type = "image/png"
+        image_bytes = b64.b64decode(image_b64)
+
+    response = Response(content=image_bytes, media_type=content_type)
+    response.headers["Cache-Control"] = "public, max-age=86400, immutable"
     return response
 
 
