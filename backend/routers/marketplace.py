@@ -1164,6 +1164,7 @@ async def coupon_preview(payload: dict, request: Request):
     taxable = round(subtotal - discount, 2)
     return {"success": True, "discount": discount, "code": applied,
             "type": doc.get("discount_type"), "value": doc.get("discount_value"),
+            "vendor_id": doc.get("vendor_id"), "vendor_name": doc.get("vendor_name"),
             "min_order_value": doc.get("min_order_value", 0),
             "max_discount": doc.get("max_discount", 0),
             "subtotal": round(subtotal, 2), "taxable": taxable,

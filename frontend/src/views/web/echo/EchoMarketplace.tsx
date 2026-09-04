@@ -28,7 +28,7 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<any>(null);
   const [qrImage, setQrImage] = useState('');
-  const [couponPreview, setCouponPreview] = useState<{ discount: number; code?: string | null; gst?: number; gstSplit?: any; error?: string } | null>(null);
+  const [couponPreview, setCouponPreview] = useState<{ discount: number; code?: string | null; vendor_id?: string | null; vendor_name?: string | null; gst?: number; gstSplit?: any; error?: string } | null>(null);
   const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
   const [deliveryMethod, setDeliveryMethod] = useState<'pickup' | 'delivery'>('pickup');
   const [deliveryInfo, setDeliveryInfo] = useState('');
@@ -205,8 +205,8 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
         });
         if (!active) return;
         if (res.success) {
-          if (res.discount > 0) setCouponPreview({ discount: Number(res.discount) || 0, code: res.code, gst: Number(res.gst) || 0, gstSplit: res.gst_split });
-          else setCouponPreview({ discount: 0, code: res.code, gst: Number(res.gst) || 0, gstSplit: res.gst_split, error: 'Coupon not applicable' });
+          if (res.discount > 0) setCouponPreview({ discount: Number(res.discount) || 0, code: res.code, vendor_id: res.vendor_id, vendor_name: res.vendor_name, gst: Number(res.gst) || 0, gstSplit: res.gst_split });
+          else setCouponPreview({ discount: 0, code: res.code, vendor_id: res.vendor_id, vendor_name: res.vendor_name, gst: Number(res.gst) || 0, gstSplit: res.gst_split, error: 'Coupon not applicable' });
         } else {
           setCouponPreview({ discount: 0, gst: Number(res.gst) || 0, gstSplit: res.gst_split, error: res.error || 'Invalid coupon' });
         }
@@ -414,15 +414,38 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
               const item = items.find(i => i.id === id || i._id === id);
               if (!item) return null;
               const img = getImage(item);
+              const itemTotal = item.price * qty;
+              const couponVendorId = couponPreview?.vendor_id;
+              const itemVendorId = item.vendor_id;
+              const isCouponAppliedToItem = couponVendorId && itemVendorId && couponVendorId === itemVendorId && discount > 0;
+              const originalPrice = isCouponAppliedToItem ? itemTotal : null;
+              const discountedPrice = isCouponAppliedToItem ? Math.max(0, itemTotal - (discount * (itemTotal / cartTotal))) : null;
               return (
-                <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, padding: 10, border: `1px solid ${border}`, borderRadius: 12, background: 'var(--panel)' }}>
+                <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, padding: 10, border: `1px solid ${border}`, borderRadius: 12, background: isCouponAppliedToItem ? 'rgba(16,185,129,0.05)' : 'var(--panel)' }}>
                   {img ? (
                     <img src={img} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover' }} />
                   ) : (
                     <div style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--line2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><PackageX size={18} color="var(--muted)" /></div>
                   )}
-                  <span style={{ flex: 1, fontSize: 14, color: fg }}>{qty}x {item.name}</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: fg }}>₹{item.price * qty}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, color: fg }}>{qty}x {item.name}</div>
+                    {item.vendor_name && (
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                        {isCouponAppliedToItem && <span style={{ color: '#10B981', marginRight: 4 }}>✓</span>}
+                        {item.vendor_name}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    {isCouponAppliedToItem ? (
+                      <>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#10B981' }}>₹{discountedPrice.toFixed(0)}</div>
+                        <div style={{ fontSize: 12, color: 'var(--muted)', textDecoration: 'line-through' }}>₹{originalPrice}</div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: 14, fontWeight: 700, color: fg }}>₹{itemTotal}</div>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -431,9 +454,21 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
               <span>₹{cartTotal}</span>
             </div>
             {discount > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6, fontSize: 14, color: '#10B981' }}>
-                <span>Coupon discount{couponPreview?.code ? ` (${couponPreview.code})` : ''}</span>
-                <span>− ₹{discount}</span>
+              <div style={{ paddingTop: 6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: '#10B981' }}>
+                  <span>Coupon discount{couponPreview?.code ? ` (${couponPreview.code})` : ''}</span>
+                  <span>− ₹{discount}</span>
+                </div>
+                {couponPreview?.vendor_name && (
+                  <div style={{ fontSize: 11, color: '#10B981', opacity: 0.8, marginTop: 3 }}>
+                    Applied to {couponPreview.vendor_name} items only
+                  </div>
+                )}
+                {!couponPreview?.vendor_name && (
+                  <div style={{ fontSize: 11, color: '#10B981', opacity: 0.8, marginTop: 3 }}>
+                    Applied to entire order
+                  </div>
+                )}
               </div>
             )}
             {gstTotal > 0 && (
