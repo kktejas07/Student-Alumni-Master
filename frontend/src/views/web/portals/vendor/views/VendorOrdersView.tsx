@@ -207,6 +207,15 @@ export function VendorOrdersView() {
                         <Text style={styles.detailValue}>{order.user_email}</Text>
                       </View>
                     )}
+                    {order.delivery_method && (
+                      <View style={styles.detailRow}>
+                        <FontAwesome5 name={order.delivery_method === 'delivery' ? 'truck' : 'hand-paper'} size={12} color={COLORS.muted} />
+                        <Text style={styles.detailLabel}>{order.delivery_method === 'delivery' ? 'Deliver To' : 'Pickup'}</Text>
+                        <Text style={[styles.detailValue, { color: order.delivery_method === 'delivery' ? '#10B981' : COLORS.text }]}>
+                          {order.delivery_method === 'delivery' ? (order.delivery_info || 'Table not specified') : 'Self Pickup'}
+                        </Text>
+                      </View>
+                    )}
                     {order.user_phone && (
                       <View style={styles.detailRow}>
                         <FontAwesome5 name="phone" size={12} color={COLORS.muted} />

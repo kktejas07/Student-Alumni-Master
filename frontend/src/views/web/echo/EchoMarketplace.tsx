@@ -30,6 +30,8 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
   const [qrImage, setQrImage] = useState('');
   const [couponPreview, setCouponPreview] = useState<{ discount: number; code?: string | null; gst?: number; gstSplit?: any; error?: string } | null>(null);
   const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
+  const [deliveryMethod, setDeliveryMethod] = useState<'pickup' | 'delivery'>('pickup');
+  const [deliveryInfo, setDeliveryInfo] = useState('');
   const user = useAuthStore(s => s.user);
 
   useEffect(() => {
@@ -88,6 +90,8 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
         user_name: user.full_name || user.name || user.email,
         user_email: user.email,
         user_phone: user.phone,
+        delivery_method: deliveryMethod,
+        delivery_info: deliveryMethod === 'delivery' ? deliveryInfo.trim() : null,
       };
       if (couponCode.trim()) payload.coupon_code = couponCode.trim();
 
@@ -428,6 +432,42 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
                 style={{ flex: 1, padding: '11px 8px', border: 'none', background: 'transparent', color: fg, outline: 'none' }}
               />
             </div>
+          </div>
+
+          {/* Delivery Method */}
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginBottom: 6 }}>How do you want to receive your order?</div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setDeliveryMethod('pickup')}
+                style={{
+                  flex: 1, padding: '10px 14px', borderRadius: 10, border: `1px solid ${deliveryMethod === 'pickup' ? 'var(--violet)' : border}`,
+                  background: deliveryMethod === 'pickup' ? 'rgba(124,92,252,0.15)' : 'var(--panel)',
+                  color: fg, fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all .15s ease',
+                }}
+              >
+                🙋 Self Pickup
+              </button>
+              <button
+                onClick={() => setDeliveryMethod('delivery')}
+                style={{
+                  flex: 1, padding: '10px 14px', borderRadius: 10, border: `1px solid ${deliveryMethod === 'delivery' ? '#10B981' : border}`,
+                  background: deliveryMethod === 'delivery' ? 'rgba(16,185,129,0.15)' : 'var(--panel)',
+                  color: fg, fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all .15s ease',
+                }}
+              >
+                🚚 Deliver to Table
+              </button>
+            </div>
+            {deliveryMethod === 'delivery' && (
+              <input
+                type="text"
+                placeholder="Enter Table No. or Team Name (e.g. Table 12, Team Alpha)"
+                value={deliveryInfo}
+                onChange={e => setDeliveryInfo(e.target.value)}
+                style={{ width: '100%', marginTop: 10, padding: '10px 14px', borderRadius: 10, border: `1px solid ${border}`, background: 'var(--panel)', color: fg, fontSize: 13, outline: 'none' }}
+              />
+            )}
           </div>
           {couponPreview?.error && (
             <div style={{ fontSize: 12.5, fontWeight: 600, color: '#EF4444', marginBottom: 10 }}>{couponPreview.error}</div>

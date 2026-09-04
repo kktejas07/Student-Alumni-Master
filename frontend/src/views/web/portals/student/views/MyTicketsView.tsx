@@ -444,12 +444,13 @@ export function MyTicketsView() {
           const free = order.payment_status === 'free' || (order.final_amount === 0 && paid);
           const pending = order.payment_status === 'pending' || order.status === 'pending';
           const allFulfilled = oItems.length > 0 && oItems.every((it: any) => it.fulfillment_status === 'FULFILLED');
+          const isDelivery = order.delivery_method === 'delivery';
           const orderStatus = allFulfilled
             ? { c: '#6366F1', label: 'COLLECTED', icon: CheckCircle }
             : free
-              ? { c: '#34D399', label: 'PAID · COLLECT AT STALL', icon: CheckCircle }
+              ? { c: '#34D399', label: isDelivery ? 'PAID · DELIVER TO TABLE' : 'PAID · COLLECT AT STALL', icon: CheckCircle }
               : paid
-                ? { c: '#34D399', label: 'PAID · COLLECT AT STALL', icon: CheckCircle }
+                ? { c: '#34D399', label: isDelivery ? 'PAID · DELIVER TO TABLE' : 'PAID · COLLECT AT STALL', icon: CheckCircle }
                 : pending
                   ? { c: '#FBBF24', label: 'PENDING PAYMENT', icon: Clock }
                   : { c: '#FB7185', label: 'NOT PAID', icon: AlertCircle };
@@ -484,6 +485,12 @@ export function MyTicketsView() {
                   <Text style={[s.readyBadgeText, { color: orderStatus.c }]}>{orderStatus.label.split(' · ')[0]}</Text>
                 </View>
               </View>
+              
+              {isDelivery && order.delivery_info && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingHorizontal: 4 }}>
+                  <Text style={{ fontSize: 12, color: '#10B981', fontWeight: 600 }}>📍 Deliver to: {order.delivery_info}</Text>
+                </View>
+              )}
               
               <View style={s.spSeparator}>
                 <View style={[s.spCutout, { left: -9 }]} />
