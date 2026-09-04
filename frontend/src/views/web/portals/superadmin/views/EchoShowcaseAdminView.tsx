@@ -170,7 +170,7 @@ import {
   Star, BookOpen, Upload, MoveUp, MoveDown, Images, FolderOpen,
   Copy, Check, Search, RefreshCw, Plus, PlusCircle, FileText, Link2,
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users,
-  Ticket, Mail, ScanLine, Phone,
+  Ticket, Mail, ScanLine, Phone, Edit2,
   CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle, Download, FileSpreadsheet, MapPin,
   UserCheck, GraduationCap, CreditCard,
 } from 'lucide-react-native';
@@ -179,7 +179,7 @@ import {
   StatusPill, SearchField, KpiTile, useToast, Toast, TopTabs, IconBox,
 } from '../applekit';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
-import { api, resolveImageUrl } from '@/src/models/services/api';
+import { api, request, resolveImageUrl } from '@/src/models/services/api';
 import { useConfirm } from '@/src/views/components';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
@@ -3142,6 +3142,9 @@ function RegistrationsPanel() {
   const [editingTeamReg, setEditingTeamReg] = useState<any>(null);
   const [editTeamMembers, setEditTeamMembers] = useState<any[]>([]);
   const [editTeamName, setEditTeamName] = useState('');
+  const [editingReg, setEditingReg] = useState<{ id: string; email: string; full_name: string } | null>(null);
+  const [editEmail, setEditEmail] = useState('');
+  const [editName, setEditName] = useState('');
 
 
   const [page, setPage] = useState(0);
@@ -3832,6 +3835,26 @@ function RegistrationsPanel() {
                       )}
                     </View>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{r.email || r.phone || ''}</Text>
+                    <View style={{ flexDirection: 'row', gap: 4, marginTop: 4 }}>
+                      <Pressable
+                        onPress={() => { setEditingReg({ id: r.id, email: r.email || '', full_name: r.full_name || '' }); setEditEmail(r.email || ''); setEditName(r.full_name || ''); }}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4, backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)' }}>
+                        <Edit2 size={10} color="#A78BFA" />
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 8, color: '#A78BFA' }}>Edit</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={async () => {
+                          if (!window.confirm('Resend tickets to ' + r.email + '?')) return;
+                          try {
+                            await request(`/echo/admin/registrations/${r.id}/resend-tickets`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+                            flash('Tickets resent to ' + r.email);
+                          } catch (e: any) { flash(e?.message || 'Failed', 'error'); }
+                        }}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4, backgroundColor: 'rgba(52,211,153,0.12)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.25)' }}>
+                        <RefreshCw size={10} color="#34D399" />
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 8, color: '#34D399' }}>Resend</Text>
+                      </Pressable>
+                    </View>
                     {isTeam && (
                       <View style={{ marginTop: 6, gap: 4 }}>
                         {r.team_name && (
@@ -5010,6 +5033,7 @@ function VolunteersPanel() {
 
 // ── Live Scan Monitor Panel ───────────────────────────────────────────────────
 function LiveScanMonitorPanel() {
+  const { flash } = useToast();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
@@ -5292,7 +5316,7 @@ function LiveScanMonitorPanel() {
                   onPress={async () => {
                     if (!window.confirm('Resend tickets to ' + reg.email + '?')) return;
                     try {
-                      await request(`/echo/admin/registrations/${reg.id}/resend-tickets`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+                      await api.adminEchoResendTickets(reg.id);
                       flash('Tickets resent to ' + reg.email);
                     } catch (e: any) { flash(e?.message || 'Failed', 'error'); }
                   }}
@@ -5437,7 +5461,6 @@ function LiveScanMonitorPanel() {
                   await request(`/echo/admin/registrations/${editingReg.id}`, {
                     method: 'PATCH',
                     body: { email: editEmail, full_name: editName },
-                    headers: { Authorization: `Bearer ${token}` },
                   });
                   flash('Registration updated');
                   setEditingReg(null);
