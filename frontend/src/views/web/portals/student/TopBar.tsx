@@ -31,7 +31,7 @@ import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
 import { GlassTopbar } from '@/src/motion/apple/components';
 import { FadeInView, PressScale, PulseDot } from './motion';
 import { PALETTE, TYPO } from './tokens';
-import { StudentPortalNavContext } from './StudentPortalNavContext';
+import { StudentPortalNavContext, useStudentPortalNav } from './StudentPortalNavContext';
 import { StudentNavId, NAV } from './Sidebar';
 
 function greeting(): string {
@@ -57,6 +57,7 @@ export function TopBar({
   const bp = useBreakpoint();
   const user = useAuthStore((u) => u.user) as any;
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const navCtx = useStudentPortalNav();
   const portalNav = React.useContext(StudentPortalNavContext);
   const [q, setQ] = React.useState(portalNav?.searchQuery || '');
 
@@ -261,7 +262,7 @@ export function TopBar({
                 <Pressable
                   key={item.id}
                   onPress={() => {
-                    router.push(item.id === 'dashboard' ? '/student-portal' : `/student-portal?tab=${item.id}`);
+                    navCtx.navigate(item.id as StudentNavId);
                     setShowMobileMenu(false);
                   }}
                   style={[s.mobileMenuItem, activeView === item.id && s.mobileMenuItemActive]}
