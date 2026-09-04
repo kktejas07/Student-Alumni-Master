@@ -217,6 +217,13 @@ async def _lifespan(application):
         _safe_create_index(db.echo_volunteers, "email"),
         _safe_create_index(db.echo_volunteers, "slug"),
         _safe_create_index(db.echo_volunteers, [("slug", 1), ("email", 1)], unique=True),
+        # Marketplace performance indexes
+        _safe_create_index(db.echo_catalog_items, "event_id"),
+        _safe_create_index(db.echo_catalog_items, [("event_id", 1), ("is_active", 1)]),
+        _safe_create_index(db.echo_discount_coupons, [("event_id", 1), ("active", 1)]),
+        _safe_create_index(db.echo_discount_coupons, "code", unique=True, sparse=True),
+        _safe_create_index(db.echo_orders, [("user_id", 1), ("created_at", -1)]),
+        _safe_create_index(db.echo_orders, [("status", 1)]),
     ]
     await asyncio.gather(*index_tasks, return_exceptions=True)
 

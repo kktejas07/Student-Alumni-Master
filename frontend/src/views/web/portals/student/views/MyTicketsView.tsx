@@ -252,7 +252,7 @@ export function MyTicketsView() {
       {/* ── Event Tickets ── */}
       <View style={s.sectionHeader}>
         <View style={s.sectionIcon}><Ticket size={13} color={GRAD.from} /></View>
-        <Text style={s.sectionTitle}>EVENT TICKETS</Text>
+        <Text style={s.sectionTitle}>{items.length > 0 ? `${items[0].registration.event_title?.toUpperCase() || items[0].registration.showcase_title?.toUpperCase() || 'ECHO 2026'} TICKETS` : 'EVENT TICKETS'}</Text>
       </View>
 
       {items.length === 0 ? (
@@ -266,9 +266,10 @@ export function MyTicketsView() {
         items.map((item, idx) => {
           const reg = item.registration;
           const inv = item.invoice;
-          const title = reg.event_title || reg.showcase_title || 'Event';
+          const title = reg.event_title || reg.showcase_title || 'Hack Wave 3.0';
           const payment = reg.payment || {};
           const isWeb = Platform.OS === 'web';
+          const subTitle = reg.slug?.toLowerCase().includes('test') || !reg.slug ? 'Sreenidhi Institute of Science & Technology, Hyderabad' : reg.slug?.toUpperCase();
 
           return (
             <View key={reg.id || idx} style={isWeb ? s.tkGrid : s.tkGridMobile}>
@@ -296,7 +297,7 @@ export function MyTicketsView() {
                   </View>
                   
                   <Text style={s.tkEventTitle}>{title}</Text>
-                  <Text style={s.tkEventSub}>{reg.slug?.toUpperCase() || 'Sreenidhi Institute of Science & Technology'}</Text>
+                  <Text style={s.tkEventSub}>{subTitle}</Text>
                   
                   <View style={s.tkMetaGrid}>
                     <View>
@@ -331,17 +332,12 @@ export function MyTicketsView() {
                   </Pressable>
                   <View style={{ flex: 1, paddingHorizontal: 16 }}>
                     <Text style={s.tkMetaLabel}>TICKET NUMBER</Text>
-                    <Text style={s.tkNumber}>{reg.id?.substring(0, 8).toUpperCase() || 'SA-TKT-XXXXXX'}</Text>
-                    <Text style={s.tkName}>{reg.full_name || 'Guest'} · {reg.email}</Text>
+                    <Text style={s.tkNumber}>SA-TKT-{reg.id?.substring(0, 6).toUpperCase() || 'XXXXXX'}</Text>
+                    <Text style={s.tkName}>{reg.full_name || 'Guest'} - {reg.email}</Text>
                   </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Pressable 
-                      onPress={() => setPreviewReg(reg)}
-                      style={({ hovered }: any) => [{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 }, hovered && { backgroundColor: 'rgba(255,255,255,0.25)' }]}
-                    >
-                      <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Show QR</Text>
-                      <ArrowRight size={14} color="#fff" />
-                    </Pressable>
+                  <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 1.5, marginBottom: 2 }}>PAID</Text>
+                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 18 }}>₹{payment.amount || inv?.amount || 599}</Text>
                   </View>
                 </View>
               </View>

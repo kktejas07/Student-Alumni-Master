@@ -53,15 +53,10 @@ function QRScanner({ onScan, onClose }: { onScan: (code: string) => void; onClos
           },
           (decodedText: string) => {
             if (mounted) {
-              if (scannerRef.current) {
-                scannerRef.current.stop().then(() => {
-                  if (mounted) onScan(decodedText);
-                }).catch(() => {
-                  if (mounted) onScan(decodedText);
-                });
-              } else {
+              mounted = false; // Prevent multiple triggers
+              setTimeout(() => {
                 onScan(decodedText);
-              }
+              }, 10);
             }
           },
           () => {} // ignore scan failures (no QR in frame)
@@ -77,8 +72,9 @@ function QRScanner({ onScan, onClose }: { onScan: (code: string) => void; onClos
     return () => {
       mounted = false;
       if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {});
-        scannerRef.current.clear().catch(() => {});
+        scannerRef.current.stop().then(() => {
+          scannerRef.current.clear().catch(() => {});
+        }).catch(() => {});
       }
     };
   }, []);
@@ -190,7 +186,7 @@ export default function EchoScanPage() {
     const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     try {
       // Determine if this is a ticket (ECHO: prefix, URL-encoded colon, or bare 12-char hex reg_id)
-      const isTicket = original.startsWith('ECHO:') || original.includes('%3A') || /^[a-f0-9]{12}$/i.test(codeUpper);
+      const isTicket = original.startsWith('ECHO:') || original.includes('%3A') || /^[a-f0-9]{8}$/i.test(codeUpper) || /^[a-f0-9]{12}$/i.test(codeUpper) || /^[a-f0-9]{24}$/i.test(codeUpper);
       const loc = locationRef.current;
 
       if (isTicket) {

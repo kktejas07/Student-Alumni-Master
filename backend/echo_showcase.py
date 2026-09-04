@@ -156,7 +156,7 @@ async def import_tickets_registrations(
                 "slug": canonical_slug,
                 "showcase_title": showcase_title,
                 "showcase_college": showcase.get("college"),
-                "full_name": reg.get("full_name", ""),
+                "full_name": reg.get("full_name") or reg.get("first_name", ""),
                 "email": email,
                 "phone": reg.get("phone", ""),
                 "year": reg.get("year", ""),
@@ -5745,6 +5745,9 @@ async def verify_ticket(payload: TicketVerifySchema, request: Request, _=Depends
     if not reg:
         # Fallback: raw registration id
         reg = await db.echo_registrations.find_one({"id": parsed.get("reg_id")})
+    if not reg and parsed.get("reg_id") and len(parsed.get("reg_id")) == 8:
+        # Fallback: short-code manual entry
+        reg = await db.echo_registrations.find_one({"id": {"$regex": f"^{parsed.get('reg_id')}", "$options": "i"}})
     if not reg:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
@@ -5807,6 +5810,8 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
     reg = await db.echo_registrations.find_one(query)
     if not reg:
         reg = await db.echo_registrations.find_one({"id": parsed.get("reg_id")})
+    if not reg and parsed.get("reg_id") and len(parsed.get("reg_id")) == 8:
+        reg = await db.echo_registrations.find_one({"id": {"$regex": f"^{parsed.get('reg_id')}", "$options": "i"}})
     if not reg:
         return {"ok": False, "status": "invalid", "message": "Ticket not found in registrations"}
 
@@ -6748,7 +6753,7 @@ async def scan_coupon(request: Request, admin=Depends(_require_scan_access)):
             "code": code,
             "session_name": coupon.get("session_name", "Session"),
             "session_day": coupon.get("session_day") or 1,
-            "attendee_name": reg.get("full_name", "") if reg else "",
+            "attendee_name": (reg.get("full_name") or reg.get("first_name") or "") if reg else "",
             "attendee_email": reg.get("email", "") if reg else "",
             "used_at": now.isoformat(),
         },
