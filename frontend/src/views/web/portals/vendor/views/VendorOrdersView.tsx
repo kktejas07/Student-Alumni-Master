@@ -5,7 +5,7 @@ import { useVendorAuthStore } from '@/src/viewmodels/stores/vendorAuthStore';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome5 } from '@expo/vector-icons';
 
-const POLL_MS = 5000;
+const POLL_MS = 15000;
 
 const COLORS = {
   bg: '#0A0A12',
@@ -314,7 +314,7 @@ export function VendorOrdersView() {
                       })}
                     </View>
                     {/* Refund Button */}
-                    {order.order_status !== 'delivered' && order.refund_status !== 'refunded' && (
+                    {order.refund_status !== 'refunded' && (
                       <View style={{ marginTop: 10 }}>
                         <Pressable
                           onPress={() => {
