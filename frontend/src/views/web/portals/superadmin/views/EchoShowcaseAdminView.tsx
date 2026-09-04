@@ -4749,17 +4749,23 @@ function RegistrationsPanel() {
               <GradientButton onPress={async () => {
                 if (!editingReg) return;
                 try {
+                  console.log('[EDIT REG] Saving:', editingReg.id, editEmail, editName);
                   const { tokenStore } = await import('@/src/models/services/api');
                   const authToken = await tokenStore.getAccess();
-                  await request(`/echo/admin/registrations/${editingReg.id}`, {
+                  console.log('[EDIT REG] Token:', authToken ? 'present' : 'missing');
+                  const res = await request<any>(`/echo/admin/registrations/${editingReg.id}`, {
                     method: 'PATCH',
                     body: { email: editEmail, full_name: editName },
                     headers: { Authorization: `Bearer ${authToken}` },
                   });
+                  console.log('[EDIT REG] Response:', res);
                   flash('Registration updated');
                   setEditingReg(null);
                   load();
-                } catch (e: any) { flash(e?.message || 'Failed', 'error'); }
+                } catch (e: any) {
+                  console.error('[EDIT REG] Error:', e);
+                  flash(e?.message || 'Failed to update', 'error');
+                }
               }}><Text style={{ color: SAC.text }}>Save</Text></GradientButton>
             </View>
           </Pressable>
