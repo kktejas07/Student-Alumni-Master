@@ -398,9 +398,17 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
       </div>
 
       <div className="echo-mkt-cart">
-      {totalItems > 0 && (
         <div style={{ marginTop: 0, padding: 24, background: panel, borderRadius: 18, border: `1px solid ${border}` }}>
           <h3 style={{ fontSize: 18, fontWeight: 700, color: fg, marginBottom: 16 }}>Your Cart <span style={{ color: 'var(--violet-lt)', fontSize: 14, fontWeight: 600 }}>({totalItems} items)</span></h3>
+          
+          {totalItems === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--muted)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <ShoppingCart size={48} color="var(--line2)" style={{ marginBottom: 16 }} />
+              <div style={{ fontSize: 16, fontWeight: 600, color: fg }}>Your cart is empty</div>
+              <div style={{ fontSize: 14, marginTop: 6 }}>Add some items from the marketplace to checkout.</div>
+            </div>
+          ) : (
+            <>
           <div style={{ marginBottom: 20 }}>
             {Object.entries(cart).map(([id, qty]) => {
               const item = items.find(i => i.id === id || i._id === id);
@@ -541,8 +549,9 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
             <ShoppingCart size={18} />
             {checkoutLoading ? 'Processing...' : 'Checkout & Pay'}
           </button>
+            </>
+          )}
         </div>
-      )}
       </div>
       </div>
 
