@@ -678,6 +678,9 @@ def _build_marketplace_invoice_html(order: dict) -> str:
 @router.get("/showcases/{slug}/catalog")
 async def get_showcase_catalog(slug: str, request: Request):
     """Return the active, in-stock marketplace catalog for an ECHO showcase."""
+    import asyncio
+    from fastapi.responses import JSONResponse
+
     showcase = await db.echo_showcases.find_one({
         "$or": [{"slug": slug}, {"aliases": slug}],
     })
@@ -685,16 +688,24 @@ async def get_showcase_catalog(slug: str, request: Request):
     if showcase:
         event_key = str(showcase.get("_id")) if showcase.get("_id") else slug
     scopes = [event_key, slug, "master"]
+
+    # Parallelize catalog queries
+    results = await asyncio.gather(*[_catalog_for_event(s) for s in scopes])
+
     by_id = {}
     items = []
-    for scope in scopes:
-        for it in await _catalog_for_event(scope):
+    for scope_items in results:
+        for it in scope_items:
             key = it.get("id") or it.get("_id")
             if key and key not in by_id:
                 by_id[key] = True
                 items.append(it)
     items = _filter_active_items(items)
-    return {"success": True, "data": items, "event_id": event_key}
+
+    response = JSONResponse({"success": True, "data": items, "event_id": event_key})
+    # Cache for 30 seconds (catalog doesn't change often)
+    response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=60"
+    return response
 
 
 # ── Checkout ────────────────────────────────────────────────────────────────
@@ -1223,6 +1234,7 @@ async def admin_list_coupons(request: Request, event_slug: Optional[str] = None,
 @router.get("/available-coupons")
 async def list_available_coupons(event_id: str, category: Optional[str] = None):
     """Public endpoint: return active discount coupons for an event, optionally filtered by category."""
+    from fastapi.responses import JSONResponse
     query: dict = {"active": True}
     if event_id:
         query["event_id"] = event_id
@@ -1246,7 +1258,9 @@ async def list_available_coupons(event_id: str, category: Optional[str] = None):
             "locked": c.get("locked", False),
             "instructions": c.get("instructions", ""),
         })
-    return {"success": True, "data": out}
+    response = JSONResponse({"success": True, "data": out})
+    response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=60"
+    return response
 
 
 @router.get("/coupons/by-category")
