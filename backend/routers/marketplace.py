@@ -1330,14 +1330,21 @@ async def admin_update_coupon(coupon_id: str, payload: AdminCouponInput, request
         "code": code,
         "discount_type": payload.discount_type,
         "discount_value": payload.discount_value,
+        "duration_months": payload.duration_months,
         "event_id": payload.event_id,
         "vendor_id": payload.vendor_id or None,
         "vendor_name": payload.vendor_name or None,
+        "partner_name": payload.partner_name or None,
         "max_uses": payload.max_uses,
         "min_order_value": payload.min_order_value,
         "max_discount": payload.max_discount,
         "per_user_limit": payload.per_user_limit,
         "description": payload.description or "",
+        "category": payload.category or "marketplace",
+        "locked": payload.locked if payload.locked is not None else False,
+        "instructions": payload.instructions or "",
+        "website_url": payload.website_url or None,
+        "logo_url": payload.logo_url or None,
     }
     await db.echo_discount_coupons.update_one({"_id": oid}, {"$set": update})
     return {"success": True, "data": {**existing, **update, "_id": coupon_id}}

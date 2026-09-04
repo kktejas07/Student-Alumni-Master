@@ -90,8 +90,9 @@ export function CouponsView() {
 
   const fetchVendors = useCallback(async () => {
     try {
-      const res = await request<any>('/vendors/list');
-      if (res.success) setVendors(res.data || []);
+      const res = await request<any>('/echo/admin/vendors');
+      const list = Array.isArray(res) ? res : (res?.data || res?.vendors || []);
+      setVendors(list || []);
     } catch (e) {}
   }, []);
 
