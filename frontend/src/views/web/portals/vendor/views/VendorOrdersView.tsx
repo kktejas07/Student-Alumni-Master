@@ -242,6 +242,13 @@ export function VendorOrdersView() {
                         </Text>
                       </View>
                     )}
+                    {order.razorpay_payment_id && (
+                      <View style={styles.detailRow}>
+                        <FontAwesome5 name="receipt" size={12} color={COLORS.muted} />
+                        <Text style={styles.detailLabel}>Payment ID</Text>
+                        <Text style={[styles.detailValue, { fontFamily: 'monospace', fontSize: 11 }]}>{order.razorpay_payment_id}</Text>
+                      </View>
+                    )}
                     {/* Quick Call Button */}
                     {order.user_phone && (
                       <Pressable
