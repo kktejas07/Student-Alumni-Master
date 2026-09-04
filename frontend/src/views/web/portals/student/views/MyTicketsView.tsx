@@ -10,7 +10,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, ActivityIndicator, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ticket, CheckCircle, Download, ShieldCheck, QrCode, X, Lock, Calendar, MapPin, User, ArrowRight, AlertCircle, Clock, Store, IndianRupee, Tag } from '../iconShims';
+import { Ticket, CheckCircle, Download, ShieldCheck, QrCode, X, Lock, Calendar, MapPin, User, ArrowRight, AlertCircle, Clock, Store, IndianRupee, Tag, Truck } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GRADS } from '../gradients';
 
@@ -107,6 +107,9 @@ type MarketplaceOrder = {
   coupon_code?: string | null;
   status?: string;
   payment_status?: string;
+  order_status?: string;
+  delivery_method?: 'pickup' | 'delivery';
+  delivery_info?: string;
   created_at?: string;
   razorpay_order_id?: string;
 };
