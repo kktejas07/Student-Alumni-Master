@@ -1418,6 +1418,14 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             </a>
             <a
               className="ev-tab"
+              onClick={() => router.push('/marketplace')}
+              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
+            >
+              Marketplace
+              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
+            </a>
+            <a
+              className="ev-tab"
               onClick={() => router.push('/verify')}
               style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
             >
