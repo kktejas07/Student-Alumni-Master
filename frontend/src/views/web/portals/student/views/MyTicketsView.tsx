@@ -261,7 +261,22 @@ export function MyTicketsView() {
         <Text style={s.sectionTitle}>{items.length > 0 ? `${items[0].registration.event_title?.toUpperCase() || items[0].registration.showcase_title?.toUpperCase() || 'ECHO 2026'} TICKETS` : 'EVENT TICKETS'}</Text>
       </View>
 
-      {items.length === 0 ? (
+      {authError ? (
+        <View style={{ alignItems: 'center', padding: 40, gap: 12 }}>
+          <Text style={{ fontSize: 16, fontWeight: 600, color: '#F87171', textAlign: 'center' }}>
+            Please sign in to view your tickets
+          </Text>
+          <Text style={{ fontSize: 13, color: SC.muted, textAlign: 'center', maxWidth: 360 }}>
+            Your session may have expired. Sign in again to access your event registrations and session passes.
+          </Text>
+          <Pressable
+            onPress={() => router.push('/(auth)/login')}
+            style={{ marginTop: 8, backgroundColor: GRAD.from, borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10 }}
+          >
+            <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>Sign In</Text>
+          </Pressable>
+        </View>
+      ) : items.length === 0 ? (
         <EmptyState
           variant="generic"
           title="No tickets yet"
