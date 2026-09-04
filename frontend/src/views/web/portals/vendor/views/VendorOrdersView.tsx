@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, RefreshControl, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, RefreshControl, Pressable, Platform, TextInput, Modal } from 'react-native';
 import { request } from '@/src/models/services/api';
 import { useVendorAuthStore } from '@/src/viewmodels/stores/vendorAuthStore';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -34,6 +34,9 @@ export function VendorOrdersView() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'pending' | 'fulfilled'>('pending');
+  const [refundModal, setRefundModal] = useState<any | null>(null);
+  const [refundReason, setRefundReason] = useState('Item sold out');
+  const [refunding, setRefunding] = useState(false);
 
   const fetchOrders = useCallback(async (silent = false) => {
     if (!token) return;
@@ -314,23 +317,9 @@ export function VendorOrdersView() {
                     {order.order_status !== 'delivered' && order.refund_status !== 'refunded' && (
                       <View style={{ marginTop: 10 }}>
                         <Pressable
-                          onPress={async () => {
-                            const reason = window.prompt('Reason for refund (e.g. Item sold out):', 'Item sold out');
-                            if (!reason) return;
-                            if (!window.confirm(`Refund ₹${order.total_amount || order.final_amount || '?'} to ${order.user_name}? This cannot be undone.`)) return;
-                            try {
-                              const res = await request<any>('/vendors/refund', {
-                                method: 'POST',
-                                headers: { Authorization: `Bearer ${token}` },
-                                body: { order_id: order.order_id || order.id, reason },
-                              });
-                              if (res.success) {
-                                alert(`Refund of ₹${res.amount} initiated. Refund ID: ${res.refund_id}`);
-                                fetchOrders();
-                              } else {
-                                alert(res.message || 'Refund failed');
-                              }
-                            } catch (e: any) { alert(e?.message || 'Refund failed'); }
+                          onPress={() => {
+                            setRefundReason('Item sold out');
+                            setRefundModal(order);
                           }}
                           style={{
                             flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -388,6 +377,80 @@ export function VendorOrdersView() {
             );
           })}
         </View>
+      )}
+      
+      {/* Refund Modal */}
+      {refundModal && (
+        <Modal transparent animationType="fade" visible onRequestClose={() => !refunding && setRefundModal(null)}>
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }]}>
+            <View style={{ width: 420, maxWidth: '90%', backgroundColor: COLORS.panelSolid, borderRadius: 16, padding: 24, borderWidth: 1, borderColor: COLORS.border, ...(Platform.OS === 'web' ? { boxShadow: '0 24px 64px rgba(0,0,0,0.55)', backdropFilter: 'blur(18px)' } as any : {}) }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(239,68,68,0.16)', alignItems: 'center', justifyContent: 'center' }}>
+                  <FontAwesome5 name="undo" size={14} color="#FCA5A5" />
+                </View>
+                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Refund Order #{refundModal.order_id || refundModal.id}</Text>
+              </View>
+              
+              <Text style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13.5, marginBottom: 8 }}>Reason for refund (e.g. Item sold out):</Text>
+              <TextInput
+                style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, color: COLORS.text, padding: 12, fontSize: 14, outlineStyle: 'none' } as any}
+                value={refundReason}
+                onChangeText={setRefundReason}
+                placeholder="Item sold out"
+                placeholderTextColor={COLORS.dim}
+                autoFocus
+              />
+              
+              <View style={{ marginTop: 16, padding: 12, backgroundColor: 'rgba(245,158,11,0.08)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(245,158,11,0.2)' }}>
+                <Text style={{ color: '#FCD34D', fontSize: 12.5, fontWeight: '600' }}>
+                  This will refund ₹{refundModal.total_amount || refundModal.final_amount || '?'} to {refundModal.user_name || 'the customer'}. This action cannot be undone.
+                </Text>
+              </View>
+              
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
+                <Pressable 
+                  onPress={() => !refunding && setRefundModal(null)} 
+                  style={{ paddingHorizontal: 16, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.border, backgroundColor: 'rgba(255,255,255,0.04)' }}
+                  disabled={refunding}
+                >
+                  <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: '600' }}>Cancel</Text>
+                </Pressable>
+                <Pressable 
+                  onPress={async () => {
+                    if (!refundReason.trim()) return;
+                    setRefunding(true);
+                    try {
+                      const res = await request<any>('/vendors/refund', {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${token}` },
+                        body: { order_id: refundModal.order_id || refundModal.id, reason: refundReason.trim() },
+                      });
+                      if (res.success) {
+                        alert(`Refund of ₹${res.amount} initiated. Refund ID: ${res.refund_id}`);
+                        fetchOrders();
+                        setRefundModal(null);
+                      } else {
+                        alert(res.message || 'Refund failed');
+                      }
+                    } catch (e: any) { 
+                      alert(e?.message || 'Refund failed'); 
+                    } finally {
+                      setRefunding(false);
+                    }
+                  }} 
+                  style={{ paddingHorizontal: 16, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#DC2626', opacity: refunding ? 0.7 : 1 }}
+                  disabled={refunding}
+                >
+                  {refunding ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>Confirm Refund</Text>
+                  )}
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
       )}
     </ScrollView>
   );
