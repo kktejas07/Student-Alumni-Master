@@ -72,8 +72,9 @@ function QRScanner({ onScan, onClose }: { onScan: (code: string) => void; onClos
     return () => {
       mounted = false;
       if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {});
-        scannerRef.current.clear().catch(() => {});
+        scannerRef.current.stop().then(() => {
+          scannerRef.current.clear().catch(() => {});
+        }).catch(() => {});
       }
     };
   }, []);
