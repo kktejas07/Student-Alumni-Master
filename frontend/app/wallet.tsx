@@ -395,6 +395,11 @@ export default function WalletScreen() {
     });
   }, [myCoupons, couponFilter, couponSearch]);
 
+  // Used coupons (for "My Redeemed" section)
+  const usedCoupons = useMemo(() => myCoupons.filter((c) => c.status === 'used'), [myCoupons]);
+  // Available coupons (active + locked, for category grouping)
+  const availableCoupons = useMemo(() => myCoupons.filter((c) => c.status !== 'used'), [myCoupons]);
+
   const activeCount = useMemo(() => myCoupons.filter((c) => c.status === 'active' && !c.locked).length, [myCoupons]);
   const usedCount = useMemo(() => myCoupons.filter((c) => c.status === 'used').length, [myCoupons]);
   const lockedCount = useMemo(() => myCoupons.filter((c) => c.locked).length, [myCoupons]);
@@ -907,19 +912,19 @@ export default function WalletScreen() {
             <View style={s.couponSectionHeader}>
               <Text style={s.couponSectionTitle}>MY REDEEMED COUPONS</Text>
               <Text style={s.couponSectionSub}>
-                Copy your unique voucher code and click "Use Now" to apply on partner websites.
+                Coupons you've already used. Copy codes to reuse on partner websites.
               </Text>
             </View>
 
-            {filteredMyCoupons.length === 0 ? (
+            {usedCoupons.length === 0 ? (
               <View style={s.emptyBox}>
                 <Tag size={40} color={C.dim} />
-                <Text style={s.emptyTitle}>No coupons found</Text>
-                <Text style={s.emptySub}>Redeem partner coupons below to get instant discount codes!</Text>
+                <Text style={s.emptyTitle}>No redeemed coupons yet</Text>
+                <Text style={s.emptySub}>Use a coupon code and it will appear here.</Text>
               </View>
             ) : (
               <View style={s.couponsGrid}>
-                {filteredMyCoupons.map((c) => (
+                {usedCoupons.map((c) => (
                   <View key={c.id} style={[s.couponCard, { borderColor: c.locked ? 'rgba(239,68,68,0.25)' : c.accent + '33', opacity: c.locked ? 0.8 : 1 }]}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
                       {c.brand && !c.brand.includes('Student Alumni') ? (
@@ -1020,7 +1025,7 @@ export default function WalletScreen() {
 
           {/* Coupons grouped by category */}
           {(['marketplace', 'partner', 'event', 'promo'] as const).map(cat => {
-            const catCoupons = filteredMyCoupons.filter(c => c.category === cat);
+            const catCoupons = availableCoupons.filter(c => c.category === cat);
             if (catCoupons.length === 0) return null;
             const catLabel = cat === 'marketplace' ? 'Food & Beverages' : cat === 'partner' ? 'Partner Offers' : cat === 'event' ? 'Event Discounts' : 'Promotions';
             const catColor = cat === 'marketplace' ? '#8B5CF6' : cat === 'partner' ? '#3B82F6' : cat === 'event' ? '#10B981' : '#F59E0B';
