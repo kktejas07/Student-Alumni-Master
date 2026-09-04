@@ -53,15 +53,10 @@ function QRScanner({ onScan, onClose }: { onScan: (code: string) => void; onClos
           },
           (decodedText: string) => {
             if (mounted) {
-              if (scannerRef.current) {
-                scannerRef.current.stop().then(() => {
-                  if (mounted) onScan(decodedText);
-                }).catch(() => {
-                  if (mounted) onScan(decodedText);
-                });
-              } else {
+              mounted = false; // Prevent multiple triggers
+              setTimeout(() => {
                 onScan(decodedText);
-              }
+              }, 10);
             }
           },
           () => {} // ignore scan failures (no QR in frame)
@@ -77,8 +72,9 @@ function QRScanner({ onScan, onClose }: { onScan: (code: string) => void; onClos
     return () => {
       mounted = false;
       if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {});
-        scannerRef.current.clear().catch(() => {});
+        scannerRef.current.stop().then(() => {
+          scannerRef.current.clear().catch(() => {});
+        }).catch(() => {});
       }
     };
   }, []);
