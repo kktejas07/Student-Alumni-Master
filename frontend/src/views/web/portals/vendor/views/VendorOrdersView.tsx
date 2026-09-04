@@ -227,6 +227,29 @@ export function VendorOrdersView() {
                         </Text>
                       </View>
                     )}
+                    {/* Quick Call Button */}
+                    {order.user_phone && (
+                      <Pressable
+                        onPress={() => {
+                          if (Platform.OS === 'web') {
+                            window.open(`tel:${order.user_phone}`, '_self');
+                          }
+                        }}
+                        style={{
+                          flexDirection: 'row', alignItems: 'center', gap: 8,
+                          padding: 10, borderRadius: 10, marginTop: 8,
+                          backgroundColor: 'rgba(16,185,129,0.1)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <FontAwesome5 name="phone-alt" size={12} color="#10B981" />
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '700' }}>Call Customer</Text>
+                          <Text style={{ color: COLORS.muted, fontSize: 11, marginTop: 1 }}>{order.user_phone}</Text>
+                        </View>
+                        <FontAwesome5 name="external-link-alt" size={10} color="#10B981" />
+                      </Pressable>
+                    )}
                     {/* Order Status Pipeline */}
                     <View style={{ height: 1, backgroundColor: COLORS.borderLight, marginVertical: 10 }} />
                     <Text style={{ color: COLORS.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Order Status</Text>
@@ -255,7 +278,7 @@ export function VendorOrdersView() {
                                   headers: { Authorization: `Bearer ${token}` },
                                   body: { order_id: order.order_id || order.id, status: s.key },
                                 });
-                                loadData();
+                                fetchOrders();
                               } catch (e: any) { alert(e?.message || 'Failed'); }
                             }}
                             style={{
@@ -264,7 +287,7 @@ export function VendorOrdersView() {
                               borderWidth: 1, borderColor: isCurrent ? s.color : isPast ? 'rgba(255,255,255,0.1)' : isNext ? `${s.color}40` : 'rgba(255,255,255,0.05)',
                               backgroundColor: isCurrent ? `${s.color}20` : isPast ? 'rgba(255,255,255,0.03)' : 'transparent',
                               opacity: isNext || isCurrent ? 1 : 0.4,
-                              cursor: isNext || isCurrent ? 'pointer' : 'default',
+                              cursor: isNext || isCurrent ? 'pointer' : 'auto',
                             }}
                           >
                             <FontAwesome5 name={s.icon} size={11} color={isCurrent ? s.color : isPast ? COLORS.dim : isNext ? s.color : COLORS.dim} />
