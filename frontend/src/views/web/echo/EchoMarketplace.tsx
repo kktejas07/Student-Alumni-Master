@@ -430,10 +430,10 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
                     }
                     return sum;
                   }, 0);
-                  itemDiscount = vendorSubtotal > 0 ? Math.round(itemTotal * (discount / vendorSubtotal)) : 0;
+                  itemDiscount = vendorSubtotal > 0 ? Number((itemTotal * (discount / vendorSubtotal)).toFixed(2)) : 0;
                 } else {
                   // Global coupon: split proportionally across all items
-                  itemDiscount = cartTotal > 0 ? Math.round(itemTotal * (discount / cartTotal)) : 0;
+                  itemDiscount = cartTotal > 0 ? Number((itemTotal * (discount / cartTotal)).toFixed(2)) : 0;
                 }
               }
               const discountedPrice = itemTotal - itemDiscount;
