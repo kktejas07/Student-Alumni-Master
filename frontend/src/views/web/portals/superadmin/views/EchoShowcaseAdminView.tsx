@@ -3842,20 +3842,6 @@ function RegistrationsPanel() {
                         <Edit2 size={10} color="#A78BFA" />
                         <Text style={{ fontFamily: FONTS.bold, fontSize: 8, color: '#A78BFA' }}>Edit</Text>
                       </Pressable>
-                      <Pressable
-                        onPress={async () => {
-                          if (!window.confirm('Resend tickets to ' + r.email + '?')) return;
-                          try {
-                            const { tokenStore } = await import('@/src/models/services/api');
-                            const authToken = await tokenStore.getAccess();
-                            await request(`/echo/admin/registrations/${r.id}/resend-tickets`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` } });
-                            flash('Tickets resent to ' + r.email);
-                          } catch (e: any) { flash(e?.message || 'Failed', 'error'); }
-                        }}
-                        style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4, backgroundColor: 'rgba(52,211,153,0.12)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.25)' }}>
-                        <RefreshCw size={10} color="#34D399" />
-                        <Text style={{ fontFamily: FONTS.bold, fontSize: 8, color: '#34D399' }}>Resend</Text>
-                      </Pressable>
                     </View>
                     {isTeam && (
                       <View style={{ marginTop: 6, gap: 4 }}>
