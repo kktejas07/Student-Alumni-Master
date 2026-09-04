@@ -226,6 +226,7 @@ export function VendorsView() {
         <KpiTile Icon={Wallet} label="Total Revenue" value={`₹${(totals.revenue || 0).toLocaleString('en-IN')}`} />
         <KpiTile Icon={ShoppingBag} label="Orders" value={String(totals.orders || 0)} />
         <KpiTile Icon={Package} label="Items Sold" value={String(totals.items_sold || 0)} />
+        <KpiTile Icon={RefreshCw} label="Refunded" value={`₹${(totals.refunded_amount || 0).toLocaleString('en-IN')}`} />
       </View>
 
       {/* Create form */}
@@ -300,6 +301,7 @@ export function VendorsView() {
               <Text style={[s.th, { flex: 0.8, textAlign: 'right' }]}>Revenue</Text>
               <Text style={[s.th, { flex: 0.6, textAlign: 'right' }]}>Orders</Text>
               <Text style={[s.th, { flex: 0.7, textAlign: 'right' }]}>Fulfilled</Text>
+              <Text style={[s.th, { flex: 0.6, textAlign: 'right' }]}>Refunded</Text>
               <Text style={[s.th, { flex: 1.2, textAlign: 'right' }]}>Actions</Text>
             </View>
             {filtered.map((v) => {
@@ -308,6 +310,8 @@ export function VendorsView() {
               const orders = st ? invRaw(st.orders) : 0;
               const fulfilled = st ? invRaw(st.fulfilled_items) : 0;
               const pending = st ? invRaw(st.pending_items) : 0;
+              const refunded = st ? invRaw(st.refunded_items) : 0;
+              const refundedAmt = st ? invRaw(st.refunded_amount) : 0;
               return (
                 <View key={v.vendor_id} style={s.row}>
                   <View style={{ flex: 2.2, minWidth: 0 }}>
@@ -327,6 +331,14 @@ export function VendorsView() {
                       <View style={{ alignItems: 'flex-end' }}>
                         <Text style={{ color: SAC.green, fontFamily: FONTS.semi, fontSize: 12.5 }}>{fulfilled}</Text>
                         {pending > 0 && <Text style={{ color: '#FBBF24', fontSize: 10.5 }}>{pending} pending</Text>}
+                      </View>
+                    ) : <Text style={{ color: SAC.dim, fontSize: 12.5 }}>—</Text>}
+                  </View>
+                  <View style={{ flex: 0.6, alignItems: 'flex-end' }}>
+                    {refunded > 0 ? (
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={{ color: '#F87171', fontFamily: FONTS.semi, fontSize: 12.5 }}>{refunded}</Text>
+                        <Text style={{ color: '#F87171', fontSize: 10.5 }}>₹{refundedAmt.toLocaleString('en-IN')}</Text>
                       </View>
                     ) : <Text style={{ color: SAC.dim, fontSize: 12.5 }}>—</Text>}
                   </View>
