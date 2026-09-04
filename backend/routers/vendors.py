@@ -1,4 +1,5 @@
 import jwt
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional, List
@@ -6,7 +7,7 @@ from datetime import datetime, timezone
 from bson import ObjectId
 
 from core.db import db
-from core.security import JWT_SECRET, JWT_ALGORITHM
+from core.security import JWT_SECRET, JWT_ALGORITHM, decrypt_value
 
 router = APIRouter()
 
@@ -297,7 +298,7 @@ async def get_vendor_dashboard(vendor: dict = Depends(get_current_vendor)):
                 "order_id": order.get("id"),
                 "user_name": order.get("user_name"),
                 "user_email": order.get("user_email"),
-                "user_phone": order.get("user_phone"),
+                "user_phone": decrypt_value(order.get("user_phone")),
                 "created_at": order.get("created_at"),
                 "items": vendor_items
             }
@@ -337,6 +338,7 @@ async def fulfill_vendor_order(req: FulfillRequest, vendor: dict = Depends(get_c
     has_vendor_items = False
     all_items = order.get("items", [])
     already_fulfilled = []
+    just_fulfilled = []
     
     for item in all_items:
         if item.get("vendor_id") == vendor_id or vendor_id == "Vendor_Admin":
@@ -345,6 +347,7 @@ async def fulfill_vendor_order(req: FulfillRequest, vendor: dict = Depends(get_c
                 already_fulfilled.append(item.get("name", "Item"))
             else:
                 item["fulfillment_status"] = "FULFILLED"
+                just_fulfilled.append(item.get("name", "Item"))
             
     if not has_vendor_items:
         raise HTTPException(400, "No items found for this vendor in this order")
@@ -363,6 +366,22 @@ async def fulfill_vendor_order(req: FulfillRequest, vendor: dict = Depends(get_c
         {"id": order_id},
         {"$set": {"items": all_items, "updated_at": now_iso}}
     )
+    
+    # Send email notification if items were just fulfilled
+    if just_fulfilled and order.get("user_email"):
+        items_str = ", ".join(just_fulfilled)
+        email_html = render_html_email(f"""
+        <div style="text-align: center; padding: 20px;">
+            <h2 style="color: #2B1E6E;">Order Ready for Pickup!</h2>
+            <p>Your order for <strong>{items_str}</strong> has been prepared and is ready for pickup.</p>
+            <p>Please collect your order at the vendor's stall.</p>
+        </div>
+        """)
+        asyncio.create_task(send_email(
+            order.get("user_email"),
+            f"Your Order is Ready: {items_str}",
+            email_html
+        ))
     
     return {"success": True, "message": "Order fulfilled successfully"}
 
