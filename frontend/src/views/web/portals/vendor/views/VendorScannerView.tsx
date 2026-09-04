@@ -81,18 +81,9 @@ export function VendorScannerView() {
       };
 
       const onDetect = (decodedText: string) => {
-        if (scannerRef.current) {
-          scannerRef.current.stop().then(() => {
-            setScanning(false);
-            setScannedId(decodedText.trim());
-          }).catch(() => {
-            setScanning(false);
-            setScannedId(decodedText.trim());
-          });
-        } else {
-          setScanning(false);
-          setScannedId(decodedText.trim());
-        }
+        setScanning(false);
+        setScannedId(decodedText.trim());
+        setTimeout(() => stopScanner(), 10);
       };
 
       const cameras = await Html5Qrcode.getCameras().catch(() => [] as { id: string; label: string }[]);
