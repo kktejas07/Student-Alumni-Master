@@ -97,6 +97,9 @@ export const Zap             = make('lightning-bolt');
 export const ChevronDown     = make('chevron-down');
 export const ChevronRight    = make('chevron-right');
 export const AlertCircle     = make('alert-circle-outline');
+export const ScanLine        = make('barcode-scan');
+export const Camera          = make('camera-outline');
+export const Keyboard        = make('keyboard-outline');
 
 // ── Type alias replacement for lucide's `LucideIcon` type ─────────────────
 export type LucideIcon = React.FC<IconProps>;
