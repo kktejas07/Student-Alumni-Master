@@ -79,6 +79,8 @@ type CouponItem = {
   accent: string;
   instructions?: string;
   locked?: boolean;
+  partner_name?: string;
+  event_id?: string;
 };
 
 type Summary = {
@@ -303,20 +305,24 @@ export default function WalletScreen() {
             const discountLabel = c.discount_type === 'duration'
               ? `${c.duration_months || '?'} Month${(c.duration_months || 0) !== 1 ? 's' : ''} Access`
               : c.discount_type === 'percentage' ? `${c.discount_value}% OFF` : `₹${c.discount_value} OFF`;
+            const partnerLabel = c.partner_name || c.vendor_name || '';
+            const eventLabel = c.event_id ? c.event_id.toUpperCase() : '';
             allCoupons.push({
               id: `coup-${c.code}`,
-              brand: c.vendor_name || 'Student Alumni',
+              brand: partnerLabel || 'Student Alumni',
               title: c.description || discountLabel,
               discount: discountLabel,
               code: c.code,
               cost_credits: 0,
-              url: '',
+              url: c.website_url || '',
               expiry: '',
               status: c.locked ? 'locked' : 'active',
               category: cat,
               accent: cat === 'partner' ? '#3B82F6' : cat === 'event' ? '#10B981' : cat === 'promo' ? '#F59E0B' : '#8B5CF6',
               instructions: c.instructions || '',
               locked: c.locked || false,
+              partner_name: partnerLabel,
+              event_id: eventLabel,
             });
           }
         }
@@ -915,31 +921,33 @@ export default function WalletScreen() {
               <View style={s.couponsGrid}>
                 {filteredMyCoupons.map((c) => (
                   <View key={c.id} style={[s.couponCard, { borderColor: c.locked ? 'rgba(239,68,68,0.25)' : c.accent + '33', opacity: c.locked ? 0.8 : 1 }]}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
                       {c.brand && !c.brand.includes('Student Alumni') ? (
                         <View style={[s.couponBrandBadge, { backgroundColor: c.accent + '20', borderColor: c.accent + '40' }]}>
                           <Text style={[s.couponBrandText, { color: c.accent }]}>{c.brand}</Text>
                         </View>
                       ) : null}
-                      {c.locked ? (
-                        <View style={[s.statusPill, { backgroundColor: 'rgba(239,68,68,0.12)' }]}>
-                          <Lock size={10} color="#EF4444" />
-                          <Text style={[s.statusPillText, { color: '#EF4444', marginLeft: 4 }]}>Locked</Text>
+                      {c.event_id ? (
+                        <View style={[s.statusPill, { backgroundColor: 'rgba(124,92,246,0.15)', paddingHorizontal: 8, paddingVertical: 3 }]}>
+                          <Text style={{ fontSize: 10, fontWeight: '700', color: '#A78BFA', letterSpacing: 0.3 }}>{c.event_id}</Text>
                         </View>
-                      ) : (
-                        <View style={[s.statusPill, { backgroundColor: c.status === 'active' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(240, 238, 255, 0.1)' }]}>
-                          <Text style={[s.statusPillText, { color: c.status === 'active' ? C.green : C.dim }]}>
-                            {c.status === 'active' ? '● Ready' : '✓ Used'}
-                          </Text>
-                        </View>
-                      )}
+                      ) : null}
+                      <View style={[s.statusPill, { backgroundColor: c.locked ? 'rgba(239,68,68,0.12)' : c.status === 'active' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(240, 238, 255, 0.1)' }]}>
+                        {c.locked ? (
+                          <><Lock size={10} color="#EF4444" /><Text style={[s.statusPillText, { color: '#EF4444', marginLeft: 4 }]}>Locked</Text></>
+                        ) : (
+                          <Text style={[s.statusPillText, { color: c.status === 'active' ? C.green : C.dim }]}>{c.status === 'active' ? '● Ready' : '✓ Used'}</Text>
+                        )}
+                      </View>
                     </View>
 
                     <Text style={s.couponTitle}>{c.title}</Text>
+                    <Text style={{ fontSize: 12, color: C.textSub, marginTop: 2 }}>{c.discount}</Text>
+
                     {c.instructions ? (
                       <Pressable
                         onPress={() => setInstructionModal({ title: c.brand || c.code, instructions: c.instructions || '', website: c.url })}
-                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, marginBottom: 4, paddingVertical: 2 }}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, marginBottom: 4, paddingVertical: 2 }}
                       >
                         <Info size={11} color="#3B82F6" />
                         <Text style={{ fontSize: 11, color: '#3B82F6', flex: 1 }} numberOfLines={2}>{c.instructions}</Text>
