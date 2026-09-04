@@ -301,7 +301,10 @@ async def get_vendor_dashboard(vendor: dict = Depends(get_current_vendor)):
                 "user_email": order.get("user_email"),
                 "user_phone": decrypt_value(order.get("user_phone")),
                 "created_at": order.get("created_at"),
-                "items": vendor_items
+                "items": vendor_items,
+                "delivery_method": order.get("delivery_method", "pickup"),
+                "delivery_info": order.get("delivery_info"),
+                "order_status": order.get("order_status", "confirmed"),
             }
             if is_order_pending:
                 pending_orders.append(order_summary)

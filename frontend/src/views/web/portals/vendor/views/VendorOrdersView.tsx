@@ -183,6 +183,18 @@ export function VendorOrdersView() {
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.cellName} numberOfLines={1}>{order.user_name || 'Guest'}</Text>
+                    {order.delivery_method === 'delivery' && order.delivery_info && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                        <FontAwesome5 name="truck" size={9} color="#10B981" />
+                        <Text style={{ fontSize: 10, color: '#10B981', fontWeight: '600' }} numberOfLines={1}>Deliver: {order.delivery_info}</Text>
+                      </View>
+                    )}
+                    {order.delivery_method === 'pickup' && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                        <FontAwesome5 name="hand-paper" size={9} color={COLORS.muted} />
+                        <Text style={{ fontSize: 10, color: COLORS.dim, fontWeight: '500' }}>Self Pickup</Text>
+                      </View>
+                    )}
                   </View>
                   <View style={{ flex: 1.5, minWidth: 0 }}>
                     <Text style={styles.cellItems} numberOfLines={isExpanded ? 4 : 1}>{formatItems(vendorItems)}</Text>
