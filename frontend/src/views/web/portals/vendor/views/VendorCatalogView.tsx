@@ -304,32 +304,59 @@ export function VendorCatalogView({ eventSlug }: { eventSlug?: string }) {
           </View>
         )}
 
-        <View style={{ gap: 12 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
           {items.map(item => (
-            <View key={item.id || item._id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderWidth: 1, borderColor: SAC.border, borderRadius: 8 }}>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontFamily: FONTS.med, color: SAC.text }} numberOfLines={1}>{item.name}</Text>
-                  {item.is_active === false && (
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: '#F59E0B', backgroundColor: 'rgba(245,158,11,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>HIDDEN</Text>
-                  )}
-                </View>
-                <Text style={{ fontSize: 12, color: SAC.muted }} numberOfLines={1}>
-                  {item.category} • ₹{item.price}{item.stall_no ? ` • Stall ${item.stall_no}` : ''}
-                  {item.stock_limit ? ` • Stock: ${item.stock_remaining ?? item.stock_limit}/${item.stock_limit}` : ' • Unlimited'}
-                </Text>
+            <View key={item.id || item._id} style={{ width: 220, borderWidth: 1, borderColor: SAC.border, borderRadius: 12, overflow: 'hidden', backgroundColor: SAC.panel }}>
+              {/* Image Section */}
+              <View style={{ width: '100%', height: 140, backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                {item.image_base64 || item.images?.[0] ? (
+                  <img
+                    src={item.image_base64 || item.images?.[0]}
+                    alt={item.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: SAC.dim, fontSize: 11 }}>No Image</Text>
+                  </View>
+                )}
+                {item.is_active === false && (
+                  <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(245,158,11,0.9)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: '#FFF' }}>HIDDEN</Text>
+                  </View>
+                )}
               </View>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <Pressable onPress={() => setEditingItem(item)} style={{ padding: 8 }}>
-                  <Edit2 size={16} color={SAC.muted} />
-                </Pressable>
-                <Pressable onPress={() => deleteItem(item.id || item._id)} style={{ padding: 8 }}>
-                  <Trash2 size={16} color="#ef4444" />
-                </Pressable>
+
+              {/* Details Section */}
+              <View style={{ padding: 12 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }} numberOfLines={1}>{item.name}</Text>
+                <Text style={{ fontSize: 13, color: '#10B981', fontFamily: FONTS.bold, marginTop: 4 }}>₹{item.price}</Text>
+                
+                <Text style={{ fontSize: 11, color: SAC.muted, marginTop: 8 }} numberOfLines={1}>
+                  {item.category.toUpperCase()} {item.stall_no ? `• Stall ${item.stall_no}` : ''}
+                </Text>
+                <Text style={{ fontSize: 11, color: SAC.dim, marginTop: 2 }}>
+                  {item.stock_limit ? `Stock: ${item.stock_remaining ?? item.stock_limit}/${item.stock_limit}` : 'Unlimited Stock'}
+                </Text>
+
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: SAC.border }}>
+                  <Pressable onPress={() => setEditingItem(item)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, padding: 4 }}>
+                    <Edit2 size={14} color={SAC.muted} />
+                    <Text style={{ color: SAC.muted, fontSize: 12, fontFamily: FONTS.med }}>Edit</Text>
+                  </Pressable>
+                  <Pressable onPress={() => deleteItem(item.id || item._id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, padding: 4 }}>
+                    <Trash2 size={14} color="#ef4444" />
+                    <Text style={{ color: '#ef4444', fontSize: 12, fontFamily: FONTS.med }}>Delete</Text>
+                  </Pressable>
+                </View>
               </View>
             </View>
           ))}
-          {items.length === 0 && !editingItem && <Text style={{ color: SAC.muted, textAlign: 'center', padding: 20 }}>No items in catalog</Text>}
+          {items.length === 0 && !editingItem && (
+            <View style={{ flex: 1, padding: 40, alignItems: 'center' }}>
+              <Text style={{ color: SAC.muted, textAlign: 'center' }}>No items in catalog</Text>
+            </View>
+          )}
         </View>
       </Card>
     </View>
