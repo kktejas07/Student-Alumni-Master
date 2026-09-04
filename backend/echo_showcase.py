@@ -4617,6 +4617,20 @@ async def my_registrations(request: Request):
         except Exception:
             pass
 
+        # Fetch event/showcase details for title and banner
+        showcase = None
+        try:
+            if slug:
+                showcase = await db.event_showcases.find_one({"slug": slug})
+        except Exception:
+            pass
+
+        if showcase:
+            reg_ser["event_title"] = showcase.get("title") or showcase.get("name") or reg_ser.get("event_title")
+            reg_ser["showcase_title"] = showcase.get("title") or showcase.get("name") or reg_ser.get("showcase_title")
+            reg_ser["banner_url"] = showcase.get("banner_url") or showcase.get("cover_image") or reg_ser.get("banner_url")
+            reg_ser["start_date"] = showcase.get("start_date") or reg_ser.get("start_date")
+
         results.append({
             "registration": reg_ser,
             "coupons": coupons,
