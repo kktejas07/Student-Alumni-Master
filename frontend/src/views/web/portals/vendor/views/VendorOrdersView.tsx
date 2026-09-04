@@ -111,6 +111,17 @@ export function VendorOrdersView() {
           <StatChip label="Pending" value={pendingCount} color={COLORS.warn} tint={COLORS.warnFaint} />
           <StatChip label="Done" value={fulfilledCount} color={COLORS.ok} tint={COLORS.okFaint} />
         </View>
+
+        {/* How it works */}
+        <View style={{ marginTop: 14, padding: 10, borderRadius: 10, backgroundColor: 'rgba(139,92,246,0.08)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.2)' }}>
+          <Text style={{ color: COLORS.violetLt, fontSize: 11, fontWeight: '700', marginBottom: 4 }}>📋 How Order Status Works</Text>
+          <Text style={{ color: COLORS.muted, fontSize: 10.5, lineHeight: 16 }}>
+            1. Click an order to expand details. {"\n"}
+            2. Update status: <Text style={{ color: '#10B981', fontWeight: '600' }}>Confirm</Text> → <Text style={{ color: '#F59E0B', fontWeight: '600' }}>Preparing</Text> → <Text style={{ color: '#3B82F6', fontWeight: '600' }}>Out for Delivery</Text> → <Text style={{ color: '#8B5CF6', fontWeight: '600' }}>Delivered</Text>. {"\n"}
+            3. Customer receives email notification at each step. {"\n"}
+            4. For "Deliver to Table" orders, check the table/team name in delivery info.
+          </Text>
+        </View>
       </LinearGradient>
 
       {/* Tab bar */}
@@ -207,6 +218,86 @@ export function VendorOrdersView() {
                         <Text style={styles.detailValue}>{order.user_email}</Text>
                       </View>
                     )}
+                    {order.delivery_method && (
+                      <View style={styles.detailRow}>
+                        <FontAwesome5 name={order.delivery_method === 'delivery' ? 'truck' : 'hand-paper'} size={12} color={COLORS.muted} />
+                        <Text style={styles.detailLabel}>{order.delivery_method === 'delivery' ? 'Deliver To' : 'Pickup'}</Text>
+                        <Text style={[styles.detailValue, { color: order.delivery_method === 'delivery' ? '#10B981' : COLORS.text }]}>
+                          {order.delivery_method === 'delivery' ? (order.delivery_info || 'Table not specified') : 'Self Pickup'}
+                        </Text>
+                      </View>
+                    )}
+                    {/* Quick Call Button */}
+                    {order.user_phone && (
+                      <Pressable
+                        onPress={() => {
+                          if (Platform.OS === 'web') {
+                            window.open(`tel:${order.user_phone}`, '_self');
+                          }
+                        }}
+                        style={{
+                          flexDirection: 'row', alignItems: 'center', gap: 8,
+                          padding: 10, borderRadius: 10, marginTop: 8,
+                          backgroundColor: 'rgba(16,185,129,0.1)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <FontAwesome5 name="phone-alt" size={12} color="#10B981" />
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '700' }}>Call Customer</Text>
+                          <Text style={{ color: COLORS.muted, fontSize: 11, marginTop: 1 }}>{order.user_phone}</Text>
+                        </View>
+                        <FontAwesome5 name="external-link-alt" size={10} color="#10B981" />
+                      </Pressable>
+                    )}
+                    {/* Order Status Pipeline */}
+                    <View style={{ height: 1, backgroundColor: COLORS.borderLight, marginVertical: 10 }} />
+                    <Text style={{ color: COLORS.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Order Status</Text>
+                    <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                      {[
+                        { key: 'confirmed', label: 'Confirm', icon: 'check-circle', color: '#10B981' },
+                        { key: 'preparing', label: 'Preparing', icon: 'fire', color: '#F59E0B' },
+                        { key: 'out_for_delivery', label: 'Out for Delivery', icon: 'truck', color: '#3B82F6' },
+                        { key: 'delivered', label: 'Delivered', icon: 'check-double', color: '#8B5CF6' },
+                      ].map((s) => {
+                        const currentStatus = order.order_status || 'confirmed';
+                        const statusOrder = ['confirmed', 'preparing', 'out_for_delivery', 'delivered'];
+                        const currentIdx = statusOrder.indexOf(currentStatus);
+                        const btnIdx = statusOrder.indexOf(s.key);
+                        const isCurrent = currentStatus === s.key;
+                        const isPast = btnIdx < currentIdx;
+                        const isNext = btnIdx === currentIdx + 1;
+                        return (
+                          <Pressable
+                            key={s.key}
+                            onPress={async () => {
+                              if (!isNext && !isCurrent) return;
+                              try {
+                                await request('/vendors/order-status', {
+                                  method: 'POST',
+                                  headers: { Authorization: `Bearer ${token}` },
+                                  body: { order_id: order.order_id || order.id, status: s.key },
+                                });
+                                fetchOrders();
+                              } catch (e: any) { alert(e?.message || 'Failed'); }
+                            }}
+                            style={{
+                              flexDirection: 'row', alignItems: 'center', gap: 5,
+                              paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8,
+                              borderWidth: 1, borderColor: isCurrent ? s.color : isPast ? 'rgba(255,255,255,0.1)' : isNext ? `${s.color}40` : 'rgba(255,255,255,0.05)',
+                              backgroundColor: isCurrent ? `${s.color}20` : isPast ? 'rgba(255,255,255,0.03)' : 'transparent',
+                              opacity: isNext || isCurrent ? 1 : 0.4,
+                              cursor: isNext || isCurrent ? 'pointer' : 'auto',
+                            }}
+                          >
+                            <FontAwesome5 name={s.icon} size={11} color={isCurrent ? s.color : isPast ? COLORS.dim : isNext ? s.color : COLORS.dim} />
+                            <Text style={{ fontSize: 11, fontWeight: isCurrent ? '800' : '600', color: isCurrent ? s.color : isPast ? COLORS.dim : isNext ? s.color : COLORS.dim }}>
+                              {s.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
                     {order.user_phone && (
                       <View style={styles.detailRow}>
                         <FontAwesome5 name="phone" size={12} color={COLORS.muted} />

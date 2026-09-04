@@ -81,6 +81,7 @@ export const Lock            = make('lock-outline');
 export const Globe2          = make('earth');
 export const Gift            = make('gift-outline');
 export const Store           = make('store-outline');
+export const Truck           = make('truck-delivery-outline');
 export const Plus            = make('plus');
 export const X               = make('close');
 export const Clock           = make('clock-outline');

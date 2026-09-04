@@ -779,6 +779,8 @@ class CheckoutRequest(BaseModel):
     user_name: Optional[str] = None
     user_email: Optional[str] = None
     user_phone: Optional[str] = None
+    delivery_method: Optional[str] = "pickup"  # "pickup" or "delivery"
+    delivery_info: Optional[str] = None  # table number or team name for delivery
 
 
 @router.post("/orders/checkout")
@@ -880,6 +882,8 @@ async def marketplace_checkout(payload: CheckoutRequest, request: Request):
         "gst_split": gst_split(gst_total),
         "currency": currency,
         "coupon_code": applied_coupon,
+        "delivery_method": payload.delivery_method or "pickup",
+        "delivery_info": payload.delivery_info or None,
         "created_at": now_iso,
         "updated_at": now_iso,
     }

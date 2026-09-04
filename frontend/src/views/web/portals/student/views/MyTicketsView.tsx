@@ -10,7 +10,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, ActivityIndicator, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ticket, CheckCircle, Download, ShieldCheck, QrCode, X, Lock, Calendar, MapPin, User, ArrowRight, AlertCircle, Clock, Store, IndianRupee, Tag } from '../iconShims';
+import { Ticket, CheckCircle, Download, ShieldCheck, QrCode, X, Lock, Calendar, MapPin, User, ArrowRight, AlertCircle, Clock, Store, IndianRupee, Tag, Truck } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GRADS } from '../gradients';
 
@@ -107,6 +107,9 @@ type MarketplaceOrder = {
   coupon_code?: string | null;
   status?: string;
   payment_status?: string;
+  order_status?: string;
+  delivery_method?: 'pickup' | 'delivery';
+  delivery_info?: string;
   created_at?: string;
   razorpay_order_id?: string;
 };
@@ -155,6 +158,18 @@ export function MyTicketsView() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Real-time polling for order status updates (every 15 seconds)
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const o = await api.myMarketplaceOrders();
+        const data = (o?.data || o?.items || []);
+        if (Array.isArray(data)) setOrders(data);
+      } catch {}
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   const openInvoice = async (invoiceNo: string) => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
@@ -444,15 +459,21 @@ export function MyTicketsView() {
           const free = order.payment_status === 'free' || (order.final_amount === 0 && paid);
           const pending = order.payment_status === 'pending' || order.status === 'pending';
           const allFulfilled = oItems.length > 0 && oItems.every((it: any) => it.fulfillment_status === 'FULFILLED');
+          const isDelivery = order.delivery_method === 'delivery';
+          const orderStatusKey = order.order_status || 'confirmed';
+          const statusMap: Record<string, { c: string; label: string; icon: any }> = {
+            confirmed: { c: '#10B981', label: 'ORDER CONFIRMED', icon: CheckCircle },
+            preparing: { c: '#F59E0B', label: 'BEING PREPARED', icon: Clock },
+            out_for_delivery: { c: '#3B82F6', label: isDelivery ? 'OUT FOR DELIVERY' : 'READY FOR PICKUP', icon: Truck },
+            delivered: { c: '#8B5CF6', label: 'DELIVERED', icon: CheckCircle },
+          };
           const orderStatus = allFulfilled
             ? { c: '#6366F1', label: 'COLLECTED', icon: CheckCircle }
-            : free
-              ? { c: '#34D399', label: 'PAID · COLLECT AT STALL', icon: CheckCircle }
-              : paid
-                ? { c: '#34D399', label: 'PAID · COLLECT AT STALL', icon: CheckCircle }
-                : pending
-                  ? { c: '#FBBF24', label: 'PENDING PAYMENT', icon: Clock }
-                  : { c: '#FB7185', label: 'NOT PAID', icon: AlertCircle };
+            : statusMap[orderStatusKey] || (free || paid
+              ? { c: '#34D399', label: isDelivery ? 'PAID · DELIVER TO TABLE' : 'PAID · COLLECT AT STALL', icon: CheckCircle }
+              : pending
+                ? { c: '#FBBF24', label: 'PENDING PAYMENT', icon: Clock }
+                : { c: '#FB7185', label: 'NOT PAID', icon: AlertCircle });
           const OrderStatusIcon = orderStatus.icon;
 
           return (
@@ -484,6 +505,12 @@ export function MyTicketsView() {
                   <Text style={[s.readyBadgeText, { color: orderStatus.c }]}>{orderStatus.label.split(' · ')[0]}</Text>
                 </View>
               </View>
+              
+              {isDelivery && order.delivery_info && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingHorizontal: 4 }}>
+                  <Text style={{ fontSize: 12, color: '#10B981', fontWeight: 600 }}>📍 Deliver to: {order.delivery_info}</Text>
+                </View>
+              )}
               
               <View style={s.spSeparator}>
                 <View style={[s.spCutout, { left: -9 }]} />
