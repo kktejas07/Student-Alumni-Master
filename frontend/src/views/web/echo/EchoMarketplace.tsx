@@ -418,8 +418,25 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
               const couponVendorId = couponPreview?.vendor_id;
               const itemVendorId = item.vendor_id;
               const isCouponAppliedToItem = couponVendorId && itemVendorId && couponVendorId === itemVendorId && discount > 0;
-              const itemDiscount = isCouponAppliedToItem ? Math.round(itemTotal * (discount / cartTotal)) : 0;
-              const discountedPrice = isCouponAppliedToItem ? itemTotal - itemDiscount : itemTotal;
+              // Calculate per-item discount: if vendor-scoped, full discount goes to this vendor's items
+              let itemDiscount = 0;
+              if (isCouponAppliedToItem) {
+                if (couponVendorId) {
+                  // Vendor-scoped: calculate this vendor's subtotal and apply full discount to it
+                  const vendorSubtotal = Object.entries(cart).reduce((sum, [cartId, cartQty]) => {
+                    const cartItem = items.find(i => i.id === cartId || i._id === cartId);
+                    if (cartItem && cartItem.vendor_id === couponVendorId) {
+                      return sum + (cartItem.price * cartQty);
+                    }
+                    return sum;
+                  }, 0);
+                  itemDiscount = vendorSubtotal > 0 ? Math.round(itemTotal * (discount / vendorSubtotal)) : 0;
+                } else {
+                  // Global coupon: split proportionally across all items
+                  itemDiscount = cartTotal > 0 ? Math.round(itemTotal * (discount / cartTotal)) : 0;
+                }
+              }
+              const discountedPrice = itemTotal - itemDiscount;
               return (
                 <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, padding: 10, border: `1px solid ${border}`, borderRadius: 12, background: isCouponAppliedToItem ? 'rgba(16,185,129,0.05)' : 'var(--panel)' }}>
                   {img ? (
@@ -437,9 +454,9 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
                     )}
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    {isCouponAppliedToItem ? (
+                    {isCouponAppliedToItem && itemDiscount > 0 ? (
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#10B981' }}>₹{discountedPrice}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#10B981' }}>₹{discountedPrice.toFixed(2)}</div>
                         <div style={{ fontSize: 11, color: 'var(--muted)', textDecoration: 'line-through' }}>₹{itemTotal}</div>
                         <div style={{ fontSize: 10, color: '#10B981', fontWeight: 600 }}>−₹{itemDiscount} ({couponPreview?.code})</div>
                       </div>
