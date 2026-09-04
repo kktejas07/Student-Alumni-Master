@@ -8,6 +8,7 @@ from bson import ObjectId
 
 from core.db import db
 from core.security import JWT_SECRET, JWT_ALGORITHM, decrypt_value
+from core.email import send_email, render_html_email
 
 router = APIRouter()
 
@@ -384,6 +385,59 @@ async def fulfill_vendor_order(req: FulfillRequest, vendor: dict = Depends(get_c
         ))
     
     return {"success": True, "message": "Order fulfilled successfully"}
+
+
+@router.post("/api/vendors/order-status")
+async def update_order_status(req: Request, vendor: dict = Depends(get_current_vendor)):
+    """Update order status: confirmed → preparing → out_for_delivery → delivered."""
+    body = await req.json()
+    order_id = body.get("order_id")
+    new_status = body.get("status")
+    valid_statuses = ["confirmed", "preparing", "out_for_delivery", "delivered"]
+    if not order_id or new_status not in valid_statuses:
+        raise HTTPException(400, f"Invalid request. Status must be one of: {', '.join(valid_statuses)}")
+
+    db = _get_db(req)
+    order = await db.echo_orders.find_one({"id": order_id})
+    if not order:
+        raise HTTPException(404, "Order not found")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    update = {"order_status": new_status, "updated_at": now_iso}
+    if new_status == "delivered":
+        update["delivered_at"] = now_iso
+
+    await db.echo_orders.update_one({"id": order_id}, {"$set": update})
+
+    # Send email notification on status change
+    if order.get("user_email"):
+        status_labels = {"confirmed": "Confirmed", "preparing": "Being Prepared", "out_for_delivery": "Out for Delivery", "delivered": "Delivered"}
+        status_label = status_labels.get(new_status, new_status)
+        email_html = render_html_email(f"""
+        <div style="text-align:center;padding:32px 0">
+            <div style="font-size:48px;margin-bottom:16px">{"📦" if new_status == "confirmed" else "👨‍🍳" if new_status == "preparing" else "🚚" if new_status == "out_for_delivery" else "✅"}</div>
+            <h1 style="font-size:22px;color:#1a1a2e;margin:0 0 8px">Order {status_label}</h1>
+            <p style="font-size:15px;color:#666;margin:0 0 24px">Your marketplace order has been updated</p>
+        </div>
+        <div style="background:#f8f9fa;border-radius:12px;padding:20px;margin:0 0 20px">
+            <table style="width:100%;font-size:14px;color:#333">
+                <tr><td style="padding:6px 0;color:#888">Order ID</td><td style="padding:6px 0;font-weight:600;font-family:monospace">#{order_id}</td></tr>
+                <tr><td style="padding:6px 0;color:#888">Status</td><td style="padding:6px 0;font-weight:600;color:{"#10B981" if new_status == "delivered" else "#F59E0B"}">{status_label}</td></tr>
+                {"<tr><td style='padding:6px 0;color:#888'>Delivery</td><td style='padding:6px 0;font-weight:600'>Delivering to " + (order.get('delivery_info') or 'your table') + "</td></tr>" if new_status == "out_for_delivery" and order.get("delivery_method") == "delivery" else ""}
+            </table>
+        </div>
+        """)
+        try:
+            asyncio.create_task(send_email(
+                order["user_email"],
+                f"Order #{order_id} — {status_label}",
+                email_html
+            ))
+        except Exception:
+            pass
+
+    return {"success": True, "status": new_status}
+
 
 class VendorCatalogItemInput(BaseModel):
     name: str

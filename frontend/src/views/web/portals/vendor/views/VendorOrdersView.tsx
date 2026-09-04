@@ -216,6 +216,54 @@ export function VendorOrdersView() {
                         </Text>
                       </View>
                     )}
+                    {/* Order Status Pipeline */}
+                    <View style={{ height: 1, backgroundColor: COLORS.borderLight, marginVertical: 10 }} />
+                    <Text style={{ color: COLORS.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Order Status</Text>
+                    <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                      {[
+                        { key: 'confirmed', label: 'Confirm', icon: 'check-circle', color: '#10B981' },
+                        { key: 'preparing', label: 'Preparing', icon: 'fire', color: '#F59E0B' },
+                        { key: 'out_for_delivery', label: 'Out for Delivery', icon: 'truck', color: '#3B82F6' },
+                        { key: 'delivered', label: 'Delivered', icon: 'check-double', color: '#8B5CF6' },
+                      ].map((s) => {
+                        const currentStatus = order.order_status || 'confirmed';
+                        const statusOrder = ['confirmed', 'preparing', 'out_for_delivery', 'delivered'];
+                        const currentIdx = statusOrder.indexOf(currentStatus);
+                        const btnIdx = statusOrder.indexOf(s.key);
+                        const isCurrent = currentStatus === s.key;
+                        const isPast = btnIdx < currentIdx;
+                        const isNext = btnIdx === currentIdx + 1;
+                        return (
+                          <Pressable
+                            key={s.key}
+                            onPress={async () => {
+                              if (!isNext && !isCurrent) return;
+                              try {
+                                await request('/vendors/order-status', {
+                                  method: 'POST',
+                                  headers: { Authorization: `Bearer ${token}` },
+                                  body: { order_id: order.order_id || order.id, status: s.key },
+                                });
+                                loadData();
+                              } catch (e: any) { alert(e?.message || 'Failed'); }
+                            }}
+                            style={{
+                              flexDirection: 'row', alignItems: 'center', gap: 5,
+                              paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8,
+                              borderWidth: 1, borderColor: isCurrent ? s.color : isPast ? 'rgba(255,255,255,0.1)' : isNext ? `${s.color}40` : 'rgba(255,255,255,0.05)',
+                              backgroundColor: isCurrent ? `${s.color}20` : isPast ? 'rgba(255,255,255,0.03)' : 'transparent',
+                              opacity: isNext || isCurrent ? 1 : 0.4,
+                              cursor: isNext || isCurrent ? 'pointer' : 'default',
+                            }}
+                          >
+                            <FontAwesome5 name={s.icon} size={11} color={isCurrent ? s.color : isPast ? COLORS.dim : isNext ? s.color : COLORS.dim} />
+                            <Text style={{ fontSize: 11, fontWeight: isCurrent ? '800' : '600', color: isCurrent ? s.color : isPast ? COLORS.dim : isNext ? s.color : COLORS.dim }}>
+                              {s.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
                     {order.user_phone && (
                       <View style={styles.detailRow}>
                         <FontAwesome5 name="phone" size={12} color={COLORS.muted} />

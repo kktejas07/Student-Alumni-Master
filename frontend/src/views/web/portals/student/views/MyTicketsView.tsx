@@ -156,6 +156,18 @@ export function MyTicketsView() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Real-time polling for order status updates (every 15 seconds)
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const o = await api.myMarketplaceOrders();
+        const data = (o?.data || o?.items || []);
+        if (Array.isArray(data)) setOrders(data);
+      } catch {}
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
   const openInvoice = async (invoiceNo: string) => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
     const w = window.open('', '_blank');
@@ -445,15 +457,20 @@ export function MyTicketsView() {
           const pending = order.payment_status === 'pending' || order.status === 'pending';
           const allFulfilled = oItems.length > 0 && oItems.every((it: any) => it.fulfillment_status === 'FULFILLED');
           const isDelivery = order.delivery_method === 'delivery';
+          const orderStatusKey = order.order_status || 'confirmed';
+          const statusMap: Record<string, { c: string; label: string; icon: any }> = {
+            confirmed: { c: '#10B981', label: 'ORDER CONFIRMED', icon: CheckCircle },
+            preparing: { c: '#F59E0B', label: 'BEING PREPARED', icon: Clock },
+            out_for_delivery: { c: '#3B82F6', label: isDelivery ? 'OUT FOR DELIVERY' : 'READY FOR PICKUP', icon: Truck },
+            delivered: { c: '#8B5CF6', label: 'DELIVERED', icon: CheckCircle },
+          };
           const orderStatus = allFulfilled
             ? { c: '#6366F1', label: 'COLLECTED', icon: CheckCircle }
-            : free
+            : statusMap[orderStatusKey] || (free || paid
               ? { c: '#34D399', label: isDelivery ? 'PAID · DELIVER TO TABLE' : 'PAID · COLLECT AT STALL', icon: CheckCircle }
-              : paid
-                ? { c: '#34D399', label: isDelivery ? 'PAID · DELIVER TO TABLE' : 'PAID · COLLECT AT STALL', icon: CheckCircle }
-                : pending
-                  ? { c: '#FBBF24', label: 'PENDING PAYMENT', icon: Clock }
-                  : { c: '#FB7185', label: 'NOT PAID', icon: AlertCircle };
+              : pending
+                ? { c: '#FBBF24', label: 'PENDING PAYMENT', icon: Clock }
+                : { c: '#FB7185', label: 'NOT PAID', icon: AlertCircle });
           const OrderStatusIcon = orderStatus.icon;
 
           return (
