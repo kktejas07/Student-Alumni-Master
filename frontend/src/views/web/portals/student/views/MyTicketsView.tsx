@@ -133,6 +133,7 @@ export function MyTicketsView() {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [previewCoupon, setPreviewCoupon] = useState<Coupon | null>(null);
+  const [previewReg, setPreviewReg] = useState<Registration | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -322,17 +323,25 @@ export function MyTicketsView() {
                 
                 {/* Bottom Section */}
                 <View style={s.tkBottomSection}>
-                  <View style={s.tkQrBox}>
+                  <Pressable 
+                    onPress={() => setPreviewReg(reg)}
+                    style={({ hovered }: any) => [s.tkQrBox, hovered && { opacity: 0.8 }]}
+                  >
                     <QrCode size={30} color="#2B1E6E" />
-                  </View>
+                  </Pressable>
                   <View style={{ flex: 1, paddingHorizontal: 16 }}>
                     <Text style={s.tkMetaLabel}>TICKET NUMBER</Text>
                     <Text style={s.tkNumber}>{reg.id?.substring(0, 8).toUpperCase() || 'SA-TKT-XXXXXX'}</Text>
                     <Text style={s.tkName}>{reg.full_name || 'Guest'} · {reg.email}</Text>
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={s.tkMetaLabel}>PAID</Text>
-                    <Text style={s.tkPaidAmount}>₹{inr(payment.amount)}</Text>
+                    <Pressable 
+                      onPress={() => setPreviewReg(reg)}
+                      style={({ hovered }: any) => [{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 }, hovered && { backgroundColor: 'rgba(255,255,255,0.25)' }]}
+                    >
+                      <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Show QR</Text>
+                      <ArrowRight size={14} color="#fff" />
+                    </Pressable>
                   </View>
                 </View>
               </View>
@@ -409,11 +418,12 @@ export function MyTicketsView() {
         <EmptyState
           variant="generic"
           title="No marketplace orders yet"
-          body="Food and merchandise you order from the ECHO marketplace will show up here with pickup QR codes and invoices."
+          body="Food and merchandise you order from the ECHO marketplace will show up here with pickup QR codes."
           compact
         />
       ) : (
-        orders.map((order, idx) => {
+        <View style={s.passGrid}>
+          {orders.map((order, idx) => {
           const oItems = order.items || [];
           const paid = order.payment_status === 'paid' || order.status === 'paid';
           const free = order.payment_status === 'free' || (order.final_amount === 0 && paid);
@@ -431,109 +441,52 @@ export function MyTicketsView() {
           const OrderStatusIcon = orderStatus.icon;
 
           return (
-            <GlassCard key={order.id} delay={idx * 40} radius={16} padding={0} style={{ overflow: 'hidden' }}>
-              <View style={[s.accentBar, { backgroundColor: orderStatus.c }]} />
-              <View style={s.mpBody}>
-                <View style={s.mpHeaderRow}>
-                  <View>
-                    <Text style={s.mpTitle}>{oItems.length} item{oItems.length !== 1 ? 's' : ''} · #{order.id}</Text>
-                    <Text style={s.mpMeta}>
-                      {order.created_at
-                        ? new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-                        : '—'}
-                      {order.event_id ? ` · ${order.event_id}` : ''}
-                    </Text>
-                  </View>
-                  <View style={[s.statusChip, { backgroundColor: allFulfilled ? 'rgba(99,102,241,0.12)' : 'rgba(52,211,153,0.12)', borderColor: allFulfilled ? 'rgba(99,102,241,0.28)' : 'rgba(52,211,153,0.28)' }]}>
-                    <OrderStatusIcon size={10} color={orderStatus.c} />
-                    <Text style={[s.statusText, { color: orderStatus.c }]}>{orderStatus.label}</Text>
-                  </View>
+            <Pressable 
+              key={order.id} 
+              onPress={() => !allFulfilled && openMarketplaceQr(order.id)}
+              style={({ hovered }: any) => [
+                s.sessionPassCard, 
+                allFulfilled && s.sessionPassUsed,
+                hovered && !allFulfilled && { opacity: 0.85 }
+              ]}
+            >
+              {allFulfilled && (
+                <View style={s.usedWatermark}>
+                  <Text style={s.usedWatermarkText}>DONE</Text>
                 </View>
-
-                {/* Items */}
-                <View style={s.mpItems}>
-                  {oItems.map((it, i) => (
-                    <View key={it.item_id || i} style={s.mpItemRow}>
-                      <View style={[s.mpCat, { backgroundColor: it.fulfillment_status === 'FULFILLED' ? 'rgba(52,211,153,0.12)' : 'rgba(124,58,237,0.12)' }]}>
-                        {it.fulfillment_status === 'FULFILLED'
-                          ? <CheckCircle size={11} color="#34D399" />
-                          : <Tag size={11} color={GRAD.from} />}
-                      </View>
-                      <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={s.mpItemName} numberOfLines={1}>{it.name}</Text>
-                        <Text style={s.mpItemMeta} numberOfLines={1}>
-                          {it.vendor_name ? `${it.vendor_name}` : 'Marketplace'}
-                          {it.stall_no ? ` · Stall ${it.stall_no}` : ''}
-                          {it.stall_location ? ` · ${it.stall_location}` : ''}
-                        </Text>
-                      </View>
-                      {it.fulfillment_status === 'FULFILLED' && (
-                        <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#34D399', marginRight: 6 }}>DONE</Text>
-                      )}
-                      <Text style={s.mpQty}>{it.quantity}×</Text>
-                      <Text style={s.mpPrice}>₹{inr(it.line_total ?? (it.price_at_time ?? it.price) ?? 0)}</Text>
-                    </View>
-                  ))}
+              )}
+              <View style={s.sessionPassHeader}>
+                <View style={[s.sessionPassIcon, { backgroundColor: `${orderStatus.c}1A`, borderColor: `${orderStatus.c}33` }]}>
+                  <OrderStatusIcon size={20} color={orderStatus.c} />
                 </View>
-
-                {/* Totals / coupon */}
-                <View style={s.mpTotals}>
-                  <View style={s.mpTotalRow}>
-                    <Text style={s.mpTotalLabel}>Subtotal</Text>
-                    <Text style={s.mpTotalValue}>₹{inr(order.subtotal)}</Text>
-                  </View>
-                  {order.coupon_code && (
-                    <View style={s.mpTotalRow}>
-                      <Text style={s.mpTotalLabel}>Coupon · {order.coupon_code}</Text>
-                      <Text style={[s.mpTotalValue, { color: '#34D399' }]}>−₹{inr(order.discount)}</Text>
-                    </View>
-                  )}
-                  {(order.gst_total ?? 0) > 0 && (
-                    <View style={s.mpTotalRow}>
-                      <Text style={s.mpTotalLabel}>GST</Text>
-                      <Text style={s.mpTotalValue}>₹{inr(order.gst_total)}</Text>
-                    </View>
-                  )}
-                  <View style={[s.mpTotalRow, s.mpGrandRow]}>
-                    <Text style={s.mpGrandLabel}>Total (incl. GST)</Text>
-                    <Text style={s.mpGrandValue}>₹{inr(order.final_amount)}</Text>
-                  </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.sessionPassName} numberOfLines={1}>Order #{order.id.substring(0, 8).toUpperCase()}</Text>
+                  <Text style={s.sessionPassSub} numberOfLines={1}>
+                    {oItems.map((i: any) => `${i.quantity}x ${i.name}`).join(', ')}
+                  </Text>
                 </View>
-
-                {/* Actions */}
-                {(paid || free) && (
-                  <View style={s.mpActions}>
-                    <Pressable
-                      onPress={() => !allFulfilled && openMarketplaceQr(order.id)}
-                      style={({ hovered }: any) => [s.primaryBtn, allFulfilled && { opacity: 0.5, backgroundColor: 'rgba(99,102,241,0.4)' }, hovered && !allFulfilled && { opacity: 0.85 }]}
-                    >
-                      {downloading === 'qr_' + order.id
-                        ? <ActivityIndicator size="small" color="#fff" />
-                        : <><QrCode size={12} color="#fff" /><Text style={s.btnText}>{allFulfilled ? 'Collected' : 'Pickup QR'}</Text></>}
-                    </Pressable>
-                    <Pressable
-                      onPress={() => openMarketplaceInvoice(order.id)}
-                      style={({ hovered }: any) => [s.ghostBtn, hovered && { opacity: 0.85 }]}
-                    >
-                      {downloading === 'mp_' + order.id
-                        ? <ActivityIndicator size="small" color={SC.muted} />
-                        : <><Download size={11} color={SC.muted} /><Text style={s.ghostBtnText}>Invoice</Text></>}
-                    </Pressable>
-                    {pending && (
-                      <Pressable
-                        onPress={() => { if (Platform.OS === 'web' && order.event_id) window.location.href = `/echo/${order.event_id}`; }}
-                        style={({ hovered }: any) => [s.ghostBtn, { borderColor: 'rgba(245,158,11,0.28)' }, hovered && { opacity: 0.85 }]}
-                      >
-                        <IndianRupee size={11} color="#FBBF24" />
-                        <Text style={[s.ghostBtnText, { color: '#FCD34D' }]}>Retry Payment</Text>
-                      </Pressable>
-                    )}
-                  </View>
+                <View style={[s.readyBadge, { borderColor: `${orderStatus.c}4D` }]}>
+                  <Text style={[s.readyBadgeText, { color: orderStatus.c }]}>{orderStatus.label.split(' · ')[0]}</Text>
+                </View>
+              </View>
+              
+              <View style={s.spSeparator}>
+                <View style={[s.spCutout, { left: -9 }]} />
+                <View style={[s.spCutout, { right: -9 }]} />
+              </View>
+              
+              <View style={s.sessionPassFooter}>
+                <Text style={s.spCode}>₹{inr(order.final_amount)} paid</Text>
+                {!allFulfilled ? (
+                  <Text style={s.spActionText}>Show QR →</Text>
+                ) : (
+                  <Text style={[s.spActionText, { color: '#6366F1' }]}>Collected ✓</Text>
                 )}
               </View>
-            </GlassCard>
+            </Pressable>
           );
-        })
+        })}
+        </View>
       )}
 
       {/* Coupon modal */}
@@ -597,6 +550,41 @@ export function MyTicketsView() {
               </View>
 
               <Pressable onPress={() => setPreviewCoupon(null)} style={s.doneBtn}>
+                <Text style={s.doneBtnText}>Done</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Ticket QR Modal */}
+      {previewReg && (
+        <Modal visible transparent animationType="fade" onRequestClose={() => setPreviewReg(null)}>
+          <View style={s.overlay}>
+            <View style={s.modal}>
+              <View style={s.modalHeader}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={s.modalTitle}>{previewReg.event_title || previewReg.showcase_title || 'Event Ticket'}</Text>
+                  <Text style={s.modalSub}>Entry Pass · Show at gates</Text>
+                </View>
+                <Pressable onPress={() => setPreviewReg(null)} style={s.closeBtn}>
+                  <X size={16} color={SC.muted} />
+                </Pressable>
+              </View>
+
+              <View style={s.modalBody}>
+                <View style={s.qrBox}>
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : 'https://studentalumni.ai'}/echo/scan/${previewReg.id}`)}`}
+                    alt={`QR for Ticket`}
+                    style={{ width: 200, height: 200, display: 'block' }}
+                  />
+                </View>
+                <Text style={s.codeText}>{previewReg.id?.substring(0, 8).toUpperCase()}</Text>
+                <Text style={s.codeSub}>Hold this code near the scanner</Text>
+              </View>
+
+              <Pressable onPress={() => setPreviewReg(null)} style={s.doneBtn}>
                 <Text style={s.doneBtnText}>Done</Text>
               </Pressable>
             </View>
