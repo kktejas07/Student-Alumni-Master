@@ -204,9 +204,23 @@ export function VendorOrdersView() {
                     <Text style={styles.cellSub}>{vendorItems.length} item{vendorItems.length !== 1 ? 's' : ''}</Text>
                   </View>
                   <View style={{ width: 80, alignItems: 'center' }}>
-                    <View style={[styles.statusDot, { backgroundColor: allFulfilled ? COLORS.ok : COLORS.warn }]}>
-                      <Text style={styles.statusDotText}>{allFulfilled ? 'DONE' : `${pendingItems.length} PEND`}</Text>
-                    </View>
+                    {order.refund_status === 'refunded' ? (
+                      <View style={[styles.statusDot, { backgroundColor: 'rgba(239,68,68,0.2)' }]}>
+                        <Text style={[styles.statusDotText, { color: '#EF4444' }]}>REFUNDED</Text>
+                      </View>
+                    ) : (
+                      <View style={[styles.statusDot, { backgroundColor: allFulfilled ? COLORS.ok : COLORS.warn }]}>
+                        <Text style={styles.statusDotText}>{allFulfilled ? 'DONE' : `${pendingItems.length} PEND`}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={{ width: 70, alignItems: 'flex-end' }}>
+                    <Text style={{ color: COLORS.text, fontFamily: '700', fontSize: 12 }}>
+                      ₹{order.final_amount || vendorItems.reduce((sum: number, it: any) => sum + (it.price || 0) * (it.quantity || 1), 0)}
+                    </Text>
+                    {order.refund_status === 'refunded' && (
+                      <Text style={{ color: '#EF4444', fontSize: 9, fontWeight: '600', marginTop: 2 }}>REFUNDED</Text>
+                    )}
                   </View>
                   <View style={{ width: 80, alignItems: 'flex-end' }}>
                     <Text style={styles.cellTime}>
@@ -272,7 +286,9 @@ export function VendorOrdersView() {
                         <FontAwesome5 name="external-link-alt" size={10} color="#10B981" />
                       </Pressable>
                     )}
-                    {/* Order Status Pipeline */}
+                    {/* Order Status Pipeline - hide if refunded */}
+                    {order.refund_status !== 'refunded' && (
+                      <>
                     <View style={{ height: 1, backgroundColor: COLORS.borderLight, marginVertical: 10 }} />
                     <Text style={{ color: COLORS.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Order Status</Text>
                     <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
@@ -320,6 +336,8 @@ export function VendorOrdersView() {
                         );
                       })}
                     </View>
+                    </>
+                    )}
                     {/* Refund Button */}
                     {order.refund_status !== 'refunded' && (
                       <View style={{ marginTop: 10 }}>
