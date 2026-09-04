@@ -5142,7 +5142,10 @@ function LiveScanMonitorPanel() {
               </View>
               
               <View style={{ flex: 0.7, justifyContent: 'center' }}>
-                <StatusPill kind={reg.ticket_issued ? 'success' : 'warn'} label={reg.ticket_issued ? 'Issued' : 'Pending'} />
+                <StatusPill 
+                  kind={reg.checked_in_at ? 'info' : reg.ticket_issued ? 'success' : 'warn'} 
+                  label={reg.checked_in_at ? 'Scanned' : reg.ticket_issued ? 'Issued' : 'Pending'} 
+                />
               </View>
 
               <View style={{ flex: 0.9, justifyContent: 'center', paddingRight: 8 }}>

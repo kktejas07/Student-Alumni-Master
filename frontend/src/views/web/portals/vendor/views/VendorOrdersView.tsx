@@ -172,12 +172,6 @@ export function VendorOrdersView() {
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.cellName} numberOfLines={1}>{order.user_name || 'Guest'}</Text>
-                    {order.user_email ? (
-                      <Text style={styles.cellSub} numberOfLines={1}>{order.user_email}</Text>
-                    ) : null}
-                    {order.user_phone ? (
-                      <Text style={styles.cellSub} numberOfLines={1}>{order.user_phone}</Text>
-                    ) : null}
                   </View>
                   <View style={{ flex: 1.5, minWidth: 0 }}>
                     <Text style={styles.cellItems} numberOfLines={isExpanded ? 4 : 1}>{formatItems(vendorItems)}</Text>

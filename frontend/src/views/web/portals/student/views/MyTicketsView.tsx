@@ -274,7 +274,7 @@ export function MyTicketsView() {
           return (
             <View key={reg.id || idx} style={isWeb ? s.tkGrid : s.tkGridMobile}>
               {/* Left Column: Main Ticket */}
-              <View style={s.mainTicket}>
+              <Pressable onPress={() => setPreviewReg(reg)} style={({ hovered }: any) => [s.mainTicket, hovered && { transform: [{ scale: 0.99 }] }]}>
                 <LinearGradient
                   colors={['#5B2DBE', '#4B3FD6', '#2FB8C6']}
                   start={{ x: 0, y: 0 }}
@@ -324,12 +324,10 @@ export function MyTicketsView() {
                 
                 {/* Bottom Section */}
                 <View style={s.tkBottomSection}>
-                  <Pressable 
-                    onPress={() => setPreviewReg(reg)}
-                    style={({ hovered }: any) => [s.tkQrBox, hovered && { opacity: 0.8 }]}
-                  >
-                    <QrCode size={30} color="#2B1E6E" />
-                  </Pressable>
+                  <View style={[s.tkQrBox, { flexDirection: 'row', alignItems: 'center', gap: 8 }]}>
+                    <QrCode size={22} color="#2B1E6E" />
+                    <Text style={{ color: '#2B1E6E', fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.5 }}>TAP FOR QR</Text>
+                  </View>
                   <View style={{ flex: 1, paddingHorizontal: 16 }}>
                     <Text style={s.tkMetaLabel}>TICKET NUMBER</Text>
                     <Text style={s.tkNumber}>SA-TKT-{reg.id?.substring(0, 6).toUpperCase() || 'XXXXXX'}</Text>
@@ -340,7 +338,7 @@ export function MyTicketsView() {
                     <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 18 }}>₹{payment.amount || inv?.amount || 599}</Text>
                   </View>
                 </View>
-              </View>
+              </Pressable>
 
               {/* Right Column: Passes */}
               <View style={s.passesCol}>
