@@ -3846,7 +3846,9 @@ function RegistrationsPanel() {
                         onPress={async () => {
                           if (!window.confirm('Resend tickets to ' + r.email + '?')) return;
                           try {
-                            await request(`/echo/admin/registrations/${r.id}/resend-tickets`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+                            const { tokenStore } = await import('@/src/models/services/api');
+                            const authToken = await tokenStore.getAccess();
+                            await request(`/echo/admin/registrations/${r.id}/resend-tickets`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` } });
                             flash('Tickets resent to ' + r.email);
                           } catch (e: any) { flash(e?.message || 'Failed', 'error'); }
                         }}
@@ -4740,7 +4742,43 @@ function RegistrationsPanel() {
         </View>
       </Modal>
 
-      
+      {/* Edit Registration Modal */}
+      <Modal transparent visible={!!editingReg} animationType="fade" onRequestClose={() => setEditingReg(null)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 }} onPress={() => setEditingReg(null)}>
+          <Pressable onPress={(e: any) => e?.stopPropagation?.()} style={{ width: '100%', maxWidth: 400, backgroundColor: SAC.panel, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 22, gap: 14 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>Edit Registration</Text>
+              <Pressable onPress={() => setEditingReg(null)}><X size={18} color={SAC.muted} /></Pressable>
+            </View>
+            <View>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginBottom: 4 }}>Full Name</Text>
+              <TextInput value={editName} onChangeText={setEditName} style={{ backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 14, fontFamily: FONTS.regular }} />
+            </View>
+            <View>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginBottom: 4 }}>Email</Text>
+              <TextInput value={editEmail} onChangeText={setEditEmail} style={{ backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 14, fontFamily: FONTS.regular }} keyboardType="email-address" />
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
+              <SecondaryButton onPress={() => setEditingReg(null)}><Text style={{ color: SAC.text }}>Cancel</Text></SecondaryButton>
+              <GradientButton onPress={async () => {
+                if (!editingReg) return;
+                try {
+                  const { tokenStore } = await import('@/src/models/services/api');
+                  const authToken = await tokenStore.getAccess();
+                  await request(`/echo/admin/registrations/${editingReg.id}`, {
+                    method: 'PATCH',
+                    body: { email: editEmail, full_name: editName },
+                    headers: { Authorization: `Bearer ${authToken}` },
+                  });
+                  flash('Registration updated');
+                  setEditingReg(null);
+                  load();
+                } catch (e: any) { flash(e?.message || 'Failed', 'error'); }
+              }}><Text style={{ color: SAC.text }}>Save</Text></GradientButton>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
