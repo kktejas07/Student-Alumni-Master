@@ -134,12 +134,18 @@ export function MyTicketsView() {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [previewCoupon, setPreviewCoupon] = useState<Coupon | null>(null);
   const [previewReg, setPreviewReg] = useState<Registration | null>(null);
+  const [authError, setAuthError] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const r = await api.myEchoRegistrations();
       setItems(r?.items || []);
-    } catch { /* not authed / empty */ }
+      setAuthError(false);
+    } catch (e: any) {
+      if (e?.message?.includes('401') || e?.message?.includes('Authentication')) {
+        setAuthError(true);
+      }
+    }
     try {
       const o = await api.myMarketplaceOrders();
       const data = (o?.data || o?.items || []);

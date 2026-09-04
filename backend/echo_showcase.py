@@ -4562,11 +4562,13 @@ async def my_registrations(request: Request):
     email = (user.get("email") or "").strip().lower()
     uid = str(user["_id"])
 
-    # Find all registrations for this user — match user_key too because paid
-    # registrations can have user_id rewritten to a provisioned SA account.
-    query = {"$or": [{"user_id": uid}, {"user_key": uid}]}
+    # Find all registrations for this user — match user_key, user_id, and email.
+    # Use case-insensitive email match ($regex) to handle stored variations.
+    query: dict = {"$or": [{"user_id": uid}, {"user_key": uid}]}
     if email:
-        query = {"$or": [{"user_id": uid}, {"user_key": uid}, {"email": email}]}
+        query["$or"].append({"email": email})
+        # Also match case-insensitively for legacy registrations with mixed case
+        query["$or"].append({"email": {"$regex": f"^{email}$", "$options": "i"}})
     regs = await db.echo_registrations.find(query).sort("created_at", -1).to_list(100)
 
     results = []

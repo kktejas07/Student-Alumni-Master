@@ -41,8 +41,6 @@ function greeting(): string {
   return 'Good evening';
 }
 
-import { Sidebar, StudentNavId, NAV } from './Sidebar';
-
 export function TopBar({
   scrolled = false,
   activeView = 'dashboard',
