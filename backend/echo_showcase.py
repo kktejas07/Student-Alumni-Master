@@ -4832,13 +4832,19 @@ async def admin_echo_registrations(
     invoice_map: Dict[str, dict] = {}
     if reg_ids:
         for c in await db.echo_coupons.find({"reg_id": {"$in": reg_ids}}).to_list(5000):
+            used_at = c.get("used_at")
+            # Ensure used_at is always an ISO string with timezone info
+            if used_at and hasattr(used_at, 'isoformat'):
+                used_at = used_at.isoformat()
+            elif used_at and isinstance(used_at, str) and 'T' in used_at and '+' not in used_at and 'Z' not in used_at:
+                used_at = used_at + 'Z'  # Assume UTC if no timezone
             coupons_map.setdefault(c.get("reg_id"), []).append({
                 "session_key": c.get("session_key"),
                 "session_name": c.get("session_name"),
                 "session_day": c.get("session_day") or 1,
                 "coupon_code": c.get("coupon_code"),
                 "used": bool(c.get("used")),
-                "used_at": c.get("used_at"),
+                "used_at": used_at,
                 "scanned_location": c.get("scanned_location"),
                 "scanned_lat": c.get("scanned_lat"),
                 "scanned_lng": c.get("scanned_lng"),
@@ -6705,7 +6711,7 @@ async def scan_coupon(request: Request, admin=Depends(_require_scan_access)):
 
     update_data = {
         "used": True,
-        "used_at": now,
+        "used_at": now.isoformat(),  # Store as ISO string with timezone
         "scanned_by": admin.get("email", "admin")
     }
     address = ""
@@ -6730,7 +6736,7 @@ async def scan_coupon(request: Request, admin=Depends(_require_scan_access)):
             reg,
             coupon.get("session_name", "Session"),
             code,
-            now.strftime("%b %d, %Y · %I:%M %p"),
+            now.strftime("%b %d, %Y · %I:%M %p UTC"),
             address,
         )
 
