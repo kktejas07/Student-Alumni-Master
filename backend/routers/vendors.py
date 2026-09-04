@@ -1,5 +1,6 @@
 import jwt
 import asyncio
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional, List
@@ -9,6 +10,23 @@ from bson import ObjectId
 from core.db import db
 from core.security import JWT_SECRET, JWT_ALGORITHM, decrypt_value
 from core.email import send_email, render_html_email
+
+
+async def _razorpay_config():
+    """Get Razorpay credentials from installed_tools or env."""
+    import os
+    creds = {}
+    try:
+        tool = await db.installed_tools.find_one({"id": "razorpay"})
+        if tool:
+            creds = tool.get("credentials", {})
+    except Exception:
+        pass
+    key_id = (creds.get("key_id") or os.environ.get("RAZORPAY_KEY_ID", "")).strip()
+    key_secret = (creds.get("key_secret") or os.environ.get("RAZORPAY_KEY_SECRET", "")).strip()
+    if not key_id or not key_secret:
+        return None
+    return {"key_id": key_id, "key_secret": key_secret}
 
 router = APIRouter()
 
@@ -459,7 +477,6 @@ async def refund_order(req: Request, vendor: dict = Depends(get_current_vendor))
     if not order_id:
         raise HTTPException(400, "order_id is required")
 
-    db = _get_db(req)
     order = await db.echo_orders.find_one({"id": order_id})
     if not order:
         raise HTTPException(404, "Order not found")
@@ -473,9 +490,12 @@ async def refund_order(req: Request, vendor: dict = Depends(get_current_vendor))
         raise HTTPException(400, "No payment found for this order (free order?)")
 
     # Get Razorpay config
-    cfg = await _razorpay_config()
+    try:
+        cfg = await _razorpay_config()
+    except Exception as e:
+        raise HTTPException(503, f"Payment gateway config error: {str(e)}")
     if not cfg:
-        raise HTTPException(503, "Payment gateway not configured")
+        raise HTTPException(503, "Payment gateway not configured — add Razorpay keys in Settings → Integrations")
 
     # Calculate refund amount
     total_paid = int(order.get("final_amount", 0) * 100)  # convert to paise

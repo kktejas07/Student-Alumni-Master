@@ -1,27 +1,16 @@
 // @ts-nocheck
-/**
- * Vendor Portal — simple top bar (no student nav context needed).
- */
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 
 export function VendorTopBar({ scrolled }: { scrolled?: boolean }) {
   return (
-    <View style={[styles.bar, scrolled && styles.barScrolled]}>
-      <View style={styles.left}>
-        <Text style={styles.logo}>🏪 Vendor Portal</Text>
-      </View>
-    </View>
+    <View style={[styles.bar, scrolled && styles.barScrolled]} />
   );
 }
 
 const styles = StyleSheet.create({
   bar: {
-    height: 52,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    height: 4,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.06)',
     backgroundColor: 'rgba(10,10,20,0.95)',
@@ -30,6 +19,4 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(10,10,20,0.98)',
     borderBottomColor: 'rgba(139,92,246,0.15)',
   },
-  left: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logo: { fontSize: 16, fontWeight: '800', color: '#A78BFA', letterSpacing: -0.3 },
 });
