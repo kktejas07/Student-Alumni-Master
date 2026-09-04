@@ -1014,7 +1014,7 @@ export default function WalletScreen() {
               • <Text style={{ fontWeight: '600', color: '#3B82F6' }}>Partner</Text> — Use these codes on partner websites (Coursera, Spotify, etc.) for free access or discounts.{'\n'}
               • <Text style={{ fontWeight: '600', color: '#10B981' }}>Event</Text> — Apply at event registration checkout for discounts.{'\n'}
               • <Text style={{ fontWeight: '600', color: '#F59E0B' }}>Promo</Text> — General platform promotions available to all users.{'\n\n'}
-              <Text style={{ fontWeight: '600', color: '#EF4444' }}>🔒 Locked coupons</Text> will become available during the event. Copy the code and use "Use Now" to visit the partner website.
+              <Text style={{ fontWeight: '600', color: '#EF4444' }}>Locked coupons</Text> will become available during the event. Copy the code and use "Use Now" to visit the partner website.
             </Text>
           </View>
 
@@ -1022,7 +1022,7 @@ export default function WalletScreen() {
           {(['marketplace', 'partner', 'event', 'promo'] as const).map(cat => {
             const catCoupons = filteredMyCoupons.filter(c => c.category === cat);
             if (catCoupons.length === 0) return null;
-            const catLabel = cat === 'marketplace' ? '🍔 Food & Beverages' : cat === 'partner' ? '🤝 Partner Offers' : cat === 'event' ? '🎫 Event Discounts' : '🎁 Promotions';
+            const catLabel = cat === 'marketplace' ? 'Food & Beverages' : cat === 'partner' ? 'Partner Offers' : cat === 'event' ? 'Event Discounts' : 'Promotions';
             const catColor = cat === 'marketplace' ? '#8B5CF6' : cat === 'partner' ? '#3B82F6' : cat === 'event' ? '#10B981' : '#F59E0B';
             return (
               <View key={cat} style={{ marginBottom: 24 }}>
