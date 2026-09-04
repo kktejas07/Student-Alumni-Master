@@ -442,6 +442,108 @@ async def update_order_status(req: Request, vendor: dict = Depends(get_current_v
     return {"success": True, "status": new_status}
 
 
+@router.post("/api/vendors/refund")
+async def refund_order(req: Request, vendor: dict = Depends(get_current_vendor)):
+    """Refund an order (full or partial) via Razorpay. Marks items as refunded."""
+    body = await req.json()
+    order_id = body.get("order_id")
+    refund_amount = body.get("amount")  # optional: partial refund in paise
+    reason = body.get("reason", "Item sold out")
+
+    if not order_id:
+        raise HTTPException(400, "order_id is required")
+
+    db = _get_db(req)
+    order = await db.echo_orders.find_one({"id": order_id})
+    if not order:
+        raise HTTPException(404, "Order not found")
+
+    if order.get("refund_status") == "refunded":
+        return {"success": False, "message": "Order already refunded"}
+
+    payment = order.get("payment") or {}
+    payment_id = payment.get("payment_id")
+    if not payment_id:
+        raise HTTPException(400, "No payment found for this order (free order?)")
+
+    # Get Razorpay config
+    cfg = await _razorpay_config()
+    if not cfg:
+        raise HTTPException(503, "Payment gateway not configured")
+
+    # Calculate refund amount
+    total_paid = int(order.get("final_amount", 0) * 100)  # convert to paise
+    refund_paise = refund_amount if refund_amount else total_paid
+
+    # Call Razorpay Refund API
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                f"https://api.razorpay.com/v1/payments/{payment_id}/refund",
+                auth=(cfg["key_id"], cfg["key_secret"]),
+                json={"amount": refund_paise, "notes": {"reason": reason, "order_id": order_id}},
+            )
+            rp_data = resp.json()
+            if resp.status_code not in (200, 201):
+                return {"success": False, "message": rp_data.get("error", {}).get("description", "Refund failed")}
+    except Exception as e:
+        return {"success": False, "message": f"Refund error: {str(e)}"}
+
+    # Update order
+    now_iso = datetime.now(timezone.utc).isoformat()
+    refund_id = rp_data.get("id", "")
+    await db.echo_orders.update_one(
+        {"id": order_id},
+        {"$set": {
+            "refund_status": "refunded",
+            "refund_id": refund_id,
+            "refund_amount": refund_paise / 100,
+            "refund_reason": reason,
+            "refunded_at": now_iso,
+            "updated_at": now_iso,
+        }}
+    )
+
+    # Also mark items as refunded
+    all_items = order.get("items", [])
+    for item in all_items:
+        if item.get("vendor_id") == vendor["vendor_id"] or vendor["vendor_id"] == "Vendor_Admin":
+            item["fulfillment_status"] = "REFUNDED"
+    await db.echo_orders.update_one({"id": order_id}, {"$set": {"items": all_items}})
+
+    # Send refund email to customer
+    if order.get("user_email"):
+        refund_amt = refund_paise / 100
+        email_html = render_html_email(f"""
+        <div style="text-align:center;padding:32px 0">
+            <div style="font-size:48px;margin-bottom:16px">💸</div>
+            <h1 style="font-size:22px;color:#1a1a2e;margin:0 0 8px">Refund Processed</h1>
+            <p style="font-size:15px;color:#666;margin:0 0 24px">Your refund has been initiated successfully</p>
+        </div>
+        <div style="background:#f8f9fa;border-radius:12px;padding:20px;margin:0 0 20px">
+            <table style="width:100%;font-size:14px;color:#333">
+                <tr><td style="padding:6px 0;color:#888">Order ID</td><td style="padding:6px 0;font-weight:600;font-family:monospace">#{order_id}</td></tr>
+                <tr><td style="padding:6px 0;color:#888">Refund Amount</td><td style="padding:6px 0;font-weight:600;color:#10B981">₹{refund_amt}</td></tr>
+                <tr><td style="padding:6px 0;color:#888">Reason</td><td style="padding:6px 0;font-weight:600">{reason}</td></tr>
+                <tr><td style="padding:6px 0;color:#888">Refund ID</td><td style="padding:6px 0;font-weight:600;font-family:monospace;font-size:12">{refund_id}</td></tr>
+                <tr><td style="padding:6px 0;color:#888">Status</td><td style="padding:6px 0;font-weight:600;color:#10B981">Initiated</td></tr>
+            </table>
+        </div>
+        <p style="font-size:13px;color:#999;text-align:center">Refund will be credited to your original payment method within 5-7 business days.</p>
+        """)
+        try:
+            asyncio.create_task(send_email(
+                order["user_email"],
+                f"Refund Processed — Order #{order_id}",
+                email_html,
+            ))
+        except Exception:
+            pass
+
+    return {"success": True, "refund_id": refund_id, "amount": refund_paise / 100}
+
+
 class VendorCatalogItemInput(BaseModel):
     name: str
     price: float
