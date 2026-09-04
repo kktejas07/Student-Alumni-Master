@@ -165,6 +165,7 @@ export function VendorOrdersView() {
             <Text style={[styles.th, { flex: 1 }]}>Customer</Text>
             <Text style={[styles.th, { flex: 1.5 }]} numberOfLines={1}>Items</Text>
             <Text style={[styles.th, { width: 80, textAlign: 'center' }]}>Status</Text>
+            <Text style={[styles.th, { width: 70, textAlign: 'right' }]}>Price</Text>
             <Text style={[styles.th, { width: 80, textAlign: 'right' }]}>Time</Text>
           </View>
 
