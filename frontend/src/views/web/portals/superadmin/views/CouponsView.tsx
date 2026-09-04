@@ -72,6 +72,7 @@ export function CouponsView() {
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<any>(null);
   const [vendors, setVendors] = useState<any[]>([]);
+  const [showcases, setShowcases] = useState<any[]>([]);
   const { toast, flash, hide } = useToast();
 
   const fetchCoupons = useCallback(async (silent = false) => {
@@ -94,10 +95,19 @@ export function CouponsView() {
     } catch (e) {}
   }, []);
 
+  const fetchShowcases = useCallback(async () => {
+    try {
+      const res = await request<any>('/echo/admin/showcases');
+      const list = Array.isArray(res) ? res : (res?.items || res?.showcases || []);
+      setShowcases(list || []);
+    } catch (e) {}
+  }, []);
+
   useEffect(() => {
     fetchCoupons();
     fetchVendors();
-  }, [fetchCoupons, fetchVendors]);
+    fetchShowcases();
+  }, [fetchCoupons, fetchVendors, fetchShowcases]);
 
   const onRefresh = () => { setRefreshing(true); fetchCoupons(true); };
 
@@ -252,6 +262,19 @@ export function CouponsView() {
             </View>
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <View style={{ flex: 1 }}>
+                <Label>Event (leave empty for all events)</Label>
+                <select
+                  value={editing.event_id || ''}
+                  onChange={(e) => setEditing({ ...editing, event_id: e.target.value || null })}
+                  style={{ backgroundColor: SAC.cardSolid, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 9, padding: 10, fontSize: 13, fontFamily: FONTS.regular, width: '100%', outline: 'none' } as any}
+                >
+                  <option value="">All Events (global)</option>
+                  {showcases.map((sc: any) => (
+                    <option key={sc.slug || sc.id} value={sc.slug || sc.id}>{sc.title || sc.slug}</option>
+                  ))}
+                </select>
+              </View>
+              <View style={{ flex: 1 }}>
                 <Label>Discount Type</Label>
                 <select
                   value={editing.discount_type || 'percentage'}
@@ -263,6 +286,8 @@ export function CouponsView() {
                   <option value="duration">Duration (months)</option>
                 </select>
               </View>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
               {editing.discount_type === 'duration' ? (
                 <View style={{ flex: 1 }}>
                   <Label>Duration (months)</Label>

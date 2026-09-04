@@ -1259,10 +1259,14 @@ async def list_coupons_by_category(category: Optional[str] = None):
             "min_order_value": c.get("min_order_value", 0),
             "max_discount": c.get("max_discount", 0),
             "vendor_name": c.get("vendor_name"),
+            "partner_name": c.get("partner_name"),
+            "event_id": c.get("event_id"),
             "description": c.get("description", ""),
             "category": cat,
             "locked": c.get("locked", False),
             "instructions": c.get("instructions", ""),
+            "website_url": c.get("website_url"),
+            "logo_url": c.get("logo_url"),
         })
     return {"success": True, "data": grouped}
 
