@@ -512,6 +512,13 @@ export function MyTicketsView() {
                 </View>
               )}
               
+              {order.refund_status === 'refunded' && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingHorizontal: 4, paddingVertical: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)' }}>
+                  <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: 600 }}>💸 Refunded ₹{order.refund_amount}</Text>
+                  <Text style={{ fontSize: 10, color: SC.muted }}>— {order.refund_reason}</Text>
+                </View>
+              )}
+              
               <View style={s.spSeparator}>
                 <View style={[s.spCutout, { left: -9 }]} />
                 <View style={[s.spCutout, { right: -9 }]} />
