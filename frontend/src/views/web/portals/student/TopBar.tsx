@@ -17,7 +17,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Platform, Image } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
-import { Bell, Search } from './iconShims';
+import { Bell, Search, Menu, X } from './iconShims';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { displayName, displayInitials } from '@/src/lib/portalHome';
@@ -32,6 +32,7 @@ import { GlassTopbar } from '@/src/motion/apple/components';
 import { FadeInView, PressScale, PulseDot } from './motion';
 import { PALETTE, TYPO } from './tokens';
 import { StudentPortalNavContext } from './StudentPortalNavContext';
+import { StudentNavId, NAV } from './Sidebar';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -57,6 +58,7 @@ export function TopBar({
   const { theme, isDark, mode, setMode } = useTheme();
   const bp = useBreakpoint();
   const user = useAuthStore((u) => u.user) as any;
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const portalNav = React.useContext(StudentPortalNavContext);
   const [q, setQ] = React.useState(portalNav?.searchQuery || '');
 
@@ -118,6 +120,20 @@ export function TopBar({
       WebkitBackdropFilter: 'blur(20px) saturate(160%)',
     } as any}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: SP.md, flex: 1 }}>
+        {/* Mobile hamburger menu */}
+        {bp.isPhone && (
+          <FadeInView delay={10}>
+            <PressScale
+              style={[s.iconBtn, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}
+              onPress={() => setShowMobileMenu(!showMobileMenu)}
+              accessibilityLabel="Open menu"
+              accessibilityHint="Opens navigation menu"
+            >
+              {showMobileMenu ? <X size={18} color={PALETTE.text} /> : <Menu size={18} color={PALETTE.text} />}
+            </PressScale>
+          </FadeInView>
+        )}
+
         <FadeInView delay={20} style={{ flex: 1, minWidth: 0 }}>
           <Text style={{ fontFamily: TYPO.display700, fontSize: bp.isPhone ? 16 : 18, color: PALETTE.text, letterSpacing: -0.5 }}>
             {activeView === 'dashboard'
@@ -231,6 +247,35 @@ export function TopBar({
 
         <HelpMenu portal="student" />
       </View>
+
+      {/* Mobile menu overlay */}
+      {showMobileMenu && bp.isPhone && (
+        <View style={s.mobileMenuOverlay}>
+          <View style={s.mobileMenuContent}>
+            <View style={s.mobileMenuHeader}>
+              <Text style={s.mobileMenuTitle}>Navigation</Text>
+              <Pressable onPress={() => setShowMobileMenu(false)} style={s.mobileMenuClose}>
+                <X size={20} color={PALETTE.text} />
+              </Pressable>
+            </View>
+            <View style={s.mobileMenuItems}>
+              {NAV.filter(n => !['financial', 'deals', 'higher-ed', 'rentals', 'courses'].includes(n.id)).map((item) => (
+                <Pressable
+                  key={item.id}
+                  onPress={() => {
+                    router.push(item.id === 'dashboard' ? '/student-portal' : `/student-portal?tab=${item.id}`);
+                    setShowMobileMenu(false);
+                  }}
+                  style={[s.mobileMenuItem, activeView === item.id && s.mobileMenuItemActive]}
+                >
+                  <item.Icon size={18} color={activeView === item.id ? '#A78BFA' : 'rgba(255,255,255,0.6)'} />
+                  <Text style={[s.mobileMenuLabel, activeView === item.id && s.mobileMenuLabelActive]}>{item.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </View>
+      )}
     </GlassTopbar>
   );
 }
@@ -252,6 +297,62 @@ const s = StyleSheet.create({
   bellDotWrap: {
     position: 'absolute', top: 7, right: 7,
     borderRadius: 6, padding: 1.5,
+  },
+  mobileMenuOverlay: {
+    position: 'absolute',
+    top: 56,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    zIndex: 1000,
+  },
+  mobileMenuContent: {
+    backgroundColor: '#0F172A',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  mobileMenuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+    marginBottom: 8,
+  },
+  mobileMenuTitle: {
+    fontFamily: TYPO.bold,
+    fontSize: 16,
+    color: '#F4F5FB',
+  },
+  mobileMenuClose: {
+    padding: 8,
+  },
+  mobileMenuItems: {
+    gap: 4,
+  },
+  mobileMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  mobileMenuItemActive: {
+    backgroundColor: 'rgba(139,92,246,0.15)',
+  },
+  mobileMenuLabel: {
+    fontFamily: TYPO.medium,
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.6)',
+  },
+  mobileMenuLabelActive: {
+    color: '#A78BFA',
+    fontFamily: TYPO.bold,
   },
 });
 
