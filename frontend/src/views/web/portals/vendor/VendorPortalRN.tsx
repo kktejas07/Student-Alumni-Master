@@ -3,7 +3,7 @@ import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, 
 import { useRouter } from 'expo-router';
 import { useVendorAuthStore } from '@/src/viewmodels/stores/vendorAuthStore';
 import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
-import { TopBar } from '@/src/views/web/portals/student/TopBar';
+import { VendorTopBar } from '@/src/views/web/portals/vendor/VendorTopBar';
 import { VendorSidebar } from '@/src/views/web/portals/vendor/components/VendorSidebar';
 import { VendorDashboardView } from '@/src/views/web/portals/vendor/views/VendorDashboardView';
 import { VendorCatalogView } from '@/src/views/web/portals/vendor/views/VendorCatalogView';
@@ -66,7 +66,7 @@ export function VendorPortalRN() {
       )}
       
       <View style={{ flex: 1, minWidth: 0 }}>
-        <TopBar scrolled={scrolled} activeView={active} onAvatarPress={() => {}} onBellPress={() => {}} />
+        <VendorTopBar scrolled={scrolled} />
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ flexGrow: 1, paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: bp.isPhone ? 96 : 0 }}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { ShoppingCart, Plus, Minus, Tag, Store, PackageX, CheckCircle2 } from 'lucide-react-native';
+import { ShoppingCart, Plus, Minus, Tag, Store, PackageX, CheckCircle2, Truck, User } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
@@ -32,6 +32,8 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
   const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
   const [deliveryMethod, setDeliveryMethod] = useState<'pickup' | 'delivery'>('pickup');
   const [deliveryInfo, setDeliveryInfo] = useState('');
+  const [deliveryPhone, setDeliveryPhone] = useState('');
+  const [deliveryError, setDeliveryError] = useState('');
   const user = useAuthStore(s => s.user);
 
   useEffect(() => {
@@ -81,6 +83,18 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
     const orderItems = Object.entries(cart).map(([item_id, quantity]) => ({ item_id, quantity }));
     if (orderItems.length === 0) return;
 
+    if (deliveryMethod === 'delivery') {
+      if (!deliveryInfo.trim()) {
+        setDeliveryError('Please enter your table number or team name for delivery.');
+        return;
+      }
+      const phone = (deliveryPhone || user?.phone || '').replace(/[^0-9]/g, '');
+      if (phone.length < 10) {
+        setDeliveryError('Please enter a valid 10-digit mobile number for delivery.');
+        return;
+      }
+    }
+
     setCheckoutLoading(true);
     try {
       const payload: any = {
@@ -92,6 +106,7 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
         user_phone: user.phone,
         delivery_method: deliveryMethod,
         delivery_info: deliveryMethod === 'delivery' ? deliveryInfo.trim() : null,
+        delivery_phone: deliveryMethod === 'delivery' ? (deliveryPhone || user?.phone || '').replace(/[^0-9]/g, '') : null,
       };
       if (couponCode.trim()) payload.coupon_code = couponCode.trim();
 
@@ -460,7 +475,10 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
                   color: fg, fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all .15s ease',
                 }}
               >
-                🙋 Self Pickup
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                  <User size={15} color={deliveryMethod === 'pickup' ? 'var(--violet-lt)' : 'var(--muted)'} />
+                  Self Pickup
+                </span>
               </button>
               <button
                 onClick={() => setDeliveryMethod('delivery')}
@@ -470,7 +488,10 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
                   color: fg, fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all .15s ease',
                 }}
               >
-                🚚 Deliver to Table
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                  <Truck size={15} color={deliveryMethod === 'delivery' ? '#10B981' : 'var(--muted)'} />
+                  Deliver to Table
+                </span>
               </button>
             </div>
             {deliveryMethod === 'pickup' && (
@@ -482,13 +503,23 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
               <>
                 <input
                   type="text"
-                  placeholder="Enter Table No. or Team Name (e.g. Table 12, Team Alpha)"
+                  placeholder="Table No. or Team Name (e.g. Table 12, Team Alpha)"
                   value={deliveryInfo}
-                  onChange={e => setDeliveryInfo(e.target.value)}
-                  style={{ width: '100%', marginTop: 10, padding: '10px 14px', borderRadius: 10, border: `1px solid ${border}`, background: 'var(--panel)', color: fg, fontSize: 13, outline: 'none' }}
+                  onChange={e => { setDeliveryInfo(e.target.value); setDeliveryError(''); }}
+                  style={{ width: '100%', marginTop: 10, padding: '10px 14px', borderRadius: 10, border: `1px solid ${deliveryError && !deliveryInfo.trim() ? '#EF4444' : border}`, background: 'var(--panel)', color: fg, fontSize: 13, outline: 'none' }}
                 />
+                <input
+                  type="tel"
+                  placeholder="Mobile Number for delivery (10 digits)"
+                  value={deliveryPhone}
+                  onChange={e => { setDeliveryPhone(e.target.value); setDeliveryError(''); }}
+                  style={{ width: '100%', marginTop: 10, padding: '10px 14px', borderRadius: 10, border: `1px solid ${deliveryError && (deliveryPhone || user?.phone || '').replace(/[^0-9]/g, '').length < 10 ? '#EF4444' : border}`, background: 'var(--panel)', color: fg, fontSize: 13, outline: 'none' }}
+                />
+                {deliveryError && (
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: '#EF4444', marginTop: 8 }}>{deliveryError}</div>
+                )}
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6, padding: '6px 10px', background: 'rgba(16,185,129,0.05)', borderRadius: 8, border: '1px solid rgba(16,185,129,0.15)' }}>
-                  Enter your table number or team name so the vendor can deliver your order directly to you. The vendor will see this and bring it to your location.
+                  Enter your table number or team name along with a mobile number so the vendor can deliver and reach you if needed.
                 </div>
               </>
             )}
