@@ -310,6 +310,48 @@ export function VendorOrdersView() {
                         );
                       })}
                     </View>
+                    {/* Refund Button */}
+                    {order.order_status !== 'delivered' && order.refund_status !== 'refunded' && (
+                      <View style={{ marginTop: 10 }}>
+                        <Pressable
+                          onPress={async () => {
+                            const reason = window.prompt('Reason for refund (e.g. Item sold out):', 'Item sold out');
+                            if (!reason) return;
+                            if (!window.confirm(`Refund ₹${order.total_amount || order.final_amount || '?'} to ${order.user_name}? This cannot be undone.`)) return;
+                            try {
+                              const res = await request<any>('/vendors/refund', {
+                                method: 'POST',
+                                headers: { Authorization: `Bearer ${token}` },
+                                body: { order_id: order.order_id || order.id, reason },
+                              });
+                              if (res.success) {
+                                alert(`Refund of ₹${res.amount} initiated. Refund ID: ${res.refund_id}`);
+                                fetchOrders();
+                              } else {
+                                alert(res.message || 'Refund failed');
+                              }
+                            } catch (e: any) { alert(e?.message || 'Refund failed'); }
+                          }}
+                          style={{
+                            flexDirection: 'row', alignItems: 'center', gap: 6,
+                            padding: 10, borderRadius: 8,
+                            backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)',
+                          }}
+                        >
+                          <FontAwesome5 name="undo" size={11} color="#EF4444" />
+                          <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '700' }}>Refund Order</Text>
+                        </Pressable>
+                      </View>
+                    )}
+                    {order.refund_status === 'refunded' && (
+                      <View style={{ marginTop: 10, padding: 10, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <FontAwesome5 name="check-circle" size={11} color="#EF4444" />
+                          <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '700' }}>Refunded ₹{order.refund_amount}</Text>
+                        </View>
+                        <Text style={{ color: COLORS.muted, fontSize: 10, marginTop: 4 }}>{order.refund_reason}</Text>
+                      </View>
+                    )}
                     {order.user_phone && (
                       <View style={styles.detailRow}>
                         <FontAwesome5 name="phone" size={12} color={COLORS.muted} />
