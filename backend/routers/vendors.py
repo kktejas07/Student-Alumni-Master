@@ -175,6 +175,8 @@ async def vendor_stats(request: Request, _=Depends(_require_admin_token)):
             "items_sold": 0,
             "pending_items": 0,
             "fulfilled_items": 0,
+            "refunded_items": 0,
+            "refunded_amount": 0.0,
         }
     for o in orders:
         for item in o.get("items", []):
@@ -186,7 +188,10 @@ async def vendor_stats(request: Request, _=Depends(_require_admin_token)):
             price = float(item.get("price", 0) or 0)
             row["revenue"] += price * qty
             row["items_sold"] += qty
-            if item.get("fulfillment_status") == "FULFILLED":
+            if item.get("fulfillment_status") == "REFUNDED":
+                row["refunded_items"] += qty
+                row["refunded_amount"] += price * qty
+            elif item.get("fulfillment_status") == "FULFILLED":
                 row["fulfilled_items"] += qty
             else:
                 row["pending_items"] += qty
@@ -203,6 +208,7 @@ async def vendor_stats(request: Request, _=Depends(_require_admin_token)):
         "revenue": round(sum(r["revenue"] for r in by_vendor.values()), 2),
         "orders": sum(r["orders"] for r in by_vendor.values()),
         "items_sold": sum(r["items_sold"] for r in by_vendor.values()),
+        "refunded_amount": round(sum(r["refunded_amount"] for r in by_vendor.values()), 2),
     }
     return {"success": True, "data": list(by_vendor.values()), "totals": totals}
 
