@@ -17,13 +17,13 @@ async def _razorpay_config():
     import os
     creds = {}
     try:
-        tool = await db.installed_tools.find_one({"id": "razorpay"})
+        tool = await db.installed_tools.find_one({"tool_id": "razorpay", "status": "connected"})
         if tool:
             creds = tool.get("credentials", {})
     except Exception:
         pass
-    key_id = (creds.get("key_id") or os.environ.get("RAZORPAY_KEY_ID", "")).strip()
-    key_secret = (creds.get("key_secret") or os.environ.get("RAZORPAY_KEY_SECRET", "")).strip()
+    key_id = (creds.get("key_id") or creds.get("api_key") or os.environ.get("RAZORPAY_KEY_ID", "")).strip()
+    key_secret = (creds.get("key_secret") or creds.get("api_secret") or os.environ.get("RAZORPAY_KEY_SECRET", "")).strip()
     if not key_id or not key_secret:
         return None
     return {"key_id": key_id, "key_secret": key_secret}
@@ -334,6 +334,8 @@ async def get_vendor_dashboard(vendor: dict = Depends(get_current_vendor)):
                 "refund_amount": order.get("refund_amount"),
                 "refund_reason": order.get("refund_reason"),
                 "final_amount": order.get("final_amount", vendor_total),
+                "razorpay_payment_id": order.get("razorpay_payment_id"),
+                "razorpay_order_id": order.get("razorpay_order_id"),
             }
             if is_order_pending:
                 pending_orders.append(order_summary)
