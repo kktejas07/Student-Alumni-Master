@@ -8,7 +8,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Platform, SafeAreaView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { XCircle, Ticket, ArrowLeft, CalendarDays, Clock } from 'lucide-react-native';
+import { XCircle, Ticket, ArrowLeft, CalendarDays, Clock } from '@/src/views/web/portals/student/iconShims';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://studentalumni.ai';
@@ -119,7 +119,6 @@ export default function EchoScanPage() {
     );
   }
 
-  try {
   return (
     <SafeAreaView style={s.root}>
       <EchoHeader />
@@ -206,10 +205,6 @@ export default function EchoScanPage() {
       </ScrollView>
     </SafeAreaView>
   );
-  } catch (e: any) {
-    setRenderError(e?.message || 'Unknown error');
-    return null;
-  }
 }
 
 const s = StyleSheet.create({
