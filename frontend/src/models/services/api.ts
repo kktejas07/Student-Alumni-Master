@@ -480,7 +480,7 @@ export const api = {
   restoreEchoShowcaseVersion: (id: string, versionIndex: number) =>
     request<any>(`/echo/admin/showcases/${id}/restore/${versionIndex}`, { method: 'POST' }),
   adminEchoRegistrations: () =>
-    request<any>('/echo/admin/registrations'),
+    request<any>(`/echo/admin/registrations?_t=${Date.now()}`),
   adminEchoDeleteRegistration: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}`, { method: 'DELETE' }),
   adminEchoSendPaymentReminder: (regId: string) =>
