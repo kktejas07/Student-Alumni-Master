@@ -174,8 +174,11 @@ export default function EchoScanPage() {
   const submitCode = async (c: string) => {
     const original = (c || '').trim();
     let raw = original;
-    const urlMatch = raw.match(/\/echo\/scan\/([A-Za-z0-9-]+)/);
-    if (urlMatch) raw = urlMatch[1];
+    const urlMatch = raw.match(/\/echo\/scan\/([^?#]+)/);
+    if (urlMatch) raw = decodeURIComponent(urlMatch[1]);
+    // A ticket/entry-pass id preserves the stored casing (ids like `dc08b4e9a27d`,
+    // `9a361543a98b_M1`, `Echo-A6F1...`). Coupon codes are stored uppercase.
+    // Detect format BEFORE uppercasing so we can send the raw id for tickets.
     const codeUpper = raw.toUpperCase();
     if (!codeUpper) return;
     setLoading(true);
@@ -185,16 +188,28 @@ export default function EchoScanPage() {
     const token = await tokenStore.getAccess();
     const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     try {
-      // Determine if this is a ticket (ECHO: prefix, URL-encoded colon, or bare 12-char hex reg_id)
-      const isTicket = original.startsWith('ECHO:') || original.includes('%3A') || /^[a-f0-9]{8}$/i.test(codeUpper) || /^[a-f0-9]{12}$/i.test(codeUpper) || /^[a-f0-9]{24}$/i.test(codeUpper);
+      // Determine if this is a ticket/entry-pass: ECHO: payload, URL-encoded colon,
+      // `Echo-<hex>` id, bare 8/12/24-char hex reg_id, or a team-member id like
+      // `<12-hex>_M<num>` (e.g. `9a361543a98b_M1`). Anything else is a coupon code.
+      const ticketId = original.startsWith('ECHO:') || original.includes('%3A')
+        ? original
+        : raw;
+      const isTicket = original.startsWith('ECHO:') || original.includes('%3A')
+        || /^echo-[0-9a-f]{16}$/i.test(ticketId)
+        || /^[a-f0-9]{8}$/i.test(ticketId)
+        || /^[a-f0-9]{12}$/i.test(ticketId)
+        || /^[a-f0-9]{24}$/i.test(ticketId)
+        || /^[a-f0-9]{12}_m[0-9]+$/i.test(ticketId)
+        || /^echo-[0-9a-f]{16}(?:_m[0-9]+)?$/i.test(ticketId);
       const loc = locationRef.current;
 
       if (isTicket) {
-        // Entry-pass / ticket check-in
+        // Entry-pass / ticket check-in — send the RAW (case-preserved) id so the
+        // case-sensitive lowercase ids in the DB resolve correctly.
         const resp = await fetch(`${base}/api/echo/admin/registrations/check-in`, {
           method: 'POST',
           headers,
-          body: JSON.stringify({ ticket: codeUpper, ...(loc ? { lat: loc.lat, lng: loc.lng } : {}) }),
+          body: JSON.stringify({ ticket: ticketId || codeUpper, ...(loc ? { lat: loc.lat, lng: loc.lng } : {}) }),
         });
         const data = await resp.json();
         if (!resp.ok) {

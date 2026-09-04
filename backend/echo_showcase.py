@@ -5806,14 +5806,21 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
     query: Dict[str, Any] = {}
     if parsed.get("slug"):
         query["slug"] = parsed["slug"]
-    if parsed.get("reg_id"):
-        query["id"] = parsed["reg_id"]
+    reg_id = parsed.get("reg_id") or ""
+    if reg_id:
+        query["id"] = reg_id
 
     reg = await db.echo_registrations.find_one(query)
-    if not reg:
-        reg = await db.echo_registrations.find_one({"id": parsed.get("reg_id")})
-    if not reg and parsed.get("reg_id") and len(parsed.get("reg_id")) == 8:
-        reg = await db.echo_registrations.find_one({"id": {"$regex": f"^{parsed.get('reg_id')}", "$options": "i"}})
+    # Exact lookup is case-sensitive; ids are stored in mixed case (e.g.
+    # `dc08b4e9a27d`, `9a361543a98b_M1`, `Echo-A6F1B42219E50B32`). Fall back to a
+    # case-insensitive exact match so scans resolve regardless of scanned casing.
+    if not reg and reg_id:
+        import re as _re
+        escaped = _re.escape(reg_id)
+        reg = await db.echo_registrations.find_one({
+            "id": {"$regex": f"^{escaped}$", "$options": "i"},
+            **( {"slug": parsed["slug"]} if parsed.get("slug") else {} ),
+        })
     if not reg:
         return {"ok": False, "status": "invalid", "message": "Ticket not found in registrations"}
 
@@ -5883,6 +5890,35 @@ async def delete_registration(reg_id: str, request: Request, _=Depends(_require_
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Registration not found")
     return {"ok": True, "deleted": reg_id}
+
+
+@router.patch("/admin/registrations/{reg_id}")
+async def update_registration(reg_id: str, payload: dict, request: Request, _=Depends(_require_admin)):
+    """Admin: update registration fields (email, full_name, phone, etc.)."""
+    from bson import ObjectId
+    db = _get_db(request)
+    try:
+        oid = ObjectId(reg_id)
+    except Exception:
+        oid = None
+    reg = await db.echo_registrations.find_one({"_id": oid} if oid else {"id": reg_id})
+    if not reg:
+        raise HTTPException(404, "Registration not found")
+    update = {}
+    for k in ("email", "full_name", "phone", "college", "branch", "year", "slug"):
+        if k in payload and payload[k] is not None:
+            update[k] = str(payload[k]).strip()
+    if not update:
+        raise HTTPException(400, "No fields to update")
+    await db.echo_registrations.update_one({"_id": reg["_id"]}, {"$set": update})
+    # Also update coupons if email changed
+    if "email" in update:
+        await db.echo_coupons.update_many(
+            {"reg_id": reg.get("id")},
+            {"$set": {"attendee_email": update["email"]}}
+        )
+    updated = _ser(await db.echo_registrations.find_one({"_id": reg["_id"]}))
+    return {"ok": True, "registration": updated}
 
 
 @router.get("/admin/revenue")
