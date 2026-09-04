@@ -111,6 +111,17 @@ export function VendorOrdersView() {
           <StatChip label="Pending" value={pendingCount} color={COLORS.warn} tint={COLORS.warnFaint} />
           <StatChip label="Done" value={fulfilledCount} color={COLORS.ok} tint={COLORS.okFaint} />
         </View>
+
+        {/* How it works */}
+        <View style={{ marginTop: 14, padding: 10, borderRadius: 10, backgroundColor: 'rgba(139,92,246,0.08)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.2)' }}>
+          <Text style={{ color: COLORS.violetLt, fontSize: 11, fontWeight: '700', marginBottom: 4 }}>📋 How Order Status Works</Text>
+          <Text style={{ color: COLORS.muted, fontSize: 10.5, lineHeight: 16 }}>
+            1. Click an order to expand details. {"\n"}
+            2. Update status: <Text style={{ color: '#10B981', fontWeight: '600' }}>Confirm</Text> → <Text style={{ color: '#F59E0B', fontWeight: '600' }}>Preparing</Text> → <Text style={{ color: '#3B82F6', fontWeight: '600' }}>Out for Delivery</Text> → <Text style={{ color: '#8B5CF6', fontWeight: '600' }}>Delivered</Text>. {"\n"}
+            3. Customer receives email notification at each step. {"\n"}
+            4. For "Deliver to Table" orders, check the table/team name in delivery info.
+          </Text>
+        </View>
       </LinearGradient>
 
       {/* Tab bar */}

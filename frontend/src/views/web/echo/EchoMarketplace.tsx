@@ -255,6 +255,18 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
       </div>
       <p style={{ color: 'var(--muted)', marginBottom: 28, fontSize: 14.5 }}>Pre-order food, beverages, and exclusive handcrafts to collect at the event!</p>
 
+      <style dangerouslySetInnerHTML={{ __html: `
+        .echo-mkt-row { display: flex; gap: 28px; align-items: flex-start; }
+        .echo-mkt-main { flex: 1 1 0px; min-width: 0; }
+        .echo-mkt-cart { flex: 0 0 360px; width: 360px; position: sticky; top: 20px; align-self: flex-start; max-height: calc(100vh - 40px); overflow-y: auto; }
+        @media (max-width: 900px) {
+          .echo-mkt-row { flex-direction: column; }
+          .echo-mkt-cart { width: 100% !important; flex: 1 1 100% !important; position: static !important; }
+        }
+      ` }} />
+
+      <div className="echo-mkt-row">
+      <div className="echo-mkt-main">
       {/* Coupon Banner */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24, padding: '12px 18px', background: 'linear-gradient(135deg, rgba(124,92,252,0.1), rgba(245,158,11,0.06))', border: '1px solid rgba(124,92,252,0.2)', borderRadius: 12 }}>
         <Tag size={16} color="var(--violet-lt)" />
@@ -368,9 +380,11 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
           );
         })}
       </div>
+      </div>
 
+      <div className="echo-mkt-cart">
       {totalItems > 0 && (
-        <div style={{ marginTop: 36, padding: 24, background: panel, borderRadius: 18, border: `1px solid ${border}` }}>
+        <div style={{ marginTop: 0, padding: 24, background: panel, borderRadius: 18, border: `1px solid ${border}` }}>
           <h3 style={{ fontSize: 18, fontWeight: 700, color: fg, marginBottom: 16 }}>Your Cart <span style={{ color: 'var(--violet-lt)', fontSize: 14, fontWeight: 600 }}>({totalItems} items)</span></h3>
           <div style={{ marginBottom: 20 }}>
             {Object.entries(cart).map(([id, qty]) => {
@@ -459,14 +473,24 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
                 🚚 Deliver to Table
               </button>
             </div>
+            {deliveryMethod === 'pickup' && (
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6, padding: '6px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                Show your pickup QR code at the vendor's stall to collect your order.
+              </div>
+            )}
             {deliveryMethod === 'delivery' && (
-              <input
-                type="text"
-                placeholder="Enter Table No. or Team Name (e.g. Table 12, Team Alpha)"
-                value={deliveryInfo}
-                onChange={e => setDeliveryInfo(e.target.value)}
-                style={{ width: '100%', marginTop: 10, padding: '10px 14px', borderRadius: 10, border: `1px solid ${border}`, background: 'var(--panel)', color: fg, fontSize: 13, outline: 'none' }}
-              />
+              <>
+                <input
+                  type="text"
+                  placeholder="Enter Table No. or Team Name (e.g. Table 12, Team Alpha)"
+                  value={deliveryInfo}
+                  onChange={e => setDeliveryInfo(e.target.value)}
+                  style={{ width: '100%', marginTop: 10, padding: '10px 14px', borderRadius: 10, border: `1px solid ${border}`, background: 'var(--panel)', color: fg, fontSize: 13, outline: 'none' }}
+                />
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6, padding: '6px 10px', background: 'rgba(16,185,129,0.05)', borderRadius: 8, border: '1px solid rgba(16,185,129,0.15)' }}>
+                  Enter your table number or team name so the vendor can deliver your order directly to you. The vendor will see this and bring it to your location.
+                </div>
+              </>
             )}
           </div>
           {couponPreview?.error && (
@@ -488,6 +512,8 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
           </button>
         </div>
       )}
+      </div>
+      </div>
 
       {placedOrder && (
         <div style={{ marginTop: 36, padding: 24, background: panel, borderRadius: 18, border: `1px solid ${border}` }}>
