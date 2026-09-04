@@ -5015,6 +5015,8 @@ function LiveScanMonitorPanel() {
   const [q, setQ] = useState('');
   const [page, setPage] = useState(0);
   const [detail, setDetail] = useState<{ reg: any; coupon: any } | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'checked_in' | 'not_checked'>('all');
+  const [couponFilter, setCouponFilter] = useState<'all' | 'used' | 'unused'>('all');
   const PER_PAGE = 20;
 
   const load = useCallback(async () => {
@@ -5031,11 +5033,11 @@ function LiveScanMonitorPanel() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 30000);
+    const interval = setInterval(load, 15000); // Refresh every 15s instead of 30s
     return () => clearInterval(interval);
   }, [load]);
 
-  useEffect(() => { setPage(0); }, [q]);
+  useEffect(() => { setPage(0); }, [q, statusFilter, couponFilter]);
 
   const stats = useMemo(() => {
     let checkedIn = 0;
@@ -5062,9 +5064,28 @@ function LiveScanMonitorPanel() {
     return { checkedIn, couponsUsed, lunch, swag, others };
   }, [data]);
 
-  const filtered = data.filter(d => 
-    !q || d.full_name?.toLowerCase().includes(q.toLowerCase()) || d.email?.toLowerCase().includes(q.toLowerCase()) || d.id?.toLowerCase().includes(q.toLowerCase())
-  );
+  const filtered = data.filter(d => {
+    // Search filter
+    const matchesSearch = !q || 
+      d.full_name?.toLowerCase().includes(q.toLowerCase()) || 
+      d.email?.toLowerCase().includes(q.toLowerCase()) || 
+      d.id?.toLowerCase().includes(q.toLowerCase()) ||
+      d.team_name?.toLowerCase().includes(q.toLowerCase());
+    
+    // Status filter
+    const matchesStatus = statusFilter === 'all' || 
+      (statusFilter === 'checked_in' && d.checked_in_at) ||
+      (statusFilter === 'not_checked' && !d.checked_in_at);
+    
+    // Coupon filter
+    const hasUsedCoupons = d.coupons?.some((c: any) => c.used);
+    const hasUnusedCoupons = d.coupons?.some((c: any) => !c.used);
+    const matchesCoupon = couponFilter === 'all' ||
+      (couponFilter === 'used' && hasUsedCoupons) ||
+      (couponFilter === 'unused' && hasUnusedCoupons);
+    
+    return matchesSearch && matchesStatus && matchesCoupon;
+  });
   
   const paginated = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
@@ -5109,6 +5130,43 @@ function LiveScanMonitorPanel() {
           </View>
           <SecondaryButton onPress={load}><RefreshCw size={14} color={SAC.muted} /><Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>Refresh</Text></SecondaryButton>
         </View>
+      </View>
+
+      {/* Filter row */}
+      <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+        {/* Status filter */}
+        <View style={{ flexDirection: 'row', gap: 4, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
+          {[
+            { id: 'all', label: 'All Status' },
+            { id: 'checked_in', label: 'Checked In' },
+            { id: 'not_checked', label: 'Not Checked In' },
+          ].map(f => (
+            <Pressable key={f.id} onPress={() => setStatusFilter(f.id as any)}
+              style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: statusFilter === f.id ? 'rgba(139,92,246,0.25)' : 'transparent' }}>
+              <Text style={{ fontSize: 12, fontFamily: FONTS.med, color: statusFilter === f.id ? '#A78BFA' : SAC.muted }}>{f.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        {/* Coupon filter */}
+        <View style={{ flexDirection: 'row', gap: 4, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
+          {[
+            { id: 'all', label: 'All Coupons' },
+            { id: 'used', label: 'Scanned' },
+            { id: 'unused', label: 'Not Scanned' },
+          ].map(f => (
+            <Pressable key={f.id} onPress={() => setCouponFilter(f.id as any)}
+              style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: couponFilter === f.id ? 'rgba(16,185,129,0.25)' : 'transparent' }}>
+              <Text style={{ fontSize: 12, fontFamily: FONTS.med, color: couponFilter === f.id ? '#34D399' : SAC.muted }}>{f.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        {/* Reset filters */}
+        {(statusFilter !== 'all' || couponFilter !== 'all' || q) && (
+          <Pressable onPress={() => { setStatusFilter('all'); setCouponFilter('all'); setQ(''); }}
+            style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' }}>
+            <Text style={{ fontSize: 12, fontFamily: FONTS.med, color: '#FCA5A5' }}>Clear Filters</Text>
+          </Pressable>
+        )}
       </View>
 
       {/* KPI tiles */}
