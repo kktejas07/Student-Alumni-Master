@@ -489,10 +489,9 @@ async def refund_order(req: Request, vendor: dict = Depends(get_current_vendor))
     if order.get("refund_status") == "refunded":
         return {"success": False, "message": "Order already refunded"}
 
-    payment = order.get("payment") or {}
-    payment_id = payment.get("payment_id")
+    payment_id = order.get("razorpay_payment_id") or (order.get("payment") or {}).get("payment_id")
     if not payment_id:
-        raise HTTPException(400, "No payment found for this order (free order?)")
+        raise HTTPException(400, "No payment found for this order — cannot refund")
 
     # Get Razorpay config
     try:
