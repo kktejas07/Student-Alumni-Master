@@ -53,8 +53,15 @@ function QRScanner({ onScan, onClose }: { onScan: (code: string) => void; onClos
           },
           (decodedText: string) => {
             if (mounted) {
-              scanner.stop().catch(() => {});
-              onScan(decodedText);
+              if (scannerRef.current) {
+                scannerRef.current.stop().then(() => {
+                  if (mounted) onScan(decodedText);
+                }).catch(() => {
+                  if (mounted) onScan(decodedText);
+                });
+              } else {
+                onScan(decodedText);
+              }
             }
           },
           () => {} // ignore scan failures (no QR in frame)
