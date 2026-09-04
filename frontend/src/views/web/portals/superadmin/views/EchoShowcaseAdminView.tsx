@@ -5175,6 +5175,17 @@ function LiveScanMonitorPanel() {
         <KpiTile Icon={Ticket} label="Coupons Scanned" value={String(stats.couponsUsed)} />
         <KpiTile Icon={Ticket} label="Lunch Scanned" value={String(stats.lunch)} />
         <KpiTile Icon={Ticket} label="Other Scanned" value={String(stats.swag + stats.others)} />
+        <KpiTile Icon={Users} label="Total Registrations" value={String(data.length)} />
+      </View>
+
+      {/* Debug info */}
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', padding: 10, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+        <Text style={{ fontSize: 11, color: SAC.muted, fontFamily: FONTS.med }}>
+          Loaded: {data.length} registrations | {filtered.length} filtered | Page {page + 1}/{totalPages}
+        </Text>
+        <Text style={{ fontSize: 11, color: '#A78BFA', fontFamily: FONTS.med }}>
+          | Scanned: {stats.couponsUsed} coupons
+        </Text>
       </View>
 
       <Card style={{ padding: 0, overflow: 'hidden' }}>
