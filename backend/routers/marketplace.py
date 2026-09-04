@@ -970,7 +970,18 @@ async def my_marketplace_orders(request: Request):
     if email:
         query = {"$or": [{"user_id": uid}, {"user_email": email}]}
     orders = await db.echo_orders.find(query).sort("created_at", -1).to_list(100)
-    return {"success": True, "data": [_serialize(o) for o in orders]}
+    
+    results = []
+    for o in orders:
+        ser = _serialize(o)
+        slug = o.get("event_id") or o.get("event_slug")
+        if slug:
+            showcase = await db.event_showcases.find_one({"slug": slug})
+            if showcase:
+                ser["event_title"] = showcase.get("title") or showcase.get("name") or ser.get("event_title")
+        results.append(ser)
+
+    return {"success": True, "data": results}
 
 
 # ── User: marketplace invoice ───────────────────────────────────────────────
