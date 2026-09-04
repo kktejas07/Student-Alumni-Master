@@ -20,6 +20,7 @@ const GRAD = {
   ring: 'rgba(123,61,191,0.32)',
   ringSoft: 'rgba(123,61,191,0.12)',
 };
+import { LinearGradient } from 'expo-linear-gradient';
 import { GlassCard } from '../glass';
 import { EmptyState } from '../EmptyState';
 import { api } from '@/src/models/services/api';
@@ -264,181 +265,135 @@ export function MyTicketsView() {
         items.map((item, idx) => {
           const reg = item.registration;
           const inv = item.invoice;
-          const slug = reg.slug || '';
           const title = reg.event_title || reg.showcase_title || 'Event';
           const payment = reg.payment || {};
-          const paymentStatus = payment.status || reg.payment_status || 'pending';
-          const paid = paymentStatus === 'paid';
-          const paymentFailed = paymentStatus === 'failed' || paymentStatus === 'expired';
-          const checkedIn = !!reg.checked_in_at;
-
-          const statusCfg = checkedIn
-            ? { bg: 'rgba(16,185,129,0.12)', bc: 'rgba(16,185,129,0.30)', c: '#34D399', icon: CheckCircle, label: 'CHECKED IN' }
-            : paid
-              ? { bg: 'rgba(124,58,237,0.14)', bc: 'rgba(124,58,237,0.32)', c: GRAD.from, icon: Ticket, label: 'CONFIRMED' }
-              : paymentFailed
-                ? { bg: 'rgba(244,63,94,0.12)', bc: 'rgba(244,63,94,0.30)', c: '#FB7185', icon: AlertCircle, label: 'PAYMENT FAILED' }
-                : { bg: 'rgba(245,158,11,0.10)', bc: 'rgba(245,158,11,0.28)', c: '#FBBF24', icon: Clock, label: 'PENDING' };
-          const StatusIcon = statusCfg.icon;
+          const isWeb = Platform.OS === 'web';
 
           return (
-            <GlassCard key={reg.id || idx} delay={idx * 40} radius={16} padding={0} style={{ overflow: 'hidden' }}>
-              {/* Accent bar */}
-              <View style={[s.accentBar, { backgroundColor: statusCfg.c }]} />
-
-              <View style={s.ticketBody}>
-                {/* Main section */}
-                <View style={s.ticketMain}>
-                  <View style={s.topRow}>
-                    <View style={s.echoBadge}>
-                      <Text style={s.echoLabel}>ECHO EVENT</Text>
-                    </View>
-                    <View style={[s.statusChip, { backgroundColor: statusCfg.bg, borderColor: statusCfg.bc }]}>
-                      <StatusIcon size={10} color={statusCfg.c} />
-                      <Text style={[s.statusText, { color: statusCfg.c }]}>{statusCfg.label}</Text>
-                    </View>
-                  </View>
-
-                  <Text style={s.eventTitle}>{title}</Text>
-
-                  {/* Failure reason */}
-                  {paymentFailed && payment.failed_reason && (
-                    <View style={s.failureReason}>
-                      <AlertCircle size={10} color="#FB7185" />
-                      <Text style={s.failureReasonText}>
-                        {payment.failed_reason}
-                        {payment.failed_reason_code && ` (${payment.failed_reason_code})`}
-                      </Text>
-                    </View>
-                  )}
-
-                  <View style={s.metaRow}>
-                    {reg.registered_at && (
-                      <View style={s.metaItem}>
-                        <Calendar size={10} color={SC.muted} />
-                        <Text style={s.metaText}>
-                          {new Date(reg.registered_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </Text>
+            <View key={reg.id || idx} style={isWeb ? s.tkGrid : s.tkGridMobile}>
+              {/* Left Column: Main Ticket */}
+              <View style={s.mainTicket}>
+                <LinearGradient
+                  colors={['#5B2DBE', '#4B3FD6', '#2FB8C6']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFillObject}
+                />
+                <View style={s.mainTicketContent}>
+                  <View style={s.ticketTopRow}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <Text style={s.tkLogo}>SA</Text>
+                      <View>
+                        <Text style={s.tkLogoSub}>ENTRY PASS</Text>
+                        <Text style={s.tkLogoSubLight}>studentalumni.ai/verify</Text>
                       </View>
-                    )}
-                    {reg.registration_type === 'team' && reg.team_name && (
-                      <View style={s.metaItem}>
-                        <User size={10} color={SC.muted} />
-                        <Text style={s.metaText}>{reg.team_name}</Text>
-                      </View>
-                    )}
-                    {inv?.invoice_no && (
-                      <Text style={[s.metaText, { color: SC.dim }]}>#{inv.invoice_no}</Text>
-                    )}
-                  </View>
-
-                  {checkedIn && reg.checked_in_at && (
-                    <View style={s.checkinBadge}>
-                      <CheckCircle size={12} color="#10B981" />
-                      <Text style={{ color: '#34D399', fontFamily: FONTS.bold, fontSize: 12 }}>
-                        Attended · {new Date(reg.checked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </Text>
                     </View>
-                  )}
-
-                  <View style={s.actionRow}>
-                    {paymentFailed ? (
-                      <Pressable
-                        onPress={() => {
-                          if (Platform.OS === 'web') window.location.href = `/echo/${slug}/register?view=reg&event=${slug}`;
-                          else router.push(`/echo/${slug}/register` as any);
-                        }}
-                        style={({ hovered }: any) => [s.primaryBtn, hovered && { opacity: 0.85 }]}
-                      >
-                        <AlertCircle size={12} color="#fff" />
-                        <Text style={s.btnText}>Retry payment</Text>
-                        <ArrowRight size={12} color="rgba(255,255,255,0.5)" />
-                      </Pressable>
-                    ) : (
-                      <Pressable
-                        onPress={() => openTicket(reg.id || '')}
-                        style={({ hovered }: any) => [s.primaryBtn, hovered && { opacity: 0.85 }]}
-                      >
-                        <Ticket size={12} color="#fff" />
-                        <Text style={s.btnText}>View Pass</Text>
-                        <ArrowRight size={12} color="rgba(255,255,255,0.5)" />
-                      </Pressable>
-                    )}
-                    {paid && inv?.invoice_no && (
-                      <Pressable
-                        onPress={() => openInvoice(inv.invoice_no)}
-                        style={({ hovered }: any) => [s.ghostBtn, hovered && { opacity: 0.85 }]}
-                      >
-                        {downloading === inv.invoice_no
-                          ? <ActivityIndicator size="small" color={SC.muted} />
-                          : <><Download size={11} color={SC.muted} /><Text style={s.ghostBtnText}>Invoice</Text></>}
-                      </Pressable>
-                    )}
-                    {slug && (
-                      <Pressable
-                        onPress={() => {
-                          if (Platform.OS === 'web') window.location.href = `/echo/${slug}/coupons`;
-                          else router.push(`/echo/${slug}/coupons` as any);
-                        }}
-                        style={({ hovered }: any) => [s.ghostBtn, { borderColor: 'rgba(167,139,250,0.24)' }, hovered && { opacity: 0.85 }]}
-                      >
-                        <QrCode size={11} color="#A78BFA" />
-                        <Text style={[s.ghostBtnText, { color: '#C4B5FD' }]}>All Passes</Text>
-                      </Pressable>
-                    )}
+                    <View style={s.validBadge}>
+                      <View style={s.validDot} />
+                      <Text style={s.validText}>VALID</Text>
+                    </View>
                   </View>
-
-                  <View style={s.footNote}>
-                    <ShieldCheck size={10} color={SC.dim} />
-                    <Text style={s.footText}>Emailed to you on registration.</Text>
+                  
+                  <Text style={s.tkEventTitle}>{title}</Text>
+                  <Text style={s.tkEventSub}>{reg.slug?.toUpperCase() || 'Sreenidhi Institute of Science & Technology'}</Text>
+                  
+                  <View style={s.tkMetaGrid}>
+                    <View>
+                      <Text style={s.tkMetaLabel}>DATE</Text>
+                      <Text style={s.tkMetaValue}>Sep 04–05</Text>
+                    </View>
+                    <View>
+                      <Text style={s.tkMetaLabel}>GATES OPEN</Text>
+                      <Text style={s.tkMetaValue}>08:00 AM</Text>
+                    </View>
+                    <View>
+                      <Text style={s.tkMetaLabel}>SEAT</Text>
+                      <Text style={s.tkMetaValue}>GA · Block C</Text>
+                    </View>
                   </View>
                 </View>
+                
+                {/* Dashed separator */}
+                <View style={s.tkSeparator}>
+                  <View style={[s.tkCutout, { left: -12 }]} />
+                  <View style={[s.tkCutout, { right: -12 }]} />
+                  <View style={s.tkDashLine} />
+                </View>
+                
+                {/* Bottom Section */}
+                <View style={s.tkBottomSection}>
+                  <View style={s.tkQrBox}>
+                    <QrCode size={30} color="#2B1E6E" />
+                  </View>
+                  <View style={{ flex: 1, paddingHorizontal: 16 }}>
+                    <Text style={s.tkMetaLabel}>TICKET NUMBER</Text>
+                    <Text style={s.tkNumber}>{reg.id?.substring(0, 8).toUpperCase() || 'SA-TKT-XXXXXX'}</Text>
+                    <Text style={s.tkName}>{reg.full_name || 'Guest'} · {reg.email}</Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={s.tkMetaLabel}>PAID</Text>
+                    <Text style={s.tkPaidAmount}>₹{inr(payment.amount)}</Text>
+                  </View>
+                </View>
+              </View>
 
-                {/* Right panel: passes */}
+              {/* Right Column: Passes */}
+              <View style={s.passesCol}>
+                {item.coupons.length > 0 ? item.coupons.map((c, i) => {
+                  const isUsed = c.used;
+                  return (
+                    <Pressable 
+                      key={c.coupon_code || i} 
+                      onPress={() => setPreviewCoupon(c)}
+                      style={({ hovered }: any) => [
+                        s.sessionPassCard, 
+                        isUsed && s.sessionPassUsed,
+                        hovered && { opacity: 0.85 }
+                      ]}
+                    >
+                      {isUsed && (
+                        <View style={s.usedWatermark}>
+                          <Text style={s.usedWatermarkText}>USED</Text>
+                        </View>
+                      )}
+                      <View style={s.sessionPassHeader}>
+                        <View style={s.sessionPassIcon}>
+                          <Ticket size={20} color={isUsed ? '#34D399' : '#A78BFA'} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.sessionPassName} numberOfLines={1}>{c.session_name || 'Session Pass'}</Text>
+                          <Text style={s.sessionPassSub} numberOfLines={1}>{isUsed ? `Used at ${new Date(c.used_at || '').toLocaleTimeString()}` : 'Ready to use'}</Text>
+                        </View>
+                        {!isUsed && (
+                          <View style={s.readyBadge}>
+                            <Text style={s.readyBadgeText}>READY</Text>
+                          </View>
+                        )}
+                      </View>
+                      
+                      <View style={s.spSeparator}>
+                        <View style={[s.spCutout, { left: -9 }]} />
+                        <View style={[s.spCutout, { right: -9 }]} />
+                      </View>
+                      
+                      <View style={s.sessionPassFooter}>
+                        <Text style={s.spCode}>{c.coupon_code}</Text>
+                        <Text style={s.spActionText}>Show QR →</Text>
+                      </View>
+                    </Pressable>
+                  );
+                }) : (
+                  <Text style={{ color: SC.dim, fontFamily: FONTS.med, fontSize: 13, marginTop: 10 }}>No session passes.</Text>
+                )}
+                
                 {item.coupons.length > 0 && (
-                  <View style={s.passesPanel}>
-                    <View style={s.passesHeader}>
-                      <Text style={s.passesTitle}>SESSION PASSES</Text>
-                      <Text style={s.passesCount}>{item.coupons.length}</Text>
-                    </View>
-                    <View style={s.passGrid}>
-                      {item.coupons.map((c, i) => {
-                        const col = c.used
-                          ? { bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.25)', text: '#34D399', icon: '#34D399' }
-                          : c.session_locked
-                            ? { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.18)', text: '#FCD34D', icon: '#F59E0B' }
-                            : sessionColor(c.session_name || '');
-                        return (
-                          <Pressable
-                            key={c.coupon_code}
-                            onPress={() => setPreviewCoupon(c)}
-                            style={({ hovered }: any) => [s.passChip, { backgroundColor: col.bg, borderColor: col.border }, hovered && { opacity: 0.78 }]}
-                          >
-                            <View style={[s.passIcon, { backgroundColor: col.bg, borderColor: col.border }]}>
-                              {c.session_locked
-                                ? <Lock size={10} color={col.icon} />
-                                : c.used
-                                  ? <CheckCircle size={10} color={col.icon} />
-                                  : <Ticket size={10} color={col.icon} />}
-                            </View>
-                            <View style={{ flex: 1, minWidth: 0 }}>
-                              <Text style={[s.passName, { color: col.text }]} numberOfLines={1}>
-                                {c.session_name || c.session_key}
-                              </Text>
-                              <Text style={s.passCode} numberOfLines={1}>
-                                {c.session_locked ? '****-****' : c.coupon_code}
-                              </Text>
-                            </View>
-                            {c.used && <View style={s.usedDot} />}
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                    <Text style={s.tapHint}>Tap to view QR code</Text>
+                  <View style={s.spNoteBox}>
+                    <ShieldCheck size={16} color="#A78BFA" />
+                    <Text style={s.spNoteText}>Passes are bound to your SA ID and cannot be transferred. Screenshots will not scan.</Text>
                   </View>
                 )}
               </View>
-            </GlassCard>
+            </View>
           );
         })
       )}
@@ -653,6 +608,51 @@ export function MyTicketsView() {
 }
 
 const s = StyleSheet.create({
+  tkGrid: { flexDirection: 'row', gap: 20, alignItems: 'flex-start' },
+  tkGridMobile: { flexDirection: 'column', gap: 20 },
+  mainTicket: { flex: 1, minWidth: 320, borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 26 }, shadowOpacity: 0.45, shadowRadius: 60, elevation: 10 },
+  mainTicketContent: { padding: 24, paddingBottom: 20 },
+  ticketTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 },
+  tkLogo: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 32, letterSpacing: -1.5 },
+  tkLogoSub: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 1.4 },
+  tkLogoSubLight: { color: 'rgba(255,255,255,0.78)', fontSize: 10.5, marginTop: 2 },
+  validBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 100, paddingHorizontal: 11, paddingVertical: 6 },
+  validDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#7BFFC4' },
+  validText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 1.1 },
+  tkEventTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 27, letterSpacing: -1, marginBottom: 4 },
+  tkEventSub: { color: 'rgba(255,255,255,0.85)', fontSize: 13 },
+  tkMetaGrid: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 22 },
+  tkMetaLabel: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 1.5, marginBottom: 5 },
+  tkMetaValue: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14 },
+  tkSeparator: { height: 24, justifyContent: 'center' },
+  tkCutout: { position: 'absolute', width: 24, height: 24, borderRadius: 12, backgroundColor: SC.bg },
+  tkDashLine: { height: 2, marginHorizontal: 18, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.55)' },
+  tkBottomSection: { flexDirection: 'row', alignItems: 'center', padding: 18, paddingHorizontal: 26, paddingBottom: 24 },
+  tkQrBox: { backgroundColor: '#fff', padding: 8, borderRadius: 8 },
+  tkNumber: { color: '#fff', fontFamily: FONTS.bold, fontSize: 16, letterSpacing: 0.6 },
+  tkName: { color: 'rgba(255,255,255,0.78)', fontSize: 11.5, marginTop: 6 },
+  tkPaidAmount: { color: '#fff', fontFamily: FONTS.bold, fontSize: 16 },
+  
+  passesCol: { flex: 1, minWidth: 320, gap: 16 },
+  sessionPassCard: { borderRadius: 18, borderWidth: 1, borderColor: SC.border, backgroundColor: SC.cardSolid, overflow: 'hidden' },
+  sessionPassUsed: { opacity: 0.68 },
+  usedWatermark: { position: 'absolute', right: -34, top: 22, transform: [{ rotate: '38deg' }], backgroundColor: SC.border, paddingVertical: 6, paddingHorizontal: 46, zIndex: 10 },
+  usedWatermarkText: { color: SC.dim, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 1.6 },
+  sessionPassHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, paddingHorizontal: 20 },
+  sessionPassIcon: { width: 46, height: 46, borderRadius: 12, backgroundColor: 'rgba(16,185,129,0.1)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.2)', alignItems: 'center', justifyContent: 'center' },
+  sessionPassName: { color: SC.text, fontFamily: FONTS.bold, fontSize: 15.5 },
+  sessionPassSub: { color: SC.muted, fontSize: 12.5, marginTop: 3 },
+  readyBadge: { backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(16,185,129,0.3)', borderRadius: 7, paddingHorizontal: 9, paddingVertical: 5 },
+  readyBadgeText: { color: '#34D399', fontFamily: FONTS.bold, fontSize: 11 },
+  spSeparator: { height: 18, justifyContent: 'center', borderTopWidth: 1, borderTopColor: SC.border, borderStyle: 'dashed' },
+  spCutout: { position: 'absolute', width: 18, height: 18, borderRadius: 9, backgroundColor: SC.bg, top: -9 },
+  sessionPassFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 4, paddingHorizontal: 20, paddingBottom: 18 },
+  spCode: { color: SC.text, fontFamily: FONTS.bold, fontSize: 13, letterSpacing: 0.4 },
+  spActionText: { color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 12.5 },
+  spNoteBox: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: SC.border, borderRadius: 16, backgroundColor: SC.glassBgSoft, padding: 16, paddingHorizontal: 18 },
+  spNoteText: { color: SC.muted, fontSize: 12.5, lineHeight: 18, flex: 1 },
+
+
   h1: { color: SC.text, fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.5 },
   sub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 3 },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
