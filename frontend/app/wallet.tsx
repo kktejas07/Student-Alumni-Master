@@ -1708,14 +1708,14 @@ const s = StyleSheet.create({
     gap: 4,
   },
   couponSectionTitle: {
-    color: '#0F172A',
+    color: '#F1F5F9',
     fontFamily: FT.xbold,
     fontSize: 17,
     letterSpacing: 1.1,
     textTransform: 'uppercase',
   },
   couponSectionSub: {
-    color: '#475569',
+    color: '#94A3B8',
     fontFamily: FT.med,
     fontSize: 14,
     lineHeight: 20,
