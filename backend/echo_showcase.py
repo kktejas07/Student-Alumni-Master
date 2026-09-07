@@ -5083,6 +5083,141 @@ async def admin_echo_issue_certificate(
     }
 
 
+async def issue_3_echo_certificates(db, reg: dict) -> dict:
+    """
+    Issue 3 official certificates for Hackwave 3.0 / ECHO Showcase:
+      1. Built by Sunset (Project Build Certificate)
+      2. Common Certificate of Participation — Hackwave 3.0
+      3. Cyber Conclave Certificate
+    Upserts into db.certificates (enabling /certificates/verify/{code} & profile sync).
+    """
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    email = (reg.get("email") or "").lower().strip()
+    full_name = (reg.get("full_name") or "").strip() or "ECHO Participant"
+    showcase_title = reg.get("showcase_title") or "Hackwave 3.0"
+    reg_id = reg.get("id") or str(reg.get("_id"))
+    
+    cert_types = [
+        ("built_by_sunset", "Built by Sunset — Project Build Certificate", "HW3-SUNSET"),
+        ("hackwave_participation", f"Certificate of Participation — {showcase_title}", "HW3-PART"),
+        ("cyber_conclave", "Cyber Conclave — Professional Certificate", "HW3-CYBER"),
+    ]
+
+    existing_certs = reg.get("certificates_3_status") or {}
+    results = {}
+    now_str = _now()
+
+    for key, title, prefix in cert_types:
+        existing = existing_certs.get(key)
+        if existing and existing.get("code"):
+            code = existing["code"]
+        else:
+            code = f"{prefix}-{secrets.token_hex(4).upper()}"
+
+        verify_url = f"{frontend_url}/certificates/verify/{code}"
+        
+        cert_doc = {
+            "id": code,
+            "certificate_id": code,
+            "verification_code": code,
+            "title": title,
+            "certification_name": title,
+            "category_key": key,
+            "recipient_name": full_name,
+            "recipient_email": email,
+            "recipient_phone": reg.get("phone"),
+            "roll_number": reg.get("roll_number") or reg.get("sa_id") or "",
+            "reg_id": reg_id,
+            "slug": reg.get("slug"),
+            "showcase_title": showcase_title,
+            "issuer": "StudentAlumni × Hackwave 3.0",
+            "issued_at": now_str,
+            "issue_date": datetime.now(timezone.utc).strftime("%d %B %Y"),
+            "created_at": now_str,
+            "status": "valid",
+            "status_label": "Officially Verified Certificate",
+            "image_url": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800",
+            "verify_url": verify_url,
+        }
+
+        await db.certificates.update_one({"verification_code": code}, {"$set": cert_doc}, upsert=True)
+        results[key] = {
+            "issued": True,
+            "code": code,
+            "title": title,
+            "verify_url": verify_url,
+            "delivered_at": now_str,
+        }
+
+    # Update echo_registrations document with 3-certificate delivery status
+    await db.echo_registrations.update_one(
+        {"_id": reg["_id"]},
+        {"$set": {
+            "certificates_3_status": results,
+            "has_3_certificates": True,
+            "certificate_issued": True,
+            "certificate_code": results["hackwave_participation"]["code"],
+            "certificate_url": results["hackwave_participation"]["verify_url"],
+            "certificates_delivered_count": 3,
+            "certificates_updated_at": now_str,
+        }}
+    )
+
+    return results
+
+
+@router.post("/admin/registrations/{reg_id}/issue-3-certificates")
+async def admin_echo_issue_3_certificates(
+    reg_id: str,
+    request: Request,
+    _=Depends(_require_admin),
+):
+    """Issue all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave) for a registration."""
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg and ObjectId.is_valid(reg_id):
+        reg = await db.echo_registrations.find_one({"_id": ObjectId(reg_id)})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+
+    certs = await issue_3_echo_certificates(db, reg)
+    return {
+        "status": "success",
+        "message": f"All 3 certificates issued for {reg.get('full_name')}",
+        "certificates": certs,
+    }
+
+
+@router.post("/admin/certificates/upload-template")
+async def admin_echo_upload_cert_template(
+    request: Request,
+    category: str = Body(..., description="built_by_sunset, hackwave_participation, cyber_conclave"),
+    title: str = Body(..., description="Template title"),
+    file_url: str = Body(..., description="Template file URL or base64"),
+    _=Depends(_require_admin),
+):
+    """Upload or configure a custom certificate template asset for Hackwave / ECHO events."""
+    db = _get_db(request)
+    template_doc = {
+        "category": category,
+        "title": title,
+        "file_url": file_url,
+        "updated_at": _now(),
+    }
+    await db.echo_cert_templates.update_one({"category": category}, {"$set": template_doc}, upsert=True)
+    return {"status": "success", "template": template_doc}
+
+
+@router.get("/admin/certificates/templates")
+async def admin_echo_get_cert_templates(request: Request, _=Depends(_require_admin)):
+    """List configured certificate templates for ECHO events."""
+    db = _get_db(request)
+    items = await db.echo_cert_templates.find({}).to_list(100)
+    for i in items:
+        i["_id"] = str(i["_id"])
+    return {"templates": items}
+
+
 @router.post("/admin/showcases/{slug}/bulk-issue-certificates")
 async def admin_echo_bulk_issue_certificates(
     slug: str,

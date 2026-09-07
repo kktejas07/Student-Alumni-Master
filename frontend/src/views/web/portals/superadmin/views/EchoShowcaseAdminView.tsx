@@ -5182,6 +5182,30 @@ function LiveScanMonitorPanel() {
     }
   };
 
+  const handleIssue3Certs = async (reg: any) => {
+    try {
+      const res = await request(`/echo/admin/registrations/${reg.id}/issue-3-certificates`, { method: 'POST' });
+      flash(`All 3 certificates issued for ${reg.full_name}! (Built by Sunset, Hackwave 3.0, Cyber Conclave)`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to issue 3 certificates', 'error');
+    }
+  };
+
+  const handleBulkDispatch3Certs = async () => {
+    if (typeof window !== 'undefined' && !window.confirm('Run Autonomous Agent to issue and deliver all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave) via Email & WhatsApp to all attendees with 100% completed profiles?')) return;
+    setSendingReminders(true);
+    try {
+      const res = await api.adminEchoSendProfileReminders({ target_group: 'complete_100_dispatch', channel: 'both' });
+      flash(`Autonomous Agent Dispatched 3 Certificates! Processed: ${res?.processed_count}, Emails: ${res?.emails_sent}, WhatsApp: ${res?.whatsapp_sent}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to dispatch certificates', 'error');
+    } finally {
+      setSendingReminders(false);
+    }
+  };
+
   const sourceBadge = (s: string | null | undefined) => {
     if (!s || s === 'our_platform' || s === 'studentalumni') return null;
     const isUnstop = s === 'unstop';
@@ -5254,6 +5278,16 @@ function LiveScanMonitorPanel() {
             <Sparkles size={14} color="#C9A7FF" />
             <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold, fontSize: 12 }}>
               {sendingReminders ? 'Loop Agent Sending...' : '⚡ Send 100% Profile & SA Reminders'}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={handleBulkDispatch3Certs}
+            disabled={sendingReminders}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(16,185,129,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#10B981' }}>
+            <Award size={14} color="#6EE7B7" />
+            <Text style={{ color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 12 }}>
+              🎓 Dispatch 3 Certs to 100% Profiles
             </Text>
           </Pressable>
 
@@ -5402,8 +5436,29 @@ function LiveScanMonitorPanel() {
                 )}
               </View>
 
-              <View style={{ flex: 1.8, justifyContent: 'center', gap: 6 }}>
-                {reg.has_certificate ? (
+              <View style={{ flex: 2.0, justifyContent: 'center', gap: 4 }}>
+                {reg.certificates_3_status ? (
+                  <View style={{ gap: 3 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#D8B4FE' }}>🌅 Sunset:</Text>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: reg.certificates_3_status.built_by_sunset?.issued ? '#34D399' : 'rgba(255,255,255,0.4)' }}>
+                        {reg.certificates_3_status.built_by_sunset?.issued ? `✓ ${reg.certificates_3_status.built_by_sunset.code}` : 'Pending ⏳'}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#D8B4FE' }}>🏆 Hackwave:</Text>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: reg.certificates_3_status.hackwave_participation?.issued ? '#34D399' : 'rgba(255,255,255,0.4)' }}>
+                        {reg.certificates_3_status.hackwave_participation?.issued ? `✓ ${reg.certificates_3_status.hackwave_participation.code}` : 'Pending ⏳'}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#D8B4FE' }}>🛡️ Cyber:</Text>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: reg.certificates_3_status.cyber_conclave?.issued ? '#34D399' : 'rgba(255,255,255,0.4)' }}>
+                        {reg.certificates_3_status.cyber_conclave?.issued ? `✓ ${reg.certificates_3_status.cyber_conclave.code}` : 'Pending ⏳'}
+                      </Text>
+                    </View>
+                  </View>
+                ) : reg.has_certificate ? (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.18)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' }}>
                     <Award size={12} color="#C9A7FF" />
                     <Text style={{ fontFamily: FONTS.bold, fontSize: 10.5, color: '#D8B4FE' }}>
@@ -5412,10 +5467,10 @@ function LiveScanMonitorPanel() {
                   </View>
                 ) : (
                   <Pressable
-                    onPress={() => handleIssueCert(reg)}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' }}>
+                    onPress={() => handleIssue3Certs(reg)}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(167,139,250,0.14)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.35)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' }}>
                     <Award size={12} color="#A78BFA" />
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#A78BFA' }}>Issue Cert</Text>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#A78BFA' }}>Issue All 3 Certs</Text>
                   </Pressable>
                 )}
 
