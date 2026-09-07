@@ -28,7 +28,7 @@ export function VendorPortalRN() {
 
   React.useEffect(() => {
     if (!token) {
-      router.replace('/vendor-portal/login');
+      router.replace('/vendor-portal/login' as any);
     }
   }, [token, router]);
 
@@ -40,7 +40,7 @@ export function VendorPortalRN() {
 
   const onLogout = () => {
     logout();
-    router.replace('/vendor-portal/login');
+    router.replace('/vendor-portal/login' as any);
   };
 
   const padH = bp.isPhone ? SP.md : SP.xxl;
