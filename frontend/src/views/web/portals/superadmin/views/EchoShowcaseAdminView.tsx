@@ -250,13 +250,13 @@ type FormTab =
   | 'sections' | 'registration' | 'catalog' | 'seo' | 'publish';
 
 const PAGE_TABS: Array<{ id: PageTab; label: string; icon?: any }> = [
+  { id: 'registrations', label: 'Registrations & Payments', icon: Users },
+  { id: 'scan-monitor', label: 'Live Scan & Certificates', icon: Award },
   { id: 'all', label: 'All Showcases', icon: Layout },
   { id: 'create', label: 'Create Showcase', icon: PlusCircle },
   { id: 'drafts', label: 'Drafts', icon: FileText },
-  { id: 'registrations', label: 'Registrations & Payments', icon: Users },
   { id: 'interns', label: 'Internal Hiring & Interns', icon: UserCheck },
   { id: 'volunteers', label: 'Volunteers', icon: Users },
-  { id: 'scan-monitor', label: 'Live Scan Monitor', icon: ScanLine },
   { id: 'media', label: 'Media Library', icon: Images },
 ];
 
@@ -3148,6 +3148,59 @@ function RegistrationsPanel() {
   const PER_PAGE = 20;
   const { flash } = useToast();
   const [showImport, setShowImport] = useState(false);
+  const [sendingReminders, setSendingReminders] = useState(false);
+
+  const handleSendProfileReminders = async () => {
+    if (typeof window !== 'undefined' && !window.confirm('Send automated 100% profile & SA account reminders via Email + WhatsApp to all incomplete registrants?')) return;
+    setSendingReminders(true);
+    try {
+      const res = await api.adminEchoSendProfileReminders({ target_group: 'all_incomplete', channel: 'both' });
+      flash(`Loop Agent Dispatched! Processed: ${res?.processed_count}, Emails: ${res?.emails_sent}, WhatsApp: ${res?.whatsapp_sent}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to send reminders');
+    } finally {
+      setSendingReminders(false);
+    }
+  };
+
+  const handleIssueCert = async (reg: any) => {
+    try {
+      const res = await api.adminEchoIssueCertificate(reg.id);
+      flash(`Certificate issued for ${reg.full_name}! Code: ${res?.code}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to issue certificate');
+    }
+  };
+
+  const saAccountBadge = (reg: any) => {
+    if (reg.is_profile_100) {
+      return (
+        <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.4)' }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#34D399' }}>
+            SA Member ✓ (100%)
+          </Text>
+        </View>
+      );
+    }
+    if (reg.has_sa_account) {
+      return (
+        <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(245,179,66,0.18)', borderWidth: 1, borderColor: 'rgba(245,179,66,0.4)' }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#F5B342' }}>
+            SA Member ({reg.profile_completion_pct || 0}%)
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' }}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#FCA5A5' }}>
+          No SA Account
+        </Text>
+      </View>
+    );
+  };
 
   useEffect(() => { setPage(0); }, [q, status, eventSlug, rows]);
 
@@ -3774,19 +3827,6 @@ function RegistrationsPanel() {
           <Download size={13} color="#fff" />
           <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export All Events (CSV)</Text>
         </Pressable>
-        {eventSlug && eventSlug !== 'all' && (
-          <Pressable
-            onPress={() => triggerExportCsv(eventSlug, status)}
-            style={{
-              flexDirection: 'row', alignItems: 'center', gap: 6,
-              backgroundColor: '#4F46E5',
-              borderRadius: 8, paddingHorizontal: 13, paddingVertical: 8, cursor: 'pointer',
-            }}
-          >
-            <Download size={13} color="#fff" />
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export Selected Event (CSV)</Text>
-          </Pressable>
-        )}
       </View>
 
       {/* Registrations table */}
@@ -3808,21 +3848,22 @@ function RegistrationsPanel() {
             <View style={{ minWidth: 1050, flex: 1 }}>
               {/* Header */}
               <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: SAC.border }}>
-                <Text style={{ flex: 1.5, minWidth: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ATTENDEE</Text>
-                <Text style={{ width: 70, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>TYPE</Text>
-                <Text style={{ width: 50, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SIZE</Text>
-                <Text style={{ flex: 1.5, minWidth: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>EVENT</Text>
-                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>AMOUNT</Text>
-                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>PAYMENT</Text>
-                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>STATUS</Text>
-                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
-                <Text style={{ width: 80, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
+                <Text style={{ flex: 1.5, minWidth: 160, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ATTENDEE</Text>
+                <Text style={{ width: 140, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SA ACCOUNT & PROFILE</Text>
+                <Text style={{ width: 60, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>TYPE</Text>
+                <Text style={{ width: 45, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SIZE</Text>
+                <Text style={{ flex: 1.3, minWidth: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>EVENT</Text>
+                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>AMOUNT</Text>
+                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>PAYMENT</Text>
+                <Text style={{ width: 130, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ECHO CERTIFICATE</Text>
+                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
+                <Text style={{ width: 110, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
               </View>
               {paged.map((r: any, i: number) => {
                 const isTeam = r.registration_type === 'team' || !!r.team_name || (r.team_size && r.team_size > 1);
                 return (
                 <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
-                  <View style={{ flex: 1.5, minWidth: 180 }}>
+                  <View style={{ flex: 1.5, minWidth: 160 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                       <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: SAC.text }}>{r.full_name || '—'}</Text>
                       {r.source && r.source !== 'our_platform' && r.source !== 'studentalumni' && (
@@ -3857,7 +3898,13 @@ function RegistrationsPanel() {
                       </View>
                     )}
                   </View>
-                  <View style={{ width: 70 }}>
+                  
+                  {/* SA Account & Profile Column */}
+                  <View style={{ width: 140, justifyContent: 'center', paddingRight: 6 }}>
+                    {saAccountBadge(r)}
+                  </View>
+
+                  <View style={{ width: 60 }}>
                     <View style={{ 
                       backgroundColor: isTeam ? 'rgba(124,58,237,0.15)' : 'rgba(52,211,153,0.15)',
                       paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
@@ -3869,16 +3916,16 @@ function RegistrationsPanel() {
                       </Text>
                     </View>
                   </View>
-                  <View style={{ width: 50, paddingTop: 4 }}>
+                  <View style={{ width: 45, paddingTop: 4 }}>
                     <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: '#e5e7eb' }}>
                       {isTeam ? (r.team_size > 1 ? r.team_size : 1) : 1}
                     </Text>
                   </View>
-                  <View style={{ flex: 1.5, minWidth: 180 }}>
+                  <View style={{ flex: 1.3, minWidth: 150 }}>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: '#e5e7eb' }}>{r.event_title || r.slug || '—'}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{r.college || ''}</Text>
                   </View>
-                  <View style={{ width: 120, minWidth: 0, paddingTop: 2 }}>
+                  <View style={{ width: 90, minWidth: 0, paddingTop: 2 }}>
                     {r.is_team_member ? (
                       <View>
                         <Text style={{ fontFamily: FONTS.xbold, fontSize: 11.5, color: '#C4B5FD' }}>
@@ -3901,33 +3948,32 @@ function RegistrationsPanel() {
                       </View>
                     )}
                   </View>
-                  <View style={{ width: 120, minWidth: 0 }}>
+                  <View style={{ width: 90, minWidth: 0 }}>
                     <StatusPill
                       kind={r.payment_status === 'paid' ? 'success' : r.payment_status === 'pending' ? 'warn' : r.payment_status === 'failed' ? 'danger' : 'neutral'}
                       label={(r.payment_status || '—').toUpperCase()}
                     />
                   </View>
-                  <View style={{ width: 120, minWidth: 0 }}>
-                    {r.payment_status === 'paid' ? (
-                      <>
-                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 10, color: '#86EFAC' }}>
-                          {r.coupons_issued > 0 ? `Ticket +${r.coupons_issued}` : 'Ticket'}
+
+                  {/* ECHO Certificate Column */}
+                  <View style={{ width: 130, justifyContent: 'center', paddingRight: 6 }}>
+                    {r.has_certificate ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(124,92,252,0.18)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 }}>
+                        <Award size={11} color="#C9A7FF" />
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#D8B4FE' }}>
+                          {r.certificate?.verification_code || 'Issued'}
                         </Text>
-                          <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9.5, color: SAC.dim }}>
-                            {r.invoice_issued ? (r.invoice_no || 'Invoice issued') : 'No invoice'}
-                          </Text>
-                        </>
-                    ) : r.payment_status === 'pending' ? (
-                      <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: '#FCD34D' }}>
-                        Nothing — awaiting payment
-                      </Text>
+                      </View>
                     ) : (
-                      <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: '#FCA5A5' }}>
-                        Not issued
-                      </Text>
+                      <Pressable
+                        onPress={() => handleIssueCert(r)}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3, alignSelf: 'flex-start' }}>
+                        <Award size={11} color="#A78BFA" />
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#A78BFA' }}>Issue Cert</Text>
+                      </Pressable>
                     )}
                   </View>
-                  <View style={{ width: 120, minWidth: 0 }}>
+                  <View style={{ width: 90, minWidth: 0 }}>
                     <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>
                       {(r.registered_at || '').slice(0, 10) || '—'}
                     </Text>
@@ -6337,7 +6383,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
   const T = useSAC();
   Object.assign(fi, resolveColors(fi, T));
 
-  const [pageTab, setPageTab] = useSubTab<PageTab>(['all', 'create', 'drafts', 'registrations', 'interns', 'volunteers', 'media', 'scan-monitor'], 'all', { sub, onSub });
+  const [pageTab, setPageTab] = useSubTab<PageTab>(['registrations', 'scan-monitor', 'all', 'create', 'drafts', 'interns', 'volunteers', 'media'], 'registrations', { sub, onSub });
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
