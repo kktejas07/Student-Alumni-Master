@@ -133,29 +133,21 @@ export function DashboardView() {
     setTimeout(() => setCopiedCoupon(null), 2000);
   };
 
-  const COUPONS = [
-    { code: 'SAHW100', name: 'HackWave 3.0', off: '₹100 Off', desc: 'This coupon will be available shortly' },
-    { code: 'SAMRIT20', name: 'MRIT Flagship', off: '20% Off', desc: 'This coupon will be available shortly' },
-    { code: 'SNEHA50', name: 'Sneha Iyer AMA', off: 'Free Entry', desc: 'This coupon will be available shortly' },
-    { code: 'INTERNPRO', name: 'Resume Pro', off: '6 Mos Free', desc: 'This coupon will be available shortly' },
-    { code: 'AWSCLOUD', name: 'Cloud Boot', off: '₹200 Off', desc: 'This coupon will be available shortly' },
-  ];
-
   const HERO_SLIDES = [
     {
       tag: 'COLLAB EXCLUSIVE',
       title: 'HackWave 3.0 — 2026',
       sub: 'SEP 04 — 05 2026 · Sreenidhi Institute of Science and Technology, Hyderabad',
       desc: 'In strategic collaboration with CDC & Student Alumni. ₹100 Off with code SAHW100.',
-      link: 'http://localhost:8081/echo/snist/register',
-      cta: 'Register on Unstop →',
+      link: '/echo/snist/register',
+      cta: 'Register for HackWave →',
     },
     {
       tag: 'VOICE OF GENERATIONS · VNRVJIT',
       title: 'Alumni took the stage, students took notes.',
       sub: '26 photos, 3 workshops and 5 testimonials from the last showcase.',
       desc: 'Annual flagship networking conference at VNR Vignana Jyothi.',
-      link: 'http://localhost:8081/echo/vnrvjit/register',
+      link: '/echo/snist',
       cta: 'Open ECHO Showcase →',
     },
     {
@@ -413,57 +405,30 @@ export function DashboardView() {
         </div>
       </div>
 
-      {/* ── 2. Collab Exclusive Coupons ── */}
+      {/* ── 2. Available Coupons — Link to Wallet ── */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '9px', margin: '10px 0 14px' }}>
           <span style={{ fontSize: '12.5px', fontWeight: 700, letterSpacing: '1.6px', color: '#F59E0B' }}>
-            COLLAB EXCLUSIVE COUPONS
+            AVAILABLE COUPONS
           </span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '14px' }}>
-          {COUPONS.map((c) => (
-            <div key={c.code} className="db-coupon">
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #1F1F30', minHeight: '90px' }}>
-                <span style={{ fontSize: '26px' }}></span>
-              </div>
-              <div style={{ padding: '13px 14px 15px' }}>
-                <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#F59E0B', marginBottom: '5px' }}>{c.name}</div>
-                <div style={{ fontSize: '12px', lineHeight: 1.45, color: '#8A8A9E', marginBottom: '10px' }}>{c.desc}</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ display: 'inline-block', fontSize: '11px', fontWeight: 700, color: '#F59E0B', border: '1px solid #4A3410', borderRadius: '6px', padding: '4px 8px' }}>
-                    {c.off}
-                  </span>
-                  <button
-                    onClick={() => copyCoupon(c.code)}
-                    style={{
-                      background: copiedCoupon === c.code ? 'rgba(52, 211, 153, 0.2)' : 'rgba(124, 92, 252, 0.15)',
-                      border: `1px solid ${copiedCoupon === c.code ? '#34D399' : '#7C5CFC'}`,
-                      color: copiedCoupon === c.code ? '#34D399' : '#A78BFA',
-                      padding: '4px 8px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      fontFamily: 'ui-monospace, monospace',
-                    }}
-                  >
-                    {copiedCoupon === c.code ? 'COPIED' : c.code}
-                  </button>
-                </div>
-              </div>
-              <span
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  bottom: 0,
-                  width: '40%',
-                  background: 'linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.1), transparent)',
-                  pointerEvents: 'none',
-                  animation: 'db-lockshine 4.6s ease-in-out infinite',
-                }}
-              />
+        <div
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '20px 24px', background: 'linear-gradient(135deg, rgba(124,92,246,0.12) 0%, rgba(245,158,11,0.08) 100%)',
+            border: '1px solid rgba(124,92,246,0.2)', borderRadius: '16px', cursor: 'pointer',
+          }}
+          onClick={() => window.location.href = '/student-portal?tab=wallet'}
+        >
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#F4F5FB', marginBottom: '4px' }}>
+              🎫 Browse Marketplace & Partner Coupons
             </div>
-          ))}
+            <div style={{ fontSize: '13px', color: '#9CA3AF' }}>
+              Find discount codes for food, beverages, partners, and more — all in your wallet.
+            </div>
+          </div>
+          <span style={{ color: '#A78BFA', fontSize: '20px' }}>→</span>
         </div>
       </div>
 

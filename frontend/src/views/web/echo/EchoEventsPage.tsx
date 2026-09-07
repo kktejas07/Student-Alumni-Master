@@ -21,6 +21,7 @@ import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { EchoTicketsConfirmationPage } from './EchoTicketsConfirmationPage';
 
+
 interface EchoEventsPageProps {
   initialView?: 'list' | 'detail' | 'reg';
   initialSlug?: string;
@@ -34,7 +35,7 @@ const SAMPLE_EVENTS = [
     college: 'SNIST',
     college_name: 'Sreenidhi Institute of Science and Technology',
     college_full: 'Sreenidhi Institute of Science & Technology, Hyderabad',
-    status: 'UPCOMING',
+    status: 'OPEN',
     organizer: 'Career Development Center · SNIST in collaboration with StudentAlumni.ai',
     description: "Build something real. In one overnight sprint. National-Level 24-Hour Tech Fest with 7 Verticals across AI, Security, Hiring and Firesides.",
     dates: 'September 04 – 05, 2026',
@@ -44,11 +45,11 @@ const SAMPLE_EVENTS = [
     venue: 'Sreenidhi Institute of Science & Technology (SNIST), Hyderabad',
     location_short: 'SNIST Campus, Hyderabad',
     prize_pool: '₹17,50,000+ Total Pool (₹2,00,000 Mega Grand Pool · ₹50,000 Track Pool · WeHive Visas & Germany Study Abroad)',
-    reg_closes: '2026-09-01',
+    reg_closes: 'Registrations Open',
     individual_fee: 599,
     team_fee: 2495,
-    individual_seats: '985 seats available',
-    team_slots: '197 team slots available',
+    individual_seats: 'Open — no seat limit',
+    team_slots: 'Open — no seat limit',
     partners: ['CodeSpectra', 'Featherless', 'Stepupmark', 'Bandiwala', 'WeHive'],
     poster_banner: '/images/hackwave/hackwave_main_poster.png',
     gallery_images: [
@@ -258,6 +259,33 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   // Active event resolution
   const activeEvent = events.find((e) => e.slug === selectedSlug) || events[0] || SAMPLE_EVENTS[0];
 
+  // Live countdown for temporary auto-close windows
+  const [tempCloseRemaining, setTempCloseRemaining] = useState(0);
+  useEffect(() => {
+    const closeAt = activeEvent?.registration?.temporary_close_at;
+    const isTempOpen = !!activeEvent?.registration?.temporary_open && !!closeAt;
+    if (!isTempOpen) {
+      setTempCloseRemaining(0);
+      return;
+    }
+    const tick = () => {
+      const ms = new Date(closeAt).getTime() - Date.now();
+      setTempCloseRemaining(ms > 0 ? ms : 0);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [view, activeEvent?.slug, activeEvent?.registration?.temporary_open, activeEvent?.registration?.temporary_close_at]);
+  const fmtCountdown = (ms: number) => {
+    if (ms <= 0) return 'Closing now…';
+    const sec = Math.floor(ms / 1000);
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    const p = (n: number) => String(n).padStart(2, '0');
+    return h > 0 ? `${h}h ${p(m)}m ${p(s)}s` : `${p(m)}m ${p(s)}s`;
+  };
+
   // Derived dynamic team calculations
   const validMembers = isTeam
     ? teamMembers.filter((m) => (m.name || '').trim() || (m.email || '').trim())
@@ -310,7 +338,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 title: item.title || existing.title || 'ECHO Event',
                 college: item.college_name || item.college || existing.college || 'ECHO Campus',
                 college_full: item.college_name || item.college || item.venue || existing.college_full || 'ECHO Campus',
-                status: (item.event_status_badge || item.status || existing.status || 'UPCOMING').toUpperCase(),
+                status: item.registration?.enabled === false ? 'CLOSED' : (item.event_status_badge || item.status || existing.status || 'UPCOMING').toUpperCase(),
                 organizer: item.organizer_name || existing.organizer || 'CDC SNIST and in collaboration with StudentAlumni.ai',
                 description: item.subtitle || item.description || existing.description || "Empowering Tomorrow's Leaders",
                 dates: item.date || item.dates || existing.dates || 'September 04, 2026',
@@ -320,11 +348,12 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 venue: item.venue || existing.venue || 'Sreenidhi Institute of Science & Technology',
                 location_short: item.venue || existing.location_short || 'Hyderabad',
                 prize_pool: item.prize_pool ? (String(item.prize_pool).includes('₹') ? item.prize_pool : `₹${item.prize_pool} prize pool`) : existing.prize_pool || '₹50,000 prize pool',
-                reg_closes: item.reg_closes || existing.reg_closes || '2026-09-01',
+                reg_closes: item.registration?.enabled === false ? 'Registrations Closed' : (item.reg_closes || existing.reg_closes || 'Registration Open'),
                 individual_fee: item.fee ?? item.individual_fee ?? existing.individual_fee ?? 599,
                 team_fee: item.team_fee ?? existing.team_fee ?? 2495,
-                individual_seats: item.available_seats ? `${item.available_seats} seats available` : existing.individual_seats || '985 seats available',
-                team_slots: item.team_slots_available ? `${item.team_slots_available} team slots available` : existing.team_slots || '197 team slots available',
+                individual_seats: item.available_seats == null ? 'Open — no seat limit' : `${item.available_seats} seats available`,
+                team_slots: item.team_slots_available ? `${item.team_slots_available} team slots available` : (item.available_seats == null ? 'Open — no seat limit' : existing.team_slots || ''),
+                registration: item.registration || existing.registration || {},
                 partners: item.partners?.map((p: any) => (typeof p === 'string' ? p : p.name || p.title)) || existing.partners || ['CodeSpectra', 'Featherless', 'Stepupmark'],
                 poster_banner: item.hero_image_url || item.banner_url || item.poster_url || existing.poster_banner || '',
                 categories: item.categories || existing.categories || [],
@@ -382,18 +411,19 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   title: item.title || e.title,
                   college: item.college_name || item.college || e.college,
                   college_full: item.college_name || item.college || item.venue || e.college_full,
-                  status: (item.event_status_badge || item.status || e.status).toUpperCase(),
+                  status: item.registration?.enabled === false ? 'CLOSED' : (item.event_status_badge || item.status || e.status).toUpperCase(),
                   organizer: item.organizer_name || e.organizer,
                   description: item.subtitle || item.description || e.description,
                   dates: item.date || item.dates || e.dates,
                   time: item.time || e.time,
                   venue: item.venue || e.venue,
                   prize_pool: item.prize_pool ? (String(item.prize_pool).includes('₹') ? item.prize_pool : `₹${item.prize_pool} prize pool`) : e.prize_pool,
-                  reg_closes: item.reg_closes || e.reg_closes,
+                  reg_closes: item.registration?.enabled === false ? 'Registrations Closed' : (item.reg_closes || e.reg_closes),
                   individual_fee: item.fee ?? item.individual_fee ?? e.individual_fee,
                   team_fee: item.team_fee ?? e.team_fee,
-                  individual_seats: item.available_seats ? `${item.available_seats} seats available` : e.individual_seats,
-                  team_slots: item.team_slots_available ? `${item.team_slots_available} team slots available` : e.team_slots,
+                  individual_seats: item.available_seats == null ? 'Open — no seat limit' : `${item.available_seats} seats available`,
+                  team_slots: item.team_slots_available ? `${item.team_slots_available} team slots available` : (item.available_seats == null ? 'Open — no seat limit' : e.team_slots),
+                  registration: item.registration || e.registration || {},
                   partners: item.partners?.map((p: any) => (typeof p === 'string' ? p : p.name || p.title)) || e.partners,
                   poster_banner: item.hero_image_url || item.banner_url || item.poster_url || e.poster_banner,
                   categories: item.categories || e.categories,
@@ -402,6 +432,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   videos: (item.videos && item.videos.length > 0) ? item.videos : ((item.gallery_videos && item.gallery_videos.length > 0) ? item.gallery_videos : (e.videos || [])),
                   highlights: item.highlights || e.highlights,
                   handbook_url: item.handbook_url || e.handbook_url,
+                  registration: item.registration || e.registration,
                 };
               }
               return e;
@@ -519,6 +550,10 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   };
 
   const handlePay = async () => {
+    if (activeEvent?.registration?.enabled === false || String(activeEvent?.registration?.enabled).toLowerCase() === 'false') {
+      showToast('Registrations are currently closed for this event.');
+      return;
+    }
     if (!acceptedTerms) {
       setShowTermsErr(true);
       return;
@@ -527,16 +562,30 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       showToast('Please enter your full name and email to proceed.');
       return;
     }
+    const cleanMainPhoneDigits = (phone || '').replace(/^\+91\s*/, '').replace(/\D/g, '');
+    if (!phone || cleanMainPhoneDigits.length !== 10) {
+      showToast('Please enter a valid 10-digit mobile number.');
+      return;
+    }
     if (isTeam && !teamName.trim()) {
       showToast('Please enter a team name to proceed.');
       return;
     }
-    setShowTermsErr(false);
-    setIsPaying(true);
-
     const validMembers = isTeam
       ? teamMembers.filter((m) => m.name.trim() || m.email.trim())
       : [];
+    for (let i = 0; i < validMembers.length; i++) {
+      const m = validMembers[i];
+      if (m.phone) {
+        const mDigits = m.phone.replace(/^\+91\s*/, '').replace(/\D/g, '');
+        if (mDigits.length !== 10) {
+          showToast(`Please enter a valid 10-digit phone number for Team Member ${i + 2}.`);
+          return;
+        }
+      }
+    }
+    setShowTermsErr(false);
+    setIsPaying(true);
     
     const payload = {
       full_name: fullName || 'Student Attendee',
@@ -1369,6 +1418,14 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             </a>
             <a
               className="ev-tab"
+              onClick={() => router.push('/marketplace')}
+              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
+            >
+              Marketplace
+              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
+            </a>
+            <a
+              className="ev-tab"
               onClick={() => router.push('/verify')}
               style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
             >
@@ -1633,10 +1690,17 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#6FD6FF', background: 'rgba(47,184,198,.12)', border: '1px solid #1F4E5C', borderRadius: '100px', padding: '8px 14px' }}>
                   {activeEvent.location_short}
                 </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 600, color: 'var(--amber)', border: '1px solid #4A3410', borderRadius: '100px', padding: '8px 14px' }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><circle cx="12" cy="12" r="8.5"></circle><path d="M12 8v4.5l3 1.8"></path></svg>
-                  Registration closes: {activeEvent.reg_closes}
-                </span>
+                {(!activeEvent?.registration || activeEvent?.registration?.enabled === false || String(activeEvent?.registration?.enabled).toLowerCase() === 'false') ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 600, color: 'var(--red)', border: '1px solid #5A1010', borderRadius: '100px', padding: '8px 14px' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><circle cx="12" cy="12" r="8.5"></circle><path d="M15 9l-6 6M9 9l6 6"></path></svg>
+                    Registrations Closed
+                  </span>
+                ) : (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 600, color: 'var(--amber)', border: '1px solid #4A3410', borderRadius: '100px', padding: '8px 14px' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><circle cx="12" cy="12" r="8.5"></circle><path d="M12 8v4.5l3 1.8"></path></svg>
+                    Registration closes: {activeEvent.reg_closes}
+                  </span>
+                )}
               </div>
 
               {/* Meta strip & Action Buttons */}
@@ -1657,16 +1721,28 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.preventDefault(); go('reg', activeEvent.slug); }}
-                    onTouchEnd={(e) => { e.preventDefault(); go('reg', activeEvent.slug); }}
-                    className="ev-btn"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 700, background: '#0E9F6E', color: '#FFFFFF', borderRadius: '10px', padding: '12px 22px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: '0 4px 16px rgba(14, 159, 110, 0.35)', border: 'none', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.9 }}><path d="M3 8.5A2.5 2.5 0 015.5 6h13A2.5 2.5 0 0121 8.5v.5a2 2 0 000 6v.5A2.5 2.5 0 0118.5 18h-13A2.5 2.5 0 013 15.5V15a2 2 0 000-6Z"></path></svg>
-                    Register
-                  </button>
+                  {(!activeEvent?.registration || activeEvent?.registration?.enabled === false || String(activeEvent?.registration?.enabled).toLowerCase() === 'false') ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="ev-btn"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 700, background: 'var(--panel2)', color: 'var(--muted)', borderRadius: '10px', padding: '12px 22px', cursor: 'not-allowed', border: '1px solid var(--line)', outline: 'none' }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.9 }}><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                      Registrations Closed
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); go('reg', activeEvent.slug); }}
+                      onTouchEnd={(e) => { e.preventDefault(); go('reg', activeEvent.slug); }}
+                      className="ev-btn"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 700, background: '#0E9F6E', color: '#FFFFFF', borderRadius: '10px', padding: '12px 22px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: '0 4px 16px rgba(14, 159, 110, 0.35)', border: 'none', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.9 }}><path d="M3 8.5A2.5 2.5 0 015.5 6h13A2.5 2.5 0 0121 8.5v.5a2 2 0 000 6v.5A2.5 2.5 0 0118.5 18h-13A2.5 2.5 0 013 15.5V15a2 2 0 000-6Z"></path></svg>
+                      Register
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={(e) => { e.preventDefault(); handleDownloadHandbook(); }}
@@ -1709,7 +1785,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <div style={{ width: '46px', height: '46px', borderRadius: '14px', background: 'linear-gradient(135deg, #4F46E5, #3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(79, 70, 229, 0.4)' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#FFF', strokeWidth: 2 }}><polygon points="10 4 4 8 4 16 10 20 16 16 16 8z"></polygon><line x1="10" y1="4" x2="22" y2="12"></line><path d="M10 12l0 6"></path></svg>
+                      <svg width="22" height="22" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#FFF', strokeWidth: 2 }}><polygon points="10 4 4 8 4 16 10 20 16 16 16 8"></polygon><line x1="10" y1="4" x2="22" y2="12"></line><path d="M10 12v6"></path></svg>
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
@@ -2274,6 +2350,34 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             </button>
           </div>
 
+          {/* Marketplace CTA Card */}
+          <a
+            href="/marketplace"
+            onClick={(e) => { e.preventDefault(); window.location.href = '/marketplace'; }}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px',
+              border: '1px solid rgba(139,92,246,0.35)', borderRadius: '18px',
+              background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(99,102,241,0.08))',
+              padding: '24px 28px', flexWrap: 'wrap', cursor: 'pointer', textDecoration: 'none',
+              transition: 'all .2s ease', width: '100%',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.6)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.35)'; (e.currentTarget as HTMLElement).style.transform = 'none'; }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }}>
+              <span style={{ width: '50px', height: '50px', borderRadius: '14px', background: 'linear-gradient(135deg, #7C3AED, #6366F1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', boxShadow: '0 4px 14px rgba(124,58,237,0.35)' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#fff', strokeWidth: 1.8 }}><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '18px', fontWeight: 700, letterSpacing: '-.3px', color: '#FFFFFF' }}>Event Marketplace</div>
+                <div style={{ fontSize: '13.5px', color: '#C9BFF2', marginTop: '3px' }}>Pre-order food, beverages &amp; exclusive handcrafts to collect at the event</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#A78BFA', fontWeight: 600, fontSize: '14px', flex: 'none' }}>
+              Browse &amp; Order
+              <svg width="16" height="16" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+            </div>
+          </a>
         </div>
       )}
 
@@ -2283,6 +2387,21 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       {view === 'reg' && (
         <div className="ev-anim-in ev-reg-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '90px 28px 90px' }}>
           
+          {(!activeEvent?.registration || activeEvent?.registration?.enabled === false || String(activeEvent?.registration?.enabled).toLowerCase() === 'false') ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--panel)', borderRadius: '18px', border: '1px solid var(--line)' }}>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text)', marginBottom: '12px' }}>Registrations Closed</div>
+              <div style={{ fontSize: '15px', color: 'var(--muted)', marginBottom: '24px' }}>We are no longer accepting new registrations for this event.</div>
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); go('detail', activeEvent.slug); }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)', borderRadius: '100px', padding: '10px 18px', background: 'var(--panel2)', color: 'var(--text)', cursor: 'pointer' }}
+              >
+                Back to event
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Back to Event Button */}
           {/* Back to Event Button */}
           <button
             type="button"
@@ -2386,6 +2505,19 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             {/* Right Column: Registration Form & Payment */}
             <div style={{ display: 'grid', gap: '18px' }}>
               
+              {/* Temporary auto-close countdown banner */}
+              {activeEvent?.registration?.temporary_open && activeEvent?.registration?.temporary_close_at ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid rgba(245,158,11,.45)', borderRadius: '14px', background: 'rgba(245,158,11,.10)', padding: '14px 18px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '20px', lineHeight: 1 }}>⏳</span>
+                  <div style={{ flex: '1 1 160px', minWidth: 0 }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1.1px', color: 'var(--amber,#f59e0b)' }}>REGISTRATION WINDOW OPEN</div>
+                    <div style={{ fontSize: '13.5px', color: 'var(--text)', marginTop: '3px' }}>
+                      Auto-closes in <strong style={{ color: '#F59E0B', fontVariantNumeric: 'tabular-nums' }}>{fmtCountdown(tempCloseRemaining)}</strong>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
               {/* Individual vs Team Segmented Selector */}
               <div className="ev-reg-seg" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
                 <span
@@ -2506,15 +2638,23 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   {/* Phone */}
                   <div>
                     <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>
-                      {isTeam ? 'TEAM CAPTAIN PHONE NUMBER *' : 'PHONE NUMBER *'}
+                      {isTeam ? 'TEAM CAPTAIN PHONE NUMBER (10 DIGITS) *' : 'PHONE NUMBER (10 DIGITS) *'}
                     </div>
-                    <div className="ev-field" style={{ border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '14px 15px', display: 'flex', alignItems: 'center' }}>
+                    <div className="ev-field" style={{ border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(124,92,252,0.14)', border: '1px solid #3A2E72', borderRadius: '8px', padding: '6px 10px', flexShrink: 0 }}>
+                        <span style={{ fontSize: '14px' }}>🇮🇳</span>
+                        <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#A78BFA' }}>+91</span>
+                      </div>
                       <input
                         type="tel"
-                        placeholder="+91 …"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#FFFFFF', fontSize: '14.5px', fontFamily: 'inherit' }}
+                        placeholder="10-digit mobile number"
+                        maxLength={10}
+                        value={(phone || '').replace(/^\+91\s*/, '').replace(/\D/g, '').slice(0, 10)}
+                        onChange={(e) => {
+                          const rawDigits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          setPhone(rawDigits ? `+91 ${rawDigits}` : '');
+                        }}
+                        style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#FFFFFF', fontSize: '14.5px', fontFamily: 'inherit', letterSpacing: '0.5px' }}
                       />
                     </div>
                   </div>
@@ -2747,17 +2887,25 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                               }}
                               style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
                             />
-                            <input
-                              type="tel"
-                              placeholder={`Member ${idx + 2} Phone (optional)`}
-                              value={member.phone}
-                              onChange={(e) => {
-                                const updated = [...teamMembers];
-                                updated[idx] = { ...updated[idx], phone: e.target.value };
-                                setTeamMembers(updated);
-                              }}
-                              style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
-                            />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--line)', borderRadius: '8px', padding: '6px 8px', flexShrink: 0 }}>
+                                <span style={{ fontSize: '12px' }}>🇮🇳</span>
+                                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)' }}>+91</span>
+                              </div>
+                              <input
+                                type="tel"
+                                placeholder={`Member ${idx + 2} Phone (10 digits, optional)`}
+                                maxLength={10}
+                                value={(member.phone || '').replace(/^\+91\s*/, '').replace(/\D/g, '').slice(0, 10)}
+                                onChange={(e) => {
+                                  const rawDigits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                  const updated = [...teamMembers];
+                                  updated[idx] = { ...updated[idx], phone: rawDigits ? `+91 ${rawDigits}` : '' };
+                                  setTeamMembers(updated);
+                                }}
+                                style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
+                              />
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -2929,8 +3077,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
              </div>
 
-           </div>
-
+            </div>
+            </>
+          )}
         </div>
       )}
 

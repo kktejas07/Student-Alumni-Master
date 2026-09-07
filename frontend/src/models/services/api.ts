@@ -89,9 +89,9 @@ async function refreshAccessToken(): Promise<string | null> {
 
 export async function request<T>(
   path: string,
-  options: { method?: string; body?: any; auth?: boolean } = {},
+  options: { method?: string; body?: any; auth?: boolean; headers?: Record<string, string> } = {},
 ): Promise<T> {
-  const { method = 'GET', body, auth = true } = options;
+  const { method = 'GET', body, auth = true, headers: customHeaders } = options;
   const t0 = typeof Date !== 'undefined' ? Date.now() : 0;
   const fullUrl = `${BASE_URL}/api${path}`;
 
@@ -115,11 +115,11 @@ export async function request<T>(
   }
 
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
-  const headers: Record<string, string> = {};
-  if (!isFormData) {
+  const headers: Record<string, string> = { ...customHeaders };
+  if (!isFormData && !headers['Content-Type']) {
     headers['Content-Type'] = 'application/json';
   }
-  if (auth && token) headers['Authorization'] = `Bearer ${token}`;
+  if (auth && token && !headers['Authorization']) headers['Authorization'] = `Bearer ${token}`;
 
   try {
     const res = await fetch(fullUrl, {
@@ -448,6 +448,8 @@ export const api = {
     request<any>('/echo/admin/showcases', { method: 'POST', body: payload }),
   updateEchoShowcase: (id: string, payload: any) =>
     request<any>(`/echo/admin/showcases/${id}`, { method: 'PUT', body: payload }),
+  temporaryOpenEchoShowcase: (id: string, durationMinutes: number) =>
+    request<any>(`/echo/admin/showcases/${id}/temporary-open`, { method: 'POST', body: { duration_minutes: durationMinutes } }),
   deleteEchoShowcase: (id: string) =>
     request<any>(`/echo/admin/showcases/${id}`, { method: 'DELETE' }),
   publishEchoShowcase: (id: string) =>
@@ -478,7 +480,7 @@ export const api = {
   restoreEchoShowcaseVersion: (id: string, versionIndex: number) =>
     request<any>(`/echo/admin/showcases/${id}/restore/${versionIndex}`, { method: 'POST' }),
   adminEchoRegistrations: () =>
-    request<any>('/echo/admin/registrations'),
+    request<any>(`/echo/admin/registrations?_t=${Date.now()}`),
   adminEchoDeleteRegistration: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}`, { method: 'DELETE' }),
   adminEchoSendPaymentReminder: (regId: string) =>
@@ -503,6 +505,14 @@ export const api = {
     request<any>(`/echo/admin/registrations/${regId}/team`, { method: 'PUT', body: { team_members: teamMembers, team_name: teamName } }),
   adminEchoResendTickets: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}/resend-tickets`, { method: 'POST' }),
+  getEchoRegistrationPasscode: () =>
+    request<any>('/echo/admin/registration-passcode'),
+  setEchoRegistrationPasscode: (passcode: string) =>
+    request<any>('/echo/admin/registration-passcode', { method: 'PUT', body: { passcode } }),
+  disableEchoRegistrationPasscode: () =>
+    request<any>('/echo/admin/registration-passcode', { method: 'PUT', body: { disable: true } }),
+  verifyEchoRegistrationPasscode: (passcode: string) =>
+    request<any>('/echo/admin/registration-passcode/verify', { method: 'POST', body: { passcode } }),
   adminEchoRevenue: () =>
     request<any>('/echo/admin/revenue'),
   adminRevenueAudit: () =>
@@ -513,6 +523,67 @@ export const api = {
     request<any>('/echo/my-invoices'),
   myEchoRegistrations: () =>
     request<any>('/echo/my-registrations'),
+  myMarketplaceOrders: () =>
+    request<any>('/echo/my-marketplace-orders'),
+  myMarketplaceInvoice: (orderId: string) =>
+    request<any>(`/echo/marketplace-invoices/${orderId}`),
+  myMarketplaceOrderQr: (orderId: string) =>
+    request<any>(`/echo/orders/${orderId}/qr`),
+
+  // ── Marketplace admin helpers ─────────────────────────────────────────────
+  adminListMarketplaceCatalog: (showcaseId: string) =>
+    request<any>(`/echo/admin/showcases/${showcaseId}/catalog`),
+  adminCreateMarketplaceItem: (showcaseId: string, payload: any) =>
+    request<any>(`/echo/admin/showcases/${showcaseId}/catalog`, { method: 'POST', body: payload }),
+  adminUpdateMarketplaceItem: (itemId: string, payload: any) =>
+    request<any>(`/echo/admin/catalog/${itemId}`, { method: 'PUT', body: payload }),
+  adminDeleteMarketplaceItem: (itemId: string) =>
+    request<any>(`/echo/admin/catalog/${itemId}`, { method: 'DELETE' }),
+  adminListMarketplaceOrders: (showcaseId: string) =>
+    request<any>(`/echo/admin/showcases/${showcaseId}/orders`),
+  adminListMarketplaceCoupons: (eventSlug?: string) =>
+    request<any>(`/echo/admin/coupons${eventSlug ? `?event_slug=${eventSlug}` : ''}`),
+  adminCreateMarketplaceCoupon: (payload: any) =>
+    request<any>('/echo/admin/coupons', { method: 'POST', body: payload }),
+  adminListVendors: () =>
+    request<any>('/echo/admin/vendors'),
+  adminCreateVendor: (payload: any) =>
+    request<any>('/echo/admin/vendors', { method: 'POST', body: payload }),
+  adminUpdateVendor: (vendorId: string, payload: any) =>
+    request<any>(`/echo/admin/vendors/${vendorId}`, { method: 'PUT', body: payload }),
+  adminDeleteVendor: (vendorId: string) =>
+    request<any>(`/echo/admin/vendors/${vendorId}`, { method: 'DELETE' }),
+  adminVendorStats: () =>
+    request<any>('/echo/admin/vendors/stats'),
+  adminResetVendorPasscode: (vendorId: string, passcode: string) =>
+    request<any>(`/echo/admin/vendors/${vendorId}/password-reset`, { method: 'POST', body: { passcode } }),
+  adminSendVendorCredentials: (vendorId: string) =>
+    request<any>(`/echo/admin/vendors/${vendorId}/send-credentials`, { method: 'POST' }),
+  previewMarketplaceCoupon: (payload: any) =>
+    request<any>('/echo/orders/coupon-preview', { method: 'POST', body: payload }),
+
+  // ── Internal Hiring & Interns Pipeline ────────────────────────────────────
+  adminEchoListInterns: (params?: any) => {
+    const q = new URLSearchParams();
+    if (params?.slug) q.set('slug', params.slug);
+    if (params?.stage) q.set('stage', params.stage);
+    if (params?.search) q.set('search', params.search);
+    if (params?.domain) q.set('domain', params.domain);
+    const qs = q.toString();
+    return request<any>(`/echo/admin/interns${qs ? '?' + qs : ''}`);
+  },
+  adminEchoConvertIntern: (payload: any) =>
+    request<any>('/echo/admin/interns/convert', { method: 'POST', body: payload }),
+  adminEchoAdvanceIntern: (id: string, payload?: any) =>
+    request<any>(`/echo/admin/interns/${id}/advance`, { method: 'POST', body: payload || {} }),
+  adminEchoUpdateIntern: (id: string, payload: any) =>
+    request<any>(`/echo/admin/interns/${id}`, { method: 'PUT', body: payload }),
+  adminEchoDeleteIntern: (id: string) =>
+    request<any>(`/echo/admin/interns/${id}`, { method: 'DELETE' }),
+  adminEchoSyncAllInterns: () =>
+    request<any>('/echo/admin/interns/sync-registrations', { method: 'POST' }),
+
+
 
   // ── Echo Settings & Branding ──────────────────────────────────────────────
   getEchoSettings: () => request<any>('/echo/admin/settings'),
@@ -544,6 +615,18 @@ export const api = {
     request<any>(`/echo/admin/${slug}/volunteers`, { method: 'POST', body: payload }),
   deleteEchoVolunteer: (slug: string, volunteerId: string) =>
     request<any>(`/echo/admin/${slug}/volunteers/${volunteerId}`, { method: 'DELETE' }),
+
+  // ── Unstop CSV Import ─────────────────────────────────────────────────────
+  echoImportTicketsPreview: (file: File, source: string = 'unstop') => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return request<any>(`/echo/admin/import-tickets/preview?source=${encodeURIComponent(source)}`, { method: 'POST', body: fd });
+  },
+  echoImportTickets: (file: File, slug: string, source: string = 'unstop') => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return request<any>(`/echo/admin/import-tickets?slug=${encodeURIComponent(slug)}&source=${encodeURIComponent(source)}`, { method: 'POST', body: fd });
+  },
 
   // ── Admin Contacts ────────────────────────────────────────────────────────
   listContacts: (params: { page?: number; per_page?: number; q?: string; source?: string; include_registered?: boolean }) => {

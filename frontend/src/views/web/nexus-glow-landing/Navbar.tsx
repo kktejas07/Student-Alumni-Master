@@ -4,8 +4,8 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useTheme } from '@/src/theme/ThemeContext';
 
 interface NavbarProps {
-  activeTab?: 'home' | 'echo' | 'verify' | 'contact';
-  onTabChange?: (tab: 'home' | 'echo' | 'verify' | 'contact') => void;
+  activeTab?: 'home' | 'echo' | 'marketplace' | 'verify' | 'contact';
+  onTabChange?: (tab: 'home' | 'echo' | 'marketplace' | 'verify' | 'contact') => void;
 }
 
 export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
@@ -31,8 +31,9 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
   }, [pathname]);
 
   // Track active tab state
-  const [selectedTab, setSelectedTab] = useState<'home' | 'echo' | 'verify' | 'contact'>(() => {
+  const [selectedTab, setSelectedTab] = useState<'home' | 'echo' | 'marketplace' | 'verify' | 'contact'>(() => {
     if (propActiveTab) return propActiveTab;
+    if (pathname?.includes('/marketplace')) return 'marketplace';
     if (pathname?.includes('/echo')) return 'echo';
     if (pathname?.includes('/verify')) return 'verify';
     if (pathname?.includes('/contact')) return 'contact';
@@ -43,14 +44,15 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
     if (propActiveTab) {
       setSelectedTab(propActiveTab);
     } else {
-      if (pathname?.includes('/echo')) setSelectedTab('echo');
+      if (pathname?.includes('/marketplace')) setSelectedTab('marketplace');
+      else if (pathname?.includes('/echo')) setSelectedTab('echo');
       else if (pathname?.includes('/verify')) setSelectedTab('verify');
       else if (pathname?.includes('/contact')) setSelectedTab('contact');
       else setSelectedTab('home');
     }
   }, [propActiveTab, pathname]);
 
-  const handleTabClick = (tabKey: 'home' | 'echo' | 'verify' | 'contact') => {
+  const handleTabClick = (tabKey: 'home' | 'echo' | 'marketplace' | 'verify' | 'contact') => {
     setSelectedTab(tabKey);
     setMenuOpen(false);
     if (typeof onTabChange === 'function') {
@@ -59,6 +61,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
     } else {
       if (tabKey === 'home') router.push('/');
       else if (tabKey === 'echo') router.push('/echo');
+      else if (tabKey === 'marketplace') router.push('/marketplace');
       else if (tabKey === 'verify') router.push('/certificates/verify');
       else if (tabKey === 'contact') router.push('/contact');
     }
@@ -71,6 +74,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
   const tabs = [
     { key: 'home' as const, label: 'Home' },
     { key: 'echo' as const, label: 'ECHO' },
+    { key: 'marketplace' as const, label: 'Marketplace' },
     { key: 'verify' as const, label: 'Verify' },
     { key: 'contact' as const, label: 'Contact Us' },
   ];

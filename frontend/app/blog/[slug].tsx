@@ -19,6 +19,8 @@ interface Section {
 }
 
 interface PostDetail {
+  id?: string;
+  slug?: string;
   title: string;
   category: string;
   subcategory?: string;
@@ -28,6 +30,10 @@ interface PostDetail {
   author: string;
   authorInitials: string;
   authorTitle: string;
+  isFeatured?: boolean;
+  tagColor?: string;
+  tagBg?: string;
+  tagLine?: string;
   chartTitle?: string;
   sections: Section[];
 }
