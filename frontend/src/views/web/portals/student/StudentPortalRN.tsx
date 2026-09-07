@@ -37,6 +37,7 @@ import { ProfileSettingsView } from './views/ProfileSettingsView';
 import { MyBookingsView } from './views/MyBookingsView';
 import { MyWorkshopsView } from './views/MyWorkshopsView';
 import { MyTicketsView } from './views/MyTicketsView';
+import { MyCertificatesView } from './views/MyCertificatesView';
 import { EchoShowcaseView } from './views/EchoShowcaseView';
 import { RentalsView } from './views/RentalsView';
 
@@ -138,11 +139,12 @@ function StudentPortalInner() {
                   {active === 'network'         && <NetworkView />}
                   {active === 'my-bookings'     && <MyBookingsView />}
                   {active === 'my-tickets'      && <MyTicketsView />}
+                  {active === 'my-certificates' && <MyCertificatesView />}
                   {(active === 'myevents' || active === 'events') && <EventsView />}
                   {active === 'my-workshops'    && <MyWorkshopsView />}
                   {(active === 'echo-showcase' || (![
                     'dashboard', 'career-ai', 'internships', 'network', 'my-bookings', 'myevents', 'events',
-                    'my-workshops', 'my-tickets', 'courses', 'financial', 'deals', 'wallet', 'higher-ed', 'rentals', 'profile'
+                    'my-workshops', 'my-tickets', 'my-certificates', 'courses', 'financial', 'deals', 'wallet', 'higher-ed', 'rentals', 'profile'
                   ].includes(active))) && (
                     <EchoShowcaseView slug={active === 'echo-showcase' ? undefined : active} onBack={() => handleNav('myevents')} />
                   )}

@@ -26,13 +26,65 @@ except Exception:
 router = APIRouter(prefix="/certificates", tags=["Certificates"])
 
 
-
-
 def _clean_str(val: Optional[str]) -> str:
     return (val or "").strip()
 
 
-import re
+@router.get("/my")
+async def get_my_certificates(current_user: dict = Depends(get_current_user)):
+    """
+    Get all certificates issued to the currently authenticated student user.
+    """
+    user_email = (current_user.get("email") or "").strip()
+    user_id = str(current_user.get("id") or current_user.get("user_id") or "").strip()
+    sa_id = str(current_user.get("sa_id") or "").strip()
+
+    query_or = []
+    if user_email:
+        query_or.append({"recipient_email": {"$regex": f"^{re.escape(user_email)}$", "$options": "i"}})
+        query_or.append({"student_email": {"$regex": f"^{re.escape(user_email)}$", "$options": "i"}})
+        query_or.append({"email": {"$regex": f"^{re.escape(user_email)}$", "$options": "i"}})
+    if user_id:
+        query_or.append({"user_id": user_id})
+    if sa_id:
+        query_or.append({"sa_id": sa_id})
+
+    if not query_or:
+        certs = await db.certificates.find().sort("created_at", -1).to_list(length=20)
+    else:
+        certs = await db.certificates.find({"$or": query_or}).sort("created_at", -1).to_list(length=100)
+
+    result = []
+    for c in certs:
+        cat_str = str(c.get("category") or c.get("type") or "").lower()
+        if not cat_str:
+            title_lower = str(c.get("title") or c.get("certificate_title") or "").lower()
+            if "sunset" in title_lower:
+                cat_str = "sunset"
+            elif "cyber" in title_lower:
+                cat_str = "cyber"
+            elif "hackwave" in title_lower or "echo" in title_lower:
+                cat_str = "echo"
+            else:
+                cat_str = "workshop"
+
+        result.append({
+            "id": str(c.get("id") or c.get("certificate_id") or c.get("_id")),
+            "code": c.get("certificate_id") or c.get("id") or c.get("verification_code") or "HW3-SUNSET-001",
+            "title": c.get("title") or c.get("certificate_title") or c.get("event_name") or "Hackwave 3.0 Certificate",
+            "category": cat_str,
+            "issuer": c.get("issuer") or "Student Alumni Federation",
+            "issued_at": str(c.get("issued_at") or c.get("created_at") or datetime.now(timezone.utc).strftime("%Y-%m-%d"))[:10],
+            "recipient_name": c.get("student_name") or c.get("recipient_name") or "Student User",
+            "recipient_email": c.get("student_email") or c.get("recipient_email") or user_email,
+            "sha256_hash": c.get("verification_hash") or hashlib.sha256((str(c.get("id")) or "cert").encode()).hexdigest(),
+            "verified": True,
+            "download_url": c.get("download_url") or c.get("file_path"),
+            "metadata": c.get("metadata", {})
+        })
+
+    return {"success": True, "certificates": result, "count": len(result)}
+
 
 @router.get("/verify/{identifier}")
 async def verify_certificate(identifier: str):
