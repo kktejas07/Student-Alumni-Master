@@ -217,6 +217,13 @@ async def _lifespan(application):
         _safe_create_index(db.echo_volunteers, "email"),
         _safe_create_index(db.echo_volunteers, "slug"),
         _safe_create_index(db.echo_volunteers, [("slug", 1), ("email", 1)], unique=True),
+        # Marketplace performance indexes
+        _safe_create_index(db.echo_catalog_items, "event_id"),
+        _safe_create_index(db.echo_catalog_items, [("event_id", 1), ("is_active", 1)]),
+        _safe_create_index(db.echo_discount_coupons, [("event_id", 1), ("active", 1)]),
+        _safe_create_index(db.echo_discount_coupons, "code", unique=True, sparse=True),
+        _safe_create_index(db.echo_orders, [("user_id", 1), ("created_at", -1)]),
+        _safe_create_index(db.echo_orders, [("status", 1)]),
     ]
     await asyncio.gather(*index_tasks, return_exceptions=True)
 
@@ -338,8 +345,10 @@ api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernet
 # ECHO Showcase sub-router
 from echo_showcase import router as echo_router
 from routers.vendors import router as vendors_router
+from routers.marketplace import router as marketplace_router
 app.include_router(echo_router)
 app.include_router(vendors_router)
+app.include_router(marketplace_router)
 
 # Newsletter sub-router
 from newsletter import router as newsletter_router
@@ -1757,6 +1766,13 @@ async def update_coupon(coupon_id: str, payload: dict, user: dict = Depends(get_
     if role not in ("admin", "superadmin", "super_admin"):
         raise HTTPException(403, "Only admins can manage coupons")
     from bson import ObjectId
+    try:
+        oid = ObjectId(coupon_id)
+    except Exception:
+        raise HTTPException(400, "Invalid coupon ID")
+    existing = await db.coupons.find_one({"_id": oid})
+    if not existing:
+        raise HTTPException(404, "Coupon not found")
     update = {}
     for k in ("description", "discount_pct", "discount_type", "max_uses", "active", "expires_at",
               "image_url", "partner_name", "partner_website_url", "instructions",
@@ -1765,8 +1781,12 @@ async def update_coupon(coupon_id: str, payload: dict, user: dict = Depends(get_
             update[k] = payload[k]
     if not update:
         raise HTTPException(400, "No fields to update")
-    await db.coupons.update_one({"_id": ObjectId(coupon_id)}, {"$set": update})
-    return {"status": "ok"}
+    result = await db.coupons.update_one({"_id": oid}, {"$set": update})
+    if result.modified_count == 0:
+        # Even if nothing changed, return success (values may be the same)
+        pass
+    updated = await db.coupons.find_one({"_id": oid})
+    return {"status": "ok", "coupon": _coupon_fields(updated) if updated else None}
 
 
 @api_router.delete("/admin/coupons/{coupon_id}")

@@ -20,7 +20,7 @@ import PaymentStatusScreen, { PaymentResult } from '@/src/views/components/Payme
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { EchoTicketsConfirmationPage } from './EchoTicketsConfirmationPage';
-import { EchoMarketplace } from './EchoMarketplace';
+
 
 interface EchoEventsPageProps {
   initialView?: 'list' | 'detail' | 'reg';
@@ -48,8 +48,8 @@ const SAMPLE_EVENTS = [
     reg_closes: 'Registrations Open',
     individual_fee: 599,
     team_fee: 2495,
-    individual_seats: '985 seats available',
-    team_slots: '197 team slots available',
+    individual_seats: 'Open — no seat limit',
+    team_slots: 'Open — no seat limit',
     partners: ['CodeSpectra', 'Featherless', 'Stepupmark', 'Bandiwala', 'WeHive'],
     poster_banner: '/images/hackwave/hackwave_main_poster.png',
     gallery_images: [
@@ -259,6 +259,33 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   // Active event resolution
   const activeEvent = events.find((e) => e.slug === selectedSlug) || events[0] || SAMPLE_EVENTS[0];
 
+  // Live countdown for temporary auto-close windows
+  const [tempCloseRemaining, setTempCloseRemaining] = useState(0);
+  useEffect(() => {
+    const closeAt = activeEvent?.registration?.temporary_close_at;
+    const isTempOpen = !!activeEvent?.registration?.temporary_open && !!closeAt;
+    if (!isTempOpen) {
+      setTempCloseRemaining(0);
+      return;
+    }
+    const tick = () => {
+      const ms = new Date(closeAt).getTime() - Date.now();
+      setTempCloseRemaining(ms > 0 ? ms : 0);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [view, activeEvent?.slug, activeEvent?.registration?.temporary_open, activeEvent?.registration?.temporary_close_at]);
+  const fmtCountdown = (ms: number) => {
+    if (ms <= 0) return 'Closing now…';
+    const sec = Math.floor(ms / 1000);
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    const p = (n: number) => String(n).padStart(2, '0');
+    return h > 0 ? `${h}h ${p(m)}m ${p(s)}s` : `${p(m)}m ${p(s)}s`;
+  };
+
   // Derived dynamic team calculations
   const validMembers = isTeam
     ? teamMembers.filter((m) => (m.name || '').trim() || (m.email || '').trim())
@@ -324,8 +351,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 reg_closes: item.registration?.enabled === false ? 'Registrations Closed' : (item.reg_closes || existing.reg_closes || 'Registration Open'),
                 individual_fee: item.fee ?? item.individual_fee ?? existing.individual_fee ?? 599,
                 team_fee: item.team_fee ?? existing.team_fee ?? 2495,
-                individual_seats: item.available_seats ? `${item.available_seats} seats available` : existing.individual_seats || '985 seats available',
-                team_slots: item.team_slots_available ? `${item.team_slots_available} team slots available` : existing.team_slots || '197 team slots available',
+                individual_seats: item.available_seats == null ? 'Open — no seat limit' : `${item.available_seats} seats available`,
+                team_slots: item.team_slots_available ? `${item.team_slots_available} team slots available` : (item.available_seats == null ? 'Open — no seat limit' : existing.team_slots || ''),
+                registration: item.registration || existing.registration || {},
                 partners: item.partners?.map((p: any) => (typeof p === 'string' ? p : p.name || p.title)) || existing.partners || ['CodeSpectra', 'Featherless', 'Stepupmark'],
                 poster_banner: item.hero_image_url || item.banner_url || item.poster_url || existing.poster_banner || '',
                 categories: item.categories || existing.categories || [],
@@ -393,8 +421,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   reg_closes: item.registration?.enabled === false ? 'Registrations Closed' : (item.reg_closes || e.reg_closes),
                   individual_fee: item.fee ?? item.individual_fee ?? e.individual_fee,
                   team_fee: item.team_fee ?? e.team_fee,
-                  individual_seats: item.available_seats ? `${item.available_seats} seats available` : e.individual_seats,
-                  team_slots: item.team_slots_available ? `${item.team_slots_available} team slots available` : e.team_slots,
+                  individual_seats: item.available_seats == null ? 'Open — no seat limit' : `${item.available_seats} seats available`,
+                  team_slots: item.team_slots_available ? `${item.team_slots_available} team slots available` : (item.available_seats == null ? 'Open — no seat limit' : e.team_slots),
+                  registration: item.registration || e.registration || {},
                   partners: item.partners?.map((p: any) => (typeof p === 'string' ? p : p.name || p.title)) || e.partners,
                   poster_banner: item.hero_image_url || item.banner_url || item.poster_url || e.poster_banner,
                   categories: item.categories || e.categories,
@@ -1389,6 +1418,14 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             </a>
             <a
               className="ev-tab"
+              onClick={() => router.push('/marketplace')}
+              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
+            >
+              Marketplace
+              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
+            </a>
+            <a
+              className="ev-tab"
               onClick={() => router.push('/verify')}
               style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
             >
@@ -1748,7 +1785,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <div style={{ width: '46px', height: '46px', borderRadius: '14px', background: 'linear-gradient(135deg, #4F46E5, #3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(79, 70, 229, 0.4)' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#FFF', strokeWidth: 2 }}><polygon points="10 4 4 8 4 16 10 20 16 16 16 8z"></polygon><line x1="10" y1="4" x2="22" y2="12"></line><path d="M10 12l0 6"></path></svg>
+                      <svg width="22" height="22" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#FFF', strokeWidth: 2 }}><polygon points="10 4 4 8 4 16 10 20 16 16 16 8"></polygon><line x1="10" y1="4" x2="22" y2="12"></line><path d="M10 12v6"></path></svg>
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
@@ -2313,7 +2350,34 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             </button>
           </div>
 
-          <EchoMarketplace slug={activeEvent.slug} isDark={isDark} />
+          {/* Marketplace CTA Card */}
+          <a
+            href="/marketplace"
+            onClick={(e) => { e.preventDefault(); window.location.href = '/marketplace'; }}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px',
+              border: '1px solid rgba(139,92,246,0.35)', borderRadius: '18px',
+              background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(99,102,241,0.08))',
+              padding: '24px 28px', flexWrap: 'wrap', cursor: 'pointer', textDecoration: 'none',
+              transition: 'all .2s ease', width: '100%',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.6)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.35)'; (e.currentTarget as HTMLElement).style.transform = 'none'; }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }}>
+              <span style={{ width: '50px', height: '50px', borderRadius: '14px', background: 'linear-gradient(135deg, #7C3AED, #6366F1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', boxShadow: '0 4px 14px rgba(124,58,237,0.35)' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#fff', strokeWidth: 1.8 }}><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '18px', fontWeight: 700, letterSpacing: '-.3px', color: '#FFFFFF' }}>Event Marketplace</div>
+                <div style={{ fontSize: '13.5px', color: '#C9BFF2', marginTop: '3px' }}>Pre-order food, beverages &amp; exclusive handcrafts to collect at the event</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#A78BFA', fontWeight: 600, fontSize: '14px', flex: 'none' }}>
+              Browse &amp; Order
+              <svg width="16" height="16" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+            </div>
+          </a>
         </div>
       )}
 
@@ -2441,6 +2505,19 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             {/* Right Column: Registration Form & Payment */}
             <div style={{ display: 'grid', gap: '18px' }}>
               
+              {/* Temporary auto-close countdown banner */}
+              {activeEvent?.registration?.temporary_open && activeEvent?.registration?.temporary_close_at ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid rgba(245,158,11,.45)', borderRadius: '14px', background: 'rgba(245,158,11,.10)', padding: '14px 18px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '20px', lineHeight: 1 }}>⏳</span>
+                  <div style={{ flex: '1 1 160px', minWidth: 0 }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1.1px', color: 'var(--amber,#f59e0b)' }}>REGISTRATION WINDOW OPEN</div>
+                    <div style={{ fontSize: '13.5px', color: 'var(--text)', marginTop: '3px' }}>
+                      Auto-closes in <strong style={{ color: '#F59E0B', fontVariantNumeric: 'tabular-nums' }}>{fmtCountdown(tempCloseRemaining)}</strong>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
               {/* Individual vs Team Segmented Selector */}
               <div className="ev-reg-seg" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
                 <span

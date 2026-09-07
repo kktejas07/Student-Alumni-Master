@@ -24,7 +24,7 @@ import {
   Wallet, Sparkles, CircleCheck as CheckCircle2, Copy, ExternalLink, Clock,
   Tag, TrendingUp, PlusCircle, ArrowUpRight, ArrowDownLeft, Shield, Award,
   Check, Search, Filter, X, ChevronRight, Gift, Building2, Zap, RefreshCw,
-  CreditCard, DollarSign, Star, Lock,
+  CreditCard, DollarSign, Star, Lock, Info,
 } from 'lucide-react-native';
 import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import MoneyCoach from '@/src/views/web/wallet/MoneyCoach';
@@ -73,10 +73,14 @@ type CouponItem = {
   cost_credits: number;
   url: string;
   expiry: string;
-  status: 'active' | 'used';
+  status: 'active' | 'used' | 'locked';
   used_at?: string;
   category: string;
   accent: string;
+  instructions?: string;
+  locked?: boolean;
+  partner_name?: string;
+  event_id?: string;
 };
 
 type Summary = {
@@ -241,9 +245,10 @@ export default function WalletScreen() {
 
   // Coupon Engine State
   const [myCoupons, setMyCoupons] = useState<CouponItem[]>(INITIAL_COUPONS);
-  const [couponFilter, setCouponFilter] = useState<'all' | 'active' | 'used'>('all');
+  const [couponFilter, setCouponFilter] = useState<'all' | 'active' | 'used' | 'locked'>('all');
   const [couponSearch, setCouponSearch] = useState('');
   const [selectedCouponModal, setSelectedCouponModal] = useState<CouponItem | null>(null);
+  const [instructionModal, setInstructionModal] = useState<{ title: string; instructions: string; website?: string } | null>(null);
 
   // Top-Up & Withdraw State
   const [topupAmount, setTopupAmount] = useState<string>('500');
@@ -287,6 +292,48 @@ export default function WalletScreen() {
   }, [user]);
 
   useEffect(() => { fetchSummary(); }, [fetchSummary]);
+
+  // Fetch real coupons from API
+  const fetchCoupons = useCallback(async () => {
+    try {
+      const r = await request<any>('/echo/coupons/by-category');
+      if (r?.success && r.data) {
+        const allCoupons: CouponItem[] = [];
+        const categories = Object.keys(r.data);
+        for (const cat of categories) {
+          for (const c of r.data[cat]) {
+            const discountLabel = c.discount_type === 'duration'
+              ? `${c.duration_months || '?'} Month${(c.duration_months || 0) !== 1 ? 's' : ''} Access`
+              : c.discount_type === 'percentage' ? `${c.discount_value}% OFF` : `₹${c.discount_value} OFF`;
+            const partnerLabel = c.partner_name || c.vendor_name || '';
+            const eventLabel = c.event_id ? c.event_id.toUpperCase() : '';
+            allCoupons.push({
+              id: `coup-${c.code}`,
+              brand: partnerLabel || 'Student Alumni',
+              title: c.description || discountLabel,
+              discount: discountLabel,
+              code: c.code,
+              cost_credits: 0,
+              url: c.website_url || '',
+              expiry: '',
+              status: c.locked ? 'locked' : 'active',
+              category: cat,
+              accent: cat === 'partner' ? '#3B82F6' : cat === 'event' ? '#10B981' : cat === 'promo' ? '#F59E0B' : '#8B5CF6',
+              instructions: c.instructions || '',
+              locked: c.locked || false,
+              partner_name: partnerLabel,
+              event_id: eventLabel,
+            });
+          }
+        }
+        setMyCoupons(allCoupons.length > 0 ? allCoupons : INITIAL_COUPONS);
+      }
+    } catch (e) {
+      // Keep demo coupons if API fails
+    }
+  }, []);
+
+  useEffect(() => { fetchCoupons(); }, [fetchCoupons]);
 
   // Copy coupon code
   const copyCouponCode = (code: string) => {
@@ -337,7 +384,9 @@ export default function WalletScreen() {
   const filteredMyCoupons = useMemo(() => {
     return myCoupons.filter((c) => {
       const matchesFilter =
-        couponFilter === 'all' ? true : c.status === couponFilter;
+        couponFilter === 'all' ? true :
+        couponFilter === 'locked' ? c.locked :
+        c.status === couponFilter;
       const matchesSearch =
         c.brand.toLowerCase().includes(couponSearch.toLowerCase()) ||
         c.title.toLowerCase().includes(couponSearch.toLowerCase()) ||
@@ -346,10 +395,16 @@ export default function WalletScreen() {
     });
   }, [myCoupons, couponFilter, couponSearch]);
 
-  const activeCount = useMemo(() => myCoupons.filter((c) => c.status === 'active').length, [myCoupons]);
-  const usedCount = useMemo(() => myCoupons.filter((c) => c.status === 'used').length, [myCoupons]);
+  // Used coupons (for "My Redeemed" section)
+  const usedCoupons = useMemo(() => myCoupons.filter((c) => c.status === 'used'), [myCoupons]);
+  // Available coupons (active + locked, for category grouping)
+  const availableCoupons = useMemo(() => myCoupons.filter((c) => c.status !== 'used'), [myCoupons]);
 
-  // Handle Topup Submit
+  const activeCount = useMemo(() => myCoupons.filter((c) => c.status === 'active' && !c.locked).length, [myCoupons]);
+  const usedCount = useMemo(() => myCoupons.filter((c) => c.status === 'used').length, [myCoupons]);
+  const lockedCount = useMemo(() => myCoupons.filter((c) => c.locked).length, [myCoupons]);
+
+  // Handle Topup Submit — Razorpay payment
   const handleTopupSubmit = async () => {
     const amt = parseFloat(topupAmount);
     if (isNaN(amt) || amt <= 0) {
@@ -358,29 +413,94 @@ export default function WalletScreen() {
     }
     setTopupSubmitting(true);
     try {
-      await new Promise((r) => setTimeout(r, 1000));
-      const addedCredits = amt * 25;
-      if (data) {
-        setData({
-          ...data,
-          balance_credits: data.balance_credits + addedCredits,
-          balance_inr: data.balance_inr + amt,
-          history: [
-            {
-              id: `tx-topup-${Date.now()}`,
-              type: 'credit',
-              amount: addedCredits,
-              reason: `Wallet Top-up via ${topupMethod.toUpperCase()}`,
-              balance_after: data.balance_credits + addedCredits,
-              ts: new Date().toISOString(),
-            },
-            ...data.history,
-          ],
-        });
+      // Step 1: Create Razorpay order
+      const orderRes = await request<any>('/wallet/topup/create-order', {
+        method: 'POST',
+        body: { amount_inr: amt },
+      });
+      if (!orderRes.ok) {
+        toast.error('Payment Failed', orderRes.detail || 'Could not create payment order.');
+        setTopupSubmitting(false);
+        return;
       }
-      toast.success('Top-Up Successful!', `Added ${fmtINR(amt)} (+${fmtCredits(addedCredits)} pts) to your wallet.`);
-      setTab('overview');
-    } finally {
+
+      // Step 2: Load Razorpay SDK
+      const loadSDK = (): Promise<boolean> => {
+        if ((window as any).Razorpay) return Promise.resolve(true);
+        return new Promise((resolve) => {
+          const script = document.createElement('script');
+          script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+          script.async = true;
+          script.onload = () => resolve(true);
+          script.onerror = () => resolve(false);
+          document.body.appendChild(script);
+        });
+      };
+      const sdkLoaded = await loadSDK();
+      if (!sdkLoaded) {
+        toast.error('Payment Failed', 'Could not load payment gateway. Check your connection.');
+        setTopupSubmitting(false);
+        return;
+      }
+
+      // Step 3: Open Razorpay checkout
+      const rzp = new (window as any).Razorpay({
+        key: orderRes.key_id,
+        amount: orderRes.amount * 100,
+        currency: 'INR',
+        name: 'Student Alumni',
+        description: `Wallet Top-Up ₹${amt}`,
+        order_id: orderRes.order_id,
+        handler: async (response: any) => {
+          // Step 4: Verify payment and credit wallet
+          try {
+            const verifyRes = await request<any>('/wallet/topup/verify', {
+              method: 'POST',
+              body: {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                amount_inr: amt,
+              },
+            });
+            if (verifyRes.ok) {
+              // Update local state with real balance from backend
+              setData({
+                ...data!,
+                balance_credits: verifyRes.balance_credits,
+                balance_inr: verifyRes.balance_inr,
+                history: [
+                  {
+                    id: `tx-topup-${Date.now()}`,
+                    type: 'credit',
+                    amount: verifyRes.total_credits,
+                    reason: `Wallet Top-Up ₹${amt} via Razorpay (+${verifyRes.bonus_credits} bonus)`,
+                    balance_after: verifyRes.balance_credits,
+                    ts: new Date().toISOString(),
+                  },
+                  ...(data?.history || []),
+                ],
+              });
+              toast.success('Top-Up Successful!', `Added ₹${amt} (+${verifyRes.total_credits.toLocaleString()} pts) to your wallet.`);
+              setTab('overview');
+            } else {
+              toast.error('Verification Failed', 'Payment was received but verification failed. Contact support.');
+            }
+          } catch (e: any) {
+            toast.error('Verification Failed', 'Payment was received but verification failed. Contact support.');
+          }
+          setTopupSubmitting(false);
+        },
+        prefill: { name: user?.full_name || user?.name || '', email: user?.email || '' },
+        theme: { color: '#7C5CFC' },
+      });
+      rzp.on('payment.failed', () => {
+        toast.error('Payment Failed', 'Payment was cancelled or failed. Please try again.');
+        setTopupSubmitting(false);
+      });
+      rzp.open();
+    } catch (e: any) {
+      toast.error('Payment Failed', e?.message || 'Something went wrong. Please try again.');
       setTopupSubmitting(false);
     }
   };
@@ -755,6 +875,7 @@ export default function WalletScreen() {
                 { id: 'all', label: `All (${myCoupons.length})` },
                 { id: 'active', label: `Active (${activeCount})` },
                 { id: 'used', label: `Used (${usedCount})` },
+                { id: 'locked', label: `Locked (${lockedCount})` },
               ].map((f) => (
                 <Pressable
                   key={f.id}
@@ -786,121 +907,213 @@ export default function WalletScreen() {
             </View>
           </View>
 
-          {/* Section 1: My Redeemed Coupons Grid */}
+          {/* Help Note */}
+          <View style={{ padding: 16, backgroundColor: 'rgba(59,130,246,0.08)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)', marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Info size={16} color="#3B82F6" />
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#3B82F6' }}>How Coupons Work</Text>
+            </View>
+            <Text style={{ fontSize: 13, color: '#94A3B8', lineHeight: 20 }}>
+              • <Text style={{ fontWeight: '600', color: '#A78BFA' }}>Food & Beverages</Text> — Show the code at event stalls to get discounts on food orders.{'\n'}
+              • <Text style={{ fontWeight: '600', color: '#3B82F6' }}>Partner</Text> — Use these codes on partner websites (Coursera, Spotify, etc.) for free access or discounts.{'\n'}
+              • <Text style={{ fontWeight: '600', color: '#10B981' }}>Event</Text> — Apply at event registration checkout for discounts.{'\n'}
+              • <Text style={{ fontWeight: '600', color: '#F59E0B' }}>Promo</Text> — General platform promotions available to all users.{'\n\n'}
+              <Text style={{ fontWeight: '600', color: '#EF4444' }}>Locked coupons</Text> will become available during the event. Copy the code and use "Use Now" to visit the partner website.
+            </Text>
+          </View>
+
+{/* Coupons grouped by category */}
+          {(['marketplace', 'partner', 'event', 'promo'] as const).map(cat => {
+            const catCoupons = availableCoupons.filter(c => c.category === cat);
+            if (catCoupons.length === 0) return null;
+            const catLabel = cat === 'marketplace' ? 'Food & Beverages' : cat === 'partner' ? 'Partner Offers' : cat === 'event' ? 'Event Discounts' : 'Promotions';
+            const catColor = cat === 'marketplace' ? '#8B5CF6' : cat === 'partner' ? '#3B82F6' : cat === 'event' ? '#10B981' : '#F59E0B';
+            return (
+              <View key={cat} style={{ marginBottom: 24 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: catColor }}>{catLabel}</Text>
+                  <View style={{ flex: 1, height: 1, backgroundColor: catColor + '33' }} />
+                  <Text style={{ fontSize: 12, color: '#6B7280' }}>{catCoupons.length}</Text>
+                </View>
+                <View style={s.couponsGrid}>
+                  {catCoupons.map(c => (
+                    <View key={c.id} style={[s.couponCard, { borderColor: c.locked ? 'rgba(239,68,68,0.25)' : c.accent + '33', opacity: c.locked ? 0.8 : 1 }]}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                        {c.brand && !c.brand.includes('Student Alumni') ? (
+                          <View style={[s.couponBrandBadge, { backgroundColor: c.accent + '20', borderColor: c.accent + '40' }]}>
+                            <Text style={[s.couponBrandText, { color: c.accent }]}>{c.brand}</Text>
+                          </View>
+                        ) : null}
+                        {c.event_id ? (
+                          <View style={[s.statusPill, { backgroundColor: 'rgba(124,92,246,0.15)', paddingHorizontal: 8, paddingVertical: 3 }]}>
+                            <Text style={{ fontSize: 10, fontWeight: '700', color: '#A78BFA', letterSpacing: 0.3 }}>{c.event_id}</Text>
+                          </View>
+                        ) : null}
+                        <View style={[s.statusPill, { backgroundColor: c.locked ? 'rgba(239,68,68,0.12)' : c.status === 'active' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(240, 238, 255, 0.1)' }]}>
+                          {c.locked ? (
+                            <><Lock size={10} color="#EF4444" /><Text style={[s.statusPillText, { color: '#EF4444', marginLeft: 4 }]}>Locked</Text></>
+                          ) : (
+                            <Text style={[s.statusPillText, { color: c.status === 'active' ? C.green : C.dim }]}>{c.status === 'active' ? '● Ready' : '✓ Used'}</Text>
+                          )}
+                        </View>
+                      </View>
+
+                      <Text style={s.couponTitle}>{c.title}</Text>
+                      <Text style={{ fontSize: 12, color: C.textSub, marginTop: 2 }}>{c.discount}</Text>
+
+                      {c.instructions ? (
+                        <Pressable
+                          onPress={() => setInstructionModal({ title: c.brand || c.code, instructions: c.instructions || '', website: c.url })}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, marginBottom: 4, paddingVertical: 2 }}
+                        >
+                          <Info size={11} color="#3B82F6" />
+                          <Text style={{ fontSize: 11, color: '#3B82F6', flex: 1 }} numberOfLines={2}>{c.instructions}</Text>
+                          <Text style={{ fontSize: 10, color: '#3B82F6', fontWeight: '700' }}>Details →</Text>
+                        </Pressable>
+                      ) : null}
+
+                      {!c.locked && (
+                        <View style={s.voucherCodeBox}>
+                          <Text style={s.voucherCodeText}>{c.code}</Text>
+                          <Pressable onPress={() => copyCouponCode(c.code)} style={s.copyBtn}>
+                            <Copy size={13} color={C.purpleL} />
+                            <Text style={s.copyBtnText}>Copy</Text>
+                          </Pressable>
+                        </View>
+                      )}
+
+                      {c.locked && (
+                        <View style={[s.voucherCodeBox, { backgroundColor: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.2)' }]}>
+                          <Lock size={13} color="#EF4444" />
+                          <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600' }}>Available during event</Text>
+                        </View>
+                      )}
+
+                      {!c.locked && (
+                        <View style={s.couponActionRow}>
+                          <Pressable onPress={() => { if (c.url) Linking.openURL(c.url); }} style={s.useNowBtn}>
+                            <Text style={s.useNowBtnText}>Use Now</Text>
+                            <ExternalLink size={12} color="#FFF" />
+                          </Pressable>
+                          {c.status === 'active' && (
+                            <Pressable onPress={() => markCouponAsUsed(c.id)} style={s.markUsedBtn}>
+                              <CheckCircle2 size={12} color={C.textSub} />
+                              <Text style={s.markUsedText}>Mark Used</Text>
+                            </Pressable>
+                          )}
+                        </View>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+{/* Section 1: My Redeemed Coupons Grid */}
           <View>
             <View style={s.couponSectionHeader}>
               <Text style={s.couponSectionTitle}>MY REDEEMED COUPONS</Text>
               <Text style={s.couponSectionSub}>
-                Copy your unique voucher code and click "Use Now" to apply on partner websites.
+                Coupons you've already used. Copy codes to reuse on partner websites.
               </Text>
             </View>
 
-            {filteredMyCoupons.length === 0 ? (
+            {usedCoupons.length === 0 ? (
               <View style={s.emptyBox}>
                 <Tag size={40} color={C.dim} />
-                <Text style={s.emptyTitle}>No coupons found</Text>
-                <Text style={s.emptySub}>Redeem partner coupons below to get instant discount codes!</Text>
+                <Text style={s.emptyTitle}>No redeemed coupons yet</Text>
+                <Text style={s.emptySub}>Use a coupon code and it will appear here.</Text>
               </View>
             ) : (
               <View style={s.couponsGrid}>
-                {filteredMyCoupons.map((c) => (
-                  <View key={c.id} style={[s.couponCard, { borderColor: c.accent + '33' }]}>
-                    <View style={s.couponCardHeader}>
-                      <View style={[s.couponBrandBadge, { backgroundColor: c.accent + '20', borderColor: c.accent + '40' }]}>
-                        <Text style={[s.couponBrandText, { color: c.accent }]}>{c.brand}</Text>
-                      </View>
-                      <View style={[s.statusPill, { backgroundColor: c.status === 'active' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(240, 238, 255, 0.1)' }]}>
-                        <Text style={[s.statusPillText, { color: c.status === 'active' ? C.green : C.dim }]}>
-                          {c.status === 'active' ? '● Ready to Use' : '✓ Used'}
-                        </Text>
+                {usedCoupons.map((c) => (
+                  <View key={c.id} style={[s.couponCard, { borderColor: c.locked ? 'rgba(239,68,68,0.25)' : c.accent + '33', opacity: c.locked ? 0.8 : 1 }]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+                      {c.brand && !c.brand.includes('Student Alumni') ? (
+                        <View style={[s.couponBrandBadge, { backgroundColor: c.accent + '20', borderColor: c.accent + '40' }]}>
+                          <Text style={[s.couponBrandText, { color: c.accent }]}>{c.brand}</Text>
+                        </View>
+                      ) : null}
+                      {c.event_id ? (
+                        <View style={[s.statusPill, { backgroundColor: 'rgba(124,92,246,0.15)', paddingHorizontal: 8, paddingVertical: 3 }]}>
+                          <Text style={{ fontSize: 10, fontWeight: '700', color: '#A78BFA', letterSpacing: 0.3 }}>{c.event_id}</Text>
+                        </View>
+                      ) : null}
+                      <View style={[s.statusPill, { backgroundColor: c.locked ? 'rgba(239,68,68,0.12)' : c.status === 'active' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(240, 238, 255, 0.1)' }]}>
+                        {c.locked ? (
+                          <><Lock size={10} color="#EF4444" /><Text style={[s.statusPillText, { color: '#EF4444', marginLeft: 4 }]}>Locked</Text></>
+                        ) : (
+                          <Text style={[s.statusPillText, { color: c.status === 'active' ? C.green : C.dim }]}>{c.status === 'active' ? '● Ready' : '✓ Used'}</Text>
+                        )}
                       </View>
                     </View>
 
                     <Text style={s.couponTitle}>{c.title}</Text>
-                    <Text style={s.couponExpiry}>{c.expiry}</Text>
+                    <Text style={{ fontSize: 12, color: C.textSub, marginTop: 2 }}>{c.discount}</Text>
+
+                    {c.instructions ? (
+                      <Pressable
+                        onPress={() => setInstructionModal({ title: c.brand || c.code, instructions: c.instructions || '', website: c.url })}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, marginBottom: 4, paddingVertical: 2 }}
+                      >
+                        <Info size={11} color="#3B82F6" />
+                        <Text style={{ fontSize: 11, color: '#3B82F6', flex: 1 }} numberOfLines={2}>{c.instructions}</Text>
+                        <Text style={{ fontSize: 10, color: '#3B82F6', fontWeight: '700' }}>Details →</Text>
+                      </Pressable>
+                    ) : null}
 
                     {/* Voucher Code Box */}
-                    <View style={s.voucherCodeBox}>
-                      <Text style={s.voucherCodeText}>{c.code}</Text>
-                      <Pressable onPress={() => copyCouponCode(c.code)} style={s.copyBtn}>
-                        <Copy size={13} color={C.purpleL} />
-                        <Text style={s.copyBtnText}>Copy</Text>
-                      </Pressable>
-                    </View>
+                    {!c.locked && (
+                      <View style={s.voucherCodeBox}>
+                        <Text style={s.voucherCodeText}>{c.code}</Text>
+                        <Pressable onPress={() => copyCouponCode(c.code)} style={s.copyBtn}>
+                          <Copy size={13} color={C.purpleL} />
+                          <Text style={s.copyBtnText}>Copy</Text>
+                        </Pressable>
+                      </View>
+                    )}
+
+                    {c.locked && (
+                      <View style={[s.voucherCodeBox, { backgroundColor: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.2)' }]}>
+                        <Lock size={13} color="#EF4444" />
+                        <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600' }}>Available during event</Text>
+                      </View>
+                    )}
 
                     {/* Action Buttons */}
-                    <View style={s.couponActionRow}>
-                      <Pressable
-                        onPress={() => {
-                          if (c.url) Linking.openURL(c.url);
-                        }}
-                        style={s.useNowBtn}
-                      >
-                        <Text style={s.useNowBtnText}>Use Now</Text>
-                        <ExternalLink size={12} color="#FFF" />
-                      </Pressable>
-
-                      {c.status === 'active' && (
+                    {!c.locked && (
+                      <View style={s.couponActionRow}>
                         <Pressable
-                          onPress={() => markCouponAsUsed(c.id)}
-                          style={s.markUsedBtn}
+                          onPress={() => {
+                            if (c.url) Linking.openURL(c.url);
+                          }}
+                          style={s.useNowBtn}
                         >
-                          <CheckCircle2 size={12} color={C.textSub} />
-                          <Text style={s.markUsedText}>Mark Used</Text>
+                          <Text style={s.useNowBtnText}>Use Now</Text>
+                          <ExternalLink size={12} color="#FFF" />
                         </Pressable>
-                      )}
-                    </View>
+
+                        {c.status === 'active' && (
+                          <Pressable
+                            onPress={() => markCouponAsUsed(c.id)}
+                            style={s.markUsedBtn}
+                          >
+                            <CheckCircle2 size={12} color={C.textSub} />
+                            <Text style={s.markUsedText}>Mark Used</Text>
+                          </Pressable>
+                        )}
+                      </View>
+                    )}
                   </View>
                 ))}
               </View>
             )}
           </View>
 
-          {/* Section 2: Catalog of Redeemable Partner Coupons */}
-          <View style={{ marginTop: 20 }}>
-            <View style={s.couponSectionHeader}>
-              <Text style={s.couponSectionTitle}>REDEEM NEW PARTNER COUPONS</Text>
-              <Text style={s.couponSectionSub}>
-                Use your SA Credits balance to unlock exclusive discounts & free passes.
-              </Text>
-            </View>
-
-            <View style={s.couponsGrid}>
-              {AVAILABLE_CATALOG_COUPONS.map((cat) => (
-                <View key={cat.id} style={[s.couponCard, { borderColor: 'rgba(255,255,255,0.08)' }]}>
-                  <View style={s.couponCardHeader}>
-                    <View style={[s.couponBrandBadge, { backgroundColor: cat.accent + '20', borderColor: cat.accent + '40' }]}>
-                      <Text style={[s.couponBrandText, { color: cat.accent }]}>{cat.brand}</Text>
-                    </View>
-                    <View style={s.discountChip}>
-                      <Text style={s.discountChipText}>{cat.discount}</Text>
-                    </View>
-                  </View>
-
-                  <Text style={s.couponTitle}>{cat.title}</Text>
-                  <Text style={s.couponExpiry}>{cat.expiry}</Text>
-
-                  <View style={s.redeemCatalogFooter}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      <Star size={14} color={C.amber} />
-                      <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>{cat.cost_credits} Pts</Text>
-                    </View>
-
-                    <Pressable
-                      onPress={() => redeemCatalogCoupon(cat)}
-                      style={s.redeemCatalogBtn}
-                    >
-                      <Text style={s.redeemCatalogBtnText}>Redeem Coupon</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
-      )}
-
-      {/* ── TAB 3: ADD FUNDS ── */}
+{/* ── TAB 3: ADD FUNDS ── */}
       {tab === 'topup' && (
         <View style={s.formColCard}>
           <View style={s.cardHeader}>
@@ -1081,6 +1294,33 @@ export default function WalletScreen() {
           </View>
         </View>
       )}
+
+      {/* Instruction Detail Modal */}
+      <Modal visible={!!instructionModal} transparent animationType="fade" onRequestClose={() => setInstructionModal(null)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 }} onPress={() => setInstructionModal(null)}>
+          <View style={{ backgroundColor: '#12162A', borderRadius: 20, padding: 28, maxWidth: 400, width: '100%', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }} onStartShouldSetResponder={() => true}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFF', flex: 1 }}>{instructionModal?.title}</Text>
+              <Pressable onPress={() => setInstructionModal(null)} style={{ padding: 4 }}>
+                <X size={20} color="#9CA3AF" />
+              </Pressable>
+            </View>
+            <View style={{ backgroundColor: 'rgba(59,130,246,0.1)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <Info size={14} color="#3B82F6" />
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#3B82F6' }}>How to Redeem</Text>
+              </View>
+              <Text style={{ fontSize: 14, color: '#D1D5DB', lineHeight: 20 }}>{instructionModal?.instructions}</Text>
+            </View>
+            {instructionModal?.website ? (
+              <Pressable onPress={() => Linking.openURL(instructionModal.website!)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 14, backgroundColor: 'rgba(139,92,246,0.15)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(139,92,246,0.3)' }}>
+                <ExternalLink size={16} color="#A78BFA" />
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#A78BFA' }}>Open Website</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </Pressable>
+      </Modal>
 
     </Container>
   );
@@ -1468,14 +1708,14 @@ const s = StyleSheet.create({
     gap: 4,
   },
   couponSectionTitle: {
-    color: '#0F172A',
+    color: '#F1F5F9',
     fontFamily: FT.xbold,
     fontSize: 17,
     letterSpacing: 1.1,
     textTransform: 'uppercase',
   },
   couponSectionSub: {
-    color: '#475569',
+    color: '#94A3B8',
     fontFamily: FT.med,
     fontSize: 14,
     lineHeight: 20,

@@ -11,7 +11,7 @@ export function VendorDashboardView() {
 
   const fetchDashboard = async () => {
     try {
-      const res = await request<any>('/api/vendors/dashboard', {
+      const res = await request<any>('/vendors/dashboard', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.success) {
@@ -72,8 +72,16 @@ export function VendorDashboardView() {
           {pending_orders.map((order: any) => (
             <View key={order.order_id} style={styles.orderCard}>
               <View style={styles.orderHeader}>
-                <Text style={styles.orderId}>#{order.order_id.substring(0, 8)}</Text>
-                <Text style={styles.orderUser}>{order.user_name}</Text>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.orderId}>#{order.order_id.substring(0, 8)}</Text>
+                  <Text style={styles.orderUser}>{order.user_name}</Text>
+                  {order.user_email ? (
+                    <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }} numberOfLines={1}>{order.user_email}</Text>
+                  ) : null}
+                  {order.user_phone ? (
+                    <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1 }} numberOfLines={1}>{order.user_phone}</Text>
+                  ) : null}
+                </View>
               </View>
               <View style={styles.divider} />
               {order.items.map((item: any, idx: number) => (

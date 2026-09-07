@@ -170,7 +170,7 @@ import {
   Star, BookOpen, Upload, MoveUp, MoveDown, Images, FolderOpen,
   Copy, Check, Search, RefreshCw, Plus, PlusCircle, FileText, Link2,
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users,
-  Ticket, Mail, ScanLine, Phone,
+  Ticket, Mail, ScanLine, Phone, Edit2,
   CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle, Download, FileSpreadsheet, MapPin,
   UserCheck, GraduationCap, CreditCard,
 } from 'lucide-react-native';
@@ -179,7 +179,7 @@ import {
   StatusPill, SearchField, KpiTile, useToast, Toast, TopTabs, IconBox,
 } from '../applekit';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
-import { api, resolveImageUrl } from '@/src/models/services/api';
+import { api, request, resolveImageUrl } from '@/src/models/services/api';
 import { useConfirm } from '@/src/views/components';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
@@ -2162,6 +2162,9 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
   const [activeUploads, setActiveUploads] = useState(0);
   const autosaveTimer = useRef<any>(null);
 
+  const [tempOpenMin, setTempOpenMin] = useState('60');
+  const [tempOpening, setTempOpening] = useState(false);
+
   const onUploadStart = () => setActiveUploads((c) => c + 1);
   const onUploadEnd = () => setActiveUploads((c) => Math.max(0, c - 1));
 
@@ -2219,6 +2222,28 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
     }
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     onClose();
+  };
+
+  const onTemporaryOpen = async () => {
+    if (!editing?._id) return;
+    const mins = Math.max(1, Math.min(Number(tempOpenMin) || 60, 7 * 24 * 60));
+    setTempOpening(true);
+    try {
+      const res = await api.temporaryOpenEchoShowcase(editing._id, mins);
+      const reg = res?.registration || {};
+      const closeAt = res?.temporary_open?.closes_at || reg.temporary_close_at || '';
+      set('registration', {
+        ...(form.registration || {}),
+        enabled: true,
+        temporary_open: true,
+        temporary_close_at: closeAt,
+      });
+      flash(`Registration opened temporarily — auto-closes in ${mins} min`);
+    } catch (e: any) {
+      flash(e?.message || 'Failed to open temporarily');
+    } finally {
+      setTempOpening(false);
+    }
   };
 
   const autoSlug = (title: string) => {
@@ -2653,7 +2678,15 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                 <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Registration & Payment</Text>
                 <FieldRow label="Registrations Enabled">
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <Pressable onPress={() => set('registration', { ...(form.registration || {}), enabled: !((form.registration || {}).enabled) })} style={{
+                    <Pressable onPress={() => {
+                      const cur = form.registration || {};
+                      const nextEnabled = !cur.enabled;
+                      set('registration', {
+                        ...cur,
+                        enabled: nextEnabled,
+                        ...(nextEnabled ? {} : { temporary_open: false, temporary_close_at: '' }),
+                      });
+                    }} style={{
                       width: 44, height: 24, borderRadius: 12, padding: 2, backgroundColor: (form.registration || {}).enabled ? '#10B981' : '#334155',
                     }}>
                       <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', transform: [{ translateX: (form.registration || {}).enabled ? 20 : 0 }] }} />
@@ -2663,6 +2696,48 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                     </Text>
                   </View>
                 </FieldRow>
+
+                <View style={{ borderTopWidth: 1, borderTopColor: SAC.border, paddingTop: 12, gap: 8 }}>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>Open temporarily (auto-close)</Text>
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
+                    Re-enable registration now for a limited window. It re-opens only until the countdown ends, then closes automatically — no need to remember to switch it off.
+                  </Text>
+                  {(form.registration || {}).temporary_open && (form.registration || {}).temporary_close_at ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(16,185,129,0.12)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 }}>
+                      <Clock size={14} color="#34D399" />
+                      <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: '#34D399', flex: 1 }}>
+                        Active — auto-closes at {new Date((form.registration || {}).temporary_close_at).toLocaleString()}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>No temporary window active.</Text>
+                  )}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                    <Field
+                      value={tempOpenMin}
+                      onChangeText={(v: string) => setTempOpenMin(v.replace(/[^0-9]/g, ''))}
+                      placeholder="60"
+                      keyboardType="number-pad"
+                      style={{ width: 90 }}
+                    />
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>minutes</Text>
+                    <Pressable
+                      onPress={onTemporaryOpen}
+                      disabled={tempOpening || !editing?._id}
+                      style={{
+                        flexDirection: 'row', alignItems: 'center', gap: 6,
+                        backgroundColor: tempOpening || !editing?._id ? 'rgba(16,185,129,0.2)' : '#059669',
+                        borderRadius: 8, paddingHorizontal: 14, paddingVertical: 9,
+                        opacity: tempOpening || !editing?._id ? 0.6 : 1,
+                      }}
+                    >
+                      {tempOpening ? <ActivityIndicator size="small" color="#fff" /> : <Clock size={14} color="#fff" />}
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>
+                        {tempOpening ? 'Opening…' : 'Open for this long'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
                 <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
                   <View style={{ flex: 1, minWidth: 140 }}>
                     <FieldRow label="Fee (0 = free)">
@@ -4641,8 +4716,6 @@ function RegistrationsPanel() {
           </View>
         </View>
       </Modal>
-
-      
     </View>
   );
 }
@@ -4935,12 +5008,25 @@ function VolunteersPanel() {
 
 // ── Live Scan Monitor Panel ───────────────────────────────────────────────────
 function LiveScanMonitorPanel() {
+  const { flash } = useToast();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [page, setPage] = useState(0);
   const [detail, setDetail] = useState<{ reg: any; coupon: any } | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'checked_in' | 'not_checked'>('all');
+  const [couponFilter, setCouponFilter] = useState<'all' | 'used' | 'unused'>('all');
+  const [editingReg, setEditingReg] = useState<{ id: string; email: string; full_name: string } | null>(null);
+  const [editEmail, setEditEmail] = useState('');
+  const [editName, setEditName] = useState('');
   const PER_PAGE = 20;
+
+  useEffect(() => {
+    if (editingReg) {
+      setEditEmail(editingReg.email);
+      setEditName(editingReg.full_name);
+    }
+  }, [editingReg]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -4956,11 +5042,11 @@ function LiveScanMonitorPanel() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 30000);
+    const interval = setInterval(load, 15000); // Refresh every 15s instead of 30s
     return () => clearInterval(interval);
   }, [load]);
 
-  useEffect(() => { setPage(0); }, [q]);
+  useEffect(() => { setPage(0); }, [q, statusFilter, couponFilter]);
 
   const stats = useMemo(() => {
     let checkedIn = 0;
@@ -4987,9 +5073,28 @@ function LiveScanMonitorPanel() {
     return { checkedIn, couponsUsed, lunch, swag, others };
   }, [data]);
 
-  const filtered = data.filter(d => 
-    !q || d.full_name?.toLowerCase().includes(q.toLowerCase()) || d.email?.toLowerCase().includes(q.toLowerCase()) || d.id?.toLowerCase().includes(q.toLowerCase())
-  );
+  const filtered = data.filter(d => {
+    // Search filter
+    const matchesSearch = !q || 
+      d.full_name?.toLowerCase().includes(q.toLowerCase()) || 
+      d.email?.toLowerCase().includes(q.toLowerCase()) || 
+      d.id?.toLowerCase().includes(q.toLowerCase()) ||
+      d.team_name?.toLowerCase().includes(q.toLowerCase());
+    
+    // Status filter
+    const matchesStatus = statusFilter === 'all' || 
+      (statusFilter === 'checked_in' && d.checked_in_at) ||
+      (statusFilter === 'not_checked' && !d.checked_in_at);
+    
+    // Coupon filter
+    const hasUsedCoupons = d.coupons?.some((c: any) => c.used);
+    const hasUnusedCoupons = d.coupons?.some((c: any) => !c.used);
+    const matchesCoupon = couponFilter === 'all' ||
+      (couponFilter === 'used' && hasUsedCoupons) ||
+      (couponFilter === 'unused' && hasUnusedCoupons);
+    
+    return matchesSearch && matchesStatus && matchesCoupon;
+  });
   
   const paginated = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
@@ -5036,12 +5141,60 @@ function LiveScanMonitorPanel() {
         </View>
       </View>
 
+      {/* Filter row */}
+      <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+        {/* Status filter */}
+        <View style={{ flexDirection: 'row', gap: 4, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
+          {[
+            { id: 'all', label: 'All Status' },
+            { id: 'checked_in', label: 'Checked In' },
+            { id: 'not_checked', label: 'Not Checked In' },
+          ].map(f => (
+            <Pressable key={f.id} onPress={() => setStatusFilter(f.id as any)}
+              style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: statusFilter === f.id ? 'rgba(139,92,246,0.25)' : 'transparent' }}>
+              <Text style={{ fontSize: 12, fontFamily: FONTS.med, color: statusFilter === f.id ? '#A78BFA' : SAC.muted }}>{f.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        {/* Coupon filter */}
+        <View style={{ flexDirection: 'row', gap: 4, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
+          {[
+            { id: 'all', label: 'All Coupons' },
+            { id: 'used', label: 'Scanned' },
+            { id: 'unused', label: 'Not Scanned' },
+          ].map(f => (
+            <Pressable key={f.id} onPress={() => setCouponFilter(f.id as any)}
+              style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: couponFilter === f.id ? 'rgba(16,185,129,0.25)' : 'transparent' }}>
+              <Text style={{ fontSize: 12, fontFamily: FONTS.med, color: couponFilter === f.id ? '#34D399' : SAC.muted }}>{f.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        {/* Reset filters */}
+        {(statusFilter !== 'all' || couponFilter !== 'all' || q) && (
+          <Pressable onPress={() => { setStatusFilter('all'); setCouponFilter('all'); setQ(''); }}
+            style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' }}>
+            <Text style={{ fontSize: 12, fontFamily: FONTS.med, color: '#FCA5A5' }}>Clear Filters</Text>
+          </Pressable>
+        )}
+      </View>
+
       {/* KPI tiles */}
       <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
         <KpiTile Icon={CheckCircle} label="Event Check-Ins" value={String(stats.checkedIn)} />
         <KpiTile Icon={Ticket} label="Coupons Scanned" value={String(stats.couponsUsed)} />
         <KpiTile Icon={Ticket} label="Lunch Scanned" value={String(stats.lunch)} />
         <KpiTile Icon={Ticket} label="Other Scanned" value={String(stats.swag + stats.others)} />
+        <KpiTile Icon={Users} label="Total Registrations" value={String(data.length)} />
+      </View>
+
+      {/* Debug info */}
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', padding: 10, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+        <Text style={{ fontSize: 11, color: SAC.muted, fontFamily: FONTS.med }}>
+          Loaded: {data.length} registrations | {filtered.length} filtered | Page {page + 1}/{totalPages}
+        </Text>
+        <Text style={{ fontSize: 11, color: '#A78BFA', fontFamily: FONTS.med }}>
+          | Scanned: {stats.couponsUsed} coupons
+        </Text>
       </View>
 
       <Card style={{ padding: 0, overflow: 'hidden' }}>
@@ -5067,7 +5220,10 @@ function LiveScanMonitorPanel() {
               </View>
               
               <View style={{ flex: 0.7, justifyContent: 'center' }}>
-                <StatusPill kind={reg.ticket_issued ? 'success' : 'warn'} label={reg.ticket_issued ? 'Issued' : 'Pending'} />
+                <StatusPill 
+                  kind={reg.checked_in_at ? 'info' : reg.ticket_issued ? 'success' : 'warn'} 
+                  label={reg.checked_in_at ? 'Scanned' : reg.ticket_issued ? 'Issued' : 'Pending'} 
+                />
               </View>
 
               <View style={{ flex: 0.9, justifyContent: 'center', paddingRight: 8 }}>
@@ -5122,6 +5278,27 @@ function LiveScanMonitorPanel() {
                 ) : (
                   <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>No Coupons</Text>
                 )}
+              </View>
+
+              <View style={{ flex: 0.8, justifyContent: 'center', alignItems: 'flex-end', gap: 6 }}>
+                <Pressable
+                  onPress={() => setEditingReg({ id: reg.id, email: reg.email || '', full_name: reg.full_name || '' })}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 6, backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)' }}>
+                  <Edit2 size={12} color="#A78BFA" />
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#A78BFA' }}>Edit</Text>
+                </Pressable>
+                <Pressable
+                  onPress={async () => {
+                    if (!window.confirm('Resend tickets to ' + reg.email + '?')) return;
+                    try {
+                      await api.adminEchoResendTickets(reg.id);
+                      flash('Tickets resent to ' + reg.email);
+                    } catch (e: any) { flash(e?.message || 'Failed', 'error'); }
+                  }}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 6, backgroundColor: 'rgba(52,211,153,0.12)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.25)' }}>
+                  <RefreshCw size={12} color="#34D399" />
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#34D399' }}>Resend</Text>
+                </Pressable>
               </View>
             </View>
           ))
@@ -5201,13 +5378,18 @@ function LiveScanMonitorPanel() {
                       {(c.scanned_lat || c.scanned_lng) ? (
                         <View style={{ gap: 4 }}>
                           <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.4 }}>Location / Geo</Text>
+                          {c.scanned_location ? (
+                            <View style={{ backgroundColor: 'rgba(167,139,250,0.08)', borderRadius: 8, padding: 10, borderWidth: 1, borderColor: 'rgba(167,139,250,0.15)' }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
+                                <MapPin size={13} color="#A78BFA" style={{ marginTop: 2 }} />
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.text, flex: 1, lineHeight: 18 }}>{c.scanned_location}</Text>
+                              </View>
+                            </View>
+                          ) : null}
                           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                             <View style={{ gap: 2 }}>
-                              <Text style={{ fontFamily: 'monospace', fontSize: 12, color: SAC.text }}>
-                                Lat: {Number(c.scanned_lat ?? 0).toFixed(6)}
-                              </Text>
-                              <Text style={{ fontFamily: 'monospace', fontSize: 12, color: SAC.text }}>
-                                Lng: {Number(c.scanned_lng ?? 0).toFixed(6)}
+                              <Text style={{ fontFamily: 'monospace', fontSize: 11, color: SAC.muted }}>
+                                {Number(c.scanned_lat ?? 0).toFixed(6)}, {Number(c.scanned_lng ?? 0).toFixed(6)}
                               </Text>
                             </View>
                             <SecondaryButton onPress={() => openMap(c.scanned_lat, c.scanned_lng)}>
@@ -5226,6 +5408,41 @@ function LiveScanMonitorPanel() {
                 </View>
               );
             })()}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Edit Registration Modal */}
+      <Modal transparent visible={!!editingReg} animationType="fade" onRequestClose={() => setEditingReg(null)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 }} onPress={() => setEditingReg(null)}>
+          <Pressable onPress={(e: any) => e?.stopPropagation?.()} style={{ width: '100%', maxWidth: 400, backgroundColor: SAC.panel, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 22, gap: 14 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>Edit Registration</Text>
+              <Pressable onPress={() => setEditingReg(null)}><X size={18} color={SAC.muted} /></Pressable>
+            </View>
+            <View>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginBottom: 4 }}>Full Name</Text>
+              <TextInput value={editName} onChangeText={setEditName} style={{ backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 14, fontFamily: FONTS.regular }} />
+            </View>
+            <View>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginBottom: 4 }}>Email</Text>
+              <TextInput value={editEmail} onChangeText={setEditEmail} style={{ backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 14, fontFamily: FONTS.regular }} keyboardType="email-address" />
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
+              <SecondaryButton onPress={() => setEditingReg(null)}><Text style={{ color: SAC.text }}>Cancel</Text></SecondaryButton>
+              <GradientButton onPress={async () => {
+                if (!editingReg) return;
+                try {
+                  await request(`/echo/admin/registrations/${editingReg.id}`, {
+                    method: 'PATCH',
+                    body: { email: editEmail, full_name: editName },
+                  });
+                  flash('Registration updated');
+                  setEditingReg(null);
+                  load();
+                } catch (e: any) { flash(e?.message || 'Failed', 'error'); }
+              }}><Text style={{ color: SAC.text }}>Save</Text></GradientButton>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>
@@ -5248,6 +5465,8 @@ function InternalHiringPanel() {
   const [stageTab, setStageTab] = useState<string>('all');
   const [domainFilter, setDomainFilter] = useState<string>('all');
   const [actioningId, setActioningId] = useState<string | null>(null);
+  const [candPage, setCandPage] = useState(0);
+  const CAND_PER_PAGE = 20;
 
   // Edit candidate modal state
   const [editingCandidate, setEditingCandidate] = useState<any | null>(null);
@@ -5276,6 +5495,12 @@ function InternalHiringPanel() {
   }, [eventFilter, stageTab, search, domainFilter]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => { setCandPage(0); }, [eventFilter, stageTab, search, domainFilter]);
+
+  const candTotalPages = Math.max(1, Math.ceil(candidates.length / CAND_PER_PAGE));
+  const candSafePage = Math.min(candPage, candTotalPages - 1);
+  const pagedCandidates = candidates.slice(candSafePage * CAND_PER_PAGE, candSafePage * CAND_PER_PAGE + CAND_PER_PAGE);
 
   const handleAdvanceStage = async (c: any, nextStage?: string) => {
     const candidateId = c._id || c.id;
@@ -5531,7 +5756,7 @@ function InternalHiringPanel() {
                 <Text style={{ width: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>QUICK ACTION</Text>
               </View>
 
-              {candidates.map((c: any, i: number) => {
+              {pagedCandidates.map((c: any, i: number) => {
                 const badge = getStageBadge(c.stage || 'applicant_pool');
                 const cid = c._id || c.id;
                 const isActioning = actioningId === cid;
@@ -5620,6 +5845,60 @@ function InternalHiringPanel() {
             </View>
           </ScrollView>
         )}
+
+        {/* Pagination */}
+        {candidates.length > CAND_PER_PAGE && (
+          <View style={{
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+            paddingVertical: 10, paddingHorizontal: 14,
+            borderTopWidth: 1, borderTopColor: SAC.border, flexWrap: 'wrap', gap: 10,
+          }}>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
+              Showing {candSafePage * CAND_PER_PAGE + 1}–{Math.min((candSafePage + 1) * CAND_PER_PAGE, candidates.length)} of {candidates.length}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+              <Pressable
+                onPress={() => setCandPage(candSafePage - 1)}
+                disabled={candSafePage === 0}
+                style={{
+                  paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7,
+                  backgroundColor: candSafePage === 0 ? 'rgba(255,255,255,0.04)' : 'rgba(167,139,250,0.15)',
+                  borderWidth: 1, borderColor: candSafePage === 0 ? SAC.border : 'rgba(167,139,250,0.3)',
+                  opacity: candSafePage === 0 ? 0.4 : 1,
+                }}
+              >
+                <ChevronLeft size={14} color={SAC.text} />
+              </Pressable>
+              {Array.from({ length: candTotalPages }, (_, p) => p).map((p) => {
+                if (candTotalPages > 7 && Math.abs(p - candSafePage) > 2 && p !== 0 && p !== candTotalPages - 1) {
+                  return null;
+                }
+                return (
+                  <Pressable key={p} onPress={() => setCandPage(p)} style={{
+                    minWidth: 30, alignItems: 'center', justifyContent: 'center',
+                    paddingVertical: 6, borderRadius: 7,
+                    backgroundColor: p === candSafePage ? '#7C3AED' : 'rgba(255,255,255,0.05)',
+                    borderWidth: 1, borderColor: p === candSafePage ? '#7C3AED' : SAC.border,
+                  }}>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: p === candSafePage ? '#fff' : SAC.text }}>{p + 1}</Text>
+                  </Pressable>
+                );
+              })}
+              <Pressable
+                onPress={() => setCandPage(candSafePage + 1)}
+                disabled={candSafePage >= candTotalPages - 1}
+                style={{
+                  paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7,
+                  backgroundColor: candSafePage >= candTotalPages - 1 ? 'rgba(255,255,255,0.04)' : 'rgba(167,139,250,0.15)',
+                  borderWidth: 1, borderColor: candSafePage >= candTotalPages - 1 ? SAC.border : 'rgba(167,139,250,0.3)',
+                  opacity: candSafePage >= candTotalPages - 1 ? 0.4 : 1,
+                }}
+              >
+                <ChevronRight size={14} color={SAC.text} />
+              </Pressable>
+            </View>
+          </View>
+        )}
       </Card>
 
       {/* Edit / Offer Details Modal */}
@@ -5699,238 +5978,251 @@ function InternalHiringPanel() {
 }
 
 
-// ── Passcode Lock Modal (Key: 050499) ─────────────────────────────────────────
-const ECHO_CMS_PASSCODE = '050499';
+// ── Registration tab passcode control (server-side configured) ───────────────
+function RegistrationPasscodeControl({
+  enabled,
+  onChange,
+}: {
+  enabled: boolean;
+  onChange?: (enabled: boolean) => void;
+}) {
+  const { flash } = useToast();
+  const [pass, setPass] = useState('');
+  const [confirmPass, setConfirmPass] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [showForm, setShowForm] = useState(false);
 
-function EchoPasscodeLockModal({ onUnlock }: { onUnlock: () => void }) {
-  const [pin, setPin] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
-  const [success, setSuccess] = useState(false);
-
-  const handleDigit = (digit: string) => {
-    if (pin.length >= 6) return;
-    setErrorMsg('');
-    const nextPin = pin + digit;
-    setPin(nextPin);
-
-    if (nextPin.length === 6) {
-      verifyPin(nextPin);
+  const save = async () => {
+    if (pass.length < 4 || pass.length > 12) {
+      flash('Passcode must be 4-12 characters');
+      return;
+    }
+    if (pass !== confirmPass) {
+      flash('Passcodes do not match');
+      return;
+    }
+    setBusy(true);
+    try {
+      await api.setEchoRegistrationPasscode(pass);
+      onChange?.(true);
+      flash('Registration passcode saved & enabled');
+      setPass('');
+      setConfirmPass('');
+      setShowForm(false);
+    } catch (e: any) {
+      flash(e?.message || 'Failed to save passcode');
+    } finally {
+      setBusy(false);
     }
   };
 
-  const handleBackspace = () => {
-    if (pin.length > 0) {
-      setPin(pin.slice(0, -1));
-      setErrorMsg('');
+  const disable = async () => {
+    setBusy(true);
+    try {
+      await api.disableEchoRegistrationPasscode();
+      onChange?.(false);
+      flash('Registration passcode disabled');
+      setShowForm(false);
+    } catch (e: any) {
+      flash(e?.message || 'Failed to disable passcode');
+    } finally {
+      setBusy(false);
     }
   };
-
-  const handleClear = () => {
-    setPin('');
-    setErrorMsg('');
-  };
-
-  const verifyPin = (pinToTest: string) => {
-    if (pinToTest === ECHO_CMS_PASSCODE) {
-      setSuccess(true);
-      setErrorMsg('');
-      if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
-        sessionStorage.setItem('echo_showcase_unlocked', 'true');
-      }
-      setTimeout(() => {
-        onUnlock();
-      }, 400);
-    } else {
-      setErrorMsg('Incorrect passcode key (050499). Access denied.');
-      setPin('');
-    }
-  };
-
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key >= '0' && e.key <= '9') {
-        handleDigit(e.key);
-      } else if (e.key === 'Backspace') {
-        handleBackspace();
-      } else if (e.key === 'Enter') {
-        if (pin.length === 6) verifyPin(pin);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [pin]);
 
   return (
-    <View style={{
-      minHeight: 520,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: 50,
-      paddingHorizontal: 20,
-    }}>
-      <View style={{
-        width: '100%',
-        maxWidth: 420,
-        backgroundColor: '#0B0F1E',
-        borderRadius: 24,
-        borderWidth: 1.5,
-        borderColor: errorMsg ? 'rgba(239,68,68,0.5)' : success ? 'rgba(52,211,153,0.5)' : 'rgba(124,58,237,0.35)',
-        padding: 32,
-        alignItems: 'center',
-        ...(Platform.OS === 'web' ? {
-          boxShadow: errorMsg
-            ? '0 16px 40px rgba(239,68,68,0.25)'
-            : success
-            ? '0 16px 40px rgba(52,211,153,0.25)'
-            : '0 16px 40px rgba(124,58,237,0.25)',
-        } : {}),
-      } as any}>
-        {/* Lock Icon Badge */}
-        <View style={{
-          width: 60, height: 60, borderRadius: 30,
-          backgroundColor: success ? 'rgba(52,211,153,0.2)' : errorMsg ? 'rgba(239,68,68,0.2)' : 'rgba(124,58,237,0.2)',
-          borderWidth: 2,
-          borderColor: success ? '#34D399' : errorMsg ? '#EF4444' : '#9E7BFF',
-          alignItems: 'center', justifyContent: 'center',
-          marginBottom: 16,
-        }}>
-          {success ? (
-            <CheckCircle size={30} color="#34D399" />
-          ) : (
-            <Lock size={28} color={errorMsg ? '#F87171' : '#A78BFA'} />
-          )}
-        </View>
-
-        <Text style={{ fontFamily: FONTS.bold, fontSize: 19, color: '#FFFFFF', textAlign: 'center' }}>
-          ECHO Showcase Protected
-        </Text>
-        <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: SAC.muted, textAlign: 'center', marginTop: 4, marginBottom: 22, lineHeight: 18 }}>
-          Enter the 6-digit numeric key passcode to unlock ECHO Showcase CMS (studentalumni.ai/super-admin/echo-showcase)
-        </Text>
-
-        {/* 6 Masked PIN Dots */}
-        <View style={{ flexDirection: 'row', gap: 14, marginBottom: 20 }}>
-          {[0, 1, 2, 3, 4, 5].map((idx) => {
-            const filled = pin.length > idx;
-            return (
-              <View
-                key={idx}
-                style={{
-                  width: 16, height: 16, borderRadius: 8,
-                  borderWidth: 2,
-                  borderColor: filled ? (success ? '#34D399' : '#A78BFA') : 'rgba(255,255,255,0.2)',
-                  backgroundColor: filled ? (success ? '#34D399' : '#7C3AED') : 'transparent',
-                }}
-              />
-            );
-          })}
-        </View>
-
-        {/* Status / Error Banner */}
-        {errorMsg ? (
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#F87171', textAlign: 'center', marginBottom: 16 }}>
-            {errorMsg}
-          </Text>
-        ) : success ? (
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#34D399', textAlign: 'center', marginBottom: 16 }}>
-            ✓ Access Granted! Unlocking CMS...
-          </Text>
-        ) : (
-          <View style={{ height: 28 }} />
-        )}
-
-        {/* Custom Numeric Keypad System (0-9) */}
-        <View style={{ width: '100%', gap: 10 }}>
-          {[
-            ['1', '2', '3'],
-            ['4', '5', '6'],
-            ['7', '8', '9'],
-            ['CLEAR', '0', '⌫'],
-          ].map((row, rIdx) => (
-            <View key={rIdx} style={{ flexDirection: 'row', gap: 10, justifyContent: 'center' }}>
-              {row.map((btn) => {
-                if (btn === 'CLEAR') {
-                  return (
-                    <Pressable
-                      key={btn}
-                      onPress={handleClear}
-                      style={{
-                        flex: 1, height: 48, borderRadius: 12,
-                        backgroundColor: 'rgba(255,255,255,0.05)',
-                        borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
-                        alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                      }}
-                    >
-                      <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted }}>CLEAR</Text>
-                    </Pressable>
-                  );
-                }
-                if (btn === '⌫') {
-                  return (
-                    <Pressable
-                      key={btn}
-                      onPress={handleBackspace}
-                      style={{
-                        flex: 1, height: 48, borderRadius: 12,
-                        backgroundColor: 'rgba(255,255,255,0.05)',
-                        borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
-                        alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                      }}
-                    >
-                      <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.muted }}>⌫</Text>
-                    </Pressable>
-                  );
-                }
-                return (
-                  <Pressable
-                    key={btn}
-                    onPress={() => handleDigit(btn)}
-                    style={{
-                      flex: 1, height: 48, borderRadius: 12,
-                      backgroundColor: 'rgba(255,255,255,0.08)',
-                      borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)',
-                      alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                    }}
-                  >
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 19, color: '#FFFFFF' }}>{btn}</Text>
-                  </Pressable>
-                );
-              })}
+    <Card>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <IconBox tint={enabled ? '#F59E0B' : '#334155'}>
+            <Lock size={16} color={enabled ? '#F59E0B' : '#94A3B8'} />
+          </IconBox>
+          <View>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>Registrations Access Passcode</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+              <StatusPill kind={enabled ? 'warn' : 'success'} label={enabled ? 'Locked' : 'Unlocked'} />
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+                {enabled
+                  ? 'The Registrations tab requires this passcode to open.'
+                  : 'No passcode required. The Registrations tab is open.'}
+              </Text>
             </View>
-          ))}
+          </View>
         </View>
-
-        {/* Unlock Action Button */}
         <Pressable
-          onPress={() => verifyPin(pin)}
-          disabled={pin.length !== 6}
+          onPress={() => setShowForm((v) => !v)}
           style={{
-            width: '100%', height: 46, borderRadius: 12,
-            backgroundColor: pin.length === 6 ? '#7C3AED' : 'rgba(255,255,255,0.06)',
-            alignItems: 'center', justifyContent: 'center', marginTop: 16, cursor: 'pointer',
-            opacity: pin.length === 6 ? 1 : 0.4,
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: 'rgba(139,92,246,0.15)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.35)',
+            borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, cursor: 'pointer',
           }}
         >
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#FFFFFF' }}>Unlock ECHO Showcase</Text>
+          <Lock size={13} color="#A78BFA" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#A78BFA' }}>
+            {enabled ? 'Change Passcode' : 'Set Passcode'}
+          </Text>
         </Pressable>
       </View>
-    </View>
+
+      {showForm && (
+        <View style={{ marginTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(148,163,184,0.15)', paddingTop: 16, gap: 12 }}>
+          {enabled && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <Lock size={12} color="#F59E0B" />
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+                A passcode is active. The Registrations tab is locked until the correct code is entered.
+              </Text>
+            </View>
+          )}
+          <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+            <View style={{ flex: 1, minWidth: 180 }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginBottom: 6 }}>NEW PASSCODE</Text>
+              <TextInput
+                value={pass}
+                onChangeText={setPass}
+                secureTextEntry
+                placeholder="Enter new passcode"
+                placeholderTextColor="#64748B"
+                autoCapitalize="none"
+                style={{
+                  backgroundColor: 'rgba(15,23,42,0.7)', borderWidth: 1, borderColor: 'rgba(148,163,184,0.25)',
+                  borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, color: SAC.text,
+                  fontFamily: FONTS.med, fontSize: 13,
+                }}
+              />
+            </View>
+            <View style={{ flex: 1, minWidth: 180 }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginBottom: 6 }}>CONFIRM PASSCODE</Text>
+              <TextInput
+                value={confirmPass}
+                onChangeText={setConfirmPass}
+                secureTextEntry
+                placeholder="Re-enter passcode"
+                placeholderTextColor="#64748B"
+                autoCapitalize="none"
+                style={{
+                  backgroundColor: 'rgba(15,23,42,0.7)', borderWidth: 1, borderColor: 'rgba(148,163,184,0.25)',
+                  borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, color: SAC.text,
+                  fontFamily: FONTS.med, fontSize: 13,
+                }}
+              />
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
+            <GradientButton onPress={save} disabled={busy} size="sm">
+              <Lock size={13} color="#fff" />
+              <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12, marginLeft: 6 }}>
+                {busy ? 'Saving…' : enabled ? 'Save & Update' : 'Save & Lock'}
+              </Text>
+            </GradientButton>
+            {enabled && (
+              <SecondaryButton onPress={disable} disabled={busy} size="sm">
+                <Text style={{ color: '#F87171', fontFamily: FONTS.bold, fontSize: 12 }}>
+                  {busy ? 'Working…' : 'Disable & Unlock'}
+                </Text>
+              </SecondaryButton>
+            )}
+            <SecondaryButton onPress={() => setShowForm(false)} size="sm">
+              <Text style={{ color: '#94A3B8', fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
+            </SecondaryButton>
+          </View>
+        </View>
+      )}
+    </Card>
   );
 }
 
+function RegistrationPasscodeGate({
+  onUnlocked,
+  onChange,
+  enabled,
+}: {
+  onUnlocked: () => void;
+  onChange: (enabled: boolean) => void;
+  enabled: boolean;
+}) {
+  const [input, setInput] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [showSetup, setShowSetup] = useState(false);
+
+  const tryUnlock = async () => {
+    if (!input.trim()) { setError('Enter the passcode to unlock.'); return; }
+    setBusy(true);
+    setError('');
+    try {
+      const res = await api.verifyEchoRegistrationPasscode(input.trim());
+      if (res?.ok) {
+        onUnlocked();
+      } else {
+        setError('Incorrect passcode. Please try again.');
+      }
+    } catch {
+      setError('Could not reach the server. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <View style={{ alignItems: 'center', paddingVertical: 28, paddingHorizontal: 20 }}>
+        <View style={{ width: 64, height: 64, borderRadius: 18, backgroundColor: 'rgba(245,158,11,0.15)', alignItems: 'center', justifyContent: 'center' }}>
+          <Lock size={30} color="#F59E0B" />
+        </View>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: SAC.text, marginTop: 18 }}>
+          Registrations Locked
+        </Text>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: SAC.muted, marginTop: 6, textAlign: 'center', maxWidth: 420 }}>
+          This section contains sensitive payment & registration data. Enter the configured passcode to unlock it.
+        </Text>
+
+        <View style={{ width: '100%', maxWidth: 340, marginTop: 22 }}>
+          <TextInput
+            value={input}
+            onChangeText={(t) => { setInput(t); setError(''); }}
+            secureTextEntry
+            placeholder="Enter passcode"
+            placeholderTextColor="#64748B"
+            autoCapitalize="none"
+            autoFocus
+            onSubmitEditing={tryUnlock}
+            style={{
+              backgroundColor: 'rgba(15,23,42,0.8)', borderWidth: 1,
+              borderColor: error ? '#F87171' : 'rgba(148,163,184,0.3)',
+              borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, color: SAC.text,
+              fontFamily: FONTS.med, fontSize: 16, textAlign: 'center', letterSpacing: 2,
+            }}
+          />
+          {error ? (
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: '#F87171', marginTop: 8, textAlign: 'center' }}>{error}</Text>
+          ) : null}
+          <GradientButton onPress={tryUnlock} disabled={busy} size="md" style={{ marginTop: 14, width: '100%' }}>
+            <Lock size={14} color="#fff" />
+            <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>
+              {busy ? 'Unlocking…' : 'Unlock'}
+            </Text>
+          </GradientButton>
+          <Pressable onPress={() => setShowSetup((v) => !v)} style={{ marginTop: 14, alignItems: 'center' }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#A78BFA' }}>
+              {showSetup ? 'Hide passcode settings' : 'Configure / change the passcode'}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+      {showSetup && (
+        <View style={{ marginTop: 4 }}>
+          <RegistrationPasscodeControl enabled={enabled} onChange={onChange} />
+        </View>
+      )}
+    </Card>
+  );
+}
 
 // ── Main View ─────────────────────────────────────────────────────────────────
 export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const T = useSAC();
   Object.assign(fi, resolveColors(fi, T));
-
-  const [unlocked, setUnlocked] = useState<boolean>(() => {
-    if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
-      return sessionStorage.getItem('echo_showcase_unlocked') === 'true';
-    }
-    return false;
-  });
 
   const [pageTab, setPageTab] = useSubTab<PageTab>(['all', 'create', 'drafts', 'registrations', 'interns', 'volunteers', 'media', 'scan-monitor'], 'all', { sub, onSub });
   const [items, setItems] = useState<any[]>([]);
@@ -5949,8 +6241,67 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
   const { confirm } = useConfirm();
   const user = useAuthStore((s) => s.user);
 
+  const [regPassEnabled, setRegPassEnabled] = useState<boolean | null>(null);
+  const [regPassUnlocked, setRegPassUnlocked] = useState(false);
+
+  const loadPasscodeStatus = useCallback(async () => {
+    try {
+      const res = await api.getEchoRegistrationPasscode();
+      setRegPassEnabled(res?.enabled ? true : false);
+    } catch {
+      setRegPassEnabled(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (pageTab === 'registrations') {
+      loadPasscodeStatus();
+      if (Platform.OS === 'web') {
+        try {
+          const unlocked = sessionStorage.getItem('echo_reg_pass_unlocked') === '1';
+          setRegPassUnlocked(unlocked);
+        } catch {}
+      }
+    }
+  }, [pageTab, loadPasscodeStatus]);
+
+  // Re-lock when browser tab becomes hidden (tab switch, window blur)
+  useEffect(() => {
+    if (Platform.OS !== 'web' || pageTab !== 'registrations' || !regPassEnabled) return;
+    const onVisChange = () => {
+      if (document.hidden) {
+        setRegPassUnlocked(false);
+        try { sessionStorage.removeItem('echo_reg_pass_unlocked'); } catch {}
+      }
+    };
+    document.addEventListener('visibilitychange', onVisChange);
+    return () => document.removeEventListener('visibilitychange', onVisChange);
+  }, [pageTab, regPassEnabled]);
+
+  const regPassUnlock = () => {
+    setRegPassUnlocked(true);
+    if (Platform.OS === 'web') {
+      try { sessionStorage.setItem('echo_reg_pass_unlocked', '1'); } catch {}
+    }
+  };
+
+  const onPasscodeChanged = (newEnabled: boolean) => {
+    setRegPassEnabled(newEnabled);
+    if (newEnabled) {
+      setRegPassUnlocked(false);
+      if (Platform.OS === 'web') {
+        try { sessionStorage.removeItem('echo_reg_pass_unlocked'); } catch {}
+      }
+    } else {
+      setRegPassUnlocked(true);
+      if (Platform.OS === 'web') {
+        try { sessionStorage.setItem('echo_reg_pass_unlocked', '1'); } catch {}
+      }
+    }
+  };
+
   const load = useCallback(async () => {
-    if (!user || !unlocked) { setLoading(false); return; }
+    if (!user) { setLoading(false); return; }
     try {
       const res = await api.adminListEchoShowcases();
       setItems(res?.items || []);
@@ -5959,17 +6310,17 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
     } finally {
       setLoading(false);
     }
-  }, [user, unlocked]);
+  }, [user]);
 
-  useEffect(() => { if (unlocked) load(); }, [load, unlocked]);
+  useEffect(() => { load(); }, [load]);
 
   // When user clicks "Create Showcase" tab → open modal immediately
   useEffect(() => {
-    if (pageTab === 'create' && unlocked) {
+    if (pageTab === 'create') {
       setEditing(null);
       setModalOpen(true);
     }
-  }, [pageTab, unlocked]);
+  }, [pageTab]);
 
   const filtered = useMemo(() => {
     return items.filter((i) => {
@@ -5984,10 +6335,6 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
   useEffect(() => {
     setPage(1);
   }, [search, statusFilter, pageTab, items]);
-
-  if (!unlocked) {
-    return <EchoPasscodeLockModal onUnlock={() => setUnlocked(true)} />;
-  }
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const safePage = Math.min(page, totalPages);
@@ -6079,22 +6426,6 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
           </Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-          <Pressable
-            onPress={() => {
-              if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
-                sessionStorage.removeItem('echo_showcase_unlocked');
-              }
-              setUnlocked(false);
-            }}
-            style={{
-              flexDirection: 'row', alignItems: 'center', gap: 6,
-              backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)',
-              borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, cursor: 'pointer',
-            }}
-          >
-            <Lock size={13} color="#F87171" />
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#F87171' }}>Lock CMS</Text>
-          </Pressable>
           <GradientButton onPress={onCreate} size="md">
             <PlusCircle size={14} color="#fff" />
             <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>New Showcase</Text>
@@ -6112,7 +6443,23 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
       {pageTab === 'scan-monitor' && <LiveScanMonitorPanel />}
 
       {/* ── REGISTRATIONS & PAYMENTS ── */}
-      {pageTab === 'registrations' && <RegistrationsPanel />}
+      {pageTab === 'registrations' && (
+        regPassEnabled === null
+          ? <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
+              <ActivityIndicator size="large" color="#8B5CF6" />
+            </View>
+          : (regPassEnabled
+              ? (!regPassUnlocked
+                  ? <RegistrationPasscodeGate onUnlocked={regPassUnlock} onChange={onPasscodeChanged} enabled={regPassEnabled} />
+                  : <View style={{ gap: 14 }}>
+                      <RegistrationPasscodeControl enabled={regPassEnabled} onChange={onPasscodeChanged} />
+                      <RegistrationsPanel />
+                    </View>)
+              : <View style={{ gap: 14 }}>
+                  <RegistrationPasscodeControl enabled={false} onChange={onPasscodeChanged} />
+                  <RegistrationsPanel />
+                </View>)
+      )}
 
       {/* ── INTERNAL HIRING & INTERNS ── */}
       {pageTab === 'interns' && <InternalHiringPanel />}

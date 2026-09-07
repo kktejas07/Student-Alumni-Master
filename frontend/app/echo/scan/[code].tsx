@@ -8,7 +8,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Platform, SafeAreaView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { XCircle, Ticket, ArrowLeft, CalendarDays, Clock } from 'lucide-react-native';
+import { XCircle, Ticket, ArrowLeft, CalendarDays, Clock } from '@/src/views/web/portals/student/iconShims';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://studentalumni.ai';
@@ -19,7 +19,6 @@ export default function EchoScanPage() {
   const [status, setStatus] = useState<'loading' | 'ok' | 'invalid' | 'error'>('loading');
   const [data, setData] = useState<any>(null);
   const [message, setMessage] = useState('');
-  const [renderError, setRenderError] = useState<string | null>(null);
 
   const code = Array.isArray(rawCode) ? rawCode[0] : rawCode;
 
@@ -81,49 +80,27 @@ export default function EchoScanPage() {
     }
   };
 
-  if (renderError) {
-    return (
-      <SafeAreaView style={s.root}>
-        <EchoHeader />
-        <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
-          <View style={[s.content, { alignItems: 'center', paddingVertical: 80 }]}>
-            <XCircle size={48} color="#F87171" />
-            <Text style={[s.centerText, { color: '#F87171', textAlign: 'center' }]}>
-              Something went wrong loading this scan.
-            </Text>
-            <Text style={[s.centerText, { fontSize: 12, marginTop: 8, opacity: 0.6 }]}>
-              {renderError}
-            </Text>
-            <Pressable onPress={() => window.location.reload()} style={[s.secondaryBtn, { marginTop: 20 }]}>
-              <Text style={s.secondaryBtnText}>Try again</Text>
-            </Pressable>
-          </View>
-          <EchoFooter />
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
+
 
   if (status === 'loading') {
     return (
       <SafeAreaView style={s.root}>
-        <EchoHeader />
-        <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
+        {Platform.OS === 'web' && <EchoHeader />}
+        <ScrollView contentContainerStyle={{ paddingTop: Platform.OS === 'web' ? ECHO_TOP_PADDING : 20 }}>
           <View style={[s.content, { alignItems: 'center', paddingVertical: 80 }]}>
             <ActivityIndicator size="large" color="#A78BFA" />
             <Text style={s.centerText}>Verifying coupon…</Text>
           </View>
-          <EchoFooter />
+          {Platform.OS === 'web' && <EchoFooter />}
         </ScrollView>
       </SafeAreaView>
     );
   }
 
-  try {
   return (
     <SafeAreaView style={s.root}>
-      <EchoHeader />
-      <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
+      {Platform.OS === 'web' && <EchoHeader />}
+      <ScrollView contentContainerStyle={{ paddingTop: Platform.OS === 'web' ? ECHO_TOP_PADDING : 20 }}>
         <View style={s.content}>
           <Pressable onPress={goToEvent} style={s.backBtn} hitSlop={8}>
             <ArrowLeft size={16} color="#fff" />
@@ -202,14 +179,10 @@ export default function EchoScanPage() {
             <Text style={s.secondaryBtnText}>View event details</Text>
           </Pressable>
         </View>
-        <EchoFooter />
+        {Platform.OS === 'web' && <EchoFooter />}
       </ScrollView>
     </SafeAreaView>
   );
-  } catch (e: any) {
-    setRenderError(e?.message || 'Unknown error');
-    return null;
-  }
 }
 
 const s = StyleSheet.create({

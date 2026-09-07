@@ -156,7 +156,7 @@ async def import_tickets_registrations(
                 "slug": canonical_slug,
                 "showcase_title": showcase_title,
                 "showcase_college": showcase.get("college"),
-                "full_name": reg.get("full_name", ""),
+                "full_name": reg.get("full_name") or reg.get("first_name", ""),
                 "email": email,
                 "phone": reg.get("phone", ""),
                 "year": reg.get("year", ""),
@@ -471,6 +471,83 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+async def _reverse_geocode(lat: float, lng: float) -> str:
+    """Convert lat/lng to a human-readable address using Nominatim (free, no API key)."""
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(
+                "https://nominatim.openstreetmap.org/reverse",
+                params={"lat": lat, "lon": lng, "format": "json", "zoom": 18},
+                headers={"User-Agent": "StudentAlumni-ECHO/1.0"},
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                return data.get("display_name", "")
+    except Exception:
+        pass
+    return ""
+
+
+async def _send_checkin_email(reg: dict, event_title: str, checked_in_at: str, address: str = ""):
+    """Send a check-in confirmation email to the attendee."""
+    email = reg.get("email")
+    if not email:
+        return
+    name = reg.get("full_name", "Attendee")
+    subject = f"Welcome to {event_title} — You're Checked In!"
+    body = render_html_email(f"""
+    <div style="text-align:center;padding:32px 0">
+        <div style="font-size:48px;margin-bottom:16px">✅</div>
+        <h1 style="font-size:24px;color:#1a1a2e;margin:0 0 8px">You're Checked In!</h1>
+        <p style="font-size:15px;color:#666;margin:0 0 24px">Welcome to <strong>{event_title}</strong></p>
+    </div>
+    <div style="background:#f8f9fa;border-radius:12px;padding:20px;margin:0 0 20px">
+        <table style="width:100%;font-size:14px;color:#333">
+            <tr><td style="padding:6px 0;color:#888">Attendee</td><td style="padding:6px 0;font-weight:600">{name}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Event</td><td style="padding:6px 0;font-weight:600">{event_title}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Checked In At</td><td style="padding:6px 0;font-weight:600">{checked_in_at}</td></tr>
+            {"<tr><td style='padding:6px 0;color:#888'>Location</td><td style='padding:6px 0;font-weight:600'>" + address + "</td></tr>" if address else ""}
+        </table>
+    </div>
+    <p style="font-size:13px;color:#999;text-align:center">Show this email or your QR code at the venue counters.</p>
+    """)
+    try:
+        await send_email(email, subject, body)
+    except Exception:
+        pass
+
+
+async def _send_coupon_scan_email(reg: dict, session_name: str, coupon_code: str, scanned_at: str, address: str = ""):
+    """Send an email when a session coupon is scanned/used."""
+    email = reg.get("email")
+    if not email:
+        return
+    name = reg.get("full_name", "Attendee")
+    subject = f"{session_name} Pass Used — ECHO"
+    body = render_html_email(f"""
+    <div style="text-align:center;padding:32px 0">
+        <div style="font-size:48px;margin-bottom:16px">🎫</div>
+        <h1 style="font-size:22px;color:#1a1a2e;margin:0 0 8px">{session_name} Pass Confirmed</h1>
+        <p style="font-size:15px;color:#666;margin:0 0 24px">Your session pass has been scanned successfully</p>
+    </div>
+    <div style="background:#f8f9fa;border-radius:12px;padding:20px;margin:0 0 20px">
+        <table style="width:100%;font-size:14px;color:#333">
+            <tr><td style="padding:6px 0;color:#888">Attendee</td><td style="padding:6px 0;font-weight:600">{name}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Session</td><td style="padding:6px 0;font-weight:600">{session_name}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Coupon Code</td><td style="padding:6px 0;font-weight:600;font-family:monospace">{coupon_code}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Scanned At</td><td style="padding:6px 0;font-weight:600">{scanned_at}</td></tr>
+            {"<tr><td style='padding:6px 0;color:#888'>Location</td><td style='padding:6px 0;font-weight:600'>" + address + "</td></tr>" if address else ""}
+        </table>
+    </div>
+    <p style="font-size:13px;color:#999;text-align:center">Show this email at the {session_name.lower()} counter to collect your item.</p>
+    """)
+    try:
+        await send_email(email, subject, body)
+    except Exception:
+        pass
+
+
 def _slug_query(slug: str) -> dict:
     """Match a showcase by its canonical slug OR any of its legacy aliases."""
     slug = (slug or "").strip()
@@ -586,11 +663,33 @@ async def sweep_expired_echo_payments(db) -> dict:
 
     Idempotent & safe to run every minute. Returns a small summary for logs.
     """
-    result = {"checked": 0, "failed": 0, "reminded": 0, "rescued": 0}
+    result = {"checked": 0, "failed": 0, "reminded": 0, "rescued": 0, "closed": 0}
     try:
         now = datetime.now(timezone.utc)
         cutoff_fail = now.timestamp() - ECHO_PAYMENT_SESSION_TTL_SECONDS
         cutoff_remind = now.timestamp() - ECHO_PAYMENT_REMINDER_SECONDS
+
+        # Auto-close any showcase whose temporary open window has expired.
+        try:
+            expired = await db.echo_showcases.find({
+                "registration.temporary_open": True,
+                "registration.temporary_close_at": {"$ne": ""},
+            }).to_list(200)
+            for sc in expired:
+                close_at = _parse_iso((sc.get("registration") or {}).get("temporary_close_at"))
+                if close_at and close_at < now:
+                    reg_upd = dict((sc.get("registration") or {}))
+                    reg_upd["enabled"] = False
+                    reg_upd["temporary_open"] = False
+                    reg_upd["temporary_close_at"] = ""
+                    await db.echo_showcases.update_one(
+                        {"_id": sc["_id"]},
+                        {"$set": {"registration": reg_upd, "updated_at": _now()}},
+                    )
+                    result["closed"] += 1
+                    print(f"[ECHO-SWEEP] Auto-closed temporary registration window for {sc.get('slug')}")
+        except Exception as _temp_err:
+            print(f"[ECHO-SWEEP] temporary-close scan failed: {_temp_err}")
 
         pending = await db.echo_registrations.find({"payment.status": "pending"}).to_list(500)
         cfg = await _razorpay_config(db)
@@ -781,6 +880,14 @@ async def _assert_registration_open(db, showcase: dict) -> None:
         raise HTTPException(status_code=400, detail="Registrations are closed for this event")
     if showcase.get("event_status_badge") == "Completed":
         raise HTTPException(status_code=400, detail="This event has ended — registrations are closed")
+
+    # Temporary auto-close window: if the showcase was opened for a limited window
+    # and that window has passed, treat registrations as closed (fail-closed) even
+    # before the background sweep flips enabled to False.
+    if reg_cfg.get("temporary_open"):
+        temp_close = _parse_iso(reg_cfg.get("temporary_close_at"))
+        if temp_close and temp_close < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="Registrations have closed for this event")
 
     slug = (showcase.get("slug") or "").lower()
     if slug in ("snist", "hackwave-3.0", "hackwave-3", "hackwave"):
@@ -2753,6 +2860,8 @@ class RegistrationConfig(BaseModel):
     max_seats: Optional[int] = 0
     seat_leverage: Optional[float] = 0.8  # 0.0-1.0 — fraction of registrations that consume seats (0.8 = 20% buffer)
     deadline: Optional[str] = ""
+    temporary_open: Optional[bool] = False
+    temporary_close_at: Optional[str] = ""
     payment_note: Optional[str] = ""
     payment_url: Optional[str] = None  # External payment gateway link (e.g. Razorpay/Stripe) shown on the register page
     poster_images: Optional[List[str]] = []  # Poster images displayed on the register page
@@ -2790,6 +2899,7 @@ class EchoCatalogItem(BaseModel):
     vendor_name: Optional[str] = None
     name: str
     description: Optional[str] = None
+    servings: Optional[str] = None
     category: str = "food" # 'food' or 'handcraft'
     price: float = 0.0
     stock: int = 0
@@ -3146,18 +3256,6 @@ async def seed_echo_showcase(db: AsyncIOMotorDatabase):
             print("[ECHO CMS] Seeded default vnr-echo-2026 showcase")
         else:
             await db.echo_showcases.update_many({"gallery_layout": {"$exists": False}}, {"$set": {"gallery_layout": "grid"}})
-        
-        # Ensure SNIST / HackWave 3.0 showcase registration is open till Sep 4, 1:00 PM IST
-        await db.echo_showcases.update_many(
-            {"slug": {"$in": ["snist", "hackwave-3.0", "hackwave-3", "hackwave"]}},
-            {"$set": {
-                "reg_closes": "Sep 02, 2026 · 7:00 PM IST (Closing in 30 mins)",
-                "registration.deadline": "2026-09-02T19:00:00+05:30",
-                "registration.enabled": True,
-                "registration.status": "closing_soon",
-                "event_status_badge": "Closing in 30 Mins"
-            }}
-        )
     except Exception as e:
         print(f"[ECHO CMS] Seed warning: {e}")
 
@@ -3493,7 +3591,16 @@ async def get_showcase(slug: str, request: Request):
     reg_cfg = result.get("registration") or {}
     reg_cfg["paid_count"] = paid_count
     reg_cfg["total_registrations"] = total_count
+    # Truthful seat availability derived from the real capacity gate (max_seats),
+    # not the hardcoded seed default. max_seats=0 means unlimited.
+    max_seats = int(reg_cfg.get("max_seats") or 0)
+    if max_seats > 0:
+        available = max_seats - paid_count
+        reg_cfg["available_seats"] = max(available, 0)
+    else:
+        reg_cfg["available_seats"] = None
     result["registration"] = reg_cfg
+    result["available_seats"] = reg_cfg["available_seats"]
     return result
 
 
@@ -4455,11 +4562,13 @@ async def my_registrations(request: Request):
     email = (user.get("email") or "").strip().lower()
     uid = str(user["_id"])
 
-    # Find all registrations for this user — match user_key too because paid
-    # registrations can have user_id rewritten to a provisioned SA account.
-    query = {"$or": [{"user_id": uid}, {"user_key": uid}]}
+    # Find all registrations for this user — match user_key, user_id, and email.
+    # Use case-insensitive email match ($regex) to handle stored variations.
+    query: dict = {"$or": [{"user_id": uid}, {"user_key": uid}]}
     if email:
-        query = {"$or": [{"user_id": uid}, {"user_key": uid}, {"email": email}]}
+        query["$or"].append({"email": email})
+        # Also match case-insensitively for legacy registrations with mixed case
+        query["$or"].append({"email": {"$regex": f"^{email}$", "$options": "i"}})
     regs = await db.echo_registrations.find(query).sort("created_at", -1).to_list(100)
 
     results = []
@@ -4509,6 +4618,20 @@ async def my_registrations(request: Request):
                 invoice = _ser(inv)
         except Exception:
             pass
+
+        # Fetch event/showcase details for title and banner
+        showcase = None
+        try:
+            if slug:
+                showcase = await db.event_showcases.find_one({"slug": slug})
+        except Exception:
+            pass
+
+        if showcase:
+            reg_ser["event_title"] = showcase.get("title") or showcase.get("name") or reg_ser.get("event_title")
+            reg_ser["showcase_title"] = showcase.get("title") or showcase.get("name") or reg_ser.get("showcase_title")
+            reg_ser["banner_url"] = showcase.get("banner_url") or showcase.get("cover_image") or reg_ser.get("banner_url")
+            reg_ser["start_date"] = showcase.get("start_date") or reg_ser.get("start_date")
 
         results.append({
             "registration": reg_ser,
@@ -4681,7 +4804,7 @@ async def admin_echo_registrations(
     slug: Optional[str] = None,
     status: Optional[str] = None,
     search: Optional[str] = None,
-    limit: int = Query(500, ge=1, le=2000),
+    limit: int = Query(100000, ge=1, le=1000000),
     _=Depends(_require_admin),
 ):
     """List ECHO registrations with attendee + payment details for super-admin."""
@@ -4711,13 +4834,19 @@ async def admin_echo_registrations(
     invoice_map: Dict[str, dict] = {}
     if reg_ids:
         for c in await db.echo_coupons.find({"reg_id": {"$in": reg_ids}}).to_list(5000):
+            used_at = c.get("used_at")
+            # Ensure used_at is always an ISO string with timezone info
+            if used_at and hasattr(used_at, 'isoformat'):
+                used_at = used_at.isoformat()
+            elif used_at and isinstance(used_at, str) and 'T' in used_at and '+' not in used_at and 'Z' not in used_at:
+                used_at = used_at + 'Z'  # Assume UTC if no timezone
             coupons_map.setdefault(c.get("reg_id"), []).append({
                 "session_key": c.get("session_key"),
                 "session_name": c.get("session_name"),
                 "session_day": c.get("session_day") or 1,
                 "coupon_code": c.get("coupon_code"),
                 "used": bool(c.get("used")),
-                "used_at": c.get("used_at"),
+                "used_at": used_at,
                 "scanned_location": c.get("scanned_location"),
                 "scanned_lat": c.get("scanned_lat"),
                 "scanned_lng": c.get("scanned_lng"),
@@ -5618,6 +5747,9 @@ async def verify_ticket(payload: TicketVerifySchema, request: Request, _=Depends
     if not reg:
         # Fallback: raw registration id
         reg = await db.echo_registrations.find_one({"id": parsed.get("reg_id")})
+    if not reg and parsed.get("reg_id") and len(parsed.get("reg_id")) == 8:
+        # Fallback: short-code manual entry
+        reg = await db.echo_registrations.find_one({"id": {"$regex": f"^{parsed.get('reg_id')}", "$options": "i"}})
     if not reg:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
@@ -5669,39 +5801,52 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
     db = _get_db(request)
     parsed = _parse_ticket(payload.ticket)
     if not parsed:
-        raise HTTPException(status_code=400, detail="Invalid ticket code")
+        return {"ok": False, "status": "invalid", "message": "Invalid ticket code — could not parse"}
 
     query: Dict[str, Any] = {}
     if parsed.get("slug"):
         query["slug"] = parsed["slug"]
-    if parsed.get("reg_id"):
-        query["id"] = parsed["reg_id"]
+    reg_id = parsed.get("reg_id") or ""
+    if reg_id:
+        query["id"] = reg_id
 
     reg = await db.echo_registrations.find_one(query)
+    # Exact lookup is case-sensitive; ids are stored in mixed case (e.g.
+    # `dc08b4e9a27d`, `9a361543a98b_M1`, `Echo-A6F1B42219E50B32`). Fall back to a
+    # case-insensitive exact match so scans resolve regardless of scanned casing.
+    if not reg and reg_id:
+        import re as _re
+        escaped = _re.escape(reg_id)
+        reg = await db.echo_registrations.find_one({
+            "id": {"$regex": f"^{escaped}$", "$options": "i"},
+            **( {"slug": parsed["slug"]} if parsed.get("slug") else {} ),
+        })
     if not reg:
-        reg = await db.echo_registrations.find_one({"id": parsed.get("reg_id")})
-    if not reg:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        return {"ok": False, "status": "invalid", "message": "Ticket not found in registrations"}
 
     payment = reg.get("payment") or {}
     payment_status = payment.get("status") or reg.get("payment_status") or "pending"
     reg_status = reg.get("status") or "pending"
     fee = float(reg.get("fee") or 0)
-    
+
     is_free = fee <= 0 and (payment_status == "paid" or reg_status in ("registered", "confirmed"))
     is_paid = payment_status == "paid" and reg_status in ("registered", "confirmed")
     verified = is_free or is_paid
-    
+
     if not verified:
-        raise HTTPException(status_code=400, detail="Ticket not confirmed — attendee cannot be checked in")
+        return {"ok": False, "status": "unconfirmed", "message": "Ticket not confirmed — attendee cannot be checked in. Payment may be pending."}
 
     now_iso = _now()
     first_checkin = not bool(reg.get("checked_in_at"))
-    
+
     update_data: dict[str, Any] = {"checked_in_at": now_iso}
+    address = ""
     if payload.lat is not None and payload.lng is not None:
         update_data["scanned_lat"] = payload.lat
         update_data["scanned_lng"] = payload.lng
+        address = await _reverse_geocode(payload.lat, payload.lng)
+        if address:
+            update_data["scanned_location"] = address
 
     await db.echo_registrations.update_one(
         {"_id": reg["_id"]},
@@ -5711,6 +5856,11 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
         await db.echo_registrations.update_one(
             {"_id": reg["_id"]}, {"$inc": {"checked_in_count": 1}}
         )
+
+    # Send check-in email (fire-and-forget)
+    if first_checkin:
+        event_title = reg.get("showcase_title") or reg.get("slug", "ECHO Event")
+        await _send_checkin_email(reg, event_title, now_iso, address)
 
     updated = _ser(await db.echo_registrations.find_one({"_id": reg["_id"]}))
     return {
@@ -5740,6 +5890,35 @@ async def delete_registration(reg_id: str, request: Request, _=Depends(_require_
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Registration not found")
     return {"ok": True, "deleted": reg_id}
+
+
+@router.patch("/admin/registrations/{reg_id}")
+async def update_registration(reg_id: str, payload: dict, request: Request, _=Depends(_require_admin)):
+    """Admin: update registration fields (email, full_name, phone, etc.)."""
+    from bson import ObjectId
+    db = _get_db(request)
+    try:
+        oid = ObjectId(reg_id)
+    except Exception:
+        oid = None
+    reg = await db.echo_registrations.find_one({"_id": oid} if oid else {"id": reg_id})
+    if not reg:
+        raise HTTPException(404, "Registration not found")
+    update = {}
+    for k in ("email", "full_name", "phone", "college", "branch", "year", "slug"):
+        if k in payload and payload[k] is not None:
+            update[k] = str(payload[k]).strip()
+    if not update:
+        raise HTTPException(400, "No fields to update")
+    await db.echo_registrations.update_one({"_id": reg["_id"]}, {"$set": update})
+    # Also update coupons if email changed
+    if "email" in update:
+        await db.echo_coupons.update_many(
+            {"reg_id": reg.get("id")},
+            {"$set": {"attendee_email": update["email"]}}
+        )
+    updated = _ser(await db.echo_registrations.find_one({"_id": reg["_id"]}))
+    return {"ok": True, "registration": updated}
 
 
 @router.get("/admin/revenue")
@@ -5978,6 +6157,51 @@ async def update_showcase(showcase_id: str, payload: ShowcaseUpdateSchema, reque
     return outcome
 
 
+class TemporaryOpenSchema(BaseModel):
+    duration_minutes: int = 60
+
+
+@router.post("/admin/showcases/{showcase_id}/temporary-open")
+async def temporary_open_showcase(
+    showcase_id: str,
+    payload: TemporaryOpenSchema,
+    request: Request,
+    _=Depends(_require_admin),
+):
+    """Open ECHO registration for a limited window, then auto-close it.
+
+    Sets registration.enabled=True and registration.temporary_open=True with a
+    temporary_close_at timestamp = now + duration. A background sweep (and the
+    registration gate itself) auto-closes the showcase once that window passes.
+    """
+    from datetime import timedelta
+    db = _get_db(request)
+    minutes = max(1, min(int(payload.duration_minutes or 60), 7 * 24 * 60))  # 1 min .. 7 days
+    now = datetime.now(timezone.utc)
+    close_at = now + timedelta(minutes=minutes)
+
+    result = await db.echo_showcases.update_one(
+        {"_id": _oid(showcase_id)},
+        {"$set": {
+            "registration.enabled": True,
+            "registration.temporary_open": True,
+            "registration.temporary_close_at": close_at.isoformat(),
+            "updated_at": _now(),
+        }},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Showcase not found")
+
+    doc = await db.echo_showcases.find_one({"_id": _oid(showcase_id)})
+    ser = _ser(doc or {})
+    ser["temporary_open"] = {
+        "active": True,
+        "closes_at": close_at.isoformat(),
+        "duration_minutes": minutes,
+    }
+    return ser
+
+
 @router.delete("/admin/showcases/{showcase_id}")
 async def delete_showcase(showcase_id: str, request: Request, _=Depends(_require_admin)):
     db = _get_db(request)
@@ -6208,6 +6432,76 @@ async def toggle_session_lock(slug: str, session_key: str, request: Request, adm
     return {"ok": True, "session_key": session_key, "locked": locked}
 
 
+# ── Registration tab passcode (server-side, hashed) ─────────────────────────
+_PASSCODE_SALT = "studentalumni::echo::registration::v1"
+_PASSCODE_COLL = "echo_admin_config"
+
+
+def _hash_passcode(passcode: str) -> str:
+    return hashlib.sha256((_PASSCODE_SALT + passcode).encode("utf-8")).hexdigest()
+
+
+async def _get_passcode_config(db) -> dict:
+    return await db[_PASSCODE_COLL].find_one({"key": "registration_passcode"})
+
+
+@router.get("/admin/registration-passcode")
+async def get_registration_passcode(request: Request, admin=Depends(_require_admin)):
+    """Return whether a registration-tab passcode is enabled. Never returns the value."""
+    db = _get_db(request)
+    cfg = await _get_passcode_config(db)
+    return {
+        "ok": True,
+        "enabled": bool(cfg and cfg.get("enabled")),
+        "has_passcode": bool(cfg and cfg.get("hash")),
+    }
+
+
+@router.put("/admin/registration-passcode")
+async def set_registration_passcode(request: Request, admin=Depends(_require_admin)):
+    """Set/update the registration-tab passcode and enable it, or disable it."""
+    db = _get_db(request)
+    body = await request.json()
+    if body.get("disable"):
+        await db[_PASSCODE_COLL].update_one(
+            {"key": "registration_passcode"},
+            {"$set": {"enabled": False}},
+            upsert=True,
+        )
+        return {"ok": True, "enabled": False}
+
+    passcode = (body.get("passcode") or "").strip()
+    if not passcode:
+        raise HTTPException(status_code=400, detail="Passcode required")
+    if not (4 <= len(passcode) <= 12):
+        raise HTTPException(
+            status_code=400,
+            detail="Passcode must be 4-12 characters",
+        )
+    await db[_PASSCODE_COLL].update_one(
+        {"key": "registration_passcode"},
+        {"$set": {"hash": _hash_passcode(passcode), "enabled": True}},
+        upsert=True,
+    )
+    return {"ok": True, "enabled": True}
+
+
+@router.post("/admin/registration-passcode/verify")
+async def verify_registration_passcode(request: Request, admin=Depends(_require_admin)):
+    """Verify a submitted passcode against the stored (hashed) value."""
+    db = _get_db(request)
+    cfg = await _get_passcode_config(db)
+    if not (cfg and cfg.get("enabled") and cfg.get("hash")):
+        return {"ok": False, "enabled": False, "reason": "not_configured"}
+    body = await request.json()
+    guess = (body.get("passcode") or "").strip()
+    if not guess:
+        return {"ok": False, "enabled": True, "reason": "empty"}
+    if _hash_passcode(guess) != cfg.get("hash"):
+        return {"ok": False, "enabled": True, "reason": "invalid"}
+    return {"ok": True, "enabled": True}
+
+
 @router.get("/{slug}/my-coupons")
 async def my_coupons(slug: str, request: Request, email: Optional[str] = Query(None)):
     """Get current user's coupons for an event. Supports guest access via ?email= param."""
@@ -6431,11 +6725,11 @@ async def scan_coupon(request: Request, admin=Depends(_require_scan_access)):
     body = await request.json()
     code = (body.get("code") or "").strip().upper()
     if not code:
-        raise HTTPException(400, "Coupon code required")
+        return {"ok": False, "status": "invalid", "message": "Coupon code is required"}
 
     coupon = await db.echo_coupons.find_one({"coupon_code": code})
     if not coupon:
-        raise HTTPException(404, "Invalid coupon code")
+        return {"ok": False, "status": "invalid", "message": f"Coupon '{code}' not found. Make sure this is a valid session pass from My Tickets."}
     # Check if session is locked
     if coupon.get("session_locked"):
         return {
@@ -6444,7 +6738,7 @@ async def scan_coupon(request: Request, admin=Depends(_require_scan_access)):
             "message": f"This session ({coupon.get('session_name', '')}) is currently locked. It will be available soon.",
             "coupon": {k: v for k, v in coupon.items() if k != "_id"},
         }
-    if coupon["used"]:
+    if coupon.get("used"):
         return {
             "ok": False,
             "status": "already_used",
@@ -6457,33 +6751,47 @@ async def scan_coupon(request: Request, admin=Depends(_require_scan_access)):
 
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc)
-    
+
     update_data = {
-        "used": True, 
-        "used_at": now, 
+        "used": True,
+        "used_at": now.isoformat(),  # Store as ISO string with timezone
         "scanned_by": admin.get("email", "admin")
     }
+    address = ""
     if lat is not None and lng is not None:
         update_data["scanned_lat"] = lat
         update_data["scanned_lng"] = lng
-        
+        address = await _reverse_geocode(lat, lng)
+        if address:
+            update_data["scanned_location"] = address
+
     await db.echo_coupons.update_one(
         {"_id": coupon["_id"]},
         {"$set": update_data}
     )
 
     # Get attendee info
-    reg = await db.echo_registrations.find_one({"id": coupon["reg_id"]})
+    reg = await db.echo_registrations.find_one({"id": coupon.get("reg_id")})
+
+    # Send coupon scan email (fire-and-forget)
+    if reg:
+        await _send_coupon_scan_email(
+            reg,
+            coupon.get("session_name", "Session"),
+            code,
+            now.strftime("%b %d, %Y · %I:%M %p UTC"),
+            address,
+        )
 
     return {
         "ok": True,
         "status": "valid",
-        "message": f"Valid — {coupon['session_name']} for {reg.get('full_name', 'Unknown') if reg else 'Unknown'}",
+        "message": f"Valid — {coupon.get('session_name', 'Session')} for {reg.get('full_name', 'Attendee') if reg else 'Attendee'}",
         "coupon": {
             "code": code,
-            "session_name": coupon["session_name"],
+            "session_name": coupon.get("session_name", "Session"),
             "session_day": coupon.get("session_day") or 1,
-            "attendee_name": reg.get("full_name", "") if reg else "",
+            "attendee_name": (reg.get("full_name") or reg.get("first_name") or "") if reg else "",
             "attendee_email": reg.get("email", "") if reg else "",
             "used_at": now.isoformat(),
         },
