@@ -115,25 +115,64 @@ class EchoProfileLoopAgent:
                 continue
             elif target_group == "all_incomplete" and (has_account and pct >= 100):
                 continue
+            elif target_group == "complete_100_dispatch" and (not has_account or pct < 100):
+                continue
 
             processed_count += 1
 
-            if not has_account:
+            if has_account and pct >= 100:
+                # Auto-issue and deliver all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave)
+                from echo_showcase import issue_3_echo_certificates
+                certs = await issue_3_echo_certificates(db, reg)
+                
+                part_url = certs.get("hackwave_participation", {}).get("verify_url", f"{frontend_url}/certificates/verify")
+                sunset_url = certs.get("built_by_sunset", {}).get("verify_url", f"{frontend_url}/certificates/verify")
+                cyber_url = certs.get("cyber_conclave", {}).get("verify_url", f"{frontend_url}/certificates/verify")
+
+                email_subject = f"🎓 3 Official Certificates Delivered — {showcase_title}"
+                email_html = f"""
+                <div style="font-family: 'Outfit', Arial, sans-serif; padding: 28px; background: #08080F; color: #F4F4FA; border-radius: 18px; border: 1px solid #1F1F30;">
+                  <div style="color: #10B981; font-weight: 800; font-size: 20px; margin-bottom: 8px;">100% Profile Completion Verified ✓</div>
+                  <h2 style="color: #FFF; margin-top: 0; font-size: 22px;">Your 3 Official Certificates Have Been Delivered!</h2>
+                  <p>Hello <strong>{name}</strong>,</p>
+                  <p>Congratulations on achieving 100% profile completion on StudentAlumni! Your 3 official verifiable certificates for <strong>{showcase_title}</strong> have been issued and registered on our cryptographic ledger:</p>
+                  
+                  <div style="display: grid; gap: 12px; margin: 20px 0;">
+                    <div style="padding: 14px; background: #141424; border-radius: 10px; border: 1px solid #3B2E7A;">
+                      <p style="margin: 0; font-weight: bold; color: #D8B4FE; font-size: 14px;">1. Built by Sunset — Project Build Certificate</p>
+                      <a href="{sunset_url}" style="color: #7C5CFC; font-size: 12px; font-weight: bold;">Verify & Download Certificate →</a>
+                    </div>
+                    <div style="padding: 14px; background: #141424; border-radius: 10px; border: 1px solid #3B2E7A;">
+                      <p style="margin: 0; font-weight: bold; color: #D8B4FE; font-size: 14px;">2. Certificate of Participation — {showcase_title}</p>
+                      <a href="{part_url}" style="color: #7C5CFC; font-size: 12px; font-weight: bold;">Verify & Download Certificate →</a>
+                    </div>
+                    <div style="padding: 14px; background: #141424; border-radius: 10px; border: 1px solid #3B2E7A;">
+                      <p style="margin: 0; font-weight: bold; color: #D8B4FE; font-size: 14px;">3. Cyber Conclave — Professional Certificate</p>
+                      <a href="{cyber_url}" style="color: #7C5CFC; font-size: 12px; font-weight: bold;">Verify & Download Certificate →</a>
+                    </div>
+                  </div>
+
+                  <p style="font-size: 12px; color: #7E7E92; border-top: 1px solid #1F1F30; padding-top: 16px;">StudentAlumni Platform · Verifiable Credentials Ledger</p>
+                </div>
+                """
+                wa_text = f"🎓 *3 Certificates Delivered!*\n\nHi {name},\nYour 100% profile score has unlocked your 3 official certificates for *{showcase_title}*:\n\n1. Built by Sunset: {sunset_url}\n2. Hackwave 3.0 Participation: {part_url}\n3. Cyber Conclave: {cyber_url}"
+
+            elif not has_account:
                 register_link = f"{frontend_url}/auth/register?email={quote(email)}&name={quote(name)}"
-                email_subject = f"⚡ Claim your StudentAlumni Account for {showcase_title}"
+                email_subject = f"⚡ Claim your 3 Certificates for {showcase_title}"
                 email_html = f"""
                 <div style="font-family: 'Outfit', Arial, sans-serif; padding: 28px; background: #08080F; color: #F4F4FA; border-radius: 18px; border: 1px solid #1F1F30;">
                   <div style="color: #7C5CFC; font-weight: 800; font-size: 20px; margin-bottom: 8px;">StudentAlumni × ECHO</div>
-                  <h2 style="color: #FFF; margin-top: 0; font-size: 22px;">Create Your SA Account to Claim Digital Certificates</h2>
+                  <h2 style="color: #FFF; margin-top: 0; font-size: 22px;">Create Your SA Account to Claim 3 Digital Certificates</h2>
                   <p>Hello <strong>{name}</strong>,</p>
-                  <p>You registered for <strong>{showcase_title}</strong> on ECHO! To access your official verifiable completion certificates, team passes, and recruiter rewards, please create your StudentAlumni account.</p>
+                  <p>You registered for <strong>{showcase_title}</strong> on ECHO! Create your account and complete 100% of your profile to unlock all 3 certificates (Built by Sunset, Participation, Cyber Conclave):</p>
                   <div style="margin: 28px 0;">
-                    <a href="{register_link}" style="background: linear-gradient(135deg, #7C5CFC, #5B3FD9); color: #FFF; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block; font-size: 15px;">Create SA Account & Activate Pass →</a>
+                    <a href="{register_link}" style="background: linear-gradient(135deg, #7C5CFC, #5B3FD9); color: #FFF; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block; font-size: 15px;">Create SA Account & Claim 3 Certificates →</a>
                   </div>
                   <p style="font-size: 12px; color: #7E7E92; border-top: 1px solid #1F1F30; padding-top: 16px;">StudentAlumni Network · Connecting Students, Alumni & Mentors</p>
                 </div>
                 """
-                wa_text = f"🎓 *StudentAlumni Account Notice*\n\nHi {name},\nYou are registered for *{showcase_title}*!\nCreate your StudentAlumni account to get 100% profile rewards & digital certificates:\n\n{register_link}"
+                wa_text = f"🎓 *StudentAlumni Account Notice*\n\nHi {name},\nYou are registered for *{showcase_title}*!\nCreate your StudentAlumni account to get 100% profile rewards & 3 digital certificates:\n\n{register_link}"
             else:
                 missing_str = ", ".join(sa_user.get("missing_items", [])) or "complete bio, photo, and skills"
                 profile_link = f"{frontend_url}/profile"
@@ -143,7 +182,7 @@ class EchoProfileLoopAgent:
                   <div style="color: #10B981; font-weight: 800; font-size: 20px; margin-bottom: 8px;">100% Profile Challenge</div>
                   <h2 style="color: #FFF; margin-top: 0; font-size: 22px;">Your SA Profile is {pct}% Complete</h2>
                   <p>Hello <strong>{name}</strong>,</p>
-                  <p>Your StudentAlumni profile is currently at <strong>{pct}% completion</strong>. Complete 100% of your profile to unlock verified certificates, ECHO showcase rewards, and career recommendations!</p>
+                  <p>Your StudentAlumni profile is currently at <strong>{pct}% completion</strong>. Complete 100% of your profile to unlock all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave)!</p>
                   <div style="padding: 16px; background: #14141F; border-radius: 12px; margin: 16px 0; border: 1px solid #292940;">
                     <p style="margin: 0; font-weight: bold; color: #F5B342;">Remaining Items to Reach 100%:</p>
                     <p style="margin: 4px 0 0 0; color: #9095A8; font-size: 13.5px;">{missing_str}</p>
@@ -154,7 +193,7 @@ class EchoProfileLoopAgent:
                   <p style="font-size: 12px; color: #7E7E92; border-top: 1px solid #1F1F30; padding-top: 16px;">StudentAlumni Platform</p>
                 </div>
                 """
-                wa_text = f"🚀 *100% Profile Reminder*\n\nHi {name},\nYour StudentAlumni profile is currently at *{pct}%*.\nComplete 100% of your profile ({missing_str}) to claim your ECHO certificates:\n\n{profile_link}"
+                wa_text = f"🚀 *100% Profile Reminder*\n\nHi {name},\nYour StudentAlumni profile is currently at *{pct}%*.\nComplete 100% of your profile ({missing_str}) to claim your 3 ECHO certificates:\n\n{profile_link}"
 
             # Dispatch Email
             if channel in ("email", "both") and email:
