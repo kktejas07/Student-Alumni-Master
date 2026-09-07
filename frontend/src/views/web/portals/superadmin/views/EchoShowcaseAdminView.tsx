@@ -5221,20 +5221,21 @@ function LiveScanMonitorPanel() {
   };
 
   const saAccountBadge = (reg: any) => {
-    if (reg.is_profile_100) {
+    const pct = reg.profile_completion_pct || 0;
+    if (reg.is_profile_100 || pct >= 100) {
       return (
         <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.4)' }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#34D399' }}>
-            SA Member ✓ (100%)
+            Profile 100% Complete ✓
           </Text>
         </View>
       );
     }
-    if (reg.has_sa_account) {
+    if (pct > 0) {
       return (
         <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(245,179,66,0.18)', borderWidth: 1, borderColor: 'rgba(245,179,66,0.4)' }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#F5B342' }}>
-            SA Member ({reg.profile_completion_pct || 0}%)
+            Profile ({pct}%) · Incomplete
           </Text>
         </View>
       );
@@ -5242,7 +5243,7 @@ function LiveScanMonitorPanel() {
     return (
       <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' }}>
         <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#FCA5A5' }}>
-          No SA Account
+          Profile (0%) · Incomplete
         </Text>
       </View>
     );
@@ -5260,6 +5261,39 @@ function LiveScanMonitorPanel() {
   const openMap = (lat?: number, lng?: number) => {
     if (lat && lng && typeof window !== 'undefined') {
       window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank');
+    }
+  };
+
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
+  const [certTitle, setCertTitle] = useState('Built by Sunset — Project Build Certificate');
+  const [certRecipientEmail, setCertRecipientEmail] = useState('');
+  const [certIssuer, setCertIssuer] = useState('StudentAlumni × Hackwave 3.0');
+  const [uploadingCert, setUploadingCert] = useState(false);
+
+  const handleCustomUploadCert = async () => {
+    if (!certRecipientEmail) {
+      flash('Please enter attendee email', 'error');
+      return;
+    }
+    setUploadingCert(true);
+    try {
+      const res: any = await request('/certificates/upload', {
+        method: 'POST',
+        body: JSON.stringify({
+          recipient_email: certRecipientEmail,
+          title: certTitle,
+          issuer: certIssuer,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      flash(`Certificate uploaded & dual-synced! Code: ${res?.verification_code || 'Issued'}`);
+      setUploadModalVisible(false);
+      setCertRecipientEmail('');
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Upload failed', 'error');
+    } finally {
+      setUploadingCert(false);
     }
   };
 
@@ -5288,6 +5322,15 @@ function LiveScanMonitorPanel() {
             <Award size={14} color="#6EE7B7" />
             <Text style={{ color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 12 }}>
               🎓 Dispatch 3 Certs to 100% Profiles
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setUploadModalVisible(true)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(59,130,246,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#3B82F6' }}>
+            <Upload size={14} color="#93C5FD" />
+            <Text style={{ color: '#93C5FD', fontFamily: FONTS.bold, fontSize: 12 }}>
+              ⬆️ Upload Cert & Dual-Sync
             </Text>
           </Pressable>
 
@@ -5656,6 +5699,66 @@ function LiveScanMonitorPanel() {
                   load();
                 } catch (e: any) { flash(e?.message || 'Failed', 'error'); }
               }}><Text style={{ color: SAC.text }}>Save</Text></GradientButton>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Upload Certificate & Dual-Sync Modal */}
+      <Modal transparent visible={uploadModalVisible} animationType="fade" onRequestClose={() => setUploadModalVisible(false)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 }} onPress={() => setUploadModalVisible(false)}>
+          <Pressable onPress={(e: any) => e?.stopPropagation?.()} style={{ width: '100%', maxWidth: 460, backgroundColor: SAC.panel, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(124,92,252,0.3)', padding: 22, gap: 14 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Upload size={18} color="#93C5FD" />
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>Upload Certificate & Dual-Sync</Text>
+              </View>
+              <Pressable onPress={() => setUploadModalVisible(false)}><X size={18} color={SAC.muted} /></Pressable>
+            </View>
+
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+              Uploaded certificates automatically sync across <Text style={{ color: '#93C5FD', fontFamily: FONTS.bold }}>ECHO Scan Monitor</Text>, the global <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold }}>Certificates Module (/super-admin/certificates)</Text>, and the student's <Text style={{ color: '#34D399', fontFamily: FONTS.bold }}>My Certificates</Text> view.
+            </Text>
+
+            <View style={{ gap: 4 }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>Attendee Email Address *</Text>
+              <TextInput
+                value={certRecipientEmail}
+                onChangeText={setCertRecipientEmail}
+                placeholder="e.g. attendee@gmail.com"
+                placeholderTextColor={SAC.muted}
+                style={{ backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 13, fontFamily: FONTS.regular }}
+                keyboardType="email-address"
+              />
+            </View>
+
+            <View style={{ gap: 4 }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>Certificate Title *</Text>
+              <TextInput
+                value={certTitle}
+                onChangeText={setCertTitle}
+                placeholder="e.g. Built by Sunset — Project Build Certificate"
+                placeholderTextColor={SAC.muted}
+                style={{ backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 13, fontFamily: FONTS.regular }}
+              />
+            </View>
+
+            <View style={{ gap: 4 }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>Issuer Organization</Text>
+              <TextInput
+                value={certIssuer}
+                onChangeText={setCertIssuer}
+                placeholder="e.g. StudentAlumni × Hackwave 3.0"
+                placeholderTextColor={SAC.muted}
+                style={{ backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 13, fontFamily: FONTS.regular }}
+              />
+            </View>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
+              <SecondaryButton onPress={() => setUploadModalVisible(false)}><Text style={{ color: SAC.text }}>Cancel</Text></SecondaryButton>
+              <GradientButton onPress={handleCustomUploadCert} disabled={uploadingCert}>
+                <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{uploadingCert ? 'Uploading & Syncing...' : '⬆️ Upload & Dual-Sync'}</Text>
+              </GradientButton>
             </View>
           </Pressable>
         </Pressable>
