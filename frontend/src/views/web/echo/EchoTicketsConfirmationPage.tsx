@@ -577,6 +577,11 @@ END:VCALENDAR`;
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--line)', paddingTop: '11px' }}>
                       <span style={{ fontSize: '12.5px', fontWeight: 700 }}>Total saved</span>
                       <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--warn)' }}>₹4,280</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Verified Certificate Card */}
               <div className="tk-hover-card" style={{ position: 'relative', overflow: 'hidden', border: '1px solid #3B2E7A', borderRadius: '18px', background: 'linear-gradient(135deg, rgba(124,92,252,0.12) 0%, var(--panel) 100%)', padding: '22px 24px 24px' }}>
                 <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '4px', background: 'linear-gradient(90deg, #7C5CFC, #C9A7FF)' }} />

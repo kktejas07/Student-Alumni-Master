@@ -172,7 +172,7 @@ import {
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users,
   Ticket, Mail, ScanLine, Phone, Edit2,
   CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle, Download, FileSpreadsheet, MapPin,
-  UserCheck, GraduationCap, CreditCard,
+  UserCheck, GraduationCap, CreditCard, Award, Sparkles,
 } from 'lucide-react-native';
 import {
   GRAD, GradientButton, SecondaryButton, Card,
@@ -5187,6 +5187,12 @@ function LiveScanMonitorPanel() {
     return `${date} · ${time}`;
   };
 
+  const openMap = (lat?: number, lng?: number) => {
+    if (lat && lng && typeof window !== 'undefined') {
+      window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank');
+    }
+  };
+
   return (
     <View style={{ flex: 1, gap: 20 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
@@ -5198,7 +5204,7 @@ function LiveScanMonitorPanel() {
           <Pressable
             onPress={handleSendProfileReminders}
             disabled={sendingReminders}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.25)', borderPadding: 8, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#7C5CFC' }}>
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#7C5CFC' }}>
             <Sparkles size={14} color="#C9A7FF" />
             <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold, fontSize: 12 }}>
               {sendingReminders ? 'Loop Agent Sending...' : '⚡ Send 100% Profile & SA Reminders'}
