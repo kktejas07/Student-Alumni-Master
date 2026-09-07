@@ -487,6 +487,24 @@ async def test_rsvp_paid_with_credits(mock_db, sample_event):
 
 
 @pytest.mark.asyncio
+async def test_rsvp_paid_without_credits_requires_payment(mock_db, sample_event):
+    from events_aggregator import rsvp_event
+    from fastapi import HTTPException
+
+    with patch("events_aggregator._db", mock_db):
+        user = {"_id": MagicMock(), "email": "user@test.com", "role": "student"}
+        paid_event = {**sample_event, "price_type": "paid", "price_amount": 50}
+        mock_db.events_v2.find_one = AsyncMock(return_value=paid_event)
+        mock_db.event_registrations.find_one = AsyncMock(return_value=None)
+
+        with pytest.raises(HTTPException) as exc_info:
+            await rsvp_event("evt-001", user=user)
+
+        assert exc_info.value.status_code == 402
+        mock_db.event_registrations.update_one.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_rsvp_waitlist_when_full(mock_db, sample_event):
     from events_aggregator import rsvp_event
     with patch("events_aggregator._db", mock_db):
