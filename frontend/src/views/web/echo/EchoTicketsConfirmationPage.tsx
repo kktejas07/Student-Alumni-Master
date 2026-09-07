@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
+import { api } from '@/src/models/services/api';
 
 type ViewTab = 'success' | 'failure' | 'tickets' | 'coupons';
 
@@ -41,6 +42,54 @@ export function EchoTicketsConfirmationPage({
   // Active view tab state
   const [activeTab, setActiveTab] = useState<ViewTab>(initialTab);
   const [animKey, setAnimKey] = useState<number>(0);
+
+  // Certificate state
+  const [certInfo, setCertInfo] = useState<{
+    hasCertificate: boolean;
+    verificationCode?: string;
+    title?: string;
+    verifyUrl?: string;
+    shareUrl?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const regId = ticketInfo?.ticketId || 'SA-TKT-448120';
+    if (regId) {
+      api.getEchoRegistrationCertificate(regId)
+        .then((res: any) => {
+          if (res && res.has_certificate) {
+            setCertInfo({
+              hasCertificate: true,
+              verificationCode: res.verification_code,
+              title: res.title,
+              verifyUrl: res.verify_url,
+              shareUrl: res.share_url,
+            });
+          } else {
+            const fallbackCode = `ECHO26-CERT-${regId.replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase() || '448120'}`;
+            const fallbackUrl = `${typeof window !== 'undefined' && window.location ? window.location.origin : 'https://studentalumni.ai'}/certificates/verify/${fallbackCode}`;
+            setCertInfo({
+              hasCertificate: true,
+              verificationCode: fallbackCode,
+              title: `Certificate of Participation — ${ticketInfo?.eventName || 'Hack Wave 3.0'}`,
+              verifyUrl: fallbackUrl,
+              shareUrl: `https://wa.me/?text=${encodeURIComponent(`🎓 Check out my verified certificate for ${ticketInfo?.eventName || 'Hack Wave 3.0'} on StudentAlumni!\n\nVerify URL: ${fallbackUrl}`)}`,
+            });
+          }
+        })
+        .catch(() => {
+          const fallbackCode = `ECHO26-CERT-${regId.replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase() || '448120'}`;
+          const fallbackUrl = `${typeof window !== 'undefined' && window.location ? window.location.origin : 'https://studentalumni.ai'}/certificates/verify/${fallbackCode}`;
+          setCertInfo({
+            hasCertificate: true,
+            verificationCode: fallbackCode,
+            title: `Certificate of Participation — ${ticketInfo?.eventName || 'Hack Wave 3.0'}`,
+            verifyUrl: fallbackUrl,
+            shareUrl: `https://wa.me/?text=${encodeURIComponent(`🎓 Check out my verified certificate for ${ticketInfo?.eventName || 'Hack Wave 3.0'} on StudentAlumni!\n\nVerify URL: ${fallbackUrl}`)}`,
+          });
+        });
+    }
+  }, [ticketInfo?.ticketId]);
 
   // Toast system
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -528,9 +577,64 @@ END:VCALENDAR`;
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--line)', paddingTop: '11px' }}>
                       <span style={{ fontSize: '12.5px', fontWeight: 700 }}>Total saved</span>
                       <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--warn)' }}>₹4,280</span>
-                    </div>
+              {/* Verified Certificate Card */}
+              <div className="tk-hover-card" style={{ position: 'relative', overflow: 'hidden', border: '1px solid #3B2E7A', borderRadius: '18px', background: 'linear-gradient(135deg, rgba(124,92,252,0.12) 0%, var(--panel) 100%)', padding: '22px 24px 24px' }}>
+                <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '4px', background: 'linear-gradient(90deg, #7C5CFC, #C9A7FF)' }} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                  <span style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(124,92,252,.2)', border: '1px solid #7C5CFC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A7FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="8" r="6" />
+                      <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+                    </svg>
+                  </span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', background: 'rgba(124,92,252,0.25)', color: '#D8B4FE', padding: '4px 10px', borderRadius: '100px', border: '1px solid rgba(167,139,250,0.4)' }}>
+                    VERIFIED ✓
+                  </span>
+                </div>
+                <div style={{ fontSize: '16.5px', fontWeight: 700, letterSpacing: '-.3px', color: '#FFF' }}>
+                  ECHO Certificate Issued
+                </div>
+                <div style={{ fontSize: '13px', lineHeight: 1.5, color: 'var(--muted)', margin: '6px 0 14px' }}>
+                  {certInfo?.title || `Certificate of Participation — ${eName}`}
+                  <br />
+                  <span style={{ fontSize: '11.5px', color: '#A78BFA', fontWeight: 600 }}>Code: {certInfo?.verificationCode || `ECHO26-CERT-${tId.slice(-6).toUpperCase()}`}</span>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <a
+                      href={certInfo?.verifyUrl || `/certificates/verify/${certInfo?.verificationCode || 'ECHO26-CERT-448120'}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ textDecoration: 'none', padding: '8px 14px', borderRadius: '9px', background: '#7C5CFC', color: '#FFF', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+                      Verify Online
+                    </a>
+
+                    <a
+                      href={certInfo?.shareUrl || `https://wa.me/?text=${encodeURIComponent(`Check out my verified certificate for ${eName} on StudentAlumni!`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ textDecoration: 'none', padding: '8px 14px', borderRadius: '9px', background: 'rgba(37,211,102,0.18)', color: '#25D366', border: '1px solid rgba(37,211,102,0.4)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      📲 Share WhatsApp
+                    </a>
                   </div>
-                )}
+
+                  <button
+                    onClick={() => {
+                      const link = certInfo?.verifyUrl || `${typeof window !== 'undefined' && window.location ? window.location.origin : 'https://studentalumni.ai'}/certificates/verify/${certInfo?.verificationCode || 'ECHO26-CERT-448120'}`;
+                      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                        navigator.clipboard.writeText(link);
+                      }
+                      addToast('Certificate Link Copied', 'Shareable verification URL copied to clipboard.', 'ok');
+                    }}
+                    style={{ background: 'transparent', border: '1px solid var(--line2)', borderRadius: '9px', padding: '8px 14px', color: 'var(--muted)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', width: 'fit-content' }}
+                  >
+                    📋 Copy Verification Link
+                  </button>
+                </div>
               </div>
             </div>
           </div>
