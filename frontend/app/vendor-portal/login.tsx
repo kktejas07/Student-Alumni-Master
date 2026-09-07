@@ -30,7 +30,7 @@ export default function VendorLoginScreen() {
 
       if (res.success && res.token) {
         login(res.token, res.vendor);
-        router.replace('/vendor-portal/dashboard');
+        router.replace('/vendor-portal/dashboard' as any);
       } else {
         setError(res.error || 'Invalid credentials');
       }

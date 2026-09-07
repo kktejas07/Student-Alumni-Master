@@ -61,9 +61,9 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
     } else {
       if (tabKey === 'home') router.push('/');
       else if (tabKey === 'echo') router.push('/echo');
-      else if (tabKey === 'marketplace') router.push('/marketplace');
-      else if (tabKey === 'verify') router.push('/certificates/verify');
-      else if (tabKey === 'contact') router.push('/contact');
+      else if (tabKey === 'marketplace') router.push('/marketplace' as any);
+      else if (tabKey === 'verify') router.push('/certificates/verify' as any);
+      else if (tabKey === 'contact') router.push('/contact' as any);
     }
   };
 
