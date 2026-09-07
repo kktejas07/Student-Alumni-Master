@@ -487,6 +487,18 @@ async def test_rsvp_paid_with_credits(mock_db, sample_event):
 
 
 @pytest.mark.asyncio
+async def test_credit_deduction_rejects_stale_balance(mock_db):
+    from events_aggregator import _try_deduct_credits
+
+    with patch("events_aggregator._db", mock_db):
+        mock_db.users.update_one = AsyncMock(return_value=MagicMock(matched_count=0))
+        user = {"_id": "user-1", "wallet": {"balance_credits": 100}}
+
+        assert await _try_deduct_credits(user, 50, "test") is False
+        mock_db.wallet_transactions.insert_one.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_rsvp_waitlist_when_full(mock_db, sample_event):
     from events_aggregator import rsvp_event
     with patch("events_aggregator._db", mock_db):
