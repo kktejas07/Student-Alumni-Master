@@ -6,6 +6,7 @@ import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { Badge } from '../atoms';
 import { postPortal, getPortal, putPortal, deletePortal } from '@/src/lib/portalApi';
 import { useToast, Toast } from '../applekit';
+import { CICDEvaluatorView } from './CICDEvaluatorView';
 
 export function AutonomousAgentsView() {
   const T = useSAC();
@@ -46,7 +47,7 @@ export function AutonomousAgentsView() {
     }
   };
 
-  const [activeTab, setActiveTab] = useState<'custom_teams' | 'outreach_directory' | 'swarm' | 'autopilot' | 'qa' | 'specialized' | 'observability' | 'daily_audit'>('custom_teams');
+  const [activeTab, setActiveTab] = useState<'custom_teams' | 'outreach_directory' | 'swarm' | 'autopilot' | 'qa' | 'specialized' | 'observability' | 'daily_audit' | 'cicd'>('custom_teams');
 
   // Custom Teams State
   const [teamsLoading, setTeamsLoading] = useState(false);
@@ -698,6 +699,11 @@ const FALLBACK_PRESET_TEAMS = [
         <Pressable onPress={() => setActiveTab('daily_audit')} style={[s.tabBtn, activeTab === 'daily_audit' && s.tabActive]}>
           <CheckCircle size={14} color={activeTab === 'daily_audit' ? '#fff' : SAC.muted} />
           <Text style={[s.tabText, activeTab === 'daily_audit' && s.tabTextActive]}>24h Ops Swarm</Text>
+        </Pressable>
+        <Pressable onPress={() => setActiveTab('cicd')} style={[s.tabBtn, activeTab === 'cicd' && s.tabActive]}>
+          <Code size={14} color={activeTab === 'cicd' ? '#fff' : SAC.muted} />
+          <Text style={[s.tabText, activeTab === 'cicd' && s.tabTextActive]}>CI/CD PR Evaluator</Text>
+          <Badge label="GIT SCOUT" color="indigo" />
         </Pressable>
       </View>
 
@@ -1733,6 +1739,9 @@ const FALLBACK_PRESET_TEAMS = [
           )}
         </View>
       )}
+
+      {/* TAB 8: CI/CD EVALUATOR & GIT SCOUT */}
+      {activeTab === 'cicd' && <CICDEvaluatorView />}
 
       {/* Modal to Create / Edit Custom Agent Team */}
       <Modal visible={modalVisible} transparent animationType="fade">

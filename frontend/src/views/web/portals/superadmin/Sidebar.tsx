@@ -10,7 +10,7 @@ import {
   LayoutDashboard, Building2, GraduationCap, UserCheck, Users, Calendar, CreditCard,
   BarChart3, CheckCircle, Sparkles, Settings, Workflow, LogOut,
   Upload, Handshake, Megaphone, UserPlus, Mail, Award, ShieldOff, ShieldCheck, Bot, Radar,
-  Video, Store, Tag,
+  Video, Store, Tag, GitPullRequest,
 } from 'lucide-react-native';
 import { SAC, useSAC, FONTS, resolveColors } from './tokens';
 import { Badge } from './atoms';
@@ -52,12 +52,13 @@ export type SuperAdminNavId =
   | 'overview' | 'agents' | 'visitor-radar' | 'bgv' | 'colleges' | 'students' | 'mentors' | 'alumni' | 'events'
   | 'payments' | 'analytics' | 'approvals' | 'ai-insights' | 'settings'
   | 'workflows' | 'imports' | 'partners' | 'promotions' | 'talent-pool' | 'echo-showcase'
-  | 'vendors' | 'coupons' | 'newsletter' | 'certificates' | 'email-health' | 'teams';
+  | 'vendors' | 'coupons' | 'newsletter' | 'certificates' | 'email-health' | 'teams' | 'cicd-evaluator';
 
 export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?: number; tag?: string }> = [
   { id: 'overview',        label: 'Overview',            Icon: LayoutDashboard,  count: 0 },
   { id: 'visitor-radar',   label: 'Live Visitor Radar',  Icon: Radar,            tag: 'NEW' },
   { id: 'agents',          label: 'Autonomous Agents',   Icon: Bot,              tag: 'NEW' },
+  { id: 'cicd-evaluator',  label: 'CI/CD PR Evaluator',  Icon: GitPullRequest,   tag: 'NEW' },
   { id: 'bgv',             label: 'BGV & Accounts',      Icon: ShieldCheck,      tag: 'NEW' },
   { id: 'colleges',        label: 'Colleges',            Icon: Building2 },
   { id: 'students',        label: 'Students',            Icon: GraduationCap },
