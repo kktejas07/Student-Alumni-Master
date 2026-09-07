@@ -498,3 +498,53 @@ async def trigger_multi_spec_outreach_loop(
     """Dispatches customized Partnership Specs (Goodies, Event Sponsorship, Mentorship) to platforms & partner communities in an automated loop."""
     from db import db
     return await outreach_scout_service.run_multi_spec_outreach_loop(db, req.spec_type or "goodies_partnership")
+
+
+# ── CI/CD, Git Scout & PR Evaluator Loop Agent Endpoints ─────────────────────
+from services.agents.cicd_pr_evaluator_agent import (
+    git_repo_scout_agent,
+    cicd_pr_evaluator_agent,
+    cicd_loop_agent,
+    PREvalRequest,
+)
+
+@router.post("/cicd/scout-repo")
+async def scout_git_repository(
+    repo_url: str = Query("https://github.com/kktejas07/Student-Alumni-Master", description="Git repository URL to scout"),
+    user=Depends(require_role("admin", "superadmin"))
+):
+    """Scout git repository for CI/CD workflow health, security scans & quality gates."""
+    return await git_repo_scout_agent.scout_repository(repo_url)
+
+@router.post("/cicd/evaluate-pr")
+async def evaluate_pull_request(
+    req: PREvalRequest = Body(...),
+    user=Depends(require_role("admin", "superadmin"))
+):
+    """Evaluate Pull Request diff across Security SAST, Lints, Test Coverage & Risk."""
+    return await cicd_pr_evaluator_agent.evaluate_pr(req)
+
+@router.get("/cicd/loop/status")
+async def get_cicd_loop_status(
+    user=Depends(require_role("admin", "superadmin"))
+):
+    """Get status of the continuous CI/CD PR Evaluator background loop agent."""
+    return cicd_loop_agent.get_status()
+
+@router.post("/cicd/loop/start")
+async def start_cicd_loop(
+    interval_seconds: int = Query(1800, ge=60, le=86400),
+    user=Depends(require_role("admin", "superadmin"))
+):
+    """Start the continuous background loop worker for PR evaluation & test auditing."""
+    started = cicd_loop_agent.start_loop(interval_seconds=interval_seconds)
+    return {"status": "success" if started else "already_running", "agent": cicd_loop_agent.get_status()}
+
+@router.post("/cicd/loop/stop")
+async def stop_cicd_loop(
+    user=Depends(require_role("admin", "superadmin"))
+):
+    """Stop the continuous background loop worker."""
+    stopped = cicd_loop_agent.stop_loop()
+    return {"status": "success" if stopped else "not_running", "agent": cicd_loop_agent.get_status()}
+
