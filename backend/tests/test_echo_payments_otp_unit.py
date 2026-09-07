@@ -206,6 +206,20 @@ def test_otp_token_has_access_type_and_expiry():
     assert exc.value.status_code == 401
 
 
+def test_malformed_access_token_subject_is_rejected():
+    from core.deps import get_current_user
+    from fastapi import HTTPException
+
+    bad = srv.jwt.encode(
+        {"sub": "not-an-object-id", "type": "access"},
+        srv.JWT_SECRET,
+        algorithm="HS256",
+    )
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(get_current_user(FakeRequest({"Authorization": f"Bearer {bad}"})))
+    assert exc.value.status_code == 401
+
+
 # ── 2. Registration gates: disabled / completed / deadline / capacity ───────
 @pytest.mark.asyncio
 async def test_assert_registration_open_gates(patch_deps, fake_db):

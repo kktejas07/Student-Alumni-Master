@@ -3,6 +3,7 @@ core.deps — FastAPI dependencies (currently: JWT auth `get_current_user`).
 """
 import jwt
 from bson import ObjectId
+from bson.errors import InvalidId
 from fastapi import HTTPException, Request, Depends
 
 from .db import db
@@ -19,9 +20,11 @@ async def get_current_user(request: Request) -> dict:
         if payload.get("type") != "access":
             raise HTTPException(401, "Invalid token type")
         # Exclude large binary/base64 fields to minimize payload size & latency on auth lookup
-        user = await db.users.find_one(
-            {"_id": ObjectId(payload["sub"])}
-        )
+        try:
+            subject = ObjectId(payload["sub"])
+        except (KeyError, InvalidId, TypeError):
+            raise HTTPException(401, "Invalid token")
+        user = await db.users.find_one({"_id": subject})
         if not user:
             raise HTTPException(401, "User not found")
         return user
