@@ -26,6 +26,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Query
 from pydantic import BaseModel, Field, field_validator
 from bson import ObjectId
+from core.deps import require_role
 
 router = APIRouter(prefix="/api/admin", tags=["contacts"])
 
@@ -122,9 +123,9 @@ def _get_db(request: Request):
     return db
 
 
-def _require_admin(request: Request):
-    """Simple admin check - in production, use proper auth dependency."""
-    return {"role": "admin"}
+async def _require_admin(user: dict = Depends(require_role("admin", "super_admin"))):
+    """Require an authenticated administrator for contact management."""
+    return user
 
 
 # ── Contact CRUD ──────────────────────────────────────────────────────────────
