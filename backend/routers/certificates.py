@@ -586,6 +586,28 @@ async def issue_certificate(payload: IssuePayload, user: dict = Depends(get_curr
     }
 
 
+async def _sync_with_echo_registrations(email: str, cert_doc: dict):
+    if not email:
+        return
+    try:
+        reg = await db.echo_registrations.find_one({"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}})
+        if reg:
+            code = cert_doc.get("verification_code") or cert_doc.get("id")
+            verify_url = cert_doc.get("verify_url") or f"{FRONTEND_URL}/certificates/verify/{code}"
+            await db.echo_registrations.update_one(
+                {"_id": reg["_id"]},
+                {"$set": {
+                    "has_certificate": True,
+                    "certificate_issued": True,
+                    "certificate_code": code,
+                    "certificate_url": verify_url,
+                    "last_certificate_title": cert_doc.get("title")
+                }}
+            )
+    except Exception as e:
+        pass
+
+
 @router.post("/upload")
 async def upload_certificate(
     file: UploadFile = File(...),
@@ -635,10 +657,12 @@ async def upload_certificate(
         "status_label": "Officially Verified",
         "image_url": f"/uploads/certificates/{safe_name}",
         "file_path": file_path,
+        "verify_url": verify_url,
     }
     await db.certificates.insert_one(doc)
 
     if email:
+        await _sync_with_echo_registrations(email, doc)
         await _send_cert_email(email, doc["title"], name, code, verify_url)
 
     return {
@@ -715,6 +739,7 @@ async def upload_bulk_certificates(
             await db.certificates.insert_one(doc)
 
             if email:
+                await _sync_with_echo_registrations(email, doc)
                 await _send_cert_email(email, doc["title"], name, code, verify_url)
 
             results.append({
