@@ -5276,7 +5276,7 @@ function LiveScanMonitorPanel() {
     }
     setUploadingCert(true);
     try {
-      const res = await request('/certificates/upload', {
+      const res: any = await request('/certificates/upload', {
         method: 'POST',
         body: JSON.stringify({
           recipient_email: certRecipientEmail,
