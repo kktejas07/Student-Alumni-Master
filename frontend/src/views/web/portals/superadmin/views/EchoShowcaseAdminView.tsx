@@ -5011,11 +5011,13 @@ function LiveScanMonitorPanel() {
   const { flash } = useToast();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sendingReminders, setSendingReminders] = useState(false);
   const [q, setQ] = useState('');
   const [page, setPage] = useState(0);
   const [detail, setDetail] = useState<{ reg: any; coupon: any } | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'checked_in' | 'not_checked'>('all');
   const [couponFilter, setCouponFilter] = useState<'all' | 'used' | 'unused'>('all');
+  const [saFilter, setSaFilter] = useState<'all' | 'complete_100' | 'incomplete' | 'no_account'>('all');
   const [editingReg, setEditingReg] = useState<{ id: string; email: string; full_name: string } | null>(null);
   const [editEmail, setEditEmail] = useState('');
   const [editName, setEditName] = useState('');
@@ -5042,11 +5044,11 @@ function LiveScanMonitorPanel() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 15000); // Refresh every 15s instead of 30s
+    const interval = setInterval(load, 15000);
     return () => clearInterval(interval);
   }, [load]);
 
-  useEffect(() => { setPage(0); }, [q, statusFilter, couponFilter]);
+  useEffect(() => { setPage(0); }, [q, statusFilter, couponFilter, saFilter]);
 
   const stats = useMemo(() => {
     let checkedIn = 0;
@@ -5054,9 +5056,18 @@ function LiveScanMonitorPanel() {
     let lunch = 0;
     let swag = 0;
     let others = 0;
+    let saMembers = 0;
+    let sa100 = 0;
+    let noAccount = 0;
+    let certIssued = 0;
 
     data.forEach(reg => {
       if (reg.checked_in_at) checkedIn++;
+      if (reg.has_sa_account) saMembers++;
+      if (reg.is_profile_100) sa100++;
+      if (!reg.has_sa_account) noAccount++;
+      if (reg.has_certificate) certIssued++;
+
       if (reg.coupons) {
         reg.coupons.forEach((c: any) => {
           if (c.used) {
@@ -5070,34 +5081,60 @@ function LiveScanMonitorPanel() {
       }
     });
 
-    return { checkedIn, couponsUsed, lunch, swag, others };
+    return { checkedIn, couponsUsed, lunch, swag, others, saMembers, sa100, noAccount, certIssued };
   }, [data]);
 
   const filtered = data.filter(d => {
-    // Search filter
     const matchesSearch = !q || 
       d.full_name?.toLowerCase().includes(q.toLowerCase()) || 
       d.email?.toLowerCase().includes(q.toLowerCase()) || 
       d.id?.toLowerCase().includes(q.toLowerCase()) ||
       d.team_name?.toLowerCase().includes(q.toLowerCase());
     
-    // Status filter
     const matchesStatus = statusFilter === 'all' || 
       (statusFilter === 'checked_in' && d.checked_in_at) ||
       (statusFilter === 'not_checked' && !d.checked_in_at);
     
-    // Coupon filter
     const hasUsedCoupons = d.coupons?.some((c: any) => c.used);
     const hasUnusedCoupons = d.coupons?.some((c: any) => !c.used);
     const matchesCoupon = couponFilter === 'all' ||
       (couponFilter === 'used' && hasUsedCoupons) ||
       (couponFilter === 'unused' && hasUnusedCoupons);
+
+    const matchesSa = saFilter === 'all' ||
+      (saFilter === 'complete_100' && d.is_profile_100) ||
+      (saFilter === 'incomplete' && d.has_sa_account && !d.is_profile_100) ||
+      (saFilter === 'no_account' && !d.has_sa_account);
     
-    return matchesSearch && matchesStatus && matchesCoupon;
+    return matchesSearch && matchesStatus && matchesCoupon && matchesSa;
   });
   
   const paginated = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
+
+  const handleSendProfileReminders = async () => {
+    if (typeof window !== 'undefined' && !window.confirm('Send automated 100% profile & SA account reminders via Email + WhatsApp to all incomplete registrants?')) return;
+    setSendingReminders(true);
+    try {
+      const res = await api.adminEchoSendProfileReminders({ target_group: 'all_incomplete', channel: 'both' });
+      flash(`Loop Agent Dispatched! Processed: ${res?.processed_count}, Emails: ${res?.emails_sent}, WhatsApp: ${res?.whatsapp_sent}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to send reminders', 'error');
+    } finally {
+      setSendingReminders(false);
+    }
+  };
+
+  const handleIssueCert = async (reg: any) => {
+    try {
+      const res = await api.adminEchoIssueCertificate(reg.id);
+      flash(`Certificate issued for ${reg.full_name}! Code: ${res?.code}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to issue certificate', 'error');
+    }
+  };
 
   const sourceBadge = (s: string | null | undefined) => {
     if (!s || s === 'our_platform' || s === 'studentalumni') return null;
@@ -5113,6 +5150,34 @@ function LiveScanMonitorPanel() {
     );
   };
 
+  const saAccountBadge = (reg: any) => {
+    if (reg.is_profile_100) {
+      return (
+        <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.4)' }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#34D399' }}>
+            SA Member ✓ (100%)
+          </Text>
+        </View>
+      );
+    }
+    if (reg.has_sa_account) {
+      return (
+        <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(245,179,66,0.18)', borderWidth: 1, borderColor: 'rgba(245,179,66,0.4)' }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#F5B342' }}>
+            SA Member ({reg.profile_completion_pct || 0}%)
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' }}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#FCA5A5' }}>
+          No SA Account
+        </Text>
+      </View>
+    );
+  };
+
   const fmtStamp = (v: any) => {
     if (!v) return null;
     const d = new Date(v);
@@ -5122,20 +5187,26 @@ function LiveScanMonitorPanel() {
     return `${date} · ${time}`;
   };
 
-  const openMap = (lat: any, lng: any) => {
-    if (Platform.OS === 'web' && window?.open) window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
-  };
-
   return (
     <View style={{ flex: 1, gap: 20 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
         <View>
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: SAC.text }}>Live Scan Monitor</Text>
-          <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: SAC.muted }}>Real-time check-in and coupon scan activity</Text>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: SAC.text }}>Live Scan & SA Member Monitor</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: SAC.muted }}>Real-time check-ins, 100% profile completion, and ECHO certificates</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <View style={{ width: 250 }}>
-            <SearchField value={q} onChange={setQ} placeholder="Search by name, email, ID..." />
+          <Pressable
+            onPress={handleSendProfileReminders}
+            disabled={sendingReminders}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.25)', borderPadding: 8, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#7C5CFC' }}>
+            <Sparkles size={14} color="#C9A7FF" />
+            <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold, fontSize: 12 }}>
+              {sendingReminders ? 'Loop Agent Sending...' : '⚡ Send 100% Profile & SA Reminders'}
+            </Text>
+          </Pressable>
+
+          <View style={{ width: 220 }}>
+            <SearchField value={q} onChange={setQ} placeholder="Search name, email, ID..." />
           </View>
           <SecondaryButton onPress={load}><RefreshCw size={14} color={SAC.muted} /><Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>Refresh</Text></SecondaryButton>
         </View>
@@ -5143,6 +5214,21 @@ function LiveScanMonitorPanel() {
 
       {/* Filter row */}
       <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+        {/* SA Account & Profile filter */}
+        <View style={{ flexDirection: 'row', gap: 4, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
+          {[
+            { id: 'all', label: 'All Accounts' },
+            { id: 'complete_100', label: '100% Profile' },
+            { id: 'incomplete', label: 'Incomplete (<100%)' },
+            { id: 'no_account', label: 'No SA Account' },
+          ].map(f => (
+            <Pressable key={f.id} onPress={() => setSaFilter(f.id as any)}
+              style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: saFilter === f.id ? 'rgba(124,92,252,0.3)' : 'transparent' }}>
+              <Text style={{ fontSize: 12, fontFamily: FONTS.med, color: saFilter === f.id ? '#D8B4FE' : SAC.muted }}>{f.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
         {/* Status filter */}
         <View style={{ flexDirection: 'row', gap: 4, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
           {[
@@ -5156,6 +5242,7 @@ function LiveScanMonitorPanel() {
             </Pressable>
           ))}
         </View>
+
         {/* Coupon filter */}
         <View style={{ flexDirection: 'row', gap: 4, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
           {[
@@ -5169,9 +5256,10 @@ function LiveScanMonitorPanel() {
             </Pressable>
           ))}
         </View>
+
         {/* Reset filters */}
-        {(statusFilter !== 'all' || couponFilter !== 'all' || q) && (
-          <Pressable onPress={() => { setStatusFilter('all'); setCouponFilter('all'); setQ(''); }}
+        {(statusFilter !== 'all' || couponFilter !== 'all' || saFilter !== 'all' || q) && (
+          <Pressable onPress={() => { setStatusFilter('all'); setCouponFilter('all'); setSaFilter('all'); setQ(''); }}
             style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' }}>
             <Text style={{ fontSize: 12, fontFamily: FONTS.med, color: '#FCA5A5' }}>Clear Filters</Text>
           </Pressable>
@@ -5181,29 +5269,30 @@ function LiveScanMonitorPanel() {
       {/* KPI tiles */}
       <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
         <KpiTile Icon={CheckCircle} label="Event Check-Ins" value={String(stats.checkedIn)} />
+        <KpiTile Icon={UserCheck} label="SA Members" value={`${stats.saMembers} (${stats.sa100} 100%)`} />
+        <KpiTile Icon={Award} label="Certificates Issued" value={String(stats.certIssued)} />
         <KpiTile Icon={Ticket} label="Coupons Scanned" value={String(stats.couponsUsed)} />
-        <KpiTile Icon={Ticket} label="Lunch Scanned" value={String(stats.lunch)} />
-        <KpiTile Icon={Ticket} label="Other Scanned" value={String(stats.swag + stats.others)} />
         <KpiTile Icon={Users} label="Total Registrations" value={String(data.length)} />
       </View>
 
-      {/* Debug info */}
-      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', padding: 10, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
-        <Text style={{ fontSize: 11, color: SAC.muted, fontFamily: FONTS.med }}>
-          Loaded: {data.length} registrations | {filtered.length} filtered | Page {page + 1}/{totalPages}
+      {/* Summary Banner */}
+      <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap', padding: 12, backgroundColor: 'rgba(124,92,252,0.08)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(124,92,252,0.2)' }}>
+        <Text style={{ fontSize: 12, color: '#D8B4FE', fontFamily: FONTS.med }}>
+          📊 SA Accounts: <Text style={{ fontFamily: FONTS.bold, color: '#FFF' }}>{stats.saMembers}</Text> Members | <Text style={{ fontFamily: FONTS.bold, color: '#34D399' }}>{stats.sa100}</Text> 100% Completed | <Text style={{ fontFamily: FONTS.bold, color: '#FCA5A5' }}>{stats.noAccount}</Text> No Account
         </Text>
-        <Text style={{ fontSize: 11, color: '#A78BFA', fontFamily: FONTS.med }}>
-          | Scanned: {stats.couponsUsed} coupons
+        <Text style={{ fontSize: 12, color: '#A78BFA', fontFamily: FONTS.med }}>
+          🎓 Certificates: <Text style={{ fontFamily: FONTS.bold, color: '#FFF' }}>{stats.certIssued}</Text> Issued
         </Text>
       </View>
 
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <View style={{ flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.02)', padding: 16, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
           <Text style={{ flex: 1.6, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Attendee</Text>
+          <Text style={{ flex: 1.1, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>SA Account & Profile</Text>
           <Text style={{ flex: 0.7, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Status</Text>
-          <Text style={{ flex: 0.9, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Source</Text>
-          <Text style={{ flex: 1.5, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Check-In / Time</Text>
-          <Text style={{ flex: 2.2, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Session Coupons</Text>
+          <Text style={{ flex: 1.4, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Check-In / Time</Text>
+          <Text style={{ flex: 1.8, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Coupons & Certificate</Text>
+          <Text style={{ flex: 1.0, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase', textAlign: 'right' }}>Actions</Text>
         </View>
         
         {loading && data.length === 0 ? (
@@ -5218,6 +5307,20 @@ function LiveScanMonitorPanel() {
                 <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginBottom: 4 }}>{reg.email}</Text>
                 <Text style={{ fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>ID: {reg.id}</Text>
               </View>
+
+              <View style={{ flex: 1.1, justifyContent: 'center', gap: 4, paddingRight: 8 }}>
+                {saAccountBadge(reg)}
+                {reg.sa_account?.sa_id && (
+                  <Text style={{ fontFamily: 'monospace', fontSize: 9.5, color: '#A78BFA' }}>
+                    SA ID: {reg.sa_account.sa_id}
+                  </Text>
+                )}
+                {reg.last_profile_reminder_at && (
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>
+                    Reminded {reg.profile_reminder_count || 1}x
+                  </Text>
+                )}
+              </View>
               
               <View style={{ flex: 0.7, justifyContent: 'center' }}>
                 <StatusPill 
@@ -5226,11 +5329,7 @@ function LiveScanMonitorPanel() {
                 />
               </View>
 
-              <View style={{ flex: 0.9, justifyContent: 'center', paddingRight: 8 }}>
-                {sourceBadge(reg.source)}
-              </View>
-
-              <View style={{ flex: 1.5, justifyContent: 'center', paddingRight: 10 }}>
+              <View style={{ flex: 1.4, justifyContent: 'center', paddingRight: 10 }}>
                 {reg.checked_in_at ? (
                   <View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -5251,9 +5350,25 @@ function LiveScanMonitorPanel() {
                 )}
               </View>
 
-              <View style={{ flex: 2.2, justifyContent: 'center' }}>
-                {reg.coupons && reg.coupons.length > 0 ? (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              <View style={{ flex: 1.8, justifyContent: 'center', gap: 6 }}>
+                {reg.has_certificate ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.18)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' }}>
+                    <Award size={12} color="#C9A7FF" />
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 10.5, color: '#D8B4FE' }}>
+                      Cert: {reg.certificate?.verification_code || 'Issued'}
+                    </Text>
+                  </View>
+                ) : (
+                  <Pressable
+                    onPress={() => handleIssueCert(reg)}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' }}>
+                    <Award size={12} color="#A78BFA" />
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#A78BFA' }}>Issue Cert</Text>
+                  </Pressable>
+                )}
+
+                {reg.coupons && reg.coupons.length > 0 && (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
                     {reg.coupons.map((c: any, idx: number) => (
                       <Pressable
                         key={idx}
@@ -5261,26 +5376,18 @@ function LiveScanMonitorPanel() {
                         style={{ flexDirection: 'row', alignItems: 'center', gap: 4,
                           backgroundColor: c.used ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)',
                           borderWidth: 1, borderColor: c.used ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.08)',
-                          borderRadius: 6, paddingHorizontal: 8, paddingVertical: 5 }}>
-                        <Ticket size={12} color={c.used ? '#34D399' : SAC.muted} />
-                        <View>
-                          <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: c.used ? '#34D399' : SAC.muted }} numberOfLines={1}>
-                            {c.session_name}
-                          </Text>
-                          <Text style={{ fontFamily: FONTS.med, fontSize: 8.5, color: c.used ? '#6EE7B7' : 'rgba(255,255,255,0.35)', marginTop: 1 }}>
-                            {c.used ? 'Used' : 'Unused'} · tap details
-                          </Text>
-                        </View>
-                        <ChevronRight size={12} color="rgba(255,255,255,0.3)" />
+                          borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 }}>
+                        <Ticket size={10} color={c.used ? '#34D399' : SAC.muted} />
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: c.used ? '#34D399' : SAC.muted }} numberOfLines={1}>
+                          {c.session_name}
+                        </Text>
                       </Pressable>
                     ))}
                   </View>
-                ) : (
-                  <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>No Coupons</Text>
                 )}
               </View>
 
-              <View style={{ flex: 0.8, justifyContent: 'center', alignItems: 'flex-end', gap: 6 }}>
+              <View style={{ flex: 1.0, justifyContent: 'center', alignItems: 'flex-end', gap: 6 }}>
                 <Pressable
                   onPress={() => setEditingReg({ id: reg.id, email: reg.email || '', full_name: reg.full_name || '' })}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 6, backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)' }}>
