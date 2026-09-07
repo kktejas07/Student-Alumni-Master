@@ -210,9 +210,19 @@ def _fmt_date(val: Any) -> str:
 async def mentor_dashboard(mentor_email: Optional[str] = None, user: dict = Depends(require_role('mentor'))):
     """Real mentor dashboard. If mentor_email passed, scopes to that mentor;
     otherwise returns first approved mentor as demo."""
+    is_admin = (user.get("role") or "").lower() in {"admin", "super_admin"}
+    if not is_admin:
+        requested_email = (mentor_email or "").strip().lower()
+        own_email = (user.get("email") or "").strip().lower()
+        if requested_email and requested_email != own_email:
+            raise HTTPException(403, "Cannot access another mentor's dashboard")
+        mentor_email = user.get("email")
+
     mentor = None
     if mentor_email:
         mentor = await _db.users.find_one({"email": mentor_email, "role": "mentor"})
+    if not mentor and not is_admin:
+        raise HTTPException(404, "Mentor not found")
     if not mentor:
         mentor = await _db.users.find_one({"role": "mentor", "mentor_status": "approved"})
     if not mentor:
@@ -380,8 +390,16 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
     print(f"[DASHBOARD] REQUEST_RECEIVED", flush=True)
 
     # ── Profile lookup ──────────────────────────────────────────────
+    is_admin = (user.get("role") or "").lower() in {"admin", "super_admin"}
+    if not is_admin:
+        requested_email = (student_email or "").strip().lower()
+        own_email = (user.get("email") or "").strip().lower()
+        if requested_email and requested_email != own_email:
+            raise HTTPException(403, "Cannot access another student's dashboard")
+        student_email = user.get("email")
+
     student = None
-    if not student_email:
+    if not student_email and is_admin:
         auth = request.headers.get("Authorization", "")
         if auth.startswith("Bearer "):
             try:
