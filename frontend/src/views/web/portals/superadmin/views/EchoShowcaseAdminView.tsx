@@ -5221,20 +5221,21 @@ function LiveScanMonitorPanel() {
   };
 
   const saAccountBadge = (reg: any) => {
-    if (reg.is_profile_100) {
+    const pct = reg.profile_completion_pct || 0;
+    if (reg.is_profile_100 || pct >= 100) {
       return (
         <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.4)' }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#34D399' }}>
-            SA Member ✓ (100%)
+            Profile 100% Complete ✓
           </Text>
         </View>
       );
     }
-    if (reg.has_sa_account) {
+    if (pct > 0) {
       return (
         <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(245,179,66,0.18)', borderWidth: 1, borderColor: 'rgba(245,179,66,0.4)' }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#F5B342' }}>
-            SA Member ({reg.profile_completion_pct || 0}%)
+            Profile ({pct}%) · Incomplete
           </Text>
         </View>
       );
@@ -5242,7 +5243,7 @@ function LiveScanMonitorPanel() {
     return (
       <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' }}>
         <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#FCA5A5' }}>
-          No SA Account
+          Profile (0%) · Incomplete
         </Text>
       </View>
     );

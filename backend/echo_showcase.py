@@ -4919,12 +4919,29 @@ async def admin_echo_registrations(
         u_email = (s.get("email") or "").lower().strip()
         u_phone = (s.get("phone") or "").strip()
         sa_user = user_map.get(u_email) or user_map.get(u_phone)
-        has_sa = bool(sa_user or s.get("user_id"))
-        comp_pct = sa_user.get("profile_completion_pct", 0) if sa_user else 0
-        is_100 = sa_user.get("is_profile_100", False) if sa_user else False
+        has_sa = bool(sa_user or s.get("user_id") or u_email)
+
+        if sa_user:
+            comp_pct = sa_user.get("profile_completion_pct", 0)
+        else:
+            reg_eval = {
+                "email": u_email,
+                "full_name": s.get("full_name"),
+                "institution": s.get("college"),
+                "branch": s.get("branch"),
+                "year_of_study": s.get("year"),
+                "phone": u_phone,
+            }
+            eval_res = compute_profile_completion(reg_eval)
+            comp_pct = eval_res.get("percentage", 0)
+
+        # Allow explicitly flag or 100% score
+        is_100 = bool(s.get("is_profile_100") or (sa_user and sa_user.get("is_profile_100")) or comp_pct >= 100)
+        if is_100 and comp_pct < 100:
+            comp_pct = 100
 
         cert_data = cert_map.get(rid) or cert_map.get(u_email)
-        has_cert = bool(cert_data or s.get("certificate_issued"))
+        has_cert = bool(cert_data or s.get("certificate_issued") or s.get("has_3_certificates"))
 
         items.append({
             "id": s.get("id"),
