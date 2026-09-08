@@ -1268,29 +1268,41 @@ async def import_csv_zip_certificates(
 
     # ── Process rows ───────────────────────────────────────────────────
     # ── Detect CSV format & flatten multi-cert rows ────────────────────
-    # Format A (standard): email, name, title, certificate_id, file
-    # Format B (user's): Name, Email, Build by Sunset ID, HackWave ID, Conclave ID, Bundle
     sample = rows[0] if rows else {}
-    low_keys = {k.strip().lower() for k in sample.keys()}
-    has_multi_cert = any(k in low_keys for k in ["build by sunset id", "hackwave id", "conclave id"])
+    # Normalize all header keys: lowercase, strip, collapse spaces
+    normalized_keys = {k.strip().lower().replace("  ", " "): k for k in sample.keys()}
+    
+    # Find certificate ID columns by partial match
+    sunset_col = next((v for k, v in normalized_keys.items() if "sunset" in k), None)
+    hackwave_col = next((v for k, v in normalized_keys.items() if "hackwave" in k or "hack wave" in k), None)
+    conclave_col = next((v for k, v in normalized_keys.items() if "conclave" in k), None)
+    email_col = next((v for k, v in normalized_keys.items() if k == "email"), None)
+    name_col = next((v for k, v in normalized_keys.items() if k == "name"), None)
+    branch_col = next((v for k, v in normalized_keys.items() if k == "branch"), None)
+    bundle_col = next((v for k, v in normalized_keys.items() if k == "bundle"), None)
+    
+    has_multi_cert = bool(sunset_col or hackwave_col or conclave_col)
 
-    if has_multi_cert:
-        # Flatten: 1 row → 3 rows (one per certificate type)
-        CERT_MAP = [
-            ("build by sunset id", "Built by Sunset — Project Build Certificate", "built_by_sunset", "sunset"),
-            ("hackwave id", "Certificate of Participation — Hackwave 3.0", "hackwave_participation", "echo"),
-            ("conclave id", "Cyber Conclave — Professional Certificate", "cyber_conclave", "cyber"),
-        ]
+    if has_multi_cert and email_col:
+        CERT_MAP = []
+        if sunset_col:
+            CERT_MAP.append((sunset_col, "Built by Sunset — Project Build Certificate"))
+        if hackwave_col:
+            CERT_MAP.append((hackwave_col, "Certificate of Participation — Hackwave 3.0"))
+        if conclave_col:
+            CERT_MAP.append((conclave_col, "Cyber Conclave — Professional Certificate"))
+        
         flat_rows = []
-        rows_before = rows
         for row in rows:
-            email = _col(row, "email", "Email").lower()
-            name = _col(row, "name", "Name")
-            branch = _col(row, "branch", "Branch")
-            bundle = _col(row, "bundle", "Bundle")
-            for cert_col, title, _cat_key, _cat_label in CERT_MAP:
-                cert_id = _col(row, cert_col)
-                if not cert_id or not email:
+            email = (row.get(email_col) or "").strip().lower()
+            name = (row.get(name_col) or "").strip() if name_col else ""
+            branch = (row.get(branch_col) or "").strip() if branch_col else ""
+            bundle = (row.get(bundle_col) or "").strip() if bundle_col else ""
+            if not email:
+                continue
+            for cert_col, title in CERT_MAP:
+                cert_id = (row.get(cert_col) or "").strip()
+                if not cert_id:
                     continue
                 flat_rows.append({
                     "email": email, "name": name, "title": title,
@@ -1299,8 +1311,7 @@ async def import_csv_zip_certificates(
                 })
         rows = flat_rows
         if not rows:
-            sample = rows_before[0] if rows_before else {}
-            raise HTTPException(400, f"No valid rows after flattening. CSV keys: {list(sample.keys())}. Sample: {str(dict(list(sample.items())[:5]))}")
+            raise HTTPException(400, f"No valid certificate rows. Found email column: {email_col}, sunset: {sunset_col}, hackwave: {hackwave_col}, conclave: {conclave_col}. CSV keys: {list(sample.keys())}")
 
     # ── Shared processing logic ────────────────────────────────────────
     def _col(row, *keys):
