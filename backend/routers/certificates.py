@@ -31,6 +31,19 @@ def _clean_str(val: Optional[str]) -> str:
     return (val or "").strip()
 
 
+def _parse_csv_rows(content: bytes) -> list:
+    """Parse CSV with auto-delimiter detection (comma, tab, or semicolon)."""
+    text = content.decode("utf-8-sig", errors="replace")
+    first_line = text.split("\n", 1)[0] if text else ""
+    if "\t" in first_line and "," not in first_line:
+        delim = "\t"
+    elif ";" in first_line and "," not in first_line:
+        delim = ";"
+    else:
+        delim = ","
+    return list(csv.DictReader(io.StringIO(text), delimiter=delim))
+
+
 @router.get("/my")
 async def get_my_certificates(current_user: dict = Depends(get_current_user)):
     """
@@ -1191,9 +1204,7 @@ async def preview_csv(
         raise HTTPException(403, "Admin only")
     
     content = await csv_file.read()
-    text = content.decode("utf-8-sig")
-    reader = csv.DictReader(io.StringIO(text))
-    rows = list(reader)
+    rows = _parse_csv_rows(content)
     
     if not rows:
         return {"error": "CSV is empty", "headers": [], "sample_rows": [], "total_rows": 0}
@@ -1251,7 +1262,7 @@ async def import_csv_zip_certificates(
         raise HTTPException(400, "CSV file must be a .csv file")
     try:
         csv_bytes = await csv_file.read()
-        rows = list(csv.DictReader(io.StringIO(csv_bytes.decode("utf-8-sig"))))
+        rows = _parse_csv_rows(csv_bytes)
     except Exception as e:
         raise HTTPException(400, f"Could not parse CSV: {str(e)}")
     if not rows:
