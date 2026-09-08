@@ -19,11 +19,7 @@ from core.email_quality import reject_reason, require_ok
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://studentalumni.ai")
 
-try:
-    from routers.auth import _deps_get_current_user as get_current_user
-except Exception:
-    async def get_current_user():
-        return {"role": "admin", "is_super_admin": True}
+from core.deps import get_current_user
 
 router = APIRouter(prefix="/certificates", tags=["Certificates"])
 

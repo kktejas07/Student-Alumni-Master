@@ -50,7 +50,9 @@ export function MyCertificatesView() {
   const [pendingCode, setPendingCode] = useState<string | null>(null);
 
   const pct = completion?.percentage ?? 0;
-  const isLocked = pct < 100;
+  // Admins/super-admins bypass the 100% gate so the owner can QA issued certs.
+  const isAdmin = ['admin', 'superadmin', 'super_admin', 'super-admin'].includes(String((user as any)?.role || '').toLowerCase());
+  const isLocked = !isAdmin && pct < 100;
   const missingItems = (completion?.items || []).filter((i) => !i.done).map((i) => i.label);
 
   useEffect(() => {
