@@ -5231,32 +5231,38 @@ async def _send_single_cert_email(
         return False
 
 
-@router.post("/admin/registrations/{reg_id}/issue-3-certificates")
-async def admin_echo_issue_3_certificates(
-    reg_id: str,
-    request: Request,
-    _=Depends(_require_admin),
-):
-    """Issue all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave) for a registration."""
-    db = _get_db(request)
-    reg = await db.echo_registrations.find_one({"id": reg_id})
-    if not reg and ObjectId.is_valid(reg_id):
-        reg = await db.echo_registrations.find_one({"_id": ObjectId(reg_id)})
-    if not reg:
-        raise HTTPException(status_code=404, detail="Registration not found")
+ORDERED_3_CERT_KEYS = ["built_by_sunset", "hackwave_participation", "cyber_conclave"]
+
+
+async def _issue_3_with_emails(db, reg: dict, force_resend: bool = False) -> tuple:
+    """Issue all 3 certs for one registration + per-cert individual emails.
+
+    force_resend=False skips regs that already have all 3 codes AND emailed
+    status (safe to re-run bulk without spamming). Returns
+    (certs, email_status, new_count, skipped).
+    """
+    pre = reg.get("certificates_3_status") or {}
+    pre_codes = {k: (pre.get(k) or {}).get("code") for k in ORDERED_3_CERT_KEYS}
+    pre_emailed = {
+        k: bool((pre.get(k) or {}).get("email_sent"))
+        or bool(((reg.get("cert_email_status") or {}).get(k) or {}).get("email_sent"))
+        for k in ORDERED_3_CERT_KEYS
+    }
 
     certs = await issue_3_echo_certificates(db, reg)
+    new_count = sum(1 for k in ORDERED_3_CERT_KEYS if certs.get(k, {}).get("code") != pre_codes.get(k))
 
-    # Per-certificate individual emails (1 email per cert — scales to 1..N certs)
-    # + per-cert delivery status persisted for admin visibility.
+    if not force_resend and new_count == 0 and all(pre_emailed.values()):
+        return certs, {k: {"email_sent": True, "skipped_resend": True,
+                           "code": (certs.get(k) or {}).get("code")} for k in ORDERED_3_CERT_KEYS}, 0, True
+
     email = (reg.get("email") or "").lower().strip()
     full_name = (reg.get("full_name") or "").strip() or "ECHO Participant"
-    ordered_keys = ["built_by_sunset", "hackwave_participation", "cyber_conclave"]
     email_status: dict = {}
     now_str = _now()
     try:
-        total = len([k for k in ordered_keys if k in certs])
-        for i, key in enumerate(ordered_keys, start=1):
+        total = len([k for k in ORDERED_3_CERT_KEYS if k in certs])
+        for i, key in enumerate(ORDERED_3_CERT_KEYS, start=1):
             c = certs.get(key)
             if not c:
                 continue
@@ -5275,7 +5281,6 @@ async def admin_echo_issue_3_certificates(
             certs[key]["email_sent"] = sent
             certs[key]["email_sent_at"] = now_str if sent else None
             certs[key]["email_error"] = err
-        # Persist per-cert email status on registration + certificate docs
         await db.echo_registrations.update_one(
             {"_id": reg["_id"]},
             {"$set": {
@@ -5284,7 +5289,7 @@ async def admin_echo_issue_3_certificates(
                 "cert_email_updated_at": now_str,
             }},
         )
-        for key in ordered_keys:
+        for key in ORDERED_3_CERT_KEYS:
             c = certs.get(key)
             if c and c.get("code"):
                 await db.certificates.update_one(
@@ -5298,12 +5303,85 @@ async def admin_echo_issue_3_certificates(
     except Exception as e:
         logger.warning(f"Issue-3-certificates per-cert email error: {e}")
 
+    return certs, email_status, new_count, False
+
+
+@router.post("/admin/registrations/{reg_id}/issue-3-certificates")
+async def admin_echo_issue_3_certificates(
+    reg_id: str,
+    request: Request,
+    _=Depends(_require_admin),
+):
+    """Issue all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave) for a registration."""
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg and ObjectId.is_valid(reg_id):
+        reg = await db.echo_registrations.find_one({"_id": ObjectId(reg_id)})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+
+    # Per-certificate individual emails (1 email per cert — scales to 1..N certs)
+    # + per-cert delivery status persisted for admin visibility.
+    certs, email_status, _new_count, _skipped = await _issue_3_with_emails(db, reg, force_resend=True)
+
     sent_count = sum(1 for v in email_status.values() if v.get("email_sent"))
     return {
         "status": "success",
         "message": f"All 3 certificates issued for {reg.get('full_name')} — {sent_count}/3 emails sent",
         "certificates": certs,
         "email_status": email_status,
+    }
+
+
+@router.post("/admin/bulk-issue-3-certificates")
+async def admin_echo_bulk_issue_3_certificates(
+    request: Request,
+    slug: Optional[str] = Query(None, description="Optional showcase slug filter"),
+    resend: bool = Query(False, description="Resend emails even where already sent"),
+    _=Depends(_require_admin),
+):
+    """One-click bulk: issue all 3 certificates to ALL registrations at once.
+
+    Dedup-safe (email+category+event reuse) — re-runs skip fully-issued+emailed
+    regs unless resend=true. Returns per-run summary with email delivery counts.
+    """
+    db = _get_db(request)
+    q: dict = {"slug": slug} if slug else {}
+    regs = await db.echo_registrations.find(q).to_list(10000)
+
+    processed = 0
+    regs_new_certs = 0
+    emails_sent = 0
+    emails_failed = 0
+    skipped = 0
+    failures: list = []
+    for reg in regs:
+        try:
+            _certs, estatus, new_count, was_skipped = await _issue_3_with_emails(
+                db, reg, force_resend=resend
+            )
+            processed += 1
+            if was_skipped:
+                skipped += 1
+                emails_sent += sum(1 for v in estatus.values() if v.get("email_sent"))
+                continue
+            if new_count > 0:
+                regs_new_certs += 1
+            emails_sent += sum(1 for v in estatus.values() if v.get("email_sent"))
+            emails_failed += sum(1 for v in estatus.values() if not v.get("email_sent"))
+        except Exception as e:
+            failures.append({"reg_id": reg.get("id"), "email": reg.get("email"), "error": str(e)[:200]})
+
+    return {
+        "status": "success",
+        "message": f"Bulk issue complete: {processed} processed, {regs_new_certs} newly issued, {emails_sent} emails sent, {skipped} skipped (already done)",
+        "total_registrations": len(regs),
+        "processed": processed,
+        "regs_newly_issued": regs_new_certs,
+        "emails_sent": emails_sent,
+        "emails_failed": emails_failed,
+        "skipped_already_done": skipped,
+        "failures": failures[:50],
     }
 
 
