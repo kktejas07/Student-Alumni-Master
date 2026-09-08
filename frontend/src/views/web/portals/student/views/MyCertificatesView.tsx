@@ -210,10 +210,16 @@ export function MyCertificatesView() {
         <View style={s.lockBanner}>
           <Lock size={20} color="#FBBF24" />
           <View style={{ flex: 1, gap: 6 }}>
-            <Text style={s.lockTitle}>Complete your profile to 100% to unlock certificates ({pct}%)</Text>
+            <Text style={s.lockTitle}>
+              {certs.length > 0
+                ? `${certs.length} certificate${certs.length === 1 ? '' : 's'} issued — profile is ${pct}%`
+                : `Complete your profile to 100% to unlock certificates (${pct}%)`}
+            </Text>
             <Text style={s.lockSub}>
-              Your certificates are issued but masked. Finish the remaining items to view codes and verify links.
-              {missingItems.length > 0 ? ` Missing: ${missingItems.join(', ')}` : ''}
+              {certs.length > 0
+                ? `Your certificates are issued and verified but locked until your profile reaches 100%. Complete the missing items below to view codes, verify, and download. Missing: ${missingItems.join(', ')}`
+                : 'Your certificates are issued but masked. Finish the remaining items to view codes and verify links.'}
+              {missingItems.length > 0 && certs.length === 0 ? ` Missing: ${missingItems.join(', ')}` : ''}
             </Text>
             <View style={s.progressTrack}>
               <View style={[s.progressFill, { width: `${pct}%` }]} />
@@ -297,6 +303,7 @@ export function MyCertificatesView() {
         <View style={s.grid}>
           {sortedCerts.map((cert) => (
             <View key={cert.id} style={s.certCard}>
+              {/* Top: category badge + verified + code */}
               <View style={s.cardHeader}>
                 <View style={s.certBadgeRow}>
                   <Badge
@@ -319,39 +326,42 @@ export function MyCertificatesView() {
                 <Text style={s.certCode}>{maskCode(cert.code)}</Text>
               </View>
 
-              <Text style={s.certTitle}>{cert.title}</Text>
-              <Text style={s.certIssuer}>Issued by {cert.issuer} • {cert.issued_at}</Text>
+              {/* Split row: info left, verify & download right */}
+              <View style={s.cardSplitRow}>
+                <View style={s.cardInfoCol}>
+                  <Text style={s.certTitle} numberOfLines={2}>{cert.title}</Text>
+                  <Text style={s.certIssuer} numberOfLines={1}>Issued by {cert.issuer} • {cert.issued_at}</Text>
+                </View>
 
+                <View style={s.cardActionCol}>
+                  <Pressable style={[s.actionBtnPrimary, isLocked && { opacity: 0.85 }]} onPress={() => openVerifyGated(cert.code)}>
+                    {isLocked ? <Lock size={13} color="#fff" /> : <ShieldCheck size={13} color="#fff" />}
+                    <Text style={s.actionBtnPrimaryText}>{isLocked ? `Unlock (${pct}%)` : 'Verify & Download'}</Text>
+                  </Pressable>
+
+                  <View style={s.actionIconRow}>
+                    <Pressable style={s.actionIconBtn} onPress={() => copyLink(cert.code)}>
+                      <Copy size={13} color={SC.primary} />
+                      <Text style={s.actionIconText}>{copiedCode === cert.code ? 'Copied!' : 'Copy'}</Text>
+                    </Pressable>
+                    <Pressable style={s.actionIconBtn} onPress={() => handleDownload(cert)}>
+                      {downloading === cert.id ? (
+                        <ActivityIndicator size="small" color={SC.primary} />
+                      ) : (
+                        <Download size={13} color={SC.primary} />
+                      )}
+                      <Text style={s.actionIconText}>{downloading === cert.id ? 'Saving…' : 'Download'}</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+
+              {/* Integrity fingerprint */}
               <View style={s.hashBox}>
                 <Text style={s.hashLabel}>SHA-256 Integrity Fingerprint:</Text>
                 <Text style={s.hashVal} numberOfLines={1}>
                   {isLocked ? '••••••••••••••••••••••••••••••••' : cert.sha256_hash}
                 </Text>
-              </View>
-
-              <View style={s.cardActions}>
-                <Pressable style={[s.actionBtnPrimary, isLocked && { opacity: 0.85 }]} onPress={() => openVerifyGated(cert.code)}>
-                  <Lock size={13} color="#fff" />
-                  <Text style={s.actionBtnPrimaryText}>{isLocked ? `Unlock at 100% (${pct}%)` : 'View & Verify'}</Text>
-                </Pressable>
-
-                <Pressable style={s.actionBtnSecondary} onPress={() => copyLink(cert.code)}>
-                  <Copy size={13} color={SC.primary} />
-                  <Text style={s.actionBtnSecondaryText}>
-                    {copiedCode === cert.code ? 'Copied!' : 'Copy Link'}
-                  </Text>
-                </Pressable>
-
-                <Pressable style={s.actionBtnSecondary} onPress={() => handleDownload(cert)}>
-                  {downloading === cert.id ? (
-                    <ActivityIndicator size="small" color={SC.primary} />
-                  ) : (
-                    <Download size={13} color={SC.primary} />
-                  )}
-                  <Text style={s.actionBtnSecondaryText}>
-                    {downloading === cert.id ? 'Saving…' : 'Download'}
-                  </Text>
-                </Pressable>
               </View>
             </View>
           ))}
@@ -483,6 +493,12 @@ const s = StyleSheet.create({
   hashLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 9.5 },
   hashVal: { color: '#A5B4FC', fontFamily: FONTS.mono || FONTS.med, fontSize: 10 },
   cardActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  cardSplitRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 2 },
+  cardInfoCol: { flex: 1, minWidth: 0, gap: 4 },
+  cardActionCol: { alignItems: 'flex-end', gap: 8, flexShrink: 0 },
+  actionIconRow: { flexDirection: 'row', gap: 8 },
+  actionIconBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, height: 28, borderRadius: 7, borderWidth: 1, borderColor: SC.border, backgroundColor: 'rgba(255,255,255,0.04)', justifyContent: 'center' },
+  actionIconText: { color: SC.primary, fontFamily: FONTS.bold, fontSize: 10.5 },
   actionBtnPrimary: { flex: 1, height: 34, borderRadius: 8, backgroundColor: SC.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   actionBtnPrimaryText: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12 },
   actionBtnSecondary: { paddingHorizontal: 12, height: 34, borderRadius: 8, borderWidth: 1, borderColor: SC.border, backgroundColor: 'rgba(255,255,255,0.04)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },

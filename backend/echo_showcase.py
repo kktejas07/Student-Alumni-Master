@@ -5240,22 +5240,11 @@ async def _send_single_cert_email(
     idx: int,
     total: int,
 ) -> bool:
-    """Send ONE individual certificate email. Returns True on provider accept, False otherwise."""
-    email_content = f"""
-    <div style="font-family: Arial, sans-serif; padding: 20px; color: #111827;">
-      <h2 style="color: #6D28D9;">Your Certificate is Ready! 🎓 ({idx} of {total})</h2>
-      <p>Dear <strong>{full_name}</strong>,</p>
-      <p>Congratulations! Your official certificate has been issued:</p>
-      <div style="margin: 20px 0; padding: 16px; background: #F3E8FF; border-radius: 12px; border: 1px solid #DDD6FE;">
-        <p style="margin: 0; font-weight: bold; color: #5B21B6;">{title}</p>
-        <p style="margin: 4px 0 0 0; font-weight: bold; color: #5B21B6;">Verification Code: {code}</p>
-        <p style="margin: 8px 0 0 0; font-size: 14px;"><a href="{verify_url}" style="color: #6D28D9; font-weight: bold;">Click here to View & Verify Certificate</a></p>
-      </div>
-      <p style="font-size: 13px; color: #6B7280;">Complete your SA profile to 100% to unlock viewing in My Certificates. You can share this link on LinkedIn, your resume, or with employers.</p>
-    </div>
-    """
+    """Send ONE individual certificate email (professional template). Returns True on provider accept."""
+    from core.email_templates import render_single_cert_email
+    email_content = render_single_cert_email(full_name, title, code, verify_url, idx, total)
     try:
-        return bool(await send_email(email, f"🎓 {title} — {code}", render_html_email(email_content)))
+        return bool(await send_email(email, f"🎓 {title} — {code}", email_content))
     except Exception as e:
         logger.warning(f"Single-cert email error ({code}): {e}")
         return False

@@ -3151,7 +3151,12 @@ function RegistrationsPanel() {
   const [sendingReminders, setSendingReminders] = useState(false);
 
   const handleSendProfileReminders = async () => {
-    if (typeof window !== 'undefined' && !window.confirm('Send automated 100% profile & SA account reminders via Email + WhatsApp to all incomplete registrants?')) return;
+    const ok = await confirm({
+      title: 'Send Profile & SA Reminders',
+      message: 'Send automated 100% profile & SA account reminders via Email + WhatsApp to all incomplete registrants?',
+      confirmText: 'Send Reminders',
+    });
+    if (!ok) return;
     setSendingReminders(true);
     try {
       const res = await api.adminEchoSendProfileReminders({ target_group: 'all_incomplete', channel: 'both' });
@@ -5073,6 +5078,7 @@ function VolunteersPanel() {
 // ── Live Scan Monitor Panel ───────────────────────────────────────────────────
 function LiveScanMonitorPanel() {
   const { flash } = useToast();
+  const { confirm } = useConfirm();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sendingReminders, setSendingReminders] = useState(false);
@@ -5177,7 +5183,12 @@ function LiveScanMonitorPanel() {
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
 
   const handleSendProfileReminders = async () => {
-    if (typeof window !== 'undefined' && !window.confirm('Send automated 100% profile & SA account reminders via Email + WhatsApp to all incomplete registrants?')) return;
+    const ok = await confirm({
+      title: 'Send Profile & SA Reminders',
+      message: 'Send automated 100% profile & SA account reminders via Email + WhatsApp to all incomplete registrants?',
+      confirmText: 'Send Reminders',
+    });
+    if (!ok) return;
     setSendingReminders(true);
     try {
       const res = await api.adminEchoSendProfileReminders({ target_group: 'all_incomplete', channel: 'both' });
@@ -5211,7 +5222,13 @@ function LiveScanMonitorPanel() {
   };
 
   const handleResetCerts = async (reg: any) => {
-    if (typeof window !== 'undefined' && !window.confirm(`Reset certificate status for ${reg.full_name} (${reg.email})? This clears issued flags so you can re-issue.`)) return;
+    const ok = await confirm({
+      title: 'Reset Certificate Status',
+      message: `Reset issued flags for ${reg.full_name} (${reg.email})? Existing certificates stay verifiable; the row returns to "Issue All 3 Certs" so you can re-issue.`,
+      confirmText: 'Reset & Re-issue',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await request(`/echo/admin/registrations/${reg.id}/reset-certificates`, { method: 'POST' });
       flash(`Certificate status reset for ${reg.full_name}`);
@@ -5222,7 +5239,12 @@ function LiveScanMonitorPanel() {
   };
 
   const handleBulkDispatch3Certs = async () => {
-    if (typeof window !== 'undefined' && !window.confirm('Run Autonomous Agent to issue and deliver all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave) via Email & WhatsApp to all attendees with 100% completed profiles?')) return;
+    const ok = await confirm({
+      title: 'Dispatch 3 Certs to 100% Profiles',
+      message: 'Run the autonomous agent to issue and deliver all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave) via Email & WhatsApp to attendees with 100% completed profiles?',
+      confirmText: 'Dispatch Certificates',
+    });
+    if (!ok) return;
     setSendingReminders(true);
     try {
       const res = await api.adminEchoSendProfileReminders({ target_group: 'complete_100_dispatch', channel: 'both' });
@@ -5237,7 +5259,12 @@ function LiveScanMonitorPanel() {
 
   const [bulkIssuing, setBulkIssuing] = useState(false);
   const handleBulkIssueAll = async () => {
-    if (typeof window !== 'undefined' && !window.confirm(`Issue all 3 certificates to ALL ${data.length} registrants at once + send each person their 3 individual emails? Already-issued users are skipped automatically.`)) return;
+    const ok = await confirm({
+      title: 'Issue 3 Certs to ALL',
+      message: `Issue all 3 certificates to ALL ${data.length} registrants at once + send each person their 3 individual emails? Already-issued users are skipped automatically.`,
+      confirmText: 'Issue to All',
+    });
+    if (!ok) return;
     setBulkIssuing(true);
     try {
       const res = await api.adminEchoBulkIssue3Certs();
@@ -5711,7 +5738,8 @@ function LiveScanMonitorPanel() {
                 </Pressable>
                 <Pressable
                   onPress={async () => {
-                    if (!window.confirm('Resend tickets to ' + reg.email + '?')) return;
+                    const ok = await confirm({ title: 'Resend Tickets', message: `Resend tickets to ${reg.email}?`, confirmText: 'Resend' });
+                    if (!ok) return;
                     try {
                       await api.adminEchoResendTickets(reg.id);
                       flash('Tickets resent to ' + reg.email);
