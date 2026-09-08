@@ -4885,7 +4885,7 @@ async def admin_echo_registrations(
                 user_map[u.get("phone").strip()] = u_data
 
     # Batch-fetch issued certificates from db.certificates
-    cert_map: Dict[str, dict] = {}
+    cert_map: Dict[str, list] = {}  # reg_id/email → list of cert docs
     frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
     if reg_ids or all_emails:
         c_or = []
@@ -4899,14 +4899,16 @@ async def admin_echo_registrations(
                 "id": c.get("id") or str(c.get("_id")),
                 "verification_code": c_code,
                 "title": c.get("title") or c.get("certification_name") or "ECHO Certificate",
+                "category_key": c.get("category_key"),
                 "issued_at": c.get("issued_at") or c.get("created_at"),
                 "verify_url": f"{frontend_url}/certificates/verify/{c_code}",
                 "image_url": c.get("image_url"),
             }
-            if c.get("reg_id"):
-                cert_map[c.get("reg_id")] = c_data
-            if c.get("recipient_email"):
-                cert_map[c.get("recipient_email").lower().strip()] = c_data
+            for k in [c.get("reg_id"), c.get("recipient_email", "").lower().strip()]:
+                if k:
+                    cert_map.setdefault(k, [])
+                    if c_code not in [x.get("verification_code") for x in cert_map[k]]:
+                        cert_map[k].append(c_data)
 
     items = []
     for r in regs:
@@ -4940,8 +4942,33 @@ async def admin_echo_registrations(
         if is_100 and comp_pct < 100:
             comp_pct = 100
 
-        cert_data = cert_map.get(rid) or cert_map.get(u_email)
-        has_cert = bool(cert_data or s.get("certificate_issued") or s.get("has_3_certificates"))
+        certs_all = list(dict.fromkeys([
+            *(cert_map.get(rid) or []),
+            *(cert_map.get(u_email) or []),
+        ]))
+        cert_data = certs_all[0] if certs_all else None
+        has_cert = bool(certs_all or s.get("certificate_issued") or s.get("has_3_certificates"))
+
+        # Synthesize the 3-cert matrix from actual certs when the reg has no flags set
+        c3 = s.get("certificates_3_status") or {}
+        if not c3 and certs_all:
+            def _match_cat(keyword: str):
+                for cc in certs_all:
+                    t = (cc.get("title") or "").lower()
+                    ck = (cc.get("category_key") or "").lower()
+                    if keyword in ck or keyword in t:
+                        return {
+                            "issued": True,
+                            "code": cc.get("verification_code"),
+                            "title": cc.get("title"),
+                            "verify_url": cc.get("verify_url"),
+                        }
+                return None
+            c3 = {
+                "built_by_sunset": _match_cat("sunset") or {"issued": False, "code": None},
+                "hackwave_participation": _match_cat("hackwave") or {"issued": False, "code": None},
+                "cyber_conclave": _match_cat("cyber") or {"issued": False, "code": None},
+            }
 
         items.append({
             "id": s.get("id"),
@@ -4988,8 +5015,8 @@ async def admin_echo_registrations(
             "parent_reg_id": s.get("parent_reg_id"),
             "team_leader_name": s.get("team_leader_name"),
             "team_leader_email": s.get("team_leader_email"),
-            "certificates_3_status": s.get("certificates_3_status"),
-            "has_3_certificates": s.get("has_3_certificates") or False,
+            "certificates_3_status": c3,
+            "has_3_certificates": s.get("has_3_certificates") or len([v for v in c3.values() if v.get("issued")]) >= 2,
             "cert_email_status": s.get("cert_email_status"),
             "cert_email_updated_at": s.get("cert_email_updated_at"),
         })
