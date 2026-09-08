@@ -531,18 +531,24 @@ function BulkTab({ onSaved }: { onSaved: (s?: string) => void }) {
  *  FILES TAB — upload certificate files (PNG/JPEG/WEBP/PDF)
  * ══════════════════════════════════════════════════════════════════ */
 function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
-  const [mode, setMode] = useState<'single' | 'bulk'>('single');
+  const [mode, setMode] = useState<'single' | 'bulk' | 'zip'>('single');
   const [email, setEmail] = useState('');
   const [title, setTitle] = useState('');
   const [files, setFiles] = useState<File[]>([]);
+  const [zipFile, setZipFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [dispatching, setDispatching] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [dispatchResult, setDispatchResult] = useState<any>(null);
+  const [testResult, setTestResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const bulkRef = React.useRef<HTMLInputElement>(null);
+  const zipRef = React.useRef<HTMLInputElement>(null);
 
   const pickSingle = () => inputRef.current?.click();
   const pickBulk = () => bulkRef.current?.click();
+  const pickZip = () => zipRef.current?.click();
 
   const onSingleFile = (e: any) => {
     const f = e?.target?.files?.[0];
@@ -552,6 +558,11 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const onBulkFiles = (e: any) => {
     const list = Array.from(e?.target?.files || []) as File[];
     if (list.length) setFiles(list);
+  };
+
+  const onZipFileSelect = (e: any) => {
+    const f = e?.target?.files?.[0];
+    if (f) setZipFile(f);
   };
 
   const uploadSingle = async () => {
@@ -593,24 +604,72 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
     }
   };
 
+  const uploadZipArchive = async () => {
+    setError(null); setResult(null); setDispatchResult(null);
+    if (!zipFile) { setError('Choose a .zip archive containing certificates.'); return; }
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', zipFile);
+      const r = await request('/certificates/upload-zip-archive', { method: 'POST', body: fd });
+      setResult(r);
+      onSaved(`${r.total_extracted} extracted from ZIP (${r.total_recipients} recipients)`);
+      setZipFile(null);
+    } catch (e: any) {
+      setError(e.message || 'ZIP Upload failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runSampleZipTest = async () => {
+    setError(null); setTestResult(null);
+    setBusy(true);
+    try {
+      const r = await request('/certificates/test-sample-zip-scan', { method: 'POST' });
+      setTestResult(r);
+    } catch (e: any) {
+      setError(e.message || 'Sample ZIP test scan failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const dispatchZipCampaign = async () => {
+    setError(null); setDispatchResult(null);
+    setDispatching(true);
+    try {
+      const r = await request('/certificates/dispatch-zip-campaign', {
+        method: 'POST',
+        body: JSON.stringify({ custom_subject: '🎓 Your Official Certificates Have Been Issued!' }),
+      });
+      setDispatchResult(r);
+    } catch (e: any) {
+      setError(e.message || 'Newsletter campaign dispatch failed');
+    } finally {
+      setDispatching(false);
+    }
+  };
+
   return (
     <Animated.View entering={FadeInDown.duration(260)}>
       <Card>
-        <SectionLabel text="Upload Certificate Files" />
+        <SectionLabel text="Upload Certificate Files & ZIP Archives" />
         <Text style={s.hint}>
-          Accepts PNG, JPG, JPEG, WEBP, and PDF (max 15 MB each). Each file becomes a
-          verifiable registry entry with its own SA-XXXX-XXXX code and is displayed on
-          the recipient's public verify page.
+          Accepts PNG, JPG, JPEG, WEBP, PDF, and ZIP archives (max 15 MB each). Each certificate becomes a
+          verifiable registry entry synced with ECHO and the student's My Certificates portal.
         </Text>
 
         <View style={s.seg}>
-          {(['single', 'bulk'] as const).map((m) => (
+          {(['single', 'bulk', 'zip'] as const).map((m) => (
             <Pressable
               key={m}
-              onPress={() => { setMode(m); setResult(null); setError(null); }}
+              onPress={() => { setMode(m); setResult(null); setError(null); setTestResult(null); setDispatchResult(null); }}
               style={[s.segBtn, mode === m && s.segActive]}
             >
-              <Text style={[s.segText, mode === m && s.segTextActive]}>{m === 'single' ? 'Single file' : 'Bulk files'}</Text>
+              <Text style={[s.segText, mode === m && s.segTextActive]}>
+                {m === 'single' ? 'Single file' : m === 'bulk' ? 'Bulk files' : 'ZIP Archive (.zip)'}
+              </Text>
             </Pressable>
           ))}
         </View>
@@ -648,15 +707,25 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           </>
         )}
 
-        <Pressable onPress={mode === 'single' ? pickSingle : pickBulk} style={({ hovered }: any) => [s.dropZone, hovered && { borderColor: '#A78BFA' }]}>
-          <FileUp size={20} color="#A78BFA" />
-          <Text style={s.dropTitle}>{files.length ? `${files.length} file${files.length === 1 ? '' : 's'} selected` : 'Choose certificate file(s)'}</Text>
-          <Text style={s.dropSub}>
-            {mode === 'single'
-              ? 'PNG · JPG · WEBP · PDF · up to 15 MB'
-              : 'Multi-select. Name each file "{email}__{title}.{ext}" — e.g. john@college.edu__AI Bootcamp.pdf'}
-          </Text>
-        </Pressable>
+        {mode !== 'zip' ? (
+          <Pressable onPress={mode === 'single' ? pickSingle : pickBulk} style={({ hovered }: any) => [s.dropZone, hovered && { borderColor: '#A78BFA' }]}>
+            <FileUp size={20} color="#A78BFA" />
+            <Text style={s.dropTitle}>{files.length ? `${files.length} file${files.length === 1 ? '' : 's'} selected` : 'Choose certificate file(s)'}</Text>
+            <Text style={s.dropSub}>
+              {mode === 'single'
+                ? 'PNG · JPG · WEBP · PDF · up to 15 MB'
+                : 'Multi-select. Name each file "{email}__{title}.{ext}" — e.g. john@college.edu__AI Bootcamp.pdf'}
+            </Text>
+          </Pressable>
+        ) : (
+          <Pressable onPress={pickZip} style={({ hovered }: any) => [s.dropZone, hovered && { borderColor: '#10B981' }]}>
+            <FolderOpen size={22} color="#10B981" />
+            <Text style={s.dropTitle}>{zipFile ? zipFile.name : 'Choose ZIP archive file (.zip)'}</Text>
+            <Text style={s.dropSub}>
+              Contains multiple certificates organized by "{'{email}__{title}.ext'}" or subfolders by user email.
+            </Text>
+          </Pressable>
+        )}
 
         {Platform.OS === 'web' && (
           <>
@@ -675,10 +744,17 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
               style={{ display: 'none' }}
               onChange={onBulkFiles}
             />
+            <input
+              ref={zipRef as any}
+              type="file"
+              accept=".zip,application/zip"
+              style={{ display: 'none' }}
+              onChange={onZipFileSelect}
+            />
           </>
         )}
 
-        {files.length > 0 && (
+        {mode !== 'zip' && files.length > 0 && (
           <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
             {files.map((f, i) => (
               <View key={i} style={s.fileRow}>
@@ -693,6 +769,17 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           </ScrollView>
         )}
 
+        {mode === 'zip' && zipFile && (
+          <View style={s.fileRow}>
+            <FolderOpen size={14} color="#10B981" />
+            <Text style={s.fileName} numberOfLines={1}>{zipFile.name}</Text>
+            <Text style={s.fileSize}>{(zipFile.size / 1024 / 1024).toFixed(1)} MB</Text>
+            <Pressable onPress={() => setZipFile(null)}>
+              <X size={14} color={SAC.muted} />
+            </Pressable>
+          </View>
+        )}
+
         {error && (
           <View style={s.errorBox}>
             <AlertTriangle size={14} color="#F87171" />
@@ -700,9 +787,124 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           </View>
         )}
 
-        <GradientButton onPress={mode === 'single' ? uploadSingle : uploadBulk} loading={busy} disabled={!files.length}>
-          <View style={s.btnInner}><Upload size={15} color="#fff" /><Text style={s.btnText}>{busy ? 'Uploading...' : mode === 'single' ? 'Upload & Issue Certificate' : `Upload & Issue ${files.length} Certificate${files.length === 1 ? '' : 's'}`}</Text></View>
-        </GradientButton>
+        {mode !== 'zip' ? (
+          <GradientButton onPress={mode === 'single' ? uploadSingle : uploadBulk} loading={busy} disabled={!files.length}>
+            <View style={s.btnInner}><Upload size={15} color="#fff" /><Text style={s.btnText}>{busy ? 'Uploading...' : mode === 'single' ? 'Upload & Issue Certificate' : `Upload & Issue ${files.length} Certificate${files.length === 1 ? '' : 's'}`}</Text></View>
+          </GradientButton>
+        ) : (
+          <View style={{ gap: 10 }}>
+            <GradientButton onPress={uploadZipArchive} loading={busy} disabled={!zipFile}>
+              <View style={s.btnInner}>
+                <Upload size={15} color="#fff" />
+                <Text style={s.btnText}>{busy ? 'Extracting & Issuing ZIP...' : 'Upload & Issue ZIP Archive'}</Text>
+              </View>
+            </GradientButton>
+
+            <Pressable
+              onPress={runSampleZipTest}
+              disabled={busy}
+              style={{
+                paddingVertical: 10,
+                paddingHorizontal: 16,
+                borderRadius: 10,
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                borderWidth: 1,
+                borderColor: 'rgba(16, 185, 129, 0.3)',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+              }}
+            >
+              <Sparkles size={15} color="#10B981" />
+              <Text style={{ color: '#10B981', fontWeight: '600', fontSize: 13 }}>
+                🧪 Run Sample ZIP Test Scan (Dry-Run Preview)
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
+        {testResult && (
+          <View style={[s.resultBox, { borderColor: 'rgba(16, 185, 129, 0.3)' }]}>
+            <View style={s.resultHead}>
+              <CheckCircle2 size={16} color="#10B981" />
+              <Text style={[s.resultTitle, { color: '#10B981' }]}>
+                Sample Dry-Run Scan: {testResult.sample_files_found} certs for {testResult.sample_recipients_count} recipients
+              </Text>
+            </View>
+            <Text style={[s.hint, { marginBottom: 8 }]}>{testResult.message}</Text>
+            <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+              {(testResult.preview || []).map((item: any, idx: number) => (
+                <View key={idx} style={[s.bulkRow, { gap: 6, flexWrap: 'wrap' }]}>
+                  <Text style={[s.mono, { color: '#34D399', fontSize: 11 }]}>{item.simulated_code}</Text>
+                  <Text style={{ color: '#F4F4FA', fontSize: 12, fontWeight: 'bold' }}>{item.recipient_name} ({item.recipient_email})</Text>
+                  <Text style={{ color: '#94A3B8', fontSize: 11 }}>Title: {item.extracted_title}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {result && mode === 'zip' && (
+          <View style={s.resultBox}>
+            <View style={s.resultHead}>
+              <CheckCircle2 size={16} color="#34D399" />
+              <Text style={s.resultTitle}>
+                ZIP Successfully Processed: {result.total_extracted} certs across {result.total_recipients} recipients
+              </Text>
+            </View>
+
+            <ScrollView style={{ maxHeight: 240, marginVertical: 8 }} nestedScrollEnabled>
+              {(result.recipient_groups || []).map((grp: any, i: number) => (
+                <View key={i} style={{ padding: 10, borderRadius: 8, backgroundColor: '#141424', marginBottom: 8, borderBasis: '100%' }}>
+                  <Text style={{ color: '#D8B4FE', fontWeight: 'bold', fontSize: 13 }}>
+                    👤 {grp.recipient_name} ({grp.recipient_email}) — {grp.certificates?.length || 0} cert(s)
+                  </Text>
+                  {(grp.certificates || []).map((c: any, j: number) => (
+                    <Text key={j} style={{ color: '#9095A8', fontSize: 11, marginTop: 4, fontFamily: 'monospace' }}>
+                      • [{c.code}] {c.title}
+                    </Text>
+                  ))}
+                </View>
+              ))}
+            </ScrollView>
+
+            <Pressable
+              onPress={dispatchZipCampaign}
+              disabled={dispatching}
+              style={{
+                marginTop: 8,
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderRadius: 10,
+                backgroundColor: 'rgba(124, 92, 252, 0.2)',
+                borderWidth: 1,
+                borderColor: '#7C5CFC',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+              }}
+            >
+              {dispatching ? <ActivityIndicator size={14} color="#A78BFA" /> : <Mail size={16} color="#A78BFA" />}
+              <Text style={{ color: '#A78BFA', fontWeight: 'bold', fontSize: 13 }}>
+                {dispatching ? 'Dispatching Campaign Emails...' : '🚀 Dispatch Consolidated Email Campaign to All Recipients'}
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
+        {dispatchResult && (
+          <View style={[s.resultBox, { borderColor: '#7C5CFC' }]}>
+            <View style={s.resultHead}>
+              <CheckCircle2 size={16} color="#A78BFA" />
+              <Text style={[s.resultTitle, { color: '#A78BFA' }]}>
+                Email Campaign Dispatched: {dispatchResult.dispatched_emails} emails sent
+              </Text>
+            </View>
+            <Text style={s.hint}>{dispatchResult.message}</Text>
+          </View>
+        )}
 
         {result && mode === 'single' && (
           <View style={s.resultBox}>

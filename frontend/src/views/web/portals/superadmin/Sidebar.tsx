@@ -52,12 +52,13 @@ export type SuperAdminNavId =
   | 'overview' | 'agents' | 'visitor-radar' | 'bgv' | 'colleges' | 'students' | 'mentors' | 'alumni' | 'events'
   | 'payments' | 'analytics' | 'approvals' | 'ai-insights' | 'settings'
   | 'workflows' | 'imports' | 'partners' | 'promotions' | 'talent-pool' | 'echo-showcase'
-  | 'vendors' | 'coupons' | 'newsletter' | 'certificates' | 'email-health' | 'teams' | 'cicd-evaluator';
+  | 'vendors' | 'coupons' | 'newsletter' | 'certificates' | 'email-health' | 'teams' | 'cicd-evaluator' | 'code-health';
 
 export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?: number; tag?: string }> = [
   { id: 'overview',        label: 'Overview',            Icon: LayoutDashboard,  count: 0 },
   { id: 'visitor-radar',   label: 'Live Visitor Radar',  Icon: Radar,            tag: 'NEW' },
   { id: 'agents',          label: 'Autonomous Agents',   Icon: Bot,              tag: 'NEW' },
+  { id: 'code-health',     label: 'Code Health Agent',   Icon: ShieldCheck,      tag: 'v2.0' },
   { id: 'cicd-evaluator',  label: 'CI/CD PR Evaluator',  Icon: GitPullRequest,   tag: 'NEW' },
   { id: 'bgv',             label: 'BGV & Accounts',      Icon: ShieldCheck,      tag: 'NEW' },
   { id: 'colleges',        label: 'Colleges',            Icon: Building2 },

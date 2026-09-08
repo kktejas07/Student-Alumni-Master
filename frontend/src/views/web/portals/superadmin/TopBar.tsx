@@ -39,18 +39,19 @@ export function TopBar({ title = 'Overview', onAvatarPress }: { title?: string; 
 
   React.useEffect(() => {
     const fetchNotifs = () => {
+      if (!user) return;
       api.notifications()
         .then(res => {
           const items = res.notifications || res.items || [];
           setNotifications(items.slice(0, 5));
           setUnreadCount(res.unread || 0);
         })
-        .catch(console.error);
+        .catch(() => {});
     };
     fetchNotifs();
-    const interval = setInterval(fetchNotifs, 5000);
+    const interval = setInterval(fetchNotifs, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   const toggleNotif = () => {
     const nextOpen = !notifOpen;

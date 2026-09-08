@@ -3253,6 +3253,10 @@ api_router.include_router(ai_platform_services_router)
 from routers.admin.agents import router as admin_agents_router
 api_router.include_router(admin_agents_router)
 
+# CodeHealthAgent Autonomous Auditor & Auto-Fix Router
+from routers.code_health import router as code_health_router
+api_router.include_router(code_health_router)
+
 # PDF Document Generation & Download Router
 from routers.pdf_routes import router as pdf_routes_router
 api_router.include_router(pdf_routes_router)

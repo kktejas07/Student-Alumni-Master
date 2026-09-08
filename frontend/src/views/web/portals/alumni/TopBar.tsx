@@ -42,10 +42,10 @@ export function TopBar({
     const fetchNotifs = () => {
       api.notifications()
         .then(res => setUnreadCount(res.unread || 0))
-        .catch(console.error);
+        .catch(() => {});
     };
     fetchNotifs();
-    const interval = setInterval(fetchNotifs, 5000);
+    const interval = setInterval(fetchNotifs, 15000);
     return () => clearInterval(interval);
   }, []);
 

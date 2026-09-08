@@ -31,7 +31,7 @@ from pathlib import Path
 from datetime import datetime, timezone, date as _date
 from typing import Any, Dict, List, Optional
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile, Query, Body
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import logging
 
@@ -5521,6 +5521,121 @@ async def export_echo_registrations_csv(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+
+@router.get("/admin/export-incomplete-profiles-csv")
+@router.get("/export-incomplete-profiles-csv")
+async def export_incomplete_profiles_csv(
+    request: Request,
+    slug: Optional[str] = None,
+    filter_type: Optional[str] = Query("all", description="'all', 'no_account', 'incomplete_profile'"),
+):
+    """
+    Generate and stream CSV of registrants who do NOT have an SA account or have incomplete (<100%) profiles.
+    Includes full name, email, phone, college, account status, completion %, missing items, and registration date.
+    """
+    import csv
+    import io
+    from fastapi.responses import Response
+    from services.profile_service import compute_profile_completion
+
+    db = _get_db(request)
+    query: Dict[str, Any] = {}
+    if slug:
+        query["slug"] = slug
+
+    regs = await db.echo_registrations.find(query).sort("created_at", -1).to_list(10000)
+
+    # Collect emails and phones for batch lookup
+    all_emails = list({r.get("email").lower().strip() for r in regs if r.get("email")})
+    all_phones = list({r.get("phone").strip() for r in regs if r.get("phone")})
+
+    user_map: Dict[str, dict] = {}
+    if all_emails or all_phones:
+        u_or = []
+        if all_emails:
+            u_or.append({"email": {"$in": all_emails}})
+        if all_phones:
+            u_or.append({"phone": {"$in": all_phones}})
+        
+        async for u in db.users.find({"$or": u_or}):
+            comp = compute_profile_completion(u)
+            u_info = {
+                "user_id": str(u.get("_id")),
+                "email": u.get("email"),
+                "phone": u.get("phone"),
+                "full_name": u.get("full_name"),
+                "profile_completion_pct": comp.get("percentage", 0),
+                "is_100": comp.get("percentage", 0) >= 100,
+                "missing_items": [item["label"] for item in comp.get("items", []) if not item["done"]],
+            }
+            if u.get("email"):
+                user_map[u.get("email").lower().strip()] = u_info
+            if u.get("phone"):
+                user_map[u.get("phone").strip()] = u_info
+
+    output = io.StringIO()
+    headers = [
+        "Registration ID",
+        "Event Title",
+        "Event Slug",
+        "Full Name",
+        "Email",
+        "Phone Number",
+        "College / Campus",
+        "Account Status",
+        "Profile Completion %",
+        "Missing Profile Requirements",
+        "Registration Date"
+    ]
+
+    writer = csv.DictWriter(output, fieldnames=headers)
+    writer.writeheader()
+
+    exported_count = 0
+    for r in regs:
+        email = (r.get("email") or "").lower().strip()
+        phone = (r.get("phone") or "").strip()
+        
+        sa_user = user_map.get(email) or user_map.get(phone)
+        has_account = bool(sa_user or r.get("user_id"))
+        pct = sa_user.get("profile_completion_pct", 0) if sa_user else 0
+
+        if has_account and pct >= 100:
+            continue  # Skip 100% complete accounts
+
+        if filter_type == "no_account" and has_account:
+            continue
+        if filter_type == "incomplete_profile" and (not has_account or pct >= 100):
+            continue
+
+        account_status = "No SA Account" if not has_account else f"Incomplete SA Profile ({pct}%)"
+        missing_str = "Create SA Account" if not has_account else (", ".join(sa_user.get("missing_items", [])) or "Incomplete profile details")
+
+        writer.writerow({
+            "Registration ID": r.get("id") or str(r.get("_id")),
+            "Event Title": r.get("showcase_title") or r.get("event_title") or r.get("slug") or "",
+            "Event Slug": r.get("slug") or "",
+            "Full Name": r.get("full_name") or "",
+            "Email": r.get("email") or "",
+            "Phone Number": r.get("phone") or "",
+            "College / Campus": r.get("college") or r.get("showcase_college") or "",
+            "Account Status": account_status,
+            "Profile Completion %": f"{pct}%" if has_account else "0%",
+            "Missing Profile Requirements": missing_str,
+            "Registration Date": r.get("registered_at") or r.get("created_at") or "",
+        })
+        exported_count += 1
+
+    csv_data = output.getvalue()
+    filename = f"incomplete_profiles_export_{filter_type}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 
 
 
