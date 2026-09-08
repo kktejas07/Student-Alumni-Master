@@ -557,7 +557,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [csvResult, setCsvResult] = useState<any>(null);
   const [csvError, setCsvError] = useState<string | null>(null);
   // Live streaming progress
-  const [csvProgress, setCsvProgress] = useState<{ row: any; live: boolean }>({ row: null, live: false });
+  const [csvProgress, setCsvProgress] = useState<{ row: any; live: boolean; phase: string }>({ row: null, live: false, phase: '' });
   const [csvRows, setCsvRows] = useState<any[]>([]);
   const [csvEmails, setCsvEmails] = useState<{ sent: number; errors: number }>({ sent: 0, errors: 0 });
   const [csvTotalRows, setCsvTotalRows] = useState(0);
@@ -680,7 +680,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
     if (!csvZipFiles.length) { setCsvError('Choose at least one ZIP containing certificate images.'); return; }
     if (!csvCsvFile) { setCsvError('Choose a CSV index file with email, name, title, certificate_id, file columns.'); return; }
     setCsvBusy(true);
-    setCsvProgress({ row: null, live: true });
+    setCsvProgress({ row: null, live: true, phase: 'uploading' });
     try {
       const fd = new FormData();
       csvZipFiles.forEach((f) => fd.append('images_zips', f));
@@ -720,10 +720,12 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
             const msg = JSON.parse(line);
             if (msg.type === 'start') {
               setCsvTotalRows(msg.total_rows);
-              setCsvProgress({ row: { info: `Processing ${msg.total_rows} rows, ${msg.zip_images} images...` }, live: true });
+              setCsvProgress({ row: { info: `Processing ${msg.total_rows} rows, ${msg.zip_images} images...` }, live: true, phase: 'processing' });
             } else if (msg.type === 'row') {
               setCsvRows((prev) => [...prev, msg]);
               setCsvProgress({ row: msg, live: true });
+            } else if (msg.type === 'email_start') {
+              setCsvProgress((prev) => ({ ...prev, phase: 'emails' }));
             } else if (msg.type === 'email_sent') {
               setCsvEmails((prev) => ({ ...prev, sent: prev.sent + 1 }));
             } else if (msg.type === 'email_error') {
@@ -762,7 +764,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           {(['single', 'bulk', 'zip', 'csv-zip'] as const).map((m) => (
             <Pressable
               key={m}
-              onPress={() => { setMode(m); setResult(null); setError(null); setTestResult(null); setDispatchResult(null); setCsvResult(null); setCsvError(null); setCsvZipFiles([]); setCsvCsvFile(null); setCsvRows([]); setCsvProgress({ row: null, live: false }); setCsvEmails({ sent: 0, errors: 0 }); setCsvTotalRows(0); }}
+              onPress={() => { setMode(m); setResult(null); setError(null); setTestResult(null); setDispatchResult(null); setCsvResult(null); setCsvError(null); setCsvZipFiles([]); setCsvCsvFile(null); setCsvRows([]); setCsvProgress({ row: null, live: false, phase: '' }); setCsvEmails({ sent: 0, errors: 0 }); setCsvTotalRows(0); }}
               style={[s.segBtn, mode === m && s.segActive]}
             >
               <Text style={[s.segText, mode === m && s.segTextActive]}>
@@ -916,34 +918,53 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
             {/* Live streaming progress */}
             {csvProgress.live && (
               <View style={{ padding: 14, borderRadius: 10, backgroundColor: 'rgba(99,102,241,0.08)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.25)', gap: 10 }}>
-                {/* Percentage bar */}
+                {/* Phase indicator + percentage bar */}
                 <View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <ActivityIndicator size="small" color="#818CF8" />
                       <Text style={{ color: '#C7D2FE', fontWeight: 'bold', fontSize: 13 }}>
-                        {csvPct < 100 ? 'Importing...' : csvSendEmails ? 'Sending emails...' : 'Finalizing...'}
+                        {csvProgress.phase === 'uploading'
+                          ? `Uploading ${csvZipFiles.length} ZIP(s) + CSV...`
+                          : csvProgress.phase === 'emails'
+                          ? 'Sending emails to recipients...'
+                          : csvPct < 100
+                          ? 'Importing rows...'
+                          : 'Finalizing...'}
                       </Text>
                     </View>
                     <Text style={{ color: csvPct >= 100 ? '#34D399' : '#A78BFA', fontWeight: 'bold', fontSize: 15, fontFamily: 'monospace' }}>
-                      {csvPct}%
+                      {csvProgress.phase === 'uploading' ? '⬆️' : `${csvPct}%`}
                     </Text>
                   </View>
-                  <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                    <View style={{ height: 8, borderRadius: 4, width: `${csvPct}%`, backgroundColor: csvPct >= 100 ? '#34D399' : '#818CF8', transitionDuration: '200ms' }} />
-                  </View>
+                  {csvProgress.phase !== 'uploading' && (
+                    <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                      <View style={{ height: 8, borderRadius: 4, width: `${csvPct}%`, backgroundColor: csvPct >= 100 ? '#34D399' : '#818CF8', transitionDuration: '200ms' }} />
+                    </View>
+                  )}
+                  {csvProgress.phase === 'uploading' && (
+                    <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                      <View style={{ height: 8, borderRadius: 4, width: '30%', backgroundColor: '#F59E0B', animation: 'pulse 1.5s infinite' }} />
+                    </View>
+                  )}
                   <Text style={{ color: '#9095A8', fontSize: 11, marginTop: 4 }}>
-                    {csvRows.length} of {csvTotalRows} rows processed
+                    {csvProgress.phase === 'uploading'
+                      ? `${csvZipFiles.length} file(s), ~${(csvZipFiles.reduce((a, f) => a + f.size, 0) / 1024 / 1024).toFixed(0)} MB total`
+                      : csvProgress.phase === 'emails'
+                      ? `${csvEmails.sent + csvEmails.errors} of ${csvTotalRows} recipients`
+                      : `${csvRows.length} of ${csvTotalRows} rows processed`}
                   </Text>
                 </View>
 
                 {/* Running counters */}
-                <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
-                  <Text style={{ color: '#34D399', fontSize: 11 }}>✓ {csvRows.filter(r => r.action === 'created').length} created</Text>
-                  <Text style={{ color: '#60A5FA', fontSize: 11 }}>↻ {csvRows.filter(r => r.action === 'updated').length} updated</Text>
-                  <Text style={{ color: '#9095A8', fontSize: 11 }}>⏭ {csvRows.filter(r => r.action === 'skipped').length} skipped</Text>
-                  {csvEmails.sent > 0 && <Text style={{ color: '#A78BFA', fontSize: 11 }}>✉ {csvEmails.sent} emails</Text>}
-                </View>
+                {csvProgress.phase !== 'uploading' && (
+                  <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+                    <Text style={{ color: '#34D399', fontSize: 11 }}>✓ {csvRows.filter(r => r.action === 'created').length} created</Text>
+                    <Text style={{ color: '#60A5FA', fontSize: 11 }}>↻ {csvRows.filter(r => r.action === 'updated').length} updated</Text>
+                    <Text style={{ color: '#9095A8', fontSize: 11 }}>⏭ {csvRows.filter(r => r.action === 'skipped').length} skipped</Text>
+                    {csvEmails.sent > 0 && <Text style={{ color: '#A78BFA', fontSize: 11 }}>✉ {csvEmails.sent} emails</Text>}
+                  </View>
+                )}
 
                 {/* Last processed row */}
                 {csvProgress.row && csvProgress.row.row && (
