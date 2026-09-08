@@ -31,6 +31,7 @@ import { useConfirm } from '@/src/views/components';
 import * as Linking from 'expo-linking';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 import { EchoCertificateStudio } from './EchoCertificateStudio';
+import { request } from '@/src/models/services/api';
 
 type TabId = 'templates' | 'issue' | 'bulk' | 'external' | 'verify' | 'files' | 'registry';
 
@@ -551,6 +552,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [csvZipFiles, setCsvZipFiles] = useState<File[]>([]);
   const [csvCsvFile, setCsvCsvFile] = useState<File | null>(null);
   const [csvDryRun, setCsvDryRun] = useState(true);
+  const [csvSendEmails, setCsvSendEmails] = useState(false);
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvResult, setCsvResult] = useState<any>(null);
   const [csvError, setCsvError] = useState<string | null>(null);
@@ -677,7 +679,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       csvZipFiles.forEach((f) => fd.append('images_zips', f));
       fd.append('csv_file', csvCsvFile);
       fd.append('issuer', 'Student Alumni');
-      fd.append('send_emails', 'true');
+      fd.append('send_emails', String(csvSendEmails));
       fd.append('dry_run', String(csvDryRun));
       const r = await request('/certificates/import-csv-zip', { method: 'POST', body: fd });
       setCsvResult(r);
@@ -815,7 +817,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
               </View>
             )}
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
               <Pressable
                 onPress={() => setCsvDryRun(!csvDryRun)}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: csvDryRun ? 'rgba(245,158,11,0.4)' : 'rgba(52,211,153,0.4)', backgroundColor: csvDryRun ? 'rgba(245,158,11,0.1)' : 'rgba(52,211,153,0.1)' }}
@@ -824,15 +826,25 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   {csvDryRun ? '🧪 Dry Run' : '🚀 Live Run'}
                 </Text>
               </Pressable>
+              {!csvDryRun && (
+                <Pressable
+                  onPress={() => setCsvSendEmails(!csvSendEmails)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: csvSendEmails ? 'rgba(59,130,246,0.4)' : 'rgba(255,255,255,0.15)', backgroundColor: csvSendEmails ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.04)' }}
+                >
+                  <Text style={{ color: csvSendEmails ? '#60A5FA' : '#9095A8', fontWeight: 'bold', fontSize: 12 }}>
+                    {csvSendEmails ? '✉ Send Emails' : '✉ No Emails'}
+                  </Text>
+                </Pressable>
+              )}
               <Text style={{ color: '#9095A8', fontSize: 11 }}>
-                {csvDryRun ? 'Preview only — nothing saved, no emails' : 'Will issue certs + send emails to all recipients'}
+                {csvDryRun ? 'Preview only — nothing saved' : csvSendEmails ? 'Import to DB + send emails' : 'Import to DB only — no emails'}
               </Text>
             </View>
 
             <GradientButton onPress={uploadCsvZip} loading={csvBusy} disabled={!csvZipFiles.length || !csvCsvFile} style={{ marginTop: 10 }}>
               <View style={s.btnInner}>
                 {csvDryRun ? <Search size={15} color="#fff" /> : <Upload size={15} color="#fff" />}
-                <Text style={s.btnText}>{csvBusy ? 'Processing...' : csvDryRun ? 'Preview Import (Dry Run)' : 'Import + Send Emails to All'}</Text>
+                <Text style={s.btnText}>{csvBusy ? 'Processing...' : csvDryRun ? 'Preview Import (Dry Run)' : csvSendEmails ? 'Import + Send Emails' : 'Import to Database Only'}</Text>
               </View>
             </GradientButton>
 
