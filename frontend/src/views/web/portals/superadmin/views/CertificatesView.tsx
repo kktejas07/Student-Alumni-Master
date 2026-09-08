@@ -679,6 +679,30 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
     setCsvError(null); setCsvResult(null); setCsvRows([]); setCsvEmails({ sent: 0, errors: 0 });
     if (!csvZipFiles.length) { setCsvError('Choose at least one ZIP containing certificate images.'); return; }
     if (!csvCsvFile) { setCsvError('Choose a CSV index file with email, name, title, certificate_id, file columns.'); return; }
+    
+    // First: preview CSV to debug column mapping
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL || 'https://studentalumni.ai').replace(/\/$/, '');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('scd_access_token') || '' : '';
+      const fd2 = new FormData();
+      fd2.append('csv_file', csvCsvFile);
+      const prevResp = await fetch(`${base}/api/certificates/preview-csv`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd2,
+      });
+      if (prevResp.ok) {
+        const prev = await prevResp.json();
+        console.log('[CSV PREVIEW]', prev);
+        if (!prev.detected_columns?.email) {
+          setCsvError(`CSV header mismatch! Found: ${prev.headers?.join(', ')}. No "email" column detected.`);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Preview failed, continuing with import:', e);
+    }
+
     setCsvBusy(true);
     setCsvProgress({ row: null, live: true, phase: 'uploading' });
     try {
