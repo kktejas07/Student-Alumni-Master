@@ -575,7 +575,6 @@ export default function CertificateVerifyPortal() {
                       <Text style={styles.metaCardTitle}>Credential Verification Details</Text>
                       <View style={styles.metaGrid}>
                         <MetaItem label="Recipient Name" value={certData.recipient_name} icon={User} />
-                        <MetaItem label="Certificate ID" value={certData.id || certData.certificate_id} icon={Hash} />
                         {certData.roll_number && (
                           <MetaItem label="Roll / Registration No" value={certData.roll_number} icon={Award} />
                         )}
@@ -676,7 +675,7 @@ export default function CertificateVerifyPortal() {
                           <View style={{ flex: 1 }}>
                             <Text style={styles.auditStepTitle}>1. Genesis Record Creation</Text>
                             <Text style={styles.auditStepDesc}>
-                              SHA-256 digest minted on {certData.issue_date || '2026-02-15'} signed by issuing organization registry.
+                              SHA-256 digest minted and signed by the issuing organization registry.
                             </Text>
                           </View>
                         </View>
@@ -700,8 +699,7 @@ export default function CertificateVerifyPortal() {
                           <View style={{ flex: 1 }}>
                             <Text style={styles.auditStepTitle}>3. Recipient Identity Binding</Text>
                             <Text style={styles.auditStepDesc}>
-                              Bound to recipient {certData.recipient_name}
-                              {certData.roll_number ? ` (Roll No: ${certData.roll_number})` : ''}.
+                              Credential identity bound to the recipient&apos;s registered profile on the ledger.
                             </Text>
                           </View>
                         </View>
@@ -753,27 +751,7 @@ export default function CertificateVerifyPortal() {
                       </View>
                     </View>
 
-                    {/* Action Buttons */}
-                    <View style={styles.actionsGrid}>
-                      {certData.image_url && (
-                        <Pressable
-                          onPress={() => downloadCertificate(certData.image_url, certData.recipient_name)}
-                          style={styles.primaryActionBtn}
-                        >
-                          <Download size={16} color="#ffffff" />
-                          <Text style={styles.primaryActionBtnText}>Download Official Certificate</Text>
-                        </Pressable>
-                      )}
-
-                      <Pressable
-                        onPress={() => downloadBGVReport(certData)}
-                        style={styles.secondaryActionBtn}
-                      >
-                        <FileCheck size={16} color="#8B84FF" />
-                        <Text style={styles.secondaryActionBtnText}>Download BGV Report</Text>
-                      </Pressable>
                     </View>
-                  </View>
                 ) : result.type === 'id_card' && userData ? (
                   /* CASE B: SA Member ID Card Result */
                   <View style={styles.resultContent}>
@@ -870,17 +848,6 @@ export default function CertificateVerifyPortal() {
                           </Text>
                         </Pressable>
                       </View>
-                    </View>
-
-                    {/* Actions */}
-                    <View style={styles.actionsGrid}>
-                      <Pressable
-                        onPress={() => downloadBGVReport(userData)}
-                        style={styles.primaryActionBtn}
-                      >
-                        <FileCheck size={16} color="#ffffff" />
-                        <Text style={styles.primaryActionBtnText}>Download Complete BGV Profile Report</Text>
-                      </Pressable>
                     </View>
                   </View>
                 ) : null}
