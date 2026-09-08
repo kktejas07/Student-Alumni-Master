@@ -26,13 +26,65 @@ except Exception:
 router = APIRouter(prefix="/certificates", tags=["Certificates"])
 
 
-
-
 def _clean_str(val: Optional[str]) -> str:
     return (val or "").strip()
 
 
-import re
+@router.get("/my")
+async def get_my_certificates(current_user: dict = Depends(get_current_user)):
+    """
+    Get all certificates issued to the currently authenticated student user.
+    """
+    user_email = (current_user.get("email") or "").strip()
+    user_id = str(current_user.get("id") or current_user.get("user_id") or "").strip()
+    sa_id = str(current_user.get("sa_id") or "").strip()
+
+    query_or = []
+    if user_email:
+        query_or.append({"recipient_email": {"$regex": f"^{re.escape(user_email)}$", "$options": "i"}})
+        query_or.append({"student_email": {"$regex": f"^{re.escape(user_email)}$", "$options": "i"}})
+        query_or.append({"email": {"$regex": f"^{re.escape(user_email)}$", "$options": "i"}})
+    if user_id:
+        query_or.append({"user_id": user_id})
+    if sa_id:
+        query_or.append({"sa_id": sa_id})
+
+    if not query_or:
+        certs = await db.certificates.find().sort("created_at", -1).to_list(length=20)
+    else:
+        certs = await db.certificates.find({"$or": query_or}).sort("created_at", -1).to_list(length=100)
+
+    result = []
+    for c in certs:
+        cat_str = str(c.get("category") or c.get("type") or "").lower()
+        if not cat_str:
+            title_lower = str(c.get("title") or c.get("certificate_title") or "").lower()
+            if "sunset" in title_lower:
+                cat_str = "sunset"
+            elif "cyber" in title_lower:
+                cat_str = "cyber"
+            elif "hackwave" in title_lower or "echo" in title_lower:
+                cat_str = "echo"
+            else:
+                cat_str = "workshop"
+
+        result.append({
+            "id": str(c.get("id") or c.get("certificate_id") or c.get("_id")),
+            "code": c.get("certificate_id") or c.get("id") or c.get("verification_code") or "HW3-SUNSET-001",
+            "title": c.get("title") or c.get("certificate_title") or c.get("event_name") or "Hackwave 3.0 Certificate",
+            "category": cat_str,
+            "issuer": c.get("issuer") or "Student Alumni Federation",
+            "issued_at": str(c.get("issued_at") or c.get("created_at") or datetime.now(timezone.utc).strftime("%Y-%m-%d"))[:10],
+            "recipient_name": c.get("student_name") or c.get("recipient_name") or "Student User",
+            "recipient_email": c.get("student_email") or c.get("recipient_email") or user_email,
+            "sha256_hash": c.get("verification_hash") or hashlib.sha256((str(c.get("id")) or "cert").encode()).hexdigest(),
+            "verified": True,
+            "download_url": c.get("download_url") or c.get("file_path"),
+            "metadata": c.get("metadata", {})
+        })
+
+    return {"success": True, "certificates": result, "count": len(result)}
+
 
 @router.get("/verify/{identifier}")
 async def verify_certificate(identifier: str):
@@ -534,6 +586,28 @@ async def issue_certificate(payload: IssuePayload, user: dict = Depends(get_curr
     }
 
 
+async def _sync_with_echo_registrations(email: str, cert_doc: dict):
+    if not email:
+        return
+    try:
+        reg = await db.echo_registrations.find_one({"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}})
+        if reg:
+            code = cert_doc.get("verification_code") or cert_doc.get("id")
+            verify_url = cert_doc.get("verify_url") or f"{FRONTEND_URL}/certificates/verify/{code}"
+            await db.echo_registrations.update_one(
+                {"_id": reg["_id"]},
+                {"$set": {
+                    "has_certificate": True,
+                    "certificate_issued": True,
+                    "certificate_code": code,
+                    "certificate_url": verify_url,
+                    "last_certificate_title": cert_doc.get("title")
+                }}
+            )
+    except Exception as e:
+        pass
+
+
 @router.post("/upload")
 async def upload_certificate(
     file: UploadFile = File(...),
@@ -583,10 +657,12 @@ async def upload_certificate(
         "status_label": "Officially Verified",
         "image_url": f"/uploads/certificates/{safe_name}",
         "file_path": file_path,
+        "verify_url": verify_url,
     }
     await db.certificates.insert_one(doc)
 
     if email:
+        await _sync_with_echo_registrations(email, doc)
         await _send_cert_email(email, doc["title"], name, code, verify_url)
 
     return {
@@ -663,6 +739,7 @@ async def upload_bulk_certificates(
             await db.certificates.insert_one(doc)
 
             if email:
+                await _sync_with_echo_registrations(email, doc)
                 await _send_cert_email(email, doc["title"], name, code, verify_url)
 
             results.append({

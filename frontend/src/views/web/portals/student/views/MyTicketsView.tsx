@@ -112,6 +112,9 @@ type MarketplaceOrder = {
   delivery_info?: string;
   created_at?: string;
   razorpay_order_id?: string;
+  refund_status?: string;
+  refund_amount?: number;
+  refund_reason?: string;
 };
 
 function sessionColor(name: string) {

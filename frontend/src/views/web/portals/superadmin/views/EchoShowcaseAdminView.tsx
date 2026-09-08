@@ -172,7 +172,7 @@ import {
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users,
   Ticket, Mail, ScanLine, Phone, Edit2,
   CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle, Download, FileSpreadsheet, MapPin,
-  UserCheck, GraduationCap, CreditCard,
+  UserCheck, GraduationCap, CreditCard, Award, Sparkles,
 } from 'lucide-react-native';
 import {
   GRAD, GradientButton, SecondaryButton, Card,
@@ -250,13 +250,13 @@ type FormTab =
   | 'sections' | 'registration' | 'catalog' | 'seo' | 'publish';
 
 const PAGE_TABS: Array<{ id: PageTab; label: string; icon?: any }> = [
+  { id: 'registrations', label: 'Registrations & Payments', icon: Users },
+  { id: 'scan-monitor', label: 'Live Scan & Certificates', icon: Award },
   { id: 'all', label: 'All Showcases', icon: Layout },
   { id: 'create', label: 'Create Showcase', icon: PlusCircle },
   { id: 'drafts', label: 'Drafts', icon: FileText },
-  { id: 'registrations', label: 'Registrations & Payments', icon: Users },
   { id: 'interns', label: 'Internal Hiring & Interns', icon: UserCheck },
   { id: 'volunteers', label: 'Volunteers', icon: Users },
-  { id: 'scan-monitor', label: 'Live Scan Monitor', icon: ScanLine },
   { id: 'media', label: 'Media Library', icon: Images },
 ];
 
@@ -3148,6 +3148,59 @@ function RegistrationsPanel() {
   const PER_PAGE = 20;
   const { flash } = useToast();
   const [showImport, setShowImport] = useState(false);
+  const [sendingReminders, setSendingReminders] = useState(false);
+
+  const handleSendProfileReminders = async () => {
+    if (typeof window !== 'undefined' && !window.confirm('Send automated 100% profile & SA account reminders via Email + WhatsApp to all incomplete registrants?')) return;
+    setSendingReminders(true);
+    try {
+      const res = await api.adminEchoSendProfileReminders({ target_group: 'all_incomplete', channel: 'both' });
+      flash(`Loop Agent Dispatched! Processed: ${res?.processed_count}, Emails: ${res?.emails_sent}, WhatsApp: ${res?.whatsapp_sent}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to send reminders');
+    } finally {
+      setSendingReminders(false);
+    }
+  };
+
+  const handleIssueCert = async (reg: any) => {
+    try {
+      const res = await api.adminEchoIssueCertificate(reg.id);
+      flash(`Certificate issued for ${reg.full_name}! Code: ${res?.code}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to issue certificate');
+    }
+  };
+
+  const saAccountBadge = (reg: any) => {
+    if (reg.is_profile_100) {
+      return (
+        <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.4)' }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#34D399' }}>
+            SA Member ✓ (100%)
+          </Text>
+        </View>
+      );
+    }
+    if (reg.has_sa_account) {
+      return (
+        <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(245,179,66,0.18)', borderWidth: 1, borderColor: 'rgba(245,179,66,0.4)' }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#F5B342' }}>
+            SA Member ({reg.profile_completion_pct || 0}%)
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' }}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#FCA5A5' }}>
+          No SA Account
+        </Text>
+      </View>
+    );
+  };
 
   useEffect(() => { setPage(0); }, [q, status, eventSlug, rows]);
 
@@ -3774,19 +3827,6 @@ function RegistrationsPanel() {
           <Download size={13} color="#fff" />
           <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export All Events (CSV)</Text>
         </Pressable>
-        {eventSlug && eventSlug !== 'all' && (
-          <Pressable
-            onPress={() => triggerExportCsv(eventSlug, status)}
-            style={{
-              flexDirection: 'row', alignItems: 'center', gap: 6,
-              backgroundColor: '#4F46E5',
-              borderRadius: 8, paddingHorizontal: 13, paddingVertical: 8, cursor: 'pointer',
-            }}
-          >
-            <Download size={13} color="#fff" />
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export Selected Event (CSV)</Text>
-          </Pressable>
-        )}
       </View>
 
       {/* Registrations table */}
@@ -3808,21 +3848,22 @@ function RegistrationsPanel() {
             <View style={{ minWidth: 1050, flex: 1 }}>
               {/* Header */}
               <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: SAC.border }}>
-                <Text style={{ flex: 1.5, minWidth: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ATTENDEE</Text>
-                <Text style={{ width: 70, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>TYPE</Text>
-                <Text style={{ width: 50, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SIZE</Text>
-                <Text style={{ flex: 1.5, minWidth: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>EVENT</Text>
-                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>AMOUNT</Text>
-                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>PAYMENT</Text>
-                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>STATUS</Text>
-                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
-                <Text style={{ width: 80, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
+                <Text style={{ flex: 1.5, minWidth: 160, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ATTENDEE</Text>
+                <Text style={{ width: 140, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SA ACCOUNT & PROFILE</Text>
+                <Text style={{ width: 60, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>TYPE</Text>
+                <Text style={{ width: 45, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SIZE</Text>
+                <Text style={{ flex: 1.3, minWidth: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>EVENT</Text>
+                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>AMOUNT</Text>
+                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>PAYMENT</Text>
+                <Text style={{ width: 130, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ECHO CERTIFICATE</Text>
+                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
+                <Text style={{ width: 110, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
               </View>
               {paged.map((r: any, i: number) => {
                 const isTeam = r.registration_type === 'team' || !!r.team_name || (r.team_size && r.team_size > 1);
                 return (
                 <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
-                  <View style={{ flex: 1.5, minWidth: 180 }}>
+                  <View style={{ flex: 1.5, minWidth: 160 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                       <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: SAC.text }}>{r.full_name || '—'}</Text>
                       {r.source && r.source !== 'our_platform' && r.source !== 'studentalumni' && (
@@ -3857,7 +3898,13 @@ function RegistrationsPanel() {
                       </View>
                     )}
                   </View>
-                  <View style={{ width: 70 }}>
+                  
+                  {/* SA Account & Profile Column */}
+                  <View style={{ width: 140, justifyContent: 'center', paddingRight: 6 }}>
+                    {saAccountBadge(r)}
+                  </View>
+
+                  <View style={{ width: 60 }}>
                     <View style={{ 
                       backgroundColor: isTeam ? 'rgba(124,58,237,0.15)' : 'rgba(52,211,153,0.15)',
                       paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
@@ -3869,16 +3916,16 @@ function RegistrationsPanel() {
                       </Text>
                     </View>
                   </View>
-                  <View style={{ width: 50, paddingTop: 4 }}>
+                  <View style={{ width: 45, paddingTop: 4 }}>
                     <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: '#e5e7eb' }}>
                       {isTeam ? (r.team_size > 1 ? r.team_size : 1) : 1}
                     </Text>
                   </View>
-                  <View style={{ flex: 1.5, minWidth: 180 }}>
+                  <View style={{ flex: 1.3, minWidth: 150 }}>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: '#e5e7eb' }}>{r.event_title || r.slug || '—'}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{r.college || ''}</Text>
                   </View>
-                  <View style={{ width: 120, minWidth: 0, paddingTop: 2 }}>
+                  <View style={{ width: 90, minWidth: 0, paddingTop: 2 }}>
                     {r.is_team_member ? (
                       <View>
                         <Text style={{ fontFamily: FONTS.xbold, fontSize: 11.5, color: '#C4B5FD' }}>
@@ -3901,33 +3948,32 @@ function RegistrationsPanel() {
                       </View>
                     )}
                   </View>
-                  <View style={{ width: 120, minWidth: 0 }}>
+                  <View style={{ width: 90, minWidth: 0 }}>
                     <StatusPill
                       kind={r.payment_status === 'paid' ? 'success' : r.payment_status === 'pending' ? 'warn' : r.payment_status === 'failed' ? 'danger' : 'neutral'}
                       label={(r.payment_status || '—').toUpperCase()}
                     />
                   </View>
-                  <View style={{ width: 120, minWidth: 0 }}>
-                    {r.payment_status === 'paid' ? (
-                      <>
-                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 10, color: '#86EFAC' }}>
-                          {r.coupons_issued > 0 ? `Ticket +${r.coupons_issued}` : 'Ticket'}
+
+                  {/* ECHO Certificate Column */}
+                  <View style={{ width: 130, justifyContent: 'center', paddingRight: 6 }}>
+                    {r.has_certificate ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(124,92,252,0.18)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 }}>
+                        <Award size={11} color="#C9A7FF" />
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#D8B4FE' }}>
+                          {r.certificate?.verification_code || 'Issued'}
                         </Text>
-                          <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9.5, color: SAC.dim }}>
-                            {r.invoice_issued ? (r.invoice_no || 'Invoice issued') : 'No invoice'}
-                          </Text>
-                        </>
-                    ) : r.payment_status === 'pending' ? (
-                      <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: '#FCD34D' }}>
-                        Nothing — awaiting payment
-                      </Text>
+                      </View>
                     ) : (
-                      <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: '#FCA5A5' }}>
-                        Not issued
-                      </Text>
+                      <Pressable
+                        onPress={() => handleIssueCert(r)}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3, alignSelf: 'flex-start' }}>
+                        <Award size={11} color="#A78BFA" />
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#A78BFA' }}>Issue Cert</Text>
+                      </Pressable>
                     )}
                   </View>
-                  <View style={{ width: 120, minWidth: 0 }}>
+                  <View style={{ width: 90, minWidth: 0 }}>
                     <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>
                       {(r.registered_at || '').slice(0, 10) || '—'}
                     </Text>
@@ -5011,11 +5057,13 @@ function LiveScanMonitorPanel() {
   const { flash } = useToast();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sendingReminders, setSendingReminders] = useState(false);
   const [q, setQ] = useState('');
   const [page, setPage] = useState(0);
   const [detail, setDetail] = useState<{ reg: any; coupon: any } | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'checked_in' | 'not_checked'>('all');
   const [couponFilter, setCouponFilter] = useState<'all' | 'used' | 'unused'>('all');
+  const [saFilter, setSaFilter] = useState<'all' | 'complete_100' | 'incomplete' | 'no_account'>('all');
   const [editingReg, setEditingReg] = useState<{ id: string; email: string; full_name: string } | null>(null);
   const [editEmail, setEditEmail] = useState('');
   const [editName, setEditName] = useState('');
@@ -5042,11 +5090,11 @@ function LiveScanMonitorPanel() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 15000); // Refresh every 15s instead of 30s
+    const interval = setInterval(load, 15000);
     return () => clearInterval(interval);
   }, [load]);
 
-  useEffect(() => { setPage(0); }, [q, statusFilter, couponFilter]);
+  useEffect(() => { setPage(0); }, [q, statusFilter, couponFilter, saFilter]);
 
   const stats = useMemo(() => {
     let checkedIn = 0;
@@ -5054,9 +5102,18 @@ function LiveScanMonitorPanel() {
     let lunch = 0;
     let swag = 0;
     let others = 0;
+    let saMembers = 0;
+    let sa100 = 0;
+    let noAccount = 0;
+    let certIssued = 0;
 
     data.forEach(reg => {
       if (reg.checked_in_at) checkedIn++;
+      if (reg.has_sa_account) saMembers++;
+      if (reg.is_profile_100) sa100++;
+      if (!reg.has_sa_account) noAccount++;
+      if (reg.has_certificate) certIssued++;
+
       if (reg.coupons) {
         reg.coupons.forEach((c: any) => {
           if (c.used) {
@@ -5070,34 +5127,84 @@ function LiveScanMonitorPanel() {
       }
     });
 
-    return { checkedIn, couponsUsed, lunch, swag, others };
+    return { checkedIn, couponsUsed, lunch, swag, others, saMembers, sa100, noAccount, certIssued };
   }, [data]);
 
   const filtered = data.filter(d => {
-    // Search filter
     const matchesSearch = !q || 
       d.full_name?.toLowerCase().includes(q.toLowerCase()) || 
       d.email?.toLowerCase().includes(q.toLowerCase()) || 
       d.id?.toLowerCase().includes(q.toLowerCase()) ||
       d.team_name?.toLowerCase().includes(q.toLowerCase());
     
-    // Status filter
     const matchesStatus = statusFilter === 'all' || 
       (statusFilter === 'checked_in' && d.checked_in_at) ||
       (statusFilter === 'not_checked' && !d.checked_in_at);
     
-    // Coupon filter
     const hasUsedCoupons = d.coupons?.some((c: any) => c.used);
     const hasUnusedCoupons = d.coupons?.some((c: any) => !c.used);
     const matchesCoupon = couponFilter === 'all' ||
       (couponFilter === 'used' && hasUsedCoupons) ||
       (couponFilter === 'unused' && hasUnusedCoupons);
+
+    const matchesSa = saFilter === 'all' ||
+      (saFilter === 'complete_100' && d.is_profile_100) ||
+      (saFilter === 'incomplete' && d.has_sa_account && !d.is_profile_100) ||
+      (saFilter === 'no_account' && !d.has_sa_account);
     
-    return matchesSearch && matchesStatus && matchesCoupon;
+    return matchesSearch && matchesStatus && matchesCoupon && matchesSa;
   });
   
   const paginated = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
+
+  const handleSendProfileReminders = async () => {
+    if (typeof window !== 'undefined' && !window.confirm('Send automated 100% profile & SA account reminders via Email + WhatsApp to all incomplete registrants?')) return;
+    setSendingReminders(true);
+    try {
+      const res = await api.adminEchoSendProfileReminders({ target_group: 'all_incomplete', channel: 'both' });
+      flash(`Loop Agent Dispatched! Processed: ${res?.processed_count}, Emails: ${res?.emails_sent}, WhatsApp: ${res?.whatsapp_sent}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to send reminders', 'error');
+    } finally {
+      setSendingReminders(false);
+    }
+  };
+
+  const handleIssueCert = async (reg: any) => {
+    try {
+      const res = await api.adminEchoIssueCertificate(reg.id);
+      flash(`Certificate issued for ${reg.full_name}! Code: ${res?.code}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to issue certificate', 'error');
+    }
+  };
+
+  const handleIssue3Certs = async (reg: any) => {
+    try {
+      const res = await request(`/echo/admin/registrations/${reg.id}/issue-3-certificates`, { method: 'POST' });
+      flash(`All 3 certificates issued for ${reg.full_name}! (Built by Sunset, Hackwave 3.0, Cyber Conclave)`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to issue 3 certificates', 'error');
+    }
+  };
+
+  const handleBulkDispatch3Certs = async () => {
+    if (typeof window !== 'undefined' && !window.confirm('Run Autonomous Agent to issue and deliver all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave) via Email & WhatsApp to all attendees with 100% completed profiles?')) return;
+    setSendingReminders(true);
+    try {
+      const res = await api.adminEchoSendProfileReminders({ target_group: 'complete_100_dispatch', channel: 'both' });
+      flash(`Autonomous Agent Dispatched 3 Certificates! Processed: ${res?.processed_count}, Emails: ${res?.emails_sent}, WhatsApp: ${res?.whatsapp_sent}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to dispatch certificates', 'error');
+    } finally {
+      setSendingReminders(false);
+    }
+  };
 
   const sourceBadge = (s: string | null | undefined) => {
     if (!s || s === 'our_platform' || s === 'studentalumni') return null;
@@ -5113,6 +5220,35 @@ function LiveScanMonitorPanel() {
     );
   };
 
+  const saAccountBadge = (reg: any) => {
+    const pct = reg.profile_completion_pct || 0;
+    if (reg.is_profile_100 || pct >= 100) {
+      return (
+        <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.4)' }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#34D399' }}>
+            Profile 100% Complete ✓
+          </Text>
+        </View>
+      );
+    }
+    if (pct > 0) {
+      return (
+        <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(245,179,66,0.18)', borderWidth: 1, borderColor: 'rgba(245,179,66,0.4)' }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#F5B342' }}>
+            Profile ({pct}%) · Incomplete
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' }}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#FCA5A5' }}>
+          Profile (0%) · Incomplete
+        </Text>
+      </View>
+    );
+  };
+
   const fmtStamp = (v: any) => {
     if (!v) return null;
     const d = new Date(v);
@@ -5122,20 +5258,84 @@ function LiveScanMonitorPanel() {
     return `${date} · ${time}`;
   };
 
-  const openMap = (lat: any, lng: any) => {
-    if (Platform.OS === 'web' && window?.open) window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+  const openMap = (lat?: number, lng?: number) => {
+    if (lat && lng && typeof window !== 'undefined') {
+      window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank');
+    }
+  };
+
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
+  const [certTitle, setCertTitle] = useState('Built by Sunset — Project Build Certificate');
+  const [certRecipientEmail, setCertRecipientEmail] = useState('');
+  const [certIssuer, setCertIssuer] = useState('StudentAlumni × Hackwave 3.0');
+  const [uploadingCert, setUploadingCert] = useState(false);
+
+  const handleCustomUploadCert = async () => {
+    if (!certRecipientEmail) {
+      flash('Please enter attendee email', 'error');
+      return;
+    }
+    setUploadingCert(true);
+    try {
+      const res: any = await request('/certificates/upload', {
+        method: 'POST',
+        body: JSON.stringify({
+          recipient_email: certRecipientEmail,
+          title: certTitle,
+          issuer: certIssuer,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      flash(`Certificate uploaded & dual-synced! Code: ${res?.verification_code || 'Issued'}`);
+      setUploadModalVisible(false);
+      setCertRecipientEmail('');
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Upload failed', 'error');
+    } finally {
+      setUploadingCert(false);
+    }
   };
 
   return (
     <View style={{ flex: 1, gap: 20 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
         <View>
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: SAC.text }}>Live Scan Monitor</Text>
-          <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: SAC.muted }}>Real-time check-in and coupon scan activity</Text>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: SAC.text }}>Live Scan & SA Member Monitor</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: SAC.muted }}>Real-time check-ins, 100% profile completion, and ECHO certificates</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <View style={{ width: 250 }}>
-            <SearchField value={q} onChange={setQ} placeholder="Search by name, email, ID..." />
+          <Pressable
+            onPress={handleSendProfileReminders}
+            disabled={sendingReminders}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#7C5CFC' }}>
+            <Sparkles size={14} color="#C9A7FF" />
+            <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold, fontSize: 12 }}>
+              {sendingReminders ? 'Loop Agent Sending...' : '⚡ Send 100% Profile & SA Reminders'}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={handleBulkDispatch3Certs}
+            disabled={sendingReminders}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(16,185,129,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#10B981' }}>
+            <Award size={14} color="#6EE7B7" />
+            <Text style={{ color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 12 }}>
+              🎓 Dispatch 3 Certs to 100% Profiles
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setUploadModalVisible(true)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(59,130,246,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#3B82F6' }}>
+            <Upload size={14} color="#93C5FD" />
+            <Text style={{ color: '#93C5FD', fontFamily: FONTS.bold, fontSize: 12 }}>
+              ⬆️ Upload Cert & Dual-Sync
+            </Text>
+          </Pressable>
+
+          <View style={{ width: 220 }}>
+            <SearchField value={q} onChange={setQ} placeholder="Search name, email, ID..." />
           </View>
           <SecondaryButton onPress={load}><RefreshCw size={14} color={SAC.muted} /><Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>Refresh</Text></SecondaryButton>
         </View>
@@ -5143,6 +5343,21 @@ function LiveScanMonitorPanel() {
 
       {/* Filter row */}
       <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+        {/* SA Account & Profile filter */}
+        <View style={{ flexDirection: 'row', gap: 4, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
+          {[
+            { id: 'all', label: 'All Accounts' },
+            { id: 'complete_100', label: '100% Profile' },
+            { id: 'incomplete', label: 'Incomplete (<100%)' },
+            { id: 'no_account', label: 'No SA Account' },
+          ].map(f => (
+            <Pressable key={f.id} onPress={() => setSaFilter(f.id as any)}
+              style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: saFilter === f.id ? 'rgba(124,92,252,0.3)' : 'transparent' }}>
+              <Text style={{ fontSize: 12, fontFamily: FONTS.med, color: saFilter === f.id ? '#D8B4FE' : SAC.muted }}>{f.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
         {/* Status filter */}
         <View style={{ flexDirection: 'row', gap: 4, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
           {[
@@ -5156,6 +5371,7 @@ function LiveScanMonitorPanel() {
             </Pressable>
           ))}
         </View>
+
         {/* Coupon filter */}
         <View style={{ flexDirection: 'row', gap: 4, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
           {[
@@ -5169,9 +5385,10 @@ function LiveScanMonitorPanel() {
             </Pressable>
           ))}
         </View>
+
         {/* Reset filters */}
-        {(statusFilter !== 'all' || couponFilter !== 'all' || q) && (
-          <Pressable onPress={() => { setStatusFilter('all'); setCouponFilter('all'); setQ(''); }}
+        {(statusFilter !== 'all' || couponFilter !== 'all' || saFilter !== 'all' || q) && (
+          <Pressable onPress={() => { setStatusFilter('all'); setCouponFilter('all'); setSaFilter('all'); setQ(''); }}
             style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' }}>
             <Text style={{ fontSize: 12, fontFamily: FONTS.med, color: '#FCA5A5' }}>Clear Filters</Text>
           </Pressable>
@@ -5181,29 +5398,30 @@ function LiveScanMonitorPanel() {
       {/* KPI tiles */}
       <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
         <KpiTile Icon={CheckCircle} label="Event Check-Ins" value={String(stats.checkedIn)} />
+        <KpiTile Icon={UserCheck} label="SA Members" value={`${stats.saMembers} (${stats.sa100} 100%)`} />
+        <KpiTile Icon={Award} label="Certificates Issued" value={String(stats.certIssued)} />
         <KpiTile Icon={Ticket} label="Coupons Scanned" value={String(stats.couponsUsed)} />
-        <KpiTile Icon={Ticket} label="Lunch Scanned" value={String(stats.lunch)} />
-        <KpiTile Icon={Ticket} label="Other Scanned" value={String(stats.swag + stats.others)} />
         <KpiTile Icon={Users} label="Total Registrations" value={String(data.length)} />
       </View>
 
-      {/* Debug info */}
-      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', padding: 10, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
-        <Text style={{ fontSize: 11, color: SAC.muted, fontFamily: FONTS.med }}>
-          Loaded: {data.length} registrations | {filtered.length} filtered | Page {page + 1}/{totalPages}
+      {/* Summary Banner */}
+      <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap', padding: 12, backgroundColor: 'rgba(124,92,252,0.08)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(124,92,252,0.2)' }}>
+        <Text style={{ fontSize: 12, color: '#D8B4FE', fontFamily: FONTS.med }}>
+          📊 SA Accounts: <Text style={{ fontFamily: FONTS.bold, color: '#FFF' }}>{stats.saMembers}</Text> Members | <Text style={{ fontFamily: FONTS.bold, color: '#34D399' }}>{stats.sa100}</Text> 100% Completed | <Text style={{ fontFamily: FONTS.bold, color: '#FCA5A5' }}>{stats.noAccount}</Text> No Account
         </Text>
-        <Text style={{ fontSize: 11, color: '#A78BFA', fontFamily: FONTS.med }}>
-          | Scanned: {stats.couponsUsed} coupons
+        <Text style={{ fontSize: 12, color: '#A78BFA', fontFamily: FONTS.med }}>
+          🎓 Certificates: <Text style={{ fontFamily: FONTS.bold, color: '#FFF' }}>{stats.certIssued}</Text> Issued
         </Text>
       </View>
 
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <View style={{ flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.02)', padding: 16, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
           <Text style={{ flex: 1.6, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Attendee</Text>
+          <Text style={{ flex: 1.1, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>SA Account & Profile</Text>
           <Text style={{ flex: 0.7, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Status</Text>
-          <Text style={{ flex: 0.9, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Source</Text>
-          <Text style={{ flex: 1.5, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Check-In / Time</Text>
-          <Text style={{ flex: 2.2, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Session Coupons</Text>
+          <Text style={{ flex: 1.4, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Check-In / Time</Text>
+          <Text style={{ flex: 1.8, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Coupons & Certificate</Text>
+          <Text style={{ flex: 1.0, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase', textAlign: 'right' }}>Actions</Text>
         </View>
         
         {loading && data.length === 0 ? (
@@ -5218,6 +5436,20 @@ function LiveScanMonitorPanel() {
                 <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginBottom: 4 }}>{reg.email}</Text>
                 <Text style={{ fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>ID: {reg.id}</Text>
               </View>
+
+              <View style={{ flex: 1.1, justifyContent: 'center', gap: 4, paddingRight: 8 }}>
+                {saAccountBadge(reg)}
+                {reg.sa_account?.sa_id && (
+                  <Text style={{ fontFamily: 'monospace', fontSize: 9.5, color: '#A78BFA' }}>
+                    SA ID: {reg.sa_account.sa_id}
+                  </Text>
+                )}
+                {reg.last_profile_reminder_at && (
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>
+                    Reminded {reg.profile_reminder_count || 1}x
+                  </Text>
+                )}
+              </View>
               
               <View style={{ flex: 0.7, justifyContent: 'center' }}>
                 <StatusPill 
@@ -5226,11 +5458,7 @@ function LiveScanMonitorPanel() {
                 />
               </View>
 
-              <View style={{ flex: 0.9, justifyContent: 'center', paddingRight: 8 }}>
-                {sourceBadge(reg.source)}
-              </View>
-
-              <View style={{ flex: 1.5, justifyContent: 'center', paddingRight: 10 }}>
+              <View style={{ flex: 1.4, justifyContent: 'center', paddingRight: 10 }}>
                 {reg.checked_in_at ? (
                   <View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -5251,9 +5479,46 @@ function LiveScanMonitorPanel() {
                 )}
               </View>
 
-              <View style={{ flex: 2.2, justifyContent: 'center' }}>
-                {reg.coupons && reg.coupons.length > 0 ? (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              <View style={{ flex: 2.0, justifyContent: 'center', gap: 4 }}>
+                {reg.certificates_3_status ? (
+                  <View style={{ gap: 3 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#D8B4FE' }}>🌅 Sunset:</Text>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: reg.certificates_3_status.built_by_sunset?.issued ? '#34D399' : 'rgba(255,255,255,0.4)' }}>
+                        {reg.certificates_3_status.built_by_sunset?.issued ? `✓ ${reg.certificates_3_status.built_by_sunset.code}` : 'Pending ⏳'}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#D8B4FE' }}>🏆 Hackwave:</Text>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: reg.certificates_3_status.hackwave_participation?.issued ? '#34D399' : 'rgba(255,255,255,0.4)' }}>
+                        {reg.certificates_3_status.hackwave_participation?.issued ? `✓ ${reg.certificates_3_status.hackwave_participation.code}` : 'Pending ⏳'}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#D8B4FE' }}>🛡️ Cyber:</Text>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: reg.certificates_3_status.cyber_conclave?.issued ? '#34D399' : 'rgba(255,255,255,0.4)' }}>
+                        {reg.certificates_3_status.cyber_conclave?.issued ? `✓ ${reg.certificates_3_status.cyber_conclave.code}` : 'Pending ⏳'}
+                      </Text>
+                    </View>
+                  </View>
+                ) : reg.has_certificate ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.18)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' }}>
+                    <Award size={12} color="#C9A7FF" />
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 10.5, color: '#D8B4FE' }}>
+                      Cert: {reg.certificate?.verification_code || 'Issued'}
+                    </Text>
+                  </View>
+                ) : (
+                  <Pressable
+                    onPress={() => handleIssue3Certs(reg)}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(167,139,250,0.14)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.35)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' }}>
+                    <Award size={12} color="#A78BFA" />
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#A78BFA' }}>Issue All 3 Certs</Text>
+                  </Pressable>
+                )}
+
+                {reg.coupons && reg.coupons.length > 0 && (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
                     {reg.coupons.map((c: any, idx: number) => (
                       <Pressable
                         key={idx}
@@ -5261,26 +5526,18 @@ function LiveScanMonitorPanel() {
                         style={{ flexDirection: 'row', alignItems: 'center', gap: 4,
                           backgroundColor: c.used ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)',
                           borderWidth: 1, borderColor: c.used ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.08)',
-                          borderRadius: 6, paddingHorizontal: 8, paddingVertical: 5 }}>
-                        <Ticket size={12} color={c.used ? '#34D399' : SAC.muted} />
-                        <View>
-                          <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: c.used ? '#34D399' : SAC.muted }} numberOfLines={1}>
-                            {c.session_name}
-                          </Text>
-                          <Text style={{ fontFamily: FONTS.med, fontSize: 8.5, color: c.used ? '#6EE7B7' : 'rgba(255,255,255,0.35)', marginTop: 1 }}>
-                            {c.used ? 'Used' : 'Unused'} · tap details
-                          </Text>
-                        </View>
-                        <ChevronRight size={12} color="rgba(255,255,255,0.3)" />
+                          borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 }}>
+                        <Ticket size={10} color={c.used ? '#34D399' : SAC.muted} />
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: c.used ? '#34D399' : SAC.muted }} numberOfLines={1}>
+                          {c.session_name}
+                        </Text>
                       </Pressable>
                     ))}
                   </View>
-                ) : (
-                  <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>No Coupons</Text>
                 )}
               </View>
 
-              <View style={{ flex: 0.8, justifyContent: 'center', alignItems: 'flex-end', gap: 6 }}>
+              <View style={{ flex: 1.0, justifyContent: 'center', alignItems: 'flex-end', gap: 6 }}>
                 <Pressable
                   onPress={() => setEditingReg({ id: reg.id, email: reg.email || '', full_name: reg.full_name || '' })}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 6, backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)' }}>
@@ -5442,6 +5699,66 @@ function LiveScanMonitorPanel() {
                   load();
                 } catch (e: any) { flash(e?.message || 'Failed', 'error'); }
               }}><Text style={{ color: SAC.text }}>Save</Text></GradientButton>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Upload Certificate & Dual-Sync Modal */}
+      <Modal transparent visible={uploadModalVisible} animationType="fade" onRequestClose={() => setUploadModalVisible(false)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 }} onPress={() => setUploadModalVisible(false)}>
+          <Pressable onPress={(e: any) => e?.stopPropagation?.()} style={{ width: '100%', maxWidth: 460, backgroundColor: SAC.panel, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(124,92,252,0.3)', padding: 22, gap: 14 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Upload size={18} color="#93C5FD" />
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>Upload Certificate & Dual-Sync</Text>
+              </View>
+              <Pressable onPress={() => setUploadModalVisible(false)}><X size={18} color={SAC.muted} /></Pressable>
+            </View>
+
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+              Uploaded certificates automatically sync across <Text style={{ color: '#93C5FD', fontFamily: FONTS.bold }}>ECHO Scan Monitor</Text>, the global <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold }}>Certificates Module (/super-admin/certificates)</Text>, and the student's <Text style={{ color: '#34D399', fontFamily: FONTS.bold }}>My Certificates</Text> view.
+            </Text>
+
+            <View style={{ gap: 4 }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>Attendee Email Address *</Text>
+              <TextInput
+                value={certRecipientEmail}
+                onChangeText={setCertRecipientEmail}
+                placeholder="e.g. attendee@gmail.com"
+                placeholderTextColor={SAC.muted}
+                style={{ backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 13, fontFamily: FONTS.regular }}
+                keyboardType="email-address"
+              />
+            </View>
+
+            <View style={{ gap: 4 }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>Certificate Title *</Text>
+              <TextInput
+                value={certTitle}
+                onChangeText={setCertTitle}
+                placeholder="e.g. Built by Sunset — Project Build Certificate"
+                placeholderTextColor={SAC.muted}
+                style={{ backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 13, fontFamily: FONTS.regular }}
+              />
+            </View>
+
+            <View style={{ gap: 4 }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>Issuer Organization</Text>
+              <TextInput
+                value={certIssuer}
+                onChangeText={setCertIssuer}
+                placeholder="e.g. StudentAlumni × Hackwave 3.0"
+                placeholderTextColor={SAC.muted}
+                style={{ backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 13, fontFamily: FONTS.regular }}
+              />
+            </View>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
+              <SecondaryButton onPress={() => setUploadModalVisible(false)}><Text style={{ color: SAC.text }}>Cancel</Text></SecondaryButton>
+              <GradientButton onPress={handleCustomUploadCert} disabled={uploadingCert}>
+                <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{uploadingCert ? 'Uploading & Syncing...' : '⬆️ Upload & Dual-Sync'}</Text>
+              </GradientButton>
             </View>
           </Pressable>
         </Pressable>
@@ -6224,7 +6541,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
   const T = useSAC();
   Object.assign(fi, resolveColors(fi, T));
 
-  const [pageTab, setPageTab] = useSubTab<PageTab>(['all', 'create', 'drafts', 'registrations', 'interns', 'volunteers', 'media', 'scan-monitor'], 'all', { sub, onSub });
+  const [pageTab, setPageTab] = useSubTab<PageTab>(['registrations', 'scan-monitor', 'all', 'create', 'drafts', 'interns', 'volunteers', 'media'], 'registrations', { sub, onSub });
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');

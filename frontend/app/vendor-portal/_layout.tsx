@@ -23,7 +23,7 @@ export default function VendorPortalLayoutRoute() {
   useEffect(() => {
     if (isLogin) return;
     if (!token || !vendor) {
-      router.replace('/vendor-portal/login');
+      router.replace('/vendor-portal/login' as any);
     }
   }, [token, vendor, isLogin, router]);
 

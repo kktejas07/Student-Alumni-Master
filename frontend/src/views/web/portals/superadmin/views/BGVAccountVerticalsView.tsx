@@ -14,6 +14,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, Pressable, StyleSheet, Platform, Modal, ScrollView, TextInput, ActivityIndicator,
 } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import {
   ShieldCheck, ShieldAlert, Users, UserCheck, GraduationCap, Sparkles, Search,
   CheckCircle2, AlertTriangle, Trash2, RefreshCw, Copy, Check, ExternalLink,

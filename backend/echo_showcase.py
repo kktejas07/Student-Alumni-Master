@@ -4804,10 +4804,12 @@ async def admin_echo_registrations(
     slug: Optional[str] = None,
     status: Optional[str] = None,
     search: Optional[str] = None,
+    has_sa_account: Optional[bool] = None,
+    profile_status: Optional[str] = Query(None, description="'all', 'complete_100', 'incomplete', 'no_account'"),
     limit: int = Query(100000, ge=1, le=1000000),
     _=Depends(_require_admin),
 ):
-    """List ECHO registrations with attendee + payment details for super-admin."""
+    """List ECHO registrations with attendee, payment, SA account completion, and certificate details."""
     db = _get_db(request)
     query: Dict[str, Any] = {}
     if slug:
@@ -4827,19 +4829,19 @@ async def admin_echo_registrations(
     cur = db.echo_registrations.find(query).sort("created_at", -1).limit(limit)
     regs = await cur.to_list(limit)
     reg_ids = [r.get("id") for r in regs if r.get("id")]
+    all_emails = list({r.get("email").lower().strip() for r in regs if r.get("email")})
+    all_phones = list({r.get("phone").strip() for r in regs if r.get("phone")})
 
-    # Batch-fetch issued artifacts (coupons + invoices) for the visible page so
-    # we can tell admins exactly what was issued per attendee.
+    # Batch-fetch issued artifacts (coupons + invoices)
     coupons_map: Dict[str, list] = {}
     invoice_map: Dict[str, dict] = {}
     if reg_ids:
         for c in await db.echo_coupons.find({"reg_id": {"$in": reg_ids}}).to_list(5000):
             used_at = c.get("used_at")
-            # Ensure used_at is always an ISO string with timezone info
             if used_at and hasattr(used_at, 'isoformat'):
                 used_at = used_at.isoformat()
             elif used_at and isinstance(used_at, str) and 'T' in used_at and '+' not in used_at and 'Z' not in used_at:
-                used_at = used_at + 'Z'  # Assume UTC if no timezone
+                used_at = used_at + 'Z'
             coupons_map.setdefault(c.get("reg_id"), []).append({
                 "session_key": c.get("session_key"),
                 "session_name": c.get("session_name"),
@@ -4855,6 +4857,57 @@ async def admin_echo_registrations(
         for inv in await db.invoices.find({"reg_id": {"$in": reg_ids}}).to_list(2000):
             invoice_map[inv.get("reg_id")] = {"invoice_no": inv.get("invoice_no"), "issued": True}
 
+    # Batch-fetch SA accounts from db.users & compute profile completion
+    user_map: Dict[str, dict] = {}
+    if all_emails or all_phones:
+        from services.profile_service import compute_profile_completion
+        u_or = []
+        if all_emails:
+            u_or.append({"email": {"$in": all_emails}})
+        if all_phones:
+            u_or.append({"phone": {"$in": all_phones}})
+        async for u in db.users.find({"$or": u_or}, {"password_hash": 0, "face_image_base64": 0}):
+            comp_info = compute_profile_completion(u)
+            u_data = {
+                "user_id": str(u.get("_id")),
+                "sa_id": u.get("sa_id") or (u.get("school_info") or {}).get("roll_number") or "",
+                "email": u.get("email"),
+                "phone": u.get("phone"),
+                "full_name": u.get("full_name"),
+                "role": u.get("role"),
+                "profile_completion_pct": comp_info.get("percentage", 0),
+                "is_profile_100": comp_info.get("percentage", 0) >= 100,
+                "missing_items": [item["label"] for item in comp_info.get("items", []) if not item["done"]]
+            }
+            if u.get("email"):
+                user_map[u.get("email").lower().strip()] = u_data
+            if u.get("phone"):
+                user_map[u.get("phone").strip()] = u_data
+
+    # Batch-fetch issued certificates from db.certificates
+    cert_map: Dict[str, dict] = {}
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    if reg_ids or all_emails:
+        c_or = []
+        if reg_ids:
+            c_or.append({"reg_id": {"$in": reg_ids}})
+        if all_emails:
+            c_or.append({"recipient_email": {"$in": all_emails}})
+        async for c in db.certificates.find({"$or": c_or}):
+            c_code = c.get("verification_code") or c.get("certificate_id") or c.get("id")
+            c_data = {
+                "id": c.get("id") or str(c.get("_id")),
+                "verification_code": c_code,
+                "title": c.get("title") or c.get("certification_name") or "ECHO Certificate",
+                "issued_at": c.get("issued_at") or c.get("created_at"),
+                "verify_url": f"{frontend_url}/certificates/verify/{c_code}",
+                "image_url": c.get("image_url"),
+            }
+            if c.get("reg_id"):
+                cert_map[c.get("reg_id")] = c_data
+            if c.get("recipient_email"):
+                cert_map[c.get("recipient_email").lower().strip()] = c_data
+
     items = []
     for r in regs:
         s = _ser(r)
@@ -4862,6 +4915,34 @@ async def admin_echo_registrations(
         paid = payment.get("status") == "paid" and s.get("status") == "registered"
         rid = str(s.get("id") or "")
         inv_rec = invoice_map.get(rid) or {}
+        
+        u_email = (s.get("email") or "").lower().strip()
+        u_phone = (s.get("phone") or "").strip()
+        sa_user = user_map.get(u_email) or user_map.get(u_phone)
+        has_sa = bool(sa_user or s.get("user_id") or u_email)
+
+        if sa_user:
+            comp_pct = sa_user.get("profile_completion_pct", 0)
+        else:
+            reg_eval = {
+                "email": u_email,
+                "full_name": s.get("full_name"),
+                "institution": s.get("college"),
+                "branch": s.get("branch"),
+                "year_of_study": s.get("year"),
+                "phone": u_phone,
+            }
+            eval_res = compute_profile_completion(reg_eval)
+            comp_pct = eval_res.get("percentage", 0)
+
+        # Allow explicitly flag or 100% score
+        is_100 = bool(s.get("is_profile_100") or (sa_user and sa_user.get("is_profile_100")) or comp_pct >= 100)
+        if is_100 and comp_pct < 100:
+            comp_pct = 100
+
+        cert_data = cert_map.get(rid) or cert_map.get(u_email)
+        has_cert = bool(cert_data or s.get("certificate_issued") or s.get("has_3_certificates"))
+
         items.append({
             "id": s.get("id"),
             "slug": s.get("slug"),
@@ -4881,7 +4962,15 @@ async def admin_echo_registrations(
             "paid_at": payment.get("paid_at"),
             "registered_at": s.get("registered_at"),
             "user_id": s.get("user_id"),
-            "has_account": bool(s.get("user_id")),
+            "has_account": has_sa,
+            "has_sa_account": has_sa,
+            "profile_completion_pct": comp_pct,
+            "is_profile_100": is_100,
+            "sa_account": sa_user,
+            "has_certificate": has_cert,
+            "certificate": cert_data,
+            "last_profile_reminder_at": s.get("last_profile_reminder_at"),
+            "profile_reminder_count": s.get("profile_reminder_count") or 0,
             "failed_at": payment.get("failed_at"),
             "failed_reason": payment.get("failed_reason"),
             "reminder_sent_at": s.get("payment_reminder_sent_at"),
@@ -4900,7 +4989,432 @@ async def admin_echo_registrations(
             "team_leader_name": s.get("team_leader_name"),
             "team_leader_email": s.get("team_leader_email"),
         })
-    return {"items": items, "total": len(items)}
+
+    # Apply filters
+    filtered_items = items
+    if has_sa_account is not None:
+        filtered_items = [i for i in filtered_items if i["has_sa_account"] == has_sa_account]
+    if profile_status:
+        if profile_status == "complete_100":
+            filtered_items = [i for i in filtered_items if i["is_profile_100"]]
+        elif profile_status == "incomplete":
+            filtered_items = [i for i in filtered_items if i["has_sa_account"] and not i["is_profile_100"]]
+        elif profile_status == "no_account":
+            filtered_items = [i for i in filtered_items if not i["has_sa_account"]]
+
+    stats = {
+        "total": len(items),
+        "sa_members_count": sum(1 for i in items if i["has_sa_account"]),
+        "members_100_percent_count": sum(1 for i in items if i["is_profile_100"]),
+        "members_incomplete_count": sum(1 for i in items if i["has_sa_account"] and not i["is_profile_100"]),
+        "non_sa_members_count": sum(1 for i in items if not i["has_sa_account"]),
+        "certificates_issued_count": sum(1 for i in items if i["has_certificate"]),
+    }
+
+    return {
+        "items": filtered_items,
+        "total": len(filtered_items),
+        "stats": stats
+    }
+
+
+@router.post("/admin/registrations/{reg_id}/issue-certificate")
+async def admin_echo_issue_certificate(
+    reg_id: str,
+    request: Request,
+    title: Optional[str] = Query(None, description="Custom certificate title"),
+    _=Depends(_require_admin),
+):
+    """Issue a verifiable ECHO certificate for a registration."""
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg and ObjectId.is_valid(reg_id):
+        reg = await db.echo_registrations.find_one({"_id": ObjectId(reg_id)})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+
+    email = reg.get("email", "").lower().strip()
+    full_name = reg.get("full_name", "").strip() or "ECHO Participant"
+    showcase_title = reg.get("showcase_title") or "ECHO Showcase 2026"
+    cert_title = title or f"Certificate of Completion — {showcase_title}"
+    
+    code = f"ECHO26-CERT-{secrets.token_hex(4).upper()}"
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    verify_url = f"{frontend_url}/certificates/verify/{code}"
+
+    cert_doc = {
+        "id": code,
+        "certificate_id": code,
+        "verification_code": code,
+        "title": cert_title,
+        "certification_name": cert_title,
+        "recipient_name": full_name,
+        "recipient_email": email,
+        "recipient_phone": reg.get("phone"),
+        "roll_number": reg.get("roll_number") or reg.get("sa_id") or "",
+        "reg_id": reg.get("id"),
+        "slug": reg.get("slug"),
+        "showcase_title": showcase_title,
+        "issuer": "StudentAlumni × ECHO Showcase",
+        "issued_at": _now(),
+        "issue_date": datetime.now(timezone.utc).strftime("%d %B %Y"),
+        "created_at": _now(),
+        "image_url": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800",
+        "verify_url": verify_url,
+    }
+
+    await db.certificates.update_one({"verification_code": code}, {"$set": cert_doc}, upsert=True)
+    await db.echo_registrations.update_one(
+        {"_id": reg["_id"]},
+        {"$set": {
+            "certificate_issued": True,
+            "certificate_code": code,
+            "certificate_url": verify_url,
+            "certificate_issued_at": _now(),
+        }}
+    )
+
+    try:
+        email_content = f"""
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #111827;">
+          <h2 style="color: #6D28D9;">Your ECHO Certificate is Ready! 🎓</h2>
+          <p>Dear <strong>{full_name}</strong>,</p>
+          <p>Congratulations! Your official certificate for <strong>{showcase_title}</strong> has been issued.</p>
+          <div style="margin: 20px 0; padding: 16px; background: #F3E8FF; border-radius: 12px; border: 1px solid #DDD6FE;">
+            <p style="margin: 0; font-weight: bold; color: #5B21B6;">Verification Code: {code}</p>
+            <p style="margin: 4px 0 0 0; font-size: 14px;"><a href="{verify_url}" style="color: #6D28D9; font-weight: bold;">Click here to View & Verify Certificate</a></p>
+          </div>
+          <p style="font-size: 13px; color: #6B7280;">You can share this link on LinkedIn, your resume, or with employers.</p>
+        </div>
+        """
+        await send_email(email, f"🎓 Your Certificate for {showcase_title}", render_html_email(email_content))
+    except Exception as e:
+        logger.warning(f"Certificate email notice error: {e}")
+
+    return {
+        "status": "success",
+        "message": f"Certificate issued for {full_name}",
+        "code": code,
+        "verify_url": verify_url,
+        "certificate": cert_doc
+    }
+
+
+async def issue_3_echo_certificates(db, reg: dict) -> dict:
+    """
+    Issue 3 official certificates for Hackwave 3.0 / ECHO Showcase:
+      1. Built by Sunset (Project Build Certificate)
+      2. Common Certificate of Participation — Hackwave 3.0
+      3. Cyber Conclave Certificate
+    Upserts into db.certificates (enabling /certificates/verify/{code} & profile sync).
+    """
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    email = (reg.get("email") or "").lower().strip()
+    full_name = (reg.get("full_name") or "").strip() or "ECHO Participant"
+    showcase_title = reg.get("showcase_title") or "Hackwave 3.0"
+    reg_id = reg.get("id") or str(reg.get("_id"))
+    
+    cert_types = [
+        ("built_by_sunset", "Built by Sunset — Project Build Certificate", "HW3-SUNSET"),
+        ("hackwave_participation", f"Certificate of Participation — {showcase_title}", "HW3-PART"),
+        ("cyber_conclave", "Cyber Conclave — Professional Certificate", "HW3-CYBER"),
+    ]
+
+    existing_certs = reg.get("certificates_3_status") or {}
+    results = {}
+    now_str = _now()
+
+    for key, title, prefix in cert_types:
+        existing = existing_certs.get(key)
+        if existing and existing.get("code"):
+            code = existing["code"]
+        else:
+            code = f"{prefix}-{secrets.token_hex(4).upper()}"
+
+        verify_url = f"{frontend_url}/certificates/verify/{code}"
+        
+        cert_doc = {
+            "id": code,
+            "certificate_id": code,
+            "verification_code": code,
+            "title": title,
+            "certification_name": title,
+            "category_key": key,
+            "recipient_name": full_name,
+            "recipient_email": email,
+            "recipient_phone": reg.get("phone"),
+            "roll_number": reg.get("roll_number") or reg.get("sa_id") or "",
+            "reg_id": reg_id,
+            "slug": reg.get("slug"),
+            "showcase_title": showcase_title,
+            "issuer": "StudentAlumni × Hackwave 3.0",
+            "issued_at": now_str,
+            "issue_date": datetime.now(timezone.utc).strftime("%d %B %Y"),
+            "created_at": now_str,
+            "status": "valid",
+            "status_label": "Officially Verified Certificate",
+            "image_url": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800",
+            "verify_url": verify_url,
+        }
+
+        await db.certificates.update_one({"verification_code": code}, {"$set": cert_doc}, upsert=True)
+        results[key] = {
+            "issued": True,
+            "code": code,
+            "title": title,
+            "verify_url": verify_url,
+            "delivered_at": now_str,
+        }
+
+    # Update echo_registrations document with 3-certificate delivery status
+    await db.echo_registrations.update_one(
+        {"_id": reg["_id"]},
+        {"$set": {
+            "certificates_3_status": results,
+            "has_3_certificates": True,
+            "certificate_issued": True,
+            "certificate_code": results["hackwave_participation"]["code"],
+            "certificate_url": results["hackwave_participation"]["verify_url"],
+            "certificates_delivered_count": 3,
+            "certificates_updated_at": now_str,
+        }}
+    )
+
+    return results
+
+
+@router.post("/admin/registrations/{reg_id}/issue-3-certificates")
+async def admin_echo_issue_3_certificates(
+    reg_id: str,
+    request: Request,
+    _=Depends(_require_admin),
+):
+    """Issue all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave) for a registration."""
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg and ObjectId.is_valid(reg_id):
+        reg = await db.echo_registrations.find_one({"_id": ObjectId(reg_id)})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+
+    certs = await issue_3_echo_certificates(db, reg)
+    return {
+        "status": "success",
+        "message": f"All 3 certificates issued for {reg.get('full_name')}",
+        "certificates": certs,
+    }
+
+
+@router.post("/admin/certificates/upload-template")
+async def admin_echo_upload_cert_template(
+    request: Request,
+    category: str = Body(..., description="built_by_sunset, hackwave_participation, cyber_conclave"),
+    title: str = Body(..., description="Template title"),
+    file_url: str = Body(..., description="Template file URL or base64"),
+    _=Depends(_require_admin),
+):
+    """Upload or configure a custom certificate template asset for Hackwave / ECHO events."""
+    db = _get_db(request)
+    template_doc = {
+        "category": category,
+        "title": title,
+        "file_url": file_url,
+        "updated_at": _now(),
+    }
+    await db.echo_cert_templates.update_one({"category": category}, {"$set": template_doc}, upsert=True)
+    return {"status": "success", "template": template_doc}
+
+
+@router.get("/admin/certificates/templates")
+async def admin_echo_get_cert_templates(request: Request, _=Depends(_require_admin)):
+    """List configured certificate templates for ECHO events."""
+    db = _get_db(request)
+    items = await db.echo_cert_templates.find({}).to_list(100)
+    for i in items:
+        i["_id"] = str(i["_id"])
+    return {"templates": items}
+
+
+@router.post("/admin/showcases/{slug}/bulk-issue-certificates")
+async def admin_echo_bulk_issue_certificates(
+    slug: str,
+    request: Request,
+    _=Depends(_require_admin),
+):
+    """Bulk issue certificates for all registered/paid attendees of an ECHO showcase."""
+    db = _get_db(request)
+    regs = await db.echo_registrations.find({"slug": slug, "payment.status": "paid"}).to_list(10000)
+    if not regs:
+        regs = await db.echo_registrations.find({"slug": slug, "status": "registered"}).to_list(10000)
+
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    issued_count = 0
+    skipped_count = 0
+
+    for reg in regs:
+        if reg.get("certificate_issued"):
+            skipped_count += 1
+            continue
+        email = reg.get("email", "").lower().strip()
+        full_name = reg.get("full_name", "").strip() or "ECHO Participant"
+        showcase_title = reg.get("showcase_title") or "ECHO Showcase"
+        code = f"ECHO26-CERT-{secrets.token_hex(4).upper()}"
+        verify_url = f"{frontend_url}/certificates/verify/{code}"
+
+        cert_doc = {
+            "id": code,
+            "certificate_id": code,
+            "verification_code": code,
+            "title": f"Certificate of Completion — {showcase_title}",
+            "certification_name": f"Certificate of Completion — {showcase_title}",
+            "recipient_name": full_name,
+            "recipient_email": email,
+            "recipient_phone": reg.get("phone"),
+            "roll_number": reg.get("roll_number") or reg.get("sa_id") or "",
+            "reg_id": reg.get("id"),
+            "slug": slug,
+            "showcase_title": showcase_title,
+            "issuer": "StudentAlumni × ECHO Showcase",
+            "issued_at": _now(),
+            "issue_date": datetime.now(timezone.utc).strftime("%d %B %Y"),
+            "created_at": _now(),
+            "image_url": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800",
+            "verify_url": verify_url,
+        }
+        await db.certificates.update_one({"verification_code": code}, {"$set": cert_doc}, upsert=True)
+        await db.echo_registrations.update_one(
+            {"_id": reg["_id"]},
+            {"$set": {
+                "certificate_issued": True,
+                "certificate_code": code,
+                "certificate_url": verify_url,
+                "certificate_issued_at": _now(),
+            }}
+        )
+        issued_count += 1
+
+    return {
+        "status": "success",
+        "issued_count": issued_count,
+        "skipped_count": skipped_count,
+        "total_registrations": len(regs)
+    }
+
+
+@router.get("/registrations/{reg_id}/certificate")
+async def get_echo_registration_certificate(
+    reg_id: str,
+    request: Request,
+):
+    """Public / Attendee endpoint to fetch certificate status & verification details."""
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg and ObjectId.is_valid(reg_id):
+        reg = await db.echo_registrations.find_one({"_id": ObjectId(reg_id)})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+
+    email = reg.get("email", "").lower().strip()
+    cert = await db.certificates.find_one({"$or": [{"reg_id": reg.get("id")}, {"recipient_email": email}]})
+    
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    from urllib.parse import quote
+
+    if not cert and reg.get("certificate_code"):
+        code = reg.get("certificate_code")
+        verify_url = f"{frontend_url}/certificates/verify/{code}"
+        wa_text = quote(f"🎓 Check out my certificate for {reg.get('showcase_title', 'ECHO')} on StudentAlumni: {verify_url}")
+        return {
+            "has_certificate": True,
+            "verification_code": code,
+            "title": f"Certificate of Completion — {reg.get('showcase_title', 'ECHO')}",
+            "recipient_name": reg.get("full_name"),
+            "verify_url": verify_url,
+            "share_url": f"https://wa.me/?text={wa_text}"
+        }
+
+    if not cert:
+        return {"has_certificate": False, "message": "No certificate issued yet for this registration."}
+
+    code = cert.get("verification_code") or cert.get("certificate_id") or cert.get("id")
+    verify_url = f"{frontend_url}/certificates/verify/{code}"
+    wa_text = quote(f"🎓 Check out my verified certificate for {cert.get('title', 'ECHO Showcase')} on StudentAlumni!\n\nVerify URL: {verify_url}")
+    
+    return {
+        "has_certificate": True,
+        "verification_code": code,
+        "title": cert.get("title") or cert.get("certification_name"),
+        "recipient_name": cert.get("recipient_name"),
+        "issue_date": cert.get("issue_date") or cert.get("issued_at"),
+        "verify_url": verify_url,
+        "share_url": f"https://wa.me/?text={wa_text}",
+        "certificate": {
+            "id": cert.get("id"),
+            "verification_code": code,
+            "title": cert.get("title"),
+            "recipient_name": cert.get("recipient_name"),
+            "issuer": cert.get("issuer", "StudentAlumni"),
+            "image_url": cert.get("image_url")
+        }
+    }
+
+
+@router.post("/admin/send-profile-reminders")
+async def admin_echo_send_profile_reminders(
+    request: Request,
+    slug: Optional[str] = Query(None, description="Optional showcase slug filter"),
+    target_group: str = Query("all_incomplete", description="'no_account', 'incomplete_profile', or 'all_incomplete'"),
+    channel: str = Query("both", description="'email', 'whatsapp', or 'both'"),
+    _=Depends(_require_admin),
+):
+    """Loop agent service: scans ECHO registrants without an SA account or with incomplete profile (<100%),
+    and sends automated reminder notifications via Email and WhatsApp/SMS.
+    """
+    from services.agents.echo_profile_loop_agent import echo_profile_loop_agent
+    return await echo_profile_loop_agent.execute_cycle(slug=slug, target_group=target_group, channel=channel)
+
+
+@router.get("/admin/loop-agent/status")
+async def admin_echo_loop_agent_status(
+    request: Request,
+    _=Depends(_require_admin),
+):
+    """Get status of the ECHO profile completion & account activation autonomous loop agent."""
+    from services.agents.echo_profile_loop_agent import echo_profile_loop_agent
+    return echo_profile_loop_agent.get_status()
+
+
+@router.post("/admin/loop-agent/start")
+async def admin_echo_loop_agent_start(
+    request: Request,
+    interval_seconds: int = Query(3600, ge=60, le=86400, description="Loop interval in seconds"),
+    _=Depends(_require_admin),
+):
+    """Start the background recurring loop agent for 100% profile reminders."""
+    from services.agents.echo_profile_loop_agent import echo_profile_loop_agent
+    started = echo_profile_loop_agent.start_background_loop(interval_seconds=interval_seconds)
+    return {
+        "status": "success" if started else "already_running",
+        "message": "Background loop agent started." if started else "Loop agent is already running.",
+        "agent": echo_profile_loop_agent.get_status(),
+    }
+
+
+@router.post("/admin/loop-agent/stop")
+async def admin_echo_loop_agent_stop(
+    request: Request,
+    _=Depends(_require_admin),
+):
+    """Stop the background recurring loop agent."""
+    from services.agents.echo_profile_loop_agent import echo_profile_loop_agent
+    stopped = echo_profile_loop_agent.stop_background_loop()
+    return {
+        "status": "success" if stopped else "not_running",
+        "message": "Background loop agent stopped." if stopped else "Loop agent was not running.",
+        "agent": echo_profile_loop_agent.get_status(),
+    }
+
+
 
 
 @router.get("/admin/export-csv")

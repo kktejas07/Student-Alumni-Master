@@ -479,8 +479,35 @@ export const api = {
     request<any>('/echo/admin/media/bulk-delete', { method: 'POST', body: { filenames } }),
   restoreEchoShowcaseVersion: (id: string, versionIndex: number) =>
     request<any>(`/echo/admin/showcases/${id}/restore/${versionIndex}`, { method: 'POST' }),
-  adminEchoRegistrations: () =>
-    request<any>(`/echo/admin/registrations?_t=${Date.now()}`),
+  adminEchoRegistrations: (params?: { slug?: string; status?: string; search?: string; has_sa_account?: boolean; profile_status?: string }) => {
+    const q = new URLSearchParams();
+    q.set('_t', String(Date.now()));
+    if (params?.slug) q.set('slug', params.slug);
+    if (params?.status) q.set('status', params.status);
+    if (params?.search) q.set('search', params.search);
+    if (params?.has_sa_account !== undefined) q.set('has_sa_account', String(params.has_sa_account));
+    if (params?.profile_status) q.set('profile_status', params.profile_status);
+    return request<any>(`/echo/admin/registrations?${q.toString()}`);
+  },
+  adminEchoIssueCertificate: (regId: string, title?: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/issue-certificate${title ? '?title=' + encodeURIComponent(title) : ''}`, { method: 'POST' }),
+  adminEchoBulkIssueCertificates: (slug: string) =>
+    request<any>(`/echo/admin/showcases/${slug}/bulk-issue-certificates`, { method: 'POST' }),
+  getEchoRegistrationCertificate: (regId: string) =>
+    request<any>(`/echo/registrations/${regId}/certificate`, { auth: false }),
+  adminEchoSendProfileReminders: (params?: { slug?: string; target_group?: string; channel?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.slug) q.set('slug', params.slug);
+    if (params?.target_group) q.set('target_group', params.target_group);
+    if (params?.channel) q.set('channel', params.channel);
+    return request<any>(`/echo/admin/send-profile-reminders?${q.toString()}`, { method: 'POST' });
+  },
+  adminEchoLoopAgentStatus: () =>
+    request<any>('/echo/admin/loop-agent/status'),
+  adminEchoLoopAgentStart: (intervalSeconds?: number) =>
+    request<any>(`/echo/admin/loop-agent/start${intervalSeconds ? '?interval_seconds=' + intervalSeconds : ''}`, { method: 'POST' }),
+  adminEchoLoopAgentStop: () =>
+    request<any>('/echo/admin/loop-agent/stop', { method: 'POST' }),
   adminEchoDeleteRegistration: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}`, { method: 'DELETE' }),
   adminEchoSendPaymentReminder: (regId: string) =>
