@@ -691,7 +691,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
       const base = (process.env.EXPO_PUBLIC_BACKEND_URL || 'https://studentalumni.ai').replace(/\/$/, '');
       const token = typeof window !== 'undefined' ? localStorage.getItem('scd_access_token') || '' : '';
-      const resp = await fetch(`${base}/api/certificates/import-csv-zip-stream`, {
+      const resp = await fetch(`${base}/api/certificates/import-csv-zip?stream=true`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: fd,

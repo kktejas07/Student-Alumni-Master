@@ -1186,6 +1186,7 @@ async def import_csv_zip_certificates(
     issuer: str = "Student Alumni",
     send_emails: bool = True,
     dry_run: bool = False,
+    stream: bool = Query(False, description="Return NDJSON streaming progress instead of batch JSON"),
     user: dict = Depends(get_current_user),
 ):
     """
@@ -1265,128 +1266,180 @@ async def import_csv_zip_certificates(
         return None
 
     # ── Process rows ───────────────────────────────────────────────────
-    results = []
-    errors = []
-    created = updated = skipped = 0
-    per_user: dict = {}
+    # ── Shared processing logic ────────────────────────────────────────
+    def _col(row, *keys):
+        low = {(k or "").strip().lower(): (v or "").strip() for k, v in row.items()}
+        for k in keys:
+            if low.get(k):
+                return low[k]
+        return ""
 
-    for i, row in enumerate(rows, start=2):
-        email = _col(row, "email", "recipient_email", "student_email").lower()
-        name = _col(row, "name", "recipient_name", "student_name", "full_name")
-        title = _col(row, "title", "certificate_title", "event_name", "certificate")
-        cert_id = _col(row, "certificate_id", "certificate id", "cert_id", "code", "verification_code")
-        want_file = _col(row, "file", "filename", "image")
-        if not email or not title:
-            errors.append({"row": i, "error": "Missing required email/title"})
-            skipped += 1
-            continue
-
-        matched = _match_image(cert_id, email, want_file)
-        file_bytes = matched[0].read(matched[1]) if matched else None
-        if file_bytes and not dry_run:
-            safe = re.sub(r"[^a-zA-Z0-9._-]", "_", os.path.basename(matched[1]))
-            disk_path = f"uploads/certificates/csv_{safe}"
-            os.makedirs("uploads/certificates", exist_ok=True)
-            with open(disk_path, "wb") as fp:
-                fp.write(file_bytes)
-            image_url = f"/uploads/certificates/csv_{safe}"
-        else:
-            disk_path = None
-            image_url = None
-
+    def _match(cert_id, email, want):
+        if want and want.lower() in all_by_base:
+            return all_by_base[want.lower()]
         if cert_id:
-            lookup = {"$or": [{"verification_code": cert_id}, {"certificate_id": cert_id}, {"id": cert_id}]}
-        else:
-            lookup = {"recipient_email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}, "title": title}
-        prior = await db.certificates.find_one(lookup)
-        code = cert_id or (prior.get("verification_code") if prior else None) or await _generate_code()
-        verify_url = f"{FRONTEND_URL}/certificates/verify/{code}"
+            for base, item in all_by_base.items():
+                if cert_id.lower() in base:
+                    return item
+        if email:
+            local = email.split("@")[0].lower()
+            for base, item in all_by_base.items():
+                if local and local in base:
+                    return item
+        return None
 
-        doc = {
-            "verification_code": code,
-            "certificate_id": code,
-            "id": code,
-            "recipient_email": email,
-            "student_email": email,
-            "recipient_name": name or email.split("@")[0].replace(".", " ").title(),
-            "student_name": name or email.split("@")[0].replace(".", " ").title(),
-            "title": title,
-            "issuer": (issuer or "Student Alumni").strip(),
-            "issuer_type": "platform",
-            "source": "csv_zip_import",
-            "status": "valid",
-            "status_label": "Officially Verified",
-        }
-        if image_url:
-            doc["image_url"] = image_url
-            doc["file_path"] = disk_path
-        if not dry_run:
-            if prior:
-                keep = {"$set": {k: v for k, v in doc.items() if v is not None}}
-                if not image_url:
-                    keep["$set"].pop("image_url", None)
-                    keep["$set"].pop("file_path", None)
-                await db.certificates.update_one({"_id": prior["_id"]}, keep)
-                updated += 1
-                action = "updated"
+    async def _process_rows():
+        """Yields NDJSON lines for streaming, or collects for batch."""
+        import json as _json
+        created = updated = skipped = 0
+        per_user = {}
+        all_results = []
+        all_errors = []
+
+        yield _json.dumps({"type": "start", "total_rows": len(rows), "zip_images": len(all_by_base), "dry_run": dry_run, "send_emails": send_emails}) + "\n"
+
+        for i, row in enumerate(rows, start=2):
+            email = _col(row, "email", "recipient_email", "student_email").lower()
+            name = _col(row, "name", "recipient_name", "student_name", "full_name")
+            title = _col(row, "title", "certificate_title", "event_name", "certificate")
+            cert_id = _col(row, "certificate_id", "certificate id", "cert_id", "code", "verification_code")
+            want_file = _col(row, "file", "filename", "image")
+
+            if not email or not title:
+                skipped += 1
+                item = {"row": i, "email": email or "?", "name": name, "title": title, "action": "skipped", "error": "Missing email/title"}
+                all_results.append(item)
+                all_errors.append(item)
+                yield _json.dumps(item) + "\n"
+                continue
+
+            matched = _match(cert_id, email, want_file)
+            file_bytes = matched[0].read(matched[1]) if matched else None
+            image_url = None
+            disk_path = None
+
+            if file_bytes and not dry_run:
+                safe = re.sub(r"[^a-zA-Z0-9._-]", "_", os.path.basename(matched[1]))
+                disk_path = f"uploads/certificates/csv_{safe}"
+                os.makedirs("uploads/certificates", exist_ok=True)
+                with open(disk_path, "wb") as fp:
+                    fp.write(file_bytes)
+                image_url = f"/uploads/certificates/csv_{safe}"
+
+            if cert_id:
+                lookup = {"$or": [{"verification_code": cert_id}, {"certificate_id": cert_id}, {"id": cert_id}]}
             else:
-                doc["issued_at"] = datetime.now(timezone.utc).isoformat()
-                doc["created_at"] = datetime.now(timezone.utc).isoformat()
-                await db.certificates.insert_one(doc)
-                created += 1
-                action = "created"
-            await _sync_with_echo_registrations(email, {**doc, "verification_code": code})
-        else:
-            action = "would-create" if not prior else "would-update"
+                lookup = {"recipient_email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}, "title": title}
+            prior = await db.certificates.find_one(lookup)
+            code = cert_id or (prior.get("verification_code") if prior else None) or await _generate_code()
+            verify_url = f"{FRONTEND_URL}/certificates/verify/{code}"
 
-        item = {"row": i, "email": email, "name": doc["recipient_name"], "title": title,
-                "code": code, "verify_url": verify_url, "action": action,
-                "file_matched": os.path.basename(matched[1]) if matched else None}
-        results.append(item)
-        per_user.setdefault(email, {"name": doc["recipient_name"], "certs": []})["certs"].append(item)
+            doc = {
+                "verification_code": code, "certificate_id": code, "id": code,
+                "recipient_email": email, "student_email": email,
+                "recipient_name": name or email.split("@")[0].replace(".", " ").title(),
+                "student_name": name or email.split("@")[0].replace(".", " ").title(),
+                "title": title, "issuer": (issuer or "Student Alumni").strip(),
+                "issuer_type": "platform", "source": "csv_zip_import",
+                "status": "valid", "status_label": "Officially Verified",
+            }
+            if image_url:
+                doc["image_url"] = image_url
+                doc["file_path"] = disk_path
 
-    # ── Account-aware emails ───────────────────────────────────────────
-    emails_view = emails_claim = 0
-    if send_emails and not dry_run and per_user:
-        existing = set()
-        async for u in db.users.find({"email": {"$in": list(per_user.keys())}}, {"email": 1}):
-            if u.get("email"):
-                existing.add(str(u["email"]).lower().strip())
-        for email, udata in per_user.items():
-            clist = udata["certs"]
-            if email in existing:
-                rows_html = "".join(
-                    f"<div style=\"padding:12px;background:#141424;border-radius:10px;border:1px solid #3B2E7A;margin-bottom:10px;\">"
-                    f"<p style=\"margin:0;font-weight:bold;color:#D8B4FE;font-size:14px;\">{c['title']}</p>"
-                    f"<p style=\"margin:4px 0 8px 0;color:#9095A8;font-size:12px;font-family:monospace;\">Code: {c['code']}</p>"
-                    f"<a href=\"{c['verify_url']}\" style=\"color:#7C5CFC;font-size:12px;font-weight:bold;text-decoration:none;\">Verify & Download →</a></div>"
-                    for c in clist
-                )
-                body = (f"<h2 style=\"color:#FFF;\">Your Certificates Are Ready</h2><p>Hello <strong>{udata['name']}</strong>,</p>"
-                        f"<p>{len(clist)} certificate(s) were issued to you:</p>{rows_html}"
-                        f"<p style=\"font-size:12px;color:#7E7E92;\">Complete your SA profile to 100% to unlock them in My Certificates.</p>")
-                subject = f"🎓 Your {len(clist)} Certificate(s) Are Ready"
-                etype = "view"
-            else:
-                reg_link = f"{FRONTEND_URL}/auth/register?email={_urlquote(email)}&name={_urlquote(udata['name'])}"
-                body = (f"<h2 style=\"color:#FFF;\">Claim Your Certificates</h2><p>Hello <strong>{udata['name']}</strong>,</p>"
-                        f"<p>{len(clist)} certificate(s) were issued to <strong>{email}</strong>. Create your free StudentAlumni account to claim and download them:</p>"
-                        f"<div style=\"margin:20px 0;\"><a href=\"{reg_link}\" style=\"background:#7C5CFC;color:#FFF;padding:12px 24px;text-decoration:none;border-radius:10px;font-weight:bold;\">Create Account & Claim →</a></div>")
-                subject = "🎓 Claim Your Certificates — Create Your Free Account"
-                etype = "claim"
-            try:
-                await send_email(email, subject, render_html_email(body))
-                if etype == "view":
-                    emails_view += 1
+            if not dry_run:
+                if prior:
+                    keep = {"$set": {k: v for k, v in doc.items() if v is not None}}
+                    if not image_url:
+                        keep["$set"].pop("image_url", None)
+                        keep["$set"].pop("file_path", None)
+                    await db.certificates.update_one({"_id": prior["_id"]}, keep)
+                    updated += 1
+                    action = "updated"
                 else:
-                    emails_claim += 1
-            except Exception:
-                errors.append({"row": "-", "error": f"Email failed for {email}"})
+                    doc["issued_at"] = datetime.now(timezone.utc).isoformat()
+                    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+                    await db.certificates.insert_one(doc)
+                    created += 1
+                    action = "created"
+                await _sync_with_echo_registrations(email, {**doc, "verification_code": code})
+            else:
+                action = "would-create" if not prior else "would-update"
 
-    return {"ok": True, "dry_run": dry_run, "total_rows": len(rows),
-            "created": created, "updated": updated, "skipped": skipped,
-            "recipients": len(per_user), "emails_view": emails_view, "emails_claim": emails_claim,
-            "results": results, "errors": errors}
+            per_user.setdefault(email, {"name": doc["recipient_name"], "certs": []})["certs"].append({"code": code, "title": title, "verify_url": verify_url})
+
+            item = {"row": i, "email": email, "name": doc["recipient_name"], "title": title,
+                    "code": code, "action": action, "verify_url": verify_url,
+                    "file_matched": os.path.basename(matched[1]) if matched else None}
+            all_results.append(item)
+            yield _json.dumps({**item, "created": created, "updated": updated, "skipped": skipped}) + "\n"
+
+        # Send emails
+        emails_view = emails_claim = 0
+        if send_emails and not dry_run and per_user:
+            yield _json.dumps({"type": "email_start", "recipients": len(per_user)}) + "\n"
+            existing = set()
+            async for u in db.users.find({"email": {"$in": list(per_user.keys())}}, {"email": 1}):
+                if u.get("email"):
+                    existing.add(str(u["email"]).lower().strip())
+            for email, udata in per_user.items():
+                clist = udata["certs"]
+                if email in existing:
+                    rows_html = "".join(
+                        f"<div style=\"padding:12px;background:#141424;border-radius:10px;border:1px solid #3B2E7A;margin-bottom:10px;\">"
+                        f"<p style=\"margin:0;font-weight:bold;color:#D8B4FE;font-size:14px;\">{c['title']}</p>"
+                        f"<p style=\"margin:4px 0 8px 0;color:#9095A8;font-size:12px;font-family:monospace;\">Code: {c['code']}</p>"
+                        f"<a href=\"{c['verify_url']}\" style=\"color:#7C5CFC;font-size:12px;font-weight:bold;text-decoration:none;\">Verify & Download →</a></div>"
+                        for c in clist
+                    )
+                    body = (f"<h2 style=\"color:#FFF;\">Your Certificates Are Ready</h2><p>Hello <strong>{udata['name']}</strong>,</p>"
+                            f"<p>{len(clist)} certificate(s) were issued to you:</p>{rows_html}"
+                            f"<p style=\"font-size:12px;color:#7E7E92;\">Complete your SA profile to 100% to unlock them in My Certificates.</p>")
+                    subject = f"🎓 Your {len(clist)} Certificate(s) Are Ready"
+                    etype = "view"
+                else:
+                    reg_link = f"{FRONTEND_URL}/auth/register?email={_urlquote(email)}&name={_urlquote(udata['name'])}"
+                    body = (f"<h2 style=\"color:#FFF;\">Claim Your Certificates</h2><p>Hello <strong>{udata['name']}</strong>,</p>"
+                            f"<p>{len(clist)} certificate(s) were issued to <strong>{email}</strong>. Create your free StudentAlumni account to claim and download them:</p>"
+                            f"<div style=\"margin:20px 0;\"><a href=\"{reg_link}\" style=\"background:#7C5CFC;color:#FFF;padding:12px 24px;text-decoration:none;border-radius:10px;font-weight:bold;\">Create Account & Claim →</a></div>")
+                    subject = "🎓 Claim Your Certificates — Create Your Free Account"
+                    etype = "claim"
+                try:
+                    await send_email(email, subject, render_html_email(body))
+                    if etype == "view":
+                        emails_view += 1
+                    else:
+                        emails_claim += 1
+                    yield _json.dumps({"type": "email_sent", "email": email, "etype": etype}) + "\n"
+                except Exception:
+                    yield _json.dumps({"type": "email_error", "email": email}) + "\n"
+
+        done = {"type": "done", "created": created, "updated": updated, "skipped": skipped,
+                "recipients": len(per_user), "emails_view": emails_view, "emails_claim": emails_claim,
+                "total_rows": len(rows), "results": all_results, "errors": all_errors}
+        yield _json.dumps(done) + "\n"
+
+    # ── Return mode ────────────────────────────────────────────────────
+    if stream:
+        return StreamingResponse(_process_rows(), media_type="application/x-ndjson")
+
+    # Batch mode: collect all results from generator
+    final = None
+    async for line in _process_rows():
+        try:
+            msg = json.loads(line)
+            if msg.get("type") == "done":
+                final = msg
+        except Exception:
+            pass
+
+    return {"ok": True, "dry_run": dry_run, "total_rows": final.get("total_rows", len(rows)) if final else len(rows),
+            "created": final.get("created", 0) if final else 0, "updated": final.get("updated", 0) if final else 0,
+            "skipped": final.get("skipped", 0) if final else 0,
+            "recipients": final.get("recipients", 0) if final else 0,
+            "emails_view": final.get("emails_view", 0) if final else 0,
+            "emails_claim": final.get("emails_claim", 0) if final else 0,
+            "results": final.get("results", []) if final else [], "errors": final.get("errors", []) if final else []}
 
 
 @router.post("/import-csv-zip-stream")
