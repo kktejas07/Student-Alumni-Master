@@ -50,7 +50,8 @@ async def get_my_certificates(current_user: dict = Depends(get_current_user)):
         query_or.append({"sa_id": sa_id})
 
     if not query_or:
-        certs = await db.certificates.find().sort("created_at", -1).to_list(length=20)
+        # No usable identity on the caller — never leak other users' certificates.
+        return {"certificates": [], "count": 0}
     else:
         certs = await db.certificates.find({"$or": query_or}).sort("created_at", -1).to_list(length=100)
 
@@ -84,6 +85,23 @@ async def get_my_certificates(current_user: dict = Depends(get_current_user)):
             "file_url": c.get("file_url") or c.get("file_path"),
             "metadata": c.get("metadata", {})
         })
+
+    # Collapse duplicate ECHO issues: one card per event category (keep latest).
+    # Repeat registrations/re-issues mint extra docs per reg; the user should
+    # only ever see a single Sunset / Hackwave / Cyber certificate.
+    # Workshop & course certificates are left untouched (each is distinct).
+    ECHO_CATS = {"echo", "sunset", "cyber"}
+    latest: dict = {}
+    rest = []
+    for item in result:
+        if item.get("category") in ECHO_CATS:
+            cat = item["category"]
+            prev = latest.get(cat)
+            if not prev or str(item.get("issued_at") or "") >= str(prev.get("issued_at") or ""):
+                latest[cat] = item
+        else:
+            rest.append(item)
+    result = sorted([*latest.values(), *rest], key=lambda x: str(x.get("issued_at") or ""), reverse=True)
 
     return {"certificates": result, "count": len(result)}
 

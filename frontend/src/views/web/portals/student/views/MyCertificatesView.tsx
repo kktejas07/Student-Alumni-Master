@@ -76,14 +76,10 @@ export function MyCertificatesView() {
     setLoading(true);
     try {
       const res = await fetchPortal<any>('/certificates/my');
-      if (res && res.certificates && res.certificates.length > 0) {
-        setCerts(res.certificates);
-      } else {
-        // Fallback demo dataset for Hackwave / ECHO certificates
-        setCerts(DEFAULT_STUDENT_CERTS);
-      }
+      // Only show certificates actually issued to this user — never demo data.
+      setCerts((res && res.certificates) || []);
     } catch (e) {
-      setCerts(DEFAULT_STUDENT_CERTS);
+      setCerts([]);
     } finally {
       setLoading(false);
     }

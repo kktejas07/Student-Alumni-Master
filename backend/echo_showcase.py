@@ -5133,7 +5133,21 @@ async def issue_3_echo_certificates(db, reg: dict) -> dict:
         if existing and existing.get("code"):
             code = existing["code"]
         else:
-            code = f"{prefix}-{secrets.token_hex(4).upper()}"
+            # Email-level dedup: one set of certs per email per category per event.
+            # Re-issues across repeat registrations must reuse the original code,
+            # otherwise one user accumulates N×3 certificates in My Certificates.
+            code = None
+            if email:
+                # Legacy docs predate category_key — match it OR the exact title.
+                prior = await db.certificates.find_one({
+                    "recipient_email": {"$regex": f"^{re.escape(email)}$", "$options": "i"},
+                    "slug": reg.get("slug"),
+                    "$or": [{"category_key": key}, {"title": title}],
+                })
+                if prior:
+                    code = prior.get("verification_code") or prior.get("certificate_id") or prior.get("id")
+            if not code:
+                code = f"{prefix}-{secrets.token_hex(4).upper()}"
 
         verify_url = f"{frontend_url}/certificates/verify/{code}"
         
