@@ -531,7 +531,7 @@ function BulkTab({ onSaved }: { onSaved: (s?: string) => void }) {
  *  FILES TAB — upload certificate files (PNG/JPEG/WEBP/PDF)
  * ══════════════════════════════════════════════════════════════════ */
 function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
-  const [mode, setMode] = useState<'single' | 'bulk' | 'zip'>('single');
+  const [mode, setMode] = useState<'single' | 'bulk' | 'zip' | 'csv-zip'>('single');
   const [email, setEmail] = useState('');
   const [title, setTitle] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -545,10 +545,26 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const bulkRef = React.useRef<HTMLInputElement>(null);
   const zipRef = React.useRef<HTMLInputElement>(null);
+  const csvZipRef = React.useRef<HTMLInputElement>(null);
+  const csvFileRef = React.useRef<HTMLInputElement>(null);
+  // CSV+ZIP mode state
+  const [csvZipFiles, setCsvZipFiles] = useState<File[]>([]);
+  const [csvCsvFile, setCsvCsvFile] = useState<File | null>(null);
+  const [csvDryRun, setCsvDryRun] = useState(true);
+  const [csvBusy, setCsvBusy] = useState(false);
+  const [csvResult, setCsvResult] = useState<any>(null);
+  const [csvError, setCsvError] = useState<string | null>(null);
 
   const pickSingle = () => inputRef.current?.click();
   const pickBulk = () => bulkRef.current?.click();
   const pickZip = () => zipRef.current?.click();
+  const pickCsvZip = () => csvZipRef.current?.click();
+  const pickCsvFile = () => csvFileRef.current?.click();
+
+  const onCsvZipSelect = (e: any) => {
+    const list = Array.from(e?.target?.files || []) as File[];
+    if (list.length) setCsvZipFiles((prev) => [...prev, ...list]);
+  };
 
   const onSingleFile = (e: any) => {
     const f = e?.target?.files?.[0];
@@ -651,6 +667,28 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
     }
   };
 
+  const uploadCsvZip = async () => {
+    setCsvError(null); setCsvResult(null);
+    if (!csvZipFiles.length) { setCsvError('Choose at least one ZIP containing certificate images.'); return; }
+    if (!csvCsvFile) { setCsvError('Choose a CSV index file with email, name, title, certificate_id, file columns.'); return; }
+    setCsvBusy(true);
+    try {
+      const fd = new FormData();
+      csvZipFiles.forEach((f) => fd.append('images_zips', f));
+      fd.append('csv_file', csvCsvFile);
+      fd.append('issuer', 'Student Alumni');
+      fd.append('send_emails', 'true');
+      fd.append('dry_run', String(csvDryRun));
+      const r = await request('/certificates/import-csv-zip', { method: 'POST', body: fd });
+      setCsvResult(r);
+      if (!r.dry_run) onSaved(`${r.created} created, ${r.updated} updated, ${r.emails_view + r.emails_claim} emails sent`);
+    } catch (e: any) {
+      setCsvError(e.message || 'CSV import failed');
+    } finally {
+      setCsvBusy(false);
+    }
+  };
+
   return (
     <Animated.View entering={FadeInDown.duration(260)}>
       <Card>
@@ -661,14 +699,14 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
         </Text>
 
         <View style={s.seg}>
-          {(['single', 'bulk', 'zip'] as const).map((m) => (
+          {(['single', 'bulk', 'zip', 'csv-zip'] as const).map((m) => (
             <Pressable
               key={m}
-              onPress={() => { setMode(m); setResult(null); setError(null); setTestResult(null); setDispatchResult(null); }}
+              onPress={() => { setMode(m); setResult(null); setError(null); setTestResult(null); setDispatchResult(null); setCsvResult(null); setCsvError(null); setCsvZipFiles([]); setCsvCsvFile(null); }}
               style={[s.segBtn, mode === m && s.segActive]}
             >
               <Text style={[s.segText, mode === m && s.segTextActive]}>
-                {m === 'single' ? 'Single file' : m === 'bulk' ? 'Bulk files' : 'ZIP Archive (.zip)'}
+                {m === 'single' ? 'Single' : m === 'bulk' ? 'Bulk' : m === 'zip' ? 'ZIP Archive' : 'CSV + ZIP'}
               </Text>
             </Pressable>
           ))}
@@ -707,7 +745,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           </>
         )}
 
-        {mode !== 'zip' ? (
+        {(mode === 'single' || mode === 'bulk') && (
           <Pressable onPress={mode === 'single' ? pickSingle : pickBulk} style={({ hovered }: any) => [s.dropZone, hovered && { borderColor: '#A78BFA' }]}>
             <FileUp size={20} color="#A78BFA" />
             <Text style={s.dropTitle}>{files.length ? `${files.length} file${files.length === 1 ? '' : 's'} selected` : 'Choose certificate file(s)'}</Text>
@@ -717,7 +755,9 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                 : 'Multi-select. Name each file "{email}__{title}.{ext}" — e.g. john@college.edu__AI Bootcamp.pdf'}
             </Text>
           </Pressable>
-        ) : (
+        )}
+
+        {mode === 'zip' && (
           <Pressable onPress={pickZip} style={({ hovered }: any) => [s.dropZone, hovered && { borderColor: '#10B981' }]}>
             <FolderOpen size={22} color="#10B981" />
             <Text style={s.dropTitle}>{zipFile ? zipFile.name : 'Choose ZIP archive file (.zip)'}</Text>
@@ -725,6 +765,123 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
               Contains multiple certificates organized by "{'{email}__{title}.ext'}" or subfolders by user email.
             </Text>
           </Pressable>
+        )}
+
+        {mode === 'csv-zip' && (
+          <>
+            <View style={{ padding: 14, borderRadius: 10, backgroundColor: 'rgba(124,92,252,0.08)', borderWidth: 1, borderColor: 'rgba(124,92,252,0.25)', marginBottom: 10 }}>
+              <Text style={{ color: '#D8B4FE', fontWeight: 'bold', fontSize: 13, marginBottom: 4 }}>CSV + ZIP Import (Recommended)</Text>
+              <Text style={{ color: '#9095A8', fontSize: 12, lineHeight: 18 }}>
+                Upload <Text style={{ fontWeight: 'bold', color: '#C7D2FE' }}>two separate files</Text>: a ZIP of certificate images + a CSV index. The CSV must have an{' '}
+                <Text style={{ fontFamily: 'monospace', color: '#C7D2FE' }}>email</Text>,{' '}
+                <Text style={{ fontFamily: 'monospace', color: '#C7D2FE' }}>name</Text>,{' '}
+                <Text style={{ fontFamily: 'monospace', color: '#C7D2FE' }}>title</Text>, and{' '}
+                <Text style={{ fontFamily: 'monospace', color: '#C7D2FE' }}>certificate_id</Text> column. Optional{' '}
+                <Text style={{ fontFamily: 'monospace', color: '#C7D2FE' }}>file</Text> column for image matching.
+              </Text>
+            </View>
+
+            {/* ZIP of images */}
+            <Pressable onPress={pickCsvZip} style={({ hovered }: any) => [s.dropZone, hovered && { borderColor: '#A78BFA' }, { marginBottom: 8 }]}>
+              <FolderOpen size={22} color="#A78BFA" />
+              <Text style={s.dropTitle}>{csvZipFiles.length ? `${csvZipFiles.length} ZIP file(s) selected` : 'Choose ZIP(s) of certificate images (.zip)'}</Text>
+              <Text style={s.dropSub}>PNG, JPG, PDF — you can select multiple ZIPs at once</Text>
+            </Pressable>
+            {csvZipFiles.length > 0 && (
+              <View style={{ gap: 4, marginBottom: 8 }}>
+                {csvZipFiles.map((f, i) => (
+                  <View key={i} style={s.fileRow}>
+                    <FolderOpen size={14} color="#A78BFA" />
+                    <Text style={s.fileName} numberOfLines={1}>{f.name}</Text>
+                    <Text style={s.fileSize}>{(f.size / 1024 / 1024).toFixed(1)} MB</Text>
+                    <Pressable onPress={() => setCsvZipFiles(csvZipFiles.filter((_, j) => j !== i))}><X size={14} color={SAC.muted} /></Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* CSV index */}
+            <Pressable onPress={pickCsvFile} style={({ hovered }: any) => [s.dropZone, hovered && { borderColor: '#10B981' }, { marginTop: 8 }]}>
+              <FileText size={22} color="#10B981" />
+              <Text style={s.dropTitle}>{csvCsvFile ? csvCsvFile.name : 'Choose CSV index file (.csv)'}</Text>
+              <Text style={s.dropSub}>Columns: email, name, title, certificate_id, file</Text>
+            </Pressable>
+            {csvCsvFile && (
+              <View style={s.fileRow}>
+                <FileText size={14} color="#10B981" />
+                <Text style={s.fileName} numberOfLines={1}>{csvCsvFile.name}</Text>
+                <Text style={s.fileSize}>{(csvCsvFile.size / 1024).toFixed(0)} KB</Text>
+                <Pressable onPress={() => setCsvCsvFile(null)}><X size={14} color={SAC.muted} /></Pressable>
+              </View>
+            )}
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 }}>
+              <Pressable
+                onPress={() => setCsvDryRun(!csvDryRun)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: csvDryRun ? 'rgba(245,158,11,0.4)' : 'rgba(52,211,153,0.4)', backgroundColor: csvDryRun ? 'rgba(245,158,11,0.1)' : 'rgba(52,211,153,0.1)' }}
+              >
+                <Text style={{ color: csvDryRun ? '#FBBF24' : '#34D399', fontWeight: 'bold', fontSize: 12 }}>
+                  {csvDryRun ? '🧪 Dry Run' : '🚀 Live Run'}
+                </Text>
+              </Pressable>
+              <Text style={{ color: '#9095A8', fontSize: 11 }}>
+                {csvDryRun ? 'Preview only — nothing saved, no emails' : 'Will issue certs + send emails to all recipients'}
+              </Text>
+            </View>
+
+            <GradientButton onPress={uploadCsvZip} loading={csvBusy} disabled={!csvZipFiles.length || !csvCsvFile} style={{ marginTop: 10 }}>
+              <View style={s.btnInner}>
+                {csvDryRun ? <Search size={15} color="#fff" /> : <Upload size={15} color="#fff" />}
+                <Text style={s.btnText}>{csvBusy ? 'Processing...' : csvDryRun ? 'Preview Import (Dry Run)' : 'Import + Send Emails to All'}</Text>
+              </View>
+            </GradientButton>
+
+            {csvError && (
+              <View style={s.errorBox}>
+                <AlertTriangle size={14} color="#F87171" />
+                <Text style={s.errorText}>{csvError}</Text>
+              </View>
+            )}
+
+            {csvResult && (
+              <View style={[s.resultBox, { borderColor: csvResult.dry_run ? 'rgba(245,158,11,0.3)' : 'rgba(52,211,153,0.3)' }]}>
+                <View style={s.resultHead}>
+                  <CheckCircle2 size={16} color={csvResult.dry_run ? '#FBBF24' : '#34D399'} />
+                  <Text style={[s.resultTitle, { color: csvResult.dry_run ? '#FBBF24' : '#34D399' }]}>
+                    {csvResult.dry_run ? 'Dry Run Complete' : 'Import Complete'}: {csvResult.total_rows} rows, {csvResult.recipients} recipients
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 12, marginVertical: 6, flexWrap: 'wrap' }}>
+                  <Text style={{ color: '#34D399', fontSize: 12 }}>✓ {csvResult.created} created</Text>
+                  <Text style={{ color: '#60A5FA', fontSize: 12 }}>↻ {csvResult.updated} updated</Text>
+                  <Text style={{ color: '#9095A8', fontSize: 12 }}>⏭ {csvResult.skipped} skipped</Text>
+                  {!csvResult.dry_run && <Text style={{ color: '#A78BFA', fontSize: 12 }}>✉ {csvResult.emails_view + csvResult.emails_claim} emails</Text>}
+                </View>
+                {csvResult.results?.length > 0 && (
+                  <ScrollView style={{ maxHeight: 240, marginTop: 6 }} nestedScrollEnabled>
+                    {csvResult.results.map((r: any, i: number) => (
+                      <View key={i} style={[s.bulkRow, { gap: 6, flexWrap: 'wrap', paddingVertical: 6 }]}>
+                        <Text style={{ fontSize: 10, color: '#9095A8', fontFamily: 'monospace' }}>row {r.row}</Text>
+                        <Text style={{ fontSize: 11, color: '#D8B4FE', fontWeight: 'bold' }}>{r.name} ({r.email})</Text>
+                        <Text style={{ fontSize: 10, color: '#9095A8' }}>{r.title}</Text>
+                        <Text style={{ fontSize: 10, fontFamily: 'monospace', color: r.action === 'created' ? '#34D399' : r.action === 'updated' ? '#60A5FA' : '#FBBF24' }}>
+                          {r.action}{r.file_matched ? ` • ${r.file_matched}` : ' • no image'}
+                        </Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                )}
+                {csvResult.errors?.length > 0 && (
+                  <View style={{ marginTop: 6, padding: 8, borderRadius: 6, backgroundColor: 'rgba(239,68,68,0.08)' }}>
+                    <Text style={{ color: '#FCA5A5', fontSize: 11, fontWeight: 'bold' }}>{csvResult.errors.length} error(s):</Text>
+                    {csvResult.errors.slice(0, 5).map((e: any, i: number) => (
+                      <Text key={i} style={{ color: '#F87171', fontSize: 10 }}>row {e.row}: {e.error}</Text>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+          </>
         )}
 
         {Platform.OS === 'web' && (
@@ -750,6 +907,21 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
               accept=".zip,application/zip"
               style={{ display: 'none' }}
               onChange={onZipFileSelect}
+            />
+            <input
+              ref={csvZipRef as any}
+              type="file"
+              multiple
+              accept=".zip,application/zip"
+              style={{ display: 'none' }}
+              onChange={onCsvZipSelect}
+            />
+            <input
+              ref={csvFileRef as any}
+              type="file"
+              accept=".csv"
+              style={{ display: 'none' }}
+              onChange={(e) => { const f = e?.target?.files?.[0]; if (f) setCsvCsvFile(f); }}
             />
           </>
         )}
@@ -787,11 +959,13 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           </View>
         )}
 
-        {mode !== 'zip' ? (
+        {(mode === 'single' || mode === 'bulk') && (
           <GradientButton onPress={mode === 'single' ? uploadSingle : uploadBulk} loading={busy} disabled={!files.length}>
             <View style={s.btnInner}><Upload size={15} color="#fff" /><Text style={s.btnText}>{busy ? 'Uploading...' : mode === 'single' ? 'Upload & Issue Certificate' : `Upload & Issue ${files.length} Certificate${files.length === 1 ? '' : 's'}`}</Text></View>
           </GradientButton>
-        ) : (
+        )}
+
+        {mode === 'zip' && (
           <View style={{ gap: 10 }}>
             <GradientButton onPress={uploadZipArchive} loading={busy} disabled={!zipFile}>
               <View style={s.btnInner}>

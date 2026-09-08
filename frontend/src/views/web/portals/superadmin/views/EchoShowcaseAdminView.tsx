@@ -5224,6 +5224,21 @@ function LiveScanMonitorPanel() {
     }
   };
 
+  const [bulkIssuing, setBulkIssuing] = useState(false);
+  const handleBulkIssueAll = async () => {
+    if (typeof window !== 'undefined' && !window.confirm(`Issue all 3 certificates to ALL ${data.length} registrants at once + send each person their 3 individual emails? Already-issued users are skipped automatically.`)) return;
+    setBulkIssuing(true);
+    try {
+      const res = await api.adminEchoBulkIssue3Certs();
+      flash(res?.message || `Bulk issue complete: ${res?.processed} processed, ${res?.emails_sent} emails sent`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Bulk issue failed', 'error');
+    } finally {
+      setBulkIssuing(false);
+    }
+  };
+
   const sourceBadge = (s: string | null | undefined) => {
     if (!s || s === 'our_platform' || s === 'studentalumni') return null;
     const isUnstop = s === 'unstop';
@@ -5439,6 +5454,16 @@ function LiveScanMonitorPanel() {
             <Award size={14} color="#6EE7B7" />
             <Text style={{ color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 12 }}>
               🎓 Dispatch 3 Certs to 100% Profiles
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={handleBulkIssueAll}
+            disabled={bulkIssuing || sendingReminders}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(245,158,11,0.22)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#F59E0B', opacity: (bulkIssuing || sendingReminders) ? 0.6 : 1 }}>
+            <Award size={14} color="#FCD34D" />
+            <Text style={{ color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 12 }}>
+              {bulkIssuing ? 'Issuing to All…' : '🎓 Issue 3 Certs to ALL'}
             </Text>
           </Pressable>
 
