@@ -1282,6 +1282,7 @@ async def import_csv_zip_certificates(
             ("conclave id", "Cyber Conclave — Professional Certificate", "cyber_conclave", "cyber"),
         ]
         flat_rows = []
+        rows_before = rows
         for row in rows:
             email = _col(row, "email", "Email").lower()
             name = _col(row, "name", "Name")
@@ -1298,7 +1299,8 @@ async def import_csv_zip_certificates(
                 })
         rows = flat_rows
         if not rows:
-            raise HTTPException(400, "No valid certificate rows found — check CSV has Email + at least one certificate ID column")
+            sample = rows_before[0] if rows_before else {}
+            raise HTTPException(400, f"No valid rows after flattening. CSV keys: {list(sample.keys())}. Sample: {str(dict(list(sample.items())[:5]))}")
 
     # ── Shared processing logic ────────────────────────────────────────
     def _col(row, *keys):
@@ -1330,6 +1332,10 @@ async def import_csv_zip_certificates(
         all_errors = []
 
         yield json.dumps({"type": "start", "total_rows": len(rows), "zip_images": len(all_by_base), "dry_run": dry_run, "send_emails": send_emails}) + "\n"
+
+        # Debug: log first row structure
+        if rows:
+            yield json.dumps({"type": "debug", "first_row_keys": list(rows[0].keys()), "first_row_sample": {k: str(v)[:50] for k, v in list(rows[0].items())[:8]}}) + "\n"
 
         for i, row in enumerate(rows, start=2):
             email = (row.get("email") or "").strip().lower()
