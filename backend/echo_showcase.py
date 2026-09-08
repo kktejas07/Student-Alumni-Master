@@ -31,7 +31,7 @@ from pathlib import Path
 from datetime import datetime, timezone, date as _date
 from typing import Any, Dict, List, Optional
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile, Query, Body
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import logging
 
