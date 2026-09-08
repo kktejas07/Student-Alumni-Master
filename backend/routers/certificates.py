@@ -105,6 +105,70 @@ async def get_my_certificates(current_user: dict = Depends(get_current_user)):
 
     return {"certificates": result, "count": len(result)}
 
+
+@router.get("/diagnose")
+async def diagnose_certificates(
+    email: Optional[str] = Query(None, description="Email to diagnose"),
+    user: dict = Depends(get_current_user),
+):
+    """
+    Diagnostic: check certificate state for an email across both collections.
+    Returns registration flags + actual db.certificates docs for debugging.
+    """
+    role = (user.get("role") or "").lower()
+    if role not in ["admin", "super_admin"] and not user.get("is_super_admin"):
+        raise HTTPException(403, "Admin only")
+    if not email:
+        return {"error": "Provide ?email= to diagnose"}
+
+    email = email.strip().lower()
+
+    # Check echo_registrations
+    regs = await db.echo_registrations.find(
+        {"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}}
+    ).to_list(10)
+    reg_summary = []
+    for r in regs:
+        reg_summary.append({
+            "reg_id": r.get("id"),
+            "slug": r.get("slug"),
+            "certificate_issued": r.get("certificate_issued"),
+            "has_3_certificates": r.get("has_3_certificates"),
+            "certificates_3_status": r.get("certificates_3_status"),
+            "cert_email_status": r.get("cert_email_status"),
+        })
+
+    # Check db.certificates
+    certs = await db.certificates.find({"$or": [
+        {"recipient_email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}},
+        {"student_email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}},
+        {"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}},
+    ]}).to_list(50)
+    cert_summary = []
+    for c in certs:
+        cert_summary.append({
+            "code": c.get("verification_code") or c.get("certificate_id"),
+            "title": c.get("title"),
+            "recipient_email": c.get("recipient_email"),
+            "source": c.get("source"),
+            "image_url": c.get("image_url"),
+        })
+
+    return {
+        "email": email,
+        "registrations": reg_summary,
+        "certificates_in_db": cert_summary,
+        "reg_count": len(regs),
+        "cert_count": len(certs),
+        "verdict": (
+            "MISSING: no certificates in db.certificates — issue them via scan-monitor"
+            if not certs and regs else
+            "OK: certificates exist" if certs else
+            "NO_REGISTRATIONS: no echo_registrations found"
+        ),
+    }
+
+
 class IdentityVerificationRequest(BaseModel):
     code: str
     identity_type: str  # 'aadhaar', 'digilocker', 'pan'

@@ -5385,6 +5385,43 @@ async def admin_echo_bulk_issue_3_certificates(
     }
 
 
+@router.post("/admin/registrations/{reg_id}/reset-certificates")
+async def admin_echo_reset_certificates(
+    reg_id: str,
+    request: Request,
+    _=Depends(_require_admin),
+):
+    """Reset certificate issued flags on a registration so it can be re-issued.
+
+    Clears: certificate_issued, has_3_certificates, certificates_3_status,
+    cert_email_status, certificate_code, certificate_url.
+    Does NOT delete existing db.certificates docs (those remain verifiable).
+    """
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg and ObjectId.is_valid(reg_id):
+        reg = await db.echo_registrations.find_one({"_id": ObjectId(reg_id)})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+
+    await db.echo_registrations.update_one(
+        {"_id": reg["_id"]},
+        {"$unset": {
+            "certificate_issued": "",
+            "has_3_certificates": "",
+            "certificates_3_status": "",
+            "cert_email_status": "",
+            "cert_email_updated_at": "",
+            "certificate_code": "",
+            "certificate_url": "",
+            "certificate_issued_at": "",
+            "certificates_delivered_count": "",
+            "certificates_updated_at": "",
+        }},
+    )
+    return {"status": "success", "message": f"Certificate flags reset for {reg.get('full_name')} — ready to re-issue"}
+
+
 @router.post("/admin/certificates/upload-template")
 async def admin_echo_upload_cert_template(
     request: Request,

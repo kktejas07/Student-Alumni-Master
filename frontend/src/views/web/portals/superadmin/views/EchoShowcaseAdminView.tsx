@@ -5210,6 +5210,17 @@ function LiveScanMonitorPanel() {
     }
   };
 
+  const handleResetCerts = async (reg: any) => {
+    if (typeof window !== 'undefined' && !window.confirm(`Reset certificate status for ${reg.full_name} (${reg.email})? This clears issued flags so you can re-issue.`)) return;
+    try {
+      await request(`/echo/admin/registrations/${reg.id}/reset-certificates`, { method: 'POST' });
+      flash(`Certificate status reset for ${reg.full_name}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to reset', 'error');
+    }
+  };
+
   const handleBulkDispatch3Certs = async () => {
     if (typeof window !== 'undefined' && !window.confirm('Run Autonomous Agent to issue and deliver all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave) via Email & WhatsApp to all attendees with 100% completed profiles?')) return;
     setSendingReminders(true);
@@ -5642,13 +5653,25 @@ function LiveScanMonitorPanel() {
                         {reg.certificates_3_status.cyber_conclave?.issued ? `✓ ${reg.certificates_3_status.cyber_conclave.code}` : 'Pending ⏳'}
                       </Text>
                     </View>
+                    <Pressable
+                      onPress={() => handleResetCerts(reg)}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3, alignSelf: 'flex-start', marginTop: 2 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 8.5, color: '#FCA5A5' }}>Reset & Re-issue</Text>
+                    </Pressable>
                   </View>
                 ) : reg.has_certificate ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.18)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' }}>
-                    <Award size={12} color="#C9A7FF" />
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 10.5, color: '#D8B4FE' }}>
-                      Cert: {reg.certificate?.verification_code || 'Issued'}
-                    </Text>
+                  <View style={{ gap: 4 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.18)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' }}>
+                      <Award size={12} color="#C9A7FF" />
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 10.5, color: '#D8B4FE' }}>
+                        Cert: {reg.certificate?.verification_code || 'Issued'}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => handleResetCerts(reg)}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3, alignSelf: 'flex-start' }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 8.5, color: '#FCA5A5' }}>Reset & Re-issue</Text>
+                    </Pressable>
                   </View>
                 ) : (
                   <Pressable
