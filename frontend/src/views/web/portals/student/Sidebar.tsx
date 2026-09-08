@@ -24,7 +24,7 @@ import { useSidebarStore } from '@/src/viewmodels/stores/sidebarStore';
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet,
   Tag, CreditCard, GraduationCap, Home, User, ExternalLink, LogOut,
-  CalendarCheck, FileText, BookOpen, ChevronDown, ChevronRight, Zap, Ticket,
+  CalendarCheck, FileText, BookOpen, ChevronDown, ChevronRight, Zap, Ticket, Award,
 } from './iconShims';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
