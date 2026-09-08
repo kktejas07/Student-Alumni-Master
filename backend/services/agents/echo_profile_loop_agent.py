@@ -122,39 +122,60 @@ class EchoProfileLoopAgent:
 
             if has_account and pct >= 100:
                 # Auto-issue and deliver all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave)
+                # Per-certificate individual emails (1 email per cert — scales to 1..N).
                 from echo_showcase import issue_3_echo_certificates
                 certs = await issue_3_echo_certificates(db, reg)
-                
+
+                ordered = [
+                    ("built_by_sunset", "Built by Sunset — Project Build Certificate"),
+                    ("hackwave_participation", f"Certificate of Participation — {showcase_title}"),
+                    ("cyber_conclave", "Cyber Conclave — Professional Certificate"),
+                ]
+                per_cert_status: dict = {}
+                now_iso_inner = self._now_iso()
+                for i, (key, title) in enumerate(ordered, start=1):
+                    c = certs.get(key, {})
+                    code = c.get("code", "")
+                    verify_url = c.get("verify_url", f"{frontend_url}/certificates/verify")
+                    subject = f"🎓 {title} — {code} ({i} of {len(ordered)})"
+                    html = f"""
+                    <div style="font-family: 'Outfit', Arial, sans-serif; padding: 28px; background: #08080F; color: #F4F4FA; border-radius: 18px; border: 1px solid #1F1F30;">
+                      <div style="color: #10B981; font-weight: 800; font-size: 20px; margin-bottom: 8px;">100% Profile Completion Verified ✓ ({i} of {len(ordered)})</div>
+                      <h2 style="color: #FFF; margin-top: 0; font-size: 22px;">{title}</h2>
+                      <p>Hello <strong>{name}</strong>,</p>
+                      <p>Your official certificate for <strong>{showcase_title}</strong> is ready. Verification code: <strong>{code}</strong></p>
+                      <div style="margin: 20px 0;"><a href="{verify_url}" style="background: linear-gradient(135deg, #7C5CFC, #5B3FD9); color: #FFF; padding: 12px 24px; text-decoration: none; border-radius: 10px; font-weight: bold;">Verify & Download →</a></div>
+                    </div>
+                    """
+                    sent = False
+                    err = None
+                    if channel in ("email", "both") and email:
+                        try:
+                            sent = bool(await send_email(email, subject, render_html_email(html)))
+                            if sent:
+                                emails_sent += 1
+                            else:
+                                err = "provider rejected — see email_failures"
+                        except Exception as e:
+                            err = str(e)[:200]
+                            logger.warning(f"Per-cert email failed ({code}): {e}")
+                    per_cert_status[key] = {"email_sent": sent, "email_error": err, "code": code}
+                    certs[key]["email_sent"] = sent
+                try:
+                    await db.echo_registrations.update_one(
+                        {"_id": reg["_id"]},
+                        {"$set": {"certificates_3_status": certs, "cert_email_status": per_cert_status,
+                                  "cert_email_updated_at": now_iso_inner}},
+                    )
+                except Exception:
+                    pass
+
                 part_url = certs.get("hackwave_participation", {}).get("verify_url", f"{frontend_url}/certificates/verify")
                 sunset_url = certs.get("built_by_sunset", {}).get("verify_url", f"{frontend_url}/certificates/verify")
                 cyber_url = certs.get("cyber_conclave", {}).get("verify_url", f"{frontend_url}/certificates/verify")
 
                 email_subject = f"🎓 3 Official Certificates Delivered — {showcase_title}"
-                email_html = f"""
-                <div style="font-family: 'Outfit', Arial, sans-serif; padding: 28px; background: #08080F; color: #F4F4FA; border-radius: 18px; border: 1px solid #1F1F30;">
-                  <div style="color: #10B981; font-weight: 800; font-size: 20px; margin-bottom: 8px;">100% Profile Completion Verified ✓</div>
-                  <h2 style="color: #FFF; margin-top: 0; font-size: 22px;">Your 3 Official Certificates Have Been Delivered!</h2>
-                  <p>Hello <strong>{name}</strong>,</p>
-                  <p>Congratulations on achieving 100% profile completion on StudentAlumni! Your 3 official verifiable certificates for <strong>{showcase_title}</strong> have been issued and registered on our cryptographic ledger:</p>
-                  
-                  <div style="display: grid; gap: 12px; margin: 20px 0;">
-                    <div style="padding: 14px; background: #141424; border-radius: 10px; border: 1px solid #3B2E7A;">
-                      <p style="margin: 0; font-weight: bold; color: #D8B4FE; font-size: 14px;">1. Built by Sunset — Project Build Certificate</p>
-                      <a href="{sunset_url}" style="color: #7C5CFC; font-size: 12px; font-weight: bold;">Verify & Download Certificate →</a>
-                    </div>
-                    <div style="padding: 14px; background: #141424; border-radius: 10px; border: 1px solid #3B2E7A;">
-                      <p style="margin: 0; font-weight: bold; color: #D8B4FE; font-size: 14px;">2. Certificate of Participation — {showcase_title}</p>
-                      <a href="{part_url}" style="color: #7C5CFC; font-size: 12px; font-weight: bold;">Verify & Download Certificate →</a>
-                    </div>
-                    <div style="padding: 14px; background: #141424; border-radius: 10px; border: 1px solid #3B2E7A;">
-                      <p style="margin: 0; font-weight: bold; color: #D8B4FE; font-size: 14px;">3. Cyber Conclave — Professional Certificate</p>
-                      <a href="{cyber_url}" style="color: #7C5CFC; font-size: 12px; font-weight: bold;">Verify & Download Certificate →</a>
-                    </div>
-                  </div>
-
-                  <p style="font-size: 12px; color: #7E7E92; border-top: 1px solid #1F1F30; padding-top: 16px;">StudentAlumni Platform · Verifiable Credentials Ledger</p>
-                </div>
-                """
+                email_html = ""  # individual per-cert emails already sent above
                 wa_text = f"🎓 *3 Certificates Delivered!*\n\nHi {name},\nYour 100% profile score has unlocked your 3 official certificates for *{showcase_title}*:\n\n1. Built by Sunset: {sunset_url}\n2. Hackwave 3.0 Participation: {part_url}\n3. Cyber Conclave: {cyber_url}"
 
             elif not has_account:
@@ -195,8 +216,8 @@ class EchoProfileLoopAgent:
                 """
                 wa_text = f"🚀 *100% Profile Reminder*\n\nHi {name},\nYour StudentAlumni profile is currently at *{pct}%*.\nComplete 100% of your profile ({missing_str}) to claim your 3 ECHO certificates:\n\n{profile_link}"
 
-            # Dispatch Email
-            if channel in ("email", "both") and email:
+            # Dispatch Email (skipped for 100% branch — per-cert emails already sent above)
+            if email_html and channel in ("email", "both") and email:
                 try:
                     await send_email(email, email_subject, render_html_email(email_html))
                     emails_sent += 1

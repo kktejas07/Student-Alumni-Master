@@ -4988,6 +4988,10 @@ async def admin_echo_registrations(
             "parent_reg_id": s.get("parent_reg_id"),
             "team_leader_name": s.get("team_leader_name"),
             "team_leader_email": s.get("team_leader_email"),
+            "certificates_3_status": s.get("certificates_3_status"),
+            "has_3_certificates": s.get("has_3_certificates") or False,
+            "cert_email_status": s.get("cert_email_status"),
+            "cert_email_updated_at": s.get("cert_email_updated_at"),
         })
 
     # Apply filters
@@ -5183,6 +5187,36 @@ async def issue_3_echo_certificates(db, reg: dict) -> dict:
     return results
 
 
+async def _send_single_cert_email(
+    email: str,
+    full_name: str,
+    title: str,
+    code: str,
+    verify_url: str,
+    idx: int,
+    total: int,
+) -> bool:
+    """Send ONE individual certificate email. Returns True on provider accept, False otherwise."""
+    email_content = f"""
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #111827;">
+      <h2 style="color: #6D28D9;">Your Certificate is Ready! 🎓 ({idx} of {total})</h2>
+      <p>Dear <strong>{full_name}</strong>,</p>
+      <p>Congratulations! Your official certificate has been issued:</p>
+      <div style="margin: 20px 0; padding: 16px; background: #F3E8FF; border-radius: 12px; border: 1px solid #DDD6FE;">
+        <p style="margin: 0; font-weight: bold; color: #5B21B6;">{title}</p>
+        <p style="margin: 4px 0 0 0; font-weight: bold; color: #5B21B6;">Verification Code: {code}</p>
+        <p style="margin: 8px 0 0 0; font-size: 14px;"><a href="{verify_url}" style="color: #6D28D9; font-weight: bold;">Click here to View & Verify Certificate</a></p>
+      </div>
+      <p style="font-size: 13px; color: #6B7280;">Complete your SA profile to 100% to unlock viewing in My Certificates. You can share this link on LinkedIn, your resume, or with employers.</p>
+    </div>
+    """
+    try:
+        return bool(await send_email(email, f"🎓 {title} — {code}", render_html_email(email_content)))
+    except Exception as e:
+        logger.warning(f"Single-cert email error ({code}): {e}")
+        return False
+
+
 @router.post("/admin/registrations/{reg_id}/issue-3-certificates")
 async def admin_echo_issue_3_certificates(
     reg_id: str,
@@ -5198,10 +5232,64 @@ async def admin_echo_issue_3_certificates(
         raise HTTPException(status_code=404, detail="Registration not found")
 
     certs = await issue_3_echo_certificates(db, reg)
+
+    # Per-certificate individual emails (1 email per cert — scales to 1..N certs)
+    # + per-cert delivery status persisted for admin visibility.
+    email = (reg.get("email") or "").lower().strip()
+    full_name = (reg.get("full_name") or "").strip() or "ECHO Participant"
+    ordered_keys = ["built_by_sunset", "hackwave_participation", "cyber_conclave"]
+    email_status: dict = {}
+    now_str = _now()
+    try:
+        total = len([k for k in ordered_keys if k in certs])
+        for i, key in enumerate(ordered_keys, start=1):
+            c = certs.get(key)
+            if not c:
+                continue
+            title = c.get("title", key)
+            code = c.get("code", "")
+            verify_url = c.get("verify_url", "")
+            sent = await _send_single_cert_email(email, full_name, title, code, verify_url, i, total) if email else False
+            err = None if sent else ("no recipient email" if not email else "provider rejected / not configured — see email_failures")
+            email_status[key] = {
+                "email_sent": sent,
+                "email_sent_at": now_str if sent else None,
+                "email_error": err,
+                "code": code,
+                "title": title,
+            }
+            certs[key]["email_sent"] = sent
+            certs[key]["email_sent_at"] = now_str if sent else None
+            certs[key]["email_error"] = err
+        # Persist per-cert email status on registration + certificate docs
+        await db.echo_registrations.update_one(
+            {"_id": reg["_id"]},
+            {"$set": {
+                "certificates_3_status": certs,
+                "cert_email_status": email_status,
+                "cert_email_updated_at": now_str,
+            }},
+        )
+        for key in ordered_keys:
+            c = certs.get(key)
+            if c and c.get("code"):
+                await db.certificates.update_one(
+                    {"verification_code": c["code"]},
+                    {"$set": {
+                        "email_sent": c.get("email_sent", False),
+                        "email_sent_at": c.get("email_sent_at"),
+                        "email_error": c.get("email_error"),
+                    }},
+                )
+    except Exception as e:
+        logger.warning(f"Issue-3-certificates per-cert email error: {e}")
+
+    sent_count = sum(1 for v in email_status.values() if v.get("email_sent"))
     return {
         "status": "success",
-        "message": f"All 3 certificates issued for {reg.get('full_name')}",
+        "message": f"All 3 certificates issued for {reg.get('full_name')} — {sent_count}/3 emails sent",
         "certificates": certs,
+        "email_status": email_status,
     }
 
 

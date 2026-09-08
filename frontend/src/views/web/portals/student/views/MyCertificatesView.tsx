@@ -4,13 +4,16 @@
  * Allows students to view, search, sort, and download all their official certificates
  * (ECHO / Hackwave 3.0, Built by Sunset, Cyber Conclave, Workshops, Courses).
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Linking, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Award, Search, ArrowUpDown, Download, ExternalLink, CheckCircle2, ShieldCheck, Share2, Sparkles, Filter, Copy, Shield, Lock, X } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
-import { getPortal } from '@/src/lib/portalApi';
+import { fetchPortal } from '@/src/lib/portalApi';
+import { request } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { StudentPortalNavContext } from '../StudentPortalNavContext';
 
 export interface CertificateItem {
   id: string;
@@ -24,33 +27,55 @@ export interface CertificateItem {
   sha256_hash: string;
   verified: boolean;
   download_url?: string;
+  image_url?: string;
+  file_url?: string;
   metadata?: any;
 }
 
 export function MyCertificatesView() {
+  const user = useAuthStore((s) => s.user);
+  const nav = useContext(StudentPortalNavContext);
   const [loading, setLoading] = useState(true);
   const [certs, setCerts] = useState<CertificateItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'title'>('newest');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
 
-  // Identity Modal state
-  const [selectedCertCode, setSelectedCertCode] = useState<string | null>(null);
-  const [idModalVisible, setIdModalVisible] = useState(false);
-  const [idType, setIdType] = useState<'aadhaar' | 'digilocker' | 'pan'>('aadhaar');
-  const [idNumber, setIdNumber] = useState('');
-  const [idError, setIdError] = useState('');
-  const [verifyingId, setVerifyingId] = useState(false);
+  // 100% profile gate state (replaces Aadhaar/DigiLocker/PAN identity gate)
+  const [completion, setCompletion] = useState<{ percentage: number; items: Array<{ label: string; done: boolean }> }>({ percentage: 0, items: [] });
+  const [compLoading, setCompLoading] = useState(true);
+  const [gateModalVisible, setGateModalVisible] = useState(false);
+  const [pendingCode, setPendingCode] = useState<string | null>(null);
+
+  const pct = completion?.percentage ?? 0;
+  const isLocked = pct < 100;
+  const missingItems = (completion?.items || []).filter((i) => !i.done).map((i) => i.label);
 
   useEffect(() => {
     fetchMyCertificates();
+    fetchCompletion();
   }, []);
+
+  const fetchCompletion = async () => {
+    setCompLoading(true);
+    try {
+      const comp = await request<any>('/users/me/completion');
+      if (comp && typeof comp.percentage === 'number') {
+        setCompletion({ percentage: comp.percentage, items: comp.items || [] });
+      }
+    } catch {
+      setCompletion({ percentage: 0, items: [] });
+    } finally {
+      setCompLoading(false);
+    }
+  };
 
   const fetchMyCertificates = async () => {
     setLoading(true);
     try {
-      const res = await getPortal('/certificates/my');
+      const res = await fetchPortal<any>('/certificates/my');
       if (res && res.certificates && res.certificates.length > 0) {
         setCerts(res.certificates);
       } else {
@@ -64,46 +89,38 @@ export function MyCertificatesView() {
     }
   };
 
-  const openVerifyWithId = (code: string) => {
-    setSelectedCertCode(code);
-    setIdModalVisible(true);
+  const requireUnlocked = (code: string) => {
+    if (isLocked) {
+      setPendingCode(code);
+      setGateModalVisible(true);
+      return false;
+    }
+    return true;
   };
 
-  const handleConfirmUnlock = async () => {
-    if (!idNumber.trim()) {
-      setIdError(`Please enter your ${idType.toUpperCase()} number.`);
-      return;
-    }
-    setIdError('');
-    setVerifyingId(true);
+  const goToProfile = () => {
+    setGateModalVisible(false);
     try {
-      const resp = await fetch('https://studentalumni.ai/api/certificates/unlock-identity', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code: selectedCertCode,
-          identity_type: idType,
-          identity_number: idNumber.trim(),
-        }),
-      });
-      const res = await resp.json();
-      if (!resp.ok || !res.success) {
-        setIdError(res.detail || res.message || 'Identity verification failed.');
-        return;
-      }
-      setIdModalVisible(false);
-      setIdNumber('');
-      if (typeof window !== 'undefined') {
-        window.open(`/certificates/verify/${selectedCertCode}`, '_blank');
-      }
-    } catch (e: any) {
-      setIdError('Verification service error.');
-    } finally {
-      setVerifyingId(false);
+      nav?.navigate('profile');
+    } catch {}
+  };
+
+  const openVerifyGated = (code: string) => {
+    if (!requireUnlocked(code)) return;
+    const url = `/certificates/verify/${code}`;
+    if (typeof window !== 'undefined') {
+      window.open(url, '_blank');
     }
+  };
+
+  const maskCode = (code: string) => {
+    if (!isLocked) return code;
+    if (!code || code.length < 4) return '••••••••';
+    return `${code.slice(0, 4)}-••••-••••`;
   };
 
   const copyLink = (code: string) => {
+    if (!requireUnlocked(code)) return;
     const url = `https://studentalumni.ai/certificates/verify/${code}`;
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(url);
@@ -113,9 +130,33 @@ export function MyCertificatesView() {
   };
 
   const openVerify = (code: string) => {
-    const url = `/certificates/verify/${code}`;
-    if (typeof window !== 'undefined') {
-      window.open(url, '_blank');
+    openVerifyGated(code);
+  };
+
+  const handleDownload = async (cert: CertificateItem) => {
+    if (!requireUnlocked(cert.code)) return;
+    const src = cert.download_url || cert.image_url || cert.file_url;
+    if (!src) return;
+    const abs = src.startsWith('http') ? src : `https://studentalumni.ai${src.startsWith('/') ? '' : '/'}${src}`;
+    const ext = abs.toLowerCase().includes('.pdf') ? '.pdf' : '.png';
+    try {
+      setDownloading(cert.id);
+      if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+        const a = document.createElement('a');
+        a.href = abs;
+        a.download = `certificate-${cert.code}${ext}`;
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        Linking.openURL(abs);
+      }
+    } catch {
+      if (typeof window !== 'undefined') window.open(abs, '_blank');
+      else Linking.openURL(abs);
+    } finally {
+      setDownloading(null);
     }
   };
 
@@ -156,6 +197,37 @@ export function MyCertificatesView() {
           </Text>
         </View>
       </LinearGradient>
+
+      {/* Not logged in — create account / login wall */}
+      {!user && (
+        <View style={s.lockBanner}>
+          <Lock size={20} color="#FBBF24" />
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={s.lockTitle}>Login required to view certificates</Text>
+            <Text style={s.lockSub}>No SA account found. Create an account or login to access your issued certificates.</Text>
+          </View>
+        </View>
+      )}
+
+      {/* 100% profile gate banner — masks certificates until complete */}
+      {!!user && !compLoading && isLocked && (
+        <View style={s.lockBanner}>
+          <Lock size={20} color="#FBBF24" />
+          <View style={{ flex: 1, gap: 6 }}>
+            <Text style={s.lockTitle}>Complete your profile to 100% to unlock certificates ({pct}%)</Text>
+            <Text style={s.lockSub}>
+              Your certificates are issued but masked. Finish the remaining items to view codes and verify links.
+              {missingItems.length > 0 ? ` Missing: ${missingItems.join(', ')}` : ''}
+            </Text>
+            <View style={s.progressTrack}>
+              <View style={[s.progressFill, { width: `${pct}%` }]} />
+            </View>
+            <Pressable style={s.lockCta} onPress={goToProfile}>
+              <Text style={s.lockCtaText}>Complete Profile Now →</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
 
       {/* Controls Bar: Search, Category Chips & Sorting */}
       <View style={s.controlsCard}>
@@ -248,7 +320,7 @@ export function MyCertificatesView() {
                     <Text style={s.verifiedTagText}>SHA-256 Verified</Text>
                   </View>
                 </View>
-                <Text style={s.certCode}>{cert.code}</Text>
+                <Text style={s.certCode}>{maskCode(cert.code)}</Text>
               </View>
 
               <Text style={s.certTitle}>{cert.title}</Text>
@@ -257,14 +329,14 @@ export function MyCertificatesView() {
               <View style={s.hashBox}>
                 <Text style={s.hashLabel}>SHA-256 Integrity Fingerprint:</Text>
                 <Text style={s.hashVal} numberOfLines={1}>
-                  {cert.sha256_hash}
+                  {isLocked ? '••••••••••••••••••••••••••••••••' : cert.sha256_hash}
                 </Text>
               </View>
 
               <View style={s.cardActions}>
-                <Pressable style={s.actionBtnPrimary} onPress={() => openVerifyWithId(cert.code)}>
+                <Pressable style={[s.actionBtnPrimary, isLocked && { opacity: 0.85 }]} onPress={() => openVerifyGated(cert.code)}>
                   <Lock size={13} color="#fff" />
-                  <Text style={s.actionBtnPrimaryText}>Verify & Unlock View</Text>
+                  <Text style={s.actionBtnPrimaryText}>{isLocked ? `Unlock at 100% (${pct}%)` : 'View & Verify'}</Text>
                 </Pressable>
 
                 <Pressable style={s.actionBtnSecondary} onPress={() => copyLink(cert.code)}>
@@ -273,70 +345,54 @@ export function MyCertificatesView() {
                     {copiedCode === cert.code ? 'Copied!' : 'Copy Link'}
                   </Text>
                 </Pressable>
+
+                <Pressable style={s.actionBtnSecondary} onPress={() => handleDownload(cert)}>
+                  {downloading === cert.id ? (
+                    <ActivityIndicator size="small" color={SC.primary} />
+                  ) : (
+                    <Download size={13} color={SC.primary} />
+                  )}
+                  <Text style={s.actionBtnSecondaryText}>
+                    {downloading === cert.id ? 'Saving…' : 'Download'}
+                  </Text>
+                </Pressable>
               </View>
             </View>
           ))}
         </View>
       )}
 
-      {/* Identity Verification Gate Modal */}
-      <Modal transparent visible={idModalVisible} animationType="fade" onRequestClose={() => setIdModalVisible(false)}>
-        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center', padding: 20 }} onPress={() => setIdModalVisible(false)}>
-          <Pressable onPress={(e: any) => e?.stopPropagation?.()} style={{ width: '100%', maxWidth: 440, backgroundColor: '#18182B', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(99,102,241,0.4)', padding: 22, gap: 14 }}>
+      {/* 100% Profile Gate Modal (replaces Aadhaar/DigiLocker/PAN gate) */}
+      <Modal transparent visible={gateModalVisible} animationType="fade" onRequestClose={() => setGateModalVisible(false)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center', padding: 20 }} onPress={() => setGateModalVisible(false)}>
+          <Pressable onPress={(e: any) => e?.stopPropagation?.()} style={{ width: '100%', maxWidth: 440, backgroundColor: '#18182B', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(245,158,11,0.4)', padding: 22, gap: 14 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Shield size={20} color="#818CF8" />
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#FFFFFF' }}>Identity Verification Gate</Text>
+                <Lock size={20} color="#FBBF24" />
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#FFFFFF' }}>Complete Profile to Unlock</Text>
               </View>
-              <Pressable onPress={() => setIdModalVisible(false)}><X size={18} color={SC.muted} /></Pressable>
+              <Pressable onPress={() => setGateModalVisible(false)}><X size={18} color={SC.muted} /></Pressable>
             </View>
 
             <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: '#C7D2FE' }}>
-              To view or download <Text style={{ fontFamily: FONTS.bold, color: '#FFF' }}>{selectedCertCode}</Text>, please verify your identity using your Aadhaar, DigiLocker, or PAN Card.
+              <Text style={{ fontFamily: FONTS.bold, color: '#FFF' }}>{pendingCode || 'This certificate'}</Text> is masked until your SA profile reaches 100% (currently {pct}%).
             </Text>
 
-            <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-              {[
-                { id: 'aadhaar', label: '🪪 Aadhaar' },
-                { id: 'digilocker', label: '🏛️ DigiLocker' },
-                { id: 'pan', label: '💳 PAN Card' },
-              ].map((tab) => (
-                <Pressable
-                  key={tab.id}
-                  onPress={() => { setIdType(tab.id as any); setIdError(''); }}
-                  style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    borderRadius: 8,
-                    backgroundColor: idType === tab.id ? SC.primary : 'rgba(255,255,255,0.06)',
-                  }}
-                >
-                  <Text style={{ fontFamily: FONTS.bold, fontSize: 11.5, color: idType === tab.id ? '#FFF' : SC.muted }}>{tab.label}</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <View style={{ gap: 4 }}>
-              <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#A5B4FC' }}>
-                {idType === 'aadhaar' ? '12-Digit Aadhaar Card Number' : idType === 'pan' ? '10-Character PAN Card Number' : 'DigiLocker Consent ID'} *
-              </Text>
-              <TextInput
-                value={idNumber}
-                onChangeText={setIdNumber}
-                placeholder={idType === 'aadhaar' ? 'e.g. 9876-5432-1012' : idType === 'pan' ? 'e.g. ABCDE1234F' : 'e.g. DL-884920'}
-                placeholderTextColor={SC.muted}
-                style={{ backgroundColor: 'rgba(0,0,0,0.4)', color: '#FFF', borderWidth: 1, borderColor: idError ? '#EF4444' : 'rgba(99,102,241,0.4)', borderRadius: 8, padding: 10, fontSize: 13, fontFamily: FONTS.mono || FONTS.med }}
-              />
-              {idError ? <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: '#FCA5A5' }}>⚠️ {idError}</Text> : null}
-            </View>
+            {missingItems.length > 0 && (
+              <View style={{ backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: 10, gap: 4 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#FBBF24' }}>Remaining to reach 100%:</Text>
+                {missingItems.slice(0, 6).map((m) => (
+                  <Text key={m} style={{ fontFamily: FONTS.med, fontSize: 11, color: '#E5E7EB' }}>• {m}</Text>
+                ))}
+              </View>
+            )}
 
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
-              <Pressable style={{ paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' }} onPress={() => setIdModalVisible(false)}>
-                <Text style={{ color: SC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
+              <Pressable style={{ paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' }} onPress={() => setGateModalVisible(false)}>
+                <Text style={{ color: SC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Later</Text>
               </Pressable>
-              <Pressable style={{ paddingHorizontal: 16, height: 34, borderRadius: 8, backgroundColor: SC.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }} onPress={handleConfirmUnlock} disabled={verifyingId}>
-                {verifyingId ? <ActivityIndicator size="small" color="#FFF" /> : <Lock size={13} color="#FFF" />}
-                <Text style={{ color: '#FFF', fontFamily: FONTS.bold, fontSize: 12 }}>{verifyingId ? 'Verifying...' : 'Unlock & View'}</Text>
+              <Pressable style={{ paddingHorizontal: 16, height: 34, borderRadius: 8, backgroundColor: SC.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }} onPress={goToProfile}>
+                <Text style={{ color: '#FFF', fontFamily: FONTS.bold, fontSize: 12 }}>Complete Profile Now →</Text>
               </Pressable>
             </View>
           </Pressable>
@@ -430,7 +486,7 @@ const s = StyleSheet.create({
   hashBox: { backgroundColor: 'rgba(0,0,0,0.2)', padding: 8, borderRadius: 8, gap: 2 },
   hashLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 9.5 },
   hashVal: { color: '#A5B4FC', fontFamily: FONTS.mono || FONTS.med, fontSize: 10 },
-  cardActions: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  cardActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   actionBtnPrimary: { flex: 1, height: 34, borderRadius: 8, backgroundColor: SC.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   actionBtnPrimaryText: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12 },
   actionBtnSecondary: { paddingHorizontal: 12, height: 34, borderRadius: 8, borderWidth: 1, borderColor: SC.border, backgroundColor: 'rgba(255,255,255,0.04)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
@@ -438,4 +494,11 @@ const s = StyleSheet.create({
   emptyCard: { backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14, padding: 40, alignItems: 'center', gap: 10 },
   emptyTitle: { color: SC.text, fontFamily: FONTS.bold, fontSize: 16 },
   emptySub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center' },
+  lockBanner: { flexDirection: 'row', gap: 12, backgroundColor: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.35)', borderWidth: 1, borderRadius: 14, padding: 16, alignItems: 'flex-start' },
+  lockTitle: { color: '#FDE68A', fontFamily: FONTS.bold, fontSize: 14 },
+  lockSub: { color: '#E5E7EB', fontFamily: FONTS.med, fontSize: 12, lineHeight: 17 },
+  progressTrack: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginTop: 4 },
+  progressFill: { height: 8, borderRadius: 4, backgroundColor: '#F59E0B' },
+  lockCta: { alignSelf: 'flex-start', marginTop: 6, paddingHorizontal: 14, height: 32, borderRadius: 8, backgroundColor: SC.primary, alignItems: 'center', justifyContent: 'center' },
+  lockCtaText: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12 },
 });

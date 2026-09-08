@@ -79,9 +79,13 @@ async def get_my_certificates(current_user: dict = Depends(get_current_user)):
             "recipient_email": c.get("student_email") or c.get("recipient_email") or user_email,
             "sha256_hash": c.get("verification_hash") or hashlib.sha256((str(c.get("id")) or "cert").encode()).hexdigest(),
             "verified": True,
-            "download_url": c.get("download_url") or c.get("file_path"),
+            "download_url": c.get("download_url") or c.get("file_path") or c.get("file_url") or c.get("image_url"),
+            "image_url": c.get("image_url"),
+            "file_url": c.get("file_url") or c.get("file_path"),
             "metadata": c.get("metadata", {})
         })
+
+    return {"certificates": result, "count": len(result)}
 
 class IdentityVerificationRequest(BaseModel):
     code: str
