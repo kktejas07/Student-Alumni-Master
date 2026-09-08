@@ -4942,10 +4942,13 @@ async def admin_echo_registrations(
         if is_100 and comp_pct < 100:
             comp_pct = 100
 
-        certs_all = list(dict.fromkeys([
-            *(cert_map.get(rid) or []),
-            *(cert_map.get(u_email) or []),
-        ]))
+        certs_all = []
+        _seen_codes = set()
+        for _cc in (cert_map.get(rid) or []) + (cert_map.get(u_email) or []):
+            _code = _cc.get("verification_code")
+            if _code and _code not in _seen_codes:
+                _seen_codes.add(_code)
+                certs_all.append(_cc)
         cert_data = certs_all[0] if certs_all else None
         has_cert = bool(certs_all or s.get("certificate_issued") or s.get("has_3_certificates"))
 
