@@ -466,7 +466,6 @@ async def verify_certificate(identifier: str):
                 {"sa_id": u.get("sa_id")}
             ])
         if u.get("full_name"):
-            import re
             or_conditions.append(
                 {"recipient_name": {"$regex": f"^{re.escape(u.get('full_name'))}$", "$options": "i"}}
             )
@@ -1278,7 +1277,7 @@ async def import_csv_zip_certificates(
         try:
             zip_content = await zf_upload.read()
             total_zip_bytes += len(zip_content)
-            if total_zip_bytes > 200 * 1024 * 1024:
+            if total_zip_bytes > 1024 * 1024 * 1024:
                 raise HTTPException(400, "Total ZIP archive size exceeds 200 MB limit")
             zf = zipfile.ZipFile(io.BytesIO(zip_content), "r")
             for n in zf.namelist():
@@ -1456,6 +1455,7 @@ async def import_csv_zip_certificates(
                 "title": title, "issuer": (issuer or "Student Alumni").strip(),
                 "issuer_type": "platform", "source": "csv_zip_import",
                 "status": "valid", "status_label": "Officially Verified",
+                "verify_url": verify_url,
             }
             if image_url:
                 doc["image_url"] = image_url
@@ -1596,7 +1596,7 @@ async def import_csv_zip_stream(
         try:
             zip_content = await zf_upload.read()
             total_zip_bytes += len(zip_content)
-            if total_zip_bytes > 200 * 1024 * 1024:
+            if total_zip_bytes > 1024 * 1024 * 1024:
                 raise HTTPException(400, "Total ZIP size exceeds 200 MB")
             zf = zipfile.ZipFile(io.BytesIO(zip_content), "r")
             for n in zf.namelist():
@@ -1681,6 +1681,7 @@ async def import_csv_zip_stream(
                 "title": title, "issuer": (issuer or "Student Alumni").strip(),
                 "issuer_type": "platform", "source": "csv_zip_import",
                 "status": "valid", "status_label": "Officially Verified",
+                "verify_url": verify_url,
             }
             if image_url:
                 doc["image_url"] = image_url
