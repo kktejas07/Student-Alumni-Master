@@ -1180,6 +1180,45 @@ async def test_sample_zip_scan(user: dict = Depends(get_current_user)):
     }
 
 
+@router.post("/preview-csv")
+async def preview_csv(
+    csv_file: UploadFile = File(...),
+    user: dict = Depends(get_current_user),
+):
+    """Preview CSV parsing — shows headers + first 3 rows to debug column mapping."""
+    role = (user.get("role") or "").lower()
+    if role not in ["admin", "super_admin"] and not user.get("is_super_admin"):
+        raise HTTPException(403, "Admin only")
+    
+    content = await csv_file.read()
+    text = content.decode("utf-8-sig")
+    reader = csv.DictReader(io.StringIO(text))
+    rows = list(reader)
+    
+    if not rows:
+        return {"error": "CSV is empty", "headers": [], "sample_rows": [], "total_rows": 0}
+    
+    headers = list(rows[0].keys())
+    sample = [{k: str(v)[:80] for k, v in row.items()} for row in rows[:3]]
+    
+    # Try to find email/title/cert columns
+    norm = {k.strip().lower().replace("  ", " "): k for k in headers}
+    email_col = next((v for k, v in norm.items() if k == "email"), None)
+    sunset_col = next((v for k, v in norm.items() if "sunset" in k), None)
+    hackwave_col = next((v for k, v in norm.items() if "hackwave" in k or "hack wave" in k), None)
+    conclave_col = next((v for k, v in norm.items() if "conclave" in k), None)
+    
+    return {
+        "total_rows": len(rows),
+        "headers": headers,
+        "normalized_keys": norm,
+        "detected_columns": {"email": email_col, "sunset": sunset_col, "hackwave": hackwave_col, "conclave": conclave_col},
+        "sample_rows": sample,
+        "first_row_email": rows[0].get(email_col) if email_col else "NOT FOUND",
+        "first_row_sunset": rows[0].get(sunset_col) if sunset_col else "NOT FOUND",
+    }
+
+
 @router.post("/import-csv-zip")
 async def import_csv_zip_certificates(
     images_zips: List[UploadFile] = File(..., description="One or more ZIP archives of certificate images"),
