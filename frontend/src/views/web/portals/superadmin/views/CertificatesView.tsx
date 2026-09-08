@@ -556,6 +556,10 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvResult, setCsvResult] = useState<any>(null);
   const [csvError, setCsvError] = useState<string | null>(null);
+  // Live streaming progress
+  const [csvProgress, setCsvProgress] = useState<{ row: any; live: boolean }>({ row: null, live: false });
+  const [csvRows, setCsvRows] = useState<any[]>([]);
+  const [csvEmails, setCsvEmails] = useState<{ sent: number; errors: number }>({ sent: 0, errors: 0 });
 
   const pickSingle = () => inputRef.current?.click();
   const pickBulk = () => bulkRef.current?.click();
@@ -670,10 +674,11 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   };
 
   const uploadCsvZip = async () => {
-    setCsvError(null); setCsvResult(null);
+    setCsvError(null); setCsvResult(null); setCsvRows([]); setCsvEmails({ sent: 0, errors: 0 });
     if (!csvZipFiles.length) { setCsvError('Choose at least one ZIP containing certificate images.'); return; }
     if (!csvCsvFile) { setCsvError('Choose a CSV index file with email, name, title, certificate_id, file columns.'); return; }
     setCsvBusy(true);
+    setCsvProgress({ row: null, live: true });
     try {
       const fd = new FormData();
       csvZipFiles.forEach((f) => fd.append('images_zips', f));
@@ -681,13 +686,62 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       fd.append('issuer', 'Student Alumni');
       fd.append('send_emails', String(csvSendEmails));
       fd.append('dry_run', String(csvDryRun));
-      const r = await request('/certificates/import-csv-zip', { method: 'POST', body: fd });
-      setCsvResult(r);
-      if (!r.dry_run) onSaved(`${r.created} created, ${r.updated} updated, ${r.emails_view + r.emails_claim} emails sent`);
+
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL || 'https://studentalumni.ai').replace(/\/$/, '');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('scd_access_token') || '' : '';
+      const resp = await fetch(`${base}/api/certificates/import-csv-zip-stream`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        throw new Error(errText || `Server error ${resp.status}`);
+      }
+
+      const reader = resp.body?.getReader();
+      if (!reader) throw new Error('Streaming not supported');
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const msg = JSON.parse(line);
+            if (msg.type === 'start') {
+              setCsvProgress({ row: { info: `Processing ${msg.total_rows} rows, ${msg.zip_images} images...` }, live: true });
+            } else if (msg.type === 'row') {
+              setCsvRows((prev) => [...prev, msg]);
+              setCsvProgress({ row: msg, live: true });
+            } else if (msg.type === 'email_sent') {
+              setCsvEmails((prev) => ({ ...prev, sent: prev.sent + 1 }));
+            } else if (msg.type === 'email_error') {
+              setCsvEmails((prev) => ({ ...prev, errors: prev.errors + 1 }));
+            } else if (msg.type === 'done') {
+              setCsvResult(msg);
+              setCsvProgress({ row: null, live: false });
+            }
+          } catch {}
+        }
+      }
+
+      if (!csvResult) {
+        setCsvResult({ dry_run: csvDryRun, total_rows: 0, created: 0, updated: 0, skipped: 0, recipients: 0, emails_view: 0, emails_claim: 0 });
+      }
+      if (!csvDryRun) onSaved('Import complete');
     } catch (e: any) {
       setCsvError(e.message || 'CSV import failed');
     } finally {
       setCsvBusy(false);
+      setCsvProgress({ row: null, live: false });
     }
   };
 
@@ -704,7 +758,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           {(['single', 'bulk', 'zip', 'csv-zip'] as const).map((m) => (
             <Pressable
               key={m}
-              onPress={() => { setMode(m); setResult(null); setError(null); setTestResult(null); setDispatchResult(null); setCsvResult(null); setCsvError(null); setCsvZipFiles([]); setCsvCsvFile(null); }}
+              onPress={() => { setMode(m); setResult(null); setError(null); setTestResult(null); setDispatchResult(null); setCsvResult(null); setCsvError(null); setCsvZipFiles([]); setCsvCsvFile(null); setCsvRows([]); setCsvProgress({ row: null, live: false }); setCsvEmails({ sent: 0, errors: 0 }); }}
               style={[s.segBtn, mode === m && s.segActive]}
             >
               <Text style={[s.segText, mode === m && s.segTextActive]}>
@@ -855,41 +909,67 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
               </View>
             )}
 
+            {/* Live streaming progress */}
+            {csvProgress.live && (
+              <View style={{ padding: 14, borderRadius: 10, backgroundColor: 'rgba(99,102,241,0.08)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.25)', gap: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <ActivityIndicator size="small" color="#818CF8" />
+                  <Text style={{ color: '#C7D2FE', fontWeight: 'bold', fontSize: 13 }}>Importing...</Text>
+                </View>
+                {csvProgress.row && (
+                  <View style={{ gap: 4 }}>
+                    {csvProgress.row.info ? (
+                      <Text style={{ color: '#9095A8', fontSize: 12 }}>{csvProgress.row.info}</Text>
+                    ) : (
+                      <>
+                        <Text style={{ color: '#D8B4FE', fontSize: 12, fontFamily: 'monospace' }}>
+                          Row {csvProgress.row.row}: {csvProgress.row.name || csvProgress.row.email}
+                        </Text>
+                        <Text style={{ color: csvProgress.row.action === 'created' ? '#34D399' : csvProgress.row.action === 'updated' ? '#60A5FA' : '#FBBF24', fontSize: 11, fontFamily: 'monospace' }}>
+                          {csvProgress.row.action}{csvProgress.row.file_matched ? ` • ${csvProgress.row.file_matched}` : ' • no image'}
+                        </Text>
+                      </>
+                    )}
+                  </View>
+                )}
+                <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+                  <Text style={{ color: '#34D399', fontSize: 11 }}>✓ {csvRows.filter(r => r.action === 'created').length} created</Text>
+                  <Text style={{ color: '#60A5FA', fontSize: 11 }}>↻ {csvRows.filter(r => r.action === 'updated').length} updated</Text>
+                  <Text style={{ color: '#9095A8', fontSize: 11 }}>⏭ {csvRows.filter(r => r.action === 'skipped').length} skipped</Text>
+                  {csvEmails.sent > 0 && <Text style={{ color: '#A78BFA', fontSize: 11 }}>✉ {csvEmails.sent} emails</Text>}
+                </View>
+              </View>
+            )}
+
             {csvResult && (
               <View style={[s.resultBox, { borderColor: csvResult.dry_run ? 'rgba(245,158,11,0.3)' : 'rgba(52,211,153,0.3)' }]}>
                 <View style={s.resultHead}>
                   <CheckCircle2 size={16} color={csvResult.dry_run ? '#FBBF24' : '#34D399'} />
                   <Text style={[s.resultTitle, { color: csvResult.dry_run ? '#FBBF24' : '#34D399' }]}>
-                    {csvResult.dry_run ? 'Dry Run Complete' : 'Import Complete'}: {csvResult.total_rows} rows, {csvResult.recipients} recipients
+                    {csvResult.dry_run ? 'Dry Run Complete' : 'Import Complete'}: {csvRows.length || csvResult.total_rows || 0} rows
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 12, marginVertical: 6, flexWrap: 'wrap' }}>
-                  <Text style={{ color: '#34D399', fontSize: 12 }}>✓ {csvResult.created} created</Text>
-                  <Text style={{ color: '#60A5FA', fontSize: 12 }}>↻ {csvResult.updated} updated</Text>
-                  <Text style={{ color: '#9095A8', fontSize: 12 }}>⏭ {csvResult.skipped} skipped</Text>
-                  {!csvResult.dry_run && <Text style={{ color: '#A78BFA', fontSize: 12 }}>✉ {csvResult.emails_view + csvResult.emails_claim} emails</Text>}
+                  <Text style={{ color: '#34D399', fontSize: 12 }}>✓ {csvResult.created || csvRows.filter(r => r.action === 'created').length} created</Text>
+                  <Text style={{ color: '#60A5FA', fontSize: 12 }}>↻ {csvResult.updated || csvRows.filter(r => r.action === 'updated').length} updated</Text>
+                  <Text style={{ color: '#9095A8', fontSize: 12 }}>⏭ {csvResult.skipped || csvRows.filter(r => r.action === 'skipped').length} skipped</Text>
+                  {!csvResult.dry_run && (csvEmails.sent + csvEmails.errors) > 0 && (
+                    <Text style={{ color: '#A78BFA', fontSize: 12 }}>✉ {csvEmails.sent} sent, {csvEmails.errors} failed</Text>
+                  )}
                 </View>
-                {csvResult.results?.length > 0 && (
+                {csvRows.length > 0 && (
                   <ScrollView style={{ maxHeight: 240, marginTop: 6 }} nestedScrollEnabled>
-                    {csvResult.results.map((r: any, i: number) => (
+                    {csvRows.slice(-50).map((r: any, i: number) => (
                       <View key={i} style={[s.bulkRow, { gap: 6, flexWrap: 'wrap', paddingVertical: 6 }]}>
                         <Text style={{ fontSize: 10, color: '#9095A8', fontFamily: 'monospace' }}>row {r.row}</Text>
                         <Text style={{ fontSize: 11, color: '#D8B4FE', fontWeight: 'bold' }}>{r.name} ({r.email})</Text>
                         <Text style={{ fontSize: 10, color: '#9095A8' }}>{r.title}</Text>
-                        <Text style={{ fontSize: 10, fontFamily: 'monospace', color: r.action === 'created' ? '#34D399' : r.action === 'updated' ? '#60A5FA' : '#FBBF24' }}>
-                          {r.action}{r.file_matched ? ` • ${r.file_matched}` : ' • no image'}
+                        <Text style={{ fontSize: 10, fontFamily: 'monospace', color: r.action === 'created' ? '#34D399' : r.action === 'updated' ? '#60A5FA' : r.action === 'skipped' ? '#F87171' : '#FBBF24' }}>
+                          {r.action}{r.file_matched ? ` • ${r.file_matched}` : ''} {r.error ? `• ${r.error}` : ''}
                         </Text>
                       </View>
                     ))}
                   </ScrollView>
-                )}
-                {csvResult.errors?.length > 0 && (
-                  <View style={{ marginTop: 6, padding: 8, borderRadius: 6, backgroundColor: 'rgba(239,68,68,0.08)' }}>
-                    <Text style={{ color: '#FCA5A5', fontSize: 11, fontWeight: 'bold' }}>{csvResult.errors.length} error(s):</Text>
-                    {csvResult.errors.slice(0, 5).map((e: any, i: number) => (
-                      <Text key={i} style={{ color: '#F87171', fontSize: 10 }}>row {e.row}: {e.error}</Text>
-                    ))}
-                  </View>
                 )}
               </View>
             )}
