@@ -7,7 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Linking, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Award, Search, ArrowUpDown, Download, ExternalLink, CheckCircle2, ShieldCheck, Share2, Sparkles, Filter, Copy, Shield, Lock, X } from 'lucide-react-native';
+import { Award, Search, ArrowUpDown, Download, ExternalLink, CheckCircle2, ShieldCheck, Share2, Sparkles, Filter, Copy, Shield, Lock, X } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { getPortal } from '@/src/lib/portalApi';
