@@ -560,6 +560,8 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [csvProgress, setCsvProgress] = useState<{ row: any; live: boolean }>({ row: null, live: false });
   const [csvRows, setCsvRows] = useState<any[]>([]);
   const [csvEmails, setCsvEmails] = useState<{ sent: number; errors: number }>({ sent: 0, errors: 0 });
+  const [csvTotalRows, setCsvTotalRows] = useState(0);
+  const csvPct = csvTotalRows > 0 ? Math.min(100, Math.round((csvRows.length / csvTotalRows) * 100)) : 0;
 
   const pickSingle = () => inputRef.current?.click();
   const pickBulk = () => bulkRef.current?.click();
@@ -717,6 +719,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           try {
             const msg = JSON.parse(line);
             if (msg.type === 'start') {
+              setCsvTotalRows(msg.total_rows);
               setCsvProgress({ row: { info: `Processing ${msg.total_rows} rows, ${msg.zip_images} images...` }, live: true });
             } else if (msg.type === 'row') {
               setCsvRows((prev) => [...prev, msg]);
@@ -727,6 +730,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
               setCsvEmails((prev) => ({ ...prev, errors: prev.errors + 1 }));
             } else if (msg.type === 'done') {
               setCsvResult(msg);
+              setCsvRows((prev) => [...prev]); // trigger final render
               setCsvProgress({ row: null, live: false });
             }
           } catch {}
@@ -758,7 +762,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           {(['single', 'bulk', 'zip', 'csv-zip'] as const).map((m) => (
             <Pressable
               key={m}
-              onPress={() => { setMode(m); setResult(null); setError(null); setTestResult(null); setDispatchResult(null); setCsvResult(null); setCsvError(null); setCsvZipFiles([]); setCsvCsvFile(null); setCsvRows([]); setCsvProgress({ row: null, live: false }); setCsvEmails({ sent: 0, errors: 0 }); }}
+              onPress={() => { setMode(m); setResult(null); setError(null); setTestResult(null); setDispatchResult(null); setCsvResult(null); setCsvError(null); setCsvZipFiles([]); setCsvCsvFile(null); setCsvRows([]); setCsvProgress({ row: null, live: false }); setCsvEmails({ sent: 0, errors: 0 }); setCsvTotalRows(0); }}
               style={[s.segBtn, mode === m && s.segActive]}
             >
               <Text style={[s.segText, mode === m && s.segTextActive]}>
@@ -911,33 +915,43 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
             {/* Live streaming progress */}
             {csvProgress.live && (
-              <View style={{ padding: 14, borderRadius: 10, backgroundColor: 'rgba(99,102,241,0.08)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.25)', gap: 8 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <ActivityIndicator size="small" color="#818CF8" />
-                  <Text style={{ color: '#C7D2FE', fontWeight: 'bold', fontSize: 13 }}>Importing...</Text>
-                </View>
-                {csvProgress.row && (
-                  <View style={{ gap: 4 }}>
-                    {csvProgress.row.info ? (
-                      <Text style={{ color: '#9095A8', fontSize: 12 }}>{csvProgress.row.info}</Text>
-                    ) : (
-                      <>
-                        <Text style={{ color: '#D8B4FE', fontSize: 12, fontFamily: 'monospace' }}>
-                          Row {csvProgress.row.row}: {csvProgress.row.name || csvProgress.row.email}
-                        </Text>
-                        <Text style={{ color: csvProgress.row.action === 'created' ? '#34D399' : csvProgress.row.action === 'updated' ? '#60A5FA' : '#FBBF24', fontSize: 11, fontFamily: 'monospace' }}>
-                          {csvProgress.row.action}{csvProgress.row.file_matched ? ` • ${csvProgress.row.file_matched}` : ' • no image'}
-                        </Text>
-                      </>
-                    )}
+              <View style={{ padding: 14, borderRadius: 10, backgroundColor: 'rgba(99,102,241,0.08)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.25)', gap: 10 }}>
+                {/* Percentage bar */}
+                <View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <ActivityIndicator size="small" color="#818CF8" />
+                      <Text style={{ color: '#C7D2FE', fontWeight: 'bold', fontSize: 13 }}>
+                        {csvPct < 100 ? 'Importing...' : csvSendEmails ? 'Sending emails...' : 'Finalizing...'}
+                      </Text>
+                    </View>
+                    <Text style={{ color: csvPct >= 100 ? '#34D399' : '#A78BFA', fontWeight: 'bold', fontSize: 15, fontFamily: 'monospace' }}>
+                      {csvPct}%
+                    </Text>
                   </View>
-                )}
+                  <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                    <View style={{ height: 8, borderRadius: 4, width: `${csvPct}%`, backgroundColor: csvPct >= 100 ? '#34D399' : '#818CF8', transitionDuration: '200ms' }} />
+                  </View>
+                  <Text style={{ color: '#9095A8', fontSize: 11, marginTop: 4 }}>
+                    {csvRows.length} of {csvTotalRows} rows processed
+                  </Text>
+                </View>
+
+                {/* Running counters */}
                 <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
                   <Text style={{ color: '#34D399', fontSize: 11 }}>✓ {csvRows.filter(r => r.action === 'created').length} created</Text>
                   <Text style={{ color: '#60A5FA', fontSize: 11 }}>↻ {csvRows.filter(r => r.action === 'updated').length} updated</Text>
                   <Text style={{ color: '#9095A8', fontSize: 11 }}>⏭ {csvRows.filter(r => r.action === 'skipped').length} skipped</Text>
                   {csvEmails.sent > 0 && <Text style={{ color: '#A78BFA', fontSize: 11 }}>✉ {csvEmails.sent} emails</Text>}
                 </View>
+
+                {/* Last processed row */}
+                {csvProgress.row && csvProgress.row.row && (
+                  <Text style={{ color: '#D8B4FE', fontSize: 11, fontFamily: 'monospace' }}>
+                    → Row {csvProgress.row.row}: {csvProgress.row.name || csvProgress.row.email} • {csvProgress.row.action}
+                    {csvProgress.row.file_matched ? ` • ${csvProgress.row.file_matched}` : ''}
+                  </Text>
+                )}
               </View>
             )}
 
