@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from core.db import db
 from core.email import send_email, render_html_email
+from core.email_templates import render_view_email, render_claim_email
 from core.email_quality import reject_reason, require_ok
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://studentalumni.ai")
@@ -1506,20 +1507,16 @@ async def import_csv_zip_certificates(
                         f"<a href=\"{c['verify_url']}\" style=\"color:#7C5CFC;font-size:12px;font-weight:bold;text-decoration:none;\">Verify & Download →</a></div>"
                         for c in clist
                     )
-                    body = (f"<h2 style=\"color:#FFF;\">Your Certificates Are Ready</h2><p>Hello <strong>{udata['name']}</strong>,</p>"
-                            f"<p>{len(clist)} certificate(s) were issued to you:</p>{rows_html}"
-                            f"<p style=\"font-size:12px;color:#7E7E92;\">Complete your SA profile to 100% to unlock them in My Certificates.</p>")
+                    body = render_view_email(udata['name'], clist)
                     subject = f"🎓 Your {len(clist)} Certificate(s) Are Ready"
                     etype = "view"
                 else:
                     reg_link = f"{FRONTEND_URL}/auth/register?email={_urlquote(email)}&name={_urlquote(udata['name'])}"
-                    body = (f"<h2 style=\"color:#FFF;\">Claim Your Certificates</h2><p>Hello <strong>{udata['name']}</strong>,</p>"
-                            f"<p>{len(clist)} certificate(s) were issued to <strong>{email}</strong>. Create your free StudentAlumni account to claim and download them:</p>"
-                            f"<div style=\"margin:20px 0;\"><a href=\"{reg_link}\" style=\"background:#7C5CFC;color:#FFF;padding:12px 24px;text-decoration:none;border-radius:10px;font-weight:bold;\">Create Account & Claim →</a></div>")
+                    body = render_claim_email(udata['name'], email, clist, reg_link)
                     subject = "🎓 Claim Your Certificates — Create Your Free Account"
                     etype = "claim"
                 try:
-                    await send_email(email, subject, render_html_email(body))
+                    await send_email(email, subject, body)
                     if etype == "view":
                         emails_view += 1
                     else:
@@ -1733,20 +1730,16 @@ async def import_csv_zip_stream(
                         f"<a href=\"{c['verify_url']}\" style=\"color:#7C5CFC;font-size:12px;font-weight:bold;text-decoration:none;\">Verify & Download →</a></div>"
                         for c in clist
                     )
-                    body = (f"<h2 style=\"color:#FFF;\">Your Certificates Are Ready</h2><p>Hello <strong>{udata['name']}</strong>,</p>"
-                            f"<p>{len(clist)} certificate(s) were issued to you:</p>{rows_html}"
-                            f"<p style=\"font-size:12px;color:#7E7E92;\">Complete your SA profile to 100% to unlock them in My Certificates.</p>")
+                    body = render_view_email(udata['name'], clist)
                     subject = f"🎓 Your {len(clist)} Certificate(s) Are Ready"
                     etype = "view"
                 else:
                     reg_link = f"{FRONTEND_URL}/auth/register?email={_urlquote(email)}&name={_urlquote(udata['name'])}"
-                    body = (f"<h2 style=\"color:#FFF;\">Claim Your Certificates</h2><p>Hello <strong>{udata['name']}</strong>,</p>"
-                            f"<p>{len(clist)} certificate(s) were issued to <strong>{email}</strong>. Create your free StudentAlumni account to claim and download them:</p>"
-                            f"<div style=\"margin:20px 0;\"><a href=\"{reg_link}\" style=\"background:#7C5CFC;color:#FFF;padding:12px 24px;text-decoration:none;border-radius:10px;font-weight:bold;\">Create Account & Claim →</a></div>")
+                    body = render_claim_email(udata['name'], email, clist, reg_link)
                     subject = "🎓 Claim Your Certificates — Create Your Free Account"
                     etype = "claim"
                 try:
-                    await send_email(email, subject, render_html_email(body))
+                    await send_email(email, subject, body)
                     if etype == "view":
                         emails_view += 1
                     else:
