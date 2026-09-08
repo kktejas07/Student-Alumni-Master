@@ -699,13 +699,14 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
       if (!resp.ok) {
         const errText = await resp.text();
-        throw new Error(errText || `Server error ${resp.status}`);
+        try { const ej = JSON.parse(errText); throw new Error(ej.detail || errText); } catch (e) { if (e.message.includes('Server error')) throw e; throw new Error(errText || `Server error ${resp.status}`); }
       }
 
       const reader = resp.body?.getReader();
       if (!reader) throw new Error('Streaming not supported');
       const decoder = new TextDecoder();
       let buffer = '';
+      let gotRows = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -722,8 +723,9 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
               setCsvTotalRows(msg.total_rows);
               setCsvProgress({ row: { info: `Processing ${msg.total_rows} rows, ${msg.zip_images} images...` }, live: true, phase: 'processing' });
             } else if (msg.type === 'row') {
+              gotRows = true;
               setCsvRows((prev) => [...prev, msg]);
-              setCsvProgress({ row: msg, live: true });
+              setCsvProgress({ row: msg, live: true, phase: 'processing' });
             } else if (msg.type === 'email_start') {
               setCsvProgress((prev) => ({ ...prev, phase: 'emails' }));
             } else if (msg.type === 'email_sent') {
@@ -732,15 +734,14 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
               setCsvEmails((prev) => ({ ...prev, errors: prev.errors + 1 }));
             } else if (msg.type === 'done') {
               setCsvResult(msg);
-              setCsvRows((prev) => [...prev]); // trigger final render
-              setCsvProgress({ row: null, live: false });
+              setCsvProgress({ row: null, live: false, phase: '' });
             }
           } catch {}
         }
       }
 
-      if (!csvResult) {
-        setCsvResult({ dry_run: csvDryRun, total_rows: 0, created: 0, updated: 0, skipped: 0, recipients: 0, emails_view: 0, emails_claim: 0 });
+      if (!csvResult && !gotRows) {
+        throw new Error('No data received — check CSV has email and title columns');
       }
       if (!csvDryRun) onSaved('Import complete');
     } catch (e: any) {
@@ -917,61 +918,107 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
             {/* Live streaming progress */}
             {csvProgress.live && (
-              <View style={{ padding: 14, borderRadius: 10, backgroundColor: 'rgba(99,102,241,0.08)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.25)', gap: 10 }}>
-                {/* Phase indicator + percentage bar */}
-                <View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <ActivityIndicator size="small" color="#818CF8" />
-                      <Text style={{ color: '#C7D2FE', fontWeight: 'bold', fontSize: 13 }}>
+              <View style={{ padding: 16, borderRadius: 12, backgroundColor: 'rgba(99,102,241,0.06)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)', gap: 12 }}>
+                {/* Phase header */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: csvProgress.phase === 'uploading' ? 'rgba(245,158,11,0.15)' : csvProgress.phase === 'emails' ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.15)', alignItems: 'center', justifyContent: 'center' }}>
+                      <ActivityIndicator size="small" color={csvProgress.phase === 'uploading' ? '#FBBF24' : csvProgress.phase === 'emails' ? '#34D399' : '#818CF8'} />
+                    </View>
+                    <View>
+                      <Text style={{ color: '#E2E8F0', fontWeight: 'bold', fontSize: 14 }}>
                         {csvProgress.phase === 'uploading'
-                          ? `Uploading ${csvZipFiles.length} ZIP(s) + CSV...`
+                          ? 'Uploading Files'
                           : csvProgress.phase === 'emails'
-                          ? 'Sending emails to recipients...'
-                          : csvPct < 100
-                          ? 'Importing rows...'
-                          : 'Finalizing...'}
+                          ? 'Sending Notifications'
+                          : csvPct >= 100
+                          ? 'Import Complete'
+                          : 'Processing Certificates'}
+                      </Text>
+                      <Text style={{ color: '#9095A8', fontSize: 11, marginTop: 1 }}>
+                        {csvProgress.phase === 'uploading'
+                          ? 'Sending ZIP archives and CSV to server...'
+                          : csvProgress.phase === 'emails'
+                          ? `Delivering to ${csvEmails.sent + csvEmails.errors} recipients`
+                          : csvPct >= 100
+                          ? 'All rows processed'
+                          : `Row ${csvRows.length} of ${csvTotalRows}`}
                       </Text>
                     </View>
-                    <Text style={{ color: csvPct >= 100 ? '#34D399' : '#A78BFA', fontWeight: 'bold', fontSize: 15, fontFamily: 'monospace' }}>
-                      {csvProgress.phase === 'uploading' ? '⬆️' : `${csvPct}%`}
-                    </Text>
                   </View>
-                  {csvProgress.phase !== 'uploading' && (
-                    <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                      <View style={{ height: 8, borderRadius: 4, width: `${csvPct}%`, backgroundColor: csvPct >= 100 ? '#34D399' : '#818CF8', transitionDuration: '200ms' }} />
-                    </View>
-                  )}
-                  {csvProgress.phase === 'uploading' && (
-                    <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                      <View style={{ height: 8, borderRadius: 4, width: '30%', backgroundColor: '#F59E0B', animation: 'pulse 1.5s infinite' }} />
-                    </View>
-                  )}
-                  <Text style={{ color: '#9095A8', fontSize: 11, marginTop: 4 }}>
-                    {csvProgress.phase === 'uploading'
-                      ? `${csvZipFiles.length} file(s), ~${(csvZipFiles.reduce((a, f) => a + f.size, 0) / 1024 / 1024).toFixed(0)} MB total`
-                      : csvProgress.phase === 'emails'
-                      ? `${csvEmails.sent + csvEmails.errors} of ${csvTotalRows} recipients`
-                      : `${csvRows.length} of ${csvTotalRows} rows processed`}
+                  <Text style={{ color: csvPct >= 100 ? '#34D399' : '#A78BFA', fontWeight: '800', fontSize: 20, fontFamily: 'monospace' }}>
+                    {csvProgress.phase === 'uploading' ? '⬆️' : `${csvPct}%`}
                   </Text>
                 </View>
 
-                {/* Running counters */}
+                {/* Progress bar */}
+                <View style={{ height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                  <View style={{
+                    height: 6, borderRadius: 3,
+                    width: csvProgress.phase === 'uploading' ? '40%' : `${csvPct}%`,
+                    backgroundColor: csvPct >= 100 ? '#34D399' : csvProgress.phase === 'uploading' ? '#F59E0B' : '#818CF8',
+                    transitionDuration: '300ms',
+                  }} />
+                </View>
+
+                {/* File details during upload */}
+                {csvProgress.phase === 'uploading' && (
+                  <View style={{ gap: 4 }}>
+                    {csvZipFiles.map((f, i) => (
+                      <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#F59E0B' }} />
+                        <Text style={{ color: '#C7D2FE', fontSize: 11, fontFamily: 'monospace' }}>{f.name}</Text>
+                        <Text style={{ color: '#9095A8', fontSize: 10 }}>{(f.size / 1024 / 1024).toFixed(1)} MB</Text>
+                      </View>
+                    ))}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981' }} />
+                      <Text style={{ color: '#C7D2FE', fontSize: 11, fontFamily: 'monospace' }}>{csvCsvFile?.name}</Text>
+                      <Text style={{ color: '#9095A8', fontSize: 10 }}>{((csvCsvFile?.size || 0) / 1024).toFixed(0)} KB</Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Running counters during import/emails */}
                 {csvProgress.phase !== 'uploading' && (
-                  <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
-                    <Text style={{ color: '#34D399', fontSize: 11 }}>✓ {csvRows.filter(r => r.action === 'created').length} created</Text>
-                    <Text style={{ color: '#60A5FA', fontSize: 11 }}>↻ {csvRows.filter(r => r.action === 'updated').length} updated</Text>
-                    <Text style={{ color: '#9095A8', fontSize: 11 }}>⏭ {csvRows.filter(r => r.action === 'skipped').length} skipped</Text>
-                    {csvEmails.sent > 0 && <Text style={{ color: '#A78BFA', fontSize: 11 }}>✉ {csvEmails.sent} emails</Text>}
+                  <View style={{ flexDirection: 'row', gap: 14, flexWrap: 'wrap' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#34D399' }} />
+                      <Text style={{ color: '#34D399', fontSize: 12, fontWeight: '600' }}>{csvRows.filter(r => r.action === 'created').length} created</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#60A5FA' }} />
+                      <Text style={{ color: '#60A5FA', fontSize: 12, fontWeight: '600' }}>{csvRows.filter(r => r.action === 'updated').length} updated</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#9095A8' }} />
+                      <Text style={{ color: '#9095A8', fontSize: 12, fontWeight: '600' }}>{csvRows.filter(r => r.action === 'skipped').length} skipped</Text>
+                    </View>
+                    {csvEmails.sent > 0 && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#A78BFA' }} />
+                        <Text style={{ color: '#A78BFA', fontSize: 12, fontWeight: '600' }}>{csvEmails.sent} emailed</Text>
+                      </View>
+                    )}
                   </View>
                 )}
 
                 {/* Last processed row */}
-                {csvProgress.row && csvProgress.row.row && (
-                  <Text style={{ color: '#D8B4FE', fontSize: 11, fontFamily: 'monospace' }}>
-                    → Row {csvProgress.row.row}: {csvProgress.row.name || csvProgress.row.email} • {csvProgress.row.action}
-                    {csvProgress.row.file_matched ? ` • ${csvProgress.row.file_matched}` : ''}
-                  </Text>
+                {csvProgress.row && csvProgress.row.row && csvProgress.phase !== 'uploading' && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.03)' }}>
+                    <Text style={{ color: '#6366F1', fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold' }}>→</Text>
+                    <Text style={{ color: '#D8B4FE', fontSize: 11, fontFamily: 'monospace', flex: 1 }} numberOfLines={1}>
+                      Row {csvProgress.row.row}: {csvProgress.row.name || csvProgress.row.email}
+                    </Text>
+                    <Text style={{ color: csvProgress.row.action === 'created' ? '#34D399' : csvProgress.row.action === 'updated' ? '#60A5FA' : '#FBBF24', fontSize: 10, fontWeight: 'bold' }}>
+                      {csvProgress.row.action}
+                    </Text>
+                    {csvProgress.row.file_matched && (
+                      <Text style={{ color: '#9095A8', fontSize: 9, fontFamily: 'monospace' }} numberOfLines={1}>
+                        {csvProgress.row.file_matched}
+                      </Text>
+                    )}
+                  </View>
                 )}
               </View>
             )}
