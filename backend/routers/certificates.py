@@ -2,6 +2,7 @@ import os
 import io
 import csv
 import re
+import json
 import secrets
 import zipfile
 import hashlib
@@ -1290,13 +1291,12 @@ async def import_csv_zip_certificates(
 
     async def _process_rows():
         """Yields NDJSON lines for streaming, or collects for batch."""
-        import json as _json
         created = updated = skipped = 0
         per_user = {}
         all_results = []
         all_errors = []
 
-        yield _json.dumps({"type": "start", "total_rows": len(rows), "zip_images": len(all_by_base), "dry_run": dry_run, "send_emails": send_emails}) + "\n"
+        yield json.dumps({"type": "start", "total_rows": len(rows), "zip_images": len(all_by_base), "dry_run": dry_run, "send_emails": send_emails}) + "\n"
 
         for i, row in enumerate(rows, start=2):
             email = _col(row, "email", "recipient_email", "student_email").lower()
@@ -1310,7 +1310,7 @@ async def import_csv_zip_certificates(
                 item = {"row": i, "email": email or "?", "name": name, "title": title, "action": "skipped", "error": "Missing email/title"}
                 all_results.append(item)
                 all_errors.append(item)
-                yield _json.dumps(item) + "\n"
+                yield json.dumps(item) + "\n"
                 continue
 
             matched = _match(cert_id, email, want_file)
@@ -1372,12 +1372,12 @@ async def import_csv_zip_certificates(
                     "code": code, "action": action, "verify_url": verify_url,
                     "file_matched": os.path.basename(matched[1]) if matched else None}
             all_results.append(item)
-            yield _json.dumps({**item, "created": created, "updated": updated, "skipped": skipped}) + "\n"
+            yield json.dumps({**item, "created": created, "updated": updated, "skipped": skipped}) + "\n"
 
         # Send emails
         emails_view = emails_claim = 0
         if send_emails and not dry_run and per_user:
-            yield _json.dumps({"type": "email_start", "recipients": len(per_user)}) + "\n"
+            yield json.dumps({"type": "email_start", "recipients": len(per_user)}) + "\n"
             existing = set()
             async for u in db.users.find({"email": {"$in": list(per_user.keys())}}, {"email": 1}):
                 if u.get("email"):
@@ -1410,14 +1410,14 @@ async def import_csv_zip_certificates(
                         emails_view += 1
                     else:
                         emails_claim += 1
-                    yield _json.dumps({"type": "email_sent", "email": email, "etype": etype}) + "\n"
+                    yield json.dumps({"type": "email_sent", "email": email, "etype": etype}) + "\n"
                 except Exception:
-                    yield _json.dumps({"type": "email_error", "email": email}) + "\n"
+                    yield json.dumps({"type": "email_error", "email": email}) + "\n"
 
         done = {"type": "done", "created": created, "updated": updated, "skipped": skipped,
                 "recipients": len(per_user), "emails_view": emails_view, "emails_claim": emails_claim,
                 "total_rows": len(rows), "results": all_results, "errors": all_errors}
-        yield _json.dumps(done) + "\n"
+        yield json.dumps(done) + "\n"
 
     # ── Return mode ────────────────────────────────────────────────────
     if stream:
@@ -1524,7 +1524,7 @@ async def import_csv_zip_stream(
         import json as _json
 
         # Stream header
-        yield _json.dumps({"type": "start", "total_rows": len(rows), "zip_images": len(all_by_base), "dry_run": dry_run, "send_emails": send_emails}) + "\n"
+        yield json.dumps({"type": "start", "total_rows": len(rows), "zip_images": len(all_by_base), "dry_run": dry_run, "send_emails": send_emails}) + "\n"
 
         for i, row in enumerate(rows, start=2):
             email = _col(row, "email", "recipient_email", "student_email").lower()
@@ -1535,7 +1535,7 @@ async def import_csv_zip_stream(
 
             if not email or not title:
                 skipped += 1
-                yield _json.dumps({"type": "row", "row": i, "email": email or "?", "name": name, "title": title, "action": "skipped", "error": "Missing email/title"}) + "\n"
+                yield json.dumps({"type": "row", "row": i, "email": email or "?", "name": name, "title": title, "action": "skipped", "error": "Missing email/title"}) + "\n"
                 continue
 
             matched = _match(cert_id, email, want_file)
@@ -1593,7 +1593,7 @@ async def import_csv_zip_stream(
 
             per_user.setdefault(email, {"name": doc["recipient_name"], "certs": []})["certs"].append({"code": code, "title": title, "verify_url": verify_url})
 
-            yield _json.dumps({
+            yield json.dumps({
                 "type": "row", "row": i, "email": email, "name": doc["recipient_name"],
                 "title": title, "code": code, "action": action,
                 "file_matched": os.path.basename(matched[1]) if matched else None,
@@ -1603,7 +1603,7 @@ async def import_csv_zip_stream(
         # Send emails if requested
         emails_view = emails_claim = 0
         if send_emails and not dry_run and per_user:
-            yield _json.dumps({"type": "email_start", "recipients": len(per_user)}) + "\n"
+            yield json.dumps({"type": "email_start", "recipients": len(per_user)}) + "\n"
             existing = set()
             async for u in db.users.find({"email": {"$in": list(per_user.keys())}}, {"email": 1}):
                 if u.get("email"):
@@ -1636,11 +1636,11 @@ async def import_csv_zip_stream(
                         emails_view += 1
                     else:
                         emails_claim += 1
-                    yield _json.dumps({"type": "email_sent", "email": email, "etype": etype}) + "\n"
+                    yield json.dumps({"type": "email_sent", "email": email, "etype": etype}) + "\n"
                 except Exception:
-                    yield _json.dumps({"type": "email_error", "email": email}) + "\n"
+                    yield json.dumps({"type": "email_error", "email": email}) + "\n"
 
-        yield _json.dumps({
+        yield json.dumps({
             "type": "done", "created": created, "updated": updated, "skipped": skipped,
             "recipients": len(per_user), "emails_view": emails_view, "emails_claim": emails_claim,
         }) + "\n"

@@ -699,13 +699,14 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
       if (!resp.ok) {
         const errText = await resp.text();
-        throw new Error(errText || `Server error ${resp.status}`);
+        try { const ej = JSON.parse(errText); throw new Error(ej.detail || errText); } catch (e) { if (e.message.includes('Server error')) throw e; throw new Error(errText || `Server error ${resp.status}`); }
       }
 
       const reader = resp.body?.getReader();
       if (!reader) throw new Error('Streaming not supported');
       const decoder = new TextDecoder();
       let buffer = '';
+      let gotRows = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -722,8 +723,9 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
               setCsvTotalRows(msg.total_rows);
               setCsvProgress({ row: { info: `Processing ${msg.total_rows} rows, ${msg.zip_images} images...` }, live: true, phase: 'processing' });
             } else if (msg.type === 'row') {
+              gotRows = true;
               setCsvRows((prev) => [...prev, msg]);
-              setCsvProgress({ row: msg, live: true });
+              setCsvProgress({ row: msg, live: true, phase: 'processing' });
             } else if (msg.type === 'email_start') {
               setCsvProgress((prev) => ({ ...prev, phase: 'emails' }));
             } else if (msg.type === 'email_sent') {
@@ -732,15 +734,14 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
               setCsvEmails((prev) => ({ ...prev, errors: prev.errors + 1 }));
             } else if (msg.type === 'done') {
               setCsvResult(msg);
-              setCsvRows((prev) => [...prev]); // trigger final render
-              setCsvProgress({ row: null, live: false });
+              setCsvProgress({ row: null, live: false, phase: '' });
             }
           } catch {}
         }
       }
 
-      if (!csvResult) {
-        setCsvResult({ dry_run: csvDryRun, total_rows: 0, created: 0, updated: 0, skipped: 0, recipients: 0, emails_view: 0, emails_claim: 0 });
+      if (!csvResult && !gotRows) {
+        throw new Error('No data received — check CSV has email and title columns');
       }
       if (!csvDryRun) onSaved('Import complete');
     } catch (e: any) {
