@@ -1267,6 +1267,39 @@ async def import_csv_zip_certificates(
         return None
 
     # ── Process rows ───────────────────────────────────────────────────
+    # ── Detect CSV format & flatten multi-cert rows ────────────────────
+    # Format A (standard): email, name, title, certificate_id, file
+    # Format B (user's): Name, Email, Build by Sunset ID, HackWave ID, Conclave ID, Bundle
+    sample = rows[0] if rows else {}
+    low_keys = {k.strip().lower() for k in sample.keys()}
+    has_multi_cert = any(k in low_keys for k in ["build by sunset id", "hackwave id", "conclave id"])
+
+    if has_multi_cert:
+        # Flatten: 1 row → 3 rows (one per certificate type)
+        CERT_MAP = [
+            ("build by sunset id", "Built by Sunset — Project Build Certificate", "built_by_sunset", "sunset"),
+            ("hackwave id", "Certificate of Participation — Hackwave 3.0", "hackwave_participation", "echo"),
+            ("conclave id", "Cyber Conclave — Professional Certificate", "cyber_conclave", "cyber"),
+        ]
+        flat_rows = []
+        for row in rows:
+            email = _col(row, "email", "Email").lower()
+            name = _col(row, "name", "Name")
+            branch = _col(row, "branch", "Branch")
+            bundle = _col(row, "bundle", "Bundle")
+            for cert_col, title, _cat_key, _cat_label in CERT_MAP:
+                cert_id = _col(row, cert_col)
+                if not cert_id or not email:
+                    continue
+                flat_rows.append({
+                    "email": email, "name": name, "title": title,
+                    "certificate_id": cert_id, "file": "",
+                    "_branch": branch, "_bundle": bundle,
+                })
+        rows = flat_rows
+        if not rows:
+            raise HTTPException(400, "No valid certificate rows found — check CSV has Email + at least one certificate ID column")
+
     # ── Shared processing logic ────────────────────────────────────────
     def _col(row, *keys):
         low = {(k or "").strip().lower(): (v or "").strip() for k, v in row.items()}
@@ -1299,11 +1332,13 @@ async def import_csv_zip_certificates(
         yield json.dumps({"type": "start", "total_rows": len(rows), "zip_images": len(all_by_base), "dry_run": dry_run, "send_emails": send_emails}) + "\n"
 
         for i, row in enumerate(rows, start=2):
-            email = _col(row, "email", "recipient_email", "student_email").lower()
-            name = _col(row, "name", "recipient_name", "student_name", "full_name")
-            title = _col(row, "title", "certificate_title", "event_name", "certificate")
-            cert_id = _col(row, "certificate_id", "certificate id", "cert_id", "code", "verification_code")
-            want_file = _col(row, "file", "filename", "image")
+            email = (row.get("email") or "").strip().lower()
+            name = (row.get("name") or "").strip()
+            title = (row.get("title") or "").strip()
+            cert_id = (row.get("certificate_id") or "").strip()
+            want_file = (row.get("file") or "").strip()
+            branch = (row.get("_branch") or "").strip()
+            bundle = (row.get("_bundle") or "").strip()
 
             if not email or not title:
                 skipped += 1
@@ -1314,6 +1349,18 @@ async def import_csv_zip_certificates(
                 continue
 
             matched = _match(cert_id, email, want_file)
+            # Fallback: try matching by branch or bundle in filename
+            if not matched and branch:
+                branch_lower = branch.lower().replace(" ", "").replace("(", "").replace(")", "")
+                for base, item in all_by_base.items():
+                    if branch_lower and branch_lower in base:
+                        matched = item
+                        break
+            if not matched and bundle:
+                for base, item in all_by_base.items():
+                    if bundle.lower() in base:
+                        matched = item
+                        break
             file_bytes = matched[0].read(matched[1]) if matched else None
             image_url = None
             disk_path = None
