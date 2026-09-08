@@ -691,7 +691,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
       const base = (process.env.EXPO_PUBLIC_BACKEND_URL || 'https://studentalumni.ai').replace(/\/$/, '');
       const token = typeof window !== 'undefined' ? localStorage.getItem('scd_access_token') || '' : '';
-      const resp = await fetch(`${base}/api/certificates/import-csv-zip?stream=true`, {
+      const resp = await fetch(`${base}/api/certificates/import-csv-zip`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
@@ -702,46 +702,56 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
         try { const ej = JSON.parse(errText); throw new Error(ej.detail || errText); } catch (e) { if (e.message.includes('Server error')) throw e; throw new Error(errText || `Server error ${resp.status}`); }
       }
 
-      const reader = resp.body?.getReader();
-      if (!reader) throw new Error('Streaming not supported');
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let gotRows = false;
+      const contentType = resp.headers.get('content-type') || '';
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+      if (contentType.includes('ndjson') || contentType.includes('x-ndjson')) {
+        // Streaming mode — read NDJSON
+        const reader = resp.body?.getReader();
+        if (!reader) throw new Error('Streaming not supported');
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let gotRows = false;
 
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            const msg = JSON.parse(line);
-            if (msg.type === 'start') {
-              setCsvTotalRows(msg.total_rows);
-              setCsvProgress({ row: { info: `Processing ${msg.total_rows} rows, ${msg.zip_images} images...` }, live: true, phase: 'processing' });
-            } else if (msg.type === 'row') {
-              gotRows = true;
-              setCsvRows((prev) => [...prev, msg]);
-              setCsvProgress({ row: msg, live: true, phase: 'processing' });
-            } else if (msg.type === 'email_start') {
-              setCsvProgress((prev) => ({ ...prev, phase: 'emails' }));
-            } else if (msg.type === 'email_sent') {
-              setCsvEmails((prev) => ({ ...prev, sent: prev.sent + 1 }));
-            } else if (msg.type === 'email_error') {
-              setCsvEmails((prev) => ({ ...prev, errors: prev.errors + 1 }));
-            } else if (msg.type === 'done') {
-              setCsvResult(msg);
-              setCsvProgress({ row: null, live: false, phase: '' });
-            }
-          } catch {}
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const msg = JSON.parse(line);
+              if (msg.type === 'start') {
+                setCsvTotalRows(msg.total_rows);
+                setCsvProgress({ row: { info: `Processing ${msg.total_rows} rows, ${msg.zip_images} images...` }, live: true, phase: 'processing' });
+              } else if (msg.type === 'row') {
+                gotRows = true;
+                setCsvRows((prev) => [...prev, msg]);
+                setCsvProgress({ row: msg, live: true, phase: 'processing' });
+              } else if (msg.type === 'email_start') {
+                setCsvProgress((prev) => ({ ...prev, phase: 'emails' }));
+              } else if (msg.type === 'email_sent') {
+                setCsvEmails((prev) => ({ ...prev, sent: prev.sent + 1 }));
+              } else if (msg.type === 'email_error') {
+                setCsvEmails((prev) => ({ ...prev, errors: prev.errors + 1 }));
+              } else if (msg.type === 'done') {
+                setCsvResult(msg);
+                setCsvProgress({ row: null, live: false, phase: '' });
+              }
+            } catch {}
+          }
         }
-      }
-
-      if (!csvResult && !gotRows) {
-        throw new Error('No data received — check CSV has email and title columns');
+        if (!csvResult && !gotRows) throw new Error('No data received — check CSV has email and title columns');
+      } else {
+        // Batch mode — single JSON response
+        const r = await resp.json();
+        if (r.results?.length > 0) {
+          setCsvRows(r.results);
+          setCsvTotalRows(r.total_rows || r.results.length);
+        }
+        setCsvResult(r);
       }
       if (!csvDryRun) onSaved('Import complete');
     } catch (e: any) {
