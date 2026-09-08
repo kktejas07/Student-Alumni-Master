@@ -737,9 +737,11 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
               } else if (msg.type === 'email_error') {
                 setCsvEmails((prev) => ({ ...prev, errors: prev.errors + 1 }));
               } else if (msg.type === 'done') {
-                setCsvResult(msg);
-                setCsvProgress({ row: null, live: false, phase: '' });
-              }
+              setCsvResult(msg);
+              setCsvProgress({ row: null, live: false, phase: '' });
+            } else if (msg.type === 'debug') {
+              console.log('[CSV IMPORT DEBUG]', msg);
+            }
             } catch {}
           }
         }
