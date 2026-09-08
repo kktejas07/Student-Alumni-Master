@@ -5,9 +5,9 @@
  * (ECHO / Hackwave 3.0, Built by Sunset, Cyber Conclave, Workshops, Courses).
  */
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Linking, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Award, Search, ArrowUpDown, Download, ExternalLink, CheckCircle2, ShieldCheck, Share2, Sparkles, Filter, Copy } from 'lucide-react-native';
+import { Award, Search, ArrowUpDown, Download, ExternalLink, CheckCircle2, ShieldCheck, Share2, Sparkles, Filter, Copy, Shield, Lock, X } from 'lucide-react-native';
 import { SC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { getPortal } from '@/src/lib/portalApi';
@@ -35,6 +35,14 @@ export function MyCertificatesView() {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
+  // Identity Modal state
+  const [selectedCertCode, setSelectedCertCode] = useState<string | null>(null);
+  const [idModalVisible, setIdModalVisible] = useState(false);
+  const [idType, setIdType] = useState<'aadhaar' | 'digilocker' | 'pan'>('aadhaar');
+  const [idNumber, setIdNumber] = useState('');
+  const [idError, setIdError] = useState('');
+  const [verifyingId, setVerifyingId] = useState(false);
+
   useEffect(() => {
     fetchMyCertificates();
   }, []);
@@ -53,6 +61,45 @@ export function MyCertificatesView() {
       setCerts(DEFAULT_STUDENT_CERTS);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openVerifyWithId = (code: string) => {
+    setSelectedCertCode(code);
+    setIdModalVisible(true);
+  };
+
+  const handleConfirmUnlock = async () => {
+    if (!idNumber.trim()) {
+      setIdError(`Please enter your ${idType.toUpperCase()} number.`);
+      return;
+    }
+    setIdError('');
+    setVerifyingId(true);
+    try {
+      const resp = await fetch('https://studentalumni.ai/api/certificates/unlock-identity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: selectedCertCode,
+          identity_type: idType,
+          identity_number: idNumber.trim(),
+        }),
+      });
+      const res = await resp.json();
+      if (!resp.ok || !res.success) {
+        setIdError(res.detail || res.message || 'Identity verification failed.');
+        return;
+      }
+      setIdModalVisible(false);
+      setIdNumber('');
+      if (typeof window !== 'undefined') {
+        window.open(`/certificates/verify/${selectedCertCode}`, '_blank');
+      }
+    } catch (e: any) {
+      setIdError('Verification service error.');
+    } finally {
+      setVerifyingId(false);
     }
   };
 
@@ -215,9 +262,9 @@ export function MyCertificatesView() {
               </View>
 
               <View style={s.cardActions}>
-                <Pressable style={s.actionBtnPrimary} onPress={() => openVerify(cert.code)}>
-                  <ExternalLink size={14} color="#fff" />
-                  <Text style={s.actionBtnPrimaryText}>Verify & View</Text>
+                <Pressable style={s.actionBtnPrimary} onPress={() => openVerifyWithId(cert.code)}>
+                  <Lock size={13} color="#fff" />
+                  <Text style={s.actionBtnPrimaryText}>Verify & Unlock View</Text>
                 </Pressable>
 
                 <Pressable style={s.actionBtnSecondary} onPress={() => copyLink(cert.code)}>
@@ -231,6 +278,70 @@ export function MyCertificatesView() {
           ))}
         </View>
       )}
+
+      {/* Identity Verification Gate Modal */}
+      <Modal transparent visible={idModalVisible} animationType="fade" onRequestClose={() => setIdModalVisible(false)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center', padding: 20 }} onPress={() => setIdModalVisible(false)}>
+          <Pressable onPress={(e: any) => e?.stopPropagation?.()} style={{ width: '100%', maxWidth: 440, backgroundColor: '#18182B', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(99,102,241,0.4)', padding: 22, gap: 14 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Shield size={20} color="#818CF8" />
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#FFFFFF' }}>Identity Verification Gate</Text>
+              </View>
+              <Pressable onPress={() => setIdModalVisible(false)}><X size={18} color={SC.muted} /></Pressable>
+            </View>
+
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: '#C7D2FE' }}>
+              To view or download <Text style={{ fontFamily: FONTS.bold, color: '#FFF' }}>{selectedCertCode}</Text>, please verify your identity using your Aadhaar, DigiLocker, or PAN Card.
+            </Text>
+
+            <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+              {[
+                { id: 'aadhaar', label: '🪪 Aadhaar' },
+                { id: 'digilocker', label: '🏛️ DigiLocker' },
+                { id: 'pan', label: '💳 PAN Card' },
+              ].map((tab) => (
+                <Pressable
+                  key={tab.id}
+                  onPress={() => { setIdType(tab.id as any); setIdError(''); }}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 8,
+                    backgroundColor: idType === tab.id ? SC.primary : 'rgba(255,255,255,0.06)',
+                  }}
+                >
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 11.5, color: idType === tab.id ? '#FFF' : SC.muted }}>{tab.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={{ gap: 4 }}>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#A5B4FC' }}>
+                {idType === 'aadhaar' ? '12-Digit Aadhaar Card Number' : idType === 'pan' ? '10-Character PAN Card Number' : 'DigiLocker Consent ID'} *
+              </Text>
+              <TextInput
+                value={idNumber}
+                onChangeText={setIdNumber}
+                placeholder={idType === 'aadhaar' ? 'e.g. 9876-5432-1012' : idType === 'pan' ? 'e.g. ABCDE1234F' : 'e.g. DL-884920'}
+                placeholderTextColor={SC.muted}
+                style={{ backgroundColor: 'rgba(0,0,0,0.4)', color: '#FFF', borderWidth: 1, borderColor: idError ? '#EF4444' : 'rgba(99,102,241,0.4)', borderRadius: 8, padding: 10, fontSize: 13, fontFamily: FONTS.mono || FONTS.med }}
+              />
+              {idError ? <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: '#FCA5A5' }}>⚠️ {idError}</Text> : null}
+            </View>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
+              <Pressable style={{ paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' }} onPress={() => setIdModalVisible(false)}>
+                <Text style={{ color: SC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
+              </Pressable>
+              <Pressable style={{ paddingHorizontal: 16, height: 34, borderRadius: 8, backgroundColor: SC.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }} onPress={handleConfirmUnlock} disabled={verifyingId}>
+                {verifyingId ? <ActivityIndicator size="small" color="#FFF" /> : <Lock size={13} color="#FFF" />}
+                <Text style={{ color: '#FFF', fontFamily: FONTS.bold, fontSize: 12 }}>{verifyingId ? 'Verifying...' : 'Unlock & View'}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

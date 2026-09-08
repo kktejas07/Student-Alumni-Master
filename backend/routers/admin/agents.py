@@ -509,6 +509,7 @@ from services.agents.cicd_pr_evaluator_agent import (
 )
 
 @router.post("/cicd/scout-repo")
+@router.post("/cicd-scout")
 async def scout_git_repository(
     repo_url: str = Query("https://github.com/kktejas07/Student-Alumni-Master", description="Git repository URL to scout"),
     user=Depends(require_role("admin", "superadmin"))
@@ -517,8 +518,9 @@ async def scout_git_repository(
     return await git_repo_scout_agent.scout_repository(repo_url)
 
 @router.post("/cicd/evaluate-pr")
+@router.post("/evaluate-pr")
 async def evaluate_pull_request(
-    req: PREvalRequest = Body(...),
+    req: PREvalRequest = Body(default_factory=PREvalRequest),
     user=Depends(require_role("admin", "superadmin"))
 ):
     """Evaluate Pull Request diff across Security SAST, Lints, Test Coverage & Risk."""
@@ -532,6 +534,7 @@ async def get_cicd_loop_status(
     return cicd_loop_agent.get_status()
 
 @router.post("/cicd/loop/start")
+@router.post("/cicd-loop")
 async def start_cicd_loop(
     interval_seconds: int = Query(1800, ge=60, le=86400),
     user=Depends(require_role("admin", "superadmin"))

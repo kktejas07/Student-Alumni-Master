@@ -1,12 +1,12 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, Platform, Linking, Image, ScrollView,
+  View, Text, Pressable, StyleSheet, Platform, Linking, Image, ScrollView, TextInput, Modal, ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import {
   ShieldCheck, ExternalLink, Award, Mail, Calendar, User, ArrowLeft, FileText, CheckCircle2,
-  Lock, Copy, Check, AlertCircle, Hash, Building2,
+  Lock, Copy, Check, AlertCircle, Hash, Building2, Download, KeyRound, Shield, CreditCard, IdCard,
 } from 'lucide-react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
@@ -46,6 +46,48 @@ export default function CertificateVerifyResult() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
+
+  // Identity Verification Gate State (Aadhaar / DigiLocker / PAN)
+  const [idUnlocked, setIdUnlocked] = useState(false);
+  const [idType, setIdType] = useState<'aadhaar' | 'digilocker' | 'pan'>('aadhaar');
+  const [idNumber, setIdNumber] = useState('');
+  const [idError, setIdError] = useState('');
+  const [verifyingId, setVerifyingId] = useState(false);
+  const [verifiedInfo, setVerifiedInfo] = useState<any>(null);
+
+  const handleUnlockIdentity = async () => {
+    if (!idNumber.trim()) {
+      setIdError(`Please enter your ${idType.toUpperCase()} number.`);
+      return;
+    }
+    setIdError('');
+    setVerifyingId(true);
+
+    try {
+      const resp = await fetch(`${API_BASE}/api/certificates/unlock-identity`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: code,
+          identity_type: idType,
+          identity_number: idNumber.trim(),
+        }),
+      });
+
+      const res = await resp.json();
+      if (!resp.ok || !res.success) {
+        setIdError(res.detail || res.message || 'Identity verification failed.');
+        return;
+      }
+
+      setIdUnlocked(true);
+      setVerifiedInfo(res);
+    } catch (err: any) {
+      setIdError('Failed to connect to identity verification service.');
+    } finally {
+      setVerifyingId(false);
+    }
+  };
 
   useEffect(() => {
     if (!code) return;
@@ -156,8 +198,106 @@ export default function CertificateVerifyResult() {
                 )}
               </View>
 
-              {/* Certificate Document */}
-              {data.file_url && (
+              {/* Government Identity Verification Gate (Aadhaar / DigiLocker / PAN) */}
+              {!idUnlocked ? (
+                <View style={{ backgroundColor: 'rgba(30,27,75,0.7)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(99,102,241,0.4)', padding: 22, marginVertical: 14, gap: 14 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Shield size={22} color="#818CF8" />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontFamily: 'Outfit', fontWeight: 'bold', fontSize: 16, color: '#FFFFFF' }}>
+                        Government Identity Verification Required
+                      </Text>
+                      <Text style={{ fontFamily: 'Outfit', fontSize: 12, color: '#C7D2FE', marginTop: 2 }}>
+                        Enter your Aadhaar Card (12 digits), DigiLocker Token, or PAN Card (10 chars) to unlock and download your official certificate.
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Selector Tabs */}
+                  <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                    {[
+                      { id: 'aadhaar', label: '🪪 Aadhaar Card (12 Digits)' },
+                      { id: 'digilocker', label: '🏛️ DigiLocker Consent' },
+                      { id: 'pan', label: '💳 PAN Card (10 Chars)' },
+                    ].map((tab) => (
+                      <Pressable
+                        key={tab.id}
+                        onPress={() => { setIdType(tab.id as any); setIdError(''); }}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 7,
+                          borderRadius: 8,
+                          backgroundColor: idType === tab.id ? '#6366F1' : 'rgba(255,255,255,0.06)',
+                          borderWidth: 1,
+                          borderColor: idType === tab.id ? '#818CF8' : 'rgba(255,255,255,0.1)',
+                        }}
+                      >
+                        <Text style={{ fontFamily: 'Outfit', fontWeight: 'bold', fontSize: 12, color: idType === tab.id ? '#FFFFFF' : '#9CA3AF' }}>
+                          {tab.label}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+
+                  {/* Input field */}
+                  <View style={{ gap: 6 }}>
+                    <Text style={{ fontFamily: 'Outfit', fontWeight: '600', fontSize: 12, color: '#A5B4FC' }}>
+                      Enter {idType === 'aadhaar' ? '12-Digit Aadhaar Card Number' : idType === 'pan' ? '10-Character PAN Card Number' : 'DigiLocker Verification Code'} *
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <TextInput
+                        value={idNumber}
+                        onChangeText={setIdNumber}
+                        placeholder={idType === 'aadhaar' ? 'e.g. 9876-5432-1012' : idType === 'pan' ? 'e.g. ABCDE1234F' : 'e.g. DL-884920'}
+                        placeholderTextColor="#6B7280"
+                        style={{
+                          flex: 1,
+                          backgroundColor: 'rgba(0,0,0,0.4)',
+                          color: '#FFFFFF',
+                          borderWidth: 1,
+                          borderColor: idError ? '#EF4444' : 'rgba(129,140,248,0.4)',
+                          borderRadius: 10,
+                          paddingHorizontal: 14,
+                          paddingVertical: 10,
+                          fontFamily: 'monospace',
+                          fontSize: 13,
+                        }}
+                        maxLength={idType === 'aadhaar' ? 14 : 15}
+                      />
+                      <Pressable
+                        onPress={handleUnlockIdentity}
+                        disabled={verifyingId}
+                        style={{
+                          backgroundColor: '#6366F1',
+                          borderRadius: 10,
+                          paddingHorizontal: 18,
+                          paddingVertical: 10,
+                          alignItems: 'center',
+                          justify: 'center',
+                          flexDirection: 'row',
+                          gap: 6,
+                        }}
+                      >
+                        {verifyingId ? <ActivityIndicator size="small" color="#FFF" /> : <Lock size={14} color="#FFF" />}
+                        <Text style={{ fontFamily: 'Outfit', fontWeight: 'bold', fontSize: 13, color: '#FFFFFF' }}>
+                          {verifyingId ? 'Verifying...' : 'Unlock & View'}
+                        </Text>
+                      </Pressable>
+                    </View>
+                    {idError ? <Text style={{ fontFamily: 'Outfit', fontSize: 12, color: '#FCA5A5' }}>⚠️ {idError}</Text> : null}
+                  </View>
+                </View>
+              ) : (
+                <View style={{ backgroundColor: 'rgba(16,185,129,0.12)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)', padding: 12, marginVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <ShieldCheck size={18} color="#34D399" />
+                  <Text style={{ fontFamily: 'Outfit', fontWeight: 'bold', fontSize: 13, color: '#34D399', flex: 1 }}>
+                    {verifiedInfo?.verified_stamp || `Verified via ${idType.toUpperCase()}`}
+                  </Text>
+                </View>
+              )}
+
+              {/* Certificate Document (Visible when unlocked) */}
+              {idUnlocked && data.file_url && (
                 <View style={s.imageWrapper}>
                   {isImageFile(data.content_type) ? (
                     <Image

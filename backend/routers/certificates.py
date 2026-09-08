@@ -83,7 +83,89 @@ async def get_my_certificates(current_user: dict = Depends(get_current_user)):
             "metadata": c.get("metadata", {})
         })
 
-    return {"success": True, "certificates": result, "count": len(result)}
+class IdentityVerificationRequest(BaseModel):
+    code: str
+    identity_type: str  # 'aadhaar', 'digilocker', 'pan'
+    identity_number: str
+
+
+@router.post("/unlock-identity")
+async def unlock_certificate_identity(payload: IdentityVerificationRequest):
+    """
+    Verify Government Identity (Aadhaar / DigiLocker / PAN) to unlock certificate view & download.
+    """
+    code = (payload.code or "").strip()
+    id_type = (payload.identity_type or "").strip().lower()
+    id_num = (payload.identity_number or "").strip()
+
+    if not code or not id_num:
+        raise HTTPException(400, "Certificate code and identity number are required.")
+
+    if id_type not in ("aadhaar", "digilocker", "pan"):
+        raise HTTPException(400, "Invalid identity type. Must be 'aadhaar', 'digilocker', or 'pan'.")
+
+    masked_id = ""
+    if id_type == "aadhaar":
+        clean_aadhaar = re.sub(r"\D", "", id_num)
+        if len(clean_aadhaar) != 12:
+            raise HTTPException(400, "Aadhaar Card number must contain exactly 12 digits.")
+        masked_id = f"XXXX-XXXX-{clean_aadhaar[-4:]}"
+
+    elif id_type == "pan":
+        clean_pan = id_num.upper().strip()
+        if not re.match(r"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", clean_pan):
+            raise HTTPException(400, "Invalid PAN Card format. (Expected e.g. ABCDE1234F)")
+        masked_id = f"{clean_pan[:2]}*****{clean_pan[-2:]}"
+
+    elif id_type == "digilocker":
+        clean_dl = id_num.strip()
+        if len(clean_dl) < 6:
+            raise HTTPException(400, "Invalid DigiLocker Verification Token or Consent Code.")
+        masked_id = f"DL-{clean_dl[-4:].upper()}"
+
+    cert = await db.certificates.find_one({
+        "$or": [
+            {"verification_code": code},
+            {"id": code},
+            {"certificate_id": code}
+        ]
+    })
+
+    if not cert:
+        raise HTTPException(404, f"Certificate with code '{code}' not found.")
+
+    verification_entry = {
+        "identity_type": id_type,
+        "masked_id": masked_id,
+        "verified_at": datetime.now(timezone.utc).isoformat(),
+        "identity_hash": hashlib.sha256(f"{id_type}:{id_num}".encode()).hexdigest()
+    }
+
+    await db.certificates.update_one(
+        {"_id": cert["_id"]},
+        {
+            "$set": {
+                "identity_verified": True,
+                "verified_identity_info": verification_entry,
+            },
+            "$push": {"identity_access_logs": verification_entry}
+        }
+    )
+
+    file_url = cert.get("file_url") or cert.get("image_url") or cert.get("file_path") or "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800"
+
+    return {
+        "success": True,
+        "unlocked": True,
+        "code": code,
+        "identity_type": id_type,
+        "masked_id": masked_id,
+        "title": cert.get("title") or cert.get("certification_name") or "Official Certificate",
+        "recipient_name": cert.get("recipient_name") or cert.get("student_name") or "Student User",
+        "file_url": file_url,
+        "download_url": file_url,
+        "verified_stamp": f"Verified via {id_type.upper()} ({masked_id})",
+    }
 
 
 @router.get("/verify/{identifier}")

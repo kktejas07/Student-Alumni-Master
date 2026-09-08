@@ -43,6 +43,7 @@ import { EmailQualityView } from './views/EmailQualityView';
 import { BGVAccountVerticalsView } from './views/BGVAccountVerticalsView';
 import { VisitorIntelligenceView } from './views/VisitorIntelligenceView';
 import { CICDEvaluatorView } from './views/CICDEvaluatorView';
+import { CodeHealthView } from './views/CodeHealthView';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
@@ -130,6 +131,7 @@ export function SuperAdminPortalRN() {
           {active === 'visitor-radar'   && <VisitorIntelligenceView />}
           {active === 'agents'          && <AutonomousAgentsView />}
           {active === 'cicd-evaluator'  && <CICDEvaluatorView />}
+          {active === 'code-health'     && <CodeHealthView />}
           {active === 'bgv'             && <BGVAccountVerticalsView />}
           {active === 'colleges'    && <CollegesView {...subFor('colleges')} />}
           {active === 'students'    && <StudentsView />}
