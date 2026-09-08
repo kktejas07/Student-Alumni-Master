@@ -167,8 +167,8 @@ class EchoProfileLoopAgent:
                         {"$set": {"certificates_3_status": certs, "cert_email_status": per_cert_status,
                                   "cert_email_updated_at": now_iso_inner}},
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Failed to persist certificate email status for registration {reg.get('_id')}: {e}")
 
                 part_url = certs.get("hackwave_participation", {}).get("verify_url", f"{frontend_url}/certificates/verify")
                 sunset_url = certs.get("built_by_sunset", {}).get("verify_url", f"{frontend_url}/certificates/verify")
