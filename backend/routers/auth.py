@@ -300,10 +300,10 @@ async def forgot_password(request: Request, req: ForgotPasswordRequest):
         # Return success even if user doesn't exist to prevent email enumeration
         return {"success": True}
         
-    import random
+    import secrets
     import hashlib
     
-    otp = str(random.randint(100000, 999999))
+    otp = f"{secrets.randbelow(900000) + 100000:06d}"
     otp_hash = hashlib.sha256(otp.encode()).hexdigest()
     # Use timezone-aware datetime (UTC) — avoids naive vs aware comparison bugs
     expires = datetime.now(timezone.utc) + timedelta(minutes=15)

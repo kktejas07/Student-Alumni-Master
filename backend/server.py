@@ -3284,9 +3284,9 @@ app.include_router(api_router)
 # Comma-separated list, e.g.
 #   ALLOWED_ORIGINS="https://app.example.com,https://admin.example.com"
 # Use "*" only when allow_credentials is False; we coerce safely below.
-_origins_env = (os.getenv("ALLOWED_ORIGINS") or os.getenv("FRONTEND_URL") or "*").strip()
+_origins_env = (os.getenv("ALLOWED_ORIGINS") or os.getenv("FRONTEND_URL") or "http://localhost:8081,http://localhost:3000,http://127.0.0.1:8081").strip()
 _origins_list = [o.strip() for o in _origins_env.split(",") if o.strip()]
-_allow_creds = "*" not in _origins_list  # browsers reject credentials+wildcard
+_allow_creds = True
 
 # Fail-fast: wildcard CORS is insecure in production
 if os.getenv("ENV") == "production" and "*" in _origins_list:
@@ -3297,7 +3297,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=_allow_creds,
-    allow_origins=_origins_list or ["*"],
+    allow_origins=_origins_list,
     allow_origin_regex=os.getenv("ALLOWED_ORIGIN_REGEX") or None,
     # Explicit method/header lists — "*" is overly permissive
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
