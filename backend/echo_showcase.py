@@ -31,7 +31,7 @@ from pathlib import Path
 from datetime import datetime, timezone, date as _date
 from typing import Any, Dict, List, Optional
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile, Query, Body
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import logging
 
@@ -4885,7 +4885,7 @@ async def admin_echo_registrations(
                 user_map[u.get("phone").strip()] = u_data
 
     # Batch-fetch issued certificates from db.certificates
-    cert_map: Dict[str, dict] = {}
+    cert_map: Dict[str, list] = {}  # reg_id/email → list of cert docs
     frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
     if reg_ids or all_emails:
         c_or = []
@@ -4899,14 +4899,16 @@ async def admin_echo_registrations(
                 "id": c.get("id") or str(c.get("_id")),
                 "verification_code": c_code,
                 "title": c.get("title") or c.get("certification_name") or "ECHO Certificate",
+                "category_key": c.get("category_key"),
                 "issued_at": c.get("issued_at") or c.get("created_at"),
                 "verify_url": f"{frontend_url}/certificates/verify/{c_code}",
                 "image_url": c.get("image_url"),
             }
-            if c.get("reg_id"):
-                cert_map[c.get("reg_id")] = c_data
-            if c.get("recipient_email"):
-                cert_map[c.get("recipient_email").lower().strip()] = c_data
+            for k in [c.get("reg_id"), c.get("recipient_email", "").lower().strip()]:
+                if k:
+                    cert_map.setdefault(k, [])
+                    if c_code not in [x.get("verification_code") for x in cert_map[k]]:
+                        cert_map[k].append(c_data)
 
     items = []
     for r in regs:
@@ -4940,8 +4942,36 @@ async def admin_echo_registrations(
         if is_100 and comp_pct < 100:
             comp_pct = 100
 
-        cert_data = cert_map.get(rid) or cert_map.get(u_email)
-        has_cert = bool(cert_data or s.get("certificate_issued") or s.get("has_3_certificates"))
+        certs_all = []
+        _seen_codes = set()
+        for _cc in (cert_map.get(rid) or []) + (cert_map.get(u_email) or []):
+            _code = _cc.get("verification_code")
+            if _code and _code not in _seen_codes:
+                _seen_codes.add(_code)
+                certs_all.append(_cc)
+        cert_data = certs_all[0] if certs_all else None
+        has_cert = bool(certs_all or s.get("certificate_issued") or s.get("has_3_certificates"))
+
+        # Synthesize the 3-cert matrix from actual certs when the reg has no flags set
+        c3 = s.get("certificates_3_status") or {}
+        if not c3 and certs_all:
+            def _match_cat(keyword: str):
+                for cc in certs_all:
+                    t = (cc.get("title") or "").lower()
+                    ck = (cc.get("category_key") or "").lower()
+                    if keyword in ck or keyword in t:
+                        return {
+                            "issued": True,
+                            "code": cc.get("verification_code"),
+                            "title": cc.get("title"),
+                            "verify_url": cc.get("verify_url"),
+                        }
+                return None
+            c3 = {
+                "built_by_sunset": _match_cat("sunset") or {"issued": False, "code": None},
+                "hackwave_participation": _match_cat("hackwave") or {"issued": False, "code": None},
+                "cyber_conclave": _match_cat("cyber") or {"issued": False, "code": None},
+            }
 
         items.append({
             "id": s.get("id"),
@@ -4988,6 +5018,10 @@ async def admin_echo_registrations(
             "parent_reg_id": s.get("parent_reg_id"),
             "team_leader_name": s.get("team_leader_name"),
             "team_leader_email": s.get("team_leader_email"),
+            "certificates_3_status": c3,
+            "has_3_certificates": s.get("has_3_certificates") or len([v for v in c3.values() if v.get("issued")]) >= 2,
+            "cert_email_status": s.get("cert_email_status"),
+            "cert_email_updated_at": s.get("cert_email_updated_at"),
         })
 
     # Apply filters
@@ -5129,7 +5163,21 @@ async def issue_3_echo_certificates(db, reg: dict) -> dict:
         if existing and existing.get("code"):
             code = existing["code"]
         else:
-            code = f"{prefix}-{secrets.token_hex(4).upper()}"
+            # Email-level dedup: one set of certs per email per category per event.
+            # Re-issues across repeat registrations must reuse the original code,
+            # otherwise one user accumulates N×3 certificates in My Certificates.
+            code = None
+            if email:
+                # Legacy docs predate category_key — match it OR the exact title.
+                prior = await db.certificates.find_one({
+                    "recipient_email": {"$regex": f"^{re.escape(email)}$", "$options": "i"},
+                    "slug": reg.get("slug"),
+                    "$or": [{"category_key": key}, {"title": title}],
+                })
+                if prior:
+                    code = prior.get("verification_code") or prior.get("certificate_id") or prior.get("id")
+            if not code:
+                code = f"{prefix}-{secrets.token_hex(4).upper()}"
 
         verify_url = f"{frontend_url}/certificates/verify/{code}"
         
@@ -5183,6 +5231,100 @@ async def issue_3_echo_certificates(db, reg: dict) -> dict:
     return results
 
 
+async def _send_single_cert_email(
+    email: str,
+    full_name: str,
+    title: str,
+    code: str,
+    verify_url: str,
+    idx: int,
+    total: int,
+) -> bool:
+    """Send ONE individual certificate email (professional template). Returns True on provider accept."""
+    from core.email_templates import render_single_cert_email
+    email_content = render_single_cert_email(full_name, title, code, verify_url, idx, total)
+    try:
+        return bool(await send_email(email, f"🎓 {title} — {code}", email_content))
+    except Exception as e:
+        logger.warning(f"Single-cert email error ({code}): {e}")
+        return False
+
+
+ORDERED_3_CERT_KEYS = ["built_by_sunset", "hackwave_participation", "cyber_conclave"]
+
+
+async def _issue_3_with_emails(db, reg: dict, force_resend: bool = False) -> tuple:
+    """Issue all 3 certs for one registration + per-cert individual emails.
+
+    force_resend=False skips regs that already have all 3 codes AND emailed
+    status (safe to re-run bulk without spamming). Returns
+    (certs, email_status, new_count, skipped).
+    """
+    pre = reg.get("certificates_3_status") or {}
+    pre_codes = {k: (pre.get(k) or {}).get("code") for k in ORDERED_3_CERT_KEYS}
+    pre_emailed = {
+        k: bool((pre.get(k) or {}).get("email_sent"))
+        or bool(((reg.get("cert_email_status") or {}).get(k) or {}).get("email_sent"))
+        for k in ORDERED_3_CERT_KEYS
+    }
+
+    certs = await issue_3_echo_certificates(db, reg)
+    new_count = sum(1 for k in ORDERED_3_CERT_KEYS if certs.get(k, {}).get("code") != pre_codes.get(k))
+
+    if not force_resend and new_count == 0 and all(pre_emailed.values()):
+        return certs, {k: {"email_sent": True, "skipped_resend": True,
+                           "code": (certs.get(k) or {}).get("code")} for k in ORDERED_3_CERT_KEYS}, 0, True
+
+    email = (reg.get("email") or "").lower().strip()
+    full_name = (reg.get("full_name") or "").strip() or "ECHO Participant"
+    email_status: dict = {}
+    now_str = _now()
+    try:
+        total = len([k for k in ORDERED_3_CERT_KEYS if k in certs])
+        for i, key in enumerate(ORDERED_3_CERT_KEYS, start=1):
+            c = certs.get(key)
+            if not c:
+                continue
+            title = c.get("title", key)
+            code = c.get("code", "")
+            verify_url = c.get("verify_url", "")
+            sent = await _send_single_cert_email(email, full_name, title, code, verify_url, i, total) if email else False
+            err = None if sent else ("no recipient email" if not email else "provider rejected / not configured — see email_failures")
+            email_status[key] = {
+                "email_sent": sent,
+                "email_sent_at": now_str if sent else None,
+                "email_error": err,
+                "code": code,
+                "title": title,
+            }
+            certs[key]["email_sent"] = sent
+            certs[key]["email_sent_at"] = now_str if sent else None
+            certs[key]["email_error"] = err
+        await db.echo_registrations.update_one(
+            {"_id": reg["_id"]},
+            {"$set": {
+                "certificates_3_status": certs,
+                "cert_email_status": email_status,
+                "cert_email_updated_at": now_str,
+            }},
+        )
+        for key in ORDERED_3_CERT_KEYS:
+            c = certs.get(key)
+            if c and c.get("code"):
+                await db.certificates.update_one(
+                    {"verification_code": c["code"]},
+                    {"$set": {
+                        "email_sent": c.get("email_sent", False),
+                        "email_sent_at": c.get("email_sent_at"),
+                        "email_error": c.get("email_error"),
+                    }},
+                )
+    except Exception as e:
+        logger.warning(f"Issue-3-certificates per-cert email error: {e}")
+
+    return certs, email_status, new_count, False
+
+
 @router.post("/admin/registrations/{reg_id}/issue-3-certificates")
 async def admin_echo_issue_3_certificates(
     reg_id: str,
@@ -5197,12 +5339,106 @@ async def admin_echo_issue_3_certificates(
     if not reg:
         raise HTTPException(status_code=404, detail="Registration not found")
 
-    certs = await issue_3_echo_certificates(db, reg)
+    # Per-certificate individual emails (1 email per cert — scales to 1..N certs)
+    # + per-cert delivery status persisted for admin visibility.
+    certs, email_status, _new_count, _skipped = await _issue_3_with_emails(db, reg, force_resend=True)
+
+    sent_count = sum(1 for v in email_status.values() if v.get("email_sent"))
     return {
         "status": "success",
-        "message": f"All 3 certificates issued for {reg.get('full_name')}",
+        "message": f"All 3 certificates issued for {reg.get('full_name')} — {sent_count}/3 emails sent",
         "certificates": certs,
+        "email_status": email_status,
     }
+
+
+@router.post("/admin/bulk-issue-3-certificates")
+async def admin_echo_bulk_issue_3_certificates(
+    request: Request,
+    slug: Optional[str] = Query(None, description="Optional showcase slug filter"),
+    resend: bool = Query(False, description="Resend emails even where already sent"),
+    _=Depends(_require_admin),
+):
+    """One-click bulk: issue all 3 certificates to ALL registrations at once.
+
+    Dedup-safe (email+category+event reuse) — re-runs skip fully-issued+emailed
+    regs unless resend=true. Returns per-run summary with email delivery counts.
+    """
+    db = _get_db(request)
+    q: dict = {"slug": slug} if slug else {}
+    regs = await db.echo_registrations.find(q).to_list(10000)
+
+    processed = 0
+    regs_new_certs = 0
+    emails_sent = 0
+    emails_failed = 0
+    skipped = 0
+    failures: list = []
+    for reg in regs:
+        try:
+            _certs, estatus, new_count, was_skipped = await _issue_3_with_emails(
+                db, reg, force_resend=resend
+            )
+            processed += 1
+            if was_skipped:
+                skipped += 1
+                emails_sent += sum(1 for v in estatus.values() if v.get("email_sent"))
+                continue
+            if new_count > 0:
+                regs_new_certs += 1
+            emails_sent += sum(1 for v in estatus.values() if v.get("email_sent"))
+            emails_failed += sum(1 for v in estatus.values() if not v.get("email_sent"))
+        except Exception as e:
+            failures.append({"reg_id": reg.get("id"), "email": reg.get("email"), "error": str(e)[:200]})
+
+    return {
+        "status": "success",
+        "message": f"Bulk issue complete: {processed} processed, {regs_new_certs} newly issued, {emails_sent} emails sent, {skipped} skipped (already done)",
+        "total_registrations": len(regs),
+        "processed": processed,
+        "regs_newly_issued": regs_new_certs,
+        "emails_sent": emails_sent,
+        "emails_failed": emails_failed,
+        "skipped_already_done": skipped,
+        "failures": failures[:50],
+    }
+
+
+@router.post("/admin/registrations/{reg_id}/reset-certificates")
+async def admin_echo_reset_certificates(
+    reg_id: str,
+    request: Request,
+    _=Depends(_require_admin),
+):
+    """Reset certificate issued flags on a registration so it can be re-issued.
+
+    Clears: certificate_issued, has_3_certificates, certificates_3_status,
+    cert_email_status, certificate_code, certificate_url.
+    Does NOT delete existing db.certificates docs (those remain verifiable).
+    """
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg and ObjectId.is_valid(reg_id):
+        reg = await db.echo_registrations.find_one({"_id": ObjectId(reg_id)})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+
+    await db.echo_registrations.update_one(
+        {"_id": reg["_id"]},
+        {"$unset": {
+            "certificate_issued": "",
+            "has_3_certificates": "",
+            "certificates_3_status": "",
+            "cert_email_status": "",
+            "cert_email_updated_at": "",
+            "certificate_code": "",
+            "certificate_url": "",
+            "certificate_issued_at": "",
+            "certificates_delivered_count": "",
+            "certificates_updated_at": "",
+        }},
+    )
+    return {"status": "success", "message": f"Certificate flags reset for {reg.get('full_name')} — ready to re-issue"}
 
 
 @router.post("/admin/certificates/upload-template")
@@ -5521,6 +5757,121 @@ async def export_echo_registrations_csv(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+
+@router.get("/admin/export-incomplete-profiles-csv")
+@router.get("/export-incomplete-profiles-csv")
+async def export_incomplete_profiles_csv(
+    request: Request,
+    slug: Optional[str] = None,
+    filter_type: Optional[str] = Query("all", description="'all', 'no_account', 'incomplete_profile'"),
+):
+    """
+    Generate and stream CSV of registrants who do NOT have an SA account or have incomplete (<100%) profiles.
+    Includes full name, email, phone, college, account status, completion %, missing items, and registration date.
+    """
+    import csv
+    import io
+    from fastapi.responses import Response
+    from services.profile_service import compute_profile_completion
+
+    db = _get_db(request)
+    query: Dict[str, Any] = {}
+    if slug:
+        query["slug"] = slug
+
+    regs = await db.echo_registrations.find(query).sort("created_at", -1).to_list(10000)
+
+    # Collect emails and phones for batch lookup
+    all_emails = list({r.get("email").lower().strip() for r in regs if r.get("email")})
+    all_phones = list({r.get("phone").strip() for r in regs if r.get("phone")})
+
+    user_map: Dict[str, dict] = {}
+    if all_emails or all_phones:
+        u_or = []
+        if all_emails:
+            u_or.append({"email": {"$in": all_emails}})
+        if all_phones:
+            u_or.append({"phone": {"$in": all_phones}})
+        
+        async for u in db.users.find({"$or": u_or}):
+            comp = compute_profile_completion(u)
+            u_info = {
+                "user_id": str(u.get("_id")),
+                "email": u.get("email"),
+                "phone": u.get("phone"),
+                "full_name": u.get("full_name"),
+                "profile_completion_pct": comp.get("percentage", 0),
+                "is_100": comp.get("percentage", 0) >= 100,
+                "missing_items": [item["label"] for item in comp.get("items", []) if not item["done"]],
+            }
+            if u.get("email"):
+                user_map[u.get("email").lower().strip()] = u_info
+            if u.get("phone"):
+                user_map[u.get("phone").strip()] = u_info
+
+    output = io.StringIO()
+    headers = [
+        "Registration ID",
+        "Event Title",
+        "Event Slug",
+        "Full Name",
+        "Email",
+        "Phone Number",
+        "College / Campus",
+        "Account Status",
+        "Profile Completion %",
+        "Missing Profile Requirements",
+        "Registration Date"
+    ]
+
+    writer = csv.DictWriter(output, fieldnames=headers)
+    writer.writeheader()
+
+    exported_count = 0
+    for r in regs:
+        email = (r.get("email") or "").lower().strip()
+        phone = (r.get("phone") or "").strip()
+        
+        sa_user = user_map.get(email) or user_map.get(phone)
+        has_account = bool(sa_user or r.get("user_id"))
+        pct = sa_user.get("profile_completion_pct", 0) if sa_user else 0
+
+        if has_account and pct >= 100:
+            continue  # Skip 100% complete accounts
+
+        if filter_type == "no_account" and has_account:
+            continue
+        if filter_type == "incomplete_profile" and (not has_account or pct >= 100):
+            continue
+
+        account_status = "No SA Account" if not has_account else f"Incomplete SA Profile ({pct}%)"
+        missing_str = "Create SA Account" if not has_account else (", ".join(sa_user.get("missing_items", [])) or "Incomplete profile details")
+
+        writer.writerow({
+            "Registration ID": r.get("id") or str(r.get("_id")),
+            "Event Title": r.get("showcase_title") or r.get("event_title") or r.get("slug") or "",
+            "Event Slug": r.get("slug") or "",
+            "Full Name": r.get("full_name") or "",
+            "Email": r.get("email") or "",
+            "Phone Number": r.get("phone") or "",
+            "College / Campus": r.get("college") or r.get("showcase_college") or "",
+            "Account Status": account_status,
+            "Profile Completion %": f"{pct}%" if has_account else "0%",
+            "Missing Profile Requirements": missing_str,
+            "Registration Date": r.get("registered_at") or r.get("created_at") or "",
+        })
+        exported_count += 1
+
+    csv_data = output.getvalue()
+    filename = f"incomplete_profiles_export_{filter_type}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 
 
 

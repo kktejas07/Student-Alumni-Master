@@ -23,9 +23,10 @@ logger = logging.getLogger("cicd_pr_evaluator_agent")
 
 # ── Pydantic Schemas ──
 class PREvalRequest(BaseModel):
-    pr_number: Optional[int] = 1
+    pr_number: Optional[Any] = 1
+    branch: Optional[str] = "feature/echo-certificates-and-profile-loop-agent"
     branch_name: Optional[str] = "feature/echo-certificates-and-profile-loop-agent"
-    pr_title: str = "feat(echo): ECHO Showcase Certificates & 100% Profile Check"
+    pr_title: Optional[str] = "feat(echo): ECHO Showcase Certificates & 100% Profile Check"
     diff_text: Optional[str] = None
     files_changed: List[str] = Field(default_factory=list)
     author: Optional[str] = "developer"
@@ -108,7 +109,9 @@ class CICDPREvaluatorAgent:
     """Evaluates Pull Requests across security, quality, coverage, breaking changes, and risk."""
 
     async def evaluate_pr(self, req: PREvalRequest) -> PREvalReport:
-        logger.info(f"⚖️ [CI/CD PR EVALUATOR] Evaluating PR '{req.pr_title}' on branch '{req.branch_name}'...")
+        branch_name = req.branch_name or req.branch or "feature/echo-certificates-and-profile-loop-agent"
+        pr_title = req.pr_title or "feat(echo): ECHO Showcase Certificates & 100% Profile Check"
+        logger.info(f"⚖️ [CI/CD PR EVALUATOR] Evaluating PR '{pr_title}' on branch '{branch_name}'...")
         
         issues: List[str] = []
         recommendations: List[str] = []

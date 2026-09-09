@@ -172,7 +172,7 @@ import {
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users,
   Ticket, Mail, ScanLine, Phone, Edit2,
   CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle, Download, FileSpreadsheet, MapPin,
-  UserCheck, GraduationCap, CreditCard, Award, Sparkles,
+  UserCheck, GraduationCap, CreditCard, Award, Sparkles, Bot, Play,
 } from 'lucide-react-native';
 import {
   GRAD, GradientButton, SecondaryButton, Card,
@@ -3151,7 +3151,12 @@ function RegistrationsPanel() {
   const [sendingReminders, setSendingReminders] = useState(false);
 
   const handleSendProfileReminders = async () => {
-    if (typeof window !== 'undefined' && !window.confirm('Send automated 100% profile & SA account reminders via Email + WhatsApp to all incomplete registrants?')) return;
+    const ok = await confirm({
+      title: 'Send Profile & SA Reminders',
+      message: 'Send automated 100% profile & SA account reminders via Email + WhatsApp to all incomplete registrants?',
+      confirmText: 'Send Reminders',
+    });
+    if (!ok) return;
     setSendingReminders(true);
     try {
       const res = await api.adminEchoSendProfileReminders({ target_group: 'all_incomplete', channel: 'both' });
@@ -3630,6 +3635,24 @@ function RegistrationsPanel() {
 
           <Download size={14} color="#fff" />
           <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export CSV (Registrations)</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => {
+            const apiBase = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) || 'http://localhost:8000';
+            const exportUrl = `${apiBase}/api/echo/admin/export-incomplete-profiles-csv?filter_type=all${eventSlug !== 'all' ? `&slug=${eventSlug}` : ''}`;
+            if (typeof window !== 'undefined') {
+              window.open(exportUrl, '_blank');
+            }
+          }}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: '#7C5CFC',
+            borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
+          }}
+        >
+          <Download size={14} color="#fff" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export Incomplete &amp; No-Account CSV</Text>
         </Pressable>
       </View>
 
@@ -5055,6 +5078,7 @@ function VolunteersPanel() {
 // ── Live Scan Monitor Panel ───────────────────────────────────────────────────
 function LiveScanMonitorPanel() {
   const { flash } = useToast();
+  const { confirm } = useConfirm();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sendingReminders, setSendingReminders] = useState(false);
@@ -5159,7 +5183,12 @@ function LiveScanMonitorPanel() {
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
 
   const handleSendProfileReminders = async () => {
-    if (typeof window !== 'undefined' && !window.confirm('Send automated 100% profile & SA account reminders via Email + WhatsApp to all incomplete registrants?')) return;
+    const ok = await confirm({
+      title: 'Send Profile & SA Reminders',
+      message: 'Send automated 100% profile & SA account reminders via Email + WhatsApp to all incomplete registrants?',
+      confirmText: 'Send Reminders',
+    });
+    if (!ok) return;
     setSendingReminders(true);
     try {
       const res = await api.adminEchoSendProfileReminders({ target_group: 'all_incomplete', channel: 'both' });
@@ -5192,8 +5221,30 @@ function LiveScanMonitorPanel() {
     }
   };
 
+  const handleResetCerts = async (reg: any) => {
+    const ok = await confirm({
+      title: 'Reset Certificate Status',
+      message: `Reset issued flags for ${reg.full_name} (${reg.email})? Existing certificates stay verifiable; the row returns to "Issue All 3 Certs" so you can re-issue.`,
+      confirmText: 'Reset & Re-issue',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await request(`/echo/admin/registrations/${reg.id}/reset-certificates`, { method: 'POST' });
+      flash(`Certificate status reset for ${reg.full_name}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to reset', 'error');
+    }
+  };
+
   const handleBulkDispatch3Certs = async () => {
-    if (typeof window !== 'undefined' && !window.confirm('Run Autonomous Agent to issue and deliver all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave) via Email & WhatsApp to all attendees with 100% completed profiles?')) return;
+    const ok = await confirm({
+      title: 'Dispatch 3 Certs to 100% Profiles',
+      message: 'Run the autonomous agent to issue and deliver all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave) via Email & WhatsApp to attendees with 100% completed profiles?',
+      confirmText: 'Dispatch Certificates',
+    });
+    if (!ok) return;
     setSendingReminders(true);
     try {
       const res = await api.adminEchoSendProfileReminders({ target_group: 'complete_100_dispatch', channel: 'both' });
@@ -5203,6 +5254,26 @@ function LiveScanMonitorPanel() {
       flash(err?.message || 'Failed to dispatch certificates', 'error');
     } finally {
       setSendingReminders(false);
+    }
+  };
+
+  const [bulkIssuing, setBulkIssuing] = useState(false);
+  const handleBulkIssueAll = async () => {
+    const ok = await confirm({
+      title: 'Issue 3 Certs to ALL',
+      message: `Issue all 3 certificates to ALL ${data.length} registrants at once + send each person their 3 individual emails? Already-issued users are skipped automatically.`,
+      confirmText: 'Issue to All',
+    });
+    if (!ok) return;
+    setBulkIssuing(true);
+    try {
+      const res = await api.adminEchoBulkIssue3Certs();
+      flash(res?.message || `Bulk issue complete: ${res?.processed} processed, ${res?.emails_sent} emails sent`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Bulk issue failed', 'error');
+    } finally {
+      setBulkIssuing(false);
     }
   };
 
@@ -5297,8 +5368,107 @@ function LiveScanMonitorPanel() {
     }
   };
 
+  const [loopAgentStatus, setLoopAgentStatus] = useState<any>(null);
+  const [loopAgentLoading, setLoopAgentLoading] = useState(false);
+
+  const fetchLoopAgentStatus = useCallback(async () => {
+    try {
+      const res: any = await request('/echo/admin/loop-agent/status');
+      setLoopAgentStatus(res);
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLoopAgentStatus();
+  }, [fetchLoopAgentStatus]);
+
+  const handleToggleLoopAgent = async (start: boolean) => {
+    setLoopAgentLoading(true);
+    try {
+      const endpoint = start ? '/echo/admin/loop-agent/start?interval_seconds=86400' : '/echo/admin/loop-agent/stop';
+      const res: any = await request(endpoint, { method: 'POST' });
+      flash(res?.message || (start ? '24h Daily Loop Agent activated!' : 'Loop Agent paused.'));
+      fetchLoopAgentStatus();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to update loop agent status', 'error');
+    } finally {
+      setLoopAgentLoading(false);
+    }
+  };
+
   return (
     <View style={{ flex: 1, gap: 20 }}>
+      {/* 24h Daily Autonomous Profile Loop Agent Banner */}
+      <View style={{ backgroundColor: 'rgba(124,92,252,0.12)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(124,92,252,0.3)', padding: 18, gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <View style={{ flex: 1, minWidth: 280 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <Bot size={20} color="#C9A7FF" />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>
+                24h Autonomous Daily Profile Alert Loop Agent
+              </Text>
+              <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: loopAgentStatus?.is_running ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)', borderWidth: 1, borderColor: loopAgentStatus?.is_running ? '#10B981' : '#F59E0B' }}>
+                <Text style={{ color: loopAgentStatus?.is_running ? '#34D399' : '#FBBF24', fontFamily: FONTS.bold, fontSize: 11 }}>
+                  {loopAgentStatus?.is_running ? '● DAILY LOOP ACTIVE (24h)' : '● IDLE / MANUAL'}
+                </Text>
+              </View>
+            </View>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: '#C7D2FE' }}>
+              Automatically scans incomplete profiles daily at 09:00 UTC, dispatches email & WhatsApp completion alerts, and auto-issues all 3 certificates upon 100% completion.
+            </Text>
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {loopAgentStatus?.is_running ? (
+              <Pressable
+                onPress={() => handleToggleLoopAgent(false)}
+                disabled={loopAgentLoading}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(239,68,68,0.2)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#EF4444' }}>
+                <X size={14} color="#FCA5A5" />
+                <Text style={{ color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 }}>⏸️ Pause 24h Loop</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={() => handleToggleLoopAgent(true)}
+                disabled={loopAgentLoading}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(16,185,129,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#10B981' }}>
+                <Play size={14} color="#6EE7B7" />
+                <Text style={{ color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 12 }}>▶️ Enable 24h Daily Loop</Text>
+              </Pressable>
+            )}
+
+            <Pressable
+              onPress={handleSendProfileReminders}
+              disabled={sendingReminders}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#7C5CFC', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 }}>
+              <Zap size={14} color="#FFF" />
+              <Text style={{ color: '#FFF', fontFamily: FONTS.bold, fontSize: 12 }}>
+                {sendingReminders ? 'Sending Alerts...' : '⚡ Trigger Daily Alert Loop Now'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {loopAgentStatus?.last_run_stats && (
+          <View style={{ flexDirection: 'row', gap: 16, flexWrap: 'wrap', paddingTop: 8, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
+              🕒 Last Execution: <Text style={{ color: '#FFF', fontFamily: FONTS.bold }}>{loopAgentStatus.last_run_at ? new Date(loopAgentStatus.last_run_at).toLocaleString() : 'Never'}</Text>
+            </Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
+              📧 Daily Emails Sent: <Text style={{ color: '#34D399', fontFamily: FONTS.bold }}>{loopAgentStatus.last_run_stats.emails_sent || 0}</Text>
+            </Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
+              💬 WhatsApp Alerts: <Text style={{ color: '#34D399', fontFamily: FONTS.bold }}>{loopAgentStatus.last_run_stats.whatsapp_sent || 0}</Text>
+            </Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
+              🔄 Total Cycles: <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold }}>{loopAgentStatus.total_cycles_executed || 0}</Text>
+            </Text>
+          </View>
+        )}
+      </View>
+
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
         <View>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: SAC.text }}>Live Scan & SA Member Monitor</Text>
@@ -5322,6 +5492,16 @@ function LiveScanMonitorPanel() {
             <Award size={14} color="#6EE7B7" />
             <Text style={{ color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 12 }}>
               🎓 Dispatch 3 Certs to 100% Profiles
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={handleBulkIssueAll}
+            disabled={bulkIssuing || sendingReminders}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(245,158,11,0.22)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#F59E0B', opacity: (bulkIssuing || sendingReminders) ? 0.6 : 1 }}>
+            <Award size={14} color="#FCD34D" />
+            <Text style={{ color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 12 }}>
+              {bulkIssuing ? 'Issuing to All…' : '🎓 Issue 3 Certs to ALL'}
             </Text>
           </Pressable>
 
@@ -5500,13 +5680,25 @@ function LiveScanMonitorPanel() {
                         {reg.certificates_3_status.cyber_conclave?.issued ? `✓ ${reg.certificates_3_status.cyber_conclave.code}` : 'Pending ⏳'}
                       </Text>
                     </View>
+                    <Pressable
+                      onPress={() => handleResetCerts(reg)}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3, alignSelf: 'flex-start', marginTop: 2 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 8.5, color: '#FCA5A5' }}>Reset & Re-issue</Text>
+                    </Pressable>
                   </View>
                 ) : reg.has_certificate ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.18)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' }}>
-                    <Award size={12} color="#C9A7FF" />
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 10.5, color: '#D8B4FE' }}>
-                      Cert: {reg.certificate?.verification_code || 'Issued'}
-                    </Text>
+                  <View style={{ gap: 4 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.18)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' }}>
+                      <Award size={12} color="#C9A7FF" />
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 10.5, color: '#D8B4FE' }}>
+                        Cert: {reg.certificate?.verification_code || 'Issued'}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => handleResetCerts(reg)}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3, alignSelf: 'flex-start' }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 8.5, color: '#FCA5A5' }}>Reset & Re-issue</Text>
+                    </Pressable>
                   </View>
                 ) : (
                   <Pressable
@@ -5546,7 +5738,8 @@ function LiveScanMonitorPanel() {
                 </Pressable>
                 <Pressable
                   onPress={async () => {
-                    if (!window.confirm('Resend tickets to ' + reg.email + '?')) return;
+                    const ok = await confirm({ title: 'Resend Tickets', message: `Resend tickets to ${reg.email}?`, confirmText: 'Resend' });
+                    if (!ok) return;
                     try {
                       await api.adminEchoResendTickets(reg.id);
                       flash('Tickets resent to ' + reg.email);

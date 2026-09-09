@@ -1,12 +1,12 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, Platform, Linking, Image, ScrollView,
+  View, Text, Pressable, StyleSheet, Platform, Linking, Image, ScrollView, TextInput, Modal, ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import {
   ShieldCheck, ExternalLink, Award, Mail, Calendar, User, ArrowLeft, FileText, CheckCircle2,
-  Lock, Copy, Check, AlertCircle, Hash, Building2,
+  Lock, Copy, Check, AlertCircle, Hash, Building2, Download, CreditCard, IdCard,
 } from 'lucide-react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
@@ -108,6 +108,11 @@ export default function CertificateVerifyResult() {
   const isPlatform = data.issuer_type !== 'external';
   const issuedAt = data.issued_at ? new Date(data.issued_at).toLocaleDateString() : '';
   const isImageFile = (ct?: string) => !!ct && ct.startsWith('image/');
+  const docUrl = data.file_url || (data as any).image_url;
+  const docIsImage =
+    isImageFile(data.content_type) ||
+    (!data.file_url && !!(data as any).image_url) ||
+    (docUrl ? /\.(png|jpe?g|webp|gif)(\?|$)/i.test(docUrl) : false);
 
   return (
     <View style={s.outerWrap}>
@@ -156,18 +161,26 @@ export default function CertificateVerifyResult() {
                 )}
               </View>
 
+              {/* Public verification — this link is the credential; no login or ID documents collected */}
+              <View style={{ backgroundColor: 'rgba(16,185,129,0.12)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)', padding: 12, marginVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <ShieldCheck size={18} color="#34D399" />
+                <Text style={{ fontFamily: 'Outfit', fontWeight: 'bold', fontSize: 13, color: '#34D399', flex: 1 }}>
+                  Publicly verifiable credential — no login or ID documents required
+                </Text>
+              </View>
+
               {/* Certificate Document */}
-              {data.file_url && (
+              {!!docUrl && (
                 <View style={s.imageWrapper}>
-                  {isImageFile(data.content_type) ? (
+                  {docIsImage ? (
                     <Image
-                      source={{ uri: absUrl(data.file_url) }}
+                      source={{ uri: absUrl(docUrl) }}
                       style={s.fileImage}
                       resizeMode="contain"
                     />
                   ) : (
                     <Pressable
-                      onPress={() => Linking.openURL(absUrl(data.file_url))}
+                      onPress={() => Linking.openURL(absUrl(docUrl))}
                       style={s.pdfBtn}
                     >
                       <FileText size={24} color="#8B84FF" />

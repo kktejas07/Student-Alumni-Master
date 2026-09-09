@@ -493,6 +493,8 @@ export const api = {
     request<any>(`/echo/admin/registrations/${regId}/issue-certificate${title ? '?title=' + encodeURIComponent(title) : ''}`, { method: 'POST' }),
   adminEchoBulkIssueCertificates: (slug: string) =>
     request<any>(`/echo/admin/showcases/${slug}/bulk-issue-certificates`, { method: 'POST' }),
+  adminEchoBulkIssue3Certs: () =>
+    request<any>('/echo/admin/bulk-issue-3-certificates', { method: 'POST' }),
   getEchoRegistrationCertificate: (regId: string) =>
     request<any>(`/echo/registrations/${regId}/certificate`, { auth: false }),
   adminEchoSendProfileReminders: (params?: { slug?: string; target_group?: string; channel?: string }) => {
