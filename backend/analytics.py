@@ -19,8 +19,33 @@ from typing import Any, Dict, List, Optional
 from collections import defaultdict
 
 
-def _iso_day(dt: datetime) -> str:
-    return dt.date().isoformat()
+def _iso_day(dt: Any) -> str:
+    """Normalize a timestamp (datetime | str | None) to YYYY-MM-DD day string."""
+    if dt is None:
+        return ""
+    if isinstance(dt, datetime):
+        return dt.date().isoformat()
+    if isinstance(dt, str):
+        try:
+            return datetime.fromisoformat(dt.replace("Z", "+00:00")).date().isoformat()
+        except (ValueError, TypeError):
+            return dt[:10] if len(dt) >= 10 and dt[4:5] == "-" else ""
+    return ""
+
+
+def _to_aware_dt(dt: Any) -> Optional[datetime]:
+    """Coerce datetime | str | None to a timezone-aware UTC datetime."""
+    if dt is None:
+        return None
+    if isinstance(dt, datetime):
+        return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
+    if isinstance(dt, str):
+        try:
+            parsed = datetime.fromisoformat(dt.replace("Z", "+00:00"))
+            return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=timezone.utc)
+        except (ValueError, TypeError):
+            return None
+    return None
 
 
 def _iso(ts) -> str:
@@ -66,8 +91,8 @@ async def super_admin_analytics(db, include_revenue: bool = True) -> Dict[str, A
     cutoff = datetime.now(timezone.utc) - timedelta(days=14)
     cursor = db.users.find({"created_at": {"$gte": cutoff}}, {"created_at": 1})
     async for u in cursor:
-        d = _iso_day(u["created_at"])
-        if d in growth:
+        d = _iso_day(u.get("created_at"))
+        if d and d in growth:
             growth[d] += 1
     growth_series = [{"date": d, "count": growth[d]} for d in days]
 
@@ -126,7 +151,7 @@ async def super_admin_analytics(db, include_revenue: bool = True) -> Dict[str, A
             "type": "booking",
             "topic": b.get("topic"),
             "status": b.get("status"),
-            "at": (b.get("created_at") or datetime.now(timezone.utc)).isoformat(),
+            "at": _iso(b.get("created_at") or datetime.now(timezone.utc)),
         })
     recent_users = []
     async for u in db.users.find({}, {"full_name": 1, "role": 1, "created_at": 1}).sort("created_at", -1).limit(5):
@@ -134,7 +159,7 @@ async def super_admin_analytics(db, include_revenue: bool = True) -> Dict[str, A
             "type": "signup",
             "name": u.get("full_name"),
             "role": u.get("role"),
-            "at": (u.get("created_at") or datetime.now(timezone.utc)).isoformat(),
+            "at": _iso(u.get("created_at") or datetime.now(timezone.utc)),
         })
 
     payload: Dict[str, Any] = {
@@ -264,8 +289,8 @@ async def college_analytics(db, institution_name: str) -> Dict[str, Any]:
     enroll = {d: 0 for d in days}
     cutoff = datetime.now(timezone.utc) - timedelta(days=14)
     async for u in db.users.find({**base_q, "created_at": {"$gte": cutoff}}, {"created_at": 1}):
-        d = _iso_day(u["created_at"])
-        if d in enroll:
+        d = _iso_day(u.get("created_at"))
+        if d and d in enroll:
             enroll[d] += 1
     enroll_series = [{"date": d, "count": enroll[d]} for d in days]
 
@@ -439,11 +464,11 @@ async def super_admin_full_analytics(db) -> Dict[str, Any]:
         if pid.startswith("ADMIN_PAY_"):
             continue
         fee = float(r.get("fee") or 0)
-        created = r.get("created_at")
-        if created and created >= current_month_start and pid not in seen_pids_mtd:
+        created_dt = _to_aware_dt(r.get("created_at"))
+        if created_dt and created_dt >= current_month_start and pid not in seen_pids_mtd:
             seen_pids_mtd.add(pid)
             revenue_mtd += int(fee)
-        if created and created >= ytd_start and pid not in seen_pids_ytd:
+        if created_dt and created_dt >= ytd_start and pid not in seen_pids_ytd:
             seen_pids_ytd.add(pid)
             revenue_ytd += int(fee)
 
@@ -733,7 +758,7 @@ async def _get_error_data(db) -> Dict[str, Any]:
                 "type": e.get("event", "unknown"),
                 "message": e.get("reason", "Unknown error"),
                 "user": e.get("email", ""),
-                "timestamp": (e.get("timestamp") or now).isoformat(),
+                "timestamp": _iso(e.get("timestamp") or now),
             })
         return {
             "total_errors_30d": auth_errors + activity_errors,

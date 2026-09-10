@@ -1,7 +1,7 @@
 """
 Unit tests for the 30-minute Recurring Multi-Agent Scheduler:
   - Task status tracking
-  - Cycle execution across 4 autonomous agents
+  - Cycle execution across 5 autonomous agents
   - Start/stop lifecycle management
 """
 import pytest
@@ -17,9 +17,10 @@ async def test_agent_scheduler_cycle_execution():
     assert "jobs_sync" in results
     assert "data_hygiene" in results
     assert "qa_synthetic" in results
+    assert "code_health" in results
 
     status: SchedulerStatusResponse = agent_scheduler.get_status()
-    assert len(status.tasks) == 4
+    assert len(status.tasks) == 5
     assert status.last_cycle_at is not None
     assert status.next_cycle_at is not None
 
