@@ -105,7 +105,7 @@ from notifications import (
 )
 
 # Services -- single source of truth for business logic
-from services.career_intelligence_service import compute_full_intelligence, invalidate_intel_cache
+from services.career_ai.skill_intelligence_service import compute_full_intelligence, invalidate_intel_cache
 from services.profile_service import compute_profile_completion
 from services.career_roadmap_service import get_roadmap_summary
 

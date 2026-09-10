@@ -26,7 +26,7 @@ from core.security import (
 from core.deps import get_current_user
 from core.models import UserRole, UserResponse, SchoolInfo, MentorInfo, AlumniInfo, StudentInfo, CareerPath, EducationLevel, CollegeInfo
 from personalization import build_personalized_dashboard, track_module_click
-from services.career_intelligence_service import compute_full_intelligence, invalidate_intel_cache
+from services.career_ai.skill_intelligence_service import compute_full_intelligence, invalidate_intel_cache
 from services.profile_service import compute_profile_completion
 
 try:

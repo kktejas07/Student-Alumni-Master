@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime, timezone
 
-from core.career_intelligence import db
+from core.db import db
 from core.skill_score_engine import calculate_skill_scores
 
 async def evaluate_roadmap_progress(user_id: str) -> dict:
