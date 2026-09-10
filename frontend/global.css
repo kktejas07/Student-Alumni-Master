@@ -1,0 +1,182 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Student Alumni — Unified Theme Variables
+ * ========================================
+ * Single source of truth for all visual properties.
+ * Light/dark mode via prefers-color-scheme media query.
+ * Role accents via CSS custom properties.
+ */
+
+:root {
+  /* ── Dark Mode (Default) ─────────────────────────────────── */
+  --sa-bg: #08080F;
+  --sa-bg-elevated: #101019;
+  --sa-bg-inset: #14141F;
+  --sa-bg-glass: rgba(14, 14, 18, 0.72);
+
+  --sa-text-primary: #F4F4FA;
+  --sa-text-secondary: #8A8A9E;
+  --sa-text-muted: #6A6A7E;
+  --sa-text-faint: #6A6A7E;
+
+  --sa-border: rgba(255, 255, 255, 0.08);
+  --sa-border-subtle: rgba(255, 255, 255, 0.04);
+  --sa-border-strong: rgba(255, 255, 255, 0.14);
+
+  /* ── Role Accents (same in light/dark — brand identity) ──── */
+  --sa-student: #7C5CFC;
+  --sa-alumni: #FB923C;
+  --sa-mentor: #F59E0B;
+  --sa-college: #3B82F6;
+  --sa-admin: #EAB308;
+
+  /* ── Glass surfaces ──────────────────────────────────────── */
+  --sa-glass-subtle: rgba(255, 255, 255, 0.04);
+  --sa-glass-light: rgba(255, 255, 255, 0.06);
+  --sa-glass-medium: rgba(255, 255, 255, 0.08);
+  --sa-glass-strong: rgba(255, 255, 255, 0.12);
+
+  /* ── Tint ────────────────────────────────────────────────── */
+  --sa-tint: rgba(124, 92, 252, 0.10);
+  --sa-tint-strong: rgba(124, 92, 252, 0.18);
+  --sa-on-tint: #F4F4FA;
+  --sa-on-tint-light: #3B2FA8;
+  --sa-on-accent: #0C0C14;
+  --sa-on-accent-light: #FFFFFF;
+
+  /* ── Category Color System & Bento Gradients ─────────────── */
+  --cat1: #8E72FF;
+  --cat2: #2FB8C6;
+  --cat3: #F59E0B;
+  --cat4: #F472B6;
+  --cat5: #34D399;
+  --cat6: #4C8DF6;
+  --cat7: #A78BFA;
+  --on-accent: #0C0C14;
+
+  --t1a: rgba(124,92,252,0.16); --t1b: rgba(124,92,252,0.05); --tline1: #332B66;
+  --t2a: rgba(47,184,198,0.15); --t2b: rgba(47,184,198,0.04); --tline2: #1B4A54;
+  --t3a: rgba(245,179,66,0.13); --t3b: rgba(245,179,66,0.03); --tline3: #4A3A18;
+  --t4a: rgba(111,168,245,0.14); --t4b: rgba(111,168,245,0.04); --tline4: #22375C;
+  --t5a: rgba(52,211,153,0.13); --t5b: rgba(52,211,153,0.03); --tline5: #1B4A3A;
+  --t6a: rgba(139,132,255,0.15); --t6b: rgba(139,132,255,0.04); --tline6: #332F6B;
+  --t7a: rgba(219,39,119,0.13); --t7b: rgba(219,39,119,0.03); --tline7: #4A1F3C;
+
+  color-scheme: dark;
+}
+
+/* ── Motion Effects & Keyframe Animations ─────────────────────────────── */
+@keyframes db-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes db-tilein { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes db-sweep { 0% { transform: translateX(-30%) rotate(8deg); } 100% { transform: translateX(30%) rotate(8deg); } }
+@keyframes db-aurora1 { 0%, 100% { transform: translate3d(-6%, 0, 0) rotate(-8deg); } 50% { transform: translate3d(10%, 4%, 0) rotate(-2deg); } }
+@keyframes db-aurora2 { 0%, 100% { transform: translate3d(8%, 2%, 0) rotate(6deg); } 50% { transform: translate3d(-8%, -3%, 0) rotate(12deg); } }
+@keyframes db-flame { 0%, 100% { transform: scale(1) rotate(-3deg); } 50% { transform: scale(1.12) rotate(3deg); } }
+@keyframes db-draw { from { stroke-dashoffset: var(--len); } to { stroke-dashoffset: 0; } }
+@keyframes db-marq { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes db-twinkle { 0%, 100% { opacity: .25; transform: scale(.82) rotate(0deg); } 50% { opacity: 1; transform: scale(1.12) rotate(22deg); } }
+@keyframes db-bob { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-7px) rotate(3deg); } }
+@keyframes db-lockshine { 0% { transform: translateX(-140%) skewX(-16deg); } 60%, 100% { transform: translateX(260%) skewX(-16deg); } }
+
+.db-tile { transition: transform 0.3s cubic-bezier(.2,.8,.2,1), border-color 0.3s ease, filter 0.3s ease; }
+.db-tile:hover { transform: translateY(-4px); filter: brightness(1.06); }
+.db-listing { transition: transform 0.25s cubic-bezier(.2,.8,.2,1), border-color 0.25s ease; }
+.db-listing:hover { transform: translateY(-4px); }
+.db-promo { transition: transform 0.28s cubic-bezier(.2,.8,.2,1); }
+.db-promo:hover { transform: translateY(-4px); }
+
+@media (prefers-color-scheme: light) {
+  :root {
+    /* ── Light Mode ────────────────────────────────────────── */
+    --sa-bg: #F4F5FA;
+    --sa-bg-elevated: #FFFFFF;
+    --sa-bg-inset: #EBEBEF;
+    --sa-bg-glass: rgba(255, 255, 255, 0.72);
+
+    --sa-text-primary: #141726;
+    --sa-text-secondary: #565B70;
+    --sa-text-muted: #8E8E93;
+    --sa-text-faint: #C7C7CC;
+
+    --sa-border: rgba(0, 0, 0, 0.08);
+    --sa-border-subtle: rgba(0, 0, 0, 0.04);
+    --sa-border-strong: rgba(0, 0, 0, 0.16);
+
+    /* ── Glass surfaces (light) ─────────────────────────────── */
+    --sa-glass-subtle: rgba(0, 0, 0, 0.03);
+    --sa-glass-light: rgba(0, 0, 0, 0.05);
+    --sa-glass-medium: rgba(0, 0, 0, 0.08);
+    --sa-glass-strong: rgba(0, 0, 0, 0.12);
+
+    /* ── Tint (light) ───────────────────────────────────────── */
+    --sa-tint: rgba(124, 92, 252, 0.08);
+    --sa-tint-strong: rgba(124, 92, 252, 0.15);
+    --sa-on-tint: #3B2FA8;
+    --sa-on-tint-light: #7C5CFC;
+    --sa-on-accent: #FFFFFF;
+    --sa-on-accent-light: #0C0C14;
+
+    /* ── Shadows (light) ────────────────────────────────────── */
+    --sa-shadow-card: 0 1px 2px rgba(20, 23, 38, 0.04), 0 12px 30px rgba(20, 23, 38, 0.06);
+    --sa-shadow-elevated: 0 2px 4px rgba(20, 23, 38, 0.06), 0 16px 40px rgba(20, 23, 38, 0.10);
+
+    /* ── Chrome (light) ─────────────────────────────────────── */
+    --sa-chrome: rgba(255, 255, 255, 0.86);
+    --sa-chrome-blur: blur(16px);
+
+    color-scheme: light;
+  }
+}
+
+/*
+ * ── Utility Classes ─────────────────────────────────────────
+ * Pre-built component patterns for common UI elements.
+ */
+@layer components {
+  .sa-card {
+    @apply bg-elevated rounded-card p-md border border-border;
+    box-shadow: var(--sa-shadow-card);
+  }
+
+  .sa-card-elevated {
+    @apply bg-elevated rounded-card p-md border border-border-strong;
+    box-shadow: var(--sa-shadow-elevated);
+  }
+
+  .sa-glass {
+    @apply rounded-card p-md border border-border;
+    background: var(--sa-bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .sa-btn-primary {
+    @apply rounded-lg px-md py-s font-body font-semibold text-sm;
+    @apply bg-accent-student text-white;
+    @apply active:opacity-80;
+  }
+
+  .sa-btn-ghost {
+    @apply rounded-lg px-md py-s font-body font-medium text-sm;
+    @apply bg-transparent border border-border text-secondary;
+    @apply active:bg-glass-subtle;
+  }
+
+  .sa-input {
+    @apply w-full rounded-lg px-md py-s font-body text-sm;
+    @apply bg-bg-inset border border-border text-primary;
+    @apply placeholder:text-muted;
+    @apply focus:border-accent-student focus:ring-1 focus:ring-accent-student/30;
+  }
+
+  .sa-badge {
+    @apply inline-flex items-center rounded-full px-xs py-0 font-body font-medium text-2xs;
+  }
+
+  .sa-divider {
+    @apply w-full h-px bg-border;
+  }
+}

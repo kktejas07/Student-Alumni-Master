@@ -1,305 +1,465 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "expo-router";
-import { Menu, X } from "lucide-react-native";
-import { Image } from "react-native";
-import { useBreakpoint } from "@/src/theme/breakpoints";
-import { useAuthStore } from "@/src/viewmodels/stores/authStore";
+import React, { useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'expo-router';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useTheme } from '@/src/theme/ThemeContext';
 
-// Module-scoped so a pending section survives the Navbar remount when we
-// navigate from an echo page (/echo/...) to the landing page (/welcome).
-let pendingLandingSection: string | null = null;
+interface NavbarProps {
+  activeTab?: 'home' | 'echo' | 'marketplace' | 'verify' | 'contact';
+  onTabChange?: (tab: 'home' | 'echo' | 'marketplace' | 'verify' | 'contact') => void;
+}
 
-export function Navbar() {
+export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
   const isLoggedIn = !!user;
-  const [scrolled, setScrolled] = useState(false);
-  const [active, setActive] = useState("Agent K");
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const { atLeast, width } = useBreakpoint();
-  const isLargeScreen = atLeast("lg");
-  // The app scrolls inside a container (body has overflow:hidden), not the
-  // window, so framer-motion's useScroll() never fires. A capture-phase
-  // listener catches scroll events from ANY scroll container on the page.
+  const { theme, isDark, setMode } = useTheme();
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
   useEffect(() => {
-    const onScroll = (e: Event) => {
-      const target = e.target as any;
-      const top =
-        target && typeof target.scrollTop === "number"
-          ? target.scrollTop
-          : window.scrollY || document.documentElement.scrollTop || 0;
-      setScrolled(top > 20);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
-    return () => window.removeEventListener("scroll", onScroll, { capture: true } as any);
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
   }, []);
-  const isEcho = typeof pathname === "string" && pathname.startsWith("/echo");
-  const isLanding = typeof pathname === "string" && pathname === "/welcome";
 
-  const links = ["Agent K", "Features", "About Us", "Contact", "Partners", "Collaborations"];
-
-  // After navigating from an echo page to the landing page, scroll to the
-  // requested section once it has rendered.
+  // Close menu on route change
   useEffect(() => {
-    if (!isLanding || !pendingLandingSection) return;
-    const id = pendingLandingSection;
-    pendingLandingSection = null;
-    const raf = requestAnimationFrame(() => {
-      const elem = document.getElementById(id);
-      if (elem) elem.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [isLanding]);
+    setMenuOpen(false);
+  }, [pathname]);
 
-  const goToLandingSection = (e: any, targetId: string) => {
-    e.preventDefault();
-    setActive(e.currentTarget?.textContent || "Features");
-    setMobileOpen(false);
-    if (isLanding) {
-      const elem = document.getElementById(targetId);
-      if (elem) elem.scrollIntoView({ behavior: "smooth", block: "start" });
+  // Track active tab state
+  const [selectedTab, setSelectedTab] = useState<'home' | 'echo' | 'marketplace' | 'verify' | 'contact'>(() => {
+    if (propActiveTab) return propActiveTab;
+    if (pathname?.includes('/marketplace')) return 'marketplace';
+    if (pathname?.includes('/echo')) return 'echo';
+    if (pathname?.includes('/verify')) return 'verify';
+    if (pathname?.includes('/contact')) return 'contact';
+    return 'home';
+  });
+
+  useEffect(() => {
+    if (propActiveTab) {
+      setSelectedTab(propActiveTab);
     } else {
-      pendingLandingSection = targetId;
-      router.push("/welcome");
+      if (pathname?.includes('/marketplace')) setSelectedTab('marketplace');
+      else if (pathname?.includes('/echo')) setSelectedTab('echo');
+      else if (pathname?.includes('/verify')) setSelectedTab('verify');
+      else if (pathname?.includes('/contact')) setSelectedTab('contact');
+      else setSelectedTab('home');
+    }
+  }, [propActiveTab, pathname]);
+
+  const handleTabClick = (tabKey: 'home' | 'echo' | 'marketplace' | 'verify' | 'contact') => {
+    setSelectedTab(tabKey);
+    setMenuOpen(false);
+    if (typeof onTabChange === 'function') {
+      onTabChange(tabKey);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      if (tabKey === 'home') router.push('/');
+      else if (tabKey === 'echo') router.push('/echo');
+      else if (tabKey === 'marketplace') router.push('/marketplace' as any);
+      else if (tabKey === 'verify') router.push('/certificates/verify' as any);
+      else if (tabKey === 'contact') router.push('/contact' as any);
     }
   };
 
-  const handleLogoClick = (e: any) => {
-    e.preventDefault();
-    setMobileOpen(false);
-    router.push('/welcome');
+  const toggleTheme = () => {
+    setMode(isDark ? 'light' : 'dark');
   };
 
-  const goToEcho = (e: any) => {
-    e.preventDefault();
-    setMobileOpen(false);
-    router.push('/echo');
-  };
-
-  const goToVerify = (e: any) => {
-    e.preventDefault();
-    setMobileOpen(false);
-    setActive("Verify");
-    router.push('/certificates/verify');
-  };
+  const tabs = [
+    { key: 'home' as const, label: 'Home' },
+    { key: 'echo' as const, label: 'ECHO' },
+    { key: 'marketplace' as const, label: 'Marketplace' },
+    { key: 'verify' as const, label: 'Verify' },
+    { key: 'contact' as const, label: 'Contact Us' },
+  ];
 
   return (
-    <motion.header
-      initial={{ y: -30, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled || mobileOpen
-          ? "py-2 bg-[#0C0C0D]/95 backdrop-blur-md border-b border-white/10 shadow-2xl"
-          : "py-4 bg-transparent border-b border-transparent"
-        }`}
-    >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+    <>
+      <header
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+          backgroundColor: isDark ? 'rgba(10, 10, 20, 0.94)' : 'rgba(255, 255, 255, 0.94)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderBottom: `1px solid ${isDark ? '#1F1F30' : '#E5E5EA'}`,
+          height: '64px',
+          display: 'flex',
+          alignItems: 'center',
+          width: '100%',
+          transition: 'background-color 0.3s ease, border-color 0.3s ease',
+        }}
+      >
         <div
-          className={`flex items-center justify-between transition-all duration-500 ${scrolled ? "px-4 sm:px-5 py-2.5" : "px-4 sm:px-5 py-3"
-            }`}
+          style={{
+            maxWidth: '1400px',
+            width: '100%',
+            margin: '0 auto',
+            padding: isMobile ? '0 16px' : '0 28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
         >
-          {/* Logo */}
-          <a
-            href="/welcome"
-            onClick={handleLogoClick}
-            className="flex items-center gap-3 cursor-pointer"
+          {/* Brand Logo */}
+          <button
+            onClick={() => handleTabClick('home')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '11px',
+              cursor: 'pointer',
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
+              textAlign: 'left',
+            }}
           >
-            <Image
-              source={require('@/assets/images/sa-icon.png')}
-              style={{ width: 32, height: 32, borderRadius: 8 }}
-              resizeMode="contain"
-            />
-            <span className="text-sm font-bold tracking-wide text-white">
-              StudentAlumni
-            </span>
-          </a>
+            <svg width="28" height="33" viewBox="0 0 300 350" style={{ flexShrink: 0, display: 'block' }}>
+              <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#8B84FF" />
+              <path d="M150 28 L268 64 v112 c0 72 -58 110 -118 132 C90 288 32 250 32 178 V64 Z" fill="#5B4FE9" />
+              <text
+                x="150"
+                y="214"
+                textAnchor="middle"
+                style={{
+                  fontFamily: "'Outfit', 'Manrope', -apple-system, sans-serif",
+                  fontSize: '124px',
+                  fontWeight: 800,
+                  fill: '#FFFFFF',
+                }}
+              >
+                SA
+              </text>
+            </svg>
+            {!isMobile && (
+              <span style={{ fontSize: '17px', fontWeight: 700, letterSpacing: '-0.3px', color: theme.text, fontFamily: "'Outfit', 'Manrope', sans-serif", transition: 'color 0.3s ease' }}>
+                StudentAlumni
+              </span>
+            )}
+          </button>
 
-          {/* Nav links (desktop only) */}
-          {isLargeScreen && (
-            <nav className="flex items-center gap-1 bg-[#121214] border border-white/5 rounded-full px-2 py-1.5">
-              <a
-                href="/echo"
-                onClick={goToEcho}
-                className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer ${
-                  isEcho
-                    ? "text-white bg-white/10"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                ECHO
-              </a>
-              <a
-                href="/certificates/verify"
-                onClick={goToVerify}
-                className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer ${
-                  active === "Verify"
-                    ? "text-white bg-white/10"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                Verify
-              </a>
-              {links.map((l) => {
-                const isActive = active === l;
-                const targetId = l.toLowerCase().replace(" ", "-");
+          {/* Desktop Navigation Tabs — hidden on mobile */}
+          {!isMobile && (
+            <nav
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '36px',
+              }}
+            >
+              {tabs.map((tab) => {
+                const isSelected = selectedTab === tab.key;
                 return (
-                  <a
-                    key={l}
-                    href={isLanding ? `#${targetId}` : `/welcome#${targetId}`}
-                    onClick={(e) => goToLandingSection(e, targetId)}
-                    className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer
-                      ${isActive
-                        ? "text-white bg-white/10"
-                        : "text-gray-400 hover:text-white hover:bg-white/5"
-                      }
-                    `}
+                  <button
+                    key={tab.key}
+                    onClick={() => handleTabClick(tab.key)}
+                    style={{
+                      position: 'relative',
+                      fontSize: '14.5px',
+                      fontWeight: isSelected ? 700 : 500,
+                      color: isSelected ? theme.text : theme.textSec,
+                      background: 'transparent',
+                      border: 'none',
+                      padding: '6px 2px',
+                      cursor: 'pointer',
+                      transition: 'color 0.2s ease',
+                      fontFamily: "'Outfit', 'Manrope', sans-serif",
+                    }}
                   >
-                    {l}
-                  </a>
+                    <span>{tab.label}</span>
+                    {isSelected && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          left: 0,
+                          right: 0,
+                          bottom: '-18px',
+                          height: '3px',
+                          borderRadius: '2px',
+                          backgroundColor: '#7C5CFC',
+                        }}
+                      />
+                    )}
+                  </button>
                 );
               })}
             </nav>
           )}
 
-          {/* CTA buttons */}
-          <div className="flex items-center gap-2 sm:gap-4">
-            {isLoggedIn ? (
-              <button
-                onClick={() => {
-                  const role = user?.role || 'student';
-                  const portalPath = role === 'super_admin' ? '/super-admin' :
-                    role === 'mentor' ? '/mentor-portal' :
-                    role === 'alumni' ? '/alumni-portal' :
-                    role === 'college' ? '/college-portal' :
-                    '/student-portal';
-                  router.push(portalPath);
-                }}
-                className="text-xs font-semibold text-green-400 hover:text-green-300 transition-colors duration-200 cursor-pointer"
-              >
-                Dashboard
-              </button>
-            ) : (
-              width >= 420 && (
+          {/* Right Action Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '16px' }}>
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                flexShrink: 0,
+              }}
+            >
+              {isDark ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={theme.textSec} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="5" />
+                  <line x1="12" y1="1" x2="12" y2="3" />
+                  <line x1="12" y1="21" x2="12" y2="23" />
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                  <line x1="1" y1="12" x2="3" y2="12" />
+                  <line x1="21" y1="12" x2="23" y2="12" />
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={theme.textSec} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+              )}
+            </button>
+
+            {/* Desktop auth buttons — hidden on mobile */}
+            {!isMobile && (
+              isLoggedIn ? (
                 <button
-                  onClick={() => router.push('/(auth)/login')}
-                  className="text-xs font-semibold text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer"
+                  onClick={() => {
+                    const role = user?.role || 'student';
+                    const portal =
+                      role === 'super_admin' ? '/super-admin' :
+                      role === 'mentor' ? '/mentor-portal' :
+                      role === 'alumni' ? '/alumni-portal' :
+                      role === 'college' ? '/college-portal' :
+                      '/student-portal';
+                    router.push(portal);
+                  }}
+                  style={{
+                    backgroundColor: '#5B4FE9',
+                    color: '#FFFFFF',
+                    fontSize: '14px',
+                    fontWeight: 700,
+                    borderRadius: '100px',
+                    padding: '9px 24px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: "'Outfit', 'Manrope', sans-serif",
+                    boxShadow: '0 4px 14px rgba(91,79,233,0.35)',
+                    transition: 'transform 0.2s ease, filter 0.2s ease',
+                  }}
                 >
-                  Sign in
+                  Dashboard
                 </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => router.push('/(auth)/login')}
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      color: theme.textSec,
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '6px 4px',
+                      transition: 'color 0.2s ease',
+                      fontFamily: "'Outfit', 'Manrope', sans-serif",
+                    }}
+                  >
+                    Sign in
+                  </button>
+                  <button
+                    onClick={() => router.push('/get-started')}
+                    style={{
+                      backgroundColor: '#5B4FE9',
+                      color: '#FFFFFF',
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      borderRadius: '100px',
+                      padding: '9px 24px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      fontFamily: "'Outfit', 'Manrope', sans-serif",
+                      boxShadow: '0 4px 14px rgba(91,79,233,0.35)',
+                      transition: 'transform 0.2s ease, filter 0.2s ease',
+                    }}
+                  >
+                    Get Started
+                  </button>
+                </>
               )
             )}
-            {isLoggedIn ? (
+
+            {/* Hamburger menu button — visible on mobile only */}
+            {isMobile && (
               <button
-                onClick={() => {
-                  const role = user?.role || 'student';
-                  const portalPath = role === 'super_admin' ? '/super-admin' :
-                    role === 'mentor' ? '/mentor-portal' :
-                    role === 'alumni' ? '/alumni-portal' :
-                    role === 'college' ? '/college-portal' :
-                    '/student-portal';
-                  router.push(portalPath);
+                onClick={() => setMenuOpen(!menuOpen)}
+                aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  padding: 0,
                 }}
-                className="group relative overflow-hidden rounded-full bg-primary px-4 sm:px-5 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] cursor-pointer"
               >
-                My Account
-              </button>
-            ) : (
-              <button
-                onClick={() => { setMobileOpen(false); router.push('/get-started'); }}
-                className="group relative overflow-hidden rounded-full bg-primary px-4 sm:px-5 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] cursor-pointer"
-              >
-                Get Started
-              </button>
-            )}
-            {/* Hamburger (tablet + mobile) */}
-            {!isLargeScreen && (
-              <button
-                onClick={() => setMobileOpen((o) => !o)}
-                aria-label="Toggle menu"
-                className="flex items-center justify-center w-10 h-10 rounded-lg text-white bg-[#121214] border border-white/10 cursor-pointer"
-              >
-                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+                {menuOpen ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={theme.text} strokeWidth="2" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={theme.text} strokeWidth="2" strokeLinecap="round">
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                  </svg>
+                )}
               </button>
             )}
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Mobile menu */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.nav
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25 }}
-            className="lg:hidden overflow-hidden bg-[#0C0C0D] border-b border-white/10"
-          >
-            <div className="px-6 pt-8 pb-6 flex flex-col gap-1">
-              <a
-                href="/echo"
-                onClick={goToEcho}
-                className={`px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
-                  isEcho ? "text-white bg-white/10" : "text-gray-300 hover:text-white hover:bg-white/5"
-                }`}
+      {/* Mobile dropdown menu */}
+      {isMobile && menuOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '64px',
+            left: 0,
+            right: 0,
+            zIndex: 999,
+            backgroundColor: isDark ? 'rgba(10, 10, 20, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            borderBottom: `1px solid ${isDark ? '#1F1F30' : '#E5E5EA'}`,
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px',
+          }}
+        >
+          {tabs.map((tab) => {
+            const isSelected = selectedTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => handleTabClick(tab.key)}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  fontWeight: isSelected ? 700 : 500,
+                  color: isSelected ? '#7C5CFC' : theme.text,
+                  background: isSelected ? (isDark ? 'rgba(124,92,252,0.1)' : 'rgba(124,92,252,0.06)') : 'transparent',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '10px 14px',
+                  cursor: 'pointer',
+                  fontFamily: "'Outfit', 'Manrope', sans-serif",
+                }}
               >
-                ECHO
-              </a>
-              <a
-                href="/certificates/verify"
-                onClick={goToVerify}
-                className="px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer text-gray-300 hover:text-white hover:bg-white/5"
+                {tab.label}
+              </button>
+            );
+          })}
+          {/* Mobile auth buttons */}
+          <div style={{ borderTop: `1px solid ${isDark ? '#1F1F30' : '#E5E5EA'}`, marginTop: '8px', paddingTop: '12px', display: 'flex', gap: '10px' }}>
+            {isLoggedIn ? (
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  const role = user?.role || 'student';
+                  const portal =
+                    role === 'super_admin' ? '/super-admin' :
+                    role === 'mentor' ? '/mentor-portal' :
+                    role === 'alumni' ? '/alumni-portal' :
+                    role === 'college' ? '/college-portal' :
+                    '/student-portal';
+                  router.push(portal);
+                }}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#5B4FE9',
+                  color: '#FFFFFF',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  borderRadius: '100px',
+                  padding: '10px 20px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontFamily: "'Outfit', 'Manrope', sans-serif",
+                }}
               >
-                Verify Certificate
-              </a>
-              {links.map((l) => {
-                const targetId = l.toLowerCase().replace(" ", "-");
-                return (
-                  <a
-                    key={l}
-                    href={isLanding ? `#${targetId}` : `/welcome#${targetId}`}
-                    onClick={(e) => goToLandingSection(e, targetId)}
-                    className={`px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
-                      active === l ? "text-white bg-white/10" : "text-gray-300 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    {l}
-                  </a>
-                );
-              })}
-              <div className="h-px bg-white/10 my-2" />
-              {isLoggedIn ? (
-                <>
-                  <button
-                    onClick={() => {
-                      const role = user?.role || 'student';
-                      const portalPath = role === 'super_admin' ? '/super-admin' :
-                        role === 'mentor' ? '/mentor-portal' :
-                        role === 'alumni' ? '/alumni-portal' :
-                        role === 'college' ? '/college-portal' :
-                        '/student-portal';
-                      setMobileOpen(false);
-                      router.push(portalPath);
-                    }}
-                    className="px-4 py-3 rounded-xl text-sm font-semibold text-green-400 hover:text-green-300 hover:bg-white/5 text-left cursor-pointer"
-                  >
-                    Go to Dashboard
-                  </button>
-                </>
-              ) : (
+                Dashboard
+              </button>
+            ) : (
+              <>
                 <button
-                  onClick={() => { setMobileOpen(false); router.push('/(auth)/login'); }}
-                  className="px-4 py-3 rounded-xl text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 text-left cursor-pointer"
+                  onClick={() => { setMenuOpen(false); router.push('/(auth)/login'); }}
+                  style={{
+                    flex: 1,
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: theme.text,
+                    background: 'transparent',
+                    border: `1px solid ${isDark ? '#1F1F30' : '#E5E5EA'}`,
+                    borderRadius: '100px',
+                    padding: '10px 16px',
+                    cursor: 'pointer',
+                    fontFamily: "'Outfit', 'Manrope', sans-serif",
+                  }}
                 >
                   Sign in
                 </button>
-              )}
-            </div>
-          </motion.nav>
-        )}
-      </AnimatePresence>
-    </motion.header>
+                <button
+                  onClick={() => { setMenuOpen(false); router.push('/get-started'); }}
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#5B4FE9',
+                    color: '#FFFFFF',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    borderRadius: '100px',
+                    padding: '10px 16px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: "'Outfit', 'Manrope', sans-serif",
+                  }}
+                >
+                  Get Started
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
+
+export default Navbar;

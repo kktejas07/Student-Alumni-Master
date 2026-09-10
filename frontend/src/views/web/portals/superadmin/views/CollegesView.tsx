@@ -20,7 +20,7 @@ import {
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   TopTabs, SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox, KpiTile,
@@ -46,6 +46,8 @@ const PC_AMBER = {
 type Status = 'all' | 'pending' | 'active' | 'paused';
 
 export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   const [tab, setTab] = useSubTab<Status>(['all', 'pending', 'active', 'paused'], 'all', { sub, onSub });
   const [q, setQ] = useState('');
   const [data, setData] = useState<any>(null);
@@ -75,14 +77,14 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
     (async () => {
       try {
         const r = await request<any>(`/admin/colleges/list?status=${tab}&q=${encodeURIComponent(q)}&page=${p}&limit=24`);
-        setData(r);
-        setPages(r.pages || 1);
+        setData(r || { items: [], total: 0, counts: { all: 0, pending: 0, active: 0, paused: 0 } });
+        setPages(r?.pages || 1);
       } catch (e: any) {
         if (/401|Not authenticated/i.test(String(e?.message || ''))) {
           await new Promise((r) => setTimeout(r, 600));
           try {
             const r = await request<any>(`/admin/colleges/list?status=${tab}&q=${encodeURIComponent(q)}&page=${p}&limit=24`);
-            setData(r); setPages(r.pages || 1); return;
+            setData(r || { items: [], total: 0, counts: { all: 0, pending: 0, active: 0, paused: 0 } }); setPages(r?.pages || 1); return;
           } catch {}
         }
         console.warn('Colleges list load failed', e);
@@ -289,7 +291,7 @@ function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRe
             <Image source={{ uri: resolveImageUrl(c.logo_url) }} style={s.logo} resizeMode="cover" />
           ) : (
             <View style={[s.logo, { backgroundColor: 'rgba(249,115,22,0.18)', alignItems: 'center', justifyContent: 'center' }]}>
-              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 19 }}>{c.initials}</Text>
+              <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 19 }}>{c.initials}</Text>
             </View>
           )}
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -305,7 +307,7 @@ function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRe
             )}
           </View>
           <Pressable onPress={(e: any) => { e?.stopPropagation?.(); setMenuOpen((m) => !m); }} style={s.menuTrigger}>
-            <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14, lineHeight: 14 }}>⋯</Text>
+            <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 14, lineHeight: 14 }}>⋯</Text>
           </Pressable>
         </View>
 
@@ -370,7 +372,7 @@ function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRe
           ) : null}
           {c.linkedin_url ? (
             <Pressable onPress={(e: any) => { e?.stopPropagation?.(); Linking.openURL(c.linkedin_url).catch(() => {}); }} style={[s.socialBtn, { backgroundColor: '#0A66C2' }]}>
-              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: -0.5 }}>in</Text>
+              <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: -0.5 }}>in</Text>
             </Pressable>
           ) : null}
         </View>
@@ -462,7 +464,7 @@ function CollegeDetail({ college, onClose, onSaved, onError }: any) {
               <Image source={{ uri: resolveImageUrl(c.logo_url) }} style={[s.logo, { width: 48, height: 48 }]} />
             ) : (
               <View style={[s.logo, { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(249,115,22,0.18)' }]}>
-                <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 }}>{c.initials}</Text>
+                <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 }}>{c.initials}</Text>
               </View>
             )}
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -597,10 +599,10 @@ function EditRow({ label, value, onChange }: any) {
 /* ─── Styles ─────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 760 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
-  btnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
 
   kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
@@ -634,7 +636,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
     backgroundColor: 'rgba(249,115,22,0.08)', borderWidth: 1, borderColor: 'rgba(249,115,22,0.22)',
   },
-  statVal: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
+  statVal: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 14 },
   statLbl: { color: PC_AMBER.muted, fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
 
   tag: {
@@ -653,7 +655,7 @@ const s = StyleSheet.create({
 
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 },
   viewBtn: { height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
-  viewBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  viewBtnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13 },
   socialBtn: {
     width: 42, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
     backgroundColor: '#1F1208', borderColor: PC_AMBER.border, borderWidth: 1,
@@ -662,7 +664,7 @@ const s = StyleSheet.create({
 
   menuTrigger: {
     width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.45)', borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
+    backgroundColor: SAC.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   menu: {
@@ -676,11 +678,11 @@ const s = StyleSheet.create({
     paddingVertical: 7, paddingHorizontal: 10, borderRadius: 7,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  menuLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  menuLabel: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
 
   /* modal */
   modalBg: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center', padding: 20,
+    flex: 1, backgroundColor: SAC.panel2, alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
   modalCard: {
@@ -689,13 +691,13 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
   },
   modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
 
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 110 },
-  detailValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
+  detailValue: { color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   input: {
-    flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 13,
+    flex: 1, color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
     paddingHorizontal: 12, paddingVertical: 10,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
@@ -707,6 +709,6 @@ const s = StyleSheet.create({
   skBox: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6 },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, gap: 14 },
   pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.card, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  pageBtnText: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
   pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 });

@@ -1,83 +1,66 @@
-import { motion, useInView, useMotionValue, animate } from "framer-motion";
-import { useEffect, useRef } from "react";
-import { TrendingUp, Users, Building2, Award } from "lucide-react-native";
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Users, Award, Building2, TrendingUp } from 'lucide-react';
 
-function Counter({ to, suffix = "" }: { to: number; suffix?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-40px" });
-  const mv = useMotionValue(0);
-  useEffect(() => {
-    if (!inView) return;
-    const controls = animate(mv, to, {
-      duration: 2.2,
-      ease: [0.22, 1, 0.36, 1],
-      onUpdate: (v) => {
-        if (ref.current) ref.current.textContent = Math.round(v).toLocaleString() + suffix;
-      },
-    });
-    return controls.stop;
-  }, [inView, to, suffix, mv]);
-  return <span ref={ref}>0{suffix}</span>;
-}
-
-const items = [
-  { n: 50000, s: "+", label: "Active Students", sublabel: "and growing every day", icon: Users },
-  { n: 1200, s: "+", label: "Verified Mentors", sublabel: "from top 500 companies", icon: Award },
-  { n: 200, s: "+", label: "Partner Universities", sublabel: "across 30+ countries", icon: Building2 },
-  { n: 96, s: "%", label: "Placement Rate", sublabel: "within 6 months of joining", icon: TrendingUp },
+const STATS_DATA = [
+  {
+    icon: Users,
+    number: '50,000+',
+    title: 'Active Students',
+    desc: 'and growing every day',
+  },
+  {
+    icon: Award,
+    number: '1,200+',
+    title: 'Verified Mentors',
+    desc: 'from top 500 companies',
+  },
+  {
+    icon: Building2,
+    number: '200+',
+    title: 'Partner Universities',
+    desc: 'across 30+ countries',
+  },
+  {
+    icon: TrendingUp,
+    number: '96%',
+    title: 'Placement Rate',
+    desc: 'within 6 months of joining',
+  },
 ];
 
 export function Stats() {
   return (
-    <section className="relative py-24">
-      <div className="mx-auto max-w-7xl px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="relative overflow-hidden rounded-[2.5rem] p-[1px] bg-gradient-to-b from-white/10 to-transparent"
-        >
-          <div className="relative rounded-[2.4rem] bg-[#121214] overflow-hidden p-10 md:p-16">
-            
-            {/* heading */}
-            <div className="relative text-center mb-16">
-              <p className="text-[11px] uppercase tracking-widest font-bold text-gray-500">By the numbers</p>
-              <h2 className="mt-4 text-3xl md:text-5xl font-medium tracking-tight text-white">
-                Trusted by students{" "}
-                <span className="text-primary">
-                  worldwide
-                </span>
-              </h2>
-            </div>
+    <section className="relative px-4 sm:px-6 py-24 max-w-7xl mx-auto text-center">
+      <div className="rounded-3xl bg-[#0A0C18] border border-white/10 p-8 sm:p-14 shadow-2xl">
+        <div className="text-xs font-bold tracking-widest text-[#8B84FF] uppercase mb-4">
+          By The Numbers
+        </div>
+        <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-14 leading-tight">
+          Trusted by students <span className="text-[#8B84FF]">worldwide</span>
+        </h2>
 
-            {/* stat cards */}
-            <div className="relative grid grid-cols-2 md:grid-cols-4 gap-6">
-              {items.map((s, i) => {
-                const Icon = s.icon;
-                return (
-                  <motion.div
-                    key={s.label}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: i * 0.1 }}
-                    className="flex flex-col items-center text-center p-6 rounded-2xl bg-[#0C0C0D] border border-white/5 hover:border-primary/30 transition-colors duration-300 group"
-                  >
-                    <div className={`h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-5 group-hover:bg-primary group-hover:text-primary-foreground transition-colors`}>
-                      <Icon className="h-6 w-6" />
-                    </div>
-                    <div className="text-4xl font-black tracking-tight text-white">
-                      <Counter to={s.n} suffix={s.s} />
-                    </div>
-                    <div className="mt-3 text-sm font-bold text-gray-300">{s.label}</div>
-                    <div className="mt-1.5 text-[11px] text-gray-500 font-medium">{s.sublabel}</div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-        </motion.div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {STATS_DATA.map((item, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: idx * 0.1 }}
+              className="p-8 rounded-2xl bg-[#0C0E1B] border border-white/5 flex flex-col items-center"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-6">
+                <item.icon className="w-6 h-6" />
+              </div>
+              <div className="text-3xl sm:text-4xl font-extrabold text-white mb-2 tracking-tight">
+                {item.number}
+              </div>
+              <div className="text-base font-bold text-white mb-1">{item.title}</div>
+              <div className="text-xs text-gray-500">{item.desc}</div>
+            </motion.div>
+          ))}
+        </div>
       </div>
     </section>
   );

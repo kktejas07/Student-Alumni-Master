@@ -86,7 +86,7 @@ export function SuggestionAutocomplete({
       </View>
       {helper ? <Text style={styles.helper}>{helper}</Text> : null}
       {!focused && value && (isMatchedSuggestion || manualMode) ? (
-        <Text style={styles.statusHint}>{isMatchedSuggestion ? '✓ Selected from list' : '✎ Manual entry'}</Text>
+        <Text style={styles.statusHint}>{isMatchedSuggestion ? 'Selected from list' : 'Manual entry'}</Text>
       ) : null}
 
       {/* Inline dropdown — uses the same canonical card as <Dropdown/> */}
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   },
   editPill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(124,58,237,0.4)',
+    backgroundColor: 'rgba(37,99,235,0.4)',
     borderRadius: 999,
     paddingHorizontal: 8, paddingVertical: 3,
   },

@@ -312,7 +312,7 @@ const s = StyleSheet.create({
   otpRow: { flexDirection: 'row', gap: 10, justifyContent: 'space-between' },
   otpBox: { width: 50, height: 56, borderRadius: 12, backgroundColor: AC.card, borderColor: AC.border, borderWidth: 1, color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, textAlign: 'center', ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   otpBoxErr: { borderColor: AC.red, backgroundColor: 'rgba(239,68,68,0.08)' },
-  otpBoxOn: { borderColor: AC.primary, backgroundColor: 'rgba(124,58,237,0.10)' },
+  otpBoxOn: { borderColor: AC.primary, backgroundColor: 'rgba(37,99,235,0.10)' },
   errText: { color: AC.red, fontFamily: FONTS.bold, fontSize: 12, marginTop: 10, textAlign: 'center' },
   resend: { color: AC.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center' },
   resendLink: { color: AC.primaryL, fontFamily: FONTS.bold, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },

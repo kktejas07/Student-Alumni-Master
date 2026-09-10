@@ -16,7 +16,6 @@ import {
   View, Text, Pressable, StyleSheet, Platform, Image, Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { X, ArrowRight, Sparkles } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request, resolveImageUrl } from '@/src/models/services/api';
@@ -43,7 +42,7 @@ export type Promotion = {
 };
 
 const TONE_GRAD: Record<PromoTone, [string, string]> = {
-  violet:  ['#A78BFA', '#7C3AED'],
+  violet:  ['#60A5FA', '#2563EB'],
   blue:    ['#60A5FA', '#2563EB'],
   indigo:  ['#818CF8', '#4F46E5'],
   teal:    ['#5EEAD4', '#0D9488'],
@@ -53,7 +52,7 @@ const TONE_GRAD: Record<PromoTone, [string, string]> = {
 };
 
 const TONE_TINT: Record<PromoTone, string> = {
-  violet:  'rgba(167,139,250,0.22)',
+  violet:  'rgba(37,99,235,0.22)',
   blue:    'rgba(96,165,250,0.22)',
   indigo:  'rgba(129,140,248,0.22)',
   teal:    'rgba(94,234,212,0.22)',
@@ -126,7 +125,7 @@ export function PromoBanner({ portal }: { portal: 'student' | 'alumni' | 'colleg
   const tint = TONE_TINT[promo.tone] || TONE_TINT.violet;
 
   return (
-    <Animated.View entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)} style={s.wrap}>
+    <View style={s.wrap}>
       <View style={[s.shell, { borderColor: tint.replace('0.22', '0.45') as any }]}>
         {/* Tone gradient stripe down the left edge */}
         <LinearGradient
@@ -182,7 +181,7 @@ export function PromoBanner({ portal }: { portal: 'student' | 'alumni' | 'colleg
           </Pressable>
         )}
       </View>
-    </Animated.View>
+    </View>
   );
 }
 

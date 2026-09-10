@@ -1,5 +1,10 @@
-import DynamicLegalPage from '@/src/views/web/policy/DynamicLegalPage';
+import React, { useEffect } from 'react';
+import { useRouter } from 'expo-router';
 
 export default function SecurityPage() {
-  return <DynamicLegalPage pageKey="security" />;
+  const router = useRouter();
+  useEffect(() => {
+    router.replace('/policy/privacy');
+  }, [router]);
+  return null;
 }

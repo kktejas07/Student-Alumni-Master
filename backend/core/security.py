@@ -206,7 +206,7 @@ def serialize_user(user: dict) -> dict:
         "unique_id": user.get("unique_id"),
         "qr_code_base64": user.get("qr_code_base64"),
         "school_info":  _safe_block(SchoolInfo,  user.get("school_info")),
-        "career_path":  user.get("career_path"),
+        "career_path":  user.get("career_path") if user.get("career_path") in ["job", "higher_education", "startup", "business"] else None,
         "student_info": _safe_block(StudentInfo, user.get("student_info")),
         "alumni_info":  _safe_block(AlumniInfo,  user.get("alumni_info")),
         "mentor_info":  _safe_block(MentorInfo,  user.get("mentor_info")),
@@ -225,7 +225,7 @@ def serialize_user(user: dict) -> dict:
         "first_name":     user.get("first_name"),
         "last_name":      user.get("last_name"),
         "headline":       user.get("headline"),
-        "photo_data":     user.get("photo_data") or user.get("face_image_base64") or user.get("oauth_picture"),
+        "photo_data":     user.get("face_image_base64") or user.get("photo_data") or user.get("oauth_picture"),
         "banner_data":    user.get("banner_data"),
         "college_logo_data": user.get("college_logo_data"),
         "institution":    user.get("institution") or (user.get("school_info") or {}).get("institution_name") or (user.get("alumni_info") or {}).get("institution_name") or (user.get("college_info") or {}).get("institution_name"),
@@ -248,6 +248,15 @@ def serialize_user(user: dict) -> dict:
         "preferences":    user.get("preferences"),
         "is_verified":    user.get("is_verified"),
         "ranking_tier":   user.get("ranking_tier"),
+        # Identity & DigiLocker
+        "aadhaar_number": user.get("aadhaar_number"),
+        "aadhaar_masked": user.get("aadhaar_masked") or (f"•••• •••• {str(user.get('aadhaar_number'))[-4:]}" if user.get("aadhaar_number") and len(str(user.get("aadhaar_number")).replace(" ","")) >= 4 else None),
+        "aadhaar_verified": bool(user.get("aadhaar_verified", False)),
+        "digilocker_id": user.get("digilocker_id"),
+        "digilocker_verified": bool(user.get("digilocker_verified", False)),
+        "digilocker_doc_count": int(user.get("digilocker_doc_count", 0)),
+        "digilocker_uri": user.get("digilocker_uri"),
+        "digilocker_linked_at": user.get("digilocker_linked_at"),
     }
 
 

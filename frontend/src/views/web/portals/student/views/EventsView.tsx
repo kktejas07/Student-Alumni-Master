@@ -92,13 +92,13 @@ const enrichEvent = (e: Ev) => {
   const catLower = (e.cat || e.type || e.event_type || 'workshop').toLowerCase();
   
   if (catLower.includes('hackathon')) {
-    if (!prizePool) prizePool = `🏆 ₹${(50000 + (hash % 10) * 50000).toLocaleString('en-IN')} Prize Pool`;
+    if (!prizePool) prizePool = ` ₹${(50000 + (hash % 10) * 50000).toLocaleString('en-IN')} Prize Pool`;
     if (!tags.length) tags = ['Hackathon', 'AI/ML', 'Global'];
   } else if (catLower.includes('quiz')) {
-    if (!prizePool) prizePool = `🥇 Certificate + Goodies`;
+    if (!prizePool) prizePool = ` Certificate + Goodies`;
     if (!tags.length) tags = ['Quiz', 'Knowledge', 'National'];
   } else if (catLower.includes('competition')) {
-    if (!prizePool) prizePool = `🏆 ₹${(25000 + (hash % 5) * 25000).toLocaleString('en-IN')} Awards`;
+    if (!prizePool) prizePool = ` ₹${(25000 + (hash % 5) * 25000).toLocaleString('en-IN')} Awards`;
     if (!tags.length) tags = ['Case Study', 'Competition'];
   } else if (catLower.includes('workshop')) {
     if (!tags.length) tags = ['Workshop', 'Hands-on', 'Live Learning'];
@@ -217,7 +217,7 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
                     setOpen(false);
                   }}
                   accessibilityLabel={`Select ${opt.label}`}
-                  accessibilityRole="option"
+                  accessibilityRole={'option' as any}
                   testID={`dropdown-opt-${opt.id.toLowerCase().replace(/\s+/g, '-')}`}
                   style={{
                     paddingHorizontal: 12,

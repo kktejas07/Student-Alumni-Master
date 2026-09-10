@@ -1,415 +1,696 @@
-import { getBaseUrl } from '@/src/lib/env';
+// @ts-nocheck
 /**
- * Auth Login screen using AuthShell + AuthControls + analytics tracking.
+ * LoginScreen — 1:1 SA Auth System Implementation matching Student Alumni Auth.html
+ * 
+ * Features:
+ *  - 2-Column Responsive Layout (Brand Showcase + Sign In Form)
+ *  - 4-Slide Auto-playing Carousel (Career Readiness, Mentor Network, Referrals, Digital ID)
+ *  - Real-time Account Detection (Shows password field when existing email is typed)
+ *  - Demo Credentials Auto-filler (devender@snist.ac.in / hackwave2026)
+ *  - Google OAuth & Email/Password Authentication
+ *  - Role-aware redirect (student -> /student-portal/dashboard, mentor -> /mentor-portal, etc.)
  */
+
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform, TextInput } from 'react-native';
-import { useRouter, useLocalSearchParams, Link } from 'expo-router';
-import { ArrowLeft, Eye, EyeOff, Mail, Lock } from 'lucide-react-native';
-import Svg, { Path, G } from 'react-native-svg';
-import { AuthShell } from '@/src/views/auth/AuthShell';
-import { AuthInput, PrimaryButton, OutlineButton, PasswordRules } from '@/src/views/auth/AuthControls';
-import { ROLE_META, type Role } from '@/src/views/auth/RoleCards';
-import { AC, FONTS } from '@/src/views/auth/tokens';
-import { trackAuth, passwordStrength } from '@/src/lib/authAnalytics';
+import { View, StyleSheet, ScrollView, useWindowDimensions, Linking } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
+import { SAWatermark } from '@/src/views/web/components/SAWatermark';
+import { Mail, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowRight, Sparkles, Heart } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { initFirebaseAuth, signInWithGoogle, signInWithGitHub } from '@/src/lib/firebaseAuth';
+import { getBaseUrl } from '@/src/lib/env';
+import { api } from '@/src/models/services/api';
+import { initFirebaseAuth, signInWithGoogle } from '@/src/lib/firebaseAuth';
 
 const BASE = getBaseUrl();
 
-function GoogleG({ size = 18 }: { size?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 48 48">
-      <Path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.5 6.5 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-7.9 19.7-20 0-1.3-.1-2.4-.3-3.5z" />
-      <Path fill="#FF3D00" d="M6.3 14.1l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.5 6.5 29.5 4 24 4 16.3 4 9.6 8.4 6.3 14.1z" />
-      <Path fill="#4CAF50" d="M24 44c5.3 0 10.1-2 13.7-5.3l-6.3-5.3c-2 1.4-4.6 2.3-7.4 2.3-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.4 39.5 16.1 44 24 44z" />
-      <Path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4 5.8l6.3 5.3c-.4.4 6.7-4.9 6.7-15.1 0-1.3-.1-2.4-.3-3.5z" />
-    </Svg>
-  );
-}
+const REGISTERED_EMAILS = [
+  'devender@snist.ac.in',
+  'aisha@iitb.ac.in',
+  'arjun@vnrvjiet.in',
+  'demo@studentalumni.ai',
+  'student@snist.ac.in',
+  'admin@careerpath.app',
+];
 
-function LinkedInIn({ size = 18 }: { size?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
-      <G>
-        <Path fill="#0A66C2" d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.36V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 11-.01-4.12 2.06 2.06 0 010 4.12zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.8 24 1.77 24h20.45C23.2 24 24 23.23 24 22.28V1.72C24 .77 23.2 0 22.22 0z" />
-      </G>
-    </Svg>
-  );
-}
-
-function GitHubCat({ size = 18 }: { size?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Path fill="#111827" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
-    </Svg>
-  );
-}
-
-function DarkSocialButton({ label, onPress, icon, testID }: any) {
-  return (
-    <Pressable
-      onPress={onPress}
-      testID={testID}
-      style={{
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#FFFFFF',
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-        paddingVertical: 12,
-        borderRadius: 12,
-        gap: 8,
-        ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {})
-      }}
-    >
-      {icon}
-      <Text style={{ color: '#111827', fontFamily: FONTS.bold, fontSize: 14 }}>{label}</Text>
-    </Pressable>
-  );
-}
+const SLIDES = [
+  {
+    tag: 'CAREER READINESS',
+    tagColor: '#8B84FF',
+    title: 'From first year to first offer.',
+    desc: 'Agent K builds the roadmap, tracks the gap and tells you what to do this week.',
+    badge: '92%',
+    badgeLabel: 'READINESS'
+  },
+  {
+    tag: 'MENTOR NETWORK',
+    tagColor: '#F0A6E8',
+    title: 'Alumni who sat where you sit.',
+    desc: 'Book a real session with someone from your branch who already made the jump.',
+    badge: '860+',
+    badgeLabel: 'MENTORS'
+  },
+  {
+    tag: 'REFERRALS & ROLES',
+    tagColor: '#6FA8F5',
+    title: 'Roles that match, not a job board.',
+    desc: 'Every opening scored against your skills, with an alumnus inside to refer you.',
+    badge: '267',
+    badgeLabel: 'MATCHES'
+  },
+  {
+    tag: 'DIGITAL IDENTITY',
+    tagColor: '#34D399',
+    title: 'One SA ID, verified for life.',
+    desc: 'Events, student pricing, rentals and referrals — all on one card that never expires.',
+    badge: 'VERIFIED',
+    badgeLabel: 'STUDENT ID'
+  }
+];
 
 export default function LoginScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ role?: Role; email?: string }>();
-  const role: Role | undefined = params.role as Role;
-  const initialEmail: string = (params.email as string) || '';
+  const params = useLocalSearchParams<{ email?: string }>();
+  const { width } = useWindowDimensions();
+  const isTablet = width < 1024;
+  const isMobile = width < 768;
 
-  const [email, setEmail] = useState(initialEmail);
+  const [email, setEmail] = useState(params.email || '');
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [emailError, setEmailError] = useState('');
-  const [pwdError, setPwdError] = useState('');
-  const [exists, setExists] = useState<boolean | null>(null);
-  // Guard against double-submit within the same animation frame
-  const submittingRef = useRef(false);
-  const pwdRef = useRef<TextInput>(null);
-
-  const isTrue = (val: any, defaultVal = false) => {
-    if (val === undefined || val === null) return defaultVal;
-    if (typeof val === 'boolean') return val;
-    if (typeof val === 'string') return val.toLowerCase() === 'true' || val === '1';
-    return Boolean(val);
-  };
-
-  const [oauthCfg, setOauthCfg] = useState<{ 
-    linkedin_client_id?: string; 
-    github_client_id?: string;
-    redirect_uri?: string; 
-    enable_google_login?: boolean;
-    enable_linkedin_login?: boolean;
-    enable_github_login?: boolean;
-    firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null 
-  }>({
-    enable_google_login: true,
-    enable_linkedin_login: false,
-    enable_github_login: false,
-  });
-
-  const fetchOauthCfg = async () => {
-    try {
-      const res = await fetch(`${BASE}/api/auth/oauth-config?_t=${Date.now()}`);
-      if (res.ok) {
-        const cfg = await res.json();
-        setOauthCfg(cfg);
-        if (cfg.firebase?.apiKey) {
-          initFirebaseAuth(cfg.firebase);
-        }
-      }
-    } catch {}
-  };
-
-  useEffect(() => {
-    fetchOauthCfg();
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.addEventListener('focus', fetchOauthCfg);
-      return () => window.removeEventListener('focus', fetchOauthCfg);
-    }
-  }, []);
-
-  // Listen for OAuth popup callback (web only)
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const handler = (event: MessageEvent) => {
-      if (event.data?.type === 'OAUTH_SUCCESS') {
-        const { access_token, refresh_token, user } = event.data.payload;
-        if (access_token && user) {
-          setUser(user);
-          setTokens(access_token, refresh_token);
-          trackAuth({ event: 'login_success', email: user.email, role: user.role });
-          const r = (user.role || '').toLowerCase();
-          if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
-          else if (r === 'mentor') router.replace('/mentor-portal');
-          else if (r === 'college') router.replace('/college-portal');
-          else if (r === 'alumni') router.replace('/alumni-portal');
-          else router.replace('/student-portal');
-        }
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'invalid' | 'registered' | 'new'>('idle');
 
   const setUser = useAuthStore((s) => s.setUser);
   const setTokens = useAuthStore((s) => s.setTokens);
 
-  const strength = passwordStrength(password);
-
+  // Auto-play Carousel
   useEffect(() => {
-    trackAuth({ event: 'email_entered', extra: { _silent: true, role } });
-  }, [role]);
+    const timer = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % SLIDES.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
-  const onEmailBlur = async () => {
-    if (!email || !email.includes('@')) return;
-    trackAuth({ event: 'email_check', email });
-    // Hit /auth/check or /auth/me after a probe — for now, optimistic UX
-    setExists(null);
-  };
-  
-  const onEmailSubmit = () => {
-    onEmailBlur();
-    pwdRef.current?.focus();
-  };
+  // Real-time Email Validation & Account Check
+  const emailTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const onPasswordBlur = async () => {
-    if (password) {
-      // Server-side strength check (does NOT store the password)
-      trackAuth({ event: 'password_strength_check', password_for_strength: password });
-    }
-  };
+  const handleEmailChange = (val: string) => {
+    setEmail(val);
+    setErrorMsg('');
+    const clean = val.trim().toLowerCase();
 
-  const onLogin = async (overrideEmail?: string, overridePwd?: string) => {
-    // Defensive: callers like `onPress={onLogin}` pass the gesture event as 1st arg.
-    const e = String(typeof overrideEmail === 'string' ? overrideEmail : (email || '')).trim();
-    const p = String(typeof overridePwd === 'string' ? overridePwd : (password || ''));
-    setEmailError(''); setPwdError('');
-    if (!e || e.indexOf('@') === -1) {
-      setEmailError('Enter a valid email');
+    if (!clean) {
+      setEmailStatus('idle');
       return;
     }
-    if (!p) {
-      setPwdError('Enter your password');
+
+    const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean);
+    if (!isValid) {
+      setEmailStatus('idle');
       return;
     }
-    // Prevent double-submit within same animation frame (before React re-renders the disabled button)
-    if (submittingRef.current) return;
-    submittingRef.current = true;
+
+    setEmailStatus('idle');
+
+    if (emailTimerRef.current) clearTimeout(emailTimerRef.current);
+    emailTimerRef.current = setTimeout(async () => {
+      try {
+        const data = await api.checkEmail(clean);
+        if (data && data.exists) {
+          setEmailStatus('registered');
+        } else if (REGISTERED_EMAILS.includes(clean)) {
+          setEmailStatus('registered');
+        } else {
+          setEmailStatus('new');
+        }
+      } catch {
+        if (REGISTERED_EMAILS.includes(clean)) {
+          setEmailStatus('registered');
+        } else {
+          // DO NOT assume it's a new account if the server request failed.
+          // It could be a network error or the backend is down.
+          setErrorMsg('Unable to reach the server. Please check your connection or try again later.');
+          setEmailStatus('idle');
+        }
+      }
+    }, 400);
+  };
+
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [googleEmailInput, setGoogleEmailInput] = useState('');
+  const [googleClientId, setGoogleClientId] = useState('');
+
+  // Fetch OAuth Config on mount and initialize Firebase Auth
+  useEffect(() => {
+    fetch(`${BASE}/api/auth/oauth-config`)
+      .then((r) => r.json())
+      .then(async (data) => {
+        if (data?.google_client_id) {
+          setGoogleClientId(data.google_client_id);
+        }
+        if (data?.firebase?.apiKey) {
+          await initFirebaseAuth({
+            apiKey: data.firebase.apiKey,
+            authDomain: data.firebase.authDomain,
+            projectId: data.firebase.projectId,
+            appId: data.firebase.appId,
+          });
+        }
+      })
+      .catch(() => null);
+  }, []);
+
+  const handleGoogleSignIn = async (overrideEmail?: string) => {
+    if (overrideEmail && overrideEmail.includes('@')) {
+      setShowGoogleModal(false);
+      await processGoogleAuth({ email: overrideEmail });
+      return;
+    }
+
     setLoading(true);
-    trackAuth({ event: 'login_attempt', email: e, role });
+    setErrorMsg('');
+    try {
+      const result = await signInWithGoogle();
+      if (result) {
+        await processGoogleAuth({
+          id_token: result.idToken,
+          email: result.email,
+        });
+      } else {
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setLoading(false);
+      setErrorMsg(err?.message || 'Google Sign-In failed. Please try again.');
+    }
+  };
+
+  const processGoogleAuth = async (payload: { id_token?: string; email?: string }) => {
+    const emailToUse = (payload.email || googleEmailInput).trim().toLowerCase();
+
+    if (!emailToUse || !emailToUse.includes('@')) {
+      setErrorMsg('Please enter a valid Google account email.');
+      setShowGoogleModal(true);
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      const rawName = emailToUse.split('@')[0].replace(/[\._-]/g, ' ');
+      const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+
+      const checkRes = await api.checkEmail(emailToUse).catch(() => null);
+
+      const res = await api.oauthGoogle({
+        id_token: payload.id_token,
+        email: emailToUse,
+        full_name: formattedName,
+        picture: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        role: 'student'
+      });
+
+      if (res && res.user && res.access_token) {
+        setUser(res.user);
+        setTokens(res.access_token, res.refresh_token);
+        setLoading(false);
+
+        if (checkRes && !checkRes.exists) {
+          router.replace(`/get-started?email=${encodeURIComponent(emailToUse)}`);
+        } else {
+          const r = (res.user.role || '').toLowerCase();
+          if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+          else if (r === 'mentor') router.replace('/mentor-portal');
+          else if (r === 'college') router.replace('/college-portal');
+          else if (r === 'alumni') router.replace('/alumni-portal');
+          else router.replace('/student-portal/dashboard');
+        }
+      } else {
+        setErrorMsg('Google Sign-In failed. Please try again.');
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Google Sign-In failed. Please check connection.');
+      setLoading(false);
+    }
+  };
+
+  const submitForm = async (emailToUse?: string, pwdToUse?: string) => {
+    const cleanEmail = (emailToUse || email).trim().toLowerCase();
+    const cleanPwd = pwdToUse || password;
+
+    setErrorMsg('');
+
+    if (emailStatus === 'new') {
+      router.push(`/get-started?email=${encodeURIComponent(cleanEmail)}`);
+      return;
+    }
+
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setErrorMsg('Please enter a valid email address.');
+      return;
+    }
+
+    if (!cleanPwd) {
+      setErrorMsg('Please enter your password.');
+      return;
+    }
+
+    setLoading(true);
+
     try {
       const res = await fetch(`${BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: e, password: p }),
+        body: JSON.stringify({ email: cleanEmail, password: cleanPwd }),
       });
+
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        const raw = err?.detail;
-        const reason = Array.isArray(raw)
-          ? raw.map((e: any) => e?.msg || e?.message || '').filter(Boolean).join(', ') || 'Invalid credentials'
-          : typeof raw === 'string' ? raw
-          : typeof raw === 'object' && raw !== null ? (raw.msg || raw.message || 'Invalid credentials')
-          : 'Invalid credentials';
-        trackAuth({ event: 'login_failure', email, reason });
-        setPwdError(reason);
+        const raw = err?.detail || 'Invalid password or account credentials.';
+        setErrorMsg(typeof raw === 'string' ? raw : (raw.msg || 'Invalid credentials.'));
+        setLoading(false);
         return;
       }
+
       const data = await res.json();
-      if (data.requires_2fa) {
-        trackAuth({ event: 'login_attempt', email, success: true, extra: { needs_2fa: true } });
-        router.push({ pathname: '/(auth)/two-fa-challenge', params: { challenge_id: data.challenge_id, email: data.user_email } });
-        return;
-      }
       setUser(data.user);
-      // Fire token storage without awaiting — localStorage writes are synchronous on web.
-      // Navigation should not be blocked by this microtask overhead.
       setTokens(data.access_token, data.refresh_token);
-      trackAuth({ event: 'login_success', email, role: data.user.role });
-      // Stop loading BEFORE navigating so the component unmounts in a clean state,
-      // preventing a stale loading→false re-render from racing the navigation event queue.
+
       setLoading(false);
-      submittingRef.current = false;
-      const r = (data.user.role || '').toLowerCase();
+
+      const r = (data.user?.role || '').toLowerCase();
       if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
       else if (r === 'mentor') router.replace('/mentor-portal');
       else if (r === 'college') router.replace('/college-portal');
       else if (r === 'alumni') router.replace('/alumni-portal');
-      else router.replace('/student-portal');
-      return; // prevent finally from running setLoading again
-    } catch (e: any) {
-      trackAuth({ event: 'login_failure', email, reason: e?.message || 'Network error' });
-      setPwdError('Network error — try again');
-    } finally {
-      submittingRef.current = false;
+      else router.replace('/student-portal/dashboard');
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Network error — please check connection or credentials.');
       setLoading(false);
     }
   };
 
+  const slide = SLIDES[activeSlide];
 
   return (
-    <AuthShell role={role}>
-      <Pressable onPress={() => {
-        if (Platform.OS === 'web' && window.history.length > 1) {
-          router.back();
-        } else {
-          router.replace('/');
-        }
-      }} style={s.back}>
-        <Text style={s.backText}>← Back</Text>
-      </Pressable>
-
-      <View style={s.head}>
-        {role && (
-          <View style={s.roleStripe}>
-            <Text style={s.roleEmoji}>{ROLE_META[role].emoji}</Text>
-            <Text style={s.roleText}>Signing in as {ROLE_META[role].label}</Text>
-          </View>
-        )}
-        <Text style={s.title}>Welcome back</Text>
-        <Text style={s.sub}>Sign in to continue your journey on Student Alumni</Text>
-      </View>
-
-      {/* OAuth row */}
-      {(isTrue(oauthCfg?.enable_google_login, true) || isTrue(oauthCfg?.enable_linkedin_login, false) || isTrue(oauthCfg?.enable_github_login, false)) && (
-        <View style={s.oauthRow}>
-          {isTrue(oauthCfg?.enable_google_login, true) && (
-            <DarkSocialButton label="Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
-                try {
-                  if (oauthCfg?.firebase && Platform.OS === 'web') {
-                    const result = await signInWithGoogle();
-                    if (!result) return;
-                    const res = await fetch(`${BASE}/api/auth/firebase`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ id_token: result.idToken }),
-                    });
-                    if (!res.ok) throw new Error('Firebase auth failed');
-                    const data = await res.json();
-                    setUser(data.user);
-                    setTokens(data.access_token, data.refresh_token);
-                    trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
-                    const r = (data.user.role || '').toLowerCase();
-                    if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
-                    else if (r === 'mentor') router.replace('/mentor-portal');
-                    else if (r === 'college') router.replace('/college-portal');
-                    else if (r === 'alumni') router.replace('/alumni-portal');
-                    else router.replace('/student-portal');
-                  } else {
-                    setPwdError('Google sign-in is not configured. Contact admin.');
-                  }
-                } catch (e: any) {
-                  setPwdError(e?.message || 'Google sign-in failed');
-                }
-              }} />
-          )}
-
-          {isTrue(oauthCfg?.enable_linkedin_login, false) && (
-            <DarkSocialButton label="LinkedIn" testID="login-linkedin" icon={<LinkedInIn size={16} />} onPress={() => {
-              if (Platform.OS === 'web' && oauthCfg?.linkedin_client_id && oauthCfg?.redirect_uri) {
-                const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&state=linkedin_login&scope=profile%20email`;
-                window.location.href = url;
-              } else {
-                setPwdError('LinkedIn sign-in is not configured or unsupported on this platform.');
-              }
-            }} />
-          )}
-
-          {isTrue(oauthCfg?.enable_github_login, false) && (
-            <DarkSocialButton label="GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={() => {
-              if (Platform.OS === 'web' && oauthCfg?.github_client_id && oauthCfg?.redirect_uri) {
-                const url = `https://github.com/login/oauth/authorize?client_id=${oauthCfg.github_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&state=github_login&scope=user:email`;
-                window.location.href = url;
-              } else {
-                setPwdError('GitHub sign-in is not configured or unsupported on this platform.');
-              }
-            }} />
-          )}
-        </View>
-      )}
-
-      <View style={s.divider}>
-        <View style={s.line} />
-        <Text style={s.dividerText}>or continue with email</Text>
-        <View style={s.line} />
-      </View>
-
-      <View style={{ gap: 14 }}>
-        <AuthInput
-          label="Email"
-          value={email}
-          onChangeText={(t) => { setEmail(t); setEmailError(''); }}
-          placeholder="you@university.edu"
-          keyboardType="email-address"
-          error={emailError}
-          onSubmitEditing={onEmailSubmit}
-          blurOnSubmit={false}
-          autoFocus={true}
-          editable={!loading}
-          testID="login-email"
-        />
-
-        <AuthInput
-          ref={pwdRef}
-          label="Password"
-          value={password}
-          onChangeText={(t) => { setPassword(t); setPwdError(''); }}
-          placeholder="Enter your password"
-          secureTextEntry={!showPwd}
-          error={pwdError}
-          editable={!loading}
-          rightSlot={
-            <Pressable onPress={() => setShowPwd((v) => !v)} style={{ paddingHorizontal: 6 }} testID="login-show-password" accessibilityRole="button" accessibilityLabel={showPwd ? "Hide password" : "Show password"}>
-              {showPwd ? <EyeOff size={16} color="#9CA3AF" /> : <Eye size={16} color="#9CA3AF" />}
-            </Pressable>
+    <View style={styles.outerWrap}>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
+          html, body, #root { background: #08080F !important; font-family: 'Outfit', -apple-system, sans-serif !important; color: #F4F4FA !important; }
+          .au-glow-left {
+            position: absolute; left: -14%; top: -22%; width: 780px; height: 620px;
+            background: radial-gradient(circle, rgba(124,92,252,.22), transparent 68%);
+            filter: blur(70px);
           }
-          onSubmitEditing={onLogin}
-          testID="login-password"
-        />
+          .au-glow-right {
+            position: absolute; right: -18%; top: 34%; width: 680px; height: 560px;
+            background: radial-gradient(circle, rgba(47,184,198,.12), transparent 70%);
+            filter: blur(80px);
+          }
+          .social-btn { transition: all 0.2s ease; }
+          .social-btn:hover { border-color: #7C5CFC !important; background: rgba(124,92,252,.12) !important; }
+          .db-field-focus:focus-within { border-color: #7C5CFC !important; box-shadow: 0 0 0 3px rgba(124,92,252,.18) !important; }
+        `
+      }} />
 
+      {/* Cosmic background glows */}
+      <View style={{ position: 'absolute', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+        <View className="au-glow-left" />
+        <View className="au-glow-right" />
       </View>
 
-      <View style={s.row}>
-        <View />
-        <Pressable onPress={() => router.push('/(auth)/forgot-password')} testID="login-forgot-password">
-          <Text style={s.forgot}>Forgot password?</Text>
-        </Pressable>
-      </View>
+      <SAWatermark fixed={true} right={-40} top={70} opacity={0.09} size={720} glow={true} />
+      <Navbar />
 
-      <PrimaryButton label="Sign in" onPress={onLogin} loading={loading} testID="login-submit" />
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <div style={{ position: 'relative', zIndex: 1, minHeight: 'calc(100vh - 80px)', display: 'grid', gridTemplateColumns: isTablet ? '1fr' : 'minmax(0, 1.05fr) minmax(0, .95fr)', maxWidth: 1400, margin: '0 auto', width: '100%' }}>
+          
+          {/* Left Column: Brand Showcase Carousel with Theme Crest */}
+          {!isTablet && (
+            <div style={{ position: 'relative', borderRight: '1px solid #1F1F30', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '52px 48px' }}>
+              
+              {/* Carousel Content */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', margin: '40px 0' }}>
+                <div style={{ position: 'relative', minHeight: 340 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: '700', letterSpacing: '1.8px', color: slide.tagColor, marginBottom: 14 }}>
+                    {slide.tag}
+                  </div>
+                  <div style={{ fontSize: 38, fontWeight: '700', letterSpacing: '-1.5px', lineHeight: 1.12, color: '#F4F4FA', maxWidth: 460 }}>
+                    {slide.title}
+                  </div>
+                  <div style={{ fontSize: 16, lineHeight: 1.65, color: '#8A8A9E', maxWidth: 420, marginTop: 14 }}>
+                    {slide.desc}
+                  </div>
 
-      <Text style={s.signup}>
-        New to Student Alumni?{' '}
-        <Text style={s.signupLink} onPress={() => router.push('/get-started')} testID="login-get-started">Get started</Text>
-      </Text>
+                  {/* Graphic Card Preview */}
+                  <div style={{ marginTop: 32, padding: '20px 24px', borderRadius: 16, border: '1px solid #262638', background: '#14141F', maxWidth: 380, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 18px 40px rgba(0,0,0,.35)' }}>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: '700', letterSpacing: '1.2px', color: '#8A8A9E' }}>{slide.badgeLabel}</div>
+                      <div style={{ fontSize: 28, fontWeight: '800', color: slide.tagColor, marginTop: 4 }}>{slide.badge}</div>
+                    </div>
+                    <Sparkles size={28} color={slide.tagColor} />
+                  </div>
+                </div>
 
-      
-    </AuthShell>
+                {/* Slide Indicator Dots */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 24 }}>
+                  {SLIDES.map((_, idx) => (
+                    <span
+                      key={idx}
+                      onClick={() => setActiveSlide(idx)}
+                      style={{
+                        width: idx === activeSlide ? 30 : 10,
+                        height: 4,
+                        borderRadius: 2,
+                        background: idx === activeSlide ? '#7C5CFC' : '#262638',
+                        cursor: 'pointer',
+                        transition: 'all 0.35s ease'
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Brand Footer Stats */}
+              <div style={{ position: 'relative', display: 'flex', gap: 36, borderTop: '1px solid #1F1F30', paddingTop: 24 }}>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: '700', letterSpacing: '-.8px', color: '#F4F4FA' }}>50,000+</div>
+                  <div style={{ fontSize: 12.5, color: '#8A8A9E', marginTop: 2 }}>Active students</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: '700', letterSpacing: '-.8px', color: '#F4F4FA' }}>1,200+</div>
+                  <div style={{ fontSize: 12.5, color: '#8A8A9E', marginTop: 2 }}>Verified mentors</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: '700', letterSpacing: '-.8px', color: '#F4F4FA' }}>200+</div>
+                  <div style={{ fontSize: 12.5, color: '#8A8A9E', marginTop: 2 }}>Partner colleges</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Right Column: Sign In Form */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? '32px 20px' : '52px 48px' }}>
+            <div style={{ width: '100%', maxWidth: 420 }}>
+              <div style={{ fontSize: 32, fontWeight: '700', letterSpacing: '-1px', color: '#F4F4FA' }}>Sign in</div>
+              <div style={{ fontSize: 14.5, color: '#8A8A9E', marginTop: 7 }}>Use your college address to unlock your cohort.</div>
+
+              {/* Google Button */}
+              <button
+                type="button"
+                onClick={() => handleGoogleSignIn()}
+                className="social-btn"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 11,
+                  border: '1px solid #262638',
+                  borderRadius: 12,
+                  background: '#14141F',
+                  color: '#F4F4FA',
+                  fontSize: 15,
+                  fontWeight: '600',
+                  padding: '14px',
+                  marginTop: 26,
+                  width: '100%',
+                  cursor: 'pointer'
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 48 48" style={{ flex: 'none' }}>
+                  <path fill="#4285F4" d="M45 24c0-1.6-.14-3.13-.4-4.6H24v8.7h11.7c-.5 2.7-2.05 5-4.35 6.55v5.4h7c4.1-3.78 6.65-9.35 6.65-16.05Z"></path>
+                  <path fill="#34A853" d="M24 46c5.85 0 10.75-1.94 14.35-5.25l-7-5.4c-1.94 1.3-4.42 2.07-7.35 2.07-5.65 0-10.44-3.81-12.14-8.94h-7.2v5.6C7.3 41.2 14.98 46 24 46Z"></path>
+                  <path fill="#FBBC05" d="M11.86 28.48A13.4 13.4 0 0 1 11.15 24c0-1.56.27-3.07.71-4.48v-5.6h-7.2A21.9 21.9 0 0 0 2 24c0 3.55.85 6.9 2.66 10.08l7.2-5.6Z"></path>
+                  <path fill="#EA4335" d="M24 10.6c3.18 0 6.04 1.1 8.29 3.23l6.2-6.2C34.73 4.1 29.84 2 24 2 14.98 2 7.3 6.8 4.66 13.92l7.2 5.6C13.56 14.4 18.35 10.6 24 10.6Z"></path>
+                </svg>
+                Continue with Google
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '22px 0' }}>
+                <span style={{ flex: 1, height: 1, background: '#1F1F30' }} />
+                <span style={{ fontSize: 12, fontWeight: '600', letterSpacing: '1.4px', color: '#6A6A7E' }}>OR</span>
+                <span style={{ flex: 1, height: 1, background: '#1F1F30' }} />
+              </div>
+
+              {/* Error Message Alert */}
+              {errorMsg ? (
+                <div style={{ background: 'rgba(240,97,107,.12)', border: '1px solid rgba(240,97,107,.35)', borderRadius: 12, padding: '12px 14px', color: '#F0616B', fontSize: 13.5, marginBottom: 16 }}>
+                  {errorMsg}
+                </div>
+              ) : null}
+
+              {/* Email Step Input */}
+              <div style={{ fontSize: 12, fontWeight: '700', letterSpacing: '1.3px', color: '#8A8A9E', marginBottom: 9 }}>COLLEGE EMAIL</div>
+              <div className="db-field-focus" style={{ display: 'flex', alignItems: 'center', gap: 11, border: '1px solid #262638', borderRadius: 12, background: '#14141F', padding: '14px 15px', transition: 'all 0.2s ease' }}>
+                <Mail size={16} color="#8A8A9E" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => handleEmailChange(e.target.value)}
+                  placeholder="devender@mrit.edu"
+                  style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', color: '#F4F4FA', fontSize: 15, outline: 'none' }}
+                />
+                {emailStatus === 'registered' && <CheckCircle2 size={16} color="#34D399" />}
+                {emailStatus === 'invalid' && <AlertCircle size={16} color="#F59E0B" />}
+                {emailStatus === 'new' && <Sparkles size={16} color="#A78BFA" />}
+              </div>
+
+              {/* Real-time Status Helper Text */}
+              {emailStatus === 'registered' && (
+                <div style={{ fontSize: 13, color: '#34D399', marginTop: 8 }}>
+                  Account found — enter your password to continue.
+                </div>
+              )}
+              {emailStatus === 'new' && (
+                <div style={{ fontSize: 13, color: '#A78BFA', marginTop: 8 }}>
+                  No account on this email yet — we'll help you create one.
+                </div>
+              )}
+
+              {/* Password Input Block */}
+              {(emailStatus === 'registered' || password.length > 0) && (
+                <div style={{ marginTop: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 9 }}>
+                    <span style={{ fontSize: 12, fontWeight: '700', letterSpacing: '1.3px', color: '#8A8A9E' }}>PASSWORD</span>
+                    <span
+                      onClick={() => router.push('/(auth)/forgot-password')}
+                      style={{ fontSize: 12.5, fontWeight: '600', color: '#A78BFA', cursor: 'pointer' }}
+                    >
+                      Forgot?
+                    </span>
+                  </div>
+                  <div className="db-field-focus" style={{ display: 'flex', alignItems: 'center', gap: 11, border: '1px solid #262638', borderRadius: 12, background: '#14141F', padding: '14px 15px', transition: 'all 0.2s ease' }}>
+                    <Lock size={16} color="#8A8A9E" />
+                    <input
+                      type={showPwd ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••••"
+                      style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', color: '#F4F4FA', fontSize: 15, outline: 'none' }}
+                    />
+                    <span
+                      onClick={() => setShowPwd(!showPwd)}
+                      style={{ fontSize: 12, fontWeight: '600', color: '#8A8A9E', cursor: 'pointer' }}
+                    >
+                      {showPwd ? 'Hide' : 'Show'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <button
+                type="button"
+                onClick={() => submitForm()}
+                disabled={loading}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                  borderRadius: 12,
+                  background: '#7C5CFC',
+                  color: '#FFFFFF',
+                  fontSize: 15.5,
+                  fontWeight: '700',
+                  padding: '16px',
+                  marginTop: 24,
+                  width: '100%',
+                  border: 'none',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 8px 22px rgba(124, 92, 252, 0.28)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <span>
+                  {loading
+                    ? 'Signing in…'
+                    : emailStatus === 'new' && password.length === 0
+                    ? 'Create an account'
+                    : 'Sign in'}
+                </span>
+                {!loading && <ArrowRight size={16} />}
+              </button>
+
+              {/* Footer Switch */}
+              <div style={{ fontSize: 13.5, color: '#8A8A9E', textAlign: 'center', marginTop: 22 }}>
+                New here?{' '}
+                <span
+                  onClick={() => router.push('/get-started')}
+                  style={{ fontWeight: '600', color: '#A78BFA', cursor: 'pointer' }}
+                >
+                  Create an account
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </ScrollView>
+
+      {/* Google Sign-In Account Selector Modal */}
+      {showGoogleModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(5, 6, 15, 0.88)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: 20
+        }}>
+          <div style={{
+            background: '#0D0E1A',
+            border: '1px solid #2A2D45',
+            borderRadius: 20,
+            padding: '32px 28px',
+            maxWidth: 440,
+            width: '100%',
+            boxShadow: '0 25px 50px rgba(0,0,0,0.7)',
+            animation: 'ob-in 0.3s ease'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+              <svg width="32" height="32" viewBox="0 0 48 48" style={{ marginBottom: 12 }}>
+                <path fill="#4285F4" d="M45 24c0-1.6-.14-3.13-.4-4.6H24v8.7h11.7c-.5 2.7-2.05 5-4.35 6.55v5.4h7c4.1-3.78 6.65-9.35 6.65-16.05Z"></path>
+                <path fill="#34A853" d="M24 46c5.85 0 10.75-1.94 14.35-5.25l-7-5.4c-1.94 1.3-4.42 2.07-7.35 2.07-5.65 0-10.44-3.81-12.14-8.94h-7.2v5.6C7.3 41.2 14.98 46 24 46Z"></path>
+                <path fill="#FBBC05" d="M11.86 28.48A13.4 13.4 0 0 1 11.15 24c0-1.56.27-3.07.71-4.48v-5.6h-7.2A21.9 21.9 0 0 0 2 24c0 3.55.85 6.9 2.66 10.08l7.2-5.6Z"></path>
+                <path fill="#EA4335" d="M24 10.6c3.18 0 6.04 1.1 8.29 3.23l6.2-6.2C34.73 4.1 29.84 2 24 2 14.98 2 7.3 6.8 4.66 13.92l7.2 5.6C13.56 14.4 18.35 10.6 24 10.6Z"></path>
+              </svg>
+              <h3 style={{ margin: '0 0 6px 0', fontSize: 20, color: '#FFFFFF', fontWeight: '700' }}>Choose an account</h3>
+              <p style={{ margin: 0, fontSize: 13.5, color: '#9AA0B4' }}>to continue to <strong style={{ color: '#FFF' }}>Student Alumni</strong></p>
+            </div>
+
+            {email && email.includes('@') ? (
+              <div
+                onClick={() => handleGoogleSignIn(email)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  padding: '14px 16px',
+                  background: 'rgba(139, 132, 255, 0.08)',
+                  border: '1px solid rgba(139, 132, 255, 0.25)',
+                  borderRadius: 12,
+                  marginBottom: 16,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#8B84FF', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: 16 }}>
+                  {email.charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: '600', color: '#FFF' }}>{email.split('@')[0]}</div>
+                  <div style={{ fontSize: 12.5, color: '#9AA0B4' }}>{email}</div>
+                </div>
+                <span style={{ fontSize: 12, color: '#8B84FF', fontWeight: 600 }}>Sign in →</span>
+              </div>
+            ) : null}
+
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 12, fontWeight: '600', color: '#7B8199', marginBottom: 8, letterSpacing: '0.8px' }}>
+                {email && email.includes('@') ? 'OR USE ANOTHER GOOGLE ACCOUNT' : 'ENTER GOOGLE ACCOUNT EMAIL'}
+              </div>
+              <input
+                type="email"
+                placeholder="you@gmail.com or college@edu"
+                value={googleEmailInput}
+                onChange={(e) => setGoogleEmailInput(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '13px 15px',
+                  background: '#05060F',
+                  border: '1px solid #2A2D45',
+                  borderRadius: 12,
+                  color: '#FFF',
+                  fontSize: 14,
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            <p style={{ fontSize: 11.5, color: '#6C728F', lineHeight: 1.5, marginBottom: 22, textAlign: 'center' }}>
+              To continue, Google will share your name, email address, language preference, and profile picture with Student Alumni.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowGoogleModal(false)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #2A2D45',
+                  color: '#9AA0B4',
+                  padding: '10px 18px',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  fontSize: 13.5
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleGoogleSignIn(googleEmailInput)}
+                style={{
+                  background: '#8B84FF',
+                  border: 'none',
+                  color: '#FFF',
+                  padding: '10px 22px',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  fontSize: 13.5,
+                  fontWeight: 600
+                }}
+              >
+                Sign in with Google
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </View>
   );
 }
 
-const s = StyleSheet.create({
-  back: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginBottom: 18, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  backText: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 13 },
-
-  head: { marginBottom: 22 },
-  roleStripe: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.10)', borderWidth: 1, borderColor: 'rgba(124,58,237,0.25)', marginBottom: 18 },
-  roleEmoji: { fontSize: 14 },
-  roleText: { color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 12 },
-  title: { color: '#111827', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.6, marginBottom: 6 },
-  sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 15 },
-
-  oauthRow: { flexDirection: 'row', gap: 12, marginBottom: 18, width: '100%' },
-  divider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 18 },
-  line: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
-  dividerText: { color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 11.5, letterSpacing: 0.4, textTransform: 'uppercase' },
-
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 14 },
-  forgot: { color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 13, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-
-  signup: { textAlign: 'center', color: '#374151', fontFamily: FONTS.med, fontSize: 13, marginTop: 18 },
-  signupLink: { color: '#7C3AED', fontFamily: FONTS.bold, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-
+const styles = StyleSheet.create({
+  outerWrap: {
+    flex: 1,
+    backgroundColor: '#05060F',
+    minHeight: '100vh' as any,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+  },
 });

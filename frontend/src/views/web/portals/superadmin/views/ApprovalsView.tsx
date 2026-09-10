@@ -13,7 +13,7 @@ import {
   Clock, AlertTriangle, ExternalLink,
 } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { Av } from '../atoms';
 import {
   GRAD, GradientButton, SecondaryButton, TopTabs, SearchField,
@@ -143,42 +143,44 @@ function ReviewPanel({ item, onClose, onApprove, onReject }: {
 
 const rpst = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
+  backdrop: { flex: 1, backgroundColor: SAC.panel2 },
   panel: {
     backgroundColor: SAC.bg2, borderTopLeftRadius: 20, borderTopRightRadius: 20,
     padding: 20, maxHeight: '80%', minHeight: 340,
     borderTopWidth: 1, borderTopColor: SAC.border,
   },
   head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   xBtn: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
   profile: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 4 },
-  name: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17 },
+  name: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 17 },
   detailCard: {
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
     borderRadius: 12, padding: 14, gap: 12,
   },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   detailLabel: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, width: 60 },
-  detailVal: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
+  detailVal: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
   rejectBox: {
     backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.25)',
     borderWidth: 1, borderRadius: 12, padding: 14,
   },
   rejectTitle: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12.5 },
   rejectInput: {
-    height: 80, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.25)',
-    color: '#fff', fontFamily: FONTS.med, fontSize: 12.5,
+    height: 80, borderRadius: 10, backgroundColor: SAC.panel2,
+    color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5,
     padding: 12, textAlignVertical: 'top',
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
-  primaryText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  primaryText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   dangerText: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 },
 });
 
 export function ApprovalsView() {
+  const T = useSAC();
+  Object.assign(rpst, resolveColors(rpst, T));
   const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/approvals', FALLBACK);
   const [tab, setTab] = useState<'all' | 'college' | 'mentor' | 'event'>('all');
   const [actioned, setActioned] = useState<Record<string, 'approved' | 'rejected'>>({});
@@ -348,7 +350,7 @@ export function ApprovalsView() {
 
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
   sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
 
   row: {
@@ -363,10 +365,10 @@ const s = StyleSheet.create({
   },
   checkOn: { backgroundColor: GRAD.to, borderColor: GRAD.to },
 
-  name: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5 },
+  name: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13.5 },
   meta: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
 
-  primaryText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 },
+  primaryText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 11.5 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
   dangerText: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 11.5 },
 });

@@ -43,7 +43,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { Card, Toast } from '../applekit';
 import { request } from '@/src/models/services/api';
 import LexicalEditor from './LexicalEditor';
@@ -141,6 +141,7 @@ type Tool = {
   installed: boolean; status?: string | null; installed_at?: string | null;
   auth_fields?: Array<{ key: string; label: string; type: string; placeholder?: string; help?: string }>;
   credentials_masked?: Record<string, string>;
+  credentials_plain?: Record<string, string>;
   webhook_url?: string;
 };
 type Role = {
@@ -221,6 +222,8 @@ const DEFAULT_SYSTEM_OPTIONS: Record<string, { value: string; label: string }[]>
  * Main view
  * ───────────────────────────────────────────────────────────────── */
 export function SettingsView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   const [tab, setTab] = useSubTab<TabId>(
     ['profile', 'platform', 'integrations', 'roles', 'notifications', 'security', 'digital-id', 'pages', 'templates', 'branding'],
     'profile',
@@ -487,7 +490,7 @@ function SignatureEditorModal({ visible, initial, onClose, onSaved }: {
     },
     {
       id: 'friendly', label: 'Friendly',
-      body: 'Cheers,\n{{name}} ✨\n{{org}}',
+      body: 'Cheers,\n{{name}}\n{{org}}',
     },
   ];
 
@@ -866,6 +869,7 @@ function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [filter, setFilter] = useState('All');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [connectTool, setConnectTool] = useState<Tool | null>(null);
+  const [connectPrefill, setConnectPrefill] = useState<Record<string, string> | null>(null);
   const [stats, setStats] = useState({ installed: 0, available: 0 });
   const [query, setQuery] = useState('');
   const [popularOnly, setPopularOnly] = useState(false);
@@ -890,6 +894,7 @@ function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
   const onConnected = async () => {
     setConnectTool(null);
+    setConnectPrefill(null);
     onSaved('Connected');
     await load();
   };
@@ -1002,7 +1007,8 @@ function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
                     <ToolCard
                       key={t.id} tool={t}
                       busy={busyId === t.id}
-                      onConnect={() => setConnectTool(t)}
+                      onConnect={() => { setConnectPrefill(null); setConnectTool(t); }}
+                      onEdit={() => { setConnectPrefill(t.credentials_plain || null); setConnectTool(t); }}
                       onDisconnect={() => disconnect(t.id)}
                     />
                   ))}
@@ -1013,15 +1019,21 @@ function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
         )}
       </View>
 
-      <ConnectModal tool={connectTool} onClose={() => setConnectTool(null)} onConnected={onConnected} />
+      <ConnectModal
+        tool={connectTool}
+        prefill={connectPrefill}
+        onClose={() => { setConnectTool(null); setConnectPrefill(null); }}
+        onConnected={onConnected}
+      />
     </Animated.View>
   );
 }
 
-function ToolCard({ tool, busy, onConnect, onDisconnect }: {
-  tool: Tool; busy: boolean; onConnect: () => void; onDisconnect: () => void;
+function ToolCard({ tool, busy, onConnect, onEdit, onDisconnect }: {
+  tool: Tool; busy: boolean; onConnect: () => void; onEdit: () => void; onDisconnect: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [showCreds, setShowCreds] = useState(false);
   const copyWebhook = async () => {
     if (!tool.webhook_url) return;
     try {
@@ -1032,6 +1044,9 @@ function ToolCard({ tool, busy, onConnect, onDisconnect }: {
       }
     } catch {}
   };
+  const credEntries = tool.installed && tool.credentials_masked
+    ? Object.entries(tool.credentials_masked).filter(([_, v]) => v)
+    : [];
   return (
     <View style={s.toolCard}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -1053,23 +1068,49 @@ function ToolCard({ tool, busy, onConnect, onDisconnect }: {
         </View>
       </View>
       <Text style={s.toolDesc} numberOfLines={2}>{tool.description}</Text>
-      {tool.id === 'postal' && tool.installed && tool.webhook_url ? (
-        <Pressable onPress={copyWebhook} style={{ marginTop: 8, padding: 8, borderRadius: 8, backgroundColor: 'rgba(124,58,237,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)' }}>
-          <Text style={{ color: '#C4B5FD', fontFamily: FONTS.semi, fontSize: 10.5, marginBottom: 4 }}>
-            {copied ? 'Copied webhook URL' : 'Tap to copy Postal webhook URL'}
+      {tool.installed && tool.webhook_url ? (
+        <Pressable onPress={copyWebhook} style={{ marginTop: 8, padding: 8, borderRadius: 8, backgroundColor: 'rgba(59,130,246,0.10)', borderWidth: 1, borderColor: 'rgba(96,165,250,0.25)' }}>
+          <Text style={{ color: '#93C5FD', fontFamily: FONTS.semi, fontSize: 10.5, marginBottom: 4 }}>
+            {copied ? 'Copied!' : 'Webhook URL (copy this to the provider dashboard)'}
           </Text>
-          <Text style={{ color: '#94A3B8', fontFamily: FONTS.med, fontSize: 10.5 }}>
-            https://studentalumni.ai/api/webhooks/postal?token=••••
+          <Text style={{ color: '#94A3B8', fontFamily: FONTS.med, fontSize: 10 }} numberOfLines={1}>
+            {tool.webhook_url}
           </Text>
         </Pressable>
       ) : null}
-      <View style={{ flex: 1 }} />
-      {tool.installed ? (
-        <Pressable onPress={onDisconnect} disabled={busy} style={[s.toolBtnSec, busy && { opacity: 0.5 }]}>
-          {busy ? <ActivityIndicator size="small" color={SAC.muted} /> : (
-            <Text style={s.toolBtnSecText}>Disconnect</Text>
+      {credEntries.length > 0 && (
+        <Pressable
+          onPress={() => setShowCreds(!showCreds)}
+          style={{ marginTop: 8, padding: 8, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.border }}
+        >
+          <Text style={{ color: SAC.muted, fontFamily: FONTS.semi, fontSize: 10.5 }}>
+            {showCreds ? 'Hide saved credentials' : 'View saved credentials'}
+          </Text>
+          {showCreds && (
+            <View style={{ marginTop: 8, gap: 4 }}>
+              {credEntries.map(([key, val]) => (
+                <View key={key} style={{ flexDirection: 'row', gap: 8 }}>
+                  <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10, minWidth: 110 }}>{key.replace(/_/g, ' ')}</Text>
+                  <Text style={{ color: '#E2E8F0', fontFamily: FONTS.med, fontSize: 10, flex: 1 }} numberOfLines={1}>{val}</Text>
+                </View>
+              ))}
+            </View>
           )}
         </Pressable>
+      )}
+      <View style={{ flex: 1 }} />
+      {tool.installed ? (
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+          <Pressable onPress={onEdit} disabled={busy} style={[s.toolBtnSec, { flex: 1 }, busy && { opacity: 0.5 }]}>
+            <Pencil size={12} color={SAC.muted} />
+            <Text style={s.toolBtnSecText}>Edit</Text>
+          </Pressable>
+          <Pressable onPress={onDisconnect} disabled={busy} style={[s.toolBtnSec, { flex: 1 }, busy && { opacity: 0.5 }]}>
+            {busy ? <ActivityIndicator size="small" color={SAC.muted} /> : (
+              <Text style={s.toolBtnSecText}>Disconnect</Text>
+            )}
+          </Pressable>
+        </View>
       ) : (
         <Pressable onPress={onConnect} disabled={busy} style={[{ marginTop: 10 }, busy && { opacity: 0.5 }]}>
           <LinearGradient colors={[GRAD_FROM, GRAD_TO]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.toolBtnGrad}>
@@ -1091,8 +1132,8 @@ function ToolCard({ tool, busy, onConnect, onDisconnect }: {
   );
 }
 
-function ConnectModal({ tool, onClose, onConnected }: {
-  tool: Tool | null; onClose: () => void; onConnected: () => void;
+function ConnectModal({ tool, prefill, onClose, onConnected }: {
+  tool: Tool | null; prefill: Record<string, string> | null; onClose: () => void; onConnected: () => void;
 }) {
   const [creds, setCreds] = useState<Record<string, string>>({});
   const [showSecret, setShowSecret] = useState<Record<string, boolean>>({});
@@ -1103,10 +1144,17 @@ function ConnectModal({ tool, onClose, onConnected }: {
 
   useEffect(() => {
     if (tool) {
+      // Pre-fill the form with previously saved (non-password) credential values
+      // when editing an already-connected tool, so the admin can see/review them.
       const next: Record<string, string> = {};
+      if (prefill) {
+        for (const [k, v] of Object.entries(prefill)) {
+          if (v) next[k] = v;
+        }
+      }
       setCreds(next); setError(null); setShowSecret({}); setTest(null);
     }
-  }, [tool]);
+  }, [tool, prefill]);
 
   if (!tool) return null;
 
@@ -1147,7 +1195,7 @@ function ConnectModal({ tool, onClose, onConnected }: {
               <MaterialCommunityIcons name={tool.icon as any} size={24} color={tool.tint} />
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.modalTitle}>Connect {tool.name}</Text>
+              <Text style={s.modalTitle}>{prefill ? `Edit ${tool.name}` : `Connect ${tool.name}`}</Text>
               <Text style={s.modalSub}>{tool.description}</Text>
             </View>
             <Pressable onPress={onClose} style={s.modalClose}><X size={16} color={SAC.muted} /></Pressable>
@@ -1169,12 +1217,21 @@ function ConnectModal({ tool, onClose, onConnected }: {
                 </Text>
               </View>
             ) : null}
+            {prefill ? (
+              <View style={s.helpBox}>
+                <Text style={s.helpText}>
+                  Reviewing the saved {tool.name} credentials. Password/secret fields are hidden —
+                  leave one blank to keep the saved value, or type a new one to replace it.
+                </Text>
+              </View>
+            ) : null}
 
             {fields.length === 0 ? (
               <Text style={s.muted}>No credentials required — click Connect to enable.</Text>
             ) : fields.map((f) => {
               const isPwd = f.type === 'password';
               const show = !!showSecret[f.key];
+              const isSavedPwd = isPwd && prefill && !creds[f.key];
               return (
                 <View key={f.key} style={{ gap: 6 }}>
                   <Text style={s.modalLabel}>{f.label}</Text>
@@ -1182,7 +1239,7 @@ function ConnectModal({ tool, onClose, onConnected }: {
                     <TextInput
                       value={creds[f.key] || ''}
                       onChangeText={(v) => setCreds({ ...creds, [f.key]: v })}
-                      placeholder={f.placeholder || ''}
+                      placeholder={isSavedPwd ? 'Saved (leave blank to keep)' : (f.placeholder || '')}
                       placeholderTextColor={SAC.dim}
                       secureTextEntry={isPwd && !show}
                       autoCapitalize="none"
@@ -1195,7 +1252,8 @@ function ConnectModal({ tool, onClose, onConnected }: {
                       </Pressable>
                     )}
                   </View>
-                  {f.help && <Text style={s.helpInline}>{f.help}</Text>}
+                  {isSavedPwd && <Text style={s.helpInline}>Currently saved — blank keeps it, or enter a new value to change.</Text>}
+                  {!isSavedPwd && f.help && <Text style={s.helpInline}>{f.help}</Text>}
                 </View>
               );
             })}
@@ -1231,7 +1289,7 @@ function ConnectModal({ tool, onClose, onConnected }: {
             </Pressable>
             <GradientButton onPress={submit} loading={busy}>
               <Plug size={13} color="#fff" />
-              <Text style={s.primaryBtnText}>Connect {tool.name}</Text>
+              <Text style={s.primaryBtnText}>{prefill ? 'Save changes' : `Connect ${tool.name}`}</Text>
             </GradientButton>
           </View>
         </Animated.View>
@@ -1268,7 +1326,7 @@ function RolesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       super_admin:  '#FB923C', // orange
       platform_admin: '#3B82F6', // blue
       college_admin:'#10B981', // green
-      support:      '#A78BFA', // purple
+      support:      '#60A5FA', // purple
       mentor:       '#06B6D4', // cyan
     };
     return palette[key] || '#94A3B8';
@@ -1649,7 +1707,7 @@ function DeleteRoleModal({ role, onClose, onDeleted }: {
           </View>
           <View style={{ padding: 20, gap: 10 }}>
             <Text style={s.modalLabel}>
-              You're about to delete <Text style={{ color: '#fff', fontFamily: FONTS.xbold }}>{role.name}</Text>.
+              You're about to delete <Text style={{ color: SAC.text, fontFamily: FONTS.xbold }}>{role.name}</Text>.
             </Text>
             <Text style={s.muted}>
               {role.user_count > 0
@@ -2224,7 +2282,7 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   {analysis.locations.slice(0, 4).map((loc: any, i: number) => (
                     <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }}>
                       <Globe size={11} color={SAC.muted} />
-                      <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 12 }}>{[loc.city, loc.country].filter(Boolean).join(', ') || 'Unknown'}</Text>
+                      <Text style={{ color: SAC.text, fontFamily: FONTS.med, fontSize: 12 }}>{[loc.city, loc.country].filter(Boolean).join(', ') || 'Unknown'}</Text>
                       <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 }}>{loc.count} session{loc.count === 1 ? '' : 's'}</Text>
                     </View>
                   ))}
@@ -2244,7 +2302,7 @@ function MiniStat({ icon: Icon, label, value }: { icon: any; label: string; valu
       <Icon size={12} color={GRAD_TO} />
       <View>
         <Text style={{ color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.6 }}>{label.toUpperCase()}</Text>
-        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 }}>{value}</Text>
+        <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13 }}>{value}</Text>
       </View>
     </View>
   );
@@ -2478,7 +2536,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
       <View style={s.featGrid}>
         <FeatureCard icon={ShieldCheck} tint={SAC.green}    title="Verified Identity"   text="Your admin status is verified by the platform." />
         <FeatureCard icon={Building2}   tint="#3B82F6"      title="Platform Authority"  text={`Recognised across all ${data.colleges_count || 48} colleges.`} />
-        <FeatureCard icon={QrCode}      tint="#A78BFA"      title="Instant Share"       text="Share QR at events or board meetings." />
+        <FeatureCard icon={QrCode}      tint="#60A5FA"      title="Instant Share"       text="Share QR at events or board meetings." />
         <FeatureCard icon={Lock}        tint={GRAD_TO}      title="Secure Access"       text="Cryptographically signed and tamper-proof." />
       </View>
     </Animated.View>
@@ -2527,7 +2585,7 @@ function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
             <ArrowLeft size={16} color="#fff" />
             <Text style={s.linkBtnText}>Back</Text>
           </Pressable>
-          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 }}>{editing.title}</Text>
+          <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 18 }}>{editing.title}</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Text style={{ color: '#94a3b8', fontFamily: FONTS.med, fontSize: 12 }}>Route: {editing.route}</Text>
@@ -2596,7 +2654,7 @@ function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
         {pages.map((p) => (
           <View key={p.key} style={s.toolCard}>
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 }}>{p.title}</Text>
+              <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 14 }}>{p.title}</Text>
               <Text style={{ color: '#64748b', fontFamily: FONTS.med, fontSize: 11 }}>{p.route}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: p.active ? '#22c55e' : '#ef4444' }} />
@@ -2813,9 +2871,9 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
         <BrandingField label="Website" value={website} onChange={setWebsite} placeholder="https://studentalumni.ai" />
 
         <Pressable onPress={save} disabled={saving} style={{
-          backgroundColor: '#7C3AED', borderRadius: 10, paddingVertical: 14, alignItems: 'center', cursor: 'pointer', opacity: saving ? 0.6 : 1,
+          backgroundColor: '#2563EB', borderRadius: 10, paddingVertical: 14, alignItems: 'center', cursor: 'pointer', opacity: saving ? 0.6 : 1,
         }}>
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#fff' }}>{saving ? 'Saving...' : 'Save Branding'}</Text>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>{saving ? 'Saving...' : 'Save Branding'}</Text>
         </Pressable>
       </Card>
     </View>
@@ -2828,7 +2886,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [defaultTemplate, setDefaultTemplate] = useState('aurora');
   const [invoiceTemplate, setInvoiceTemplate] = useState('modern');
   const [emailStyle, setEmailStyle] = useState('modern');
-  const [brandColor, setBrandColor] = useState('#7C3AED');
+  const [brandColor, setBrandColor] = useState('#2563EB');
   const [brandName, setBrandName] = useState('Student Alumni');
   const [emailFooter, setEmailFooter] = useState('Student Alumni Cell — Empowering the next generation of leaders.');
   const [saving, setSaving] = useState(false);
@@ -2848,7 +2906,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           setDefaultTemplate(d.default_ticket_template || 'aurora');
           setInvoiceTemplate(d.default_invoice_template || 'modern');
           setEmailStyle(d.default_email_style || 'modern');
-          setBrandColor(d.email_brand_color || '#7C3AED');
+          setBrandColor(d.email_brand_color || '#2563EB');
           setBrandName(d.brand_name || 'Student Alumni');
           setEmailFooter(d.email_footer || '');
         }
@@ -2911,24 +2969,24 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
         {options.map((tpl) => (
           <Pressable key={tpl.id} onPress={() => onChange(tpl.id)} style={{
             width: 160, borderRadius: 10, borderWidth: 2,
-            borderColor: value === tpl.id ? '#7C3AED' : 'rgba(255,255,255,0.08)',
-            backgroundColor: value === tpl.id ? 'rgba(124,58,237,0.08)' : 'rgba(255,255,255,0.02)',
+            borderColor: value === tpl.id ? '#2563EB' : 'rgba(255,255,255,0.08)',
+            backgroundColor: value === tpl.id ? 'rgba(37,99,235,0.08)' : 'rgba(255,255,255,0.02)',
             padding: 14, cursor: 'pointer',
           }}>
             <View style={{ height: 6, borderRadius: 3, marginBottom: 10, background: tpl.gradient }} />
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: value === tpl.id ? '#C4B5FD' : '#e2e8f0' }}>{tpl.name}</Text>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: value === tpl.id ? '#93C5FD' : '#e2e8f0' }}>{tpl.name}</Text>
             <Text style={{ fontFamily: FONTS.medium, fontSize: 11, color: '#64748b', marginTop: 3 }}>{tpl.desc}</Text>
           </Pressable>
         ))}
       </View>
       <Pressable onPress={() => fetchPreview(previewType, value)} style={{
         flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
-        backgroundColor: 'rgba(124,58,237,0.12)', borderRadius: 8,
-        paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
+        backgroundColor: 'rgba(37,99,235,0.12)', borderRadius: 8,
+        paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(37,99,235,0.25)',
         cursor: 'pointer', marginTop: 4,
       }}>
-        <Eye size={13} color="#A78BFA" />
-        <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: '#C4B5FD' }}>Preview Template</Text>
+        <Eye size={13} color="#60A5FA" />
+        <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: '#93C5FD' }}>Preview Template</Text>
       </Pressable>
     </View>
   );
@@ -2951,10 +3009,10 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
         {subTabs.map((t) => (
           <Pressable key={t.id} onPress={() => setSubTab(t.id)} style={{
             paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, borderWidth: 1, cursor: 'pointer',
-            borderColor: subTab === t.id ? '#7C3AED' : 'rgba(255,255,255,0.08)',
-            backgroundColor: subTab === t.id ? 'rgba(124,58,237,0.12)' : 'rgba(255,255,255,0.02)',
+            borderColor: subTab === t.id ? '#2563EB' : 'rgba(255,255,255,0.08)',
+            backgroundColor: subTab === t.id ? 'rgba(37,99,235,0.12)' : 'rgba(255,255,255,0.02)',
           }}>
-            <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: subTab === t.id ? '#C4B5FD' : '#94a3b8' }}>{t.label}</Text>
+            <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: subTab === t.id ? '#93C5FD' : '#94a3b8' }}>{t.label}</Text>
           </Pressable>
         ))}
       </View>
@@ -2976,7 +3034,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>Invoice Templates</Text>
           <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8' }}>Default invoice style for paid registrations.</Text>
           <TemplatePicker label="Default Invoice" previewType="invoice" value={invoiceTemplate} onChange={setInvoiceTemplate} options={[
-            { id: 'modern', name: 'Modern', desc: 'Gradient header, card layout', gradient: 'linear-gradient(135deg,#7C3AED,#5B21B6)' },
+            { id: 'modern', name: 'Modern', desc: 'Gradient header, card layout', gradient: 'linear-gradient(135deg,#2563EB,#1E40AF)' },
             { id: 'minimal', name: 'Minimal', desc: 'Clean white, thin borders', gradient: 'linear-gradient(135deg,#f8fafc,#e2e8f0)' },
             { id: 'classic', name: 'Classic', desc: 'Dark header, traditional', gradient: 'linear-gradient(135deg,#0f172a,#1e293b)' },
           ]} />
@@ -2988,7 +3046,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>Email Templates</Text>
           <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8' }}>Style for transactional emails.</Text>
           <TemplatePicker label="Email Style" previewType="pass" value={emailStyle} onChange={setEmailStyle} options={[
-            { id: 'modern', name: 'Modern', desc: 'Purple gradient header', gradient: 'linear-gradient(135deg,#7C3AED,#5B21B6)' },
+            { id: 'modern', name: 'Modern', desc: 'Purple gradient header', gradient: 'linear-gradient(135deg,#2563EB,#1E40AF)' },
             { id: 'minimal', name: 'Minimal', desc: 'Clean, no gradient', gradient: 'linear-gradient(135deg,#f8fafc,#e2e8f0)' },
             { id: 'professional', name: 'Professional', desc: 'Dark header, corporate', gradient: 'linear-gradient(135deg,#0f172a,#334155)' },
           ]} />
@@ -3017,7 +3075,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <input type="color" value={brandColor} onChange={(e: any) => setBrandColor(e.target.value)}
                 style={{ width: 44, height: 40, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'transparent' }} />
-              <TextInput value={brandColor} onChangeText={setBrandColor} placeholder="#7C3AED"
+              <TextInput value={brandColor} onChangeText={setBrandColor} placeholder="#2563EB"
                 placeholderTextColor="#475569"
                 style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 12, color: '#e2e8f0', fontFamily: FONTS.medium, fontSize: 13 }} />
             </View>
@@ -3032,9 +3090,9 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       )}
 
       <Pressable onPress={save} disabled={saving} style={{
-        backgroundColor: '#7C3AED', borderRadius: 10, paddingVertical: 14, alignItems: 'center', cursor: 'pointer', opacity: saving ? 0.6 : 1,
+        backgroundColor: '#2563EB', borderRadius: 10, paddingVertical: 14, alignItems: 'center', cursor: 'pointer', opacity: saving ? 0.6 : 1,
       }}>
-        <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#fff' }}>{saving ? 'Saving...' : 'Save All Settings'}</Text>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>{saving ? 'Saving...' : 'Save All Settings'}</Text>
       </Pressable>
     </View>
   );
@@ -3091,7 +3149,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10,
   },
-  tabActiveText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  tabActiveText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12.5 },
   tabInactive: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10,
@@ -3106,7 +3164,7 @@ const s = StyleSheet.create({
   cardHeadRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
   },
-  cardTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  cardTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
   cardSub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   sectionLabel: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.8 },
 
@@ -3124,11 +3182,11 @@ const s = StyleSheet.create({
     width: 72, height: 72, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 24 },
-  h1: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 },
+  avatarText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 24 },
+  h1: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 18 },
   subtle: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5 },
   pillGrad: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
-  pillGradText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.4 },
+  pillGradText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.4 },
   pillGreen: { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: 'rgba(16,185,129,0.30)', borderWidth: 1, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
   pillGreenText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 10.5 },
   pillNeutral: { backgroundColor: SAC.cardSolid, borderColor: SAC.border, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
@@ -3136,16 +3194,16 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}),
   },
   label: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
-  valueText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  valueText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13 },
   valueGrad: { color: GRAD_TO, fontFamily: FONTS.xbold, fontSize: 12.5 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   dotGreen: { width: 8, height: 8, borderRadius: 4, backgroundColor: SAC.green },
 
   fieldRow: { flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: 'space-between' },
   fieldLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12, width: 130 },
-  fieldValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 13, flex: 1, textAlign: 'right' },
+  fieldValue: { color: SAC.text, fontFamily: FONTS.med, fontSize: 13, flex: 1, textAlign: 'right' },
   input: {
-    color: '#fff', fontFamily: FONTS.med, fontSize: 13,
+    color: SAC.text, fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
     paddingHorizontal: 12, paddingVertical: 10, flex: 1,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
@@ -3161,7 +3219,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 11, paddingHorizontal: 4,
   },
-  toggleTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13, flex: 1, marginRight: 8 },
+  toggleTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13, flex: 1, marginRight: 8 },
   toggleDesc: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   systemRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -3187,7 +3245,7 @@ const s = StyleSheet.create({
   // Picker Modal
   pickerBackdrop: {
     position: 'fixed', inset: 0, zIndex: 1000,
-    backgroundColor: 'rgba(0,0,0,0.60)',
+    backgroundColor: SAC.panel2,
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
@@ -3207,7 +3265,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.30)',
     alignItems: 'center', justifyContent: 'center',
   },
-  pickerTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  pickerTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
   pickerSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   credentialBody: {
     padding: 16,
@@ -3245,7 +3303,7 @@ const s = StyleSheet.create({
   credentialInput: {
     flex: 1,
     minWidth: 0,
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 14,
     fontFamily: FONTS.med,
     paddingVertical: 10,
@@ -3317,7 +3375,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 8,
   },
   searchInput: {
-    flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 13,
+    flex: 1, color: SAC.text, fontFamily: FONTS.med, fontSize: 13,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   popularToggle: {
@@ -3337,7 +3395,7 @@ const s = StyleSheet.create({
     borderRadius: 14, borderWidth: 1, borderColor: SAC.border,
     backgroundColor: SAC.cardSolid,
   },
-  emptyTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
+  emptyTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 14 },
   emptySub: {
     color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center',
     maxWidth: 360, lineHeight: 17,
@@ -3365,7 +3423,7 @@ const s = StyleSheet.create({
   },
   catPillActive: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, marginRight: 6 },
   catPillText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
-  catPillActiveText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 },
+  catPillActiveText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 11.5 },
   catLabel: { color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.6, marginBottom: 10 },
   toolGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   toolCard: {
@@ -3375,13 +3433,13 @@ const s = StyleSheet.create({
   toolIcon: {
     width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1,
   },
-  toolName: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  toolName: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13 },
   toolDesc: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 10, lineHeight: 15.5, minHeight: 30 },
   toolBtnGrad: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     paddingVertical: 8, borderRadius: 8,
   },
-  toolBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  toolBtnText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12 },
   toolBtnSec: {
     marginTop: 10, alignItems: 'center', justifyContent: 'center',
     paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: SAC.border,
@@ -3404,7 +3462,7 @@ const s = StyleSheet.create({
     position: 'absolute', top: 10, right: 10,
     paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5,
   },
-  popPillText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 8.5, letterSpacing: 0.6 },
+  popPillText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 8.5, letterSpacing: 0.6 },
 
   // Roles
   roleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 16 },
@@ -3418,7 +3476,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   roleBadgeText: { fontFamily: FONTS.xbold, fontSize: 13.5 },
-  roleName: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5 },
+  roleName: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13.5 },
   permLine: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, flex: 1 },
   sysPill: { backgroundColor: 'rgba(251,146,60,0.16)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(251,146,60,0.40)' },
   sysPillText: { color: '#FB923C', fontFamily: FONTS.xbold, fontSize: 8.5, letterSpacing: 0.8 },
@@ -3460,7 +3518,7 @@ const s = StyleSheet.create({
   revokeBtnText: { color: SAC.red, fontFamily: FONTS.xbold, fontSize: 11 },
   logRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 4 },
   logDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: GRAD_TO, marginTop: 5 },
-  logAction: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  logAction: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
 
   trustBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -3496,7 +3554,7 @@ const s = StyleSheet.create({
   idFlipHint: { color: 'rgba(31,17,7,0.7)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.3 },
   idFlipHintDark: { color: 'rgba(251,191,36,0.7)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.3 },
   flipOrg: { color: 'rgba(251,191,36,0.9)', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 2, textAlign: 'center' },
-  flipTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, textAlign: 'center' },
+  flipTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, textAlign: 'center' },
   flipSub: { color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 2 },
   flipDataLabel: { color: 'rgba(251,191,36,0.7)', fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 1.4 },
   flipQrData: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.5, textAlign: 'center' },
@@ -3506,21 +3564,21 @@ const s = StyleSheet.create({
     backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
-  idActionText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  idActionText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12 },
   featGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
   featCard: {
     flex: 1, minWidth: 220, padding: 16, borderRadius: 12,
     backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.border, gap: 8,
   },
   featIcon: { width: 34, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  featTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  featTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13 },
 
   // Primary buttons
   primaryBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9,
   },
-  primaryBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  primaryBtnText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12 },
   secondaryBtn: {
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9,
     borderWidth: 1, borderColor: SAC.border, backgroundColor: 'transparent',
@@ -3535,7 +3593,7 @@ const s = StyleSheet.create({
 
   // Modals
   modalBackdrop: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
+    flex: 1, backgroundColor: SAC.panel2,
     alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
@@ -3553,7 +3611,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  modalTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
   modalSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   modalClose: { width: 28, height: 28, borderRadius: 7, alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
@@ -3593,7 +3651,7 @@ const s = StyleSheet.create({
     padding: 14, marginTop: 14, gap: 2,
   },
   sigPreviewLine:      { color: SAC.text,  fontFamily: FONTS.med,   fontSize: 12.5, lineHeight: 17 },
-  sigPreviewLineFirst: { color: '#fff',    fontFamily: FONTS.xbold, fontSize: 13 },
+  sigPreviewLineFirst: { color: SAC.text,    fontFamily: FONTS.xbold, fontSize: 13 },
   sigEditor: {
     minHeight: 130, paddingHorizontal: 12, paddingTop: 10,
     color: SAC.text, fontFamily: FONTS.med, fontSize: 13,
@@ -3620,7 +3678,7 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   roleDetailBackText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
-  roleDetailTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 },
+  roleDetailTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 18 },
   roleDetailSub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   roleStatRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 14 },
   roleStat: {
@@ -3629,7 +3687,7 @@ const s = StyleSheet.create({
     paddingVertical: 12, paddingHorizontal: 14,
   },
   roleStatLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.4 },
-  roleStatValue: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, marginTop: 4 },
+  roleStatValue: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 22, marginTop: 4 },
   roleUserRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     padding: 11, borderRadius: 10, backgroundColor: SAC.cardSolid,
@@ -3653,7 +3711,7 @@ const previewStyles = StyleSheet.create({
     overflow: 'hidden',
   },
   title: {
-    color: '#fff',
+    color: SAC.text,
     fontFamily: 'DMSans_700Bold, DMSansBold, sans-serif',
     fontSize: 26,
     paddingHorizontal: 24,

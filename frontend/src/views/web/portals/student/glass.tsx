@@ -47,6 +47,16 @@ export function AnimatedAurora({ intensity = 'normal' }: {
 @keyframes orbA { 0%{transform:translate(0,0)} 50%{transform:translate(15vw,10vh)} 100%{transform:translate(0,0)} }
 @keyframes orbB { 0%{transform:translate(0,0)} 50%{transform:translate(-18vw,12vh)} 100%{transform:translate(0,0)} }
 @keyframes orbC { 0%{transform:translate(0,0)} 50%{transform:translate(12vw,-10vh)} 100%{transform:translate(0,0)} }
+@keyframes db-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes db-sweep { 0% { transform: translateX(-30%) rotate(8deg); } 100% { transform: translateX(30%) rotate(8deg); } }
+@keyframes db-lockshine { 0% { transform: translateX(-140%) skewX(-16deg); } 60%, 100% { transform: translateX(260%) skewX(-16deg); } }
+@keyframes db-fab { 0%, 100% { box-shadow: 0 0 0 0 rgba(124,92,252,.36); } 50% { box-shadow: 0 0 0 12px rgba(124,92,252,0); } }
+@keyframes db-dot { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+@keyframes db-flame { 0%, 100% { transform: scale(1) rotate(-3deg); } 50% { transform: scale(1.12) rotate(3deg); } }
+@keyframes db-tilein { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes db-marq { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes db-aurora1 { 0%, 100% { transform: translate3d(-6%, 0, 0) rotate(-8deg); } 50% { transform: translate3d(10%, 4%, 0) rotate(-2deg); } }
+@keyframes db-aurora2 { 0%, 100% { transform: translate3d(8%, 2%, 0) rotate(6deg); } 50% { transform: translate3d(-8%, -3%, 0) rotate(12deg); } }
         `}</style>
         <View style={[a.orb, {
           top: '-12%', left: '-10%', width: 540, height: 540,
@@ -177,9 +187,9 @@ export function GlassCard({
   useEffect(() => {
     Animated.parallel([
       Animated.timing(opacity, { toValue: 1, duration: 350,
-        delay, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        delay, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
       Animated.timing(ty,      { toValue: 0, duration: 350,
-        delay, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        delay, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
   }, [delay, opacity, ty]);
 
@@ -198,7 +208,7 @@ export function GlassCard({
     Object.assign(base, {
       backdropFilter: `blur(${blurAmount}px) saturate(180%)`,
       WebkitBackdropFilter: `blur(${blurAmount}px) saturate(180%)`,
-      boxShadow: glow || hover ? PALETTE.violetGlow : PALETTE.glassShadow,
+      boxShadow: PALETTE.violetGlow,
       transitionProperty: 'transform, box-shadow, border-color',
       transitionDuration: '220ms',
       transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
@@ -467,7 +477,7 @@ const gb = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 7, borderRadius: 999,
   },
-  label: { color: '#fff', fontFamily: TYPO.body700, letterSpacing: 0.2 },
+  label: { color: '#1C1C1E', fontFamily: TYPO.body700, letterSpacing: 0.2 },
 });
 
 /* ─────────────────────────────────────────────────────────────────
@@ -508,9 +518,9 @@ export function AiCopilotFab({
   useEffect(() => {
     Animated.parallel([
       Animated.timing(opacity, { toValue: 1, duration: 380, delay: 220,
-        easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
       Animated.timing(ty, { toValue: 0, duration: 380, delay: 220,
-        easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
   }, [opacity, ty]);
 
@@ -559,7 +569,7 @@ export function AiCopilotFab({
               } as any),
             ]}
           >
-            <Text style={fab.spark}>✦</Text>
+            <Text style={fab.spark}>·</Text>
             <Text style={fab.label}>{label}</Text>
           </LinearGradient>
         </View>
@@ -591,14 +601,14 @@ const fab = StyleSheet.create({
     paddingHorizontal: 22,
     borderRadius: 9999,
   },
-  spark: { color: '#fff', fontSize: 18, fontFamily: TYPO.display700, lineHeight: 22 },
-  label: { color: '#fff', fontSize: 14, fontFamily: TYPO.body700, letterSpacing: 0.3 },
+  spark: { color: '#1C1C1E', fontSize: 18, fontFamily: TYPO.display700, lineHeight: 22 },
+  label: { color: '#1C1C1E', fontSize: 14, fontFamily: TYPO.body700, letterSpacing: 0.3 },
 });
 
 import { GlobalTopProgressBar } from '../../components/AppLoader';
 
 /* ─────────────────────────────────────────────────────────────────
- * RouteTransition — fade + 6px y-shift wrapper + top glowing progress bar.
+ * RouteTransition — fade + 100px y-shift motion slide + top glowing progress bar.
  *                   Wrap each view's root with this.
  * ───────────────────────────────────────────────────────────────── */
 export function RouteTransition({ children, deps = [] }: {
@@ -606,17 +616,26 @@ export function RouteTransition({ children, deps = [] }: {
   deps?: any[];
 }) {
   const opacity = useRef(new Animated.Value(0)).current;
-  const ty = useRef(new Animated.Value(6)).current;
+  const ty = useRef(new Animated.Value(100)).current;
   const [navigating, setNavigating] = React.useState(false);
 
   useEffect(() => {
     setNavigating(true);
-    opacity.setValue(0); ty.setValue(6);
+    opacity.setValue(0);
+    ty.setValue(100);
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 280,
-        easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(ty,      { toValue: 0, duration: 280,
-        easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.timing(ty, {
+        toValue: 0,
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: Platform.OS !== 'web',
+      }),
     ]).start(() => {
       setNavigating(false);
     });
@@ -642,7 +661,7 @@ export function glassStyle(opts: { strong?: boolean; blur?: number } = {}) {
       borderColor: PALETTE.glassBorder,
       backdropFilter: `blur(${blur}px) saturate(180%)`,
       WebkitBackdropFilter: `blur(${blur}px) saturate(180%)`,
-      boxShadow: PALETTE.glassShadow,
+      boxShadow: PALETTE.violetGlow,
     } as any;
   }
   return {
@@ -666,10 +685,10 @@ export function glassStyle(opts: { strong?: boolean; blur?: number } = {}) {
 type StatusTone = 'success' | 'warning' | 'danger' | 'neutral';
 
 const STATUS_PALETTE: Record<StatusTone, { bg: string; fg: string; bd: string }> = {
-  success: { bg: 'rgba(16,185,129,0.10)', fg: '#34D399', bd: 'rgba(16,185,129,0.20)' },
-  warning: { bg: 'rgba(245,158,11,0.10)', fg: '#FBBF24', bd: 'rgba(245,158,11,0.20)' },
-  danger:  { bg: 'rgba(239,68,68,0.10)',  fg: '#F87171', bd: 'rgba(239,68,68,0.20)'  },
-  neutral: { bg: 'rgba(255,255,255,0.05)', fg: 'rgba(255,255,255,0.70)', bd: 'rgba(255,255,255,0.10)' },
+  success: { bg: 'rgba(16,185,129,0.12)', fg: '#059669', bd: 'rgba(16,185,129,0.25)' },
+  warning: { bg: 'rgba(245,158,11,0.12)', fg: '#D97706', bd: 'rgba(245,158,11,0.25)' },
+  danger:  { bg: 'rgba(239,68,68,0.12)',  fg: '#DC2626', bd: 'rgba(239,68,68,0.25)'  },
+  neutral: { bg: '#F1F5F9',               fg: '#475569', bd: 'rgba(203,213,225,0.8)' },
 };
 
 export function StatusChip({
@@ -703,7 +722,7 @@ export function StatusChip({
 /* ─────────────────────────────────────────────────────────────────
  * Kicker — uppercase eyebrow label. The spec calls it the
  *          "hierarchy label" — text-xs font-semibold tracking-[0.2em]
- *          uppercase text-white/50. Use ABOVE section/card titles.
+ *          uppercase. Use ABOVE section/card titles.
  *
  *   <Kicker>Today's brief</Kicker>
  *   <h2>Your career intelligence</h2>
@@ -711,7 +730,7 @@ export function StatusChip({
 export function Kicker({ children, color }: { children: React.ReactNode; color?: string }) {
   return (
     <Text style={{
-      color: color ?? 'rgba(255,255,255,0.50)',
+      color: color ?? '#2563EB',
       fontFamily: TYPO.body600,
       fontSize: 11,
       letterSpacing: 2.4,                // ~0.2em on 12px

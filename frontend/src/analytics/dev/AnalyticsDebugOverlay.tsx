@@ -101,7 +101,7 @@ export const AnalyticsDebugOverlay: React.FC = () => {
           }}
         >
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e' }} />
-          ✨ Analytics ({events.length})
+          Analytics ({events.length})
         </button>
       ) : (
         <div
@@ -131,7 +131,7 @@ export const AnalyticsDebugOverlay: React.FC = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontWeight: 'bold', fontSize: 13, color: '#38bdf8' }}>
-                ✨ Analytics Debugger
+                Analytics Debugger
               </span>
               <span
                 style={{
@@ -160,7 +160,7 @@ export const AnalyticsDebugOverlay: React.FC = () => {
                   cursor: 'pointer',
                 }}
               >
-                {copied ? '✓ Copied' : 'Copy JSON'}
+                {copied ? 'Copied' : 'Copy JSON'}
               </button>
               <button
                 onClick={handleClear}
@@ -363,7 +363,7 @@ export const AnalyticsDebugOverlay: React.FC = () => {
               /* Summary Tab */
               <div style={{ padding: 8, fontSize: 12, lineHeight: 1.6 }}>
                 <div style={{ background: '#1e293b', padding: 10, borderRadius: 6, marginBottom: 8 }}>
-                  <div style={{ color: '#94a3b8', fontSize: 10, uppercase: true }}>Session ID</div>
+                  <div style={{ color: '#94a3b8', fontSize: 10, textTransform: 'uppercase' }}>Session ID</div>
                   <div style={{ fontFamily: 'monospace', color: '#38bdf8', fontSize: 11 }}>{getSessionId()}</div>
                 </div>
 

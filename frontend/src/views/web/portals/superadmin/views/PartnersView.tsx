@@ -28,7 +28,7 @@ import {
   GraduationCap, Building2, Sparkles, GripVertical, AlertTriangle, Eye, EyeOff,
   ImagePlus, RefreshCw, Search,
 } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   TopTabs, SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox,
@@ -54,7 +54,7 @@ type Partner = {
 };
 
 const CAT_META: Record<PartnerCategory, { label: string; color: string; Icon: any }> = {
-  college: { label: 'Academic',       color: '#A78BFA', Icon: GraduationCap },
+  college: { label: 'Academic',       color: '#60A5FA', Icon: GraduationCap },
   company: { label: 'Collaboration',  color: '#3B82F6', Icon: Building2 },
   sponsor: { label: 'Sponsor',        color: '#F59E0B', Icon: Sparkles },
 };
@@ -71,6 +71,8 @@ type TabId = (typeof TAB_OPTIONS)[number]['id'];
  * Root
  * ────────────────────────────────────────────────────────────────── */
 export function PartnersView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   const { toast, flash, hide } = useToast();
   const [partners, setPartners] = useState<Partner[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -725,10 +727,10 @@ function LogoPicker({
  * ────────────────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
   sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
-  btnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
 
   filtersRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' as any },
@@ -779,7 +781,7 @@ const s = StyleSheet.create({
   },
   logoImg: { width: '100%', height: '100%' },
 
-  name: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5 },
+  name: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13.5 },
   metaLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   catBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -818,7 +820,7 @@ const s = StyleSheet.create({
 
   /* modal */
   modalBg: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
+    flex: 1, backgroundColor: SAC.panel2,
     alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
@@ -832,10 +834,10 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
 
   input: {
-    color: '#fff', fontFamily: FONTS.med, fontSize: 13,
+    color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
     paddingHorizontal: 12, paddingVertical: 10,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
@@ -873,13 +875,13 @@ const s = StyleSheet.create({
     borderColor: SAC.border2, backgroundColor: SAC.cardSolid,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  logoDropDark: { backgroundColor: 'rgba(0,0,0,0.35)' },
+  logoDropDark: { backgroundColor: SAC.panel2 },
   logoDropIcon: {
     width: 42, height: 42, borderRadius: 10,
     backgroundColor: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
-  logoDropTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  logoDropTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13 },
 
   logoPreview: {
     flexDirection: 'row', alignItems: 'center', gap: 12,

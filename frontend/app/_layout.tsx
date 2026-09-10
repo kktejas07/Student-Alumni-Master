@@ -26,11 +26,14 @@ import { ActivityIndicator, LogBox, Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { PaperProvider, MD3LightTheme, configureFonts } from 'react-native-paper';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { Colors } from '@/src/theme';
 import { ToastProvider, ConfirmProvider } from '@/src/views/components';
+import { SAModernLoader } from '@/src/views/components/SAModernLoader';
+import { GlobalTopProgressBar } from '@/src/views/web/components/AppLoader';
+import '@/src/views/web/components/UniversalMotionTransition';
 import analytics, { AnalyticsRoot, AnalyticsErrorBoundary } from '@/src/analytics';
 import { AgentKQuickLauncher } from '@/src/views/web/agent-k/AgentKQuickLauncher';
 import { ConsentBanner } from '@/src/views/web/consent/ConsentBanner';
@@ -38,14 +41,40 @@ import { TourProvider } from '@/src/views/web/tour/TourProvider';
 import { TourOverlay } from '@/src/views/web/tour/TourOverlay';
 import { AnnouncementPopup } from '@/src/views/web/components/AnnouncementPopup';
 import { initGlobalErrorLogger } from '@/src/utils/globalErrorLogger';
+import { ThemeProvider } from '@/src/theme/ThemeContext';
 
 LogBox.ignoreLogs(['6000ms timeout exceeded', 'fontfaceobserver']);
 if (typeof window !== 'undefined') {
   initGlobalErrorLogger();
 }
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (e) => {
+    if (e.message?.includes('6000ms timeout exceeded')) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  }, true);
+  
+  window.addEventListener('unhandledrejection', (e) => {
+    if (e.reason?.message?.includes('6000ms timeout exceeded')) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  }, true);
+}
 
-
+if (typeof window !== 'undefined') {
+  const originalConsoleError = console.error;
+  console.error = (...args) => {
+    const isTimeout = args.some(arg => 
+      (typeof arg === 'string' && arg.includes('6000ms timeout exceeded')) ||
+      (arg && arg.message && arg.message.includes('6000ms timeout exceeded'))
+    );
+    if (isTimeout) return;
+    originalConsoleError(...args);
+  };
+}
 // Material 3 theme — overrides primary/secondary to brand purple. This means
 // all react-native-paper components (Surface, Card, Button, Ripple) will pick
 // up the SA brand automatically.
@@ -98,28 +127,7 @@ export default function RootLayout() {
     JetBrainsMono_700Bold: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  useEffect(() => {
-    if (__DEV__ && typeof window !== 'undefined') {
-      const handleError = (e: ErrorEvent) => {
-        if (e.message?.includes('6000ms timeout exceeded')) {
-          e.preventDefault();
-        }
-      };
-      const handleRejection = (e: PromiseRejectionEvent) => {
-        if (e.reason?.message?.includes('6000ms timeout exceeded')) {
-          e.preventDefault();
-        }
-      };
-      
-      window.addEventListener('error', handleError);
-      window.addEventListener('unhandledrejection', handleRejection);
-      
-      return () => {
-        window.removeEventListener('error', handleError);
-        window.removeEventListener('unhandledrejection', handleRejection);
-      };
-    }
-  }, []);
+
 
   const init = useAuthStore((s) => s.init);
   const initialized = useAuthStore((s) => s.initialized);
@@ -130,41 +138,50 @@ export default function RootLayout() {
     analytics.init();
   }, [init]);
 
-  // Render the loader only while auth is initializing, or while native fonts
-  // are still loading (local assets, fast). On web we do NOT block first paint
-  // on web fonts — the browser swaps them in (FOUT) once they finish loading,
-  // so the landing page renders immediately instead of waiting on the network.
-  if ((Platform.OS !== 'web' && !fontsLoaded && !fontError) || !initialized) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: Colors.deepPurple,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <ActivityIndicator size="large" color={Colors.white} />
-      </View>
-    );
+  // Global theme transition — smooth light/dark switch for all themed elements
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const KEY = 'sa-theme-transition-css';
+    if (document.getElementById(KEY)) return;
+    const s = document.createElement('style');
+    s.id = KEY;
+    s.textContent = `\n      *, *::before, *::after {\n        transition-property: background-color, color, border-color, box-shadow, fill, stroke, opacity;\n        transition-duration: 0.3s;\n        transition-timing-function: ease;\n      }\n      /* Exclude animations and transforms to prevent jank */\n      [style*="animation"], [style*="transform"] {\n        transition-property: none !important;\n      }\n    `;
+    document.head.appendChild(s);
+  }, []);
+
+  const pathname = usePathname();
+  const [routeTransitioning, setRouteTransitioning] = useState(false);
+
+  useEffect(() => {
+    setRouteTransitioning(true);
+    const t = setTimeout(() => setRouteTransitioning(false), 350);
+    return () => clearTimeout(t);
+  }, [pathname]);
+
+  // Render the loader only on native platforms while auth is initializing
+  // or native fonts are loading. On web, render immediately with zero blocking splash.
+  if (Platform.OS !== 'web' && ((!fontsLoaded && !fontError) || !initialized)) {
+    return <SAModernLoader subtitle="INITIALIZING ECOSYSTEM" />;
   }
 
   return (
     <AnalyticsErrorBoundary screenName="root_layout">
       <AnalyticsRoot>
         <GestureHandlerRootView style={{ flex: 1 }}>
+          <ThemeProvider>
           <PaperProvider theme={SAPaperTheme}>
             <SafeAreaProvider>
               <ToastProvider>
                 <ConfirmProvider>
                 <TourProvider>
                   <StatusBar style="light" />
+                  <GlobalTopProgressBar active={routeTransitioning} />
                   <Stack
                     screenOptions={{
                       headerShown: false,
                       contentStyle: { backgroundColor: Colors.background },
                       animation: 'slide_from_right',
-                      animationDuration: 280,
+                      animationDuration: 350,
                     }}
                   >
                     <Stack.Screen 
@@ -189,6 +206,7 @@ export default function RootLayout() {
               </ToastProvider>
             </SafeAreaProvider>
           </PaperProvider>
+          </ThemeProvider>
         </GestureHandlerRootView>
       </AnalyticsRoot>
     </AnalyticsErrorBoundary>

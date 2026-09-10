@@ -5,9 +5,7 @@
  * and live integrations with the Jobs, Events, and Courses APIs.
  */
 import { useEffect, useRef, useState } from 'react';
-import {
-  View, Text, StyleSheet, Pressable, ScrollView, Animated, Easing, ActivityIndicator, Dimensions
-} from 'react-native';
+import { Platform, View, Text, StyleSheet, Pressable, ScrollView, Animated, Easing, ActivityIndicator, Dimensions} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Bell, Briefcase, Calendar, BookOpen, MapPin, Clock
@@ -32,7 +30,7 @@ export function StudentDashboardMobileView({
   const fade = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(fade, {
-      toValue: 1, duration: 600, easing: Easing.out(Easing.exp), useNativeDriver: true,
+      toValue: 1, duration: 600, easing: Easing.out(Easing.exp), useNativeDriver: Platform.OS !== 'web',
     }).start();
   }, []);
   const translateY = fade.interpolate({ inputRange: [0, 1], outputRange: [20, 0] });
@@ -62,7 +60,7 @@ export function StudentDashboardMobileView({
               {notifCount > 0 && <View style={styles.notifDot}><Text style={styles.notifDotText}>{notifCount}</Text></View>}
             </Pressable>
             <Pressable onPress={onOpenProfile} style={styles.avatar}>
-              <LinearGradient colors={['#A78BFA', '#7C3AED']} style={StyleSheet.absoluteFill} />
+              <LinearGradient colors={['#60A5FA', '#2563EB']} style={StyleSheet.absoluteFill} />
               <Text style={styles.avatarText}>{userName.substring(0, 2).toUpperCase()}</Text>
             </Pressable>
           </View>
@@ -71,7 +69,7 @@ export function StudentDashboardMobileView({
         {/* ─── Live Jobs Carousel ────────────────────────────────────── */}
         <View>
           <Text style={styles.sectionTitle}>LIVE JOBS & INTERNSHIPS</Text>
-          {jobsLoading ? <ActivityIndicator color="#A78BFA" /> : (
+          {jobsLoading ? <ActivityIndicator color="#60A5FA" /> : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carouselWrap}>
               {jobs.map((job: any, i: number) => (
                 <Pressable key={i} style={styles.glassCard} onPress={() => onActionPress?.(`job-${job.job_id}`)}>

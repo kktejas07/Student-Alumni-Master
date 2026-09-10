@@ -24,7 +24,7 @@ import {
   Megaphone, Plus, Pencil, Trash2, X, Check, AlertTriangle, Eye, EyeOff,
   RefreshCw, ImagePlus, Upload, ArrowRight, Sparkles,
 } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox,
@@ -58,7 +58,7 @@ type Promotion = {
 };
 
 const TONE_PREVIEW: Record<PromoTone, { from: string; to: string; label: string }> = {
-  violet:  { from: '#A78BFA', to: '#7C3AED', label: 'Violet'  },
+  violet:  { from: '#60A5FA', to: '#2563EB', label: 'Violet'  },
   blue:    { from: '#60A5FA', to: '#2563EB', label: 'Blue'    },
   indigo:  { from: '#818CF8', to: '#4F46E5', label: 'Indigo'  },
   teal:    { from: '#5EEAD4', to: '#0D9488', label: 'Teal'    },
@@ -80,6 +80,8 @@ const AUDIENCE_OPTIONS: Array<{ id: Audience; label: string }> = [
  * Root
  * ────────────────────────────────────────────────────────────────── */
 export function PromotionsView() {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   const { toast, flash, hide } = useToast();
   const [items, setItems] = useState<Promotion[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -665,10 +667,10 @@ function PromoEditor({
  * ────────────────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
   sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
-  btnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
 
   filtersRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' as any },
@@ -707,7 +709,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 7, paddingVertical: 2.5, borderRadius: 999, borderWidth: 1, alignSelf: 'flex-start',
   },
   badgeText: { fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 0.6 },
-  name: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5, flexShrink: 1 },
+  name: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13.5, flexShrink: 1 },
   bodyText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, lineHeight: 17 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' as any, marginTop: 2 },
   toneChip: { paddingHorizontal: 8, paddingVertical: 2.5, borderRadius: 999, borderWidth: 1 },
@@ -749,7 +751,7 @@ const s = StyleSheet.create({
 
   /* modal */
   modalBg: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
+    flex: 1, backgroundColor: SAC.panel2,
     alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
@@ -763,10 +765,10 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
 
   input: {
-    color: '#fff', fontFamily: FONTS.med, fontSize: 13,
+    color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
     paddingHorizontal: 12, paddingVertical: 10,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
@@ -831,11 +833,11 @@ const s = StyleSheet.create({
   previewStripe: { position: 'absolute' as any, left: 0, top: 0, bottom: 0, width: 4 },
   previewIcon: { width: 38, height: 38, borderRadius: 11, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   previewImg: { width: 56, height: 40, borderRadius: 8 },
-  previewTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  previewTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13 },
   previewBody:  { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, lineHeight: 16 },
   previewCta: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8,
   },
-  previewCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 },
+  previewCtaText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 11.5 },
 });

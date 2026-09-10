@@ -30,6 +30,7 @@ export class AnalyticsErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('[UI ERROR BOUNDARY]', error, errorInfo);
     dispatcher.track(EVENTS.APP_ERROR, {
       error_message: error.message || 'Unknown React rendering error',
       error_name: error.name || 'Error',
@@ -49,16 +50,21 @@ export class AnalyticsErrorBoundary extends Component<Props, State> {
             padding: 24,
             margin: 16,
             borderRadius: 12,
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
-            color: '#991b1b',
+            background: '#1A0B0B',
+            border: '1px solid #7F1D1D',
+            color: '#FCA5A5',
             fontFamily: 'sans-serif',
           }}
         >
-          <h3 style={{ margin: '0 0 8px 0', fontSize: 16 }}>Something went wrong</h3>
-          <p style={{ margin: 0, fontSize: 13, color: '#7f1d1d' }}>
-            A user interface error occurred. Our team has been automatically notified.
+          <h3 style={{ margin: '0 0 8px 0', fontSize: 16, color: '#EF4444' }}>Something went wrong</h3>
+          <p style={{ margin: '0 0 12px 0', fontSize: 13, color: '#FCA5A5' }}>
+            {this.state.error?.message || 'A user interface error occurred.'}
           </p>
+          {this.state.error?.stack ? (
+            <pre style={{ fontSize: 11, color: '#9CA3AF', overflowX: 'auto', maxHeight: 200 }}>
+              {this.state.error.stack}
+            </pre>
+          ) : null}
         </div>
       );
     }

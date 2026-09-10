@@ -20,15 +20,33 @@ import {
   Mail, Send, RefreshCw, Calendar, AlertTriangle, Check, Users, Megaphone,
   Bell, Smartphone, Search, User, Upload, X, ImagePlus, MessageSquare,
 } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   StatusPill, Toast, useToast, KpiTile,
 } from '../applekit';
-import { api, resolveImageUrl } from '@/src/models/services/api';
+import { api, request, resolveImageUrl } from '@/src/models/services/api';
 import HtmlRenderer from '@/src/views/web/policy/HtmlRenderer';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 import LexicalEditor from './LexicalEditor';
+
+function fmtInTz(value: string, tz: string, kind: 'date' | 'time'): string {
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '';
+  const map: Record<string, string> = {};
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(d).forEach((p) => { map[p.type] = p.value; });
+  if (map.hour === '24') map.hour = '00';
+  return kind === 'date' ? `${map.year}-${map.month}-${map.day}` : `${map.hour}:${map.minute}`;
+}
+
+function tzNowStamp(tz: string): string {
+  const now = new Date().toISOString();
+  return `${fmtInTz(now, tz, 'date')}T${fmtInTz(now, tz, 'time')}`;
+}
 
 type Campaign = {
   campaign_id: string;
@@ -43,6 +61,8 @@ type Campaign = {
   in_app_ok?: number;
   whatsapp_ok?: number;
   whatsapp_fail?: number;
+  whatsapp_no_phone?: number;
+  channels?: { whatsapp?: boolean };
   status?: string;
   created_at?: string;
   completed_at?: string;
@@ -96,9 +116,12 @@ function buildPreviewHtml(form: any, events: any[]): string {
 }
 
 export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const T = useSAC();
+  Object.assign(st, resolveColors(st, T));
   const { toast, flash, hide } = useToast();
   const [form, setForm] = useState({
     subject: '',
+    audience: 'all',
     hero_image: '',
     intro: '',
     body: '',
@@ -123,6 +146,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const [sendImmediately, setSendImmediately] = useState(true);
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('12:00');
+  const [platformTz, setPlatformTz] = useState('Asia/Kolkata');
   const [testEmail, setTestEmail] = useState('');
   const [testPhone, setTestPhone] = useState('');
   const [testSending, setTestSending] = useState(false);
@@ -134,6 +158,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [recipientCount, setRecipientCount] = useState<number | null>(null);
+  const [recipientBreakdown, setRecipientBreakdown] = useState<{ count: number; email_count: number; whatsapp_count: number; audience: string } | null>(null);
   const [loadingRecipientCount, setLoadingRecipientCount] = useState(false);
 
   // Individual notification state
@@ -145,6 +170,26 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchSeqRef = useRef(0);
 
+  const fetchRecipientCount = useCallback(async (aud?: string) => {
+    const targetAud = aud || form.audience || 'all';
+    setLoadingRecipientCount(true);
+    try {
+      const res = await api.getNewsletterRecipientCount(targetAud);
+      setRecipientCount(res?.count ?? 0);
+      setRecipientBreakdown({
+        count: res?.count ?? 0,
+        email_count: res?.email_count ?? 0,
+        whatsapp_count: res?.whatsapp_count ?? 0,
+        audience: targetAud,
+      });
+    } catch {
+      setRecipientCount(null);
+      setRecipientBreakdown(null);
+    } finally {
+      setLoadingRecipientCount(false);
+    }
+  }, [form.audience]);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -154,17 +199,53 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       ]);
       setCampaigns(c?.items || []);
       setEvents(e?.items || []);
+      await fetchRecipientCount(form.audience);
     } catch {
       /* silent — campaigns list is non-critical */
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchRecipientCount, form.audience]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { fetchRecipientCount(form.audience); }, [form.audience, fetchRecipientCount]);
 
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
   const previewHtml = useMemo(() => buildPreviewHtml(form, events), [form, events]);
+
+  const [aiDrafting, setAiDrafting] = useState(false);
+  const [aiDraftResult, setAiDraftResult] = useState<any>(null);
+
+  const runAiDraftNewsletter = async () => {
+    setAiDrafting(true);
+    try {
+      const res: any = await request('/api/newsletter/admin/ai-draft', {
+        method: 'POST',
+        auth: true,
+        body: {
+          audience: form.audience || 'all',
+          edition_theme: 'Weekly Career & ECHO 2026 Platform Digest',
+          tone: 'engaging'
+        }
+      });
+      if (res?.subject) {
+        setForm((f) => ({
+          ...f,
+          subject: res.subject,
+          intro: res.intro,
+          body: res.body_html,
+          cta_text: res.cta_label || 'Explore Opportunities & Events',
+          cta_url: res.cta_url || 'https://studentalumni.ai/students/dashboard',
+        }));
+        setAiDraftResult(res);
+        flash(`AI drafted briefing with ${res.realtime_data_summary?.live_jobs_count || 0} live jobs and ${res.realtime_data_summary?.upcoming_events_count || 0} ECHO hackathons!`);
+      }
+    } catch (e: any) {
+      flash(e?.message || 'AI drafting failed', 'error');
+    } finally {
+      setAiDrafting(false);
+    }
+  };
 
   const sanitizePayload = (f: typeof form) => ({
     ...f,
@@ -263,6 +344,28 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     }
   };
 
+  const [commBroadcasting, setCommBroadcasting] = useState(false);
+  const handleBroadcastCommunityInvites = async () => {
+    setCommBroadcasting(true);
+    try {
+      const res = await request<any>('/newsletter/admin/broadcast-community-invites', {
+        method: 'POST',
+        body: {
+          audience: form.audience || 'all',
+          whatsapp_url: 'https://chat.whatsapp.com/G2kc2u0gzh68DKSjlOyCxu',
+          instagram_url: 'https://www.instagram.com/studentalumni.ai/',
+          linkedin_url: 'https://linkedin.com/company/student-alumni'
+        }
+      });
+      flash(res?.message || 'Community broadcast queued across WhatsApp, Email, Push & In-App!');
+      await load();
+    } catch (e: any) {
+      flash(e?.message || 'Failed to dispatch community broadcast', 'error');
+    } finally {
+      setCommBroadcasting(false);
+    }
+  };
+
   const cancelCampaign = async (campaignId: string) => {
     if (!campaignId) return;
     setCancellingId(campaignId);
@@ -281,14 +384,13 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     if (!campaignId) return;
     setLoadingEdit(true);
     try {
-      console.log('[Newsletter] startEdit fetching campaign:', campaignId);
       const c: any = await api.getNewsletterCampaign(campaignId);
-      console.log('[Newsletter] startEdit got campaign:', c);
       if (!c || !c.subject) {
         console.warn('[Newsletter] startEdit: campaign returned empty or missing subject');
       }
       setForm({
         subject: c?.subject || '',
+        audience: c?.audience || 'all',
         hero_image: (c?.hero_image && !c?.hero_image.startsWith('blob:') && !c?.hero_image.startsWith('data:')) ? c?.hero_image : '',
         intro: c?.intro || '',
         body: c?.body || '',
@@ -301,18 +403,17 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
         send_whatsapp: c?.send_whatsapp ?? false,
       });
       if (c?.send_at) {
-        const dt = new Date(c.send_at);
         setSendImmediately(false);
-        setScheduleDate(dt.toISOString().slice(0, 10));
-        setScheduleTime(`${String(dt.getUTCHours()).padStart(2, '0')}:${String(dt.getUTCMinutes()).padStart(2, '0')}`);
+        setScheduleDate(fmtInTz(c.send_at, platformTz, 'date'));
+        setScheduleTime(fmtInTz(c.send_at, platformTz, 'time'));
       } else {
         setSendImmediately(true);
       }
       setEditingCampaign(c);
       setActiveTab('bulk');
+      fetchRecipientCount(c?.audience || 'all');
       flash(`Editing "${c?.subject || 'campaign'}"`);
     } catch (e: any) {
-      console.error('[Newsletter] startEdit error:', e);
       flash(e?.message || 'Failed to load campaign', 'error');
     } finally {
       setLoadingEdit(false);
@@ -326,10 +427,11 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     setScheduleTime('12:00');
     setRecipientCount(null);
     setForm({
-      subject: '', hero_image: '', intro: '', body: '',
+      subject: '', audience: 'all', hero_image: '', intro: '', body: '',
       cta_text: 'Register Now', cta_url: 'https://studentalumni.ai/echo',
       include_upcoming: true, send_email: true, send_push: true, send_in_app: true, send_whatsapp: true,
     });
+    fetchRecipientCount('all');
     flash('Edit cancelled');
   };
 
@@ -344,13 +446,13 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
         return;
       }
       try {
-        const parsed = new Date(`${scheduleDate}T${scheduleTime}:00`);
-        if (isNaN(parsed.getTime())) throw new Error('Invalid Date/Time values');
-        if (parsed <= new Date()) {
-          flash('Scheduled time must be in the future', 'error');
+        const naive = `${scheduleDate}T${scheduleTime}:00`;
+        if (isNaN(new Date(naive).getTime())) throw new Error('Invalid Date/Time values');
+        if (`${scheduleDate}T${scheduleTime}` <= tzNowStamp(platformTz)) {
+          flash(`Scheduled time must be in the future (${platformTz})`, 'error');
           return;
         }
-        send_at = parsed.toISOString();
+        send_at = naive;
       } catch {
         flash('Invalid Date or Time format. Use YYYY-MM-DD and HH:MM', 'error');
         return;
@@ -362,6 +464,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       const clean = sanitizePayload(form);
       const res: any = await api.updateNewsletterCampaign(editingCampaign.campaign_id, {
         subject: clean.subject,
+        audience: clean.audience || 'all',
         hero_image: clean.hero_image,
         intro: clean.intro,
         body: clean.body,
@@ -396,15 +499,15 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
         return;
       }
       try {
-        const parsed = new Date(`${scheduleDate}T${scheduleTime}:00`);
-        if (isNaN(parsed.getTime())) {
+        const naive = `${scheduleDate}T${scheduleTime}:00`;
+        if (isNaN(new Date(naive).getTime())) {
           throw new Error('Invalid Date/Time values');
         }
-        if (parsed <= new Date()) {
-          flash('Scheduled time must be in the future', 'error');
+        if (`${scheduleDate}T${scheduleTime}` <= tzNowStamp(platformTz)) {
+          flash(`Scheduled time must be in the future (${platformTz})`, 'error');
           return;
         }
-        send_at = parsed.toISOString();
+        send_at = naive;
       } catch {
         flash('Invalid Date or Time format. Use YYYY-MM-DD and HH:MM', 'error');
         return;
@@ -417,6 +520,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       const clean = sanitizePayload(form);
       const r: any = await api.sendNewsletter({
         subject: clean.subject,
+        audience: clean.audience || 'all',
         hero_image: clean.hero_image,
         intro: clean.intro,
         body: clean.body,
@@ -477,6 +581,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       if (editingCampaign) {
         const res: any = await api.updateNewsletterCampaign(editingCampaign.campaign_id, {
           subject: clean.subject,
+          audience: clean.audience || 'all',
           hero_image: clean.hero_image,
           intro: clean.intro,
           body: clean.body,
@@ -492,6 +597,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       } else {
         const res: any = await api.saveNewsletterDraft({
           subject: clean.subject,
+          audience: clean.audience || 'all',
           hero_image: clean.hero_image,
           intro: clean.intro,
           body: clean.body,
@@ -510,18 +616,6 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       flash(e?.message || 'Failed to save draft', 'error');
     } finally {
       setSavingDraft(false);
-    }
-  };
-
-  const fetchRecipientCount = async () => {
-    setLoadingRecipientCount(true);
-    try {
-      const res = await api.getNewsletterRecipientCount();
-      setRecipientCount(res?.count ?? 0);
-    } catch {
-      setRecipientCount(null);
-    } finally {
-      setLoadingRecipientCount(false);
     }
   };
 
@@ -591,7 +685,15 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
             <Text style={st.title}>Newsletter</Text>
             <Text style={st.sub}>Compose and send an HTML newsletter to every registered user by email.</Text>
           </View>
-          <SecondaryButton onPress={load}><RefreshCw size={12} color={SAC.muted} /><Text style={st.secText}>Refresh</Text></SecondaryButton>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <SecondaryButton onPress={handleBroadcastCommunityInvites} disabled={commBroadcasting}>
+              <MessageSquare size={13} color="#34D399" />
+              <Text style={{ color: '#34D399', fontSize: 13, fontFamily: FONTS.bold }}>
+                {commBroadcasting ? 'Sending...' : 'Broadcast Community Invites'}
+              </Text>
+            </SecondaryButton>
+            <SecondaryButton onPress={load}><RefreshCw size={12} color={SAC.muted} /><Text style={st.secText}>Refresh</Text></SecondaryButton>
+          </View>
         </View>
       </Card>
 
@@ -634,19 +736,147 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 </View>
               )}
               <View style={{ marginTop: 12, gap: 12 }}>
-                <Field label="Subject *" hint="Appears in the email subject line.">
+                {/* AI Agent Platform Digest Generator */}
+                <View style={{
+                  padding: 14, borderRadius: 12,
+                  backgroundColor: 'rgba(99,102,241,0.08)',
+                  borderColor: 'rgba(99,102,241,0.3)',
+                  borderWidth: 1, gap: 10
+                }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(99,102,241,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+                        <Megaphone size={14} color="#A78BFA" />
+                      </View>
+                      <View>
+                        <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 }}>AI Live Platform Digest Drafter</Text>
+                        <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>Ingests real-time jobs, hackathons, and member updates</Text>
+                      </View>
+                    </View>
+
+                    <Pressable
+                      onPress={runAiDraftNewsletter}
+                      disabled={aiDrafting}
+                      style={{
+                        flexDirection: 'row', alignItems: 'center', gap: 6,
+                        backgroundColor: '#7C3AED', paddingHorizontal: 12, paddingVertical: 6,
+                        borderRadius: 8, opacity: aiDrafting ? 0.6 : 1
+                      }}
+                    >
+                      {aiDrafting ? <ActivityIndicator size="small" color="#fff" /> : (
+                        <>
+                          <RefreshCw size={12} color="#fff" />
+                          <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Draft with AI (Live Data)</Text>
+                        </>
+                      )}
+                    </Pressable>
+                  </View>
+
+                  {/* AI Results & A/B Subject Variants */}
+                  {aiDraftResult && (
+                    <View style={{ gap: 8, paddingTop: 6, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <View style={{ backgroundColor: 'rgba(16,185,129,0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                          <Text style={{ color: '#34D399', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+                            🛡️ Spam Risk: {aiDraftResult.deliverability?.spam_risk_level} ({aiDraftResult.deliverability?.spam_score}/10)
+                          </Text>
+                        </View>
+                        <View style={{ backgroundColor: 'rgba(124,58,237,0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                          <Text style={{ color: '#DDD6FE', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+                            ● {aiDraftResult.realtime_data_summary?.live_jobs_count} Live Jobs
+                          </Text>
+                        </View>
+                        <View style={{ backgroundColor: 'rgba(245,158,11,0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                          <Text style={{ color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+                            → {aiDraftResult.realtime_data_summary?.upcoming_events_count} ECHO Hackathons
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* A/B Subject Variant Pills */}
+                      <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5 }}>A/B Subject Variants (click to use):</Text>
+                      <View style={{ gap: 4 }}>
+                        {aiDraftResult.subject_variants?.map((v: string, idx: number) => (
+                          <Pressable
+                            key={idx}
+                            onPress={() => set('subject', v)}
+                            style={{
+                              padding: 6, borderRadius: 6,
+                              backgroundColor: form.subject === v ? 'rgba(124,58,237,0.3)' : 'rgba(0,0,0,0.25)',
+                              borderColor: form.subject === v ? '#7C3AED' : SAC.border,
+                              borderWidth: 1
+                            }}
+                          >
+                            <Text style={{ color: form.subject === v ? '#fff' : '#cbd5e1', fontSize: 11.5, fontFamily: FONTS.med }}>
+                              {form.subject === v ? '✓ ' : ''}{v}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                </View>
+
+                {/* Target Audience Scope */}
+                <View style={st.channelSection}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+                    <Text style={st.channelLabel}>TARGET AUDIENCE</Text>
+                    {loadingRecipientCount ? (
+                      <ActivityIndicator size="small" color={GRAD.from} />
+                    ) : (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,58,237,0.12)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(124,58,237,0.3)' }}>
+                        <Users size={12} color="#A78BFA" />
+                        <Text style={{ fontSize: 11.5, fontFamily: FONTS.semi, color: '#DDD6FE' }}>
+                          {recipientBreakdown?.count ?? recipientCount ?? 0} total · {recipientBreakdown?.email_count ?? 0} emails · {recipientBreakdown?.whatsapp_count ?? 0} WhatsApp
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                    {[
+                      { id: 'all', label: 'Whole Database (All Contacts & Prospects)', icon: '●' },
+                      { id: 'directory', label: 'Platform Users & Directory', icon: '👥' },
+                      { id: 'students', label: 'Students', icon: '●' },
+                      { id: 'alumni', label: 'Alumni', icon: '●' },
+                      { id: 'mentors', label: 'Mentors', icon: '🌟' },
+                      { id: 'talent_pool', label: 'Talent Pool Candidates', icon: '●' },
+                      { id: 'events', label: 'Event Attendees', icon: '🎟️' },
+                    ].map((aud) => {
+                      const active = (form.audience || 'all') === aud.id;
+                      return (
+                        <Pressable
+                          key={aud.id}
+                          onPress={() => {
+                            set('audience', aud.id);
+                            fetchRecipientCount(aud.id);
+                          }}
+                          style={[
+                            st.channelPill,
+                            active && { backgroundColor: 'rgba(124,58,237,0.28)', borderColor: '#7C3AED', transform: [{ scale: 1.02 }] },
+                          ]}
+                        >
+                          <Text style={{ fontSize: 11.5, fontFamily: active ? FONTS.bold : FONTS.med, color: active ? '#fff' : SAC.muted }}>
+                            {aud.icon} {aud.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                <Field label="Subject *" hint="Appears in the email subject line & WhatsApp bold title.">
                   <TextInput style={st.input} value={form.subject} onChangeText={(v) => set('subject', v)} placeholder="e.g. Join us at ECHO 2026!" placeholderTextColor={SAC.dim} />
                 </Field>
-                <Field label="Hero Image" hint="Upload a banner/poster, or paste a direct image URL. Shown full-width at the top of the email.">
+                <Field label="Hero Image" hint="Upload a banner/poster, or paste a direct image URL. Shown full-width at top of email and as WhatsApp image header.">
                   <View style={{ gap: 8 }}>
                     {form.hero_image ? (
                       <View style={{ borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: SAC.border }}>
                         <Image source={{ uri: resolveImageUrl(form.hero_image) }} style={{ width: '100%', height: 140 }} resizeMode="cover" />
-                        <View style={{ flexDirection: 'row', gap: 8, padding: 8, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center' }}>
+                        <View style={{ flexDirection: 'row', gap: 8, padding: 8, backgroundColor: SAC.panel2, alignItems: 'center' }}>
                           {Platform.OS === 'web' && (
                             <label style={{ cursor: 'pointer' }}>
                               <span style={{
-                                backgroundColor: 'rgba(123,61,191,0.30)', color: '#fff',
+                                backgroundColor: 'rgba(123,61,191,0.30)', color: SAC.text,
                                 padding: '5px 10px', borderRadius: '6px',
                                 fontFamily: FONTS.semi, fontSize: '11px',
                               }}>
@@ -746,7 +976,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                     <Pressable onPress={() => setSendImmediately(true)} style={[st.tab, sendImmediately && st.tabActive, { flex: 1, paddingVertical: 8, justifyContent: 'center' }]}>
                       <Text style={[st.tabText, sendImmediately && st.tabTextActive, { textAlign: 'center' }]}>Send Immediately</Text>
                     </Pressable>
-                    <Pressable onPress={() => { setSendImmediately(false); if (!scheduleDate) { const tom = new Date(); tom.setDate(tom.getDate() + 1); setScheduleDate(tom.toISOString().split('T')[0]); } }} style={[st.tab, !sendImmediately && st.tabActive, { flex: 1, paddingVertical: 8, justifyContent: 'center' }]}>
+                    <Pressable onPress={() => { setSendImmediately(false); if (!scheduleDate) { const tom = new Date(Date.now() + 24 * 3600 * 1000); setScheduleDate(fmtInTz(tom.toISOString(), platformTz, 'date')); } }} style={[st.tab, !sendImmediately && st.tabActive, { flex: 1, paddingVertical: 8, justifyContent: 'center' }]}>
                       <Text style={[st.tabText, !sendImmediately && st.tabTextActive, { textAlign: 'center' }]}>Schedule Send</Text>
                     </Pressable>
                   </View>
@@ -760,7 +990,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                       </Field>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Field label="Schedule Time (UTC) *" hint="Format: HH:MM (24h)">
+                      <Field label={`Schedule Time (${platformTz}) *`} hint="Format: HH:MM (24h)">
                         <TextInput style={st.input} value={scheduleTime} onChangeText={setScheduleTime} placeholder="e.g. 14:30" placeholderTextColor={SAC.dim} />
                       </Field>
                     </View>
@@ -774,7 +1004,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                     <View style={{ flex: 1 }}>
                       <GradientButton onPress={editingCampaign ? doUpdate : doSend} loading={sending}>
                         <Send size={13} color="#fff" /><Text style={st.btnText}>
-                          {editingCampaign ? 'Save Changes' : sendImmediately ? "Send to all users" : "Schedule Campaign"}
+                          {editingCampaign ? 'Save Changes' : sendImmediately ? "Send to Audience" : "Schedule Campaign"}
                         </Text>
                       </GradientButton>
                     </View>
@@ -783,7 +1013,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 ) : (
                   <View style={{ flexDirection: 'row', gap: 10, flex: 1 }}>
                     <View style={{ flex: 1 }}>
-                      <GradientButton onPress={() => { setConfirming(true); fetchRecipientCount(); }}>
+                      <GradientButton onPress={() => { setConfirming(true); fetchRecipientCount(form.audience); }}>
                         <Send size={13} color="#fff" /><Text style={st.btnText}>
                           {editingCampaign ? 'Save Changes' : sendImmediately ? "Send Newsletter" : "Schedule Newsletter"}
                         </Text>
@@ -802,8 +1032,8 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                     {editingCampaign
                       ? "This will update the scheduled campaign with your current content and reschedule it to the time shown. Recipients won't be notified twice."
                       : sendImmediately
-                        ? `This will notify ${loadingRecipientCount ? '...' : recipientCount ?? 'all'} registered user${(recipientCount ?? 0) !== 1 ? 's' : ''} via selected channels. Make sure your content looks right.`
-                        : `This will schedule the newsletter to be sent automatically on ${scheduleDate} at ${scheduleTime} UTC.`}
+                        ? `This will broadcast to ${loadingRecipientCount ? '...' : (recipientBreakdown?.count ?? recipientCount ?? 'all')} contacts in ${form.audience === 'all' ? 'the whole database' : form.audience} (${recipientBreakdown?.email_count ?? 0} emails, ${recipientBreakdown?.whatsapp_count ?? 0} WhatsApp numbers) via selected channels.`
+                        : `This will schedule the newsletter to be sent automatically on ${scheduleDate} at ${scheduleTime} UTC to ${form.audience === 'all' ? 'the whole database' : form.audience}.`}
                   </Text>
                 </View>
               )}
@@ -981,7 +1211,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 : 'neutral';
               const statusLabel = c.status === 'completed' ? 'Sent'
                 : c.status === 'sent' ? 'Sent'
-                : c.status === 'scheduled' ? `Scheduled · ${c.send_at?.slice(5, 16).replace('T', ' ') || ''}`
+                : c.status === 'scheduled' ? `Scheduled · ${fmtInTz(c.send_at || '', platformTz, 'date')} ${fmtInTz(c.send_at || '', platformTz, 'time')} ${platformTz}`
                 : c.status === 'sending' ? 'Sending…'
                 : c.status === 'draft' ? 'Draft'
                 : c.status === 'cancelled' ? 'Cancelled'
@@ -1002,11 +1232,11 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                   </IconBox>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text numberOfLines={1} style={st.campTitle}>
-                      {c.individual ? '📢 ' : ''}{c.subject}
+                      {c.individual ? '[IND] ' : ''}{c.subject}
                     </Text>
                     <Text numberOfLines={1} style={st.campMeta}>
                       {c.status === 'scheduled'
-                        ? `Scheduled for ${c.send_at?.slice(0, 16).replace('T', ' ')} UTC`
+                        ? `Scheduled for ${fmtInTz(c.send_at || '', platformTz, 'date')} at ${fmtInTz(c.send_at || '', platformTz, 'time')} ${platformTz}`
                         : c.status === 'sending'
                         ? 'Sending in progress…'
                         : c.status === 'draft'
@@ -1108,21 +1338,24 @@ function ChannelPill({ icon: Icon, label, active, onToggle }: { icon: any; label
   );
 }
 
-function StatPill({ icon: Icon, label, kind = 'success' }: { icon: any; label: string; kind?: 'success' | 'warn' }) {
-  const bg = kind === 'warn' ? 'rgba(251,191,36,0.12)' : 'rgba(34,197,94,0.12)';
-  const border = kind === 'warn' ? 'rgba(251,191,36,0.30)' : 'rgba(34,197,94,0.30)';
-  const color = kind === 'warn' ? '#FCD34D' : '#4ADE80';
+function StatPill({ icon: Icon, label, kind = 'success' }: { icon: any; label: string; kind?: 'success' | 'warn' | 'danger' | 'neutral' }) {
+  const palette = {
+    success: { bg: 'rgba(34,197,94,0.12)', border: 'rgba(34,197,94,0.30)', color: '#4ADE80' },
+    warn: { bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.30)', color: '#FCD34D' },
+    danger: { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.30)', color: '#F87171' },
+    neutral: { bg: 'rgba(148,163,184,0.12)', border: 'rgba(148,163,184,0.30)', color: '#94A3B8' },
+  }[kind];
   return (
-    <View style={[st.channelPill, { backgroundColor: bg, borderColor: border, paddingHorizontal: 8, paddingVertical: 3 }]}>
-      <Icon size={11} color={color} />
-      <Text style={{ color, fontFamily: FONTS.bold, fontSize: 10.5 }}>{label}</Text>
+    <View style={[st.channelPill, { backgroundColor: palette.bg, borderColor: palette.border, paddingHorizontal: 8, paddingVertical: 3 }]}>
+      <Icon size={11} color={palette.color} />
+      <Text style={{ color: palette.color, fontFamily: FONTS.bold, fontSize: 10.5 }}>{label}</Text>
     </View>
   );
 }
 
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
@@ -1132,7 +1365,7 @@ const st = StyleSheet.create({
   hint: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginBottom: 4, lineHeight: 15 },
   input: {
     height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)',
-    color: '#fff', fontFamily: FONTS.med, fontSize: 13, paddingHorizontal: 12,
+    color: SAC.text, fontFamily: FONTS.med, fontSize: 13, paddingHorizontal: 12,
     borderWidth: 1, borderColor: SAC.border,
   },
   checkRow: {
@@ -1146,9 +1379,9 @@ const st = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   checkboxOn: { backgroundColor: GRAD.from, borderColor: GRAD.from },
-  checkLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  checkLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
   checkSub: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
-  btnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5, marginLeft: 6 },
+  btnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5, marginLeft: 6 },
   confirmBox: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 10,
     padding: 10, borderRadius: 10, backgroundColor: 'rgba(252,211,77,0.08)',
@@ -1160,7 +1393,7 @@ const st = StyleSheet.create({
     padding: 12, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.10)',
     borderWidth: 1, borderColor: 'rgba(124,58,237,0.35)',
   },
-  editBannerTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  editBannerTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
   editBannerSub: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1, lineHeight: 15 },
   editBannerCancel: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -1177,7 +1410,7 @@ const st = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
-  campTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  campTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
   campMeta: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
   // Tabs
   tabRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
@@ -1188,7 +1421,7 @@ const st = StyleSheet.create({
   },
   tabActive: { backgroundColor: GRAD.from, borderColor: GRAD.from },
   tabText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  tabTextActive: { color: '#fff' },
+  tabTextActive: { color: SAC.text },
   // Channel toggles
   channelSection: { marginTop: 4 },
   channelLabel: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.5, marginBottom: 6 },
@@ -1200,7 +1433,7 @@ const st = StyleSheet.create({
   },
   channelPillActive: { backgroundColor: 'rgba(124,58,237,0.2)', borderColor: '#7C3AED' },
   channelPillText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  channelPillTextActive: { color: '#fff' },
+  channelPillTextActive: { color: SAC.text },
   // User search
   searchWrap: { position: 'relative' },
   searchIcon: { position: 'absolute', left: 12, top: 13, zIndex: 1 },
@@ -1213,14 +1446,14 @@ const st = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: SAC.border,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
-  searchResultName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  searchResultName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
   searchResultEmail: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
   searchResultRole: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10, textTransform: 'capitalize' },
   selectedUser: {
     flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 10,
     backgroundColor: 'rgba(124,58,237,0.08)', borderWidth: 1, borderColor: 'rgba(124,58,237,0.25)',
   },
-  selectedUserName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  selectedUserName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
   selectedUserEmail: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   selectedUserClear: { color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 12 },
 });

@@ -42,7 +42,7 @@ export default function FinancialCoach({ open, setOpen }: {
     if (open && messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        text: "Hi! I'm your Financial AI Coach 🪙 Try /scholarships to find matches, /loans to compare rates, or ask me any question about financial services.",
+        text: "Hi! I'm your Financial AI Coach  Try /scholarships to find matches, /loans to compare rates, or ask me any question about financial services.",
       }]);
     }
   }, [open]);
@@ -164,7 +164,7 @@ export default function FinancialCoach({ open, setOpen }: {
                       m.role === 'user' && { alignSelf: 'flex-end' }]}>
                       <View style={[s.msgBubble,
                         m.role === 'user'
-                          ? { backgroundColor: '#7C3AED' }
+                          ? { backgroundColor: '#2563EB' }
                           : { backgroundColor: 'rgba(255,255,255,0.05)',
                               borderColor: C.border, borderWidth: 1 }]}>
                         <Text style={[s.msgText,
@@ -177,7 +177,7 @@ export default function FinancialCoach({ open, setOpen }: {
                   {busy && (
                     <View style={s.msgRow}>
                       <View style={[s.msgBubble, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
-                        <ActivityIndicator color="#A78BFA" size="small" />
+                        <ActivityIndicator color="#60A5FA" size="small" />
                       </View>
                     </View>
                   )}
@@ -206,7 +206,7 @@ export default function FinancialCoach({ open, setOpen }: {
                         outline: 'none',
                       }}
                     >
-                      <MaterialCommunityIcons name={c.icon} size={11} color="#A78BFA" />
+                      <MaterialCommunityIcons name={c.icon} size={11} color="#60A5FA" />
                       <Text style={s.slashChipText}>{c.label}</Text>
                     </button>
                   ))}
@@ -231,7 +231,7 @@ export default function FinancialCoach({ open, setOpen }: {
                       width: '38px',
                       height: '38px',
                       borderRadius: '999px',
-                      backgroundColor: '#7C3AED',
+                      backgroundColor: '#2563EB',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -282,7 +282,7 @@ export default function FinancialCoach({ open, setOpen }: {
                   m.role === 'user' && { alignSelf: 'flex-end' }]}>
                   <View style={[s.msgBubble,
                     m.role === 'user'
-                      ? { backgroundColor: '#7C3AED' }
+                      ? { backgroundColor: '#2563EB' }
                       : { backgroundColor: 'rgba(255,255,255,0.05)',
                           borderColor: C.border, borderWidth: 1 }]}>
                     <Text style={[s.msgText,
@@ -295,7 +295,7 @@ export default function FinancialCoach({ open, setOpen }: {
               {busy && (
                 <View style={s.msgRow}>
                   <View style={[s.msgBubble, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
-                    <ActivityIndicator color="#A78BFA" size="small" />
+                    <ActivityIndicator color="#60A5FA" size="small" />
                   </View>
                 </View>
               )}
@@ -308,7 +308,7 @@ export default function FinancialCoach({ open, setOpen }: {
                 <Pressable key={c.cmd}
                   onPress={() => send(c.cmd)}
                   style={s.slashChip}>
-                  <MaterialCommunityIcons name={c.icon} size={11} color="#A78BFA" />
+                  <MaterialCommunityIcons name={c.icon} size={11} color="#60A5FA" />
                   <Text style={s.slashChipText}>{c.label}</Text>
                 </Pressable>
               ))}
@@ -349,7 +349,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 14,
     borderBottomWidth: 1, borderColor: C.border },
   brain: { width: 36, height: 36, borderRadius: 999,
-    backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center' },
+    backgroundColor: '#2563EB', alignItems: 'center', justifyContent: 'center' },
   title: { color: '#fff', fontFamily: 'DMSans_900Black', fontSize: 14 },
   subtitle: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
   closeBtn: { width: 30, height: 30, borderRadius: 999,
@@ -378,6 +378,6 @@ const s = StyleSheet.create({
     color: '#fff', fontFamily: 'DMSans_600SemiBold', fontSize: 12.5,
     outlineWidth: 0 } as any,
   sendBtn: { width: 38, height: 38, borderRadius: 999,
-    backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#2563EB', alignItems: 'center', justifyContent: 'center',
     ...({ cursor: 'pointer' } as any) },
 });

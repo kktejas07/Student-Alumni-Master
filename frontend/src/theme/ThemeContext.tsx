@@ -24,14 +24,18 @@ const ThemeContext = createContext<Ctx | null>(null);
 const STORAGE_KEY = 'apple-theme';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setModeState] = useState<Mode>('dark');           // safe default
+  const [mode, setModeState] = useState<Mode>('dark');           // default dark theme
   const [systemDark, setSystemDark] = useState<boolean>(true);
 
   // Load persisted mode + listen to system changes
   useEffect(() => {
     let mounted = true;
     AsyncStorage.getItem(STORAGE_KEY).then((m) => {
-      if (mounted && (m === 'light' || m === 'dark' || m === 'system')) setModeState(m as Mode);
+      if (mounted && (m === 'light' || m === 'dark' || m === 'system')) {
+        setModeState(m as Mode);
+      } else if (mounted) {
+        setModeState('dark');
+      }
     }).catch(() => {});
     setSystemDark(Appearance.getColorScheme() === 'dark');
     const sub = Appearance.addChangeListener(({ colorScheme }) => {
@@ -45,7 +49,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     AsyncStorage.setItem(STORAGE_KEY, m).catch(() => {});
   };
 
-  const isDark = mode === 'dark' || (mode === 'system' && systemDark);
+  const isDark = mode !== 'light';
   const theme = isDark ? DARK : (LIGHT as unknown as Theme);
 
   const value = useMemo<Ctx>(() => ({ theme, mode, setMode, isDark }), [theme, mode, isDark]);

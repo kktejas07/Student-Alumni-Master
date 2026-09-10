@@ -12,7 +12,7 @@
  * Position: bottom-right on desktop/tablet; full-width bottom on compact phones.
  * Auto-dismiss: 5s with a shrinking progress bar.
  */
-import {
+import React, {
   createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState,
 } from 'react';
 import {
@@ -126,8 +126,8 @@ function ToastItem({ toast, onDismiss, compact }: { toast: Toast; onDismiss: () 
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(slide, { toValue: 0, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(opacity, { toValue: 1, duration: 240, useNativeDriver: true }),
+      Animated.timing(slide, { toValue: 0, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(opacity, { toValue: 1, duration: 240, useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
   }, [slide, opacity]);
 

@@ -19,7 +19,7 @@ import {
   Eye, ChevronRight, Calendar, Check, Play, Code, Sparkles,
   ShieldCheck, Trash2,
 } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { GRAD } from '../applekit';
 
 /** LinkedIn 'in' glyph — `lucide-react-native` doesn't ship the Linkedin icon
@@ -77,6 +77,10 @@ export type ProfileCardProps = {
     category: ProfileCardCategory;
     isNew?: boolean;          // newly imported, not yet approved
     approved?: boolean;
+    aadhaarMasked?: string;
+    aadhaarVerified?: boolean;
+    digilockerVerified?: boolean;
+    digilockerDocCount?: number;
   };
   goals?: string[];
   progress?: {
@@ -116,6 +120,8 @@ function fmtNextSession(iso: string) {
 
 /* ─── Component ──────────────────────────────────────────────────── */
 export function ProfileCard(props: ProfileCardProps) {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   const { user, goals, progress, tags, nextSession, socials, onViewProfile, onApprove, onRemove } = props;
   const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown user';
   const cat = CAT_DOT[user.category] || CAT_DOT.student;
@@ -213,6 +219,26 @@ export function ProfileCard(props: ProfileCardProps) {
                 ) : null}
               </View>
             ) : null}
+          </View>
+        ) : null}
+
+        {/* IDENTITY & DIGILOCKER BADGES */}
+        {(user.aadhaarMasked || user.aadhaarVerified || user.digilockerVerified) ? (
+          <View style={[s.tagRow, { marginTop: 4, marginBottom: 2 }]}>
+            {(user.aadhaarMasked || user.aadhaarVerified) && (
+              <View style={[s.tag, { backgroundColor: user.aadhaarVerified ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)', borderColor: user.aadhaarVerified ? 'rgba(16,185,129,0.35)' : 'rgba(245,158,11,0.35)' }]}>
+                <Text style={[s.tagText, { color: user.aadhaarVerified ? '#34D399' : '#FBBF24', fontSize: 10, fontWeight: '700' }]}>
+                  {user.aadhaarVerified ? '✓ UIDAI' : 'Aadhaar'}: {user.aadhaarMasked || '•••• 1234'}
+                </Text>
+              </View>
+            )}
+            {user.digilockerVerified && (
+              <View style={[s.tag, { backgroundColor: 'rgba(124,58,237,0.15)', borderColor: 'rgba(124,58,237,0.40)' }]}>
+                <Text style={[s.tagText, { color: '#C4B5FD', fontSize: 10, fontWeight: '700' }]}>
+                  ⚡ DigiLocker ({user.digilockerDocCount || 3} Docs)
+                </Text>
+              </View>
+            )}
           </View>
         ) : null}
 
@@ -377,7 +403,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, zIndex: 5,
   },
-  newPillText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
+  newPillText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
 
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
   avatar: {
@@ -385,7 +411,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(249,115,22,0.18)',
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 19 },
+  avatarText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 19 },
   statusDot: {
     position: 'absolute', right: -2, bottom: -2,
     width: 14, height: 14, borderRadius: 999,
@@ -458,7 +484,7 @@ const s = StyleSheet.create({
       ? ({ boxShadow: '0 8px 24px rgba(249,115,22,0.35)', transitionDuration: '160ms' } as any)
       : { shadowColor: PC.accent, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } }),
   },
-  viewBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5, letterSpacing: 0.1 },
+  viewBtnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13.5, letterSpacing: 0.1 },
   socialBtn: {
     width: 44, height: 44, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',

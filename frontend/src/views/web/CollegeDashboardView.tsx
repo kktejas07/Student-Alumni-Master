@@ -5,10 +5,8 @@
  * Theme: dark navy/blue (#0F172A → #1E3A8A), accent #60A5FA.
  */
 import { useEffect, useRef } from 'react';
-import {
-  View, Text, StyleSheet, Pressable, ScrollView, Animated, Easing,
-  useWindowDimensions,
-} from 'react-native';
+import { Platform, View, Text, StyleSheet, Pressable, ScrollView, Animated, Easing,
+  useWindowDimensions,} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Bell, GraduationCap, Users, Calendar, TrendingUp, Megaphone,
@@ -22,14 +20,14 @@ const BLUE_BORDER = 'rgba(96,165,250,0.32)';
 
 const STATS = [
   { id: 'students',   Icon: GraduationCap, label: 'Total Students',     value: '3,240', delta: '↑180 enrolled', color: BLUE,      tint: BLUE_TINT,             border: BLUE_BORDER, deltaColor: '#34D399' },
-  { id: 'alumni',     Icon: Users,         label: 'Alumni Network',     value: '8,400', delta: '↑320 this year', color: '#A78BFA', tint: 'rgba(124,58,237,0.18)', border: 'rgba(196,181,253,0.32)', deltaColor: '#34D399' },
+  { id: 'alumni',     Icon: Users,         label: 'Alumni Network',     value: '8,400', delta: '↑320 this year', color: '#60A5FA', tint: 'rgba(37,99,235,0.18)', border: 'rgba(196,181,253,0.32)', deltaColor: '#34D399' },
   { id: 'events',     Icon: Calendar,      label: 'Events This Month',  value: '12',    delta: '3 upcoming',     color: '#FB923C', tint: 'rgba(180,83,9,0.20)',   border: 'rgba(251,146,60,0.32)', deltaColor: '#FB923C' },
   { id: 'placement',  Icon: TrendingUp,    label: 'Placement Rate',     value: '94%',   delta: '↑4% vs last yr', color: '#34D399', tint: 'rgba(6,95,70,0.20)',    border: 'rgba(52,211,153,0.32)', deltaColor: '#34D399' },
 ];
 
 const ACTIVITY = [
   { id: '1', Icon: GraduationCap, text: '180 students enrolled for Semester 5',  when: 'Today',     tint: ['#60A5FA', '#1D4ED8'] },
-  { id: '2', Icon: Users,         text: 'Priya Singh (2022) joined the alumni network', when: '2 hrs ago', tint: ['#A78BFA', '#7C3AED'] },
+  { id: '2', Icon: Users,         text: 'Priya Singh (2022) joined the alumni network', when: '2 hrs ago', tint: ['#60A5FA', '#2563EB'] },
   { id: '3', Icon: Calendar,      text: 'Tech Fest 2026 — RSVP count reached 240', when: '4 hrs ago', tint: ['#F472B6', '#DB2777'] },
   { id: '4', Icon: Briefcase,     text: 'Google campus drive confirmed for May 10', when: 'Yesterday', tint: ['#FB923C', '#EA580C'] },
 ];
@@ -38,7 +36,7 @@ const QUICK_ACTIONS = [
   { id: 'announce',  Icon: Megaphone,   label: 'Announce',  gradient: ['#EF4444', '#B91C1C'], shadow: 'rgba(239,68,68,0.45)' },
   { id: 'new-event', Icon: PlusSquare,  label: 'New\nEvent', gradient: ['#FB923C', '#EA580C'], shadow: 'rgba(251,146,60,0.45)' },
   { id: 'analytics', Icon: BarChart3,   label: 'Analytics', gradient: ['#3B82F6', '#1D4ED8'], shadow: 'rgba(59,130,246,0.45)' },
-  { id: 'students',  Icon: GraduationCap, label: 'Students', gradient: ['#A78BFA', '#7C3AED'], shadow: 'rgba(124,58,237,0.45)' },
+  { id: 'students',  Icon: GraduationCap, label: 'Students', gradient: ['#60A5FA', '#2563EB'], shadow: 'rgba(37,99,235,0.45)' },
 ];
 
 interface Props {
@@ -61,7 +59,7 @@ export function CollegeDashboardView({
 
   const fade = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.timing(fade, { toValue: 1, duration: 420, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
+    Animated.timing(fade, { toValue: 1, duration: 420, easing: Easing.out(Easing.quad), useNativeDriver: Platform.OS !== 'web' }).start();
   }, []);
   const translateY = fade.interpolate({ inputRange: [0, 1], outputRange: [12, 0] });
 
@@ -75,7 +73,7 @@ export function CollegeDashboardView({
         {/* Top bar */}
         <View style={styles.topBar}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.greeting}>Good morning, {firstName} 👋</Text>
+            <Text style={styles.greeting}>Good morning, {firstName} </Text>
             <Text style={[styles.name, isWide && { fontSize: 28 }]} numberOfLines={2}>{collegeName}</Text>
           </View>
           <Pressable onPress={onOpenNotifications} testID="college-notif-btn"
@@ -165,8 +163,8 @@ function QuickActionTile({ action, onPress }: { action: typeof QUICK_ACTIONS[num
   const scale = useRef(new Animated.Value(1)).current;
   return (
     <Pressable onPress={onPress} testID={`college-qa-${action.id}`}
-      onPressIn={() => Animated.spring(scale, { toValue: 0.92, useNativeDriver: true, friction: 6, tension: 200 }).start()}
-      onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 6, tension: 200 }).start()}
+      onPressIn={() => Animated.spring(scale, { toValue: 0.92, useNativeDriver: Platform.OS !== 'web', friction: 6, tension: 200 }).start()}
+      onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: Platform.OS !== 'web', friction: 6, tension: 200 }).start()}
       style={({ hovered }: any) => [styles.qaTile, hovered && { transform: [{ translateY: -2 }] }]}>
       <Animated.View style={{ transform: [{ scale }] }}>
         <LinearGradient colors={action.gradient as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}

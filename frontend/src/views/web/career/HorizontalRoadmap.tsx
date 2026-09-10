@@ -67,8 +67,8 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
         <Text style={s.headerTitle}>YOUR CAREER JOURNEY</Text>
         <View style={s.subHeaderLegend}>
           <Text style={[s.legendItem, { color: COLORS.green }]}>Completed ●</Text>
-          <Text style={[s.legendItem, { color: COLORS.purpleL }]}>Current Step ➔</Text>
-          <Text style={[s.legendItem, { color: COLORS.text2 }]}>Next Step ➔</Text>
+          <Text style={[s.legendItem, { color: COLORS.purpleL }]}>Current Step →</Text>
+          <Text style={[s.legendItem, { color: COLORS.text2 }]}>Next Step →</Text>
           <Text style={s.legendItem}>Upcoming</Text>
         </View>
       </View>
@@ -160,7 +160,7 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
 
 const s = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(18, 22, 35, 0.75)',
+    backgroundColor: '#0A0A2A',
     borderColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
     borderRadius: RADIUS.card,

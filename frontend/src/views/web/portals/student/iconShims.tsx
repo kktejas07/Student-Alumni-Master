@@ -15,7 +15,7 @@
  *
  * Usage:
  *   import { Sparkles, Wallet } from '../iconShims';
- *   <Sparkles size={14} color="#A78BFA" />
+ *   <Sparkles size={14} color="#60A5FA" />
  *
  * All shimmed icons accept the same props as lucide's:
  *   { size?: number; color?: string; fill?: string; style?: any }
@@ -58,6 +58,9 @@ export const BookOpen        = make('book-open-page-variant-outline');
 export const Bell            = make('bell-outline');
 export const Search          = make('magnify');
 export const ArrowRight      = make('arrow-right');
+export const ArrowLeft       = make('arrow-left');
+export const XCircle         = make('close-circle-outline');
+export const CalendarDays    = make('calendar-range');
 export const ArrowDown       = make('arrow-down');
 export const ArrowUp         = make('arrow-up');
 export const TrendingUp      = make('trending-up');
@@ -77,6 +80,8 @@ export const RefreshCcw      = make('refresh');
 export const Lock            = make('lock-outline');
 export const Globe2          = make('earth');
 export const Gift            = make('gift-outline');
+export const Store           = make('store-outline');
+export const Truck           = make('truck-delivery-outline');
 export const Plus            = make('plus');
 export const X               = make('close');
 export const Clock           = make('clock-outline');
@@ -92,6 +97,17 @@ export const Plug            = make('power-plug-outline');
 export const Zap             = make('lightning-bolt');
 export const ChevronDown     = make('chevron-down');
 export const ChevronRight    = make('chevron-right');
+export const AlertCircle     = make('alert-circle-outline');
+export const ScanLine        = make('barcode-scan');
+export const Camera          = make('camera-outline');
+export const Keyboard        = make('keyboard-outline');
+export const Menu            = make('menu');
+export const Logout          = make('logout');
+export const ArrowUpDown     = make('swap-vertical');
+export const Share2          = make('share-variant-outline');
+export const Filter          = make('filter-outline');
+export const Copy            = make('content-copy');
+export const Shield          = make('shield-outline');
 
 // ── Type alias replacement for lucide's `LucideIcon` type ─────────────────
 export type LucideIcon = React.FC<IconProps>;

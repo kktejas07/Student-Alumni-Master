@@ -11,6 +11,7 @@ import {
   Sidebar, GlassCard, KpiTile, Avatar, BellIcon, PageHeader, PrimaryButton,
   SectionLabel, EmptyState, NavItem,
 } from './components';
+import { Check } from 'lucide-react-native';
 import { SA, SAGradients } from './tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { api } from '@/src/models/services/api';
@@ -44,6 +45,20 @@ export default function MentorPlatform() {
   const { width } = useWindowDimensions();
   const isWide = width >= 768;
 
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchNotifs = () => {
+      api.notifications()
+        .then(res => setUnreadCount(res.unread || 0))
+        .catch(console.error);
+    };
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 5000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   const initials = (user?.full_name || 'SA').split(' ').slice(0, 2).map((p) => p[0] || '').join('').toUpperCase();
   const onLogout = async () => { await logout(); router.replace('/welcome'); };
 
@@ -67,7 +82,7 @@ export default function MentorPlatform() {
           user={{
             initials,
             primary: user?.full_name || 'Mentor',
-            secondary: 'Approved Mentor · ⭐ 4.9',
+            secondary: 'Approved Mentor ·  4.9',
             gradient: SAGradients.green,
           }}
           onLogout={onLogout}
@@ -77,7 +92,7 @@ export default function MentorPlatform() {
         {screen === 'home' && (
           <MentorDashboardView
             userName={(user?.full_name || 'Mentor').split(' ')[0]}
-            notifCount={2}
+            notifCount={unreadCount}
             onOpenNotifications={() => router.push('/notifications')}
             onOpenProfile={() => setScreen('profile')}
             onActionPress={(id) => {
@@ -138,7 +153,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
   return (
     <>
       <PageHeader
-        title={`Welcome back, ${firstName} 👋`}
+        title={`Welcome back, ${firstName} `}
         subtitle={`You have ${pending.length} pending session requests and ${reviews.length} recent reviews.`}
         rightSlot={
           <>
@@ -149,10 +164,10 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
       />
 
       <View style={[styles.kpiRow, !isWide && { flexDirection: 'column' }]}>
-        <KpiTile emoji="📅" label="Total Sessions" value={String(bookings.length)} note={`${pending.length} pending`} noteColor={SA.warn} />
-        <KpiTile emoji="⏱️" label="Hours Mentored" value={`${totalHours}h`} note="This year" noteColor={SA.purplePale} />
-        <KpiTile emoji="⭐" label="Rating" value={reviewStats?.total > 0 ? String(reviewStats.average) : '—'} note={reviewStats?.total ? `${reviewStats.total} reviews` : 'No reviews yet'} noteColor={SA.success} />
-        <KpiTile emoji="💰" label="Est. Earnings" value={`₹${(completed.length * 500).toLocaleString('en-IN')}`} note="Last 30 days" noteColor={SA.warn} />
+        <KpiTile emoji="" label="Total Sessions" value={String(bookings.length)} note={`${pending.length} pending`} noteColor={SA.warn} />
+        <KpiTile emoji="" label="Hours Mentored" value={`${totalHours}h`} note="This year" noteColor={SA.purplePale} />
+        <KpiTile emoji="" label="Rating" value={reviewStats?.total > 0 ? String(reviewStats.average) : '—'} note={reviewStats?.total ? `${reviewStats.total} reviews` : 'No reviews yet'} noteColor={SA.success} />
+        <KpiTile emoji="" label="Est. Earnings" value={`₹${(completed.length * 500).toLocaleString('en-IN')}`} note="Last 30 days" noteColor={SA.warn} />
       </View>
 
       <View style={[styles.split, !isWide && { flexDirection: 'column' }]}>
@@ -160,7 +175,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
           {/* Pending session requests */}
           <GlassCard pad={22}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <SectionLabel>⚡ PENDING SESSION REQUESTS</SectionLabel>
+              <SectionLabel> PENDING SESSION REQUESTS</SectionLabel>
               <Text style={{ color: SA.warn, fontFamily: SA.fontBold, fontSize: 12 }}>{pending.length} new</Text>
             </View>
             {pending.length === 0 ? (
@@ -201,11 +216,11 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
 
           {/* Upcoming sessions */}
           <GlassCard pad={22}>
-            <SectionLabel>📆 UPCOMING SESSIONS</SectionLabel>
+            <SectionLabel> UPCOMING SESSIONS</SectionLabel>
             {bookings.filter((b) => b.status === 'confirmed').slice(0, 5).map((b, i) => (
               <View key={i} style={styles.upcomingRow}>
                 <View style={styles.upcomingDate}>
-                  <Text style={{ color: SA.success, fontFamily: SA.fontBold, fontSize: 14 }}>✓</Text>
+                  <Check size={16} color={SA.success} />
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={{ color: SA.white, fontFamily: SA.fontBold, fontSize: 13 }} numberOfLines={1}>
@@ -219,7 +234,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
               </View>
             ))}
             {bookings.filter((b) => b.status === 'confirmed').length === 0 && (
-              <EmptyState icon="📅" title="No upcoming sessions" sub="Post a slot to start receiving bookings." />
+              <EmptyState icon="" title="No upcoming sessions" sub="Post a slot to start receiving bookings." />
             )}
           </GlassCard>
         </View>
@@ -227,13 +242,13 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
         <View style={{ width: isWide ? 320 : '100%', gap: 16 }}>
           {/* Recent reviews */}
           <GlassCard pad={20}>
-            <SectionLabel>⭐ RECENT REVIEWS</SectionLabel>
+            <SectionLabel> RECENT REVIEWS</SectionLabel>
             {reviews.length === 0 && <Text style={{ color: SA.textFaint, fontSize: 13 }}>Reviews appear here after sessions.</Text>}
             {reviews.map((r, i) => (
               <View key={i} style={{ marginBottom: 14, paddingBottom: 14, borderBottomColor: 'rgba(255,255,255,0.06)', borderBottomWidth: i < reviews.length - 1 ? 1 : 0 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   {[...Array(5)].map((_, idx) => (
-                    <Text key={idx} style={{ color: idx < r.rating ? SA.warn : 'rgba(255,255,255,0.18)', fontSize: 13 }}>★</Text>
+                    <Text key={idx} style={{ color: idx < r.rating ? SA.warn : 'rgba(255,255,255,0.18)', fontSize: 13 }}><Star size={13} fill={idx < r.rating ? SA.warn : "rgba(255,255,255,0.18)"} color={idx < r.rating ? SA.warn : "rgba(255,255,255,0.18)"} /></Text>
                   ))}
                 </View>
                 {r.comment && (
@@ -250,11 +265,11 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
 
           {/* Quick actions */}
           <GlassCard pad={18}>
-            <SectionLabel>⚡ QUICK ACTIONS</SectionLabel>
+            <SectionLabel> QUICK ACTIONS</SectionLabel>
             {[
-              { emoji: '📅', label: 'Post a Session', sub: 'Open a 1:1 or group slot', onPress: () => onNav('sessions') },
-              { emoji: '📊', label: 'Full Analytics', sub: 'Mentor KPIs & growth', onPress: () => onNav('analytics') },
-              { emoji: '💬', label: 'Knowledge Rooms', sub: 'Host live discussions', onPress: () => router.push('/rooms' as any) },
+              { emoji: '', label: 'Post a Session', sub: 'Open a 1:1 or group slot', onPress: () => onNav('sessions') },
+              { emoji: '', label: 'Full Analytics', sub: 'Mentor KPIs & growth', onPress: () => onNav('analytics') },
+              { emoji: '', label: 'Knowledge Rooms', sub: 'Host live discussions', onPress: () => router.push('/rooms' as any) },
             ].map((q, i, arr) => (
               <Pressable
                 key={i}

@@ -89,9 +89,9 @@ async function refreshAccessToken(): Promise<string | null> {
 
 export async function request<T>(
   path: string,
-  options: { method?: string; body?: any; auth?: boolean } = {},
+  options: { method?: string; body?: any; auth?: boolean; headers?: Record<string, string> } = {},
 ): Promise<T> {
-  const { method = 'GET', body, auth = true } = options;
+  const { method = 'GET', body, auth = true, headers: customHeaders } = options;
   const t0 = typeof Date !== 'undefined' ? Date.now() : 0;
   const fullUrl = `${BASE_URL}/api${path}`;
 
@@ -115,11 +115,11 @@ export async function request<T>(
   }
 
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
-  const headers: Record<string, string> = {};
-  if (!isFormData) {
+  const headers: Record<string, string> = { ...customHeaders };
+  if (!isFormData && !headers['Content-Type']) {
     headers['Content-Type'] = 'application/json';
   }
-  if (auth && token) headers['Authorization'] = `Bearer ${token}`;
+  if (auth && token && !headers['Authorization']) headers['Authorization'] = `Bearer ${token}`;
 
   try {
     const res = await fetch(fullUrl, {
@@ -172,7 +172,7 @@ export async function request<T>(
             ? detail.map((d: any) => d?.msg || JSON.stringify(d)).join(' ')
             : detail?.msg || `Request failed (${res.status})`;
       // eslint-disable-next-line no-console
-      console.warn(`⚠️ [API WARN] ${res.status} (${duration}ms) ${method} ${fullUrl} - ${msg}`);
+      console.warn(`[API WARN] ${res.status} (${duration}ms) ${method} ${fullUrl} - ${msg}`);
       throw new Error(msg);
     }
 
@@ -182,7 +182,7 @@ export async function request<T>(
   } catch (err: any) {
     const duration = t0 ? Date.now() - t0 : 0;
     // eslint-disable-next-line no-console
-    console.error(`💥 [API ERR] (${duration}ms) ${method} ${fullUrl}`, err?.message || err);
+    console.error(`[API ERR] (${duration}ms) ${method} ${fullUrl}`, err?.message || err);
     throw err;
   }
 }
@@ -202,7 +202,7 @@ export const api = {
 
   // OAuth — Option C: backend uses MOCK verification (passes email/full_name in body)
   // Switch to real provider tokens by populating id_token/access_token instead.
-  oauthGoogle: (payload: { email: string; full_name: string; picture?: string; role?: string }) =>
+  oauthGoogle: (payload: { id_token?: string; email?: string; full_name?: string; picture?: string; role?: string }) =>
     request<any>('/auth/google', { method: 'POST', body: payload, auth: false }),
 
   oauthLinkedIn: (payload: { email: string; full_name: string; picture?: string; role?: string }) =>
@@ -228,6 +228,21 @@ export const api = {
   twoFARegenerateBackupCodes: (code: string) =>
     request<{ enabled: boolean; backup_codes: string[] }>(
       '/auth/2fa/regenerate-backup-codes', { method: 'POST', body: { code } }),
+
+  checkEmail: (email: string) =>
+    request<{ exists: boolean; role?: string; full_name?: string; onboarding_completed?: boolean }>(
+      '/auth/check-email', { method: 'POST', body: { email }, auth: false }
+    ),
+
+  sendEmailOtp: (email: string, phone?: string) =>
+    request<{ status: string; message: string; otp_code?: string }>(
+      '/auth/email-otp/send', { method: 'POST', body: { email, phone }, auth: false }
+    ),
+
+  verifyEmailOtp: (email: string, otp: string) =>
+    request<{ status: string; message: string; token?: string; user?: any }>(
+      '/auth/verify-email-otp', { method: 'POST', body: { email, otp }, auth: false }
+    ),
 
   // Onboarding
   completeOnboarding: (payload: any) =>
@@ -420,6 +435,9 @@ export const api = {
   verifyEchoPayment: (slug: string, payload: any) =>
     request<any>(`/echo/showcases/${slug}/verify-payment`, { method: 'POST', body: payload }),
 
+  // Promotions
+  getPromotionsPopup: () => request<any>('/promotions/popup', { auth: false }),
+
   // Public college autocomplete (registration / onboarding forms)
   searchColleges: (q: string, limit = 8) =>
     request<any>(`/colleges/search?q=${encodeURIComponent(q)}&limit=${limit}`, { auth: false }),
@@ -430,6 +448,8 @@ export const api = {
     request<any>('/echo/admin/showcases', { method: 'POST', body: payload }),
   updateEchoShowcase: (id: string, payload: any) =>
     request<any>(`/echo/admin/showcases/${id}`, { method: 'PUT', body: payload }),
+  temporaryOpenEchoShowcase: (id: string, durationMinutes: number) =>
+    request<any>(`/echo/admin/showcases/${id}/temporary-open`, { method: 'POST', body: { duration_minutes: durationMinutes } }),
   deleteEchoShowcase: (id: string) =>
     request<any>(`/echo/admin/showcases/${id}`, { method: 'DELETE' }),
   publishEchoShowcase: (id: string) =>
@@ -459,20 +479,239 @@ export const api = {
     request<any>('/echo/admin/media/bulk-delete', { method: 'POST', body: { filenames } }),
   restoreEchoShowcaseVersion: (id: string, versionIndex: number) =>
     request<any>(`/echo/admin/showcases/${id}/restore/${versionIndex}`, { method: 'POST' }),
-  adminEchoRegistrations: () =>
-    request<any>('/echo/admin/registrations'),
+  adminEchoRegistrations: (params?: { slug?: string; status?: string; search?: string; has_sa_account?: boolean; profile_status?: string }) => {
+    const q = new URLSearchParams();
+    q.set('_t', String(Date.now()));
+    if (params?.slug) q.set('slug', params.slug);
+    if (params?.status) q.set('status', params.status);
+    if (params?.search) q.set('search', params.search);
+    if (params?.has_sa_account !== undefined) q.set('has_sa_account', String(params.has_sa_account));
+    if (params?.profile_status) q.set('profile_status', params.profile_status);
+    return request<any>(`/echo/admin/registrations?${q.toString()}`);
+  },
+  adminEchoIssueCertificate: (regId: string, title?: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/issue-certificate${title ? '?title=' + encodeURIComponent(title) : ''}`, { method: 'POST' }),
+  adminEchoBulkIssueCertificates: (slug: string) =>
+    request<any>(`/echo/admin/showcases/${slug}/bulk-issue-certificates`, { method: 'POST' }),
+  adminEchoBulkIssue3Certs: () =>
+    request<any>('/echo/admin/bulk-issue-3-certificates', { method: 'POST' }),
+  getEchoRegistrationCertificate: (regId: string) =>
+    request<any>(`/echo/registrations/${regId}/certificate`, { auth: false }),
+  adminEchoSendProfileReminders: (params?: { slug?: string; target_group?: string; channel?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.slug) q.set('slug', params.slug);
+    if (params?.target_group) q.set('target_group', params.target_group);
+    if (params?.channel) q.set('channel', params.channel);
+    return request<any>(`/echo/admin/send-profile-reminders?${q.toString()}`, { method: 'POST' });
+  },
+  adminEchoLoopAgentStatus: () =>
+    request<any>('/echo/admin/loop-agent/status'),
+  adminEchoLoopAgentStart: (intervalSeconds?: number) =>
+    request<any>(`/echo/admin/loop-agent/start${intervalSeconds ? '?interval_seconds=' + intervalSeconds : ''}`, { method: 'POST' }),
+  adminEchoLoopAgentStop: () =>
+    request<any>('/echo/admin/loop-agent/stop', { method: 'POST' }),
   adminEchoDeleteRegistration: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}`, { method: 'DELETE' }),
   adminEchoSendPaymentReminder: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}/remind`, { method: 'POST' }),
+  adminEchoResendAccountTickets: (regId: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/resend-account-tickets`, { method: 'POST' }),
+  adminEchoRescuePayment: (regId: string, paymentId?: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/rescue-payment${paymentId ? '?payment_id=' + paymentId : ''}`, { method: 'POST' }),
+  adminEchoDedupCoupons: () =>
+    request<any>('/echo/admin/coupons/dedup', { method: 'POST' }),
+  adminEchoSyncTeams: () =>
+    request<any>('/echo/admin/registrations/sync-teams', { method: 'POST' }),
+  adminEchoBroadcastSummary: (slug?: string) =>
+    request<any>(`/echo/admin/broadcast/audience-summary${slug ? '?slug=' + slug : ''}`),
+  adminEchoBroadcastSend: (payload: any) =>
+    request<any>('/echo/admin/broadcast/send', { method: 'POST', body: payload }),
   adminEchoMarkRegistrationFailed: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}/mark-failed`, { method: 'POST' }),
+  adminEchoMarkRegistrationPaid: (regId: string, paymentId?: string, reason?: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/mark-paid`, { method: 'POST', body: { payment_id: paymentId || undefined, reason: reason || undefined } }),
+  adminEchoUpdateTeam: (regId: string, teamMembers: any[], teamName?: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/team`, { method: 'PUT', body: { team_members: teamMembers, team_name: teamName } }),
+  adminEchoResendTickets: (regId: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/resend-tickets`, { method: 'POST' }),
+  getEchoRegistrationPasscode: () =>
+    request<any>('/echo/admin/registration-passcode'),
+  setEchoRegistrationPasscode: (passcode: string) =>
+    request<any>('/echo/admin/registration-passcode', { method: 'PUT', body: { passcode } }),
+  disableEchoRegistrationPasscode: () =>
+    request<any>('/echo/admin/registration-passcode', { method: 'PUT', body: { disable: true } }),
+  verifyEchoRegistrationPasscode: (passcode: string) =>
+    request<any>('/echo/admin/registration-passcode/verify', { method: 'POST', body: { passcode } }),
   adminEchoRevenue: () =>
     request<any>('/echo/admin/revenue'),
+  adminRevenueAudit: () =>
+    request<any>('/admin/super/revenue-audit'),
+  adminRazorpayPaymentFees: (payment_ids: string[]) =>
+    request<any>('/admin/super/razorpay-payment-fees', { method: 'POST', body: { payment_ids } }),
   myEchoInvoices: () =>
     request<any>('/echo/my-invoices'),
   myEchoRegistrations: () =>
     request<any>('/echo/my-registrations'),
+  myMarketplaceOrders: () =>
+    request<any>('/echo/my-marketplace-orders'),
+  myMarketplaceInvoice: (orderId: string) =>
+    request<any>(`/echo/marketplace-invoices/${orderId}`),
+  myMarketplaceOrderQr: (orderId: string) =>
+    request<any>(`/echo/orders/${orderId}/qr`),
+
+  // ── Marketplace admin helpers ─────────────────────────────────────────────
+  adminListMarketplaceCatalog: (showcaseId: string) =>
+    request<any>(`/echo/admin/showcases/${showcaseId}/catalog`),
+  adminCreateMarketplaceItem: (showcaseId: string, payload: any) =>
+    request<any>(`/echo/admin/showcases/${showcaseId}/catalog`, { method: 'POST', body: payload }),
+  adminUpdateMarketplaceItem: (itemId: string, payload: any) =>
+    request<any>(`/echo/admin/catalog/${itemId}`, { method: 'PUT', body: payload }),
+  adminDeleteMarketplaceItem: (itemId: string) =>
+    request<any>(`/echo/admin/catalog/${itemId}`, { method: 'DELETE' }),
+  adminListMarketplaceOrders: (showcaseId: string) =>
+    request<any>(`/echo/admin/showcases/${showcaseId}/orders`),
+  adminListMarketplaceCoupons: (eventSlug?: string) =>
+    request<any>(`/echo/admin/coupons${eventSlug ? `?event_slug=${eventSlug}` : ''}`),
+  adminCreateMarketplaceCoupon: (payload: any) =>
+    request<any>('/echo/admin/coupons', { method: 'POST', body: payload }),
+  adminListVendors: () =>
+    request<any>('/echo/admin/vendors'),
+  adminCreateVendor: (payload: any) =>
+    request<any>('/echo/admin/vendors', { method: 'POST', body: payload }),
+  adminUpdateVendor: (vendorId: string, payload: any) =>
+    request<any>(`/echo/admin/vendors/${vendorId}`, { method: 'PUT', body: payload }),
+  adminDeleteVendor: (vendorId: string) =>
+    request<any>(`/echo/admin/vendors/${vendorId}`, { method: 'DELETE' }),
+  adminVendorStats: () =>
+    request<any>('/echo/admin/vendors/stats'),
+  adminResetVendorPasscode: (vendorId: string, passcode: string) =>
+    request<any>(`/echo/admin/vendors/${vendorId}/password-reset`, { method: 'POST', body: { passcode } }),
+  adminSendVendorCredentials: (vendorId: string) =>
+    request<any>(`/echo/admin/vendors/${vendorId}/send-credentials`, { method: 'POST' }),
+  previewMarketplaceCoupon: (payload: any) =>
+    request<any>('/echo/orders/coupon-preview', { method: 'POST', body: payload }),
+
+  // ── Internal Hiring & Interns Pipeline ────────────────────────────────────
+  adminEchoListInterns: (params?: any) => {
+    const q = new URLSearchParams();
+    if (params?.slug) q.set('slug', params.slug);
+    if (params?.stage) q.set('stage', params.stage);
+    if (params?.search) q.set('search', params.search);
+    if (params?.domain) q.set('domain', params.domain);
+    const qs = q.toString();
+    return request<any>(`/echo/admin/interns${qs ? '?' + qs : ''}`);
+  },
+  adminEchoConvertIntern: (payload: any) =>
+    request<any>('/echo/admin/interns/convert', { method: 'POST', body: payload }),
+  adminEchoAdvanceIntern: (id: string, payload?: any) =>
+    request<any>(`/echo/admin/interns/${id}/advance`, { method: 'POST', body: payload || {} }),
+  adminEchoUpdateIntern: (id: string, payload: any) =>
+    request<any>(`/echo/admin/interns/${id}`, { method: 'PUT', body: payload }),
+  adminEchoDeleteIntern: (id: string) =>
+    request<any>(`/echo/admin/interns/${id}`, { method: 'DELETE' }),
+  adminEchoSyncAllInterns: () =>
+    request<any>('/echo/admin/interns/sync-registrations', { method: 'POST' }),
+
+
+
+  // ── Echo Settings & Branding ──────────────────────────────────────────────
+  getEchoSettings: () => request<any>('/echo/admin/settings'),
+  getEchoHeroConfig: () => request<any>('/echo/admin/settings').then((s: any) => s?.hero_config || null),
+  updateEchoSettings: (payload: any) =>
+    request<any>('/echo/admin/settings', { method: 'PUT', body: payload }),
+  getEchoBranding: () => request<any>('/echo/admin/branding'),
+  updateEchoBranding: (payload: any) =>
+    request<any>('/echo/admin/branding', { method: 'PUT', body: payload }),
+  getEchoTicketPreview: (tplId: string) =>
+    request<any>(`/echo/tickets/preview/${tplId}`),
+  getEchoInvoicePreview: (tplId: string) =>
+    request<any>(`/echo/admin/settings/preview/invoice/${tplId}`),
+  getEchoTicket: (regId: string) =>
+    request<any>(`/echo/tickets/${regId}?format=json`),
+  getEchoInvoice: (invoiceNo: string) =>
+    request<any>(`/echo/invoices/${invoiceNo}`),
+
+  // ── Echo Admin Sessions & Volunteers ──────────────────────────────────────
+  getEchoSessions: (slug: string) =>
+    request<any>(`/echo/admin/${slug}/sessions`),
+  updateEchoSessions: (slug: string, payload: any) =>
+    request<any>(`/echo/admin/${slug}/sessions`, { method: 'PUT', body: payload }),
+  lockEchoSession: (slug: string, sessionKey: string) =>
+    request<any>(`/echo/admin/${slug}/sessions/${sessionKey}/lock`, { method: 'POST' }),
+  listEchoVolunteers: (slug: string) =>
+    request<any>(`/echo/admin/${slug}/volunteers`),
+  addEchoVolunteer: (slug: string, payload: any) =>
+    request<any>(`/echo/admin/${slug}/volunteers`, { method: 'POST', body: payload }),
+  deleteEchoVolunteer: (slug: string, volunteerId: string) =>
+    request<any>(`/echo/admin/${slug}/volunteers/${volunteerId}`, { method: 'DELETE' }),
+
+  // ── Unstop CSV Import ─────────────────────────────────────────────────────
+  echoImportTicketsPreview: (file: File, source: string = 'unstop') => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return request<any>(`/echo/admin/import-tickets/preview?source=${encodeURIComponent(source)}`, { method: 'POST', body: fd });
+  },
+  echoImportTickets: (file: File, slug: string, source: string = 'unstop') => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return request<any>(`/echo/admin/import-tickets?slug=${encodeURIComponent(slug)}&source=${encodeURIComponent(source)}`, { method: 'POST', body: fd });
+  },
+
+  // ── Admin Contacts ────────────────────────────────────────────────────────
+  listContacts: (params: { page?: number; per_page?: number; q?: string; source?: string; include_registered?: boolean }) => {
+    const qs = new URLSearchParams();
+    if (params.page) qs.set('page', String(params.page));
+    if (params.per_page) qs.set('per_page', String(params.per_page));
+    if (params.q) qs.set('q', params.q);
+    if (params.source) qs.set('source', params.source);
+    if (params.include_registered) qs.set('include_registered', 'true');
+    return request<any>(`/admin/contacts?${qs}`);
+  },
+  listContactLists: () => request<any>('/admin/contact-lists'),
+  getContactStats: () => request<any>('/admin/contacts/stats'),
+  deleteContact: (id: string) =>
+    request<any>(`/admin/contacts/${id}`, { method: 'DELETE' }),
+  bulkDeleteContacts: (ids: string[]) =>
+    request<any>('/admin/contacts/bulk', { method: 'DELETE', body: { ids } }),
+  importContacts: (formData: FormData) =>
+    request<any>('/admin/contacts/import', { method: 'POST', body: formData }),
+  createContact: (payload: any) =>
+    request<any>('/admin/contacts', { method: 'POST', body: payload }),
+  updateContact: (id: string, payload: any) =>
+    request<any>(`/admin/contacts/${id}`, { method: 'PUT', body: payload }),
+
+  // ── Admin Imports ─────────────────────────────────────────────────────────
+  uploadImportFile: (formData: FormData) =>
+    request<any>('/admin/imports/upload', { method: 'POST', body: formData }),
+  commitImport: (payload: { cache_id: string; mapping: any; skip_invalid: boolean }) =>
+    request<any>('/admin/imports/commit', { method: 'POST', body: payload }),
+
+  // ── Admin Email Quality ───────────────────────────────────────────────────
+  emailQualityAudit: () => request<any>('/admin/email-quality/audit'),
+  bulkRestoreEmails: (emails: string[]) => {
+    const qs = new URLSearchParams();
+    emails.forEach((e) => qs.append('emails', e));
+    return request<any>(`/admin/email-quality/suppressions/bulk?${qs}`, { method: 'DELETE' });
+  },
+  restoreAllSuppressions: () => request<any>('/admin/email-quality/suppressions/all', { method: 'DELETE' }),
+
+  // ── Admin Exports ─────────────────────────────────────────────────────────
+  exportPayments: () => request<any>('/admin/export/payments'),
+
+  // ── College Students ──────────────────────────────────────────────────────
+  exportCollegeStudents: (params: { format?: string; department?: string; year?: string }) => {
+    const qs = new URLSearchParams();
+    if (params.format) qs.set('format', params.format);
+    if (params.department) qs.set('department', params.department);
+    if (params.year) qs.set('year', params.year);
+    return request<any>(`/college/students/export?${qs}`);
+  },
+  clearCollegeStudents: () =>
+    request<any>('/college/students/clear', { method: 'POST' }),
+  bulkDeleteCollegeStudents: (ids: string[]) =>
+    request<any>('/college/students/bulk-delete', { method: 'POST', body: { ids } }),
+  uploadCollegeStudents: (formData: FormData) =>
+    request<any>('/college/students/upload', { method: 'POST', body: formData }),
 
   // ── Newsletter ────────────────────────────────────────────────────────────
   sendNewsletter: (payload: any) =>
@@ -495,8 +734,8 @@ export const api = {
     request<any>('/newsletter/admin/campaigns'),
   newsletterUpcomingEvents: () =>
     request<any>('/newsletter/admin/upcoming-events'),
-  getNewsletterRecipientCount: () =>
-    request<any>('/newsletter/admin/recipient-count'),
+  getNewsletterRecipientCount: (audience = 'all') =>
+    request<any>(`/newsletter/admin/recipient-count?audience=${encodeURIComponent(audience)}`),
 
   emailQualityReport: (q = '') =>
     request<any>(`/admin/email-quality${q ? `?q=${encodeURIComponent(q)}` : ''}`),
@@ -515,10 +754,66 @@ export const api = {
     request<any>(`/newsletter/admin/search-users?q=${encodeURIComponent(q)}`),
   sendIndividualNotification: (payload: any) =>
     request<any>('/newsletter/admin/send-individual', { method: 'POST', body: payload }),
+
+  // ── BGV & Account Verticals ──────────────────────────────────────────────
+  getAccountAnalytics: () =>
+    request<any>('/bgv/admin/analytics'),
+  listAccountsByVertical: (vertical = 'all', q = '', page = 1, limit = 25, country = 'all', has_linkedin = 'all') =>
+    request<any>(`/bgv/admin/list?vertical=${encodeURIComponent(vertical)}&q=${encodeURIComponent(q)}&page=${page}&limit=${limit}&country=${encodeURIComponent(country)}&has_linkedin=${encodeURIComponent(has_linkedin)}`),
+  toggleAccountTestStatus: (payload: { id: string; collection?: string; is_test: boolean }) =>
+    request<any>('/bgv/admin/toggle-test', { method: 'POST', body: payload }),
+  purgeTestAccounts: (confirm = true) =>
+    request<any>('/bgv/admin/purge-test', { method: 'POST', body: { confirm } }),
+  lookupBGVRecord: (identifier: string) =>
+    request<any>(`/bgv/lookup?identifier=${encodeURIComponent(identifier)}`),
+  backfillBGVIdentifiers: () =>
+    request<any>('/bgv/admin/backfill', { method: 'POST', body: {} }),
+  getMonthlyRemindersStatus: () =>
+    request<any>('/bgv/admin/monthly-reminders/status'),
+  updateMonthlyRemindersSettings: (payload: { auto_reminders_enabled?: boolean; interval_days?: number; claim_base_url?: string; subject_template?: string; test_email?: string }) =>
+    request<any>('/bgv/admin/monthly-reminders/settings', { method: 'POST', body: payload }),
+  runMonthlyReminders: (payload?: { dry_run?: boolean; limit?: number }) =>
+    request<any>('/bgv/admin/monthly-reminders/run', { method: 'POST', body: payload || {} }),
+  sendSingleClaimEmail: (payload: { id: string; collection?: string; custom_url?: string; email?: string }) =>
+    request<any>('/bgv/admin/monthly-reminders/send-single', { method: 'POST', body: payload }),
+  updateAccountProfile: (payload: { id: string; collection?: string; name?: string; email?: string; phone?: string; country?: string; location?: string; linkedin_url?: string; college?: string; degree?: string; graduation_year?: string; roll_number?: string }) =>
+    request<any>('/bgv/admin/update-profile', { method: 'POST', body: payload }),
+  autoEnrichProfiles: () =>
+    request<any>('/bgv/admin/enrich-profiles', { method: 'POST', body: {} }),
+  getBGVProvidersRegister: () =>
+    request<any>('/bgv/integrations/providers'),
+  listFakeUniversities: (q = '') =>
+    request<any>(`/bgv/integrations/fake-universities?q=${encodeURIComponent(q)}`),
+  verifyDegreeInstitution: (payload: { college: string }) =>
+    request<any>('/bgv/integrations/verify-degree-institution', { method: 'POST', body: payload }),
+  screenWatchlist: (payload: { name: string; dob?: string; country?: string }) =>
+    request<any>('/bgv/integrations/screen-watchlist', { method: 'POST', body: payload }),
+  runComprehensiveBGVScan: (payload: { name: string; email?: string; college?: string; degree?: string; pan?: string; uan?: string; country?: string; dob?: string; location?: string }) =>
+    request<any>('/bgv/integrations/scan', { method: 'POST', body: payload }),
+  getPublicBGVRecord: (identifier: string) =>
+    request<any>(`/bgv/verify-public/${encodeURIComponent(identifier)}`),
+  downloadBGVReportPdf: (identifier: string) =>
+    request<any>(`/bgv/report/pdf/${encodeURIComponent(identifier)}`),
+
+  // ── Blog & Community ──────────────────────────────────────────────────────
+  listBlogPosts: (category?: string, search?: string) => {
+    const params = new URLSearchParams();
+    if (category && category !== 'All') params.append('category', category);
+    if (search) params.append('q', search);
+    const queryString = params.toString();
+    return request<any>(`/blog/posts${queryString ? `?${queryString}` : ''}`, { auth: false });
+  },
+  getBlogPost: (slug: string) =>
+    request<any>(`/blog/posts/${encodeURIComponent(slug)}`, { auth: false }),
+  getCommunityData: () =>
+    request<any>('/community/data', { auth: false }),
+  listCampuses: (search?: string) =>
+    request<any>(`/community/campuses${search ? `?q=${encodeURIComponent(search)}` : ''}`, { auth: false }),
 };
 
-export function resolveImageUrl(url?: string | null): string {
-  if (!url) return '';
+
+export function resolveImageUrl(url?: any): string {
+  if (!url || typeof url !== 'string') return '';
   if (
     url.startsWith('http://') ||
     url.startsWith('https://') ||

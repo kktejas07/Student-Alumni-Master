@@ -50,9 +50,9 @@ export function AuthWebShell({
               AI career guidance, internships, mentorship, and alumni networking.
             </Text>
             {[
-              { emoji: '🤖', t: 'AI Career Guidance', s: 'Personalised roadmap based on your goals' },
-              { emoji: '🌍', t: '10,000+ Internships', s: 'Global opportunities matched to you' },
-              { emoji: '🤝', t: '500+ Mentors', s: 'Alumni who want to help you grow' },
+              { emoji: '', t: 'AI Career Guidance', s: 'Personalised roadmap based on your goals' },
+              { emoji: '', t: '10,000+ Internships', s: 'Global opportunities matched to you' },
+              { emoji: '', t: '500+ Mentors', s: 'Alumni who want to help you grow' },
             ].map((f) => (
               <View key={f.t} style={styles.featRow}>
                 <View style={styles.featIcon}>
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     maxWidth: 640,
     minWidth: 0,
-    backgroundColor: '#5B21B6',
+    backgroundColor: '#1E40AF',
     overflow: 'hidden',
     position: 'relative',
     ...Platform.select({ web: { display: 'flex' as any } }),
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
     ...({ backdropFilter: 'blur(24px)' } as any),
-    boxShadow: '0px 16px 48px rgba(124,58,237,0.25)',
+    boxShadow: '0px 16px 48px rgba(37,99,235,0.25)',
   },
   cardHalo: {
     position: 'absolute',
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     width: 260,
     height: 260,
     borderRadius: 999,
-    backgroundColor: 'rgba(124,58,237,0.22)',
+    backgroundColor: 'rgba(37,99,235,0.22)',
     ...({ filter: 'blur(80px)' } as any),
   },
 });

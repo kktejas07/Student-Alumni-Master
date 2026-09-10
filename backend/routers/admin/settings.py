@@ -268,15 +268,22 @@ MARKETPLACE = [
     {"id": "razorpay",        "name": "Razorpay",        "category": "Payments",  "icon": "wallet-outline",          "tint": "#0C2451", "description": "Payment gateway for payouts.",                     "auth_type": "api_key",
      "auth_fields": [_f("key_id","Key ID","text","rzp_live_xxxxxxxx"),
                      _f("key_secret","Key Secret","password","yyyyyyyy","From dashboard.razorpay.com → Settings → API Keys"),
-                     _f("webhook_secret","Webhook Secret","password","optional")]},
+                     _f("webhook_secret","Webhook Secret","password","optional")],
+     "webhook_url": "https://studentalumni.ai/api/echo/showcases/webhook/razorpay"},
     {"id": "linkedin",        "name": "LinkedIn API",    "category": "Sourcing",  "icon": "linkedin",                "tint": "#0A66C2", "description": "Alumni profile sync.",                             "auth_type": "oauth",
      "auth_fields": [_f("client_id","Client ID","text"),
                      _f("client_secret","Client Secret","password"),
                      _f("redirect_uri","Redirect URI","url","https://yourapp.com/oauth/linkedin/callback")]},
-    {"id": "twilio",          "name": "Twilio",          "category": "Comms",     "icon": "phone-outline",           "tint": "#F22F46", "description": "SMS OTP + voice call delivery.",                   "auth_type": "api_key",
-     "auth_fields": [_f("account_sid","Account SID","text","ACxxxxxxxx"),
-                     _f("auth_token","Auth Token","password"),
-                     _f("from_number","From Number","text","+1xxxxxxxxxx")]},
+     {"id": "twilio",          "name": "Twilio",          "category": "Comms",     "icon": "phone-outline",           "tint": "#F22F46", "description": "SMS OTP + voice call delivery.",                   "auth_type": "api_key",
+      "auth_fields": [_f("account_sid","Account SID","text","ACxxxxxxxx"),
+                      _f("auth_token","Auth Token","password"),
+                      _f("from_number","From Number","text","+1xxxxxxxxxx")]},
+     {"id": "ms-teams",        "name": "Microsoft Teams", "category": "Video",     "icon": "microsoft-teams",         "tint": "#6240B2", "description": "Create Teams meetings with attendee registration, seat limits, and attendance tracking.", "auth_type": "oauth", "popular": True,
+      "auth_fields": [_f("tenant_id","Tenant ID","text","xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx","From Azure Portal → Azure Active Directory → Properties"),
+                      _f("client_id","Client ID (App ID)","text","xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx","From Azure Portal → App Registrations"),
+                      _f("client_secret","Client Secret","password","","From Azure Portal → App Registrations → Certificates & secrets"),
+                      _f("redirect_uri","Redirect URI","url","https://studentalumni.ai/api/integrations/teams/callback","Must match the redirect URI configured in Azure")],
+      "webhook_url": "https://studentalumni.ai/api/integrations/teams/webhook"},
     {"id": "claude",          "name": "Anthropic Claude","category": "AI",        "icon": "robot-outline",           "tint": "#D4A373", "description": "Powers Agent K + AI Daily Brief.",                 "auth_type": "api_key", "popular": True,
      "auth_fields": [_f("api_key","Anthropic API Key","password","sk-ant-xxxxxxxx","From console.anthropic.com → API Keys")]},
     {"id": "openai",          "name": "OpenAI ChatGPT",  "category": "AI",        "icon": "creation",                "tint": "#10A37F", "description": "Alternative LLM backend for AI features.",         "auth_type": "api_key", "popular": True,
@@ -429,11 +436,14 @@ async def list_tools(authorization: Optional[str] = Header(None)):
         # mask any password-type fields
         pwd_keys = {f["key"] for f in t.get("auth_fields", []) if f.get("type") == "password"}
         masked = {k: ("••••" + str(v)[-4:] if v and k in pwd_keys else v) for k, v in creds.items()}
+        # expose full values for non-password fields so the UI can pre-fill the edit form
+        plain = {k: v for k, v in creds.items() if k not in pwd_keys}
         item = {
             **t,
             "installed":   bool(i),
             "status":      i.get("status") if i else None,
             "credentials_masked": masked,
+            "credentials_plain": plain,
             "installed_at": (i.get("installed_at").isoformat() if i and i.get("installed_at") else None),
         }
         if t["id"] == "postal" and i:
@@ -468,6 +478,13 @@ async def install_tool(body: InstallBody, authorization: Optional[str] = Header(
 
     # Validate required credential fields if auth_fields declared
     creds = dict(body.credentials or {})
+    existing_row = await _db.installed_tools.find_one({"user_id": str(user["_id"]), "tool_id": body.tool_id})
+    existing_creds = (existing_row or {}).get("credentials") or {}
+    # When a password-type field is left blank on an update, keep the previously
+    # saved secret so an "Edit" without re-entering the secret doesn't wipe it.
+    for f in tool.get("auth_fields", []):
+        if f.get("type") == "password" and f["key"] in existing_creds and not (creds.get(f["key"]) or "").strip():
+            creds[f["key"]] = existing_creds[f["key"]]
     if body.tool_id == "postal" and not (creds.get("webhook_secret") or "").strip():
         creds["webhook_secret"] = await ensure_postal_webhook_secret()
     elif body.tool_id == "postal":

@@ -3,12 +3,12 @@
  * Spec: /tmp/ui_specs/platform-student.jsx
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   Home as HomeIcon, Sparkles, Briefcase, BookOpen, Users, Calendar,
-  Wallet, Shield, Building2, Gift, User as UserIcon, GraduationCap,
+  Wallet, Shield, Building2, Gift, User as UserIcon, GraduationCap, ShoppingCart,
 } from 'lucide-react-native';
 import {
   Sidebar, GlassCard, KpiTile, Avatar, Badge, SearchBar, ProgressStrip,
@@ -16,10 +16,11 @@ import {
 } from './components';
 import { SA, SAGradients } from './tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { api } from '@/src/models/services/api';
+import { api, request } from '@/src/models/services/api';
 import {
   StudentInternships, StudentCourses, StudentResources, StudentNetwork,
 } from './screens/StudentScreens';
+import { Check } from 'lucide-react';
 import { StudentDashboardView } from '@/src/views/web/StudentDashboardView';
 
 const NAV: NavItem[] = [
@@ -34,6 +35,7 @@ const NAV: NavItem[] = [
   { id: 'insurance',         Icon: Shield,         label: 'Insurance',        color: '#60A5FA' },
   { id: 'rentals',           Icon: Building2,      label: 'Rentals',          color: '#A78BFA' },
   { id: 'deals',             Icon: Gift,           label: 'Deals',            color: '#F472B6' },
+  { id: 'purchases',         Icon: ShoppingCart,   label: 'My Purchases',     color: '#34D399' },
   { id: 'profile',           Icon: UserIcon,       label: 'Profile',          color: '#A78BFA' },
 ];
 
@@ -98,6 +100,7 @@ export default function StudentPlatform() {
           <StudentDashboardView
             userName={(user?.full_name || 'there').split(' ')[0]}
             onOpenNotifications={() => router.push('/notifications')}
+            onOpenProfile={() => setScreen('profile')}
             onSeeAllInternships={() => setScreen('internships')}
           />
         )}
@@ -106,6 +109,7 @@ export default function StudentPlatform() {
         {screen === 'courses' && <StudentCourses />}
         {screen === 'resources' && <StudentResources />}
         {screen === 'network' && <StudentNetwork />}
+        {screen === 'purchases' && <MyPurchasesView />}
       </ScrollView>
     </LinearGradient>
   );
@@ -144,7 +148,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
   return (
     <>
       <PageHeader
-        title={`Good morning, ${firstName} 👋`}
+        title={`Good morning, ${firstName} `}
         subtitle={`Your AI career assistant has ${dashboard?.ai_suggestion_count || 3} new suggestions for you.`}
         rightSlot={
           <>
@@ -156,10 +160,10 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
 
       {/* KPI strip */}
       <View style={[styles.kpiRow, !isWide && { flexDirection: 'column' }]}>
-        <KpiTile emoji="💼" label="Career Matches" value={String(internships.length || 48)} note={`↑ ${Math.min(12, internships.length)} new today`} />
-        <KpiTile emoji="📚" label="Courses In Progress" value={String((courses.filter((c: any) => c.status === 'in_progress') || []).length || 3)} note="68% avg completion" noteColor={SA.purplePale} />
-        <KpiTile emoji="👥" label="Mentor Connections" value={String(mentors.length || 5)} note={`${bookings.length} sessions logged`} />
-        <KpiTile emoji="🏆" label="Career Score" value={`${dashboard?.career_score || 74}%`} note="↑ 8pts this month" noteColor={SA.warn} />
+        <KpiTile emoji="" label="Career Matches" value={String(internships.length || 48)} note={`↑ ${Math.min(12, internships.length)} new today`} />
+        <KpiTile emoji="" label="Courses In Progress" value={String((courses.filter((c: any) => c.status === 'in_progress') || []).length || 3)} note="68% avg completion" noteColor={SA.purplePale} />
+        <KpiTile emoji="" label="Mentor Connections" value={String(mentors.length || 5)} note={`${bookings.length} sessions logged`} />
+        <KpiTile emoji="" label="Career Score" value={`${dashboard?.career_score || 74}%`} note="↑ 8pts this month" noteColor={SA.warn} />
       </View>
 
       {/* 2-col layout */}
@@ -170,7 +174,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
               <View>
                 <Text style={{ color: SA.purplePale, fontFamily: SA.fontBold, fontSize: 11, letterSpacing: 1, marginBottom: 4 }}>
-                  🤖 AI CAREER ASSISTANT
+                   AI CAREER ASSISTANT
                 </Text>
                 <Text style={{ color: SA.white, fontFamily: SA.fontBold, fontSize: 18 }}>Your personalised roadmap</Text>
               </View>
@@ -192,7 +196,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
                     : { backgroundColor: 'rgba(255,255,255,0.07)', borderColor: 'rgba(255,255,255,0.1)' },
                 ]}>
                   <Text style={{ color: s.done ? SA.success : SA.purplePale, fontFamily: SA.fontBold, fontSize: 11 }}>
-                    {s.done ? '✓' : i + 1}
+                    {s.done ? <Check size={14} color='#10B981' /> : i + 1}
                   </Text>
                 </View>
                 <Text style={[
@@ -211,7 +215,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
           {/* Top opportunity matches */}
           <GlassCard pad={22}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <SectionLabel>🌍 TOP OPPORTUNITY MATCHES</SectionLabel>
+              <SectionLabel> TOP OPPORTUNITY MATCHES</SectionLabel>
               <Pressable onPress={() => onNav('internships')}>
                 <Text style={{ color: SA.purplePale, fontFamily: SA.fontSemi, fontSize: 12 }}>
                   See all {internships.length || 48} →
@@ -221,7 +225,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
             {(internships.length > 0 ? internships.slice(0, 3) : DEFAULT_INTERNSHIPS).map((j: any, i: number) => (
               <View key={i} style={styles.listRow}>
                 <View style={styles.listRowIcon}>
-                  <Text style={{ fontSize: 18 }}>🏢</Text>
+                  <Text style={{ fontSize: 18 }}></Text>
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={{ color: SA.white, fontFamily: SA.fontBold, fontSize: 14 }} numberOfLines={1}>
@@ -246,7 +250,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
         <View style={{ width: isWide ? 320 : '100%', gap: 16 }}>
           {/* Course progress */}
           <GlassCard pad={20}>
-            <SectionLabel>📚 COURSE PROGRESS</SectionLabel>
+            <SectionLabel> COURSE PROGRESS</SectionLabel>
             {[
               { title: 'Python Bootcamp', platform: 'Udemy', pct: 68, gradient: SAGradients.purple },
               { title: 'Product Management', platform: 'Coursera', pct: 34, gradient: SAGradients.blue },
@@ -277,7 +281,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
 
           {/* Suggested mentors */}
           <GlassCard pad={20}>
-            <SectionLabel>🤝 SUGGESTED MENTORS</SectionLabel>
+            <SectionLabel> SUGGESTED MENTORS</SectionLabel>
             {(mentors.length > 0 ? mentors.slice(0, 2) : DEFAULT_MENTORS).map((m: any, i: number) => {
               const name = m.full_name || m.name;
               const inits = (name || 'M').split(' ').slice(0, 2).map((p: string) => p[0]).join('').toUpperCase();
@@ -287,7 +291,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: SA.white, fontFamily: SA.fontBold, fontSize: 13 }}>{name}</Text>
                     <Text style={{ color: SA.textFaint, fontSize: 11, marginTop: 1 }}>
-                      {m.title || m.role || 'Senior Mentor'} · ⭐ {m.rating || m.rate || '4.8'}
+                      {m.title || m.role || 'Senior Mentor'} ·  {m.rating || m.rate || '4.8'}
                     </Text>
                   </View>
                   <Pressable
@@ -303,11 +307,11 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
 
           {/* Quick resources */}
           <GlassCard pad={18}>
-            <SectionLabel>🛡️ QUICK RESOURCES</SectionLabel>
+            <SectionLabel> QUICK RESOURCES</SectionLabel>
             {[
-              { emoji: '🛡️', label: 'Student Insurance', sub: '3 plans available', route: '/insurance' as const },
-              { emoji: '🏠', label: 'Housing Near Campus', sub: '24 listings', route: '/housing' as const },
-              { emoji: '💰', label: 'Loan Calculator', sub: 'Compare 20+ banks', route: '/financial' as const },
+              { emoji: '', label: 'Student Insurance', sub: '3 plans available', route: '/insurance' as const },
+              { emoji: '', label: 'Housing Near Campus', sub: '24 listings', route: '/housing' as const },
+              { emoji: '', label: 'Loan Calculator', sub: 'Compare 20+ banks', route: '/financial' as const },
             ].map((r, i, arr) => (
               <Pressable
                 key={i}
@@ -332,7 +336,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
 function Career() {
   return (
     <>
-      <PageHeader title="AI Career Path 🤖" subtitle="Personalised roadmap based on your profile, skills, and goals." />
+      <PageHeader title="AI Career Path " subtitle="Personalised roadmap based on your profile, skills, and goals." />
       <GlassCard pad={24} style={{ marginBottom: 18, backgroundColor: 'rgba(95,37,159,0.25)', borderColor: 'rgba(176,127,223,0.25)' }}>
         <Text style={{ color: SA.purplePale, fontFamily: SA.fontBold, fontSize: 11, letterSpacing: 1, marginBottom: 6 }}>
           YOUR GOAL
@@ -371,7 +375,7 @@ function Career() {
               p.active && { backgroundColor: SA.purple, borderColor: SA.purpleMid },
             ]}>
               <Text style={{ color: SA.white, fontFamily: SA.fontBold, fontSize: 13 }}>
-                {p.done ? '✓' : i + 1}
+                {p.done ? <Check size={14} color='#10B981' /> : i + 1}
               </Text>
             </View>
             <View style={{ flex: 1 }}>
@@ -512,3 +516,61 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
 });
+
+function MyPurchasesView() {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const user = useAuthStore(s => s.user);
+
+  useEffect(() => {
+    if (user) {
+      request<any>(`/api/echo/orders/user/${user.id}`)
+        .then(res => {
+          if (res.success) setOrders(res.data || []);
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [user]);
+
+  if (loading) return <View style={{ padding: 40 }}><ActivityIndicator color="#5B4FE9" /></View>;
+
+  return (
+    <View style={{ padding: 40, maxWidth: 1000, width: '100%', marginHorizontal: 'auto' }}>
+      <Text style={{ fontSize: 28, fontWeight: '700', color: '#FFF', marginBottom: 24 }}>My Purchases</Text>
+      {orders.length === 0 ? (
+        <View style={{ padding: 40, alignItems: 'center', justifyContent: 'center' }}>
+          <ShoppingCart size={40} color="#888" style={{ marginBottom: 12 }} />
+          <Text style={{ fontSize: 18, fontWeight: '600', color: '#FFF', marginBottom: 6 }}>No Purchases Yet</Text>
+          <Text style={{ color: '#888' }}>You haven't bought anything from the marketplace.</Text>
+        </View>
+      ) : (
+        <View style={{ gap: 20 }}>
+          {orders.map((order, i) => (
+            <GlassCard key={i}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFF' }}>Order #{order.id.slice(-6).toUpperCase()}</Text>
+                <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, backgroundColor: order.payment_status === 'PAID' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(234, 179, 8, 0.2)' }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: order.payment_status === 'PAID' ? '#4ade80' : '#facc15' }}>{order.payment_status}</Text>
+                </View>
+              </View>
+              <Text style={{ color: '#aaa', marginBottom: 12 }}>Event: {order.event_id}</Text>
+              
+              <View style={{ gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderColor: '#333' }}>
+                {order.items.map((it: any, j: number) => (
+                  <View key={j} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#FFF' }}>{it.quantity}x Item</Text>
+                    <Text style={{ color: '#FFF' }}>₹{it.price_at_purchase * it.quantity}</Text>
+                  </View>
+                ))}
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderColor: '#333' }}>
+                <Text style={{ color: '#FFF', fontWeight: '700' }}>Total</Text>
+                <Text style={{ color: '#34D399', fontWeight: '700', fontSize: 18 }}>₹{order.total_amount}</Text>
+              </View>
+            </GlassCard>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}

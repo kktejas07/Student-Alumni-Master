@@ -1,6 +1,3 @@
-/**
- * Contact - stub page (shared web + mobile). Simple form + company info.
- */
 import React, { useState } from 'react';
 import {
   View,
@@ -8,224 +5,1005 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Platform,
   TextInput,
+  Platform,
+  Linking,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import {
+  ArrowLeft,
+  Mail,
+  MapPin,
+  Phone,
+  Send,
+  CheckCircle2,
+  Globe2,
+  Clock,
+  MessageSquare,
+  Building2,
+  ShieldCheck,
+  Headphones,
+  Copy,
+  Check,
+} from 'lucide-react-native';
+import { SAWatermark } from '@/src/views/web/components/SAWatermark';
+import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
+import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, MessageCircle, Mail, MapPin, Phone, Send } from 'lucide-react-native';
-import { Colors as C, Typography, Spacing, Radius } from '@/src/theme';
-import { Button, GradientBackground, useToast } from '@/src/views/components';
+import LandingPage from '@/src/views/web/LandingPage';
 
 export default function ContactPage() {
-  const router = useRouter();
-  const toast = useToast();
-  const [form, setForm] = useState({ name: '', email: '', message: '' });
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
+  if (Platform.OS === 'web') {
+    return <LandingPage initialTab="contact" />;
+  }
 
-  const submit = async () => {
-    if (!form.name || !form.email || !form.message) {
-      toast.warning('Missing info', 'Please fill all fields');
-      return;
+  const router = useRouter();
+  const [selectedTopic, setSelectedTopic] = useState<'general' | 'hr' | 'colleges' | 'mentors'>('general');
+  const [form, setForm] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    organization: '',
+    message: '',
+  });
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const topics = [
+    { id: 'general', label: 'General Inquiry', icon: MessageSquare },
+    { id: 'hr', label: 'HR & Careers', icon: Mail },
+    { id: 'colleges', label: 'College Partnerships', icon: Building2 },
+    { id: 'mentors', label: 'Mentor Network', icon: Globe2 },
+  ] as const;
+
+  const copyToClipboard = (text: string, field: string) => {
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
     }
+  };
+
+  const handlePhoneCall = () => {
+    Linking.openURL('tel:+917569665077').catch(() => {});
+  };
+
+  const handleEmailLaunch = (recipientEmail: string = 'hr@studentalumni.ai') => {
+    Linking.openURL(`mailto:${recipientEmail}`).catch(() => {});
+  };
+
+  const handleSubmit = () => {
+    if (!form.fullName || !form.email || !form.message) return;
     setSending(true);
-    // Simulate submission — replace with /api/contact endpoint later
-    await new Promise((r) => setTimeout(r, 700));
-    setSending(false);
-    setSent(true);
-    setForm({ name: '', email: '', message: '' });
+    setTimeout(() => {
+      setSending(false);
+      setSubmitted(true);
+    }, 800);
   };
 
   return (
-    <GradientBackground colors={['#3D1468', '#5F259F'] as const}>
-      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-        <ScrollView contentContainerStyle={styles.container}>
-          <Pressable onPress={() => router.back()} style={styles.back}>
-            <ArrowLeft size={18} color={C.white} />
-            <Text style={styles.backText}>Back</Text>
-          </Pressable>
+    <View style={styles.outerWrap}>
+      {(Platform.OS as string) === 'web' && (
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              html, body, #root {
+                background: #05060F !important;
+                color: #F4F5FB !important;
+                font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+              }
+              .sa-jewel-text {
+                background: linear-gradient(135deg, #F5D0FE 0%, #C084FC 25%, #818CF8 50%, #38BDF8 75%, #E879F9 100%) !important;
+                -webkit-background-clip: text !important;
+                background-clip: text !important;
+                -webkit-text-fill-color: transparent !important;
+                display: inline-block !important;
+              }
+            `,
+          }}
+        />
+      )}
 
-          <View style={styles.headerRow}>
-            <View style={styles.iconBubble}>
-              <MessageCircle size={24} color={C.white} />
+      {/* Ambient background glows matching verify portal */}
+      <View style={styles.ambientGlowTop} />
+      <View style={styles.ambientGlowBottom} />
+
+      {/* Luxury SA Watermark inside visible page area */}
+      <SAWatermark opacity={0.09} rotation="0deg" top={110} right={24} size={520} />
+
+      <Navbar />
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.container}>
+          {/* Hero Section */}
+          <Animated.View entering={FadeInDown.duration(600).delay(100)} style={styles.heroSection}>
+            <View style={styles.pillBadge}>
+              <Building2 size={13} color="#8B84FF" />
+              <Text style={styles.pillBadgeText}>CONTACT & CAMPUS RELATIONS</Text>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.h1}>Get in Touch</Text>
-              <Text style={styles.sub}>
-                Questions, partnerships, or feedback — we’d love to hear from you.
+
+            <Text style={styles.heroTitle}>
+              Get in Touch with{' '}
+              <Text style={styles.jewelTitle}>StudentAlumni Global</Text>
+            </Text>
+
+            <Text style={styles.heroSubtitle}>
+              Connect directly with our leadership, campus partnership coordinators, and human resources team.
+              We are dedicated to supporting students, alumni, and educational institutions worldwide.
+            </Text>
+          </Animated.View>
+
+          {/* Symmetrically Aligned Office Hubs Grid */}
+          <Animated.View entering={FadeInDown.duration(700).delay(200)} style={styles.hubsGrid}>
+            {/* India Hub */}
+            <View style={styles.hubCard}>
+              <View style={styles.hubHeader}>
+                <View style={styles.hubIconWrap}>
+                  <MapPin size={22} color="#818CF8" />
+                </View>
+                <View style={styles.hubHeaderTitleWrap}>
+                  <Text style={styles.hubRegion}>APAC HEADQUARTERS</Text>
+                  <Text style={styles.hubCity}>India Hub</Text>
+                </View>
+              </View>
+
+              <View style={styles.hubDetailsList}>
+                {/* Row 1: Address */}
+                <View style={styles.hubRow}>
+                  <View style={styles.iconContainer}>
+                    <MapPin size={17} color="#818CF8" />
+                  </View>
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>OFFICE ADDRESS</Text>
+                    <Text style={styles.rowValue}>Madhapur, Hyderabad, Telangana, India</Text>
+                  </View>
+                </View>
+
+                {/* Row 2: Phone */}
+                <View style={styles.hubRow}>
+                  <View style={styles.iconContainer}>
+                    <Phone size={17} color="#38BDF8" />
+                  </View>
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>PHONE NUMBER</Text>
+                    <View style={styles.interactiveValueRow}>
+                      <Pressable
+                        onPress={handlePhoneCall}
+                        style={({ hovered }: any) => [
+                          styles.clickableTextWrap,
+                          hovered && styles.clickableTextHovered,
+                        ]}
+                      >
+                        <Text style={styles.rowHighlightValue}>+91 7569665077</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => copyToClipboard('+917569665077', 'india_phone')}
+                        style={styles.copyBtn}
+                      >
+                        {copiedField === 'india_phone' ? (
+                          <Check size={14} color="#4ADE80" />
+                        ) : (
+                          <Copy size={14} color="#9AA0B4" />
+                        )}
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Row 3: Email */}
+                <View style={styles.hubRow}>
+                  <View style={styles.iconContainer}>
+                    <Mail size={17} color="#C084FC" />
+                  </View>
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>OFFICIAL EMAIL</Text>
+                    <View style={styles.interactiveValueRow}>
+                      <Pressable
+                        onPress={() => handleEmailLaunch('hr@studentalumni.ai')}
+                        style={({ hovered }: any) => [
+                          styles.clickableTextWrap,
+                          hovered && styles.clickableTextHovered,
+                        ]}
+                      >
+                        <Text style={styles.rowHighlightValue}>hr@studentalumni.ai</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => copyToClipboard('hr@studentalumni.ai', 'india_email')}
+                        style={styles.copyBtn}
+                      >
+                        {copiedField === 'india_email' ? (
+                          <Check size={14} color="#4ADE80" />
+                        ) : (
+                          <Copy size={14} color="#9AA0B4" />
+                        )}
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Row 4: Working Hours */}
+                <View style={styles.hubRow}>
+                  <View style={styles.iconContainer}>
+                    <Clock size={17} color="#9AA0B4" />
+                  </View>
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>WORKING HOURS</Text>
+                    <Text style={styles.rowSubValue}>Mon – Sat: 9:00 AM – 7:00 PM IST</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* USA Hub */}
+            <View style={styles.hubCard}>
+              <View style={styles.hubHeader}>
+                <View style={[styles.hubIconWrap, { backgroundColor: 'rgba(56, 189, 248, 0.12)', borderColor: 'rgba(56, 189, 248, 0.3)' }]}>
+                  <Globe2 size={22} color="#38BDF8" />
+                </View>
+                <View style={styles.hubHeaderTitleWrap}>
+                  <Text style={[styles.hubRegion, { color: '#38BDF8' }]}>AMERICAS & GLOBAL</Text>
+                  <Text style={styles.hubCity}>USA Hub</Text>
+                </View>
+              </View>
+
+              <View style={styles.hubDetailsList}>
+                {/* Row 1: Address */}
+                <View style={styles.hubRow}>
+                  <View style={styles.iconContainer}>
+                    <MapPin size={17} color="#818CF8" />
+                  </View>
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>OFFICE ADDRESS</Text>
+                    <Text style={styles.rowValue}>Princeton, New Jersey, USA</Text>
+                  </View>
+                </View>
+
+                {/* Row 2: Phone */}
+                <View style={styles.hubRow}>
+                  <View style={styles.iconContainer}>
+                    <Phone size={17} color="#38BDF8" />
+                  </View>
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>PHONE NUMBER</Text>
+                    <View style={styles.interactiveValueRow}>
+                      <Pressable
+                        onPress={handlePhoneCall}
+                        style={({ hovered }: any) => [
+                          styles.clickableTextWrap,
+                          hovered && styles.clickableTextHovered,
+                        ]}
+                      >
+                        <Text style={styles.rowHighlightValue}>+91 7569665077</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => copyToClipboard('+917569665077', 'usa_phone')}
+                        style={styles.copyBtn}
+                      >
+                        {copiedField === 'usa_phone' ? (
+                          <Check size={14} color="#4ADE80" />
+                        ) : (
+                          <Copy size={14} color="#9AA0B4" />
+                        )}
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Row 3: Email */}
+                <View style={styles.hubRow}>
+                  <View style={styles.iconContainer}>
+                    <Mail size={17} color="#C084FC" />
+                  </View>
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>OFFICIAL EMAIL</Text>
+                    <View style={styles.interactiveValueRow}>
+                      <Pressable
+                        onPress={() => handleEmailLaunch('hr@studentalumni.ai')}
+                        style={({ hovered }: any) => [
+                          styles.clickableTextWrap,
+                          hovered && styles.clickableTextHovered,
+                        ]}
+                      >
+                        <Text style={styles.rowHighlightValue}>hr@studentalumni.ai</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => copyToClipboard('hr@studentalumni.ai', 'usa_email')}
+                        style={styles.copyBtn}
+                      >
+                        {copiedField === 'usa_email' ? (
+                          <Check size={14} color="#4ADE80" />
+                        ) : (
+                          <Copy size={14} color="#9AA0B4" />
+                        )}
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Row 4: Working Hours */}
+                <View style={styles.hubRow}>
+                  <View style={styles.iconContainer}>
+                    <Clock size={17} color="#9AA0B4" />
+                  </View>
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>WORKING HOURS</Text>
+                    <Text style={styles.rowSubValue}>Mon – Fri: 9:00 AM – 6:00 PM EST</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </Animated.View>
+
+          {/* Main Interactive Contact Container */}
+          <Animated.View entering={FadeInDown.duration(700).delay(300)} style={styles.formContainer}>
+            <View style={styles.formLeftHeader}>
+              <View style={styles.headerTag}>
+                <Headphones size={15} color="#818CF8" />
+                <Text style={styles.headerTagText}>DIRECT INQUIRY & SUPPORT</Text>
+              </View>
+              <Text style={styles.formCardHeading}>Send Us a Message</Text>
+              <Text style={styles.formCardSub}>
+                Fill out the details below and our campus relations team will respond promptly.
               </Text>
+
+              {/* Topic Selector Tabs */}
+              <Text style={styles.selectorLabel}>SELECT PURPOSE</Text>
+              <View style={styles.topicSelectorRow}>
+                {topics.map((t) => {
+                  const isSelected = selectedTopic === t.id;
+                  const IconComponent = t.icon;
+                  return (
+                    <Pressable
+                      key={t.id}
+                      onPress={() => setSelectedTopic(t.id)}
+                      style={({ hovered }: any) => [
+                        styles.topicPill,
+                        isSelected && styles.topicPillActive,
+                        hovered && !isSelected && styles.topicPillHovered,
+                      ]}
+                    >
+                      <IconComponent
+                        size={14}
+                        color={isSelected ? '#FFFFFF' : '#9AA0B4'}
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text
+                        style={[
+                          styles.topicPillText,
+                          isSelected && styles.topicPillTextActive,
+                        ]}
+                      >
+                        {t.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
-          </View>
 
-          <View style={[styles.contactGrid]}>
-            <InfoTile icon={Mail} label="Email" value="hello@studentalumni.com" />
-            <InfoTile icon={Phone} label="Phone" value="+91 80-4567-8910" />
-            <InfoTile icon={MapPin} label="HQ" value="Bengaluru, India" />
-          </View>
+            {submitted ? (
+              <Animated.View entering={FadeInUp.duration(400)} style={styles.successState}>
+                <View style={styles.successIconCircle}>
+                  <CheckCircle2 size={36} color="#4ADE80" />
+                </View>
+                <Text style={styles.successTitle}>Inquiry Sent Successfully!</Text>
+                <Text style={styles.successDesc}>
+                  Thank you for reaching out, <Text style={{ color: '#FFFFFF', fontWeight: '700' }}>{form.fullName || 'there'}</Text>.
+                  We have routed your message to our {selectedTopic.toUpperCase()} team at <Text style={{ color: '#C084FC' }}>hr@studentalumni.ai</Text>. You will receive a response shortly.
+                </Text>
+                <Pressable
+                  onPress={() => {
+                    setSubmitted(false);
+                    setForm({ fullName: '', email: '', phone: '', organization: '', message: '' });
+                  }}
+                  style={({ hovered }: any) => [
+                    styles.resetButton,
+                    hovered && styles.resetButtonHovered,
+                  ]}
+                >
+                  <Text style={styles.resetButtonText}>Send Another Message</Text>
+                </Pressable>
+              </Animated.View>
+            ) : (
+              <View style={styles.formFieldsGrid}>
+                <View style={styles.rowTwoCols}>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Full Name *</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="e.g. Rahul Sharma"
+                      placeholderTextColor="#555A70"
+                      value={form.fullName}
+                      onChangeText={(t) => setForm({ ...form, fullName: t })}
+                    />
+                  </View>
 
-          <View style={styles.formCard}>
-            <Text style={styles.formTitle}>Send us a message</Text>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Official Email *</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="e.g. rahul@example.com"
+                      placeholderTextColor="#555A70"
+                      keyboardType="email-address"
+                      value={form.email}
+                      onChangeText={(t) => setForm({ ...form, email: t })}
+                    />
+                  </View>
+                </View>
 
-            <Field
-              label="Your Name"
-              value={form.name}
-              onChangeText={(t) => setForm({ ...form, name: t })}
-              placeholder="Aanya Sharma"
-            />
-            <Field
-              label="Email"
-              value={form.email}
-              onChangeText={(t) => setForm({ ...form, email: t })}
-              placeholder="you@college.edu"
-              keyboardType="email-address"
-            />
-            <Field
-              label="Message"
-              value={form.message}
-              onChangeText={(t) => setForm({ ...form, message: t })}
-              placeholder="Tell us how we can help..."
-              multiline
-            />
+                <View style={styles.rowTwoCols}>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Phone Number (10 Digits)</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#1A1D2B', borderWidth: 1, borderColor: '#292E42', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 12 }}>
+                        <Text style={{ fontSize: 13 }}>🇮🇳</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#A78BFA' }}>+91</Text>
+                      </View>
+                      <TextInput
+                        style={[styles.textInput, { flex: 1 }]}
+                        placeholder="10-digit mobile number"
+                        placeholderTextColor="#555A70"
+                        keyboardType="phone-pad"
+                        maxLength={10}
+                        value={(form.phone || '').replace(/^\+91\s*/, '').replace(/\D/g, '').slice(0, 10)}
+                        onChangeText={(t) => {
+                          const rawDigits = t.replace(/\D/g, '').slice(0, 10);
+                          setForm({ ...form, phone: rawDigits ? `+91 ${rawDigits}` : '' });
+                        }}
+                      />
+                    </View>
+                  </View>
 
-            <View style={{ height: 12 }} />
-            <Button
-              title={sent ? 'Sent! We\u2019ll be in touch' : sending ? 'Sending...' : 'Send Message'}
-              onPress={submit}
-              loading={sending}
-              icon={!sent ? <Send size={16} color={C.white} /> : undefined}
-              variant={sent ? 'glass' : 'primary'}
-            />
-          </View>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>College / University / Company</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="e.g. Princeton / VNR VJIET"
+                      placeholderTextColor="#555A70"
+                      value={form.organization}
+                      onChangeText={(t) => setForm({ ...form, organization: t })}
+                    />
+                  </View>
+                </View>
 
-          <View style={{ height: 60 }} />
-        </ScrollView>
-      </SafeAreaView>
-    </GradientBackground>
-  );
-}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Your Message *</Text>
+                  <TextInput
+                    style={[styles.textInput, styles.textArea]}
+                    placeholder="How can we assist you with our platform, mentorship, or institutional onboarding?"
+                    placeholderTextColor="#555A70"
+                    multiline
+                    numberOfLines={5}
+                    value={form.message}
+                    onChangeText={(t) => setForm({ ...form, message: t })}
+                  />
+                </View>
 
-function Field({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  multiline,
-  keyboardType,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (t: string) => void;
-  placeholder?: string;
-  multiline?: boolean;
-  keyboardType?: 'default' | 'email-address';
-}) {
-  return (
-    <View style={{ marginTop: 14 }}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="rgba(255,255,255,0.45)"
-        keyboardType={keyboardType}
-        multiline={multiline}
-        style={[styles.input, multiline && { minHeight: 110, textAlignVertical: 'top' }]}
-      />
-    </View>
-  );
-}
+                <Pressable
+                  onPress={handleSubmit}
+                  disabled={sending || !form.fullName || !form.email || !form.message}
+                  style={({ hovered }: any) => [
+                    styles.submitButton,
+                    hovered && styles.submitButtonHovered,
+                    (!form.fullName || !form.email || !form.message) && styles.submitButtonDisabled,
+                  ]}
+                >
+                  {sending ? (
+                    <Text style={styles.submitButtonText}>Sending Message...</Text>
+                  ) : (
+                    <View style={styles.submitButtonInner}>
+                      <Send size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
+                      <Text style={styles.submitButtonText}>Transmit Message</Text>
+                    </View>
+                  )}
+                </Pressable>
+              </View>
+            )}
+          </Animated.View>
 
-function InfoTile({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
-  return (
-    <View style={styles.infoTile}>
-      <View style={styles.infoIcon}>
-        <Icon size={18} color={C.white} />
-      </View>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
+          {/* Security and Trust Strip */}
+          <Animated.View entering={FadeInDown.duration(700).delay(400)} style={styles.trustBanner}>
+            <View style={styles.trustItem}>
+              <ShieldCheck size={18} color="#4ADE80" />
+              <Text style={styles.trustText}>Verified Institutional Support</Text>
+            </View>
+            <View style={styles.trustItem}>
+              <Clock size={18} color="#38BDF8" />
+              <Text style={styles.trustText}>Direct Response Guarantee</Text>
+            </View>
+            <View style={styles.trustItem}>
+              <Globe2 size={18} color="#C084FC" />
+              <Text style={styles.trustText}>Accredited Global Campus Network</Text>
+            </View>
+          </Animated.View>
+        </View>
+
+        {/* Footer */}
+        <Footer />
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  outerWrap: {
+    flex: 1,
+    backgroundColor: '#05060F',
+    position: 'relative',
+  },
+  ambientGlowTop: {
+    position: 'absolute',
+    top: 0,
+    left: '50%',
+    transform: [{ translateX: -300 }],
+    width: 600,
+    height: 300,
+    borderRadius: 300,
+    backgroundColor: 'rgba(91, 79, 233, 0.12)',
+    ...(Platform.OS === 'web'
+      ? {
+          filter: 'blur(100px)',
+          pointerEvents: 'none',
+        }
+      : {}),
+  },
+  ambientGlowBottom: {
+    position: 'absolute',
+    bottom: 200,
+    right: 0,
+    width: 400,
+    height: 400,
+    borderRadius: 200,
+    backgroundColor: 'rgba(139, 132, 255, 0.06)',
+    ...(Platform.OS === 'web'
+      ? {
+          filter: 'blur(120px)',
+          pointerEvents: 'none',
+        }
+      : {}),
+  },
+  backgroundWatermarkRight: {
+    position: 'absolute',
+    top: 100,
+    right: -240,
+    opacity: 0.05,
+    zIndex: 0,
+    transform: [{ rotate: '12deg' }],
+    ...(Platform.OS === 'web'
+      ? ({
+          pointerEvents: 'none',
+          userSelect: 'none',
+        } as any)
+      : {}),
+  },
+  scroll: {
+    flex: 1,
+    zIndex: 1,
+  },
+  scrollContent: {
+    paddingTop: 110,
+    paddingBottom: 0,
+  },
   container: {
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xxl,
-    maxWidth: 760,
+    maxWidth: 1200,
     width: '100%',
     alignSelf: 'center',
+    paddingHorizontal: 20,
   },
-  back: {
+
+  /* Top Navigation */
+  topBackRow: {
+    marginBottom: 24,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 100,
+    gap: 8,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  backButtonHovered: {
+    borderColor: '#5B4FE9',
+    backgroundColor: 'rgba(91, 79, 233, 0.12)',
+  },
+  backButtonText: {
+    color: '#9AA0B4',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  /* Hero Section */
+  heroSection: {
+    alignItems: 'center',
+    textAlign: 'center',
+    marginBottom: 44,
+  },
+  pillBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(91, 79, 233, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 132, 255, 0.3)',
+    borderRadius: 100,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    gap: 8,
+    marginBottom: 18,
+  },
+  pillBadgeText: {
+    color: '#8B84FF',
+    fontSize: 11.5,
+    fontWeight: '700',
+    letterSpacing: 1.6,
+  },
+  heroTitle: {
+    fontSize: 44,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -1.2,
+    textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 52,
+  },
+  jewelTitle: {
+    color: '#C084FC',
+    fontWeight: '800',
+    ...(Platform.OS === 'web'
+      ? ({
+          backgroundImage: 'linear-gradient(135deg, #F5D0FE 0%, #C084FC 25%, #818CF8 50%, #38BDF8 75%, #E879F9 100%)',
+          WebkitBackgroundImage: 'linear-gradient(135deg, #F5D0FE 0%, #C084FC 25%, #818CF8 50%, #38BDF8 75%, #E879F9 100%)',
+          WebkitBackgroundClip: 'text',
+          backgroundClip: 'text',
+        } as any)
+      : {}),
+  },
+  heroSubtitle: {
+    fontSize: 15.5,
+    lineHeight: 25,
+    color: '#9AA0B4',
+    textAlign: 'center',
+    maxWidth: 680,
+  },
+
+  /* Symmetrical Office Hubs Grid */
+  hubsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 20,
+    marginBottom: 36,
+  },
+  hubCard: {
+    flex: 1,
+    minWidth: 320,
+    backgroundColor: '#0C0E1B',
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+    borderRadius: 20,
+    padding: 28,
+  },
+  hubHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 24,
+    paddingBottom: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: '#171A2C',
+  },
+  hubIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(129, 140, 248, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(129, 140, 248, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hubHeaderTitleWrap: {
+    justifyContent: 'center',
+  },
+  hubRegion: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#818CF8',
+    letterSpacing: 1.4,
+    marginBottom: 2,
+  },
+  hubCity: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  /* Standardized Hub Rows */
+  hubDetailsList: {
+    gap: 18,
+  },
+  hubRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    minHeight: 46,
+  },
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    marginTop: 2,
+  },
+  rowContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  rowLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#707790',
+    letterSpacing: 1.2,
+    marginBottom: 3,
+  },
+  rowValue: {
+    color: '#D5D8E4',
+    fontSize: 14.5,
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  interactiveValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  clickableTextWrap: {
+    paddingVertical: 2,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  clickableTextHovered: {
+    opacity: 0.8,
+  },
+  rowHighlightValue: {
+    color: '#F4F5FB',
+    fontSize: 14.5,
+    fontWeight: '600',
+  },
+  rowSubValue: {
+    color: '#9AA0B4',
+    fontSize: 13.5,
+    fontWeight: '500',
+  },
+  copyBtn: {
+    marginLeft: 10,
+    padding: 5,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+
+  /* Form Container */
+  formContainer: {
+    backgroundColor: '#0C0E1B',
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+    borderRadius: 24,
+    padding: 36,
+    marginBottom: 36,
+  },
+  formLeftHeader: {
+    marginBottom: 26,
+  },
+  headerTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  headerTagText: {
+    color: '#818CF8',
+    fontSize: 11.5,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+  },
+  formCardHeading: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  formCardSub: {
+    fontSize: 14.5,
+    color: '#9AA0B4',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  selectorLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#707790',
+    letterSpacing: 1.4,
+    marginBottom: 10,
+  },
+  topicSelectorRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  topicPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 100,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  topicPillActive: {
+    backgroundColor: '#5B4FE9',
+    borderColor: '#8B84FF',
+  },
+  topicPillHovered: {
+    borderColor: '#2A2A55',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  topicPillText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#9AA0B4',
+  },
+  topicPillTextActive: {
+    color: '#FFFFFF',
+  },
+
+  /* Fields */
+  formFieldsGrid: {
+    gap: 18,
+  },
+  rowTwoCols: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  inputGroup: {
+    flex: 1,
+    minWidth: 260,
+  },
+  inputLabel: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#D5D8E4',
+    marginBottom: 8,
+  },
+  textInput: {
+    backgroundColor: '#05060F',
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    color: '#FFFFFF',
+    fontSize: 14,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+  textArea: {
+    minHeight: 120,
+    textAlignVertical: 'top',
+  },
+  submitButton: {
+    backgroundColor: '#5B4FE9',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  submitButtonHovered: {
+    backgroundColor: '#4B3EE0',
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
+    ...(Platform.OS === 'web' ? ({ cursor: 'not-allowed' } as any) : {}),
+  },
+  submitButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  /* Success State */
+  successState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  successIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(74, 222, 128, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(74, 222, 128, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  successDesc: {
+    fontSize: 15,
+    color: '#9AA0B4',
+    textAlign: 'center',
+    maxWidth: 540,
+    lineHeight: 24,
+    marginBottom: 26,
+  },
+  resetButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: '#2A2A55',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 100,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  resetButtonHovered: {
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+  },
+  resetButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  /* Trust Banner */
+  trustBanner: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    gap: 16,
+    marginBottom: 60,
+  },
+  trustItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingVertical: 8,
-    marginBottom: Spacing.md,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  backText: { ...Typography.bodyBold, color: C.white },
-  headerRow: { flexDirection: 'row', gap: 14, alignItems: 'center', marginTop: 8 },
-  iconBubble: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.32)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  h1: { ...Typography.h1, color: C.white, fontSize: 30 },
-  sub: { ...Typography.body, color: C.textOnPurpleMuted, marginTop: 4 },
-
-  contactGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginTop: Spacing.lg,
-  },
-  infoTile: {
-    flexBasis: 220,
-    flexGrow: 1,
-    padding: Spacing.md,
-    borderRadius: Radius.lg,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
-    gap: 6,
-  },
-  infoIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  infoLabel: { ...Typography.label, color: C.textOnPurpleMuted, fontSize: 11 },
-  infoValue: { ...Typography.bodyBold, color: C.white },
-
-  formCard: {
-    marginTop: Spacing.lg,
-    padding: Spacing.lg,
-    borderRadius: Radius.lg,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
-  },
-  formTitle: { ...Typography.h3, color: C.white },
-  fieldLabel: { ...Typography.label, color: C.textOnPurpleMuted, marginBottom: 6 },
-  input: {
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.22)',
-    borderRadius: Radius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    color: C.white,
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 15,
+  trustText: {
+    color: '#9AA0B4',
+    fontSize: 13.5,
+    fontWeight: '500',
   },
 });

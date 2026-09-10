@@ -6,7 +6,7 @@ import React, { useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, Animated, Easing, Platform } from 'react-native';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
-import { LucideIcon } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 import { SA, SAGradients } from './tokens';
 import { SALogo } from '@/src/views/components';
 
@@ -140,7 +140,7 @@ export function SearchBar({
 }) {
   return (
     <View style={[styles.searchWrap, { width }]}>
-      <Text style={{ fontSize: 14, opacity: 0.55 }}>🔍</Text>
+      <Text style={{ fontSize: 14, opacity: 0.55 }}></Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -194,9 +194,9 @@ export function StatusBanner({
 }) {
   const map: Record<string, { bg: string; bd: string; c: string; i: string }> = {
     success: { bg: 'rgba(22,163,74,0.2)', bd: 'rgba(134,239,172,0.4)', c: SA.success, i: '✓' },
-    error: { bg: 'rgba(220,38,38,0.2)', bd: 'rgba(252,165,165,0.4)', c: SA.danger, i: '✕' },
+    error: { bg: 'rgba(220,38,38,0.2)', bd: 'rgba(252,165,165,0.4)', c: SA.danger, i: '×' },
     info: { bg: 'rgba(95,37,159,0.25)', bd: 'rgba(176,127,223,0.35)', c: SA.purplePale, i: 'ℹ' },
-    warning: { bg: 'rgba(217,119,6,0.2)', bd: 'rgba(252,211,77,0.4)', c: SA.warn, i: '⚠' },
+    warning: { bg: 'rgba(217,119,6,0.2)', bd: 'rgba(252,211,77,0.4)', c: SA.warn, i: '!' },
   };
   const s = map[type] || map.info;
   return (
@@ -212,7 +212,7 @@ export function StatusBanner({
 }
 
 // ─── EmptyState ──────────────────────────────────────────────────────────────
-export function EmptyState({ icon = '📭', title, sub }: { icon?: string; title: string; sub?: string }) {
+export function EmptyState({ icon = '', title, sub }: { icon?: string; title: string; sub?: string }) {
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
       <Text style={{ fontSize: 38 }}>{icon}</Text>
@@ -248,11 +248,11 @@ function AnimatedNavIcon({
     Animated.parallel([
       Animated.spring(scale, {
         toValue: active ? 1.12 : (hovered ? 1.18 : 1),
-        useNativeDriver: true, friction: 5, tension: 200,
+        useNativeDriver: Platform.OS !== 'web', friction: 5, tension: 200,
       }),
       Animated.timing(rotate, {
         toValue: hovered ? 1 : 0,
-        duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: true,
+        duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web',
       }),
     ]).start();
   }, [active, hovered]);
@@ -496,7 +496,7 @@ export function BellIcon({ count, onPress }: { count?: number; onPress?: () => v
       ]}
       testID="platform-bell"
     >
-      <Text style={{ fontSize: 18 }}>🔔</Text>
+      <Text style={{ fontSize: 18 }}></Text>
       <Badge count={count || 0} />
     </Pressable>
   );

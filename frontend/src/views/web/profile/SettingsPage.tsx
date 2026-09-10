@@ -44,7 +44,7 @@ export function SettingsPage({ draft, setDraft, showToast, section = 'all' }: Pr
     setPwBusy(true);
     try {
       await request('/users/me/password', { method: 'POST', body: { current_password: pwOld, new_password: pwNew } } as any);
-      showToast('Password updated ✓'); setPwOld(''); setPwNew('');
+      showToast('Password updated'); setPwOld(''); setPwNew('');
     } catch (e: any) { showToast(e?.message || 'Failed to update password'); }
     setPwBusy(false);
   };
@@ -145,20 +145,20 @@ export function SettingsPage({ draft, setDraft, showToast, section = 'all' }: Pr
 }
 
 const st = StyleSheet.create({
-  label: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_700Bold', fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase' },
-  themeOpt: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1, ...({ cursor: 'pointer' } as any) },
-  themeOptSel: { backgroundColor: '#A78BFA', borderColor: '#A78BFA' },
-  themeText: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 10, borderTopColor: 'rgba(255,255,255,0.05)', borderTopWidth: 1 },
-  itemTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
-  itemDesc: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 2 },
+  label: { color: 'rgba(0,0,0,0.65)', fontFamily: 'DMSans_700Bold', fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase' },
+  themeOpt: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 9, backgroundColor: 'rgba(0,0,0,0.05)', borderColor: 'rgba(0,0,0,0.09)', borderWidth: 1, ...({ cursor: 'pointer' } as any) },
+  themeOptSel: { backgroundColor: '#60A5FA', borderColor: '#60A5FA' },
+  themeText: { color: 'rgba(0,0,0,0.65)', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 10, borderTopColor: 'rgba(0,0,0,0.05)', borderTopWidth: 1 },
+  itemTitle: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 13 },
+  itemDesc: { color: 'rgba(0,0,0,0.55)', fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 2 },
   statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: 'rgba(244,63,94,0.14)', borderColor: 'rgba(244,63,94,0.40)', borderWidth: 1 },
   statusPillText: { color: '#FB7185', fontFamily: 'DMSans_700Bold', fontSize: 9.5, letterSpacing: 0.5 },
-  btnGhost: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 30, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1, ...({ cursor: 'pointer' } as any) },
-  btnGhostText: { color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  btnAccent: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 38, borderRadius: 8, backgroundColor: '#A78BFA', ...({ cursor: 'pointer' } as any) },
+  btnGhost: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 30, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.05)', borderColor: 'rgba(0,0,0,0.09)', borderWidth: 1, ...({ cursor: 'pointer' } as any) },
+  btnGhostText: { color: 'rgba(0,0,0,0.85)', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  btnAccent: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 38, borderRadius: 8, backgroundColor: '#60A5FA', ...({ cursor: 'pointer' } as any) },
   btnAccentText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
   btnDanger: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 30, borderRadius: 8, backgroundColor: '#F43F5E', ...({ cursor: 'pointer' } as any) },
   btnDangerText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  iconBtn: { width: 38, height: 38, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
+  iconBtn: { width: 38, height: 38, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.05)', borderColor: 'rgba(0,0,0,0.09)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
 });

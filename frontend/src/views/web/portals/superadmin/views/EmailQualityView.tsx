@@ -17,7 +17,7 @@ import {
   XCircle, Search, Users, TrendingUp, TrendingDown, Eye, Trash2,
   CheckCircle2, Clock, FileText, Download, Filter,
 } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, SecondaryButton, Card, IconBox, SectionLabel,
   StatusPill, Toast, useToast, KpiTile, SearchField,
@@ -66,6 +66,8 @@ function kindColor(kind?: string): string {
 }
 
 export function EmailQualityView() {
+  const T = useSAC();
+  Object.assign(st, resolveColors(st, T));
   const { toast, flash, hide } = useToast();
   const { confirm } = useConfirm();
   const [q, setQ] = useState('');
@@ -190,6 +192,72 @@ export function EmailQualityView() {
     }
   };
 
+  const suppressEmails = async (emails: string[], reason: string) => {
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const token = await getToken();
+      await fetch(`${base}/api/admin/email-quality/suppressions/bulk`, {
+        method: 'POST',
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ emails, reason, source: 'audit' })
+      });
+      flash(`Suppressed ${emails.length} emails`);
+      load();
+      if (auditResults) {
+        // Optimistically remove the suppressed emails from the audit list instead of re-running it
+        const emailSet = new Set(emails);
+        setAuditResults((prev: any) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            issues: prev.issues.filter((issue: any) => !emailSet.has(issue.email))
+          };
+        });
+      }
+    } catch (e: any) {
+      flash(e?.message || 'Could not suppress', 'error');
+    }
+  };
+
+  const suppressCategory = async (reason: string) => {
+    if (!auditResults) return;
+    const emails = auditResults.issues
+      .filter((i: any) => i.reason === reason)
+      .map((i: any) => i.email);
+    if (emails.length === 0) return;
+    const ok = await confirm({
+      title: `Suppress ${emails.length} emails?`,
+      message: `Are you sure you want to suppress all emails marked as ${reason}?`,
+      confirmText: 'Suppress',
+      danger: true,
+    });
+    if (!ok) return;
+    await suppressEmails(emails, reason);
+  };
+
+  const syncPostal = async () => {
+    setLoading(true);
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const token = await getToken();
+      const res = await fetch(`${base}/api/admin/email-quality/postal-sync`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Sync failed');
+      const data = await res.json();
+      flash(data.message || 'Postal sync complete');
+      load();
+    } catch (e: any) {
+      flash(e?.message || 'Sync failed', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const toggleSelectSuppression = (email: string) => {
     setSelectedSuppressions(prev => {
       const next = new Set(prev);
@@ -217,10 +285,16 @@ export function EmailQualityView() {
               Healthy email lists improve deliverability and protect your sender reputation.
             </Text>
           </View>
-          <SecondaryButton onPress={() => load()}>
-            {loading ? <ActivityIndicator size="small" color={SAC.muted} /> : <RefreshCw size={12} color={SAC.muted} />}
-            <Text style={st.secText}>Refresh</Text>
-          </SecondaryButton>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <SecondaryButton onPress={() => syncPostal()}>
+              <RefreshCw size={12} color={SAC.muted} />
+              <Text style={st.secText}>Sync Postal</Text>
+            </SecondaryButton>
+            <SecondaryButton onPress={() => load()}>
+              {loading ? <ActivityIndicator size="small" color={SAC.muted} /> : <RefreshCw size={12} color={SAC.muted} />}
+              <Text style={st.secText}>Refresh</Text>
+            </SecondaryButton>
+          </View>
         </View>
       </Card>
 
@@ -246,11 +320,11 @@ export function EmailQualityView() {
         </View>
         <View style={st.statCard}>
           <View style={[st.statIcon, { backgroundColor: 'rgba(239,68,68,0.15)' }]}>
-            <XCircle size={18} color="#EF4444" />
+            <AlertTriangle size={18} color="#EF4444" />
           </View>
           <View>
             <Text style={[st.statValue, { color: '#EF4444' }]}>{invalidEmails}</Text>
-            <Text style={st.statLabel}>Suppressed ({bounceRate}%)</Text>
+            <Text style={st.statLabel}>Bounced ({bounceRate}%)</Text>
           </View>
         </View>
         <View style={st.statCard}>
@@ -263,6 +337,24 @@ export function EmailQualityView() {
           </View>
         </View>
       </View>
+
+      {/* Auto-blocking Configuration Info */}
+      <Card>
+        <View style={{ gap: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <IconBox size={32}><ShieldOff size={16} color={GRAD.to} /></IconBox>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>Automatic Quality Filters</Text>
+          </View>
+          <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: SAC.muted, lineHeight: 20 }}>
+            The backend is permanently enforcing the following strict email checks before any email reaches Postal. These cannot be disabled:
+          </Text>
+          <View style={{ paddingLeft: 10, gap: 6 }}>
+            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: SAC.text }}>✓ <strong style={{ color: '#DDD6FE' }}>Disposable Domains:</strong> Automatically blocked via GitHub daily updates (e.g. Yopmail, Mailinator, etc.)</Text>
+            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: SAC.text }}>✓ <strong style={{ color: '#DDD6FE' }}>Junk Catchers:</strong> Known test addresses are dropped (e.g. test@gmail.com, asdf@...)</Text>
+            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: SAC.text }}>✓ <strong style={{ color: '#DDD6FE' }}>Duplicates:</strong> Pre-filtered at the form submission level (one registration per email).</Text>
+          </View>
+        </View>
+      </Card>
 
       {/* Delivery Health Card */}
       <Card>
@@ -344,14 +436,29 @@ export function EmailQualityView() {
               </View>
             </View>
 
+            {/* Bulk Actions */}
+            {auditResults.issues.length > 0 && (
+              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 4, marginBottom: 8 }}>
+                <SecondaryButton onPress={() => suppressCategory('invalid_format')} disabled={auditResults.invalid_format === 0}>
+                  <Text style={st.secText}>Suppress Invalid</Text>
+                </SecondaryButton>
+                <SecondaryButton onPress={() => suppressCategory('disposable')} disabled={auditResults.disposable === 0}>
+                  <Text style={st.secText}>Suppress Disposables</Text>
+                </SecondaryButton>
+                <SecondaryButton onPress={() => suppressCategory('role_account')} disabled={auditResults.role_account === 0}>
+                  <Text style={st.secText}>Suppress Role Accounts</Text>
+                </SecondaryButton>
+              </View>
+            )}
+
             {/* Issues List */}
             {auditResults.issues.length > 0 && (
               <View>
                 <Text style={[st.muted, { marginBottom: 8 }]}>
                   {auditResults.issues.length} issues found that may affect deliverability:
                 </Text>
-                <View style={{ maxHeight: 200, overflow: 'hidden' }}>
-                  {auditResults.issues.slice(0, 20).map((issue: any, i: number) => (
+                <ScrollView style={{ maxHeight: 300 }}>
+                  {auditResults.issues.slice(0, 200).map((issue: any, i: number) => (
                     <View key={i} style={st.auditIssueRow}>
                       <View style={[st.issueBadge, { backgroundColor: `${kindColor(issue.reason)}20` }]}>
                         <Text style={[st.issueBadgeText, { color: kindColor(issue.reason) }]}>
@@ -360,12 +467,18 @@ export function EmailQualityView() {
                       </View>
                       <Text numberOfLines={1} style={st.issueEmail}>{issue.email}</Text>
                       <Text style={st.issueSource}>{issue.source}</Text>
+                      <Pressable 
+                        onPress={() => suppressEmails([issue.email], issue.reason)} 
+                        style={[st.restoreBtn, { borderColor: 'rgba(239,68,68,0.35)', paddingVertical: 4 }]}
+                      >
+                        <Text style={[st.restoreText, { color: '#FCA5A5' }]}>Suppress</Text>
+                      </Pressable>
                     </View>
                   ))}
-                  {auditResults.issues.length > 20 && (
-                    <Text style={st.muted}>...and {auditResults.issues.length - 20} more</Text>
+                  {auditResults.issues.length > 200 && (
+                    <Text style={[st.muted, { marginTop: 8, textAlign: 'center' }]}>...and {auditResults.issues.length - 200} more</Text>
                   )}
-                </View>
+                </ScrollView>
               </View>
             )}
           </View>
@@ -507,7 +620,7 @@ export function EmailQualityView() {
 
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
@@ -520,7 +633,7 @@ const st = StyleSheet.create({
     padding: 12,
   },
   statIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  statValue: { fontFamily: FONTS.xbold, fontSize: 18, color: '#fff' },
+  statValue: { fontFamily: FONTS.xbold, fontSize: 18, color: SAC.text },
   statLabel: { fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginTop: 2 },
   
   // Health bar
@@ -543,7 +656,7 @@ const st = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
   },
   rowIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  emailText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  emailText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
   rowMeta: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2, lineHeight: 15 },
   restoreBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -572,14 +685,14 @@ const st = StyleSheet.create({
   auditScoreRow: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)' },
   auditScoreCircle: { width: 64, height: 64, borderRadius: 32, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
   auditScoreValue: { fontFamily: FONTS.xbold, fontSize: 18 },
-  auditScoreLabel: { fontFamily: FONTS.bold, fontSize: 14, color: '#fff' },
+  auditScoreLabel: { fontFamily: FONTS.bold, fontSize: 14, color: SAC.text },
   auditStatsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   auditStatItem: {
     flex: 1, minWidth: 80, flexDirection: 'row', alignItems: 'center', gap: 6,
     padding: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
   },
-  auditStatValue: { fontFamily: FONTS.bold, fontSize: 14, color: '#fff' },
+  auditStatValue: { fontFamily: FONTS.bold, fontSize: 14, color: SAC.text },
   auditStatLabel: { fontFamily: FONTS.med, fontSize: 10, color: SAC.muted },
   auditIssueRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8,
@@ -588,7 +701,7 @@ const st = StyleSheet.create({
   },
   issueBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   issueBadgeText: { fontFamily: FONTS.bold, fontSize: 9 },
-  issueEmail: { flex: 1, fontFamily: FONTS.med, fontSize: 11, color: '#fff' },
+  issueEmail: { flex: 1, fontFamily: FONTS.med, fontSize: 11, color: SAC.text },
   issueSource: { fontFamily: FONTS.med, fontSize: 10, color: SAC.dim },
 
   // Tips

@@ -14,7 +14,7 @@ import { AC, FONTS } from './tokens';
 export type Role = 'student' | 'mentor' | 'alumni' | 'college';
 
 const ROLES: { id: Role; Icon: LucideIcon; label: string; sub: string; gradient: [string, string]; shadow: string; delay: number }[] = [
-  { id: 'student', Icon: GraduationCap, label: 'Student',           sub: 'Internships, mentors & career guidance',  gradient: [AC.student, '#A78BFA'], shadow: 'rgba(124,58,237,0.30)', delay:    0 },
+  { id: 'student', Icon: GraduationCap, label: 'Student',           sub: 'Internships, mentors & career guidance',  gradient: [AC.student, '#60A5FA'], shadow: 'rgba(37,99,235,0.30)', delay:    0 },
   { id: 'mentor',  Icon: UserCheck,     label: 'Mentor',             sub: 'Guide students & earn on your schedule',  gradient: [AC.mentor,  '#5EEAD4'], shadow: 'rgba(20,184,166,0.30)', delay:   70 },
   { id: 'alumni',  Icon: Award,         label: 'Alumni',             sub: 'Stay connected & give back to juniors',   gradient: [AC.alumni,  '#FCD34D'], shadow: 'rgba(245,158,11,0.30)', delay:  140 },
   { id: 'college', Icon: Building2,     label: 'College / University', sub: 'Manage your institution', gradient: [AC.college, '#818CF8'], shadow: 'rgba(99,102,241,0.30)', delay:  210 },
@@ -68,19 +68,19 @@ export function RoleCards({ value, onChange }: { value: Role | null; onChange: (
 }
 
 export const ROLE_META: Record<Role, { label: string; emoji: string; gradient: [string, string]; Icon: LucideIcon }> = {
-  student: { label: ROLES[0].label, emoji: '🎓', gradient: ROLES[0].gradient, Icon: ROLES[0].Icon },
-  mentor:  { label: ROLES[1].label, emoji: '👨‍💼', gradient: ROLES[1].gradient, Icon: ROLES[1].Icon },
-  alumni:  { label: ROLES[2].label, emoji: '🏆', gradient: ROLES[2].gradient, Icon: ROLES[2].Icon },
-  college: { label: ROLES[3].label, emoji: '🏫', gradient: ROLES[3].gradient, Icon: ROLES[3].Icon },
+  student: { label: ROLES[0].label, emoji: '', gradient: ROLES[0].gradient, Icon: ROLES[0].Icon },
+  mentor:  { label: ROLES[1].label, emoji: '', gradient: ROLES[1].gradient, Icon: ROLES[1].Icon },
+  alumni:  { label: ROLES[2].label, emoji: '', gradient: ROLES[2].gradient, Icon: ROLES[2].Icon },
+  college: { label: ROLES[3].label, emoji: '', gradient: ROLES[3].gradient, Icon: ROLES[3].Icon },
 };
 
 const s = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
-  card: { width: '100%', padding: 16, borderRadius: 16, backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 0.18s ease' } as any) : {}) },
-  cardOn: { backgroundColor: '#F3F4F6' },
+  card: { width: '100%', padding: 16, borderRadius: 16, backgroundColor: 'rgba(18, 20, 43, 0.75)', borderWidth: 1, borderColor: 'rgba(139, 132, 255, 0.22)', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 0.18s ease' } as any) : {}) },
+  cardOn: { backgroundColor: 'rgba(91, 79, 233, 0.25)', borderColor: '#8B84FF' },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
   iconBox: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  dot: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center' },
-  label: { color: '#111827', fontFamily: FONTS.xbold, fontSize: 16, marginBottom: 4 },
-  sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 13, lineHeight: 19 },
+  dot: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: 'rgba(139, 132, 255, 0.4)', alignItems: 'center', justifyContent: 'center' },
+  label: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 16, marginBottom: 4 },
+  sub: { color: '#9AA0B4', fontFamily: FONTS.med, fontSize: 13, lineHeight: 19 },
 });

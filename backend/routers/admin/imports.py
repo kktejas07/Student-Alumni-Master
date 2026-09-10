@@ -32,7 +32,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from fastapi import APIRouter, File, Header, HTTPException, UploadFile
+from fastapi import APIRouter, File, Header, HTTPException, UploadFile, Query
 
 load_dotenv()
 
@@ -92,40 +92,48 @@ async def _require_admin(authorization: Optional[str]) -> dict:
 # ─── Header mapping ────────────────────────────────────────────────
 # Each target field → list of acceptable source header aliases (lowercased)
 HEADER_MAP: Dict[str, List[str]] = {
-    "first_name":           ["first name", "firstname", "given name"],
-    "last_name":            ["last name", "lastname", "surname", "family name"],
-    "email":                ["email", "email address", "e-mail", "mail"],
-    "phone":                ["phone", "phone number", "mobile", "contact number"],
-    "linkedin_url":         ["linkedin url", "linkedin", "profile url", "linkedin profile"],
-    "college":              ["college / institution", "college", "institution",
-                             "education institution", "university", "school"],
-    "education":            ["education"],
-    "degree":               ["degree", "education degree", "qualification"],
-    "graduation_year":      ["graduation year", "grad year", "year of graduation"],
+    "first_name":           ["first name", "firstname", "given name", "fname", "f_name", "first", "candidate name", "full name", "name"],
+    "last_name":            ["last name", "lastname", "surname", "family name", "lname", "l_name", "last"],
+    "email":                ["email", "email address", "e-mail", "mail", "primary email", "email_id", "email id", "contact email"],
+    "phone":                ["phone", "phone number", "mobile", "contact number", "mobile number", "whatsapp", "contact", "cell", "phone_no", "mobile_no", "tel"],
+    "linkedin_url":         ["linkedin url", "linkedin", "profile url", "linkedin profile", "linkedin link", "social url", "linkedin profile url"],
+    "college":              ["college / institution", "college", "institution", "institution name",
+                             "education institution", "university", "school", "alma mater", "college name", "university name", "campus"],
+    "education":            ["education", "academic background", "highest qualification"],
+    "degree":               ["degree", "education degree", "qualification", "course", "program", "stream", "branch", "department", "major"],
+    "graduation_year":      ["graduation year", "grad year", "year of graduation", "passout year", "pass out", "batch", "class of", "passing year", "yop", "passout"],
     "designation":          ["designation / job title", "designation", "current title",
-                             "title", "job title", "role"],
-    "company":              ["current company", "company", "employer", "organization", "organisation"],
+                             "title", "job title", "role", "current role", "position", "occupation", "headline", "job role"],
+    "company":              ["current company", "company", "employer", "organization", "organisation", "workplace", "firm", "company name"],
     "experience_years_raw": ["years of experience", "experience years", "experience",
-                             "self reported experience", "yoe"],
-    "location":             ["general location", "location", "city"],
-    "zip":                  ["zip", "zipcode", "zip code", "pin", "pincode"],
-    "headline":             ["headline", "tagline", "about"],
-    "date_applied":         ["date applied", "applied on"],
+                             "self reported experience", "yoe", "exp", "total experience", "total exp"],
+    "location":             ["general location", "location", "city", "current city", "state", "address", "country", "current location"],
+    "zip":                  ["zip", "zipcode", "zip code", "pin", "pincode", "postal code"],
+    "headline":             ["headline", "tagline", "about", "bio", "summary", "profile summary"],
+    "skills":               ["skills", "technical skills", "tech stack", "key skills", "expertise", "competencies", "technologies"],
+    "date_applied":         ["date applied", "applied on", "import date"],
     "position_start_date":  ["current position start date", "position start date", "start date"],
-    "category":             ["category", "user category", "type"],   # optional pre-label
+    "category":             ["category", "user category", "type", "user type", "role category", "account type"],   # optional pre-label
 }
 
 
 def auto_map_headers(headers: List[str]) -> Dict[str, str]:
-    """Return {source_header: target_field}. Source headers not matched are dropped."""
+    """Return {source_header: target_field}. Source headers matched via exact or normalized tokens."""
     out: Dict[str, str] = {}
     for h in headers:
         if h is None:
             continue
         norm = str(h).strip().lower()
+        clean = re.sub(r"[^a-z0-9]", "", norm)
+        matched = False
         for target, aliases in HEADER_MAP.items():
-            if norm in aliases:
-                out[h] = target
+            for alias in aliases:
+                alias_clean = re.sub(r"[^a-z0-9]", "", alias)
+                if norm == alias or clean == alias_clean:
+                    out[h] = target
+                    matched = True
+                    break
+            if matched:
                 break
     return out
 
@@ -152,7 +160,7 @@ def _to_str(v) -> str:
     return str(v).strip()
 
 
-def _norm_phone(v) -> str:
+def _norm_phone(v, location: str = "") -> str:
     s = _to_str(v)
     if not s:
         return ""
@@ -160,9 +168,22 @@ def _norm_phone(v) -> str:
     if s.startswith("+"):
         return s
     digits = re.sub(r"\D", "", s)
+    if not digits:
+        return ""
+    if digits.startswith("00"):
+        return "+" + digits[2:]
+    if digits.startswith("0") and len(digits) in (10, 11):
+        digits = digits.lstrip("0")
+
+    from core.whatsapp import detect_country_code
+    cc = detect_country_code(location, default_country="91")
+
     if len(digits) == 10:
-        return "+91" + digits  # default India when unspecified
-    return "+" + digits if digits else ""
+        return f"+{cc}{digits}"
+    if len(digits) in (8, 9) and cc not in ("91", "1"):
+        return f"+{cc}{digits}"
+
+    return f"+{digits}"
 
 
 def _norm_linkedin(v) -> str:
@@ -314,6 +335,7 @@ def parse_file(content: bytes, filename: str) -> Tuple[List[str], List[Dict[str,
     Smart-detects:
       • multi-sheet workbooks → prefers a sheet that contains an Email-style header
       • leading title/blank rows → scans first 20 rows for the real header
+      • PDF and DOCX files → extracts tabular records or structured contact rows
     """
     name = filename.lower()
     if name.endswith(".csv"):
@@ -378,7 +400,49 @@ def parse_file(content: bytes, filename: str) -> Tuple[List[str], List[Dict[str,
             rows.append(dict(zip(headers, r)))
         return headers, rows
 
-    raise HTTPException(400, "Unsupported file type. Use .xlsx, .xls, or .csv")
+    if name.endswith(".docx") or name.endswith(".doc"):
+        try:
+            import docx
+            doc = docx.Document(io.BytesIO(content))
+            all_rows = []
+            # First look for tables
+            for table in doc.tables:
+                for row in table.rows:
+                    cells = [cell.text.strip() for cell in row.cells]
+                    if any(cells):
+                        all_rows.append(cells)
+            if all_rows:
+                hdr_idx = _find_header_row(all_rows)
+                headers = [str(h).strip() for h in all_rows[hdr_idx]]
+                data = all_rows[hdr_idx + 1:]
+                rows = [dict(zip(headers, r)) for r in data if any(str(v).strip() for v in r)]
+                return headers, rows
+        except Exception as e:
+            print(f"[Import] docx parse error: {e}")
+
+    if name.endswith(".pdf"):
+        try:
+            import fitz  # pymupdf
+            doc = fitz.open(stream=content, filetype="pdf")
+            all_rows = []
+            for page in doc:
+                tabs = page.find_tables()
+                if tabs.tables:
+                    for tab in tabs.tables:
+                        extracted = tab.extract()
+                        for row in extracted:
+                            if any(row):
+                                all_rows.append([str(c or "").strip() for c in row])
+            if all_rows:
+                hdr_idx = _find_header_row(all_rows)
+                headers = [str(h).strip() for h in all_rows[hdr_idx]]
+                data = all_rows[hdr_idx + 1:]
+                rows = [dict(zip(headers, r)) for r in data if any(str(v).strip() for v in r)]
+                return headers, rows
+        except Exception as e:
+            print(f"[Import] pdf parse error: {e}")
+
+    raise HTTPException(400, "Unsupported file type. Use .xlsx, .xls, .csv, .pdf, or .docx")
 
 
 # ─── Row → user transform ──────────────────────────────────────────
@@ -392,14 +456,14 @@ def transform_row(raw: dict, mapping: Dict[str, str]) -> Dict[str, Any]:
     last_name  = _to_str(mapped.get("last_name"))
     full_name  = (first_name + " " + last_name).strip() or "—"
 
+    location   = _to_str(mapped.get("location"))
     email      = _norm_email(mapped.get("email"))
-    phone      = _norm_phone(mapped.get("phone"))
+    phone      = _norm_phone(mapped.get("phone"), location=location)
     linkedin   = _norm_linkedin(mapped.get("linkedin_url"))
     college    = _to_str(mapped.get("college"))
     degree     = _to_str(mapped.get("degree"))
     designation= _to_str(mapped.get("designation"))
     company    = _to_str(mapped.get("company"))
-    location   = _to_str(mapped.get("location"))
     headline   = _to_str(mapped.get("headline"))
     grad_year  = mapped.get("graduation_year")
     if grad_year and not isinstance(grad_year, int):
@@ -482,8 +546,8 @@ async def upload_file(
     """Parse file, return preview + auto-mapped headers + per-row validation report."""
     await _require_admin(authorization)
     content = await file.read()
-    if len(content) > 10 * 1024 * 1024:
-        raise HTTPException(413, "File exceeds 10 MB limit")
+    if len(content) > 500 * 1024 * 1024:
+        raise HTTPException(413, "File exceeds 500 MB limit")
 
     headers, rows = parse_file(content, file.filename or "upload.xlsx")
     if not rows:
@@ -508,6 +572,27 @@ async def upload_file(
             counts["errors"] += 1
             preview_rows.append({"row": idx + 2, "errors": [f"Parse error: {e}"]})
 
+    # Pre-flight impact calculation on preview batch
+    emails_to_check = [r.get("email") for r in preview_rows if r.get("email") and not r.get("errors")]
+    existing_emails = set()
+    if emails_to_check:
+        cursor = _db.users.find({"email": {"$in": emails_to_check}}, {"email": 1})
+        async for doc in cursor:
+            if doc.get("email"):
+                existing_emails.add(doc["email"].lower())
+    
+    preflight_updates = sum(1 for r in preview_rows if (r.get("email") or "").lower() in existing_emails and not r.get("errors"))
+    preflight_valid = len(preview_rows) - counts["errors"]
+    preflight_new = max(0, preflight_valid - preflight_updates)
+
+    preflight_stats = {
+        "new_count": preflight_new,
+        "update_count": preflight_updates,
+        "invalid_count": counts["errors"],
+        "valid_count": preflight_valid,
+        "total_preview": len(preview_rows),
+    }
+
     # Cache the full parsed content so /import doesn't re-upload
     cache_id = str(ObjectId())
     await _db.import_cache.insert_one({
@@ -529,6 +614,7 @@ async def upload_file(
         "auto_mapping": mapping,
         "preview": preview_rows,
         "summary": counts,
+        "preflight": preflight_stats,
     }
 
 
@@ -599,6 +685,34 @@ async def commit_import(body: CommitBody, authorization: Optional[str] = Header(
                 row["approved"] = False
                 await _db.users.insert_one(row)
                 added += 1
+
+            # Auto-sync to talent_pool collection for unified metrics
+            try:
+                tp_doc = {
+                    "full_name": row.get("full_name"),
+                    "headline": row.get("headline") or row.get("designation"),
+                    "email": row.get("email"),
+                    "phone": row.get("phone"),
+                    "linkedin_url": row.get("linkedin_url"),
+                    "location": row.get("location"),
+                    "skills": [s.strip() for s in (row.get("skills") or "").split(",") if s.strip()] if isinstance(row.get("skills"), str) else (row.get("skills") or []),
+                    "experience_years": row.get("experience_years"),
+                    "current_company": row.get("company"),
+                    "current_role": row.get("designation"),
+                    "education": row.get("college") or row.get("degree"),
+                    "graduation_year": row.get("graduation_year"),
+                    "source": "import",
+                    "is_active": True,
+                    "imported_at": datetime.now(timezone.utc),
+                    "updated_at": datetime.now(timezone.utc),
+                }
+                if row.get("email"):
+                    await _db.talent_pool.update_one({"email": row["email"]}, {"$set": tp_doc}, upsert=True)
+                elif row.get("linkedin_url"):
+                    await _db.talent_pool.update_one({"linkedin_url": row["linkedin_url"]}, {"$set": tp_doc}, upsert=True)
+            except Exception as e:
+                print(f"[Import] talent_pool sync warning: {e}")
+
             # Auto-onboard college (idempotent, async enrichment)
             if row.get("college"):
                 try: await ensure_college(row["college"], created_by="import")
@@ -684,6 +798,29 @@ async def manual_add(body: ManualUser, authorization: Optional[str] = Header(Non
     row["created_by"] = "manual"
     row["approved"] = False
     res = await _db.users.insert_one(row)
+    try:
+        tp_doc = {
+            "full_name": row.get("full_name"),
+            "headline": row.get("headline") or row.get("designation"),
+            "email": row.get("email"),
+            "phone": row.get("phone"),
+            "linkedin_url": row.get("linkedin_url"),
+            "location": row.get("location"),
+            "skills": [s.strip() for s in (row.get("skills") or "").split(",") if s.strip()] if isinstance(row.get("skills"), str) else (row.get("skills") or []),
+            "experience_years": row.get("experience_years"),
+            "current_company": row.get("company"),
+            "current_role": row.get("designation"),
+            "education": row.get("college") or row.get("degree"),
+            "graduation_year": row.get("graduation_year"),
+            "source": "manual",
+            "is_active": True,
+            "imported_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }
+        if row.get("email"):
+            await _db.talent_pool.update_one({"email": row["email"]}, {"$set": tp_doc}, upsert=True)
+    except Exception:
+        pass
     if row.get("college"):
         try: await ensure_college(row["college"], created_by="manual")
         except Exception: pass
@@ -932,110 +1069,581 @@ async def _try_restore_archived(email: str, linkedin_url: str) -> Optional[dict]
     return arch
 
 
-# ─── Filtered user list (for dashboard tabs / search) ──────────────
+# ─── Inline Cell & Bulk Operations ──────────────────────────────────
+class InlineUpdateBody(BaseModel):
+    user_id: str
+    field: str
+    value: Any
+
+
+@router.post("/admin/users/inline-update")
+async def inline_update_user(body: InlineUpdateBody, authorization: Optional[str] = Header(None)):
+    """Update a single field directly from spreadsheet view."""
+    await _require_admin(authorization)
+    allowed_fields = {
+        "first_name", "last_name", "full_name", "name", "designation", "company",
+        "location", "phone", "email", "degree", "graduation_year", "experience_years",
+        "headline", "category", "college"
+    }
+    if body.field not in allowed_fields:
+        raise HTTPException(400, f"Field '{body.field}' cannot be updated inline")
+    
+    try:
+        oid = ObjectId(body.user_id)
+    except Exception:
+        raise HTTPException(400, "Invalid user ID")
+
+    update_data: Dict[str, Any] = {
+        body.field: body.value,
+        "updated_at": datetime.now(timezone.utc),
+    }
+    if body.field in ("first_name", "last_name"):
+        doc = await _db.users.find_one({"_id": oid})
+        if doc:
+            fn = body.value if body.field == "first_name" else (doc.get("first_name") or "")
+            ln = body.value if body.field == "last_name" else (doc.get("last_name") or "")
+            update_data["full_name"] = f"{fn} {ln}".strip()
+            update_data["name"] = update_data["full_name"]
+
+    res = await _db.users.update_one({"_id": oid}, {"$set": update_data})
+    if res.matched_count == 0:
+        raise HTTPException(404, "User not found")
+
+    # Mirror to talent pool if applicable
+    try:
+        user_doc = await _db.users.find_one({"_id": oid})
+        if user_doc and user_doc.get("email"):
+            tp_field_map = {
+                "designation": "current_role",
+                "company": "current_company",
+                "full_name": "full_name",
+                "name": "full_name",
+                "location": "location",
+                "phone": "phone",
+                "headline": "headline"
+            }
+            if body.field in tp_field_map:
+                await _db.talent_pool.update_one(
+                    {"email": user_doc["email"]},
+                    {"$set": {tp_field_map[body.field]: body.value, "updated_at": datetime.now(timezone.utc)}}
+                )
+    except Exception:
+        pass
+
+    return {"ok": True, "field": body.field, "value": body.value}
+
+
+class BulkActionBody(BaseModel):
+    user_ids: List[str]
+
+
+@router.post("/admin/users/bulk/approve")
+async def bulk_approve_users(body: BulkActionBody, authorization: Optional[str] = Header(None)):
+    """Approve multiple imported/pending users at once."""
+    await _require_admin(authorization)
+    oids = []
+    for uid in body.user_ids:
+        try: oids.append(ObjectId(uid))
+        except Exception: pass
+    if not oids:
+        raise HTTPException(400, "No valid user IDs provided")
+    now = datetime.now(timezone.utc)
+    res = await _db.users.update_many(
+        {"_id": {"$in": oids}},
+        {"$set": {"approved": True, "approved_at": now, "updated_at": now}}
+    )
+    return {"ok": True, "modified_count": res.modified_count}
+
+
+class BulkDeleteBody(BaseModel):
+    user_ids: List[str]
+    permanent: bool = False
+
+
+@router.post("/admin/users/bulk/delete")
+async def bulk_delete_users(body: BulkDeleteBody, authorization: Optional[str] = Header(None)):
+    """Batch delete or archive users."""
+    await _require_admin(authorization)
+    oids = []
+    for uid in body.user_ids:
+        try: oids.append(ObjectId(uid))
+        except Exception: pass
+    if not oids:
+        raise HTTPException(400, "No valid user IDs provided")
+    if body.permanent:
+        res = await _db.users.delete_many({"_id": {"$in": oids}})
+        return {"ok": True, "deleted_count": res.deleted_count}
+    else:
+        res = await _db.users.update_many(
+            {"_id": {"$in": oids}},
+            {"$set": {"archived": True, "is_active": False, "updated_at": datetime.now(timezone.utc)}}
+        )
+        return {"ok": True, "archived_count": res.modified_count}
+
+
+class BulkTagBody(BaseModel):
+    user_ids: List[str]
+    tag: str
+    action: str = "add"
+
+
+@router.post("/admin/users/bulk/tag")
+async def bulk_tag_users(body: BulkTagBody, authorization: Optional[str] = Header(None)):
+    """Add or remove a tag across selected users."""
+    await _require_admin(authorization)
+    oids = []
+    for uid in body.user_ids:
+        try: oids.append(ObjectId(uid))
+        except Exception: pass
+    if not oids:
+        raise HTTPException(400, "No valid user IDs provided")
+    clean_tag = body.tag.strip()
+    if not clean_tag:
+        raise HTTPException(400, "Tag cannot be empty")
+    now = datetime.now(timezone.utc)
+    if body.action == "remove":
+        res = await _db.users.update_many(
+            {"_id": {"$in": oids}},
+            {"$pull": {"tags": clean_tag}, "$set": {"updated_at": now}}
+        )
+    else:
+        res = await _db.users.update_many(
+            {"_id": {"$in": oids}},
+            {"$addToSet": {"tags": clean_tag}, "$set": {"updated_at": now}}
+        )
+    return {"ok": True, "modified_count": res.modified_count, "tag": clean_tag}
+
+
+@router.post("/admin/users/bulk/invite")
+async def bulk_invite_users(body: BulkActionBody, authorization: Optional[str] = Header(None)):
+    """Send branded onboarding/activation email to selected users."""
+    await _require_admin(authorization)
+    from core.email import send_email, render_html_email
+    oids = []
+    for uid in body.user_ids:
+        try: oids.append(ObjectId(uid))
+        except Exception: pass
+    if not oids:
+        raise HTTPException(400, "No valid user IDs provided")
+    
+    users = await _db.users.find({"_id": {"$in": oids}}).to_list(length=1000)
+    sent_count = 0
+    now = datetime.now(timezone.utc)
+
+    for u in users:
+        email = u.get("email")
+        if not email or "@" not in email:
+            continue
+        first_name = u.get("first_name") or u.get("name") or "there"
+        cat = (u.get("category") or "member").capitalize()
+        portal_url = os.getenv("FRONTEND_URL") or "https://studentalumni.ai"
+        claim_url = f"{portal_url}/auth?mode=claim&email={email}"
+        
+        email_content = f"""
+        <h2 style="color: #1E293B; margin-top: 0; font-size: 20px;">Welcome to Student Alumni Platform, {first_name}!</h2>
+        <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+            You have been invited to the <strong>Student Alumni Network</strong> as a <strong>{cat}</strong>.
+        </p>
+        <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+            Connect with verified alumni, explore mentoring opportunities, discover career pathways, and unlock exclusive campus networks.
+        </p>
+        <div style="text-align: center; margin: 32px 0;">
+            <a href="{claim_url}" style="background: linear-gradient(135deg, #7C3AED, #5B21B6); color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 15px; display: inline-block;">
+                Activate Your Profile
+            </a>
+        </div>
+        <p style="color: #94A3B8; font-size: 13px; line-height: 1.5; text-align: center;">
+            Or copy and paste this link in your browser:<br/>
+            <span style="color: #6366F1; word-break: break-all;">{claim_url}</span>
+        </p>
+        """
+        html = render_html_email(email_content)
+        subject = f"Activate Your Profile on Student Alumni — {cat} Access"
+        try:
+            await send_email(email, subject, html)
+            sent_count += 1
+            await _db.users.update_one(
+                {"_id": u["_id"]},
+                {"$set": {"invite_sent_at": now, "invite_status": "sent", "updated_at": now}}
+            )
+        except Exception as e:
+            print(f"[Invite] error sending to {email}: {e}")
+
+    return {"ok": True, "sent_count": sent_count, "total_requested": len(body.user_ids)}
+
+
+class BulkPushToTalentBody(BaseModel):
+    user_ids: List[str]
+    skills: Optional[List[str]] = None
+
+
+@router.post("/admin/users/bulk/push-to-talent")
+async def bulk_push_to_talent_pool(body: BulkPushToTalentBody, authorization: Optional[str] = Header(None)):
+    """Bridge selected directory users directly into the talent pool."""
+    await _require_admin(authorization)
+    oids = []
+    for uid in body.user_ids:
+        try: oids.append(ObjectId(uid))
+        except Exception: pass
+    if not oids:
+        raise HTTPException(400, "No valid user IDs provided")
+    
+    users = await _db.users.find({"_id": {"$in": oids}}).to_list(length=1000)
+    synced_count = 0
+    now = datetime.now(timezone.utc)
+
+    for u in users:
+        skills = list(body.skills or [])
+        if isinstance(u.get("skills"), list):
+            skills = list(set(skills + u["skills"]))
+        elif isinstance(u.get("skills"), str):
+            skills = list(set(skills + [s.strip() for s in u["skills"].split(",") if s.strip()]))
+            
+        tp_doc = {
+            "full_name": u.get("full_name") or u.get("name") or f"{u.get('first_name','')} {u.get('last_name','')}".strip(),
+            "headline": u.get("headline") or u.get("designation"),
+            "email": u.get("email"),
+            "phone": u.get("phone"),
+            "linkedin_url": u.get("linkedin_url"),
+            "location": u.get("location"),
+            "skills": skills,
+            "experience_years": u.get("experience_years"),
+            "current_company": u.get("company"),
+            "current_role": u.get("designation"),
+            "education": u.get("college") or u.get("degree"),
+            "graduation_year": u.get("graduation_year"),
+            "source": "platform_import",
+            "source_platform_user_id": str(u["_id"]),
+            "is_active": True,
+            "imported_at": now,
+            "updated_at": now,
+        }
+        if u.get("email"):
+            await _db.talent_pool.update_one({"email": u["email"]}, {"$set": tp_doc}, upsert=True)
+            synced_count += 1
+        elif u.get("linkedin_url"):
+            await _db.talent_pool.update_one({"linkedin_url": u["linkedin_url"]}, {"$set": tp_doc}, upsert=True)
+            synced_count += 1
+
+    return {"ok": True, "synced_count": synced_count}
+
+
+# ─── Filtered user list (for dashboard tabs / search / spreadsheet grid) ──────────────
+def format_e164_phone(phone: str, location: str = "") -> str:
+    """Format phone number with country code prefix (+91 for India, +1 for US/Canada, etc.)."""
+    if not phone:
+        return ""
+    p = str(phone).strip()
+    if p.startswith("+"):
+        return "+" + "".join(c for c in p[1:] if c.isdigit())
+
+    digits = "".join(c for c in p if c.isdigit())
+    if not digits:
+        return ""
+
+    loc_upper = (location or "").upper()
+    is_us = any(k in loc_upper for k in ["USA", "UNITED STATES", "NEW JERSEY", "NJ", "CALIFORNIA", "CA", "NEW YORK", "NY", "CANADA"])
+
+    if len(digits) == 10:
+        if is_us:
+            return f"+1{digits}"
+        else:
+            return f"+91{digits}"
+    elif len(digits) == 11 and digits.startswith("0"):
+        return f"+91{digits[1:]}"
+    elif len(digits) == 11 and digits.startswith("1"):
+        return f"+{digits}"
+    elif len(digits) == 12 and digits.startswith("91"):
+        return f"+{digits}"
+
+    return f"+{digits}"
+
+
 @router.get("/admin/users/list")
 async def list_users(
     category: Optional[str] = None,
+    account_filter: Optional[str] = None,
     q: Optional[str] = None,
-    limit: int = 100,
+    page: int = Query(1, ge=1),
+    limit: int = 24,
     offset: int = 0,
     authorization: Optional[str] = Header(None),
 ):
+    """Return users matching category/search, enriched with completeness & account stats,
+    pulling seamlessly from `users`, `contacts`, and `college_students` collections."""
     await _require_admin(authorization)
-    match: Dict[str, Any] = {}
-    if category and category != "all":
-        match["category"] = category
+    
+    # Handle page vs offset
+    if offset > 0 and page == 1:
+        skip = offset
+    else:
+        skip = (page - 1) * limit
+
+    cat = (category or "all").lower()
+    
+    rx_cat = {"$regex": f"^{cat}$", "$options": "i"} if cat != "all" else None
+    rx_tag = {"$regex": cat, "$options": "i"} if cat != "all" else None
+
+    # 1. Fetch from db.users
+    user_query: Dict[str, Any] = {"archived": {"$ne": True}}
+    if cat != "all":
+        if cat == "student":
+            user_query["$or"] = [
+                {"category": rx_cat},
+                {"role": rx_cat},
+                {"tags": rx_tag},
+                {"role": {"$nin": ["mentor", "alumni", "college", "admin", "superadmin"]}},
+                {"category": None},
+                {"role": None}
+            ]
+        elif cat == "masters":
+            user_query["$or"] = [
+                {"school_info.current_degree": {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}},
+                {"degree": {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}},
+                {"education_degree": {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}}
+            ]
+        else:
+            user_query["$or"] = [
+                {"category": rx_cat},
+                {"role": rx_cat},
+                {"tags": rx_tag}
+            ]
+            
     if q:
-        match["$or"] = [
-            {"full_name":    {"$regex": re.escape(q), "$options": "i"}},
-            {"email":        {"$regex": re.escape(q), "$options": "i"}},
-            {"college":      {"$regex": re.escape(q), "$options": "i"}},
-            {"company":      {"$regex": re.escape(q), "$options": "i"}},
+        rx = {"$regex": re.escape(q), "$options": "i"}
+        user_query["$and"] = [
+            {"$or": [
+                {"name": rx}, {"full_name": rx}, {"first_name": rx}, {"last_name": rx},
+                {"email": rx}, {"college": rx}, {"company": rx}, {"sa_id": rx},
+                {"phone": rx}, {"current_title": rx}, {"designation": rx}
+            ]}
         ]
-    total = await _db.users.count_documents(match)
-    # Sort newest first — created_at desc, falling back to _id desc
-    cur = _db.users.find(match).sort([("created_at", -1), ("_id", -1)]).skip(offset).limit(limit)
-    items = []
-    async for u in cur:
-        # Derive 2 tags from category + degree/headline keywords
-        tags: List[str] = []
-        cat = u.get("category") or u.get("role") or "student"
-        if cat == "mentor":  tags.append("Mentor")
-        if cat == "masters": tags.append("Master's")
-        if cat == "alumni":  tags.append("Alumni")
-        if u.get("degree"):
-            deg = (u.get("degree") or "").upper()
-            if "CSE" in deg or "COMPUTER" in deg: tags.append("CSE")
+
+    # 2. Fetch from db.contacts
+    contact_query: Dict[str, Any] = {}
+    if cat != "all":
+        if cat == "student":
+            contact_query["$or"] = [
+                {"role": rx_cat},
+                {"category": rx_cat},
+                {"tags": rx_tag},
+                {"role": {"$nin": ["mentor", "alumni", "college", "admin", "superadmin"]}},
+                {"role": ""},
+                {"role": None}
+            ]
+        elif cat == "masters":
+            contact_query["$or"] = [
+                {"education_degree": {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}},
+                {"degree": {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}}
+            ]
+        else:
+            contact_query["$or"] = [
+                {"role": rx_cat},
+                {"category": rx_cat},
+                {"tags": rx_tag}
+            ]
+
+    if q:
+        rx = {"$regex": re.escape(q), "$options": "i"}
+        contact_query["$and"] = [
+            {"$or": [
+                {"name": rx}, {"email": rx}, {"phone": rx},
+                {"current_company": rx}, {"current_title": rx},
+                {"education_institution": rx}, {"location": rx}
+            ]}
+        ]
+
+    # 3. Fetch from db.college_students (if student or all)
+    college_student_query: Dict[str, Any] = {}
+    if q:
+        rx = {"$regex": re.escape(q), "$options": "i"}
+        college_student_query["$or"] = [
+            {"name": rx}, {"email": rx}, {"dept": rx}, {"college": rx}
+        ]
+
+    # Combine docs by lowercased email or ID
+    by_email: Dict[str, dict] = {}
+    
+    async for u in _db.users.find(user_query).sort([("created_at", -1)]):
+        em = (u.get("email") or "").strip().lower()
+        key = em if em else str(u["_id"])
+        by_email[key] = {
+            "source": "users",
+            "raw": u,
+            "email": em or u.get("email"),
+            "name": u.get("full_name") or u.get("name") or em,
+            "role": u.get("role") or u.get("category") or "student",
+            "created_at": u.get("created_at")
+        }
+
+    async for c in _db.contacts.find(contact_query).sort([("created_at", -1)]):
+        em = (c.get("email") or "").strip().lower()
+        key = em if em else str(c["_id"])
+        if key not in by_email:
+            by_email[key] = {
+                "source": "contacts",
+                "raw": c,
+                "email": em or c.get("email"),
+                "name": c.get("name") or c.get("full_name") or em,
+                "role": c.get("role") or (c.get("tags")[0] if c.get("tags") else "student"),
+                "created_at": c.get("created_at")
+            }
+        else:
+            raw_u = by_email[key]["raw"]
+            for f in ["phone", "current_company", "current_title", "education_institution", "location", "linkedin_url"]:
+                if not raw_u.get(f) and c.get(f):
+                    raw_u[f] = c[f]
+
+    if cat in ("all", "student"):
+        async for cs in _db.college_students.find(college_student_query):
+            em = (cs.get("email") or "").strip().lower()
+            key = em if em else str(cs["_id"])
+            if key not in by_email:
+                by_email[key] = {
+                    "source": "college_students",
+                    "raw": cs,
+                    "email": em or cs.get("email"),
+                    "name": cs.get("name") or em,
+                    "role": "student",
+                    "created_at": cs.get("created_at")
+                }
+
+    # Transform items
+    combined_items = []
+    for key, entry in by_email.items():
+        u = entry["raw"]
+        src = entry["source"]
+        oid_str = str(u.get("_id", ""))
+        
+        tags: List[str] = list(u.get("tags") or [])
+        item_cat = (u.get("category") or u.get("role") or "student").lower()
+        if item_cat not in ("student", "alumni", "mentor"):
+            item_cat = "student"
+
+        if not tags:
+            if item_cat == "mentor": tags.append("Mentor")
+            elif item_cat == "alumni": tags.append("Alumni")
+            elif item_cat == "student": tags.append("Student")
+            deg = u.get("degree") or u.get("education_degree") or u.get("dept") or ""
+            if "B.Tech" in deg: tags.append("B.Tech")
+            elif "CSE" in deg: tags.append("CSE")
             elif "ECE" in deg: tags.append("ECE")
             elif "MBA" in deg: tags.append("MBA")
-            elif "MECH" in deg: tags.append("Mech")
-        items.append({
-            "id":         str(u["_id"]),
-            "first_name": u.get("first_name") or "",
-            "last_name":  u.get("last_name") or "",
-            "name":       u.get("full_name") or "—",
-            "email":      u.get("email"),
-            "phone":      u.get("phone"),
-            "linkedin_url": u.get("linkedin_url"),
-            "category":   cat,
-            "college":    u.get("college") or (u.get("school_info") or {}).get("institution_name") or "",
-            "degree":     u.get("degree"),
-            "graduation_year": u.get("graduation_year"),
-            "designation": u.get("designation"),
-            "company":     u.get("company"),
-            "location":   u.get("location"),
-            "experience_years": u.get("experience_years"),
+
+        is_reg = bool(
+            u.get("password") or u.get("hashed_password") or u.get("password_hash") or 
+            u.get("auth_provider") or u.get("is_registered_user") or 
+            (u.get("profile_status") == "active" and u.get("created_by") not in ("import", "manual"))
+        )
+
+        name = u.get("full_name") or u.get("name") or u.get("email") or "—"
+        institution = u.get("college") or u.get("education_institution") or (u.get("school_info") or {}).get("institution_name") or u.get("dept") or ""
+        company = u.get("company") or u.get("current_company") or (u.get("alumni_info") or {}).get("alumni_employer") or ""
+        title = u.get("designation") or u.get("current_title") or u.get("headline") or (u.get("mentor_profile") or {}).get("job_title") or ""
+        location = u.get("location") or u.get("city") or ""
+        raw_phone = u.get("phone") or ""
+        phone = format_e164_phone(raw_phone, location)
+
+        c_points = 0
+        max_points = 8
+        if name and name != "—": c_points += 1
+        if u.get("email"): c_points += 1
+        if phone: c_points += 1
+        if institution: c_points += 1
+        if title or u.get("degree"): c_points += 1
+        if company: c_points += 1
+        if location: c_points += 1
+        if is_reg: c_points += 1
+        completeness = int((c_points / max_points) * 100)
+
+        if account_filter == "registered" and not is_reg: continue
+        if account_filter == "unregistered" and is_reg: continue
+        if account_filter == "complete" and completeness < 60: continue
+
+        created_val = u.get("created_at")
+        if isinstance(created_val, datetime):
+            created_str = created_val.isoformat()
+        else:
+            created_str = str(created_val) if created_val else datetime.now(timezone.utc).isoformat()
+
+        approved = u.get("approved", True) if src in ("contacts", "college_students") else not (
+            (u.get("role") == "mentor" and u.get("mentor_status") != "approved") or
+            (u.get("role") == "college" and u.get("college_status") != "approved")
+        )
+
+        combined_items.append({
+            "id": oid_str,
+            "sa_id": u.get("sa_id") or f"SA-{oid_str[-6:].upper()}",
+            "first_name": u.get("first_name") or (name.split()[0] if name and name != "—" else ""),
+            "last_name": u.get("last_name") or (" ".join(name.split()[1:]) if name and len(name.split()) > 1 else ""),
+            "name": name,
+            "full_name": name,
+            "email": u.get("email"),
+            "phone": phone,
+            "role": item_cat,
+            "category": item_cat,
+            "institution": institution,
+            "college": institution,
+            "degree": u.get("degree") or u.get("education_degree") or u.get("dept"),
+            "graduation_year": u.get("graduation_year") or u.get("year"),
+            "designation": title,
+            "company": company,
+            "location": location,
+            "mentor_title": title,
+            "mentor_org": company,
+            "mentor_category": u.get("category"),
+            "alumni_employer": company,
+            "alumni_role": title,
             "profile_status": u.get("profile_status") or "complete",
-            "approved":   bool(u.get("approved", False)),
-            "tags":       tags[:2],
-            "is_new":     bool(u.get("created_by") in ("import", "manual")) and not u.get("approved"),
-            "created_at": (u.get("created_at").isoformat() if isinstance(u.get("created_at"), datetime) else None),
+            "is_registered": is_reg,
+            "account_status": "registered" if is_reg else "unregistered",
+            "completeness_score": completeness,
+            "approved": approved,
+            "tags": tags[:4],
+            "badges": tags[:4],
+            "is_new": bool(u.get("created_by") in ("import", "manual")) and not u.get("approved"),
+            "created_at": created_str,
+            "linkedin_url": u.get("linkedin_url") or u.get("profile_url"),
         })
-    counts = {
-        "all":     await _db.users.count_documents({}),
-        "student": await _db.users.count_documents({"category": "student"}),
-        "masters": await _db.users.count_documents({"category": "masters"}),
-        "alumni":  await _db.users.count_documents({"category": "alumni"}),
-        "mentor":  await _db.users.count_documents({"category": "mentor"}),
-        "pending_approval": await _db.users.count_documents({"approved": False, "created_by": {"$in": ["import", "manual"]}}),
-    }
-    pages = max(1, (total + limit - 1) // limit) if limit > 0 else 1
-    return {"items": items, "total": total, "pages": pages, "counts": counts}
 
+    # Sort strictly by created_at DESC (newest uploaded contacts shown FIRST in the top row)
+    combined_items.sort(key=lambda x: str(x.get("created_at") or ""), reverse=True)
 
-# ─── Categorize uncategorized users as students ───────────────────────────────
+    # Global Total
+    total_count = len(combined_items)
+    
+    # Calculate counts for KPI tiles
+    all_users_docs = await _db.users.find({"archived": {"$ne": True}}).to_list(100000)
+    all_contacts_docs = await _db.contacts.find().to_list(100000)
+    all_college_students_docs = await _db.college_students.find().to_list(100000)
+    
+    cat_tally = {"student": 0, "alumni": 0, "mentor": 0, "masters": 0, "all": 0, "pending_approval": 0}
+    seen_kpi_emails = set()
+    for d in (all_users_docs + all_contacts_docs + all_college_students_docs):
+        e = (d.get("email") or "").strip().lower()
+        if e:
+            if e in seen_kpi_emails: continue
+            seen_kpi_emails.add(e)
+        r = (d.get("role") or d.get("category") or "").lower()
+        if not r and d.get("tags"):
+            r = str(d.get("tags")[0]).lower()
+        if r in cat_tally:
+            cat_tally[r] += 1
+        else:
+            cat_tally["student"] += 1
+        cat_tally["all"] += 1
+        if d.get("degree") in ["Masters", "M.Tech", "MBA", "MS", "PhD"] or (d.get("education_degree") in ["Masters", "M.Tech", "MBA", "MS", "PhD"]):
+            cat_tally["masters"] += 1
 
-@router.post("/admin/users/categorize-uncategorized")
-async def categorize_uncategorized_users(authorization: Optional[str] = Header(None)):
-    """Move all users without a category/role to 'student'.
-    
-    This fixes the issue where imported users don't appear in the stats
-    because they have no category assigned.
-    """
-    await _require_admin(authorization)
-    
-    # Update users with no category or role
-    result = await _db.users.update_many(
-        {
-            "$or": [
-                {"category": {"$exists": False}},
-                {"category": None},
-                {"category": ""},
-                {"role": {"$exists": False}},
-                {"role": None},
-                {"role": ""},
-            ]
-        },
-        {
-            "$set": {
-                "category": "student",
-                "role": "student",
-            }
-        }
-    )
-    
+    # Slice page
+    paginated_items = combined_items[skip : skip + limit]
+    total_pages = max(1, (total_count + limit - 1) // limit)
+
     return {
-        "ok": True,
-        "updated": result.modified_count,
-        "message": f"Categorized {result.modified_count} users as students"
+        "items": paginated_items,
+        "total": total_count,
+        "page": page,
+        "limit": limit,
+        "pages": total_pages,
+        "counts": cat_tally,
     }

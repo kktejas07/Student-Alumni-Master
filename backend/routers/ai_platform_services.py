@@ -110,3 +110,151 @@ async def dispatch_agent_workflow(req: WorkflowReq):
     if not res.get("ok"):
         raise HTTPException(400, res.get("error", "Workflow execution failed"))
     return res
+
+
+# ─── Universal Enterprise RAG & Global AI Copilot ───────────────────────
+from services.universal_rag_engine import (
+    universal_rag_engine,
+    RAGQueryRequest,
+    RAGQueryResponse,
+)
+from services.agents.career_copilot_agent import (
+    career_copilot_agent,
+    ATSScoreRequest,
+    ATSScoreResponse,
+    MockInterviewTurnRequest,
+    MockInterviewTurnResponse,
+)
+from services.agents.ai_observability import (
+    ai_observability,
+    AIObservabilityResponse,
+)
+
+@router.post("/universal-rag/query", response_model=RAGQueryResponse)
+async def query_universal_rag(req: RAGQueryRequest):
+    """Pillar 1: Multi-tenant hybrid search across alumni, jobs, campus knowledge, and credentials."""
+    from db import db
+    return await universal_rag_engine.query_knowledge_fabric(req, db=db)
+
+
+class SpotlightQueryReq(BaseModel):
+    query: str
+    user_role: Optional[str] = "student"
+
+@router.post("/spotlight/ask")
+async def ask_global_spotlight_copilot(req: SpotlightQueryReq):
+    """Pillar 2: Global Cmd+K spotlight AI assistant with instant action dispatching."""
+    from db import db
+    rag_res = await universal_rag_engine.query_knowledge_fabric(
+        RAGQueryRequest(query=req.query, user_role=req.user_role),
+        db=db
+    )
+    return {
+        "ok": True,
+        "answer": rag_res.answer,
+        "citations": rag_res.citations,
+        "confidence": rag_res.confidence,
+        "suggested_actions": [
+            {"label": "Explore Alumni Directory", "route": "/students/directory"},
+            {"label": "View Live Job Openings", "route": "/students/jobs"},
+            {"label": "Register for ECHO 2026", "route": "/echo"}
+        ]
+    }
+
+
+@router.post("/career/ats-analyze", response_model=ATSScoreResponse)
+async def ats_analyze_resume(req: ATSScoreRequest):
+    """Pillar 3: Resume ATS matching, keyword gap analysis, and tailored bullet optimizer."""
+    return await career_copilot_agent.analyze_ats_resume(req)
+
+
+@router.post("/career/mock-interview-turn", response_model=MockInterviewTurnResponse)
+async def mock_interview_turn(req: MockInterviewTurnRequest):
+    """Pillar 3: Real-time technical mock interviewer rounds with scoring & rubric feedback."""
+    return await career_copilot_agent.conduct_mock_interview_turn(req)
+
+
+@router.get("/observability", response_model=AIObservabilityResponse)
+async def get_ai_observability_telemetry():
+    """Pillar 4: Real-time LLM token consumption, cost analytics, and vector index health."""
+    from db import db
+    return ai_observability.get_system_telemetry(db=db)
+
+
+# ─── 5 Next-Generation Platform AI Agents ─────────────────────────────
+from services.agents.voice_coach_agent import (
+    voice_coach_agent,
+    VoiceCoachingRequest,
+    VoiceCoachingResponse,
+)
+from services.agents.hackathon_grader_agent import (
+    hackathon_grader_agent,
+    HackathonSubmissionGradeRequest,
+    HackathonSubmissionGradeResponse,
+)
+from services.agents.matchmaker_agent import (
+    matchmaker_agent,
+    MatchmakerRequest,
+    MatchmakerResponse,
+)
+from services.agents.ambassador_kit_agent import (
+    ambassador_kit_agent,
+    AmbassadorKitRequest,
+    AmbassadorKitResponse,
+)
+from services.agents.accreditation_agent import (
+    accreditation_agent,
+    AccreditationReportRequest,
+    AccreditationReportResponse,
+)
+
+@router.post("/voice-coach/analyze-speech", response_model=VoiceCoachingResponse)
+async def analyze_speech_audio_coaching(req: VoiceCoachingRequest):
+    """Next-Gen Agent 1: Real-time speech pace, filler word analysis, and verbal coaching."""
+    return await voice_coach_agent.analyze_speech(req)
+
+
+@router.post("/hackathon/auto-grade", response_model=HackathonSubmissionGradeResponse)
+async def auto_grade_hackathon_project(req: HackathonSubmissionGradeRequest):
+    """Next-Gen Agent 2: GitHub repo code quality, architecture audit, and judge rubric."""
+    return await hackathon_grader_agent.evaluate_project(req)
+
+
+@router.post("/matchmaker/find-matches", response_model=MatchmakerResponse)
+async def find_smart_alumni_matches(req: MatchmakerRequest):
+    """Next-Gen Agent 3: Smart student-alumni matchmaking and tailored outreach drafting."""
+    from db import db
+    return await matchmaker_agent.match_and_draft(req, db=db)
+
+
+@router.post("/ambassador/generate-kit", response_model=AmbassadorKitResponse)
+async def generate_campus_ambassador_kit(req: AmbassadorKitRequest):
+    """Next-Gen Agent 4: Promotional social copy, WhatsApp broadcasts & marketing kit."""
+    return await ambassador_kit_agent.generate_toolkit(req)
+
+
+@router.post("/college/accreditation-dossier", response_model=AccreditationReportResponse)
+async def generate_college_accreditation_dossier(req: AccreditationReportRequest):
+    """Next-Gen Agent 5: NIRF / NAAC Criterion 5 compliance dossier compilation."""
+    from db import db
+    return await accreditation_agent.generate_dossier(req, db=db)
+
+
+# ─── Graph-RAG Semantic Network Topology ──────────────────────────────
+from services.agents.graph_rag_agent import (
+    graph_rag_agent,
+    GraphTopologyResponse,
+)
+
+class GraphTopologyReq(BaseModel):
+    query: Optional[str] = None
+
+@router.post("/graph-rag/topology", response_model=GraphTopologyResponse)
+async def get_graph_rag_topology(req: Optional[GraphTopologyReq] = None):
+    """Generates multidimensional Graph-RAG nodes and edges for visual network mapping."""
+    from db import db
+    q = req.query if req else None
+    return await graph_rag_agent.get_network_topology(query=q, db=db)
+
+
+

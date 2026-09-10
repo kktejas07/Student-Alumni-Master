@@ -12,7 +12,7 @@ import { useRouter } from 'expo-router';
 import { ArrowRight, Sparkles, Users, Globe, Calendar } from 'lucide-react-native';
 import { Button, GlassCard, GradientBackground, SALogo } from '@/src/views/components';
 import { Colors as C, Gradients, Spacing, Typography } from '@/src/theme';
-import LandingPage from '@/src/views/web/nexus-glow-landing/NexusLanding';
+import LandingPage from '@/src/views/web/LandingPage';
 
 const { width } = Dimensions.get('window');
 
@@ -22,17 +22,17 @@ export default function Welcome() {
   const slide = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web') {
+      window.location.replace('/');
+      return;
+    }
     Animated.parallel([
       Animated.timing(fade, { toValue: 1, duration: 800, useNativeDriver: true }),
       Animated.timing(slide, { toValue: 0, duration: 800, useNativeDriver: true }),
     ]).start();
   }, []);
 
-  // Web users see the marketing landing page instead of the mobile splash.
-  if (Platform.OS === 'web') {
-    return <LandingPage />;
-  }
+  if (Platform.OS === 'web') return null;
 
   return (
     <GradientBackground colors={Gradients.splash}>

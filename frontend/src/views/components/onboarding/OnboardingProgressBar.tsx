@@ -92,12 +92,12 @@ export const OnboardingProgressBar: React.FC<OnboardingProgressBarProps> = ({
         Animated.timing(labelOpacityAnim, {
           toValue: 0.65,
           duration: 120,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(labelOpacityAnim, {
           toValue: 1,
           duration: 200,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
       ]),
     ]).start();
@@ -194,7 +194,7 @@ const s = StyleSheet.create({
   barFill: {
     height: '100%',
     borderRadius: 2,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#2563EB',
     ...(Platform.OS === 'web'
       ? ({ transition: 'width 0.38s cubic-bezier(0.16, 1, 0.3, 1)' } as any)
       : {}),

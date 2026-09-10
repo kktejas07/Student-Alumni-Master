@@ -4,7 +4,7 @@
  * Replaces the page-level spinner with section-accurate shape hints.
  */
 import React, { useEffect, useRef, memo } from 'react';
-import { View, Animated, StyleSheet } from 'react-native';
+import { Platform, View, Animated, StyleSheet} from 'react-native';
 import { COLORS, RADIUS, SPACING } from '@/src/lib/designTokens';
 
 // ── Primitive animated block ──────────────────────────────────────────────────
@@ -21,8 +21,8 @@ const SkeletonBlock = memo(function SkeletonBlock({
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(anim, { toValue: 1, duration: 900, useNativeDriver: true }),
-        Animated.timing(anim, { toValue: 0.4, duration: 900, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 1, duration: 900, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(anim, { toValue: 0.4, duration: 900, useNativeDriver: Platform.OS !== 'web' }),
       ]),
     );
     loop.start();

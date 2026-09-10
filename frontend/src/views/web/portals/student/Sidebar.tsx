@@ -24,7 +24,7 @@ import { useSidebarStore } from '@/src/viewmodels/stores/sidebarStore';
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet,
   Tag, CreditCard, GraduationCap, Home, User, ExternalLink, LogOut,
-  CalendarCheck, FileText, BookOpen, ChevronDown, ChevronRight, Zap, Ticket,
+  CalendarCheck, FileText, BookOpen, ChevronDown, ChevronRight, Zap, Ticket, Award,
 } from './iconShims';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -44,7 +44,7 @@ import { api } from '@/src/models/services/api';
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'myevents' | 'events'
   | 'financial' | 'deals' | 'wallet' | 'higher-ed' | 'rentals' | 'courses' | 'profile'
-  | 'my-bookings' | 'my-workshops' | 'echo-showcase' | string;
+  | 'my-bookings' | 'my-workshops' | 'my-tickets' | 'my-certificates' | 'echo-showcase' | string;
 
 export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: boolean }> = [
   { id: 'dashboard',       label: 'Dashboard',          Icon: LayoutDashboard },
@@ -53,6 +53,7 @@ export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: bo
   { id: 'network',         label: 'Network',            Icon: Users },
   { id: 'my-bookings',     label: 'My Bookings',        Icon: CalendarCheck },
   { id: 'my-tickets',      label: 'My Tickets',         Icon: Ticket },
+  { id: 'my-certificates', label: 'My Certificates',    Icon: Award },
   { id: 'myevents',        label: 'My Events',          Icon: Calendar },
   { id: 'my-workshops',    label: 'My Workshops',       Icon: BookOpen },
   { id: 'courses',         label: 'Courses',            Icon: BookOpen },
@@ -224,24 +225,22 @@ export function Sidebar({
   // (Phase 3 will replace this with a bottom-tab bar.)
   if (bp.isPhone) return null;
 
-  // Token resolution — FinTax360 glass-dark theme overrides.
-  // The sidebar is a translucent navy rail with a violet accent.
+  // Token resolution
+  // The sidebar is a vibrant solid purple.
   const C = {
-    bg:      'rgba(10,15,30,0.72)',       // translucent navy (spec value)
-    border:  PALETTE.glassBorder,
-    text:    PALETTE.text,
-    textSec: PALETTE.muted,
-    textTer: PALETTE.dim,
-    cardBg:  PALETTE.glassSoft,
-    accent:  PALETTE.violet,
-    danger:  PALETTE.rose,
+    bg:      '#5D3FD3',       // Solid vibrant purple
+    border:  'rgba(255,255,255,0.1)',
+    text:    '#FFFFFF',
+    textSec: 'rgba(255,255,255,0.7)',
+    textTer: 'rgba(255,255,255,0.5)',
+    cardBg:  'rgba(255,255,255,0.1)',
+    accent:  '#FFFFFF',
+    danger:  '#FF6B6B',
   };
 
-  // Web-only frosted-glass effect for the rail.
+  // Web-only effect for the rail.
   const railGlass = Platform.OS === 'web' ? ({
-    backdropFilter: 'blur(24px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(160%)',
-    boxShadow: '4px 0 40px rgba(2,6,23,0.40)',
+    boxShadow: '4px 0 40px rgba(93,63,211,0.20)',
   } as any) : {};
 
   return (

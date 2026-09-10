@@ -7,7 +7,7 @@ import { useToast } from '@/src/views/components';
 
 type Ann = { id: string; title: string; body: string; audience: string; tag: string; pinned: boolean; author: string; posted_at: string | null };
 const FALLBACK = { items: [] as Ann[] };
-const TAG_COLORS: Record<string, string> = { placement: '#22D3EE', event: '#34D399', career: '#FBBF24', general: '#A78BFA', hiring: '#EC4899' };
+const TAG_COLORS: Record<string, string> = { placement: '#22D3EE', event: '#34D399', career: '#FBBF24', general: '#60A5FA', hiring: '#EC4899' };
 
 export function AnnouncementsView() {
   const toast = useToast();
@@ -22,9 +22,9 @@ export function AnnouncementsView() {
   const showConfirmation = () => {
     setSent(true);
     Animated.sequence([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: Platform.OS !== 'web' }),
       Animated.delay(2500),
-      Animated.timing(fadeAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 0, duration: 400, useNativeDriver: Platform.OS !== 'web' }),
     ]).start(() => setSent(false));
   };
 
@@ -55,7 +55,7 @@ export function AnnouncementsView() {
     <View style={{ flexDirection: 'row', gap: 16, flexWrap: 'wrap' }}>
       <View style={{ flex: 2, minWidth: 320, gap: 10 }}>
         {ANN.map((a) => {
-          const color = TAG_COLORS[a.tag] || '#A78BFA';
+          const color = TAG_COLORS[a.tag] || '#60A5FA';
           return (
             <View key={a.id} style={[s.card, a.pinned && { borderColor: CC.border2 }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -75,7 +75,7 @@ export function AnnouncementsView() {
       </View>
       <View style={{ flex: 1, minWidth: 280 }}>
         <View style={s.card}>
-          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14, marginBottom: 12 }}>New announcement</Text>
+          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14, marginBottom: 12 }}>New announcement</Text>
 
           {/* ── Success confirmation banner ── */}
           {sent && (
@@ -112,12 +112,12 @@ export function AnnouncementsView() {
 const s = StyleSheet.create({
   card: { backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 14, padding: 14 },
   icon: { width: 32, height: 32, borderRadius: 9, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  title: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13 },
   meta: { color: CC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   body: { color: CC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 10, lineHeight: 18 },
-  input: { backgroundColor: CC.bg2, color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, borderColor: CC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  input: { backgroundColor: CC.bg2, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5, borderColor: CC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   send: { flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', marginTop: 12, height: 36, borderRadius: 10, backgroundColor: CC.primary },
-  sendText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  sendText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
   successBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: 'rgba(52, 211, 153, 0.12)',

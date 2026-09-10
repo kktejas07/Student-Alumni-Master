@@ -17,51 +17,51 @@ import { FONTS } from '@/src/views/auth/tokens';
 export type Country = { code: string; dial: string; flag: string; name: string };
 
 export const COUNTRIES: Country[] = [
-  { code: 'IN', dial: '+91',  flag: '🇮🇳', name: 'India' },
-  { code: 'US', dial: '+1',   flag: '🇺🇸', name: 'United States' },
-  { code: 'GB', dial: '+44',  flag: '🇬🇧', name: 'United Kingdom' },
-  { code: 'CA', dial: '+1',   flag: '🇨🇦', name: 'Canada' },
-  { code: 'AU', dial: '+61',  flag: '🇦🇺', name: 'Australia' },
-  { code: 'AE', dial: '+971', flag: '🇦🇪', name: 'United Arab Emirates' },
-  { code: 'SG', dial: '+65',  flag: '🇸🇬', name: 'Singapore' },
-  { code: 'DE', dial: '+49',  flag: '🇩🇪', name: 'Germany' },
-  { code: 'FR', dial: '+33',  flag: '🇫🇷', name: 'France' },
-  { code: 'NL', dial: '+31',  flag: '🇳🇱', name: 'Netherlands' },
-  { code: 'IE', dial: '+353', flag: '🇮🇪', name: 'Ireland' },
-  { code: 'NZ', dial: '+64',  flag: '🇳🇿', name: 'New Zealand' },
-  { code: 'JP', dial: '+81',  flag: '🇯🇵', name: 'Japan' },
-  { code: 'CN', dial: '+86',  flag: '🇨🇳', name: 'China' },
-  { code: 'KR', dial: '+82',  flag: '🇰🇷', name: 'South Korea' },
-  { code: 'HK', dial: '+852', flag: '🇭🇰', name: 'Hong Kong' },
-  { code: 'MY', dial: '+60',  flag: '🇲🇾', name: 'Malaysia' },
-  { code: 'ID', dial: '+62',  flag: '🇮🇩', name: 'Indonesia' },
-  { code: 'PH', dial: '+63',  flag: '🇵🇭', name: 'Philippines' },
-  { code: 'VN', dial: '+84',  flag: '🇻🇳', name: 'Vietnam' },
-  { code: 'TH', dial: '+66',  flag: '🇹🇭', name: 'Thailand' },
-  { code: 'SA', dial: '+966', flag: '🇸🇦', name: 'Saudi Arabia' },
-  { code: 'QA', dial: '+974', flag: '🇶🇦', name: 'Qatar' },
-  { code: 'KW', dial: '+965', flag: '🇰🇼', name: 'Kuwait' },
-  { code: 'OM', dial: '+968', flag: '🇴🇲', name: 'Oman' },
-  { code: 'BH', dial: '+973', flag: '🇧🇭', name: 'Bahrain' },
-  { code: 'IL', dial: '+972', flag: '🇮🇱', name: 'Israel' },
-  { code: 'TR', dial: '+90',  flag: '🇹🇷', name: 'Turkey' },
-  { code: 'CH', dial: '+41',  flag: '🇨🇭', name: 'Switzerland' },
-  { code: 'IT', dial: '+39',  flag: '🇮🇹', name: 'Italy' },
-  { code: 'ES', dial: '+34',  flag: '🇪🇸', name: 'Spain' },
-  { code: 'SE', dial: '+46',  flag: '🇸🇪', name: 'Sweden' },
-  { code: 'NO', dial: '+47',  flag: '🇳🇴', name: 'Norway' },
-  { code: 'FI', dial: '+358', flag: '🇫🇮', name: 'Finland' },
-  { code: 'DK', dial: '+45',  flag: '🇩🇰', name: 'Denmark' },
-  { code: 'BR', dial: '+55',  flag: '🇧🇷', name: 'Brazil' },
-  { code: 'MX', dial: '+52',  flag: '🇲🇽', name: 'Mexico' },
-  { code: 'ZA', dial: '+27',  flag: '🇿🇦', name: 'South Africa' },
-  { code: 'NG', dial: '+234', flag: '🇳🇬', name: 'Nigeria' },
-  { code: 'KE', dial: '+254', flag: '🇰🇪', name: 'Kenya' },
-  { code: 'EG', dial: '+20',  flag: '🇪🇬', name: 'Egypt' },
-  { code: 'BD', dial: '+880', flag: '🇧🇩', name: 'Bangladesh' },
-  { code: 'LK', dial: '+94',  flag: '🇱🇰', name: 'Sri Lanka' },
-  { code: 'NP', dial: '+977', flag: '🇳🇵', name: 'Nepal' },
-  { code: 'PK', dial: '+92',  flag: '🇵🇰', name: 'Pakistan' },
+  { code: 'IN', dial: '+91',  flag: 'IN', name: 'India' },
+  { code: 'US', dial: '+1',   flag: 'US', name: 'United States' },
+  { code: 'GB', dial: '+44',  flag: 'GB', name: 'United Kingdom' },
+  { code: 'CA', dial: '+1',   flag: 'CA', name: 'Canada' },
+  { code: 'AU', dial: '+61',  flag: 'AU', name: 'Australia' },
+  { code: 'AE', dial: '+971', flag: 'AE', name: 'United Arab Emirates' },
+  { code: 'SG', dial: '+65',  flag: 'SG', name: 'Singapore' },
+  { code: 'DE', dial: '+49',  flag: 'DE', name: 'Germany' },
+  { code: 'FR', dial: '+33',  flag: 'FR', name: 'France' },
+  { code: 'NL', dial: '+31',  flag: 'NL', name: 'Netherlands' },
+  { code: 'IE', dial: '+353', flag: 'IE', name: 'Ireland' },
+  { code: 'NZ', dial: '+64',  flag: 'NZ', name: 'New Zealand' },
+  { code: 'JP', dial: '+81',  flag: 'JP', name: 'Japan' },
+  { code: 'CN', dial: '+86',  flag: 'CN', name: 'China' },
+  { code: 'KR', dial: '+82',  flag: 'KR', name: 'South Korea' },
+  { code: 'HK', dial: '+852', flag: 'HK', name: 'Hong Kong' },
+  { code: 'MY', dial: '+60',  flag: 'MY', name: 'Malaysia' },
+  { code: 'ID', dial: '+62',  flag: 'ID', name: 'Indonesia' },
+  { code: 'PH', dial: '+63',  flag: 'PH', name: 'Philippines' },
+  { code: 'VN', dial: '+84',  flag: 'VN', name: 'Vietnam' },
+  { code: 'TH', dial: '+66',  flag: 'TH', name: 'Thailand' },
+  { code: 'SA', dial: '+966', flag: 'SA', name: 'Saudi Arabia' },
+  { code: 'QA', dial: '+974', flag: 'QA', name: 'Qatar' },
+  { code: 'KW', dial: '+965', flag: 'KW', name: 'Kuwait' },
+  { code: 'OM', dial: '+968', flag: 'OM', name: 'Oman' },
+  { code: 'BH', dial: '+973', flag: 'BH', name: 'Bahrain' },
+  { code: 'IL', dial: '+972', flag: 'IL', name: 'Israel' },
+  { code: 'TR', dial: '+90',  flag: 'TR', name: 'Turkey' },
+  { code: 'CH', dial: '+41',  flag: 'CH', name: 'Switzerland' },
+  { code: 'IT', dial: '+39',  flag: 'IT', name: 'Italy' },
+  { code: 'ES', dial: '+34',  flag: 'ES', name: 'Spain' },
+  { code: 'SE', dial: '+46',  flag: 'SE', name: 'Sweden' },
+  { code: 'NO', dial: '+47',  flag: 'NO', name: 'Norway' },
+  { code: 'FI', dial: '+358', flag: 'FI', name: 'Finland' },
+  { code: 'DK', dial: '+45',  flag: 'DK', name: 'Denmark' },
+  { code: 'BR', dial: '+55',  flag: 'BR', name: 'Brazil' },
+  { code: 'MX', dial: '+52',  flag: 'MX', name: 'Mexico' },
+  { code: 'ZA', dial: '+27',  flag: 'ZA', name: 'South Africa' },
+  { code: 'NG', dial: '+234', flag: 'NG', name: 'Nigeria' },
+  { code: 'KE', dial: '+254', flag: 'KE', name: 'Kenya' },
+  { code: 'EG', dial: '+20',  flag: 'EG', name: 'Egypt' },
+  { code: 'BD', dial: '+880', flag: 'BD', name: 'Bangladesh' },
+  { code: 'LK', dial: '+94',  flag: 'LK', name: 'Sri Lanka' },
+  { code: 'NP', dial: '+977', flag: 'NP', name: 'Nepal' },
+  { code: 'PK', dial: '+92',  flag: 'PK', name: 'Pakistan' },
 ];
 
 function parsePhone(value: string): { dial: string; local: string; country: Country } {
@@ -85,7 +85,7 @@ export const PhoneInput = React.forwardRef<RNTextInput, {
   helper?: string;
   onSubmitEditing?: () => void;
   blurOnSubmit?: boolean;
-}>((props, ref) => {
+}>(function PhoneInput(props, ref) {
   const { label, value, onChangeText, placeholder = '98765 43210', testID, helper, onSubmitEditing, blurOnSubmit } = props;
   const parsed = parsePhone(value);
   const [country, setCountry] = useState<Country>(parsed.country);
@@ -102,9 +102,10 @@ export const PhoneInput = React.forwardRef<RNTextInput, {
   }, [search]);
 
   const commit = (c: Country, n: string) => {
+    const rawDigits = n.replace(/\D/g, '').slice(0, 10);
     setCountry(c);
-    setLocal(n);
-    const joined = n ? `${c.dial} ${n.replace(/^\s+/, '')}` : '';
+    setLocal(rawDigits);
+    const joined = rawDigits ? `${c.dial} ${rawDigits}` : '';
     onChangeText(joined);
   };
 
@@ -124,9 +125,10 @@ export const PhoneInput = React.forwardRef<RNTextInput, {
               ref={ref}
               value={local}
               onChangeText={(n) => commit(country, n)}
-              placeholder={placeholder}
+              placeholder="10-digit mobile number"
               placeholderTextColor="#9CA3AF"
               keyboardType="phone-pad"
+              maxLength={10}
               autoComplete="tel"
               textContentType="telephoneNumber"
               autoCorrect={false}

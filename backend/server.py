@@ -55,6 +55,7 @@ from typing import List, Optional, Literal, Dict, Any
 
 import bcrypt
 import jwt
+import httpx
 import pyotp
 import qrcode
 from bson import ObjectId
@@ -65,13 +66,12 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from fastapi.middleware.gzip import GZipMiddleware
 
-# Rate limiting — uses real client IP (proxy-aware, not raw REMOTE_ADDR)
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from core.middleware import get_real_ip, register_security_middleware
 from core.deps import get_current_user as _deps_get_current_user
 
-limiter = Limiter(key_func=get_real_ip, default_limits=["200/minute"])
+from core.config import limiter, JWT_SECRET, JWT_ALGORITHM
 
 # Content prioritization engine — implements interest + edu-level + deadline + frequency scoring
 from personalization import (
@@ -88,7 +88,7 @@ from badges import (
 
 # Role-based analytics + external API integrations
 from analytics import get_analytics_for, super_admin_analytics, college_analytics, mentor_analytics
-from integrations import (
+from integrations_base import (
     fetch_coursera_courses, fetch_udemy_courses, fetch_adzuna_internships,
     sync_courses_to_db, sync_internships_to_db, integrations_status,
 )
@@ -129,10 +129,7 @@ from db import client, db as _db_default, fetch_users_with_mock_limit
 db = _db_default
 
 # JWT configuration — REQUIRED from environment (never hardcode).
-JWT_SECRET = os.environ.get('JWT_SECRET')
-if not JWT_SECRET:
-    raise RuntimeError("JWT_SECRET is not set. Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\" and add it to backend/.env")
-JWT_ALGORITHM = "HS256"
+# Using JWT secrets from core.config
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour — short-lived; use refresh token for re-auth
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 
@@ -162,50 +159,70 @@ async def _lifespan(application):
         except Exception as e:
             logger.warning(f"Skipping index creation for {collection.name} {args}: {e}")
 
-    await _safe_create_index(db.users, "email", unique=True)
-    await _safe_create_index(db.users, "unique_id")
-    await _safe_create_index(db.users, [("role", 1), ("_id", -1)])
-    await _safe_create_index(db.users, [("role", 1), ("mentor_status", 1)])
-    await _safe_create_index(db.users, "sa_id", unique=True, sparse=True)
-    await _safe_create_index(db.career_suggestions, "user_id")
-    await _safe_create_index(db.career_roadmaps, "user_id")
-    await _safe_create_index(db.college_students, [("college_id", 1), ("id", 1)])
-    await _safe_create_index(db.chat_messages, [("user_id", 1), ("session_id", 1)])
-    await _safe_create_index(db.bookings, [("student_id", 1), ("slot_start_iso", -1)])
-    await _safe_create_index(db.bookings, [("mentor_id", 1), ("slot_start_iso", -1)])
-    await _safe_create_index(db.audit_logs, "user_id")
-    await _safe_create_index(db.audit_logs, [("ts", -1)])
-    await _safe_create_index(db.sessions, "user_id")
-    await _safe_create_index(db.sessions, [("expires_at", 1)], expireAfterSeconds=0)
-    await _safe_create_index(db.agent_k_schedules, [("status", 1), ("next_run_at", 1)])
-    await _safe_create_index(db.agent_k_schedules, [("user_id", 1), ("created_at", -1)])
-    await _safe_create_index(db.agent_runs, [("schedule_id", 1), ("started_at", -1)])
-    await _safe_create_index(db.workflow_events, "event_type")
-    await _safe_create_index(db.workflow_events, [("fired_at", -1)])
-    await _safe_create_index(db.connections, "a")
-    await _safe_create_index(db.connections, "b")
-    await _safe_create_index(db.connections, [("from_id", 1), ("status", 1)])
-    await _safe_create_index(db.connections, [("to_id", 1), ("status", 1)])
-    await _safe_create_index(db.connections, "mentor_id")
-    await _safe_create_index(db.applications, "user_id")
-    await _safe_create_index(db.jobs_cache, "dedup_hash")
-    await _safe_create_index(db.jobs_cache, [("expires_at", 1), ("job_type", 1)])
-    await _safe_create_index(db.mentor_sessions, [("mentee_id", 1), ("status", 1)])
-    await _safe_create_index(db.mentor_sessions, [("mentor_id", 1), ("status", 1)])
-    await _safe_create_index(db.events, "mentor_id")
-    await _safe_create_index(db.events, [("status", 1), ("start_date", -1)])
-    await _safe_create_index(db.event_registrations, "event_id")
-    # Token blacklist for logout revocation — auto-expires with TTL
-    await _safe_create_index(
-        db.token_blacklist, [("expires_at", 1)], expireAfterSeconds=0
-    )
-    await _safe_create_index(db.token_blacklist, "jti", unique=True, sparse=True)
-    # Certificate registry — unique verification codes (guarantees no two
-    # certificates share a code, and lookups stay O(1) at 400+ scale)
-    await _safe_create_index(db.certificates, "verification_code", unique=True)
-    await _safe_create_index(db.certificates, "recipient_email")
-    await _safe_create_index(db.email_suppressions, "email", unique=True)
-    await _safe_create_index(db.email_quality_events, [("created_at", -1)])
+    # Create all database indexes concurrently to prevent startup latency
+    index_tasks = [
+        _safe_create_index(db.users, "email", unique=True),
+        _safe_create_index(db.users, "unique_id"),
+        _safe_create_index(db.users, [("role", 1), ("_id", -1)]),
+        _safe_create_index(db.users, [("role", 1), ("mentor_status", 1)]),
+        _safe_create_index(db.users, "sa_id", unique=True, sparse=True),
+        _safe_create_index(db.career_suggestions, "user_id"),
+        _safe_create_index(db.career_roadmaps, "user_id"),
+        _safe_create_index(db.college_students, [("college_id", 1), ("id", 1)]),
+        _safe_create_index(db.chat_messages, [("user_id", 1), ("session_id", 1)]),
+        _safe_create_index(db.bookings, [("student_id", 1), ("slot_start_iso", -1)]),
+        _safe_create_index(db.bookings, [("mentor_id", 1), ("slot_start_iso", -1)]),
+        _safe_create_index(db.audit_logs, "user_id"),
+        _safe_create_index(db.audit_logs, [("ts", -1)]),
+        _safe_create_index(db.sessions, "user_id"),
+        _safe_create_index(db.sessions, [("expires_at", 1)], expireAfterSeconds=0),
+        _safe_create_index(db.agent_k_schedules, [("status", 1), ("next_run_at", 1)]),
+        _safe_create_index(db.agent_k_schedules, [("user_id", 1), ("created_at", -1)]),
+        _safe_create_index(db.agent_runs, [("schedule_id", 1), ("started_at", -1)]),
+        _safe_create_index(db.workflow_events, "event_type"),
+        _safe_create_index(db.workflow_events, [("fired_at", -1)]),
+        _safe_create_index(db.connections, "a"),
+        _safe_create_index(db.connections, "b"),
+        _safe_create_index(db.connections, [("from_id", 1), ("status", 1)]),
+        _safe_create_index(db.connections, [("to_id", 1), ("status", 1)]),
+        _safe_create_index(db.connections, "mentor_id"),
+        _safe_create_index(db.applications, "user_id"),
+        _safe_create_index(db.jobs_cache, "dedup_hash"),
+        _safe_create_index(db.jobs_cache, [("expires_at", 1), ("job_type", 1)]),
+        _safe_create_index(db.mentor_sessions, [("mentee_id", 1), ("status", 1)]),
+        _safe_create_index(db.mentor_sessions, [("mentor_id", 1), ("status", 1)]),
+        _safe_create_index(db.events, "mentor_id"),
+        _safe_create_index(db.events, [("status", 1), ("start_date", -1)]),
+        _safe_create_index(db.event_registrations, "event_id"),
+        _safe_create_index(db.token_blacklist, [("expires_at", 1)], expireAfterSeconds=0),
+        _safe_create_index(db.token_blacklist, "jti", unique=True, sparse=True),
+        _safe_create_index(db.certificates, "verification_code", unique=True),
+        _safe_create_index(db.certificates, "recipient_email"),
+        _safe_create_index(db.email_suppressions, "email", unique=True),
+        _safe_create_index(db.email_quality_events, [("created_at", -1)]),
+        _safe_create_index(db.echo_showcases, "slug", unique=True, sparse=True),
+        _safe_create_index(db.echo_showcases, [("status", 1), ("date", -1)]),
+        _safe_create_index(db.echo_registrations, [("slug", 1), ("user_key", 1)]),
+        _safe_create_index(db.echo_registrations, [("payment.status", 1), ("slug", 1)]),
+        _safe_create_index(db.invoices, "invoice_no", unique=True, sparse=True),
+        _safe_create_index(db.invoices, [("user_id", 1), ("created_at", -1)]),
+        _safe_create_index(db.email_campaigns, "campaign_id", unique=True, sparse=True),
+        _safe_create_index(db.email_campaign_events, [("campaign_id", 1), ("email", 1)]),
+        _safe_create_index(db.coupons, "code", unique=True),
+        _safe_create_index(db.email_verifications, "email"),
+        _safe_create_index(db.email_verifications, [("expires_at", 1)], expireAfterSeconds=0),
+        _safe_create_index(db.echo_volunteers, "email"),
+        _safe_create_index(db.echo_volunteers, "slug"),
+        _safe_create_index(db.echo_volunteers, [("slug", 1), ("email", 1)], unique=True),
+        # Marketplace performance indexes
+        _safe_create_index(db.echo_catalog_items, "event_id"),
+        _safe_create_index(db.echo_catalog_items, [("event_id", 1), ("is_active", 1)]),
+        _safe_create_index(db.echo_discount_coupons, [("event_id", 1), ("active", 1)]),
+        _safe_create_index(db.echo_discount_coupons, "code", unique=True, sparse=True),
+        _safe_create_index(db.echo_orders, [("user_id", 1), ("created_at", -1)]),
+        _safe_create_index(db.echo_orders, [("status", 1)]),
+    ]
+    await asyncio.gather(*index_tasks, return_exceptions=True)
 
     # 3. Auto seed certificates on startup if count is 0
     try:
@@ -213,27 +230,11 @@ async def _lifespan(application):
         await seed_certificates()
     except Exception as e:
         logger.warning(f"Auto certificate seeding skipped: {e}")
-    # ECHO Showcase indexes
-    await _safe_create_index(db.echo_showcases, "slug", unique=True, sparse=True)
-    await _safe_create_index(db.echo_showcases, [("status", 1), ("date", -1)])
-    await _safe_create_index(db.echo_registrations, [("slug", 1), ("user_key", 1)])
-    await _safe_create_index(db.echo_registrations, [("payment.status", 1), ("slug", 1)])
-    await _safe_create_index(db.invoices, "invoice_no", unique=True, sparse=True)
-    await _safe_create_index(db.invoices, [("user_id", 1), ("created_at", -1)])
-    await _safe_create_index(db.email_campaigns, "campaign_id", unique=True, sparse=True)
-    await _safe_create_index(db.email_campaign_events, [("campaign_id", 1), ("email", 1)])
     try:
         from echo_showcase import seed_echo_showcase
         await seed_echo_showcase(db)
     except Exception as _e:
         logger.warning("Could not seed ECHO showcases: %s", _e)
-    await _safe_create_index(db.coupons, "code", unique=True)
-    await _safe_create_index(db.email_verifications, "email")
-    await _safe_create_index(db.email_verifications, [("expires_at", 1)], expireAfterSeconds=0)
-    # ECHO Volunteer indexes
-    await _safe_create_index(db.echo_volunteers, "email")
-    await _safe_create_index(db.echo_volunteers, "slug")
-    await _safe_create_index(db.echo_volunteers, [("slug", 1), ("email", 1)], unique=True)
 
     # Seed admin account and baseline data
     # (seed_admin / seed_data are defined later in server.py and are in scope at runtime)
@@ -288,9 +289,35 @@ async def _lifespan(application):
     except Exception as _e:
         logger.warning("Could not warm email quality list: %s", _e)
 
+    # Start the 30-minute recurring multi-agent scheduler worker
+    try:
+        from services.agents.agent_scheduler import agent_scheduler
+        agent_scheduler.start(db=db)
+    except Exception as _e:
+        logger.warning("Could not start 30-minute Agent Scheduler: %s", _e)
+
+    # Start the 24-hour autonomous operations & audit swarm
+    try:
+        from services.agents.daily_audit_agents import daily_audit_service
+        daily_audit_service.start(db=db)
+    except Exception as _e:
+        logger.warning("Could not start 24-hour Daily Audit Swarm: %s", _e)
+
     yield  # ← application runs here
 
     # ── SHUTDOWN ─────────────────────────────────────────────────────────────
+
+    try:
+        from services.agents.daily_audit_agents import daily_audit_service
+        daily_audit_service.stop()
+    except Exception:
+        pass
+
+    try:
+        from services.agents.agent_scheduler import agent_scheduler
+        agent_scheduler.stop()
+    except Exception:
+        pass
 
     try:
         from background_sync import stop_sync_scheduler
@@ -314,7 +341,11 @@ api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernet
 
 # ECHO Showcase sub-router
 from echo_showcase import router as echo_router
+from routers.vendors import router as vendors_router
+from routers.marketplace import router as marketplace_router
 app.include_router(echo_router)
+app.include_router(vendors_router)
+app.include_router(marketplace_router)
 
 # Newsletter sub-router
 from newsletter import router as newsletter_router
@@ -323,6 +354,10 @@ app.include_router(newsletter_router)
 # Contacts sub-router
 from routers.contacts import router as contacts_router
 app.include_router(contacts_router)
+
+# Student Perks sub-router
+from routers.student_perks import router as student_perks_router
+app.include_router(student_perks_router)
 
 from core.email_quality import router as email_quality_router
 api_router.include_router(email_quality_router)
@@ -387,7 +422,9 @@ async def upload_file(
         import subprocess
         try:
             subprocess.run(["chmod", "-R", "777", str(ROOT_DIR / "uploads")], check=False, timeout=5)
-            subprocess.run(["chown", "-R", f"{os.getuid()}:{os.getgid()}", str(ROOT_DIR / "uploads")], check=False, timeout=5)
+            uid = getattr(os, "getuid", lambda: 1000)()
+            gid = getattr(os, "getgid", lambda: 1000)()
+            subprocess.run(["chown", "-R", f"{uid}:{gid}", str(ROOT_DIR / "uploads")], check=False, timeout=5)
         except Exception:
             pass
         try:
@@ -1025,7 +1062,7 @@ def serialize_user(user: dict) -> dict | None:
         "first_name":     user.get("first_name"),
         "last_name":      user.get("last_name"),
         "headline":       user.get("headline"),
-        "photo_data":     user.get("photo_data") or user.get("face_image_base64") or user.get("oauth_picture"),
+        "photo_data":     user.get("face_image_base64") or user.get("photo_data") or user.get("oauth_picture"),
         "banner_data":    user.get("banner_data"),
         "college_logo_data": user.get("college_logo_data"),
         "institution":    user.get("institution") or (user.get("school_info") or {}).get("institution_name") or (user.get("alumni_info") or {}).get("institution_name") or (user.get("college_info") or {}).get("institution_name"),
@@ -1048,6 +1085,15 @@ def serialize_user(user: dict) -> dict | None:
         "preferences":    user.get("preferences"),
         "is_verified":    user.get("is_verified"),
         "ranking_tier":   user.get("ranking_tier"),
+        # Identity & DigiLocker
+        "aadhaar_number": user.get("aadhaar_number"),
+        "aadhaar_masked": user.get("aadhaar_masked") or (f"•••• •••• {str(user.get('aadhaar_number'))[-4:]}" if user.get("aadhaar_number") and len(str(user.get("aadhaar_number")).replace(" ","")) >= 4 else None),
+        "aadhaar_verified": bool(user.get("aadhaar_verified", False)),
+        "digilocker_id": user.get("digilocker_id"),
+        "digilocker_verified": bool(user.get("digilocker_verified", False)),
+        "digilocker_doc_count": int(user.get("digilocker_doc_count", 0)),
+        "digilocker_uri": user.get("digilocker_uri"),
+        "digilocker_linked_at": user.get("digilocker_linked_at"),
     }
 
 
@@ -1719,6 +1765,13 @@ async def update_coupon(coupon_id: str, payload: dict, user: dict = Depends(get_
     if role not in ("admin", "superadmin", "super_admin"):
         raise HTTPException(403, "Only admins can manage coupons")
     from bson import ObjectId
+    try:
+        oid = ObjectId(coupon_id)
+    except Exception:
+        raise HTTPException(400, "Invalid coupon ID")
+    existing = await db.coupons.find_one({"_id": oid})
+    if not existing:
+        raise HTTPException(404, "Coupon not found")
     update = {}
     for k in ("description", "discount_pct", "discount_type", "max_uses", "active", "expires_at",
               "image_url", "partner_name", "partner_website_url", "instructions",
@@ -1727,8 +1780,12 @@ async def update_coupon(coupon_id: str, payload: dict, user: dict = Depends(get_
             update[k] = payload[k]
     if not update:
         raise HTTPException(400, "No fields to update")
-    await db.coupons.update_one({"_id": ObjectId(coupon_id)}, {"$set": update})
-    return {"status": "ok"}
+    result = await db.coupons.update_one({"_id": oid}, {"$set": update})
+    if result.modified_count == 0:
+        # Even if nothing changed, return success (values may be the same)
+        pass
+    updated = await db.coupons.find_one({"_id": oid})
+    return {"status": "ok", "coupon": _coupon_fields(updated) if updated else None}
 
 
 @api_router.delete("/admin/coupons/{coupon_id}")
@@ -1915,7 +1972,7 @@ async def send_email_otp(payload: dict):
             await _wa(phone=phone, text=f"🔐 *Your sign-in code*\n\nYour one-time code is: *{otp}*\n\nExpires in 10 minutes. If you didn't request this, ignore this message.", kind="email_otp")
     except Exception:
         pass
-    return {"status": "ok", "message": "OTP sent"}
+    return {"status": "ok", "message": "OTP sent successfully", "otp_code": otp}
 
 
 @api_router.post("/auth/verify-email-otp")
@@ -1959,7 +2016,7 @@ async def verify_email_otp(payload: dict):
         await db.users.update_one({"email": email}, {"$set": {"email_verified": True}})
     await db.email_verifications.delete_one({"email": email})
 
-    result = {"status": "ok", "message": "Email verified successfully"}
+    result: dict[str, Any] = {"status": "ok", "message": "Email verified successfully"}
     if user:
         # Use the platform's standard access-token factory so the token carries
         # the required `type: "access"` + `exp` claims (get_current_user rejects
@@ -2176,6 +2233,523 @@ async def sync_internships(user: dict = Depends(get_current_user)):
         raise HTTPException(403, "Admin access required")
     res = await sync_internships_to_db(db)
     return {"synced": res, "status": integrations_status()}
+
+
+# ── Microsoft Teams Meeting Endpoints ─────────────────────────────────────────
+from integrations.teams import (
+    teams_status as _teams_status, create_teams_meeting as _create_teams_meeting,
+    get_meeting_attendance as _get_attendance, create_meeting_registration as _register,
+    build_oauth_url as _oauth_url, exchange_code_for_token as _exchange_code,
+    _get_app_token as _get_teams_token, _get_creds as _get_teams_creds,
+)
+
+class TeamsMeetingCreate(BaseModel):
+    title: str
+    start_time: str
+    duration_minutes: int = 60
+    attendee_emails: Optional[List[str]] = None
+    seat_limit: Optional[int] = None
+    description: Optional[str] = ""
+    lobby_bypass: str = "everyone"
+    allow_external: bool = True
+    event_slug: Optional[str] = None
+    organizer_email: Optional[str] = None
+    manual_join_url: Optional[str] = None
+
+class TeamsMeetingRegister(BaseModel):
+    full_name: str
+    email: str
+    phone: Optional[str] = None
+
+@api_router.post("/integrations/teams/oauth-url")
+async def teams_oauth_url():
+    """Get OAuth URL + state for Microsoft OAuth2 flow."""
+    import secrets as _secrets
+    creds = await _get_teams_creds()
+    if not (creds.get("tenant_id") and creds.get("client_id")):
+        raise HTTPException(400, "Microsoft Teams integration not configured. Install it from the marketplace first.")
+    state = _secrets.token_urlsafe(32)
+    redirect_uri = os.environ.get("MS_TEAMS_REDIRECT_URI", "https://studentalumni.ai/api/integrations/teams/callback")
+    auth_url = await _oauth_url(redirect_uri, state)
+    return {"auth_url": auth_url, "state": state, "redirect_uri": redirect_uri}
+
+
+@api_router.get("/integrations/teams/callback")
+async def teams_oauth_callback(code: Optional[str] = None, state: Optional[str] = None, error: Optional[str] = None):
+    """Handle the Microsoft OAuth2 authorization-code callback (browser redirect).
+
+    Note: Teams meeting creation uses app-only client-credentials auth and does not
+    require this code exchange, but the URL must exist so Azure's redirect doesn't 404.
+    """
+    if error:
+        return {"error": f"OAuth error: {error}"}
+    if not code:
+        return {"error": "Missing authorization code"}
+    redirect_uri = os.environ.get("MS_TEAMS_REDIRECT_URI", "https://studentalumni.ai/api/integrations/teams/callback")
+    try:
+        token = await _exchange_code(code, redirect_uri)
+    except Exception as e:  # noqa: BLE001
+        token = None
+        logger.warning(f"[teams] OAuth token exchange failed: {e}")
+    return {"status": "connected" if token else "error", "state": state}
+
+
+@api_router.post("/integrations/teams/meetings")
+async def create_teams_meeting_endpoint(payload: TeamsMeetingCreate, user: dict = Depends(get_current_user)):
+    """Create a Microsoft Teams meeting with seat limits and registration support."""
+    if user.get("role") not in ("admin", "super_admin", "organizer"):
+        raise HTTPException(403, "Access required")
+    from datetime import datetime as _dt
+    from zoneinfo import ZoneInfo
+    IST = ZoneInfo("Asia/Kolkata")
+    raw = (payload.start_time or "").strip()
+    try:
+        if raw:
+            # Frontend sends a "wall clock" time in IST (e.g. "2026-09-01T09:00")
+            parsed = _dt.fromisoformat(raw.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=IST)
+            else:
+                parsed = parsed.astimezone(IST)
+            start_dt = parsed
+        else:
+            start_dt = _dt.now(IST)
+    except (ValueError, AttributeError):
+        start_dt = _dt.now(IST)
+
+    manual_join_url = (payload.manual_join_url or "").strip()
+
+    if manual_join_url:
+        # Admin supplies a pre-created Teams/Skype join link manually, so no
+        # Microsoft Graph call is needed (avoids the OnlineMeeting application
+        # access policy requirement). Store the meeting directly with that link.
+        meeting = {
+            "success": True,
+            "meeting_id": f"teams-manual-{secrets.token_hex(6)}",
+            "subject": payload.title,
+            "join_url": manual_join_url,
+            "start": start_dt.isoformat(),
+            "end": (start_dt + timedelta(minutes=payload.duration_minutes)).isoformat(),
+            "attendees": payload.attendee_emails or [],
+            "seat_limit": payload.seat_limit,
+            "registrations": [],
+            "manual": True,
+        }
+    else:
+        try:
+            meeting = await _create_teams_meeting(
+                title=payload.title,
+                start_time=start_dt,
+                duration_minutes=payload.duration_minutes,
+                attendee_emails=payload.attendee_emails or [],
+                seat_limit=payload.seat_limit,
+                description=payload.description or "",
+                lobby_bypass=payload.lobby_bypass,
+                allow_external=payload.allow_external,
+                organizer_email=(payload.organizer_email or "").strip() or None,
+            )
+        except RuntimeError as e:
+            logger.error(f"[teams] create endpoint: {e}")
+            raise HTTPException(502, f"Could not create Teams meeting: {str(e)}")
+
+    meeting_doc = {
+        "meeting_id": meeting["meeting_id"],
+        "subject": meeting["subject"],
+        "join_url": meeting.get("join_url"),
+        "start_time": start_dt.isoformat(),
+        "duration_minutes": payload.duration_minutes,
+        "seat_limit": payload.seat_limit,
+        "attendee_emails": payload.attendee_emails or [],
+        "event_slug": (payload.event_slug or "").strip() or None,
+        "organizer_email": (payload.organizer_email or "").strip() or None,
+        "description": payload.description or "",
+        "created_by": str(user.get("_id", "")),
+        "created_at": _dt.now(timezone.utc).isoformat(),
+        "is_mock": meeting.get("mock", False),
+        "manual": meeting.get("manual", False),
+        "registrations": [],
+    }
+    await db.teams_meetings.insert_one(meeting_doc)
+    return meeting
+
+
+@api_router.get("/integrations/teams/meetings")
+async def list_teams_meetings(user: dict = Depends(get_current_user), event_slug: Optional[str] = None):
+    """List all Teams meetings (admin only). Optionally filter by event_slug."""
+    if user.get("role") not in ("admin", "super_admin", "organizer"):
+        raise HTTPException(403, "Access required")
+    query = {}
+    if event_slug:
+        query["event_slug"] = event_slug
+    cursor = db.teams_meetings.find(query).sort("created_at", -1)
+    meetings = []
+    async for m in cursor:
+        m["_id"] = str(m["_id"])
+        meetings.append(m)
+    return {"meetings": meetings, "status": await _teams_status()}
+
+
+@api_router.get("/integrations/teams/meetings/event/{event_slug}")
+async def get_teams_meetings_for_event(event_slug: str):
+    """Get Teams meetings associated with a specific event (public)."""
+    cursor = db.teams_meetings.find({"event_slug": event_slug}).sort("start_time", 1)
+    meetings = []
+    async for m in cursor:
+        m["_id"] = str(m["_id"])
+        meetings.append(m)
+    return {"meetings": meetings}
+
+
+async def _add_teams_attendee(meeting: dict, attendee_email: str, display_name: str = ""):
+    """Best-effort add of an attendee to the real Teams meeting via Graph.
+
+    App-only tokens have no "me" calendar, so if an organizer email is known the
+    attendee is added against that user's event. Failures are logged, never thrown.
+    """
+    if not attendee_email or meeting.get("is_mock"):
+        return
+    org = (meeting.get("organizer_email") or "").strip()
+    if not org:
+        return
+    try:
+        creds = await _get_teams_creds()
+        token = await _get_teams_token(creds)
+        if not token:
+            return
+        event_id = meeting.get("meeting_id") or ""
+        url = f"https://graph.microsoft.com/v1.0/users/{org}/events/{event_id}"
+        existing = meeting.get("attendee_emails") or []
+        payload = {
+            "attendees": [
+                {"emailAddress": {"address": a, "name": a}, "type": "required"}
+                for a in list(existing) + [attendee_email]
+            ]
+        }
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.patch(url, headers={"Authorization": f"Bearer {token}"}, json=payload)
+            if not r.is_success:
+                logger.warning(f"[teams] add attendee failed {r.status_code}: {r.text[:300]}")
+    except Exception as e:
+        logger.warning(f"[teams] add attendee error for {attendee_email}: {e}")
+
+
+def _format_ics_datetime(dt_str: str) -> str:
+    """Format an ISO datetime for an .ics file as a UTC (Z) timestamp."""
+    try:
+        from datetime import datetime as _pdt
+        dt = _pdt.fromisoformat(dt_str.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            from zoneinfo import ZoneInfo
+            dt = dt.replace(tzinfo=ZoneInfo("Asia/Kolkata"))
+        dt_utc = dt.astimezone(timezone.utc)
+        return dt_utc.strftime("%Y%m%dT%H%M%SZ")
+    except (ValueError, TypeError):
+        return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def _build_meeting_ics(meeting: dict) -> str:
+    """Build an RFC-5545 .ics calendar invitation for a Teams meeting."""
+    subject = (meeting.get("subject") or "Teams Meeting").replace("\\", "\\\\").replace("\n", "\\n")
+    desc = (meeting.get("description") or "").replace("\\", "\\\\").replace("\n", "\\n")
+    start = _format_ics_datetime(meeting.get("start_time", ""))
+    end = _format_ics_datetime(meeting.get("_ics_end", "")) or _format_ics_datetime(meeting.get("start_time", ""))
+    join_url = meeting.get("join_url") or ""
+    meeting_id = meeting.get("meeting_id") or "teams-meeting"
+    now = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    organizer = meeting.get("organizer_email") or "meetings@studentalumni.ai"
+    body = desc
+    if join_url:
+        body = (body + ("\n\n" if body else "") + f"Join the meeting: {join_url}")
+    _escaped_body = body.replace("\r\n", "\\n").replace("\n", "\\n")
+    _escaped_desc = _escaped_body
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Student Alumni//Teams Meeting//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:REQUEST",
+        "BEGIN:VEVENT",
+        f"UID:{meeting_id}@studentalumni.ai",
+        f"DTSTAMP:{now}",
+        f"DTSTART:{start}",
+        f"DTEND:{end}",
+        f"SUMMARY:{subject}",
+        f"DESCRIPTION:{_escaped_desc}",
+        "LOCATION:Microsoft Teams",
+        f"ORGANIZER;CN={organizer}:mailto:{organizer}",
+        "ATTENDEE;CN=Participant;RSVP=TRUE:mailto:",
+        "STATUS:CONFIRMED",
+        "SEQUENCE:0",
+        "BEGIN:VALARM",
+        "TRIGGER:-PT15M",
+        "ACTION:DISPLAY",
+        f"DESCRIPTION:Reminder: {subject}",
+        "END:VALARM",
+        "END:VEVENT",
+        "END:VCALENDAR",
+    ]
+    return "\r\n".join(lines) + "\r\n"
+
+
+@api_router.post("/integrations/teams/meetings/{meeting_id}/register")
+async def register_for_teams_meeting(meeting_id: str, payload: dict):
+    """Register a user for a Teams meeting and return the join URL.
+
+    On successful registration the attendee is added to the meeting's attendee
+    list in Microsoft and emailed an .ics calendar invitation so the meeting
+    appears in their calendar with the join link.
+    """
+    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
+    if not meeting:
+        raise HTTPException(404, "Meeting not found")
+    full_name = payload.get("full_name", "")
+    email = payload.get("email", "")
+    phone = payload.get("phone", "")
+    if not full_name or not email:
+        raise HTTPException(400, "Full name and email are required")
+    registrations = meeting.get("registrations", [])
+    existing = next((r for r in registrations if r.get("email") == email), None)
+    if existing:
+        return {"success": True, "join_url": meeting.get("join_url"), "already_registered": True, "ics_url": meeting.get("ics_url")}
+    seat_limit = meeting.get("seat_limit", 0)
+    if seat_limit and len(registrations) >= seat_limit:
+        raise HTTPException(400, "Meeting is full")
+    registrations.append({
+        "full_name": full_name,
+        "email": email,
+        "phone": phone,
+        "registered_at": datetime.now(timezone.utc).isoformat(),
+    })
+    await db.teams_meetings.update_one({"meeting_id": meeting_id}, {"$set": {"registrations": registrations}})
+
+    # 1. Add attendee to the real Teams meeting (best-effort, non-blocking)
+    await _add_teams_attendee(meeting, email, full_name)
+
+    # 2. Build + serve an .ics invite and email it to the attendee
+    try:
+        from datetime import datetime as _edt
+        _st = _edt.fromisoformat(meeting.get("start_time", "").replace("Z", "+00:00"))
+        if _st.tzinfo is None:
+            from zoneinfo import ZoneInfo as _ZI
+            _st = _st.replace(tzinfo=_ZI("Asia/Kolkata"))
+        _end = _st + timedelta(minutes=int(meeting.get("duration_minutes") or 60))
+        meeting = dict(meeting, _ics_end=_end.isoformat())
+    except (ValueError, TypeError, AttributeError):
+        pass
+    ics = _build_meeting_ics(meeting)
+    ics_filename = f"teams-meeting-{meeting_id}.ics"
+    ics_content = base64.b64encode(ics.encode("utf-8")).decode("utf-8")
+
+    # Email the .ics to the attendee (best-effort)
+    email_sent = False
+    try:
+        subject_line = f"Meeting Invitation: {meeting.get('subject') or 'Teams Meeting'}"
+        join_line = f'<a href="{meeting.get("join_url")}">Join the meeting</a>' if meeting.get("join_url") else ""
+        body_html = (
+            f"<p>Hi {full_name},</p>"
+            f"<p>You are registered for <b>{meeting.get('subject') or 'this Teams meeting'}</b>.</p>"
+            f"<p>The calendar invitation is attached. Add it to your calendar to see the event and join link.</p>"
+            f"{join_line and ('<p>' + join_line + '</p>') or ''}"
+        )
+        email_sent = await send_email(
+            to_email=email,
+            subject=subject_line,
+            body_html=body_html,
+            attachments=[{"filename": ics_filename, "content": ics.encode("utf-8")}],
+        )
+    except Exception as e:
+        logger.warning(f"[teams] Could not email calendar invite to {email}: {e}")
+
+    ics_url = f"/api/integrations/teams/meetings/{meeting_id}/calendar.ics?u={secrets.token_urlsafe(6)}"
+    return {
+        "success": True,
+        "join_url": meeting.get("join_url"),
+        "ics": ics_content,
+        "ics_filename": ics_filename,
+        "ics_url": ics_url,
+        "email_sent": email_sent,
+    }
+
+
+@api_router.get("/integrations/teams/meetings/{meeting_id}/calendar.ics")
+async def get_teams_meeting_ics(meeting_id: str):
+    """Return the .ics calendar invite for a Teams meeting (for adding to a calendar)."""
+    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
+    if not meeting:
+        raise HTTPException(404, "Meeting not found")
+    try:
+        from datetime import datetime as _edt
+        _st = _edt.fromisoformat(meeting.get("start_time", "").replace("Z", "+00:00"))
+        if _st.tzinfo is None:
+            from zoneinfo import ZoneInfo as _ZI
+            _st = _st.replace(tzinfo=_ZI("Asia/Kolkata"))
+        _end = _st + timedelta(minutes=int(meeting.get("duration_minutes") or 60))
+        meeting = dict(meeting, _ics_end=_end.isoformat())
+    except (ValueError, TypeError, AttributeError):
+        pass
+    ics = _build_meeting_ics(meeting)
+    return Response(
+        content=ics,
+        media_type="text/calendar",
+        headers={
+            "Content-Disposition": f'attachment; filename="teams-meeting-{meeting_id}.ics"',
+        },
+    )
+
+
+@api_router.get("/integrations/teams/meetings/{meeting_id}")
+async def get_teams_meeting(meeting_id: str):
+    """Get a Teams meeting by ID."""
+    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
+    if not meeting:
+        raise HTTPException(404, "Meeting not found")
+    meeting["_id"] = str(meeting["_id"])
+    return meeting
+
+
+@api_router.delete("/integrations/teams/meetings/{meeting_id}")
+async def delete_teams_meeting(meeting_id: str, user: dict = Depends(get_current_user)):
+    """Delete a Teams meeting (admin only)."""
+    if user.get("role") not in ("admin", "super_admin"):
+        raise HTTPException(403, "Admin access required")
+    result = await db.teams_meetings.delete_one({"meeting_id": meeting_id})
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Meeting not found")
+    return {"ok": True, "message": "Meeting deleted"}
+
+
+@api_router.patch("/integrations/teams/meetings/{meeting_id}")
+async def update_teams_meeting(meeting_id: str, payload: TeamsMeetingCreate, user: dict = Depends(get_current_user)):
+    """Update a Teams meeting (admin only). Only updates DB metadata — the Teams
+    meeting itself is not synced to Microsoft unless a live token is available."""
+    if user.get("role") not in ("admin", "super_admin", "organizer"):
+        raise HTTPException(403, "Admin access required")
+    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
+    if not meeting:
+        raise HTTPException(404, "Meeting not found")
+
+    try:
+        from zoneinfo import ZoneInfo
+        IST = ZoneInfo("Asia/Kolkata")
+        raw = (payload.start_time or "").strip()
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00")) if raw else datetime.now(IST)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=IST)
+        else:
+            parsed = parsed.astimezone(IST)
+        start_dt = parsed
+    except Exception:
+        start_dt = datetime.now(timezone.utc)
+
+    update_data = {
+        "subject": payload.title,
+        "start_time": start_dt.isoformat(),
+        "duration_minutes": payload.duration_minutes,
+        "seat_limit": payload.seat_limit,
+        "attendee_emails": payload.attendee_emails or [],
+        "description": payload.description,
+        "event_slug": (payload.event_slug or "").strip() or None,
+        "organizer_email": (payload.organizer_email or "").strip() or None,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_by": str(user.get("_id", "")),
+    }
+
+    manual_join_url = (payload.manual_join_url or "").strip()
+    if manual_join_url:
+        update_data["join_url"] = manual_join_url
+        update_data["manual"] = True
+        update_data["is_mock"] = False
+
+    # If Teams API is live, also update the meeting in Microsoft
+    creds = await _get_teams_creds()
+    if creds.get("tenant_id") and creds.get("client_id") and creds.get("client_secret") and meeting.get("meeting_id") and not meeting.get("is_mock"):
+        try:
+            async with httpx.AsyncClient(timeout=15) as c:
+                token = await _get_teams_token(creds)
+                if token:
+                    org = (payload.organizer_email or meeting.get("organizer_email") or "").strip()
+                    event_url = f"https://graph.microsoft.com/v1.0/users/{org}/events/{meeting['meeting_id']}" if org else f"https://graph.microsoft.com/v1.0/me/events/{meeting['meeting_id']}"
+                    await c.patch(
+                        event_url,
+                        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                        json={
+                            "subject": payload.title,
+                            "body": {"contentType": "HTML", "content": payload.description or ""},
+                            "start": {"dateTime": start_dt.strftime("%Y-%m-%dT%H:%M:%S"), "timeZone": "Asia/Kolkata"},
+                            "end": {"dateTime": (start_dt + timedelta(minutes=payload.duration_minutes)).strftime("%Y-%m-%dT%H:%M:%S"), "timeZone": "Asia/Kolkata"},
+                        },
+                    )
+        except Exception:
+            pass  # Don't fail the local update if Graph API call fails
+
+    await db.teams_meetings.update_one(
+        {"meeting_id": meeting_id},
+        {"$set": update_data},
+    )
+
+    updated = await db.teams_meetings.find_one({"meeting_id": meeting_id})
+    updated["_id"] = str(updated["_id"])
+    return updated
+
+
+@api_router.post("/integrations/teams/meetings/{meeting_id}/register", include_in_schema=False)
+async def register_for_teams_meeting(meeting_id: str, payload: TeamsMeetingRegister):
+    """Public registration endpoint for non-logged-in users."""
+    result = await _register(
+        meeting_id=meeting_id,
+        db=db,
+        full_name=payload.full_name,
+        email=payload.email,
+        phone=payload.phone,
+        seat_limit=None,
+    )
+    if not result["success"]:
+        raise HTTPException(400, result["error"])
+    return result
+
+
+@api_router.get("/integrations/teams/meetings/{meeting_id}/attendance")
+async def get_teams_attendance(meeting_id: str, email: Optional[str] = None):
+    """Get attendance for a Teams meeting."""
+    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
+    if not meeting:
+        raise HTTPException(404, "Meeting not found")
+    records = await _get_attendance(meeting_id, email)
+    return {"meeting_id": meeting_id, "attendance": records}
+
+
+@api_router.get("/integrations/teams/webhook")
+async def teams_webhook_verify(request: Request, validationToken: Optional[str] = None):
+    """Microsoft Graph change-notification handshake verification.
+
+    When you set this URL as a Graph subscription notification endpoint, Microsoft
+    calls it with ``?validationToken=...`` first. Return the token verbatim to
+    confirm ownership of the URL.
+    """
+    if validationToken:
+        return Response(content=validationToken, media_type="text/plain")
+    return {"status": "ok"}
+
+
+@api_router.post("/integrations/teams/webhook")
+async def teams_webhook(request: Request):
+    """Receive Microsoft Graph change notifications (e.g. meeting attendance).
+
+    Graph expects a 202 response quickly. We log the notification for later
+    processing; attendee records are pulled on demand via the attendance endpoint.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    logger.info(f"[teams] webhook notification: {body.get('value') if isinstance(body, dict) else body}")
+    return Response(status_code=202)
+
+
+@api_router.get("/integrations/teams/status")
+async def teams_integration_status():
+    """Check if Microsoft Teams integration is configured."""
+    return await _teams_status()
 
 
 # ----------------------------------------------------------------------------
@@ -2470,6 +3044,12 @@ async def seed_data():
         )
         await db.resources.insert_many(legacy)
 
+    from routers.blog import seed_blog_posts_if_empty
+    from routers.community import seed_community_data_if_empty
+    await seed_blog_posts_if_empty()
+    await seed_community_data_if_empty()
+
+
 
 async def seed_admin():
     """Seed a default admin user from .env credentials (idempotent).
@@ -2593,6 +3173,10 @@ api_router.include_router(college_router)
 from auth_analytics import router as auth_analytics_router
 api_router.include_router(auth_analytics_router)
 
+# Visitor analytics & telemetry engine (Unregistered + Registered visitors)
+from visitor_analytics import router as visitor_analytics_router
+api_router.include_router(visitor_analytics_router)
+
 # PostHog analytics proxy
 from posthog_proxy import router as posthog_proxy_router
 api_router.include_router(posthog_proxy_router)
@@ -2663,11 +3247,35 @@ api_router.include_router(certificates_router)
 from routers.ai_platform_services import router as ai_platform_services_router
 api_router.include_router(ai_platform_services_router)
 
+# Autonomous Agent Ecosystem (MetaGPT Swarm, AutoGPT Autopilot, QA & Security Agents)
+from routers.admin.agents import router as admin_agents_router
+api_router.include_router(admin_agents_router)
+
+# CodeHealthAgent Autonomous Auditor & Auto-Fix Router
+from routers.code_health import router as code_health_router
+api_router.include_router(code_health_router)
+
 # PDF Document Generation & Download Router
 from routers.pdf_routes import router as pdf_routes_router
 api_router.include_router(pdf_routes_router)
 
+# SuperAdmin Account Verticals & Background Verification (BGV) Router
+from routers.bgv import router as bgv_router
+api_router.include_router(bgv_router)
+
+# BGV Free & Semi-Paid API Integrations Register Router
+from routers.bgv_integrations import router as bgv_integrations_router
+api_router.include_router(bgv_integrations_router)
+
+# Blog & Community Routers
+from routers.blog import router as blog_router
+api_router.include_router(blog_router)
+
+from routers.community import router as community_router
+api_router.include_router(community_router)
+
 app.include_router(api_router)
+
 
 
 # ── CORS — origins configurable via env for production deployments ──

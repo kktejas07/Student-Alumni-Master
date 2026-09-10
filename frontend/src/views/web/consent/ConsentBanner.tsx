@@ -22,8 +22,6 @@ import {
 } from './consentStore';
 
 export function ConsentBanner() {
-  // Web-only. (Native apps don't render the cookie banner.)
-  if (Platform.OS !== 'web') return null;
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const isAuthed = !!user;
@@ -94,6 +92,8 @@ export function ConsentBanner() {
     }
   };
 
+  // Web-only. (Native apps don't render the cookie banner.)
+  if (Platform.OS !== 'web') return null;
   if (!open) return null;
 
   return (
@@ -103,7 +103,7 @@ export function ConsentBanner() {
         <Animated.View entering={FadeInUp.duration(260).delay(50)} exiting={FadeOut.duration(160)} style={s.banner}>
           <View style={s.bannerInner}>
             <View style={s.bannerIcon}>
-              <Cookie size={18} color="#A78BFA" />
+              <Cookie size={18} color="#60A5FA" />
             </View>
             <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
               <Text style={s.bannerTitle}>We use cookies to make this better</Text>
@@ -124,7 +124,7 @@ export function ConsentBanner() {
                 <Text style={s.outlineBtnText}>Reject optional</Text>
               </Pressable>
               <Pressable onPress={() => finalize('all')} disabled={submitting}>
-                <LinearGradient colors={[ '#A78BFA', '#7C3AED']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.primaryBtn}>
+                <LinearGradient colors={[ '#60A5FA', '#2563EB']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.primaryBtn}>
                   <Check size={13} color="#fff" />
                   <Text style={s.primaryBtnText}>Accept all</Text>
                 </LinearGradient>
@@ -140,7 +140,7 @@ export function ConsentBanner() {
           <Animated.View entering={FadeIn.duration(220)} style={s.modalCard}>
             <View style={s.modalHead}>
               <View style={[s.bannerIcon, { width: 44, height: 44, borderRadius: 12 }]}>
-                <Shield size={20} color="#A78BFA" />
+                <Shield size={20} color="#60A5FA" />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={s.modalTitle}>Privacy & Cookie preferences</Text>
@@ -185,7 +185,7 @@ export function ConsentBanner() {
                 <Text style={s.outlineBtnText}>Reject optional</Text>
               </Pressable>
               <Pressable onPress={() => finalize('custom')} disabled={submitting}>
-                <LinearGradient colors={[ '#A78BFA', '#7C3AED']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.primaryBtn}>
+                <LinearGradient colors={[ '#60A5FA', '#2563EB']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.primaryBtn}>
                   <Check size={13} color="#fff" />
                   <Text style={s.primaryBtnText}>Save preferences</Text>
                 </LinearGradient>
@@ -207,7 +207,7 @@ function CategoryRow({
   return (
     <View style={s.catRow}>
       <View style={s.catIcon}>
-        <Icon size={15} color="#A78BFA" />
+        <Icon size={15} color="#60A5FA" />
       </View>
       <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
         <Text style={s.catTitle}>{title}{locked ? '  ·  always on' : ''}</Text>
@@ -234,7 +234,7 @@ const s = StyleSheet.create({
   bannerInner: {
     flexDirection: 'row', alignItems: 'center', gap: 16, flexWrap: 'wrap' as any,
     backgroundColor: 'rgba(15,20,38,0.92)',
-    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1,
+    borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1,
     borderRadius: 16,
     padding: 16,
     maxWidth: 1280, alignSelf: 'center', width: '100%',
@@ -245,12 +245,12 @@ const s = StyleSheet.create({
   },
   bannerIcon: {
     width: 38, height: 38, borderRadius: 11,
-    backgroundColor: 'rgba(167,139,250,0.12)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1,
+    backgroundColor: 'rgba(37,99,235,0.12)', borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
   bannerTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14 },
   bannerCopy:  { color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_500Medium', fontSize: 12.5, lineHeight: 18, maxWidth: 720 },
-  link: { color: '#C4B5FD', textDecorationLine: 'underline' as any },
+  link: { color: '#93C5FD', textDecorationLine: 'underline' as any },
   bannerBtns: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' as any },
   ghostBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -303,7 +303,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)',
     backgroundColor: 'rgba(255,255,255,0.02)',
   },
-  catIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.25)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  catIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(37,99,235,0.10)', borderColor: 'rgba(37,99,235,0.25)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   catTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
   catDesc:  { color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_500Medium', fontSize: 11.5, lineHeight: 16 },
   toggle: {
@@ -312,7 +312,7 @@ const s = StyleSheet.create({
     padding: 2, justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
   },
-  toggleOn: { backgroundColor: 'rgba(167,139,250,0.65)' },
+  toggleOn: { backgroundColor: 'rgba(37,99,235,0.65)' },
   toggleKnob: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff', alignSelf: 'flex-start' },
   toggleKnobOn: { alignSelf: 'flex-end' },
 });

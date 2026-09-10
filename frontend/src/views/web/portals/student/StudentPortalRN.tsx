@@ -7,9 +7,9 @@
  * • TopBar receives `scrolled` state for glass blur (kicks in past 8px)
  * • All existing routing, state, props, API calls preserved 1:1
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, Platform, Pressable, Text } from 'react-native';
-import { LayoutDashboard, Sparkles, Users, Calendar, User } from 'lucide-react-native';
+import { LayoutDashboard, Sparkles, Users, Calendar, User } from './iconShims';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
@@ -37,7 +37,9 @@ import { ProfileSettingsView } from './views/ProfileSettingsView';
 import { MyBookingsView } from './views/MyBookingsView';
 import { MyWorkshopsView } from './views/MyWorkshopsView';
 import { MyTicketsView } from './views/MyTicketsView';
+import { MyCertificatesView } from './views/MyCertificatesView';
 import { EchoShowcaseView } from './views/EchoShowcaseView';
+import { RentalsView } from './views/RentalsView';
 
 import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 
@@ -52,32 +54,31 @@ import HigherEducationPage from '@/app/higher-education';
 import DealsPage from '@/app/deals';
 import WalletPage from '@/app/wallet';
 
-/** Public component — wraps the inner shell with theme + toast providers. */
+import { SAWatermark } from '@/src/views/web/components/SAWatermark';
+
 export function StudentPortalRN() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <PortalShell />
+        <StudentPortalInner />
       </ToastProvider>
     </ThemeProvider>
   );
 }
 
-function PortalShell() {
+function StudentPortalInner() {
   const router = useRouter();
   const { tab, go } = usePortalUrl();
-  const { theme } = useTheme();
-  const bp = useBreakpoint();
-  const logout = useAuthStore((sx) => sx.logout);
   const [active, setActive] = useState<StudentNavId>(tab as StudentNavId);
+  const [scrolled, setScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [detailCourse, setDetailCourse] = useState<any>(null);
-  const [scrolled, setScrolled] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
-  // Phase B — auto-launch the Student portal tour on first visit
+  const logout = useAuthStore((sx) => sx.logout);
+  const bp = useBreakpoint();
   useAutoTour('student');
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (tab) {
       setActive(tab as StudentNavId);
     }
@@ -108,13 +109,14 @@ function PortalShell() {
   const padH = bp.isPhone ? SP.base : bp.atLeast('xl') ? SP.xxl : SP.lg;
 
   return (
-    <View style={[s.shell, { backgroundColor: '#030614' }]}>
+    <View style={[s.shell, { backgroundColor: '#08080F' }]}>
       <LinearGradient
         pointerEvents="none"
-        colors={['#030614', '#040816']}
+        colors={['#08080F', '#0C0E1F', '#08080F']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject as any}
       />
+      <SAWatermark size={850} top={30} right={-30} opacity={0.16} />
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -137,11 +139,12 @@ function PortalShell() {
                   {active === 'network'         && <NetworkView />}
                   {active === 'my-bookings'     && <MyBookingsView />}
                   {active === 'my-tickets'      && <MyTicketsView />}
+                  {active === 'my-certificates' && <MyCertificatesView />}
                   {(active === 'myevents' || active === 'events') && <EventsView />}
                   {active === 'my-workshops'    && <MyWorkshopsView />}
                   {(active === 'echo-showcase' || (![
                     'dashboard', 'career-ai', 'internships', 'network', 'my-bookings', 'myevents', 'events',
-                    'my-workshops', 'my-tickets', 'courses', 'financial', 'deals', 'wallet', 'higher-ed', 'rentals', 'profile'
+                    'my-workshops', 'my-tickets', 'my-certificates', 'courses', 'financial', 'deals', 'wallet', 'higher-ed', 'rentals', 'profile'
                   ].includes(active))) && (
                     <EchoShowcaseView slug={active === 'echo-showcase' ? undefined : active} onBack={() => handleNav('myevents')} />
                   )}
@@ -150,7 +153,7 @@ function PortalShell() {
                   {active === 'deals'           && <DealsPage />}
                   {active === 'wallet'          && <WalletPage />}
                   {active === 'higher-ed'       && <HigherEducationPage />}
-                  {active === 'rentals'         && <RentalsPage />}
+                  {active === 'rentals'         && <RentalsView />}
                   {active === 'profile'         && <ProfileSettingsView />}
                 </RouteTransition>
               </EmbeddedShellContext.Provider>

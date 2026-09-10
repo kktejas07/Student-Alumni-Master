@@ -25,7 +25,7 @@ const IS_WEB = Platform.OS === 'web';
 const SLIDES = [
   {
     emoji: '🚀',
-    accent: ['rgba(124,58,237,0.55)', 'rgba(91,33,182,0.25)'],
+    accent: ['rgba(37,99,235,0.55)', 'rgba(91,33,182,0.25)'],
     title: 'Your AI Career\nRoadmap',
     body: 'Personalized milestones, courses, and skills based on the career you want to build.',
   },
@@ -84,7 +84,7 @@ export default function IntroCarousel() {
         style={StyleSheet.absoluteFill}
       />
       {/* Decorative blurred orbs */}
-      <View pointerEvents="none" style={[styles.orb, { top: '-12%', right: '-25%', backgroundColor: 'rgba(124,58,237,0.40)' }]} />
+      <View pointerEvents="none" style={[styles.orb, { top: '-12%', right: '-25%', backgroundColor: 'rgba(37,99,235,0.40)' }]} />
       <View pointerEvents="none" style={[styles.orb, { bottom: '-15%', left: '-25%', backgroundColor: 'rgba(236,72,153,0.30)' }]} />
 
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
@@ -171,8 +171,8 @@ function Slide({
   const op = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(y, { toValue: 0, duration: 480, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(op, { toValue: 1, duration: 460, useNativeDriver: true }),
+      Animated.timing(y, { toValue: 0, duration: 480, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(op, { toValue: 1, duration: 460, useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
   }, [y, op]);
 
@@ -298,10 +298,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#2563EB',
     paddingVertical: 16,
     borderRadius: 16,
-    boxShadow: '0px 12px 24px rgba(124,58,237,0.5)',
+    boxShadow: '0px 12px 24px rgba(37,99,235,0.5)',
   },
   primaryText: {
     color: '#FFFFFF',

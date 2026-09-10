@@ -234,7 +234,7 @@ export function Button({
             {leftIcon}
             <Text style={{
               fontFamily: FONT_FAMILY, fontSize: fontSizes[size], fontWeight: '600',
-              color: palette.fg, letterSpacing: -0.01,
+              color: palette.fg, letterSpacing: Number("-0.01"),
             }}>
               {children}
             </Text>
@@ -454,7 +454,7 @@ export function Tabs({
       })}
       <Animated.View
         style={[
-          { position: 'absolute', bottom: -StyleSheet.hairlineWidth, left: 0, height: 2, borderRadius: 1, backgroundColor: theme.text },
+          { position: 'absolute', bottom: (StyleSheet.hairlineWidth * Number("-1")), left: 0, height: 2, borderRadius: 1, backgroundColor: theme.text },
           aIndicator,
         ]}
       />

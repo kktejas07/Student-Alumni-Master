@@ -22,7 +22,7 @@ import {
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   TopTabs, SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox, KpiTile,
@@ -52,6 +52,8 @@ export function UserDirectoryView({
   subtitle?: string;
   showCategoryTabs?: boolean;
 }) {
+  const T = useSAC();
+  Object.assign(st, resolveColors(st, T));
   const meta = CAT_META[category];
   const [cat, setCat] = useState<Cat>(category);
   const [q, setQ]     = useState('');
@@ -73,14 +75,14 @@ export function UserDirectoryView({
     (async () => {
       try {
         const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&page=${p}&limit=24`);
-        setData(r);
-        setPages(r.pages || 1);
+        setData(r || { items: [], total: 0, counts: {} });
+        setPages(r?.pages || 1);
       } catch (e: any) {
         if (/401|Not authenticated/i.test(String(e?.message || ''))) {
           await new Promise((r) => setTimeout(r, 600));
           try {
             const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&page=${p}&limit=24`);
-            setData(r); setPages(r.pages || 1); return;
+            setData(r || { items: [], total: 0, counts: {} }); setPages(r?.pages || 1); return;
           } catch {}
         }
         console.warn('Users list load failed', e);
@@ -354,7 +356,7 @@ function ProfileCardWithActions({ user, onView, onApprove, onDisable, onRestore,
         style={st.menuTrigger}
         accessibilityLabel="More actions"
       >
-        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14, lineHeight: 14 }}>⋯</Text>
+        <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 14, lineHeight: 14 }}>⋯</Text>
       </Pressable>
       )}
 
@@ -538,7 +540,7 @@ function EditRow({ label, value, onChange }: any) {
 
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 760 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
   kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
@@ -561,7 +563,7 @@ const st = StyleSheet.create({
   menuTrigger: {
     position: 'absolute', top: 14, right: 14, width: 28, height: 28, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.45)', borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
+    backgroundColor: SAC.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
     zIndex: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
@@ -576,13 +578,13 @@ const st = StyleSheet.create({
     paddingVertical: 7, paddingHorizontal: 10, borderRadius: 7,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  menuLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  menuLabel: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
 
   /* selection */
   selectBox: {
     position: 'absolute', top: 14, left: 14, width: 28, height: 28, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.55)', borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
+    backgroundColor: SAC.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
     zIndex: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
@@ -604,7 +606,7 @@ const st = StyleSheet.create({
       position: 'sticky' as any, bottom: 18,
     } as any) : {}),
   },
-  bulkText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  bulkText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13 },
   bulkLinkBtn: { ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   bulkLink: { color: GRAD.to, fontFamily: FONTS.bold, fontSize: 12 },
   bulkClose: {
@@ -615,7 +617,7 @@ const st = StyleSheet.create({
 
   /* modal */
   modalBg: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
+    flex: 1, backgroundColor: SAC.panel2,
     alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
@@ -625,13 +627,13 @@ const st = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
   },
   modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
 
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 130 },
-  detailValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
+  detailValue: { color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   formInput: {
-    flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 13,
+    flex: 1, color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
     paddingHorizontal: 12, paddingVertical: 9,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
@@ -639,10 +641,10 @@ const st = StyleSheet.create({
   actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
   destructiveBtn: { backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)' },
-  btnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, gap: 14 },
   pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.card, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  pageBtnText: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
   pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 });
