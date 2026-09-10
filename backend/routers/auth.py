@@ -571,22 +571,8 @@ def _generate_totp_qr(uri: str) -> str:
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
-@router.get("/downloads/sa_flows.zip")
-async def download_sa_flows_zip():
-    """Serves the bundled flow-screenshots ZIP for the current user session."""
-    p = "/app/backend/static_downloads/sa_flows.zip"
-    if not os.path.exists(p):
-        raise HTTPException(404, "Archive not found")
-    return FileResponse(p, media_type="application/zip", filename="sa_flows.zip")
 
 
-@router.get("/downloads/expo_qr.png")
-async def download_expo_qr():
-    """Serves the QR code that Expo Go can scan to open the live app."""
-    p = "/app/backend/static_downloads/expo_qr.png"
-    if not os.path.exists(p):
-        raise HTTPException(404, "QR not found")
-    return FileResponse(p, media_type="image/png")
 
 
 # ----------------------------------------------------------------------------
