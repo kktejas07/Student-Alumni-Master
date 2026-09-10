@@ -3144,8 +3144,6 @@ async def logout(request: Request, user: dict = Depends(get_current_user)):
 from portals import router as portals_router
 api_router.include_router(portals_router)
 
-from career_intel import router as career_intel_router
-api_router.include_router(career_intel_router)
 from jobs_feed import router as jobs_feed_router  # live job aggregator (7 free APIs + tier filter)
 api_router.include_router(jobs_feed_router)
 from mentor_ai import router as mentor_ai_router  # mentor AI studio (mentee pulse, skill gaps, impact, session prep)
