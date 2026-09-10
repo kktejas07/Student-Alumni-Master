@@ -32,6 +32,7 @@ import { View, Text, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StudentPortalNavContext } from '../StudentPortalNavContext';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { request } from '@/src/models/services/api';
 
 export function DashboardView() {
   const router = useRouter();
@@ -63,6 +64,44 @@ export function DashboardView() {
 
   // Streak Days State
   const [activeStreakDay, setActiveStreakDay] = useState<number | null>(null);
+  const [skillStreak, setSkillStreak] = useState(0);
+
+  // Top Matches Data
+  const [topMatches, setTopMatches] = useState<any[]>([]);
+  const [totalMatches, setTotalMatches] = useState(267);
+  const [applyModalJob, setApplyModalJob] = useState<any | null>(null);
+
+  useEffect(() => {
+    request<any>('/opportunities?limit=3')
+      .then((res) => {
+        if (res && res.items) {
+          setTopMatches(res.items.slice(0, 3));
+          setTotalMatches(res.total || 0);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    // Ping daily_login to keep the streak alive even if they bypassed the login screen via stored token
+    request<any>('/wallet/track', {
+      method: 'POST',
+      body: { activity_type: 'daily_login' },
+    }).finally(() => {
+      request<any>('/users/me/stats')
+        .then((res) => {
+          if (res && typeof res.skill_streak === 'number') {
+            setSkillStreak(res.skill_streak);
+            if (res.skill_streak > 0) {
+              setActiveStreakDay(Math.min(res.skill_streak, 7) - 1);
+            } else {
+              setActiveStreakDay(-1);
+            }
+          }
+        })
+        .catch(() => {});
+    });
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -582,27 +621,65 @@ export function DashboardView() {
             </div>
           </div>
 
+          {/* Apply Confirmation Modal */}
+          {applyModalJob && (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)' }}>
+              <div className="db-card" style={{ background: '#13131A', padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '400px', border: '1px solid #262638' }}>
+                <div style={{ fontSize: '18px', fontWeight: 600, color: '#FFFFFF', marginBottom: '12px' }}>Confirm Application</div>
+                <div style={{ fontSize: '14px', color: '#8A8A9E', marginBottom: '24px', lineHeight: '1.5' }}>
+                  We redirected you to the external application page for <span style={{ color: '#FFFFFF', fontWeight: 600 }}>{applyModalJob.title}</span> at <span style={{ color: '#FFFFFF', fontWeight: 600 }}>{applyModalJob.company}</span>. 
+                  <br /><br />
+                  Once you finish submitting your details there, confirm it here to track its progress in your dashboard.
+                </div>
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                  <button 
+                    onClick={() => setApplyModalJob(null)}
+                    style={{ padding: '10px 16px', borderRadius: '8px', background: 'transparent', color: '#8A8A9E', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={async () => {
+                      try {
+                        await request(`/student/internships/${applyModalJob.id || applyModalJob.job_id}/apply`, { 
+                          method: 'POST',
+                          body: { student_email: authUser?.email || undefined }
+                        });
+                        setTopMatches(prev => prev.map(job => (job.id === applyModalJob.id || job.job_id === applyModalJob.job_id) ? { ...job, applied: true } : job));
+                        setApplyModalJob(null);
+                      } catch (e) {
+                        setApplyModalJob(null);
+                      }
+                    }}
+                    style={{ padding: '10px 16px', borderRadius: '8px', background: '#34D399', color: '#04291D', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    Yes, I applied
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Skill Streak */}
           <div className="db-tile db-card" style={{ gridColumn: 'span 3', padding: '20px 22px 22px' }}>
             <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#8A8A9E', marginBottom: '14px' }}>
               SKILL STREAK
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px' }}>
-              <span style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px' }}>0</span>
+              <span style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px' }}>{skillStreak}</span>
               <span style={{ fontSize: '14px', color: '#8A8A9E' }}>days</span>
-              <span style={{ fontSize: '20px', marginLeft: 'auto', animation: 'db-flame 2.2s ease-in-out infinite', display: 'inline-block' }}></span>
+              <span style={{ fontSize: '20px', marginLeft: 'auto', animation: 'db-flame 2.2s ease-in-out infinite', display: 'inline-block' }}>🔥</span>
             </div>
             <div style={{ display: 'flex', gap: '5px', marginTop: '16px' }}>
               {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => (
                 <span
                   key={idx}
-                  onClick={() => setActiveStreakDay(idx)}
                   style={{
                     flex: 1,
                     height: '26px',
                     borderRadius: '6px',
                     background: activeStreakDay !== null && idx <= activeStreakDay ? 'linear-gradient(180deg, #F59E0B, #C2410C)' : '#262638',
-                    cursor: 'pointer',
+                    cursor: 'default',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -615,7 +692,9 @@ export function DashboardView() {
                 </span>
               ))}
             </div>
-            <div style={{ fontSize: '12.5px', color: '#F0616B', marginTop: '12px' }}>Start your streak today</div>
+            <div style={{ fontSize: '12.5px', color: skillStreak > 0 ? '#10B981' : '#F0616B', marginTop: '12px' }}>
+              {skillStreak > 0 ? "You're on a streak!" : "Start your streak today"}
+            </div>
           </div>
 
           {/* Next 1:1 Session */}
@@ -688,34 +767,56 @@ export function DashboardView() {
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '14px', marginBottom: '16px' }}>
               <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#A78BFA' }}>TOP MATCHES FOR YOU</div>
               <span onClick={() => portalNav?.navigate('internships')} style={{ fontSize: '12.5px', fontWeight: 600, color: '#A78BFA', cursor: 'pointer' }}>
-                View all 267 →
+                View all {totalMatches} →
               </span>
             </div>
             <div style={{ display: 'grid', gap: '8px' }}>
-              {[
-                { initial: 'B', color: '#22D3EE', textColor: '#06323B', title: 'Account Executive', sub: 'Boulevard · USA · ₹22-28 LPA', match: 30 },
-                { initial: 'D', color: '#F59E0B', textColor: '#3A2404', title: 'Senior Brand Content Manager', sub: 'Demandbase · USA · ₹14-18 LPA', match: 30 },
-                { initial: 'J', color: '#10B981', textColor: '#04291D', title: 'Principal Revenue Operations Manager', sub: 'Jobber · Canada · ₹32-38 LPA', match: 30 },
-              ].map((m) => (
-                <div key={m.title} style={{ display: 'grid', gridTemplateColumns: '38px minmax(0, 1fr) 92px max-content', gap: '13px', alignItems: 'center', borderRadius: '11px', padding: '10px 11px', background: 'rgba(255,255,255,0.02)' }}>
-                  <span style={{ width: '38px', height: '38px', borderRadius: '10px', background: m.color, color: m.textColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 700 }}>
-                    {m.initial}
+              {topMatches.length > 0 ? topMatches.map((m, idx) => {
+                const initial = m.title ? m.title.charAt(0).toUpperCase() : 'O';
+                const colors = [
+                  { bg: '#22D3EE', text: '#06323B' },
+                  { bg: '#F59E0B', text: '#3A2404' },
+                  { bg: '#10B981', text: '#04291D' }
+                ];
+                const c = colors[idx % colors.length];
+                const matchPct = Math.min(100, Math.max(0, Math.round((m.match_score || 0) * 100)));
+                const sub = `${m.company || 'Unknown'} · ${m.location || 'Remote'}${m.stipend ? ' · ' + m.stipend : ''}`;
+                
+                return (
+                <div key={m.id || idx} style={{ display: 'grid', gridTemplateColumns: '38px minmax(0, 1fr) 92px max-content', gap: '13px', alignItems: 'center', borderRadius: '11px', padding: '10px 11px', background: 'rgba(255,255,255,0.02)' }}>
+                  <span style={{ width: '38px', height: '38px', borderRadius: '10px', background: c.bg, color: c.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 700 }}>
+                    {initial}
                   </span>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: '14.5px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
-                    <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '2px' }}>{m.sub}</div>
+                    <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>
                   </div>
                   <div>
                     <div style={{ height: '5px', borderRadius: '3px', background: '#262638', overflow: 'hidden', marginBottom: '4px' }}>
-                      <div style={{ height: '100%', width: `${m.match}%`, background: 'linear-gradient(90deg, #7C5CFC, #34D399)' }} />
+                      <div style={{ height: '100%', width: `${matchPct}%`, background: 'linear-gradient(90deg, #7C5CFC, #34D399)' }} />
                     </div>
-                    <div style={{ fontSize: '11px', color: '#8A8A9E' }}>{m.match}% match</div>
+                    <div style={{ fontSize: '11px', color: '#8A8A9E' }}>{matchPct}% match</div>
                   </div>
-                  <button style={{ fontSize: '12.5px', fontWeight: 600, background: '#7C5CFC', color: '#FFFFFF', borderRadius: '8px', padding: '8px 14px', border: 'none', cursor: 'pointer' }}>
-                    Apply
+                  <button 
+                    disabled={m.applied}
+                    onClick={() => {
+                      if (m.applied) return;
+                      const url = m.url || (m.source_urls && m.source_urls[0]);
+                      if (url) {
+                        window.open(url, '_blank');
+                        setApplyModalJob(m);
+                      } else {
+                        portalNav?.navigate('internships');
+                      }
+                    }}
+                    style={{ fontSize: '12.5px', fontWeight: 600, background: m.applied ? 'rgba(255,255,255,0.05)' : '#7C5CFC', color: m.applied ? '#8A8A9E' : '#FFFFFF', borderRadius: '8px', padding: '8px 14px', border: 'none', cursor: m.applied ? 'default' : 'pointer' }}
+                  >
+                    {m.applied ? 'Applied' : 'Apply'}
                   </button>
                 </div>
-              ))}
+              )}) : (
+                <div style={{ fontSize: '13px', color: '#8A8A9E', padding: '20px', textAlign: 'center' }}>No matches found right now.</div>
+              )}
             </div>
           </div>
 

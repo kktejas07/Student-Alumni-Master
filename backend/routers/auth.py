@@ -494,6 +494,8 @@ async def login(request: Request, req: LoginRequest):
             {"_id": user["_id"]},
             {"$set": {"last_login": datetime.now(timezone.utc)}}
         )
+        from backend.activity_credits import _record_activity
+        await _record_activity(user, "daily_login")
     except Exception as e:
         print(f"[LOGIN] Failed to update last_login: {e}", flush=True)
 
@@ -1130,6 +1132,8 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
                 update["photo_data"] = picture
         await db.users.update_one({"_id": user["_id"]}, {"$set": update})
         updated = await db.users.find_one({"_id": user["_id"]})
+        from backend.activity_credits import _record_activity
+        await _record_activity(updated or user, "daily_login")
         return updated if updated is not None else user
 
     # New OAuth user — create with onboarding NOT yet completed so the client
@@ -1161,6 +1165,8 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
     }
     res = await db.users.insert_one(user_doc)
     user_doc["_id"] = res.inserted_id
+    from backend.activity_credits import _record_activity
+    await _record_activity(user_doc, "daily_login")
     return user_doc
 
 
