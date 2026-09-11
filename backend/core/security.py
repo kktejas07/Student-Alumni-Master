@@ -131,7 +131,7 @@ def generate_qr_code(data: str) -> str:
     qr.make(fit=True)
     img = qr.make_image(fill_color="#5F259F", back_color="#FFFFFF")
     buf = io.BytesIO()
-    img.save(buf, format="PNG")
+    img.save(buf)
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
@@ -149,7 +149,7 @@ async def _audit_log(user_id: str, field: str, old_value, new_value, *,
             "new_value": new_value if new_value is not None else None,
             "source": source,
             "validation_status": validation_status,
-            "is_manual_entry": bool(is_manual_entry),
+            "is_manual_entry": is_manual_entry,
             "ts": datetime.now(timezone.utc),
         })
     except Exception:
@@ -191,7 +191,7 @@ def _safe_block(model_cls, value):
         return None
 
 
-def serialize_user(user: dict) -> dict:
+def serialize_user(user: dict | None) -> dict | None:
     """Strip internal fields and decrypt at-rest sensitive data for API responses."""
     if not user:
         return None

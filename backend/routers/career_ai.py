@@ -308,7 +308,7 @@ async def get_cached_suggestions(user: dict = Depends(_get_current_user_dependen
 
 @router.post("/ai/career-roadmap")
 async def ai_career_roadmap(
-    body: Dict[str, Any] = None,
+    body: Dict[str, Any] | None = None,
     user: dict = Depends(_get_current_user_dependency()),
 ):
     """Generate (or return cached) a personalised 12-week career roadmap.
@@ -454,13 +454,19 @@ async def ai_career_roadmap(
         }
 
     _t_eval_gen0 = _time.perf_counter()
-    for m in data.get("milestones", []):
-        m["completed"] = False
-        m["completed_at"] = None
-    existing_types = {m.get("milestone_type") for m in data.get("milestones", [])}
+    milestones: list[dict[str, Any]] = data.get("milestones", [])
+    if not isinstance(milestones, list):
+        milestones = []
+    
+    for m in milestones:
+        if isinstance(m, dict):
+            m["completed"] = False
+            m["completed_at"] = None
+    existing_types = {m.get("milestone_type") for m in milestones if isinstance(m, dict)}
     for std_m in _ALL_STANDARD_MILESTONES:
         if std_m["milestone_type"] not in existing_types:
-            data.setdefault("milestones", []).append(dict(std_m))
+            milestones.append(dict(std_m))
+    data["milestones"] = milestones
 
     _si_tmp = user.get("student_info") or {}
     _goal_tmp = _si_tmp.get("career_goal") or user.get("career_goal") or "Software Engineer"
@@ -500,7 +506,7 @@ async def ai_career_roadmap(
 @router.post("/ai/career-roadmap/milestone/{milestone_id}/complete")
 async def complete_roadmap_milestone(
     milestone_id: str,
-    body: Dict[str, Any] = None,
+    body: Dict[str, Any] | None = None,
     user: dict = Depends(_get_current_user_dependency()),
 ):
     """Mark a specific milestone as manually completed or uncompleted.
