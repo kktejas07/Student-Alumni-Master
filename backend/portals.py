@@ -604,7 +604,7 @@ async def student_intelligence(student_email: Optional[str] = None, user: dict =
         out, cur = [], float(start)
         for _ in range(12):
             cur += drift + rng.uniform(-jitter, jitter)
-            out.append(max(0, int(round(cur))))
+            out.append(max(0, round(cur)))
         return out
 
     spark_apps  = _trend(max(2, apps_total - 12), 1.4, 1)
@@ -1432,7 +1432,7 @@ async def create_super_event(payload: EventPayload, user: dict = Depends(require
         "mode": payload.mode or "Online",
         "venue": payload.venue or "Online",
         "category": payload.category or "Workshop",
-        "capacity": int(payload.capacity or 200),
+        "capacity": payload.capacity or 200,
         "price": float(payload.price) if payload.price else None,
         "description": payload.description or "",
         "start_date": _parse_event_dt(payload.start_date) or (datetime.now(timezone.utc) + timedelta(days=14)),
@@ -1467,7 +1467,7 @@ async def update_super_event(event_id: str, payload: EventPayload):
     if payload.mode is not None:         updates["mode"]        = payload.mode
     if payload.venue is not None:        updates["venue"]       = payload.venue
     if payload.category is not None:     updates["category"]    = payload.category
-    if payload.capacity is not None:     updates["capacity"]    = int(payload.capacity)
+    if payload.capacity is not None:     updates["capacity"]    = payload.capacity
     if payload.description is not None:  updates["description"] = payload.description
     # price: explicit zero/null both mean "free"
     if payload.price is not None:
@@ -2859,7 +2859,7 @@ async def student_wallet(student_email: Optional[str] = None, user: dict = Depen
 @router.get("/student/network")
 async def student_network(student_email: Optional[str] = None, email: Optional[str] = None, page: int = 1, per_page: int = 24, limit: int = 60, q: Optional[str] = None, user: dict = Depends(require_role('student'))):
     """Mixed alumni + student + mentor network for the Network tab with search support."""
-    db_db_user = None
+    db_user = None
     u_email = email or student_email
     if u_email:
         db_user = await _db.users.find_one({"email": u_email})
@@ -3565,29 +3565,29 @@ async def my_tier(email: Optional[str] = None, role: Optional[str] = None, user:
     along with score breakdown, visuals, and tier-driven suggestions.
     Accepts ?email= for per-user lookup; falls back to first user of role.
     """
-    user = None
+    db_user = None
     q: Dict[str, Any] = {}
     if email:
         q["email"] = email
     if role:
         q["role"] = role
     if q:
-        user = await _db.users.find_one(q)
-    if not user:
-        user = await _db.users.find_one({"role": role or "student"})
-    if not user:
+        db_user = await _db.users.find_one(q)
+    if not db_user:
+        db_user = await _db.users.find_one({"role": role or "student"})
+    if not db_user:
         raise HTTPException(404, "User not found")
 
-    r = (user or {}).get("role")
+    r = (db_user or {}).get("role")
     if r == "mentor":
-        mentor_id = str(user["_id"])
+        mentor_id = str(db_user["_id"])
         confirmed = await _db.bookings.count_documents({"mentor_id": mentor_id, "status": {"$in": ["confirmed", "completed"]}})
         ratings = [rev.get("rating", 0) async for rev in _db.reviews.find({"mentor_id": mentor_id})]
         avg = round(sum(ratings) / len(ratings), 1) if ratings else 4.5
-        tier = await _mentor_tier_payload(user, confirmed, avg)
+        tier = await _mentor_tier_payload(db_user, confirmed, avg)
     elif r == "college":
-        si = (user or {}).get("school_info") or {}
-        cname = si.get("institution_name") or user.get("full_name", "—")
+        si = (db_user or {}).get("school_info") or {}
+        cname = si.get("institution_name") or db_user.get("full_name", "—")
         students_cnt = await _db.users.count_documents({"role": "student", "school_info.institution_name": cname})
         alumni_cnt = await _db.users.count_documents({"role": "alumni", "school_info.institution_name": cname})
         tier = await _college_tier_payload(cname, students_cnt, alumni_cnt, 90.0)
