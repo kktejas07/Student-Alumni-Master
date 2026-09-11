@@ -2910,7 +2910,7 @@ def _user_card(u: dict) -> dict:
     raw_badges = u.get("badges") or []
     tier_rank = {"special": 4, "high": 3, "verified": 2, "moderate": 1, "low": 0}
     valid_badges = [b for b in raw_badges if isinstance(b, dict)]
-    sorted_badges = sorted(valid_badges, key=lambda b: -tier_rank.get(b.get("tier"), 0))
+    sorted_badges = sorted(valid_badges, key=lambda b: -tier_rank.get(b.get("tier") or "", 0))
     top_badges = [
         {"id": b.get("id"), "label": b.get("label"), "tier": b.get("tier"),
          "icon": b.get("icon"), "kind": b.get("kind"), "category": b.get("category")}

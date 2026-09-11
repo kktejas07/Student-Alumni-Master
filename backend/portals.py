@@ -52,7 +52,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from bson import ObjectId
 from dotenv import load_dotenv
@@ -546,7 +546,7 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
 def format_time_ago(dt: datetime) -> str:
     if not isinstance(dt, datetime):
         return "Recently"
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     diff = now - dt
     seconds = diff.total_seconds()
     if seconds < 0:
@@ -654,7 +654,7 @@ async def student_intelligence(student_email: Optional[str] = None, user: dict =
                     "icon": "account-tie-voice-outline",
                     "tint": "#A855F7",
                     "bgTint": "rgba(168,85,247,0.15)",
-                    "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+                    "ts": ts if isinstance(ts, datetime) else datetime.now(timezone.utc)
                 })
         except Exception:
             pass
@@ -690,7 +690,7 @@ async def student_intelligence(student_email: Optional[str] = None, user: dict =
                         "icon": "account-tie-voice-outline",
                         "tint": "#A855F7",
                         "bgTint": "rgba(168,85,247,0.15)",
-                        "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+                        "ts": ts if isinstance(ts, datetime) else datetime.now(timezone.utc)
                     })
                 except Exception:
                     pass
@@ -710,7 +710,7 @@ async def student_intelligence(student_email: Optional[str] = None, user: dict =
                     "icon": "briefcase-check-outline",
                     "tint": "#3B82F6",
                     "bgTint": "rgba(59,130,246,0.15)",
-                    "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+                    "ts": ts if isinstance(ts, datetime) else datetime.now(timezone.utc)
                 })
         except Exception:
             pass
@@ -728,7 +728,7 @@ async def student_intelligence(student_email: Optional[str] = None, user: dict =
                     "icon": "calendar-check",
                     "tint": "#10B981",
                     "bgTint": "rgba(16,185,129,0.15)",
-                    "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+                    "ts": ts if isinstance(ts, datetime) else datetime.now(timezone.utc)
                 })
         except Exception:
             pass
@@ -773,7 +773,7 @@ async def student_intelligence(student_email: Optional[str] = None, user: dict =
                         "icon": icon,
                         "tint": "#06B6D4",
                         "bgTint": "rgba(6,182,212,0.15)",
-                        "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+                        "ts": ts if isinstance(ts, datetime) else datetime.now(timezone.utc)
                     })
                 except Exception:
                     pass
@@ -963,7 +963,7 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
             "id": _short_id(u.get("_id")),
             "kind": "user",
             "text": f"New {role_label} joined — {u.get('full_name', 'Student')}",
-            "time": (u.get("created_at") or datetime.utcnow()).strftime("%b %d") if isinstance(u.get("created_at"), datetime) else "Recently",
+            "time": (u.get("created_at") or datetime.now(timezone.utc)).strftime("%b %d") if isinstance(u.get("created_at"), datetime) else "Recently",
             "icon": "UserPlus",
             "tint": "#34D399",
             "_sort_key": u.get("created_at") or datetime.min
@@ -975,7 +975,7 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
             "id": _short_id(ev.get("_id")),
             "kind": "event",
             "text": f"Event created — {ev.get('title', 'Event')}",
-            "time": (ev.get("created_at") or datetime.utcnow()).strftime("%b %d") if isinstance(ev.get("created_at"), datetime) else "Recently",
+            "time": (ev.get("created_at") or datetime.now(timezone.utc)).strftime("%b %d") if isinstance(ev.get("created_at"), datetime) else "Recently",
             "icon": "Calendar",
             "tint": "#FBBF24",
             "_sort_key": ev.get("created_at") or datetime.min
@@ -2035,7 +2035,7 @@ async def export_payments_csv(user: dict = Depends(require_role('admin'))):
                 pass
         rows.append({
             "ID": str(b["_id"]),
-            "Date": (b.get("created_at") or datetime.utcnow()).strftime("%Y-%m-%d %H:%M") if isinstance(b.get("created_at"), datetime) else "",
+            "Date": (b.get("created_at") or datetime.now(timezone.utc)).strftime("%Y-%m-%d %H:%M") if isinstance(b.get("created_at"), datetime) else "",
             "Description": b.get("topic", "Session"),
             "Type": "income",
             "Amount": float(b.get("amount") or 0),
@@ -2072,7 +2072,7 @@ async def export_payments_csv(user: dict = Depends(require_role('admin'))):
     return Response(
         content=csv_content,
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=payments_export_{datetime.utcnow().strftime('%Y%m%d')}.csv"},
+        headers={"Content-Disposition": f"attachment; filename=payments_export_{datetime.now(timezone.utc).strftime('%Y%m%d')}.csv"},
     )
 
 
@@ -2529,7 +2529,7 @@ async def student_events_list(
         student = await _db.users.find_one({"role": "student"})
     sid = str((student or {}).get("_id", ""))
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     def _parse_date(val: Any) -> Optional[datetime]:
         if not val:
@@ -2753,7 +2753,7 @@ async def student_internships(query: Optional[str] = None, student_email: Option
     if not student:
         student = await _db.users.find_one({"role": "student", "onboarding_completed": True})
     tier_payload = await _student_tier_payload(student or {}) if student else {"tier": "Bronze", "visuals": _tier_visuals("Bronze"), "suggestions": student_suggestions_for_tier("Bronze")}
-    user_tier = tier_payload.get("tier", "Bronze")
+    user_tier = str(tier_payload.get("tier", "Bronze"))
     user_rank = TIER_RANK.get(user_tier, 0)
 
     match: Dict[str, Any] = {}
@@ -2844,7 +2844,7 @@ async def student_wallet(student_email: Optional[str] = None, user: dict = Depen
     async for t in tx_cur:
         tx.append({
             "id": t.get("tx_id", str(t.get("_id"))),
-            "date": (t.get("date") or datetime.utcnow()).strftime("%b %d, %Y") if isinstance(t.get("date"), datetime) else "—",
+            "date": (t.get("date") or datetime.now(timezone.utc)).strftime("%b %d, %Y") if isinstance(t.get("date"), datetime) else "—",
             "desc": t.get("desc", "Transaction"),
             "amount": t.get("amount", 0),
             "kind": t.get("kind", "credit"),
@@ -2859,15 +2859,15 @@ async def student_wallet(student_email: Optional[str] = None, user: dict = Depen
 @router.get("/student/network")
 async def student_network(student_email: Optional[str] = None, email: Optional[str] = None, page: int = 1, per_page: int = 24, limit: int = 60, q: Optional[str] = None, user: dict = Depends(require_role('student'))):
     """Mixed alumni + student + mentor network for the Network tab with search support."""
-    user = None
+    db_db_user = None
     u_email = email or student_email
     if u_email:
-        user = await _db.users.find_one({"email": u_email})
-    if not user:
-        user = await _db.users.find_one({"role": "student"})
+        db_user = await _db.users.find_one({"email": u_email})
+    if not db_user:
+        db_user = await _db.users.find_one({"role": "student"})
 
     rel_map = {}
-    if user:
+    if db_user:
         me_id = str(user["_id"])
         q_clean = (q or "").strip()
         cache_key = f"network_student_{me_id}_p{page}_l{limit}_pp{per_page}_q{q_clean}"
@@ -2907,7 +2907,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     # Fetch Alumni (ensuring connected ones are included first)
     connected_alumni = [u for u in connected_users if u.get("role") == "alumni"]
     seen_alumni = {str(u["_id"]) for u in connected_alumni}
-    alumni_query = {
+    alumni_query: dict[str, Any] = {
         "role": "alumni",
         "_id": {"$nin": [ObjectId(i) for i in seen_alumni]}
     }
@@ -2962,7 +2962,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     # Fetch Students (ensuring connected ones are included first)
     connected_students = [u for u in connected_users if u.get("role") == "student"]
     seen_students = {str(u["_id"]) for u in connected_students}
-    student_query = {
+    student_query: dict[str, Any] = {
         "role": "student",
         "_id": {"$nin": [ObjectId(i) for i in seen_students]}
     }
@@ -3021,7 +3021,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     # Fetch Mentors (ensuring connected ones are included first)
     connected_mentors = [u for u in connected_users if u.get("role") == "mentor"]
     seen_mentors = {str(u["_id"]) for u in connected_mentors}
-    mentor_query = {
+    mentor_query: dict[str, Any] = {
         "role": "mentor",
         "mentor_status": "approved",
         "_id": {"$nin": [ObjectId(i) for i in seen_mentors]}
@@ -3089,7 +3089,7 @@ async def approve_event(event_id: str, user: dict = Depends(require_role('admin'
         oid = ObjectId(event_id)
     except Exception:
         raise HTTPException(400, "Invalid event id")
-    res = await _db.events.update_one({"_id": oid}, {"$set": {"status": "live", "approved_at": datetime.utcnow()}})
+    res = await _db.events.update_one({"_id": oid}, {"$set": {"status": "live", "approved_at": datetime.now(timezone.utc)}})
     if res.matched_count == 0:
         raise HTTPException(404, "Event not found")
     return {"ok": True}
@@ -3139,7 +3139,7 @@ async def create_workflow(req: WorkflowCreateRequest, user: dict = Depends(requi
         "on": False,
         "color": "#F97316",
         "run_log": [],
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
     }
     result = await _db.workflows.insert_one(doc)
     return {"ok": True, "id": str(result.inserted_id)}
@@ -3237,7 +3237,7 @@ async def _step_sendgrid(db, params) -> tuple:
     return True, "SendGrid email sent"
 
 
-STEP_REGISTRY: Dict[str, callable] = {
+STEP_REGISTRY: Dict[str, Callable] = {
     "Verify email": _step_verify_email,
     "LinkedIn check": _step_linkedin_check,
     "Auto-approve if rank<200": _step_auto_approve,
@@ -3290,7 +3290,7 @@ async def run_workflow(wf_id: str, body: WorkflowRunRequest = None, user: dict =
         {"_id": ObjectId(wf_id)},
         {
             "$inc": {"runs": 1, "success": 1 if all_ok else 0},
-            "$set": {"last_run_at": datetime.utcnow(), "last_run_success": all_ok},
+            "$set": {"last_run_at": datetime.now(timezone.utc), "last_run_success": all_ok},
             "$push": {"run_log": {"$each": [], "$slice": -20}},
         },
     )
@@ -3298,7 +3298,7 @@ async def run_workflow(wf_id: str, body: WorkflowRunRequest = None, user: dict =
     await _db.workflows.update_one(
         {"_id": ObjectId(wf_id)},
         {"$push": {"run_log": {
-            "at": datetime.utcnow(),
+            "at": datetime.now(timezone.utc),
             "success": all_ok,
             "steps": results,
             "params": params,
@@ -3336,7 +3336,7 @@ async def update_workflow(wf_id: str, req: WorkflowUpdateRequest):
         updates["steps"] = req.steps
     if req.color is not None:
         updates["color"] = req.color
-    updates["updated_at"] = datetime.utcnow()
+    updates["updated_at"] = datetime.now(timezone.utc)
     await _db.workflows.update_one({"_id": ObjectId(wf_id)}, {"$set": updates})
     return {"ok": True}
 
@@ -3355,10 +3355,10 @@ async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))
     # Try MongoDB ObjectId
     try:
         oid = ObjectId(user_id)
-        res = await _db.users.update_one({"_id": oid, "role": "mentor"}, {"$set": {"mentor_status": "approved", "approved_at": datetime.utcnow()}})
+        res = await _db.users.update_one({"_id": oid, "role": "mentor"}, {"$set": {"mentor_status": "approved", "approved_at": datetime.now(timezone.utc)}})
         if res.matched_count > 0:
             return {"ok": True, "kind": "mentor"}
-        res2 = await _db.colleges_meta.update_one({"_id": oid}, {"$set": {"status": "active", "approved_at": datetime.utcnow()}})
+        res2 = await _db.colleges_meta.update_one({"_id": oid}, {"$set": {"status": "active", "approved_at": datetime.now(timezone.utc)}})
         if res2.matched_count > 0:
             return {"ok": True, "kind": "college"}
     except Exception:
@@ -3367,7 +3367,7 @@ async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))
     # Fallback: try colleges_meta by string name
     res = await _db.colleges_meta.update_one(
         {"name": user_id},
-        {"$set": {"status": "active", "approved_at": datetime.utcnow()}}
+        {"$set": {"status": "active", "approved_at": datetime.now(timezone.utc)}}
     )
     if res.matched_count > 0:
         return {"ok": True, "kind": "college"}
@@ -3375,7 +3375,7 @@ async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))
     # Try events by title
     res3 = await _db.events.update_one(
         {"title": user_id},
-        {"$set": {"status": "live", "approved_at": datetime.utcnow()}}
+        {"$set": {"status": "live", "approved_at": datetime.now(timezone.utc)}}
     )
     if res3.matched_count > 0:
         return {"ok": True, "kind": "event"}
@@ -3404,7 +3404,7 @@ async def reject_user(user_id: str, user: dict = Depends(require_role('admin')))
     # Try events by title
     res3 = await _db.events.update_one(
         {"title": user_id},
-        {"$set": {"status": "cancelled", "rejected_at": datetime.utcnow()}}
+        {"$set": {"status": "cancelled", "rejected_at": datetime.now(timezone.utc)}}
     )
     if res3.matched_count > 0:
         return {"ok": True, "kind": "event"}
@@ -3432,7 +3432,7 @@ async def dismiss_insight(insight_id: str, user: dict = Depends(require_role('ad
         oid = ObjectId(insight_id)
     except Exception:
         raise HTTPException(400, "Invalid id")
-    res = await _db.ai_insights.update_one({"_id": oid}, {"$set": {"dismissed": True, "dismissed_at": datetime.utcnow()}})
+    res = await _db.ai_insights.update_one({"_id": oid}, {"$set": {"dismissed": True, "dismissed_at": datetime.now(timezone.utc)}})
     if res.matched_count == 0:
         raise HTTPException(404, "Not found")
     return {"ok": True}
@@ -3458,7 +3458,7 @@ async def wallet_topup(req: TopupRequest, user: dict = Depends(require_role('stu
         "tx_id": f"TX-{seq}",
         "seq": seq,
         "student_id": str(student["_id"]),
-        "date": datetime.utcnow(),
+        "date": datetime.now(timezone.utc),
         "desc": "Wallet top-up via UPI",
         "amount": req.amount,
         "kind": "credit",
@@ -3484,7 +3484,7 @@ async def event_rsvp(event_id: str, student_email: Optional[str] = None, user: d
     await _db.event_registrations.insert_one({
         "event_id": event_id,
         "student_id": str(student["_id"]),
-        "registered_at": datetime.utcnow(),
+        "registered_at": datetime.now(timezone.utc),
         "status": "registered",
     })
     return {"ok": True, "registered": True}
