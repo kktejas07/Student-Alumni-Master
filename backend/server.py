@@ -105,7 +105,7 @@ from notifications import (
 )
 
 # Services -- single source of truth for business logic
-from services.career_intelligence_service import compute_full_intelligence, invalidate_intel_cache
+from services.career_ai.skill_intelligence_service import compute_full_intelligence, invalidate_intel_cache
 from services.profile_service import compute_profile_completion
 from services.career_roadmap_service import get_roadmap_summary
 
@@ -3144,8 +3144,6 @@ async def logout(request: Request, user: dict = Depends(get_current_user)):
 from portals import router as portals_router
 api_router.include_router(portals_router)
 
-from career_intel import router as career_intel_router
-api_router.include_router(career_intel_router)
 from jobs_feed import router as jobs_feed_router  # live job aggregator (7 free APIs + tier filter)
 api_router.include_router(jobs_feed_router)
 from mentor_ai import router as mentor_ai_router  # mentor AI studio (mentee pulse, skill gaps, impact, session prep)

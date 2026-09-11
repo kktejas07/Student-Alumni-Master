@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException
 
 from db import db
-from services.career_intelligence_service import (
+from services.career_ai.skill_intelligence_service import (
     compute_full_intelligence,
     invalidate_intel_cache,
 )
