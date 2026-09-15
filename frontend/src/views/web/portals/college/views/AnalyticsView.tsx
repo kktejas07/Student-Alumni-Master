@@ -442,13 +442,13 @@ const s = StyleSheet.create({
     borderRadius: 6, overflow: 'hidden',
     backgroundColor: 'rgba(255,255,255,0.04)' },
   bar: { width: '100%', borderRadius: 6 },
-  barVal: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
+  barVal: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12 },
   barLabel: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 11 },
   barSub: { color: CC.dim, fontFamily: FONTS.med, fontSize: 10 },
 
   /* Funnel */
   funnelHead: { flexDirection: 'row', alignItems: 'center' },
-  funnelStage: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
+  funnelStage: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
   funnelCount: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
   funnelBarTrack: { height: 8, borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.05)', overflow: 'hidden' },
@@ -456,7 +456,7 @@ const s = StyleSheet.create({
 
   /* Salary */
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rowLabel: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 11.5, width: 110 },
+  rowLabel: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 11.5, width: 110 },
   salTrack: { flex: 1, height: 7, borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.05)', overflow: 'hidden' },
   salFill: { height: '100%', borderRadius: 999 },
@@ -471,7 +471,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(37,99,235,0.18)',
     alignItems: 'center', justifyContent: 'center' },
   recLogoText: { color: '#93C5FD', fontFamily: FONTS.xbold, fontSize: 14 },
-  recName: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5, flexShrink: 1 },
+  recName: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5, flexShrink: 1 },
   hirePill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
     backgroundColor: 'rgba(16,185,129,0.14)',
     borderColor: 'rgba(16,185,129,0.40)', borderWidth: 1 },
@@ -480,7 +480,7 @@ const s = StyleSheet.create({
   /* Dept */
   deptHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   deptDot: { width: 10, height: 10, borderRadius: 999 },
-  deptName: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
+  deptName: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 },
   deptStats: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 11 },
   deptTrack: { height: 7, borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.05)', overflow: 'hidden' },
@@ -496,6 +496,6 @@ const s = StyleSheet.create({
 
   /* Attrition */
   attDot: { width: 10, height: 10, borderRadius: 999 },
-  attLabel: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
+  attLabel: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 },
   attPct: { fontFamily: FONTS.xbold, fontSize: 13 },
 });
