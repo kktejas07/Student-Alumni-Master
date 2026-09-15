@@ -1021,7 +1021,7 @@ export function MentorProfileSettingsView({
                     <MaterialCommunityIcons name="briefcase-edit-outline" size={16} color={MC.tealP} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 15 }}>Tools & Integrations</Text>
+                    <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 15 }}>Tools & Integrations</Text>
                     <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 2 }}>Connect your video, calendar and productivity tools to streamline your mentoring sessions.</Text>
                   </View>
                 </View>
@@ -1241,7 +1241,7 @@ export function MentorProfileSettingsView({
                         }}>
                           {isSelected && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: MC.tealP }} />}
                         </View>
-                        <Text style={[st.platformTabText, isSelected && { color: '#FFFFFF', fontFamily: FONTS.bold }]}>{plat}</Text>
+                        <Text style={[st.platformTabText, isSelected && { color: '#1C1C1E', fontFamily: FONTS.bold }]}>{plat}</Text>
                       </Pressable>
                     );
                   })}
@@ -1356,7 +1356,7 @@ export function MentorProfileSettingsView({
                             isSelected && { backgroundColor: MC.tealP + '14', borderColor: MC.tealP }
                           ]}
                         >
-                          <Text style={[st.themeTabText, isSelected && { color: '#FFFFFF', fontFamily: FONTS.bold }]}>
+                          <Text style={[st.themeTabText, isSelected && { color: '#1C1C1E', fontFamily: FONTS.bold }]}>
                             {emoji} {t}
                           </Text>
                         </Pressable>
@@ -1827,7 +1827,7 @@ export function MentorProfileSettingsView({
                   <Text style={st.idDetailsValue}>SM-8-687562</Text>
                 </View>
                 <Pressable onPress={handleCopyId} style={st.idCopyBtn}>
-                  <MaterialCommunityIcons name="content-copy" size={14} color="#ffffff" />
+                  <MaterialCommunityIcons name="content-copy" size={14} color="#1C1C1E" />
                   <Text style={st.idCopyBtnText}>Copy ID</Text>
                 </Pressable>
               </View>
@@ -1840,12 +1840,12 @@ export function MentorProfileSettingsView({
                 </Pressable>
                 
                 <Pressable onPress={handleShareProfile} style={st.actionOutlineBtn}>
-                  <MaterialCommunityIcons name="share-variant-outline" size={14} color="#ffffff" />
+                  <MaterialCommunityIcons name="share-variant-outline" size={14} color="#1C1C1E" />
                   <Text style={st.actionOutlineBtnText}>Share Profile</Text>
                 </Pressable>
 
                 <Pressable onPress={handleFlipCard} style={st.actionOutlineBtn}>
-                  <MaterialCommunityIcons name="refresh" size={14} color="#ffffff" />
+                  <MaterialCommunityIcons name="refresh" size={14} color="#1C1C1E" />
                   <Text style={st.actionOutlineBtnText}>Flip Card</Text>
                 </Pressable>
               </View>
@@ -1856,7 +1856,7 @@ export function MentorProfileSettingsView({
                   <QRCode
                     value="https://studentalumni.in/mentor/SM-8-687562"
                     size={80}
-                    backgroundColor="#ffffff"
+                    backgroundColor="#1C1C1E"
                     color="#000000"
                   />
                 </View>
@@ -1972,9 +1972,9 @@ export function MentorProfileSettingsView({
           <View style={st.sidebarCard}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
               <ShieldCheck size={14} color={MC.tealP} />
-              <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13 }}>Mentor ID</Text>
+              <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13 }}>Mentor ID</Text>
             </View>
-            <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: 0.5 }}>SA-08-438291</Text>
+            <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: 0.5 }}>SA-08-438291</Text>
             <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 4 }}>Verified · since 2008</Text>
             <Pressable
               onPress={() => router.push('/member-id')}
@@ -2062,7 +2062,7 @@ function ToggleRow({
   return (
     <View style={[st.toggleRow, subtext ? st.settingToggleRow : null, !isLast && subtext ? st.settingRowDivider : null]}>
       <View style={{ flex: 1, marginRight: 16 }}>
-        <Text style={[st.toggleRowLabel, subtext ? { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13 } : null]}>{label}</Text>
+        <Text style={[st.toggleRowLabel, subtext ? { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13 } : null]}>{label}</Text>
         {subtext ? <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 }}>{subtext}</Text> : null}
       </View>
       <Pressable
@@ -2114,7 +2114,7 @@ function CustomDropdown({
         style={[st.inputBoxIcon, open && { borderColor: MC.tealP, backgroundColor: MC.tealP + '08' }]}
         onPress={() => setOpen((o) => !o)}
       >
-        <Text style={{ color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 }}>{value}</Text>
+        <Text style={{ color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 }}>{value}</Text>
         <MaterialCommunityIcons name={open ? "chevron-up" : "chevron-down"} size={16} color={MC.dim} />
       </Pressable>
       {open && (
@@ -2186,7 +2186,7 @@ function CustomRadio({ selected, onPress, label, sub }: { selected: boolean; onP
         {selected && <View style={st.radioCircle} />}
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={[st.radioLabel, selected && { color: '#FFFFFF', fontFamily: FONTS.bold }]}>{label}</Text>
+        <Text style={[st.radioLabel, selected && { color: '#1C1C1E', fontFamily: FONTS.bold }]}>{label}</Text>
         <Text style={st.radioSub}>{sub}</Text>
       </View>
     </Pressable>
@@ -2299,13 +2299,13 @@ const st = StyleSheet.create({
     backgroundColor: MC.teal + '20', alignItems: 'center', justifyContent: 'center',
     borderColor: MC.teal + '40', borderWidth: 2
   },
-  avatarText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 24 },
+  avatarText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 24 },
   avatarCheck: {
     position: 'absolute', bottom: 1, right: 1,
     width: 20, height: 20, borderRadius: 10, backgroundColor: '#10B981',
     alignItems: 'center', justifyContent: 'center', borderColor: MC.bg, borderWidth: 2
   },
-  name: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 20, letterSpacing: -0.4 },
+  name: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 20, letterSpacing: -0.4 },
   subline: { color: MC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 2 },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8, alignItems: 'center' },
   headerBadge: {
@@ -2335,8 +2335,8 @@ const st = StyleSheet.create({
   // Basic Info details
   photoEditBox: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 14 },
   photoPill: { width: 64, height: 64, borderRadius: 32, backgroundColor: MC.tealP + '18', borderColor: MC.tealP + '35', borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  photoPillText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 22 },
-  photoTitle: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13.5 },
+  photoPillText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22 },
+  photoTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13.5 },
   photoMeta: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11 },
   uploadBtn: { paddingHorizontal: 11, height: 28, borderRadius: 6, backgroundColor: MC.tealP, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
   uploadBtnText: { color: MC.bg, fontFamily: FONTS.bold, fontSize: 11.5 },
@@ -2348,7 +2348,7 @@ const st = StyleSheet.create({
   inputLabel: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 11.5, marginBottom: 5 },
   inputBox: { backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4, height: 38 },
   inputBoxIcon: { backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', height: 38 },
-  input: { color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 12.5, paddingVertical: 6, width: '100%', ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  input: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5, paddingVertical: 6, width: '100%', ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   inputHelpText: { color: MC.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 4 },
 
   // Skills Section
@@ -2385,7 +2385,7 @@ const st = StyleSheet.create({
   integrationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' },
   integrationLeft: { flexDirection: 'row', gap: 12, flex: 1, minWidth: 0 },
   integrationIconSquare: { width: 36, height: 36, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.03)', alignItems: 'center', justifyContent: 'center' },
-  integrationName: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13 },
+  integrationName: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13 },
   integrationEmail: { color: MC.tealP, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 1 },
   integrationDesc: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
   connectedBadge: { backgroundColor: 'rgba(34,197,94,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
@@ -2411,7 +2411,7 @@ const st = StyleSheet.create({
 
   // Sidebar cards
   sidebarCard: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16 },
-  sidebarCardTitle: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13.5, marginTop: 4 },
+  sidebarCardTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13.5, marginTop: 4 },
   sidebarCardSub: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11 },
   saIdBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4, backgroundColor: 'rgba(20,184,166,0.08)', borderColor: 'rgba(20,184,166,0.3)', borderWidth: 1, marginTop: 6 },
   saIdText: { color: MC.tealP, fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.3 },
@@ -2422,7 +2422,7 @@ const st = StyleSheet.create({
   statRowDivider: { borderBottomColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1 },
   statIconContainer: { width: 28, height: 28, borderRadius: 6, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   statLabel: { flex: 1, color: MC.muted, fontFamily: FONTS.med, fontSize: 12 },
-  statValue: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13.5 },
+  statValue: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13.5 },
 
   // ID View button
   viewIdBtn: { marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 8, backgroundColor: MC.tealP, ...({ cursor: 'pointer' } as any) },
@@ -2430,7 +2430,7 @@ const st = StyleSheet.create({
 
   // Placeholder views
   comingSoonCard: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 36, alignItems: 'center', gap: 8 },
-  comingSoonTitle: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 15 },
+  comingSoonTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 15 },
   comingSoonDesc: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center' },
 
   // Settings custom styles
@@ -2446,9 +2446,9 @@ const st = StyleSheet.create({
     ...(Platform.OS === 'web' ? { boxShadow: '0 8px 32px rgba(0,0,0,0.5)' } as any : { elevation: 8 }),
   },
   ddItem: { paddingHorizontal: 12, paddingVertical: 10, borderBottomColor: 'rgba(255,255,255,0.05)', borderBottomWidth: 1 },
-  ddText: { color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 12.5 },
+  ddText: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5 },
   accountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 },
-  accountRowTitle: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13 },
+  accountRowTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13 },
   accountRowSub: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
   accountBtn: { paddingHorizontal: 16, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', minWidth: 80, ...({ cursor: 'pointer' } as any) },
   accountBtnNormal: { backgroundColor: 'rgba(255,255,255,0.04)', borderColor: MC.border, borderWidth: 1 },
@@ -2465,7 +2465,7 @@ const st = StyleSheet.create({
   tfaBadgeTextEnabled: { color: '#4ADE80', fontFamily: FONTS.bold, fontSize: 10.5 },
   sessionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
   sessionIconBox: { width: 36, height: 36, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.03)', alignItems: 'center', justifyContent: 'center' },
-  sessionDevice: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13 },
+  sessionDevice: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13 },
   sessionMeta: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   currentDeviceBadge: { backgroundColor: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.25)', borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 },
   currentDeviceText: { color: '#4ADE80', fontFamily: FONTS.bold, fontSize: 11 },
@@ -2474,7 +2474,7 @@ const st = StyleSheet.create({
   activityIconCircle: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
   activitySuccessCircle: { backgroundColor: 'rgba(34,197,94,0.12)' },
   activityFailedCircle: { backgroundColor: 'rgba(239,68,68,0.12)' },
-  activityEventTitle: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 },
+  activityEventTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
   activityMeta: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
 
   // Digital ID Card Styles
@@ -2536,7 +2536,7 @@ const st = StyleSheet.create({
     fontSize: 14,
   },
   cardLogoTitle: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 12.5,
   },
@@ -2588,7 +2588,7 @@ const st = StyleSheet.create({
     justifyContent: 'center',
   },
   cardAvatarText: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 20,
   },
@@ -2597,7 +2597,7 @@ const st = StyleSheet.create({
     gap: 2,
   },
   cardName: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 17,
   },
@@ -2619,7 +2619,7 @@ const st = StyleSheet.create({
     letterSpacing: 0.8,
   },
   cardFooterId: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 16,
     letterSpacing: 0.5,
@@ -2649,7 +2649,7 @@ const st = StyleSheet.create({
     letterSpacing: 0.8,
   },
   cardBackId: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 20,
     letterSpacing: 0.8,
@@ -2699,7 +2699,7 @@ const st = StyleSheet.create({
     letterSpacing: 0.5,
   },
   idDetailsValue: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 16,
     letterSpacing: 0.5,
@@ -2718,7 +2718,7 @@ const st = StyleSheet.create({
     cursor: 'pointer',
   },
   idCopyBtnText: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 12,
   },
@@ -2761,7 +2761,7 @@ const st = StyleSheet.create({
     cursor: 'pointer',
   },
   actionOutlineBtnText: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 12,
   },
@@ -2782,13 +2782,13 @@ const st = StyleSheet.create({
   },
   qrCodeWrapper: {
     padding: 8,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#1C1C1E',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   qrSectionTitle: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 14,
   },
@@ -2845,7 +2845,7 @@ const st = StyleSheet.create({
     justifyContent: 'center',
   },
   gridItemTitle: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 12,
   },
