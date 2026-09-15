@@ -303,7 +303,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
         {loading ? (
           <ActivityIndicator size="large" color={C.purple} />
         ) : (
-          <Text style={{ color: '#1C1C1E' }}>Failed to load profile settings.</Text>
+          <Text style={{ color: '#FFFFFF' }}>Failed to load profile settings.</Text>
         )}
       </View>
     );
@@ -598,7 +598,7 @@ const st = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderColor: C.bg, borderWidth: 2,
   },
-  name: { color: '#1C1C1E', fontFamily: 'DMSans_700Bold', fontSize: 22, letterSpacing: -0.3 },
+  name: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 22, letterSpacing: -0.3 },
   subline: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 13, marginTop: 4 },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   headerBadge: {
@@ -626,7 +626,7 @@ const st = StyleSheet.create({
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
     borderRadius: 14, padding: 16,
   },
-  sideTitle: { color: '#1C1C1E', fontFamily: 'DMSans_700Bold', fontSize: 14, marginTop: 4 },
+  sideTitle: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 14, marginTop: 4 },
   sideSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5 },
   sideHeading: { color: C.text2, fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.0 },
   idChip: {
@@ -640,10 +640,10 @@ const st = StyleSheet.create({
   statRowDivider: { borderBottomColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1 },
   statIcon: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   statLabel: { flex: 1, color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12.5 },
-  statValue: { color: '#1C1C1E', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
+  statValue: { color: '#FFFFFF', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
 
-  idTitle: { color: '#1C1C1E', fontFamily: 'DMSans_700Bold', fontSize: 13 },
-  idValue: { color: '#1C1C1E', fontFamily: 'DMSans_800ExtraBold', fontSize: 18, letterSpacing: 0.5, marginTop: 2 },
+  idTitle: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 13 },
+  idValue: { color: '#FFFFFF', fontFamily: 'DMSans_800ExtraBold', fontSize: 18, letterSpacing: 0.5, marginTop: 2 },
   idMeta: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 4 },
   viewIdBtn: {
     marginTop: 12,
@@ -659,7 +659,7 @@ const st = StyleSheet.create({
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1, borderRadius: 14,
     padding: 32, alignItems: 'center', gap: 8,
   },
-  comingTitle: { color: '#1C1C1E', fontFamily: 'DMSans_700Bold', fontSize: 16 },
+  comingTitle: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 16 },
   comingSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12, textAlign: 'center' },
 
   /* Footer save */
