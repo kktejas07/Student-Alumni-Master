@@ -646,10 +646,7 @@ export function DashboardView() {
                           body: { student_email: authUser?.email || undefined }
                         });
                         setTopMatches(prev => prev.map(job => (
-                          (job.id && job.id === applyModalJob.id) || 
-                          (job.job_id && job.job_id === applyModalJob.job_id) || 
-                          (job._id && job._id === applyModalJob._id) ||
-                          job === applyModalJob
+                          job === applyModalJob || (job.title === applyModalJob.title && job.company === applyModalJob.company)
                         ) ? { ...job, applied: true } : job));
                         setApplyModalJob(null);
                       } catch (e) {
