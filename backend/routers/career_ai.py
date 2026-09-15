@@ -439,13 +439,13 @@ async def ai_career_roadmap(
             text = text.strip("`")
             if text.startswith("json"): text = text[4:]
             text = text.strip()
-        data = json.loads(text)
+        data: Dict[str, Any] = json.loads(text)
         if not data.get("milestones"):
             raise ValueError("LLM returned empty milestones array")
     except Exception as e:
         logger.error(f"career-roadmap AI failed: {e}")
         _fallback_milestones = [dict(m) for m in _ALL_STANDARD_MILESTONES]
-        data = {
+        data: Dict[str, Any] = {
             "target_role": goal.split(" at ")[0].strip() if " at " in goal else goal,
             "target_company_type": "Top Company in your field",
             "skill_scores": {"communication": 40, "soft_skills": 35, "technical": 50, "interview_prep": 30, "networking": 25, "leadership": 30},
