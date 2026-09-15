@@ -36,7 +36,7 @@ const s = StyleSheet.create({
     borderColor: MC.border2, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
-  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, textAlign: 'center' },
+  title: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, textAlign: 'center' },
   body: { color: MC.muted, fontFamily: FONTS.med, fontSize: 13, lineHeight: 20, textAlign: 'center' },
   hint: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11, lineHeight: 17, textAlign: 'center', marginTop: 6 },
 });
