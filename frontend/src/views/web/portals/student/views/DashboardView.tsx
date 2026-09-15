@@ -70,6 +70,7 @@ export function DashboardView() {
   const [topMatches, setTopMatches] = useState<any[]>([]);
   const [totalMatches, setTotalMatches] = useState(267);
   const [applyModalJob, setApplyModalJob] = useState<any | null>(null);
+  const [topMentors, setTopMentors] = useState<any[]>([]);
 
   useEffect(() => {
     request<any>('/opportunities?limit=3')
@@ -77,6 +78,18 @@ export function DashboardView() {
         if (res && res.items) {
           setTopMatches(res.items.slice(0, 3));
           setTotalMatches(res.total || 0);
+        }
+      })
+      .catch(() => {});
+
+    request<any>('/student/network?limit=20')
+      .then((res) => {
+        if (res && Array.isArray(res)) {
+          const mentors = res.filter((u: any) => u.role === 'Mentor').slice(0, 3);
+          setTopMentors(mentors);
+        } else if (res && Array.isArray(res.items)) {
+          const mentors = res.items.filter((u: any) => u.role === 'Mentor').slice(0, 3);
+          setTopMentors(mentors);
         }
       })
       .catch(() => {});
