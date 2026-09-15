@@ -511,8 +511,8 @@ async def apply_internship(internship_id: str, req: ApplyRequest, request: Reque
     except Exception:
         pass
     if not internship:
-        async for i in _db.internships.find({}, {"_id": 1, "title": 1, "company": 1}):
-            if str(i["_id"]).endswith(internship_id):
+        async for i in _db.internships.find({}, {"_id": 1, "id": 1, "title": 1, "company": 1}):
+            if str(i["_id"]).endswith(internship_id) or i.get("id") == internship_id:
                 internship = i; break
     if not internship:
         # Support external feed jobs stored in jobs_cache
@@ -537,6 +537,17 @@ async def apply_internship(internship_id: str, req: ApplyRequest, request: Reque
         ],
         "student_id": str(student["_id"]),
     })
+
+    # Sync with users.applied_jobs so the feed button is marked as applied
+    updates = {"applied_jobs": internship_id_str}
+    if internship.get("id"):
+        updates["applied_opportunities"] = internship.get("id")
+
+    await _db.users.update_one(
+        {"_id": student["_id"]},
+        {"$addToSet": updates}
+    )
+
     if existing:
         return {"ok": True, "already": True, "application_id": _short_id(existing["_id"])}
 
@@ -552,12 +563,6 @@ async def apply_internship(internship_id: str, req: ApplyRequest, request: Reque
         "applied_at": _now(),
     }
     res = await _db.internship_applications.insert_one(doc)
-
-    # Sync with users.applied_jobs so the feed button is marked as applied
-    await _db.users.update_one(
-        {"_id": student["_id"]},
-        {"$addToSet": {"applied_jobs": internship_id_str}}
-    )
 
     # Write to job_apply_audit for unified tracking metrics
     try:
@@ -581,6 +586,7 @@ async def my_applications(email: Optional[str] = None):
     async for a in _db.internship_applications.find({"student_id": str(student["_id"])}).sort("applied_at", -1).limit(50):
         out.append({
             "id": _short_id(a["_id"]),
+            "job_id": a.get("internship_id"),
             "internship_title": a.get("internship_title"),
             "company": a.get("company"),
             "status": a.get("status"),
@@ -707,7 +713,7 @@ async def progress_workshop(req: WorkshopProgressReq):
         # with a unique verification code + public verify URL, replacing the
         # old placeholder certificates.example.com link.
         cert = await _issue_workshop_certificate(
-            reg, student, req.student_email or student.get("email")
+            reg, student, req.student_email or student.get("email") or ""
         )
         if cert:
             update_doc["certificate_url"] = cert["verify_url"]
@@ -1008,14 +1014,14 @@ async def create_college_event(req: EventCreate):
             ]
             await _db.notifications.insert_many(notification_docs)
     except Exception as e:
-        logger.warning(f"Failed to notify students: {e}")
+        print(f"Failed to notify students: {e}")
 
     # 2. Clear portals events cache so the new event shows up immediately on frontend
     try:
         from portals import events_cache
         events_cache.clear()
     except Exception as e:
-        logger.warning(f"Failed to clear events_cache: {e}")
+        print(f"Failed to clear events_cache: {e}")
 
     return {"ok": True, "event_id": event_id_str}
 

@@ -55,6 +55,7 @@ from typing import List, Optional, Literal, Dict, Any
 
 import bcrypt
 import jwt
+import httpx
 import pyotp
 import qrcode
 from bson import ObjectId
@@ -65,13 +66,12 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from fastapi.middleware.gzip import GZipMiddleware
 
-# Rate limiting — uses real client IP (proxy-aware, not raw REMOTE_ADDR)
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from core.middleware import get_real_ip, register_security_middleware
 from core.deps import get_current_user as _deps_get_current_user
 
-limiter = Limiter(key_func=get_real_ip, default_limits=["200/minute"])
+from core.config import limiter, JWT_SECRET, JWT_ALGORITHM
 
 # Content prioritization engine — implements interest + edu-level + deadline + frequency scoring
 from personalization import (
@@ -105,7 +105,7 @@ from notifications import (
 )
 
 # Services -- single source of truth for business logic
-from services.career_intelligence_service import compute_full_intelligence, invalidate_intel_cache
+from services.career_ai.skill_intelligence_service import compute_full_intelligence, invalidate_intel_cache
 from services.profile_service import compute_profile_completion
 from services.career_roadmap_service import get_roadmap_summary
 
@@ -129,10 +129,7 @@ from db import client, db as _db_default, fetch_users_with_mock_limit
 db = _db_default
 
 # JWT configuration — REQUIRED from environment (never hardcode).
-JWT_SECRET = os.environ.get('JWT_SECRET')
-if not JWT_SECRET:
-    raise RuntimeError("JWT_SECRET is not set. Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\" and add it to backend/.env")
-JWT_ALGORITHM = "HS256"
+# Using JWT secrets from core.config
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour — short-lived; use refresh token for re-auth
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 
@@ -425,7 +422,9 @@ async def upload_file(
         import subprocess
         try:
             subprocess.run(["chmod", "-R", "777", str(ROOT_DIR / "uploads")], check=False, timeout=5)
-            subprocess.run(["chown", "-R", f"{os.getuid()}:{os.getgid()}", str(ROOT_DIR / "uploads")], check=False, timeout=5)
+            uid = getattr(os, "getuid", lambda: 1000)()
+            gid = getattr(os, "getgid", lambda: 1000)()
+            subprocess.run(["chown", "-R", f"{uid}:{gid}", str(ROOT_DIR / "uploads")], check=False, timeout=5)
         except Exception:
             pass
         try:
@@ -2375,7 +2374,7 @@ async def create_teams_meeting_endpoint(payload: TeamsMeetingCreate, user: dict 
 
 
 @api_router.get("/integrations/teams/meetings")
-async def list_teams_meetings(user: dict = Depends(get_current_user), event_slug: str = None):
+async def list_teams_meetings(user: dict = Depends(get_current_user), event_slug: Optional[str] = None):
     """List all Teams meetings (admin only). Optionally filter by event_slug."""
     if user.get("role") not in ("admin", "super_admin", "organizer"):
         raise HTTPException(403, "Access required")
@@ -2630,18 +2629,17 @@ async def update_teams_meeting(meeting_id: str, payload: TeamsMeetingCreate, use
         raise HTTPException(404, "Meeting not found")
 
     try:
-        from datetime import datetime as _dt
         from zoneinfo import ZoneInfo
         IST = ZoneInfo("Asia/Kolkata")
         raw = (payload.start_time or "").strip()
-        parsed = _dt.fromisoformat(raw.replace("Z", "+00:00")) if raw else _dt.now(IST)
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00")) if raw else datetime.now(IST)
         if parsed.tzinfo is None:
             parsed = parsed.replace(tzinfo=IST)
         else:
             parsed = parsed.astimezone(IST)
         start_dt = parsed
-    except (ValueError, AttributeError):
-        start_dt = _dt.now(timezone.utc)
+    except Exception:
+        start_dt = datetime.now(timezone.utc)
 
     update_data = {
         "subject": payload.title,
@@ -2652,7 +2650,7 @@ async def update_teams_meeting(meeting_id: str, payload: TeamsMeetingCreate, use
         "description": payload.description,
         "event_slug": (payload.event_slug or "").strip() or None,
         "organizer_email": (payload.organizer_email or "").strip() or None,
-        "updated_at": _dt.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
         "updated_by": str(user.get("_id", "")),
     }
 
@@ -3146,8 +3144,6 @@ async def logout(request: Request, user: dict = Depends(get_current_user)):
 from portals import router as portals_router
 api_router.include_router(portals_router)
 
-from career_intel import router as career_intel_router
-api_router.include_router(career_intel_router)
 from jobs_feed import router as jobs_feed_router  # live job aggregator (7 free APIs + tier filter)
 api_router.include_router(jobs_feed_router)
 from mentor_ai import router as mentor_ai_router  # mentor AI studio (mentee pulse, skill gaps, impact, session prep)

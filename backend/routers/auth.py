@@ -494,6 +494,8 @@ async def login(request: Request, req: LoginRequest):
             {"_id": user["_id"]},
             {"$set": {"last_login": datetime.now(timezone.utc)}}
         )
+        from backend.activity_credits import _record_activity
+        await _record_activity(user, "daily_login")
     except Exception as e:
         print(f"[LOGIN] Failed to update last_login: {e}", flush=True)
 
@@ -572,22 +574,8 @@ def _generate_totp_qr(uri: str) -> str:
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
-@router.get("/downloads/sa_flows.zip")
-async def download_sa_flows_zip():
-    """Serves the bundled flow-screenshots ZIP for the current user session."""
-    p = "/app/backend/static_downloads/sa_flows.zip"
-    if not os.path.exists(p):
-        raise HTTPException(404, "Archive not found")
-    return FileResponse(p, media_type="application/zip", filename="sa_flows.zip")
 
 
-@router.get("/downloads/expo_qr.png")
-async def download_expo_qr():
-    """Serves the QR code that Expo Go can scan to open the live app."""
-    p = "/app/backend/static_downloads/expo_qr.png"
-    if not os.path.exists(p):
-        raise HTTPException(404, "QR not found")
-    return FileResponse(p, media_type="image/png")
 
 
 # ----------------------------------------------------------------------------
@@ -1130,6 +1118,8 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
                 update["photo_data"] = picture
         await db.users.update_one({"_id": user["_id"]}, {"$set": update})
         updated = await db.users.find_one({"_id": user["_id"]})
+        from backend.activity_credits import _record_activity
+        await _record_activity(updated or user, "daily_login")
         return updated if updated is not None else user
 
     # New OAuth user — create with onboarding NOT yet completed so the client
@@ -1161,6 +1151,8 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
     }
     res = await db.users.insert_one(user_doc)
     user_doc["_id"] = res.inserted_id
+    from backend.activity_credits import _record_activity
+    await _record_activity(user_doc, "daily_login")
     return user_doc
 
 
