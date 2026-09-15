@@ -75,6 +75,8 @@ async def import_tickets_preview(
     """
     await _require_admin(request)
     content = await file.read()
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(content)
     from scripts.import_unstop_csv import parse_unstop_csv, build_registrations
     rows = parse_unstop_csv(content)
     if not rows:
@@ -109,6 +111,8 @@ async def import_tickets_registrations(
     await _require_admin(request)
     db = _get_db(request)
     content = await file.read()
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(content)
 
     from scripts.import_unstop_csv import parse_unstop_csv, build_registrations
 
@@ -7143,6 +7147,9 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
         file_bytes = base64.b64decode(data)
     else:
         raise HTTPException(status_code=400, detail="No file or base64 data provided")
+
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(file_bytes)
 
     MAX_SIZE = 10 * 1024 * 1024
     if len(file_bytes) > MAX_SIZE:

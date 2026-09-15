@@ -398,6 +398,8 @@ async def upload_file(
         contents = await file.read()
     except Exception as e:
         raise HTTPException(500, f"Failed to read uploaded file: {e}")
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(contents)
     max_size = 5 * 1024 * 1024  # 5 MB
     if len(contents) > max_size:
         raise HTTPException(413, "File too large. Maximum 5 MB allowed.")
@@ -1814,6 +1816,8 @@ async def upload_coupon_image(file: UploadFile = File(...), user: dict = Depends
     if ext not in allowed:
         raise HTTPException(400, f"File type {ext} not allowed")
     contents = await file.read()
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(contents)
     max_size = 5 * 1024 * 1024
     if len(contents) > max_size:
         raise HTTPException(413, "File too large. Maximum 5 MB allowed")

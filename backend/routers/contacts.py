@@ -382,6 +382,8 @@ async def import_contacts(
         raise HTTPException(status_code=400, detail="File must be a CSV or XLSX file")
     
     content = await file.read()
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(content)
     rows = []
     
     if is_csv:

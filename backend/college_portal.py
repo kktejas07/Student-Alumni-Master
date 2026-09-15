@@ -590,6 +590,8 @@ async def upload_college_students(file: UploadFile = File(...), user: dict = Dep
         raise HTTPException(400, "Must be a CSV or XLSX file")
         
     contents = await file.read()
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(contents)
     if len(contents) > 5 * 1024 * 1024:  # 5MB limit
         raise HTTPException(400, "File too large. Maximum size is 5MB.")
 
