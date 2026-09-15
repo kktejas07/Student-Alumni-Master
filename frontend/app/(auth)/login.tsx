@@ -178,6 +178,8 @@ export default function LoginScreen() {
         await processGoogleAuth({
           id_token: result.idToken,
           email: result.email,
+          full_name: result.name,
+          picture: result.picture,
         });
       } else {
         setLoading(false);
@@ -188,7 +190,7 @@ export default function LoginScreen() {
     }
   };
 
-  const processGoogleAuth = async (payload: { id_token?: string; email?: string }) => {
+  const processGoogleAuth = async (payload: { id_token?: string; email?: string; full_name?: string; picture?: string }) => {
     const emailToUse = (payload.email || googleEmailInput).trim().toLowerCase();
 
     if (!emailToUse || !emailToUse.includes('@')) {
@@ -200,8 +202,8 @@ export default function LoginScreen() {
     setLoading(true);
     setErrorMsg('');
     try {
-      const rawName = emailToUse.split('@')[0].replace(/[\._-]/g, ' ');
-      const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+      const rawName = payload.full_name || emailToUse.split('@')[0].replace(/[\._-]/g, ' ');
+      const formattedName = payload.full_name || (rawName.charAt(0).toUpperCase() + rawName.slice(1));
 
       const checkRes = await api.checkEmail(emailToUse).catch(() => null);
 
@@ -209,7 +211,7 @@ export default function LoginScreen() {
         id_token: payload.id_token,
         email: emailToUse,
         full_name: formattedName,
-        picture: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        picture: payload.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
         role: 'student'
       });
 

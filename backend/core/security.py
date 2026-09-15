@@ -221,7 +221,7 @@ def serialize_user(user: dict | None) -> dict | None:
         "dob":          decrypt_value(user.get("dob")),
         "country_code": user.get("country_code"),
         "postal_code":  decrypt_value(user.get("postal_code")),
-        "created_at": user.get("created_at"),
+        "created_at": user.get("created_at") or datetime.now(timezone.utc),
         "first_name":     user.get("first_name"),
         "last_name":      user.get("last_name"),
         "headline":       user.get("headline"),
