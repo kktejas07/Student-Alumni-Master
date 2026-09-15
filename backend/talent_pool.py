@@ -482,6 +482,9 @@ async def admin_import_talent_csv(
 
     content = await file.read()
 
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(content)
+
     rows: List[Dict[str, str]] = []
     if file.filename.lower().endswith(".csv"):
         text = content.decode("utf-8-sig", errors="replace")
@@ -1014,7 +1017,11 @@ async def ai_parse_resume(
     """AI Resume Parser: Extracts skills, education, experience, and projects from resume."""
     await _require_admin(authorization)
     filename = file.filename or "resume.pdf"
-    
+
+    from security_scanner import scan_file_for_viruses_async
+    content = await file.read()
+    await scan_file_for_viruses_async(content)
+
     return {
         "filename": filename,
         "parsed_profile": {

@@ -43,6 +43,8 @@ services:
       EMERGENT_LLM_KEY: ""
       FERNET_KEY: ""
       UVICORN_WORKERS: "2"
+      CLAMAV_HOST: ${CLAMAV_HOST:-globalservices-universalclamav-v9rmvc}
+      CLAMAV_PORT: "3310"
     depends_on:
       mongo:
         condition: service_healthy

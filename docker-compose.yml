@@ -38,6 +38,12 @@ services:
       EMERGENT_LLM_KEY: ${EMERGENT_LLM_KEY:-}
       FERNET_KEY:       ${FERNET_KEY:-}
       UVICORN_WORKERS:  ${UVICORN_WORKERS:-2}
+      # ── Virus scanning (shared ClamAV container, same Docker network) ──
+      # CLAMAV_HOST is the ClamAV container name; resolved internally via
+      # Docker DNS. Leave empty to disable scanning.
+      CLAMAV_HOST:      ${CLAMAV_HOST:-globalservices-universalclamav-v9rmvc}
+      CLAMAV_PORT:      ${CLAMAV_PORT:-3310}
+      CLAMAV_TIMEOUT:   ${CLAMAV_TIMEOUT:-10}
       # ── Email delivery (Postal — postalserver.io) ───────────────
       # POSTAL_API_URL / POSTAL_SERVER_API_KEY are the primary sender;
       # SendGrid + Gmail (marketplace) remain as fallback providers.
