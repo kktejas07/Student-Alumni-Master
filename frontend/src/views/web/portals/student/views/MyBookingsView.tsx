@@ -236,14 +236,14 @@ export function MyBookingsView() {
         <View style={s.modalOverlay}>
           <View style={s.modalContent}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 18 }}>Review Session</Text>
+              <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 18 }}>Review Session</Text>
               <Pressable onPress={() => setReviewModalData(null)}>
                 <X size={20} color="#999" />
               </Pressable>
             </View>
 
             <Text style={{ color: '#ccc', fontFamily: FONTS.med, fontSize: 14, marginBottom: 16 }}>
-              How was your session with <Text style={{ color: '#1C1C1E' }}>{reviewModalData.mentor_name}</Text> on <Text style={{ color: '#1C1C1E' }}>"{reviewModalData.topic}"</Text>?
+              How was your session with <Text style={{ color: '#FFFFFF' }}>{reviewModalData.mentor_name}</Text> on <Text style={{ color: '#FFFFFF' }}>"{reviewModalData.topic}"</Text>?
             </Text>
 
             <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 24 }}>
@@ -291,12 +291,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 const s = StyleSheet.create({
-  h1: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
+  h1: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
   sub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
   sectionTitle: { color: SC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 1, marginBottom: 8 },
   card: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12, padding: 14 },
   iconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(37,99,235,0.10)', borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  topic: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13.5 },
+  topic: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13.5 },
   meta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
   dot: { color: SC.dim, fontFamily: FONTS.med, fontSize: 11 },
   amount: { color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 12, marginTop: 4 },
@@ -308,7 +308,7 @@ const s = StyleSheet.create({
   inputContainer: { gap: 6, marginBottom: 20 },
   inputLabel: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, letterSpacing: 0.5 },
   textInputWrapper: { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: SC.border, borderWidth: 1, borderRadius: 10, padding: 12 },
-  textArea: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13, backgroundColor: 'transparent', borderWidth: 0, ...({ outline: 'none', resize: 'none' } as any) },
+  textArea: { color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 13, backgroundColor: 'transparent', borderWidth: 0, ...({ outline: 'none', resize: 'none' } as any) },
   submitBtn: { height: 42, backgroundColor: SC.accent, borderRadius: 10, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   submitBtnText: { color: '#1E1B4B', fontFamily: FONTS.bold, fontSize: 14 },
 });
