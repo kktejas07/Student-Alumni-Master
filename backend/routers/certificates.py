@@ -581,6 +581,8 @@ async def batch_import_certificates(
         raise HTTPException(400, "File must be a ZIP package")
 
     content = await file.read()
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(content)
     dest_dir = os.path.join("uploads", "certificates", "echo2026")
     os.makedirs(dest_dir, exist_ok=True)
 
@@ -803,6 +805,8 @@ async def upload_certificate(
         raise HTTPException(400, f"Unsupported file type: {ext}")
 
     content = await file.read()
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(content)
     if len(content) > 15 * 1024 * 1024:
         raise HTTPException(400, "File too large (max 15 MB)")
 
@@ -947,6 +951,8 @@ async def upload_zip_archive_certificates(
         raise HTTPException(400, "Must upload a valid .zip archive file")
 
     content = await file.read()
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(content)
     if len(content) > 100 * 1024 * 1024:  # 100 MB zip cap
         raise HTTPException(400, "ZIP archive file size exceeds 100 MB limit")
 
@@ -968,6 +974,8 @@ async def upload_zip_archive_certificates(
                 file_bytes = zf.read(zname)
                 if not file_bytes:
                     continue
+
+                await scan_file_for_viruses_async(file_bytes)
 
                 # Clean filename
                 clean_zname = os.path.basename(zname)
@@ -1200,6 +1208,8 @@ async def preview_csv(
         raise HTTPException(403, "Admin only")
     
     content = await csv_file.read()
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(content)
     rows = _parse_csv_rows(content)
     
     if not rows:
@@ -1258,7 +1268,11 @@ async def import_csv_zip_certificates(
         raise HTTPException(400, "CSV file must be a .csv file")
     try:
         csv_bytes = await csv_file.read()
+        from security_scanner import scan_file_for_viruses_async
+        await scan_file_for_viruses_async(csv_bytes)
         rows = _parse_csv_rows(csv_bytes)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(400, f"Could not parse CSV: {str(e)}")
     if not rows:
@@ -1273,6 +1287,8 @@ async def import_csv_zip_certificates(
             raise HTTPException(400, f"Each images file must be a .zip archive (got: {zf_upload.filename})")
         try:
             zip_content = await zf_upload.read()
+            from security_scanner import scan_file_for_viruses_async
+            await scan_file_for_viruses_async(zip_content)
             total_zip_bytes += len(zip_content)
             if total_zip_bytes > 1024 * 1024 * 1024:
                 raise HTTPException(400, "Total ZIP archive size exceeds 200 MB limit")
@@ -1588,6 +1604,8 @@ async def import_csv_zip_stream(
             raise HTTPException(400, f"Each images file must be a .zip (got: {zf_upload.filename})")
         try:
             zip_content = await zf_upload.read()
+            from security_scanner import scan_file_for_viruses_async
+            await scan_file_for_viruses_async(zip_content)
             total_zip_bytes += len(zip_content)
             if total_zip_bytes > 1024 * 1024 * 1024:
                 raise HTTPException(400, "Total ZIP size exceeds 200 MB")

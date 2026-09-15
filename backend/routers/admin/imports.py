@@ -546,6 +546,8 @@ async def upload_file(
     """Parse file, return preview + auto-mapped headers + per-row validation report."""
     await _require_admin(authorization)
     content = await file.read()
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(content)
     if len(content) > 500 * 1024 * 1024:
         raise HTTPException(413, "File exceeds 500 MB limit")
 
