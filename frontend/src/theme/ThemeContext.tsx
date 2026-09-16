@@ -30,13 +30,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Load persisted mode + listen to system changes
   useEffect(() => {
     let mounted = true;
-    AsyncStorage.getItem(STORAGE_KEY).then((m) => {
-      if (mounted && (m === 'light' || m === 'dark' || m === 'system')) {
-        setModeState(m as Mode);
-      } else if (mounted) {
-        setModeState('dark');
-      }
-    }).catch(() => {});
+    const local = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) || localStorage.getItem('theme') : null;
+    if (local === 'light' || local === 'dark' || local === 'system') {
+      setModeState(local as Mode);
+    } else {
+      AsyncStorage.getItem(STORAGE_KEY).then((m) => {
+        if (mounted && (m === 'light' || m === 'dark' || m === 'system')) {
+          setModeState(m as Mode);
+        } else if (mounted) {
+          setModeState('dark');
+        }
+      }).catch(() => {});
+    }
+
     setSystemDark(Appearance.getColorScheme() === 'dark');
     const sub = Appearance.addChangeListener(({ colorScheme }) => {
       setSystemDark(colorScheme === 'dark');
@@ -47,10 +53,34 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setMode = (m: Mode) => {
     setModeState(m);
     AsyncStorage.setItem(STORAGE_KEY, m).catch(() => {});
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(STORAGE_KEY, m);
+      } catch {}
+    }
   };
 
-  const isDark = mode !== 'light';
+  const isDark = mode === 'dark' || (mode === 'system' && systemDark) || (mode !== 'light' && mode !== 'system' ? true : false);
   const theme = isDark ? DARK : (LIGHT as unknown as Theme);
+
+  // Sync with document element for CSS override method
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      const root = document.documentElement;
+      if (isDark) {
+        root.classList.remove('light-mode');
+        root.classList.add('dark');
+        root.style.colorScheme = 'dark';
+      } else {
+        root.classList.add('light-mode');
+        root.classList.remove('dark');
+        root.style.colorScheme = 'light';
+      }
+      try {
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      } catch {}
+    }
+  }, [isDark, mode]);
 
   const value = useMemo<Ctx>(() => ({ theme, mode, setMode, isDark }), [theme, mode, isDark]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
