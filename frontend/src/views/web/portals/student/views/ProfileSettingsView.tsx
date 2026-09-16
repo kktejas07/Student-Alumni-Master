@@ -666,7 +666,7 @@ const st = StyleSheet.create({
   footerBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 18, paddingVertical: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1C1C1E',
     borderColor: '#2563EB', borderWidth: 1.5,
     borderRadius: 12, gap: 12,
     ...(Platform.OS === 'web' ? { boxShadow: '0 4px 20px rgba(37,99,235,0.15)' } as any : { elevation: 4, shadowColor: '#2563EB', shadowOpacity: 0.2, shadowRadius: 8 }),
@@ -685,7 +685,7 @@ const st = StyleSheet.create({
     backgroundColor: '#2563EB',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', boxShadow: '0 4px 14px rgba(37,99,235,0.40)' } as any) : {}),
   },
-  btnPrimaryText: { color: '#ffffff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  btnPrimaryText: { color: '#1C1C1E', fontFamily: 'DMSans_700Bold', fontSize: 12 },
 });
 
 export default ProfileSettingsView;

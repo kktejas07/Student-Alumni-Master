@@ -31,7 +31,7 @@ export function EventsView({ onNavigate }: { onNavigate?: (id: any) => void }) {
   return (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
-        <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16 }}>All Events ({events.length})</Text>
+        <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 16 }}>All Events ({events.length})</Text>
         <View style={{ flex: 1 }} />
         <Pressable style={s.cta} onPress={() => onNavigate?.('create-event')}>
           <Plus size={14} color="#fff" />
@@ -74,11 +74,11 @@ export function EventsView({ onNavigate }: { onNavigate?: (id: any) => void }) {
 }
 const s = StyleSheet.create({
   cta: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 14, height: 34, borderRadius: 10, backgroundColor: CC.primary },
-  ctaText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
+  ctaText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   card: { backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 14, padding: 16 },
   icon: { width: 40, height: 40, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  title: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 14, lineHeight: 18 },
+  title: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 14, lineHeight: 18 },
   date: { color: CC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 4 },
   manage: { marginTop: 12, height: 32, borderRadius: 8, backgroundColor: CC.card, borderWidth: 1, borderColor: CC.border2, alignItems: 'center', justifyContent: 'center' },
   manageText: { color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 12 },

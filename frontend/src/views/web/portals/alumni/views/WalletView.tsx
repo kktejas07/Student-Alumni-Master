@@ -82,9 +82,9 @@ export function WalletView() {
             <Gift size={14} color={SC.accent} />
             <Text style={{ color: SC.accent, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.6 }}>REFER & EARN</Text>
           </View>
-          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, marginTop: 8 }}>₹{REFER_EARN.toLocaleString('en-IN')} earned</Text>
+          <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 22, marginTop: 8 }}>₹{REFER_EARN.toLocaleString('en-IN')} earned</Text>
           <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 6 }}>You get ₹200 in wallet for every friend who joins SA. They get a free mentor session.</Text>
-          <Pressable style={s.referCta}><Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 }}>Share invite link</Text></Pressable>
+          <Pressable style={s.referCta}><Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12 }}>Share invite link</Text></Pressable>
         </View>
       </View>
 
@@ -92,18 +92,18 @@ export function WalletView() {
         <Pressable style={s.modalBg} onPress={() => setModal(false)}>
           <Pressable style={s.modalCard} onPress={() => {}}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16 }}>Top up SA Wallet</Text>
+              <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 16 }}>Top up SA Wallet</Text>
               <Pressable onPress={() => setModal(false)}><X size={18} color={SC.muted} /></Pressable>
             </View>
             <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginBottom: 8 }}>Amount (₹)</Text>
             <TextInput value={amt} onChangeText={setAmt} keyboardType="numeric" style={s.modalInput} placeholder="500" placeholderTextColor={SC.dim} />
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
               {[200, 500, 1000, 2000].map((q) => (
-                <Pressable key={q} onPress={() => setAmt(String(q))} style={s.quickBtn}><Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 }}>₹{q}</Text></Pressable>
+                <Pressable key={q} onPress={() => setAmt(String(q))} style={s.quickBtn}><Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12 }}>₹{q}</Text></Pressable>
               ))}
             </View>
             <Pressable style={[s.primaryCta, { backgroundColor: SC.primary, marginTop: 18 }]} onPress={onTopup}>
-              <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 }}>Pay ₹{amt} via UPI</Text>
+              <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 13 }}>Pay ₹{amt} via UPI</Text>
             </Pressable>
           </Pressable>
         </Pressable>
@@ -115,22 +115,22 @@ export function WalletView() {
 const s = StyleSheet.create({
   balCard: { borderRadius: 16, padding: 22 },
   kicker: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.8 },
-  bigBal: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 38, letterSpacing: -0.8, marginTop: 8 },
+  bigBal: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 38, letterSpacing: -0.8, marginTop: 8 },
   primaryCta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10, backgroundColor: '#fff' },
   primaryCtaText: { color: SC.primaryD, fontFamily: FONTS.xbold, fontSize: 12 },
   outlineCta: { paddingHorizontal: 14, height: 36, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.45)', alignItems: 'center', justifyContent: 'center' },
-  outlineCtaText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 },
+  outlineCtaText: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12 },
 
   card: { backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14, padding: 18 },
-  cardTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14 },
+  cardTitle: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 14 },
   txRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: SC.border },
   txIcon: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  txDesc: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
+  txDesc: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 },
   txMeta: { color: SC.dim, fontFamily: FONTS.med, fontSize: 11 },
   txAmount: { fontFamily: FONTS.xbold, fontSize: 13 },
   referCta: { marginTop: 12, height: 36, borderRadius: 10, backgroundColor: SC.primary, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', padding: 20 },
   modalCard: { width: '100%', maxWidth: 420, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 16, padding: 22 },
-  modalInput: { backgroundColor: SC.bg, borderColor: SC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, height: 44, color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 16, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  modalInput: { backgroundColor: SC.bg, borderColor: SC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, height: 44, color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 16, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   quickBtn: { paddingHorizontal: 14, height: 32, borderRadius: 8, borderWidth: 1, borderColor: SC.border, backgroundColor: SC.bg, justifyContent: 'center' },
 });

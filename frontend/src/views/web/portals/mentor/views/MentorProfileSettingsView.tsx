@@ -1827,7 +1827,7 @@ export function MentorProfileSettingsView({
                   <Text style={st.idDetailsValue}>SM-8-687562</Text>
                 </View>
                 <Pressable onPress={handleCopyId} style={st.idCopyBtn}>
-                  <MaterialCommunityIcons name="content-copy" size={14} color="#ffffff" />
+                  <MaterialCommunityIcons name="content-copy" size={14} color="#1C1C1E" />
                   <Text style={st.idCopyBtnText}>Copy ID</Text>
                 </Pressable>
               </View>
@@ -1840,12 +1840,12 @@ export function MentorProfileSettingsView({
                 </Pressable>
                 
                 <Pressable onPress={handleShareProfile} style={st.actionOutlineBtn}>
-                  <MaterialCommunityIcons name="share-variant-outline" size={14} color="#ffffff" />
+                  <MaterialCommunityIcons name="share-variant-outline" size={14} color="#1C1C1E" />
                   <Text style={st.actionOutlineBtnText}>Share Profile</Text>
                 </Pressable>
 
                 <Pressable onPress={handleFlipCard} style={st.actionOutlineBtn}>
-                  <MaterialCommunityIcons name="refresh" size={14} color="#ffffff" />
+                  <MaterialCommunityIcons name="refresh" size={14} color="#1C1C1E" />
                   <Text style={st.actionOutlineBtnText}>Flip Card</Text>
                 </Pressable>
               </View>
@@ -1856,7 +1856,7 @@ export function MentorProfileSettingsView({
                   <QRCode
                     value="https://studentalumni.in/mentor/SM-8-687562"
                     size={80}
-                    backgroundColor="#ffffff"
+                    backgroundColor="#1C1C1E"
                     color="#000000"
                   />
                 </View>
@@ -2536,7 +2536,7 @@ const st = StyleSheet.create({
     fontSize: 14,
   },
   cardLogoTitle: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 12.5,
   },
@@ -2588,7 +2588,7 @@ const st = StyleSheet.create({
     justifyContent: 'center',
   },
   cardAvatarText: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 20,
   },
@@ -2597,7 +2597,7 @@ const st = StyleSheet.create({
     gap: 2,
   },
   cardName: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 17,
   },
@@ -2619,7 +2619,7 @@ const st = StyleSheet.create({
     letterSpacing: 0.8,
   },
   cardFooterId: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 16,
     letterSpacing: 0.5,
@@ -2649,7 +2649,7 @@ const st = StyleSheet.create({
     letterSpacing: 0.8,
   },
   cardBackId: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 20,
     letterSpacing: 0.8,
@@ -2699,7 +2699,7 @@ const st = StyleSheet.create({
     letterSpacing: 0.5,
   },
   idDetailsValue: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 16,
     letterSpacing: 0.5,
@@ -2718,7 +2718,7 @@ const st = StyleSheet.create({
     cursor: 'pointer',
   },
   idCopyBtnText: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 12,
   },
@@ -2761,7 +2761,7 @@ const st = StyleSheet.create({
     cursor: 'pointer',
   },
   actionOutlineBtnText: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 12,
   },
@@ -2782,13 +2782,13 @@ const st = StyleSheet.create({
   },
   qrCodeWrapper: {
     padding: 8,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#1C1C1E',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   qrSectionTitle: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 14,
   },
@@ -2845,7 +2845,7 @@ const st = StyleSheet.create({
     justifyContent: 'center',
   },
   gridItemTitle: {
-    color: '#ffffff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 12,
   },

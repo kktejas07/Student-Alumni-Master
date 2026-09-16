@@ -70,6 +70,7 @@ export function DashboardView() {
   const [topMatches, setTopMatches] = useState<any[]>([]);
   const [totalMatches, setTotalMatches] = useState(267);
   const [applyModalJob, setApplyModalJob] = useState<any | null>(null);
+  const [topMentors, setTopMentors] = useState<any[]>([]);
 
   useEffect(() => {
     request<any>('/opportunities?limit=3')
@@ -77,6 +78,18 @@ export function DashboardView() {
         if (res && res.items) {
           setTopMatches(res.items.slice(0, 3));
           setTotalMatches(res.total || 0);
+        }
+      })
+      .catch(() => {});
+
+    request<any>('/student/network?limit=20')
+      .then((res) => {
+        if (res && Array.isArray(res)) {
+          const mentors = res.filter((u: any) => u.role === 'Mentor').slice(0, 3);
+          setTopMentors(mentors);
+        } else if (res && Array.isArray(res.items)) {
+          const mentors = res.items.filter((u: any) => u.role === 'Mentor').slice(0, 3);
+          setTopMentors(mentors);
         }
       })
       .catch(() => {});
@@ -645,7 +658,9 @@ export function DashboardView() {
                           method: 'POST',
                           body: { student_email: authUser?.email || undefined }
                         });
-                        setTopMatches(prev => prev.map(job => (job.id === applyModalJob.id || job.job_id === applyModalJob.job_id) ? { ...job, applied: true } : job));
+                        setTopMatches(prev => prev.map(job => (
+                          job === applyModalJob || (job.title === applyModalJob.title && job.company === applyModalJob.company)
+                        ) ? { ...job, applied: true } : job));
                         setApplyModalJob(null);
                       } catch (e) {
                         setApplyModalJob(null);
@@ -829,24 +844,23 @@ export function DashboardView() {
               </span>
             </div>
             <div style={{ display: 'grid', gap: '8px' }}>
-              {[
-                { initial: 'PM', color: '#DB2777', name: 'Priya Mehta', role: 'PM @ Microsoft · 4.8' },
-                { initial: 'AV', color: '#10B981', name: 'Arjun Verma', role: 'Data Scientist @ Amazon · 4.7' },
-                { initial: 'VS', color: '#2563EB', name: 'Vikram Singh', role: 'Cloud Architect @ AWS · 4.9' },
-              ].map((men) => (
-                <div key={men.name} style={{ display: 'grid', gridTemplateColumns: '36px minmax(0, 1fr) max-content', gap: '12px', alignItems: 'center', borderRadius: '11px', padding: '9px 11px', background: 'rgba(255,255,255,0.02)' }}>
-                  <span style={{ width: '36px', height: '36px', borderRadius: '50%', background: men.color, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700 }}>
-                    {men.initial}
+              {(topMentors && topMentors.length > 0 ? topMentors : []).map((men) => (
+                <div key={men.id || men.name} style={{ display: 'grid', gridTemplateColumns: '36px minmax(0, 1fr) max-content', gap: '12px', alignItems: 'center', borderRadius: '11px', padding: '9px 11px', background: 'rgba(255,255,255,0.02)' }}>
+                  <span style={{ width: '36px', height: '36px', borderRadius: '50%', background: men.color || '#10B981', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700 }}>
+                    {men.initials || 'M'}
                   </span>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: '14px', fontWeight: 600 }}>{men.name}</div>
-                    <div style={{ fontSize: '12px', color: '#8A8A9E', marginTop: '2px' }}>{men.role}</div>
+                    <div style={{ fontSize: '12px', color: '#8A8A9E', marginTop: '2px' }}>{men.subline}</div>
                   </div>
                   <button style={{ fontSize: '12.5px', fontWeight: 600, color: '#34D399', border: '1px solid #17503E', background: 'transparent', borderRadius: '8px', padding: '8px 13px', cursor: 'pointer' }}>
                     Book
                   </button>
                 </div>
               ))}
+              {(!topMentors || topMentors.length === 0) && (
+                <div style={{ fontSize: '13px', color: '#8A8A9E', padding: '20px', textAlign: 'center' }}>No mentors available with capacity right now.</div>
+              )}
             </div>
           </div>
 

@@ -483,14 +483,14 @@ const k = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, alignSelf: 'flex-start',
   },
-  pillGradText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.4 },
+  pillGradText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.4 },
 
   tabsOuter: { backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14 },
   tabActive: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 13, paddingVertical: 8, borderRadius: 10,
   },
-  tabActiveText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  tabActiveText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12.5 },
   tabInactive: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 13, paddingVertical: 8, borderRadius: 10,
@@ -506,7 +506,7 @@ const k = StyleSheet.create({
     paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.22)', minWidth: 20, alignItems: 'center',
   },
-  tabCountActiveText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 10 },
+  tabCountActiveText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 10 },
 
   searchBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,

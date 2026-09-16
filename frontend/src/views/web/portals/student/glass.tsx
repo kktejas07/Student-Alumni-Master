@@ -477,7 +477,7 @@ const gb = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 7, borderRadius: 999,
   },
-  label: { color: '#1C1C1E', fontFamily: TYPO.body700, letterSpacing: 0.2 },
+  label: { color: '#FFFFFF', fontFamily: TYPO.body700, letterSpacing: 0.2 },
 });
 
 /* ─────────────────────────────────────────────────────────────────
@@ -601,8 +601,8 @@ const fab = StyleSheet.create({
     paddingHorizontal: 22,
     borderRadius: 9999,
   },
-  spark: { color: '#1C1C1E', fontSize: 18, fontFamily: TYPO.display700, lineHeight: 22 },
-  label: { color: '#1C1C1E', fontSize: 14, fontFamily: TYPO.body700, letterSpacing: 0.3 },
+  spark: { color: '#FFFFFF', fontSize: 18, fontFamily: TYPO.display700, lineHeight: 22 },
+  label: { color: '#FFFFFF', fontSize: 14, fontFamily: TYPO.body700, letterSpacing: 0.3 },
 });
 
 import { GlobalTopProgressBar } from '../../components/AppLoader';
