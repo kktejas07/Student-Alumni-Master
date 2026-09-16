@@ -32,12 +32,14 @@ import { View, Text, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StudentPortalNavContext } from '../StudentPortalNavContext';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useTheme } from '@/src/theme/ThemeContext';
 import { request } from '@/src/models/services/api';
 
 export function DashboardView() {
   const router = useRouter();
   const portalNav = useContext(StudentPortalNavContext);
   const authUser = useAuthStore((u) => u.user);
+  const { isDark } = useTheme();
 
   // Tabs: 'opportunities' | 'intelligence'
   const [activeTab, setActiveTab] = useState<'opportunities' | 'intelligence'>('opportunities');

@@ -449,24 +449,13 @@ function TestimonialCard({ t }: { t: any }) {
       <View style={tc.footer}>
         <View style={tc.avatar}>
           {photoUri ? (
-            <Image source={{ uri: photoUri }} style={{ width: 36, height: 36, borderRadius: 18 }} resizeMode="cover" />
-          ) : (
-            <Text style={tc.avatarText}>{(t.name || 'U')[0]}</Text>
-          )}
+          <Text style={tc.avatarText}>{(t.name || 'U')[0]}</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={tc.name}>{t.name}</Text>
-          <Text style={tc.meta}>{[t.department || t.branch, t.year].filter(Boolean).join(', ')}</Text>
-          {t.linkedin_url ? (
-            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: GRAD.from, marginTop: 2 }} numberOfLines={1}>
-              {t.linkedin_url}
-            </Text>
-          ) : null}
-        </View>
-        <View style={{ flexDirection: 'row', gap: 2 }}>
-          {Array.from({ length: t.rating || 5 }).map((_, i) => (
-            <Star key={i} size={11} color="#F59E0B" fill="#F59E0B" />
-          ))}
+          <Text style={[tc.name, { color: isDark ? '#fff' : '#0F172A' }]}>{t.name}</Text>
+          <Text style={[tc.meta, { color: isDark ? PALETTE.muted : '#64748B' }]} numberOfLines={1}>
+            {[t.role, t.company || t.college].filter(Boolean).join(' · ')}
+          </Text>
         </View>
       </View>
     </View>
@@ -474,11 +463,11 @@ function TestimonialCard({ t }: { t: any }) {
 }
 const tc = StyleSheet.create({
   card: {
-    flex: 1, minWidth: 180, backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 14, borderWidth: 1, borderColor: PALETTE.glassBorder,
+    flex: 1, minWidth: 180,
+    borderRadius: 14, borderWidth: 1,
     padding: 16, gap: 14,
   },
-  quote: { fontFamily: TYPO.body400, fontSize: 13, color: PALETTE.text, lineHeight: 20 },
+  quote: { fontFamily: TYPO.body400, fontSize: 13, lineHeight: 20 },
   footer: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   avatar: {
     width: 36, height: 36, borderRadius: 18,
@@ -486,16 +475,24 @@ const tc = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   avatarText: { fontFamily: TYPO.display700, fontSize: 14, color: GRAD.from },
-  name: { fontFamily: TYPO.body700, fontSize: 12.5, color: '#fff' },
-  meta: { fontFamily: TYPO.body400, fontSize: 11, color: PALETTE.muted },
+  name: { fontFamily: TYPO.body700, fontSize: 12.5 },
+  meta: { fontFamily: TYPO.body400, fontSize: 11 },
 });
 
 // ── Speaker Card ────────────────────────────────────────────────────────────
 function SpeakerCard({ sp, panel = false }: { sp: any; panel?: boolean }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   const accent = panel ? '#F472B6' : GRAD.from;
   const photoUri = sp.photo_url ? resolveImageUrl(sp.photo_url) : null;
   return (
-    <View style={[spk.card, panel && { borderColor: 'rgba(236,72,153,0.28)' }]}>
+    <View style={[
+      spk.card,
+      {
+        backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
+        borderColor: panel ? (isDark ? 'rgba(236,72,153,0.28)' : 'rgba(236,72,153,0.35)') : (isDark ? PALETTE.glassBorder : 'rgba(0,0,0,0.08)'),
+      }
+    ]}>
       <View style={spk.top}>
         <View style={[spk.avatar, { backgroundColor: (accent + '22') }]}>
           {photoUri ? (
@@ -505,37 +502,37 @@ function SpeakerCard({ sp, panel = false }: { sp: any; panel?: boolean }) {
           )}
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={spk.name} numberOfLines={1}>{sp.name}</Text>
-          <Text style={spk.role} numberOfLines={1}>
+          <Text style={[spk.name, { color: isDark ? '#fff' : '#0F172A' }]} numberOfLines={1}>{sp.name}</Text>
+          <Text style={[spk.role, { color: isDark ? PALETTE.muted : '#64748B' }]} numberOfLines={1}>
             {[sp.position, sp.company].filter(Boolean).join(' · ')}
           </Text>
           {sp.session_title ? (
-            <Text style={spk.session} numberOfLines={1}> {sp.session_title}</Text>
+            <Text style={[spk.session, { color: isDark ? PALETTE.dim : '#94A3B8' }]} numberOfLines={1}> {sp.session_title}</Text>
           ) : null}
         </View>
       </View>
-      {sp.bio ? <Text style={spk.bio} numberOfLines={3}>{sp.bio}</Text> : null}
+      {sp.bio ? <Text style={[spk.bio, { color: isDark ? PALETTE.muted : '#475569' }]} numberOfLines={3}>{sp.bio}</Text> : null}
       {(sp.linkedin_url || sp.twitter_url || sp.website_url) && (
         <View style={spk.links}>
           {sp.linkedin_url ? (
-            <Pressable onPress={() => Platform.OS === 'web' && window.open(sp.linkedin_url, '_blank')} style={[spk.linkBtn, { borderColor: accent + '44' }]}>
+            <Pressable onPress={() => Platform.OS === 'web' && window.open(sp.linkedin_url, '_blank')} style={[spk.linkBtn, { borderColor: accent + '44', backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC' }]}>
               <Link2 size={12} color={accent} />
             </Pressable>
           ) : null}
           {sp.twitter_url ? (
-            <Pressable onPress={() => Platform.OS === 'web' && window.open(sp.twitter_url, '_blank')} style={[spk.linkBtn, { borderColor: accent + '44' }]}>
+            <Pressable onPress={() => Platform.OS === 'web' && window.open(sp.twitter_url, '_blank')} style={[spk.linkBtn, { borderColor: accent + '44', backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC' }]}>
               <Globe size={12} color={accent} />
             </Pressable>
           ) : null}
           {sp.website_url ? (
-            <Pressable onPress={() => Platform.OS === 'web' && window.open(sp.website_url, '_blank')} style={[spk.linkBtn, { borderColor: accent + '44' }]}>
+            <Pressable onPress={() => Platform.OS === 'web' && window.open(sp.website_url, '_blank')} style={[spk.linkBtn, { borderColor: accent + '44', backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC' }]}>
               <ExternalLink size={12} color={accent} />
             </Pressable>
           ) : null}
         </View>
       )}
       {panel && (
-        <View style={[spk.pill, { backgroundColor: 'rgba(236,72,153,0.12)', borderColor: 'rgba(236,72,153,0.35)' }]}>
+        <View style={[spk.pill, { backgroundColor: isDark ? 'rgba(236,72,153,0.12)' : 'rgba(236,72,153,0.08)', borderColor: 'rgba(236,72,153,0.35)' }]}>
           <PanelTop size={10} color="#F472B6" />
           <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#F472B6', letterSpacing: 0.4 }}>PANEL MEMBER</Text>
         </View>
@@ -545,22 +542,21 @@ function SpeakerCard({ sp, panel = false }: { sp: any; panel?: boolean }) {
 }
 const spk = StyleSheet.create({
   card: {
-    flex: 1, minWidth: 240, backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 14, borderWidth: 1, borderColor: PALETTE.glassBorder,
+    flex: 1, minWidth: 240,
+    borderRadius: 14, borderWidth: 1,
     padding: 16, gap: 10,
   },
   top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontFamily: TYPO.display800, fontSize: 20 },
-  name: { fontFamily: TYPO.display700, fontSize: 15, color: '#fff' },
-  role: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted, marginTop: 1 },
-  session: { fontFamily: TYPO.body500, fontSize: 10.5, color: PALETTE.dim, marginTop: 2 },
-  bio: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted, lineHeight: 18 },
+  name: { fontFamily: TYPO.display700, fontSize: 15 },
+  role: { fontFamily: TYPO.body400, fontSize: 12, marginTop: 1 },
+  session: { fontFamily: TYPO.body500, fontSize: 10.5, marginTop: 2 },
+  bio: { fontFamily: TYPO.body400, fontSize: 12, lineHeight: 18 },
   links: { flexDirection: 'row', gap: 6 },
   linkBtn: {
     width: 28, height: 28, borderRadius: 14, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
   },
   pill: {
     flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
@@ -570,6 +566,8 @@ const spk = StyleSheet.create({
 
 // ── Category Card ───────────────────────────────────────────────────────────
 function CategoryCard({ c }: { c: any }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   const color = c.color || GRAD.from;
   const IconMap: Record<string, any> = {
     brain: Zap, leaf: Target, landmark: Building2, bus: Users, heartpulse: Award,
@@ -577,13 +575,19 @@ function CategoryCard({ c }: { c: any }) {
   };
   const Icon = IconMap[c.icon] || IconMap.default;
   return (
-    <View style={[cat.card, { borderColor: (color + '33') }]}>
+    <View style={[
+      cat.card,
+      {
+        backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF',
+        borderColor: isDark ? (color + '33') : 'rgba(0,0,0,0.08)',
+      }
+    ]}>
       <View style={[cat.iconWrap, { backgroundColor: (color + '1A') }]}>
         <Icon size={18} color={color} />
       </View>
       <View style={{ flex: 1, gap: 3 }}>
-        <Text style={cat.name}>{c.name}</Text>
-        {c.description ? <Text style={cat.desc} numberOfLines={2}>{c.description}</Text> : null}
+        <Text style={[cat.name, { color: isDark ? '#fff' : '#0F172A' }]}>{c.name}</Text>
+        {c.description ? <Text style={[cat.desc, { color: isDark ? PALETTE.muted : '#64748B' }]} numberOfLines={2}>{c.description}</Text> : null}
       </View>
     </View>
   );
@@ -591,78 +595,94 @@ function CategoryCard({ c }: { c: any }) {
 const cat = StyleSheet.create({
   card: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12,
-    borderWidth: 1, padding: 14, minWidth: 240, flex: 1,
+    borderRadius: 12, borderWidth: 1, padding: 14, minWidth: 240, flex: 1,
   },
   iconWrap: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  name: { fontFamily: TYPO.display700, fontSize: 13.5, color: '#fff' },
-  desc: { fontFamily: TYPO.body400, fontSize: 11.5, color: PALETTE.muted, lineHeight: 16 },
+  name: { fontFamily: TYPO.display700, fontSize: 13.5 },
+  desc: { fontFamily: TYPO.body400, fontSize: 11.5, lineHeight: 16 },
 });
 
 // ── Schedule Row ───────────────────────────────────────────────────────────
 function ScheduleRow({ it }: { it: any }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   const type = it.session_type || 'session';
-  const badgeColMap: Record<string, any> = {
+  const badgeColMap: Record<string, any> = isDark ? {
     keynote: { bg: 'rgba(124,58,237,0.15)', text: '#A78BFA', label: 'KEYNOTE' },
     panel: { bg: 'rgba(236,72,153,0.14)', text: '#F472B6', label: 'PANEL' },
     workshop: { bg: 'rgba(16,185,129,0.13)', text: '#34D399', label: 'WORKSHOP' },
     activity: { bg: 'rgba(245,158,11,0.13)', text: '#FBBF24', label: 'ACTIVITY' },
     break: { bg: 'rgba(148,163,184,0.13)', text: '#94A3B8', label: 'BREAK' },
     session: { bg: 'rgba(99,102,241,0.13)', text: '#A5B4FC', label: 'SESSION' },
+  } : {
+    keynote: { bg: 'rgba(124,58,237,0.09)', text: '#6D28D9', label: 'KEYNOTE' },
+    panel: { bg: 'rgba(236,72,153,0.09)', text: '#BE185D', label: 'PANEL' },
+    workshop: { bg: 'rgba(16,185,129,0.09)', text: '#047857', label: 'WORKSHOP' },
+    activity: { bg: 'rgba(245,158,11,0.09)', text: '#B45309', label: 'ACTIVITY' },
+    break: { bg: 'rgba(100,116,139,0.09)', text: '#475569', label: 'BREAK' },
+    session: { bg: 'rgba(99,102,241,0.09)', text: '#4338CA', label: 'SESSION' },
   };
   const b = badgeColMap[type] || badgeColMap.session;
   return (
-    <View style={sch.row}>
+    <View style={[sch.row, !isDark && { borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)' }]}>
       <View style={sch.timeCol}>
-        <Text style={sch.time}>{it.time || '—'}</Text>
+        <Text style={[sch.time, { color: isDark ? '#A78BFA' : '#6D28D9' }]}>{it.time || '—'}</Text>
       </View>
       <View style={sch.dot} />
       <View style={sch.body}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <Text style={sch.title}>{it.title}</Text>
+          <Text style={[sch.title, { color: isDark ? '#fff' : '#0F172A' }]}>{it.title}</Text>
           <View style={[sch.badge, { backgroundColor: b.bg }]}>
             <Text style={[sch.badgeText, { color: b.text }]}>{b.label}</Text>
           </View>
         </View>
-        {it.description ? <Text style={sch.desc}>{it.description}</Text> : null}
+        {it.description ? <Text style={[sch.desc, { color: isDark ? PALETTE.muted : '#475569' }]}>{it.description}</Text> : null}
         {it.speaker_names && it.speaker_names.length > 0 ? (
-          <Text style={sch.speakers}>Speakers: {it.speaker_names.join(', ')}</Text>
+          <Text style={[sch.speakers, { color: isDark ? PALETTE.dim : '#64748B' }]}>Speakers: {it.speaker_names.join(', ')}</Text>
         ) : null}
       </View>
     </View>
   );
 }
 const sch = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12 },
   timeCol: { width: 84, alignItems: 'flex-end', paddingTop: 2 },
-  time: { fontFamily: FONTS.bold, fontSize: 12.5, color: '#A78BFA' },
+  time: { fontFamily: FONTS.bold, fontSize: 12.5 },
   dot: {
     width: 10, height: 10, borderRadius: 5, marginTop: 5,
     backgroundColor: GRAD.from, borderWidth: 2, borderColor: (GRAD.from + '44'),
   },
   body: { flex: 1, gap: 3 },
-  title: { fontFamily: TYPO.display700, fontSize: 13.5, color: '#fff' },
+  title: { fontFamily: TYPO.display700, fontSize: 13.5 },
   badge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
   badgeText: { fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 0.4 },
-  desc: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted, lineHeight: 17 },
-  speakers: { fontFamily: TYPO.body500, fontSize: 11, color: PALETTE.dim },
+  desc: { fontFamily: TYPO.body400, fontSize: 12, lineHeight: 17 },
+  speakers: { fontFamily: TYPO.body500, fontSize: 11 },
 });
 
 // ── Panel Card ─────────────────────────────────────────────────────────────
 function PanelCard({ p }: { p: any }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   return (
-    <View style={pn.card}>
+    <View style={[
+      pn.card,
+      {
+        backgroundColor: isDark ? 'rgba(236,72,153,0.05)' : '#FFFFFF',
+        borderColor: isDark ? 'rgba(236,72,153,0.22)' : 'rgba(236,72,153,0.25)',
+      }
+    ]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <PanelTop size={15} color="#F472B6" />
-        <Text style={pn.topic}>{p.topic}</Text>
+        <Text style={[pn.topic, { color: isDark ? '#fff' : '#0F172A' }]}>{p.topic}</Text>
       </View>
-      {p.description ? <Text style={pn.desc}>{p.description}</Text> : null}
+      {p.description ? <Text style={[pn.desc, { color: isDark ? PALETTE.muted : '#475569' }]}>{p.description}</Text> : null}
       {p.panelists && p.panelists.length > 0 && (
         <View style={{ gap: 4, marginTop: 4 }}>
           {p.panelists.filter(Boolean).map((name: string, i: number) => (
             <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <CheckCircle2 size={11} color="#F472B6" />
-              <Text style={pn.panelist}>{name}</Text>
+              <Text style={[pn.panelist, { color: isDark ? 'rgba(255,255,255,0.8)' : '#334155' }]}>{name}</Text>
             </View>
           ))}
         </View>
@@ -672,43 +692,51 @@ function PanelCard({ p }: { p: any }) {
 }
 const pn = StyleSheet.create({
   card: {
-    flex: 1, minWidth: 260, backgroundColor: 'rgba(236,72,153,0.05)',
-    borderRadius: 14, borderWidth: 1, borderColor: 'rgba(236,72,153,0.22)',
+    flex: 1, minWidth: 260,
+    borderRadius: 14, borderWidth: 1,
     padding: 16, gap: 4,
   },
-  topic: { fontFamily: TYPO.display700, fontSize: 14, color: '#fff', flex: 1 },
-  desc: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted, lineHeight: 18 },
-  panelist: { fontFamily: TYPO.body500, fontSize: 12, color: 'rgba(255,255,255,0.8)' },
+  topic: { fontFamily: TYPO.display700, fontSize: 14, flex: 1 },
+  desc: { fontFamily: TYPO.body400, fontSize: 12, lineHeight: 18 },
+  panelist: { fontFamily: TYPO.body500, fontSize: 12 },
 });
 
 // ── FAQ Item ───────────────────────────────────────────────────────────────
 function FaqItem({ f, open, onToggle }: { f: any; open: boolean; onToggle: () => void }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   return (
-    <View style={[fq.wrap, open && { borderColor: 'rgba(16,185,129,0.35)' }]}>
+    <View style={[
+      fq.wrap,
+      {
+        backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF',
+        borderColor: open ? 'rgba(16,185,129,0.4)' : (isDark ? PALETTE.glassBorder : 'rgba(0,0,0,0.08)'),
+      }
+    ]}>
       <Pressable onPress={onToggle} style={fq.head}>
         <HelpCircle size={15} color="#34D399" />
-        <Text style={fq.q}>{f.question}</Text>
-        <ChevronDown size={15} color={PALETTE.muted} style={[open && { transform: [{ rotate: '180deg' }] }]} />
+        <Text style={[fq.q, { color: isDark ? '#fff' : '#0F172A' }]}>{f.question}</Text>
+        <ChevronDown size={15} color={isDark ? PALETTE.muted : '#64748B'} style={[open && { transform: [{ rotate: '180deg' }] }]} />
       </Pressable>
-      {open && <Text style={fq.a}>{f.answer}</Text>}
+      {open && <Text style={[fq.a, { color: isDark ? PALETTE.muted : '#475569' }]}>{f.answer}</Text>}
     </View>
   );
 }
 const fq = StyleSheet.create({
   wrap: {
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12,
-    borderWidth: 1, borderColor: PALETTE.glassBorder, overflow: 'hidden',
+    borderRadius: 12, borderWidth: 1, overflow: 'hidden',
   },
   head: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 14, paddingVertical: 13,
   },
-  q: { flex: 1, fontFamily: TYPO.display700, fontSize: 13, color: '#fff' },
-  a: { fontFamily: TYPO.body400, fontSize: 12.5, color: PALETTE.muted, lineHeight: 19, paddingHorizontal: 14, paddingBottom: 14 },
+  q: { flex: 1, fontFamily: TYPO.display700, fontSize: 13 },
+  a: { fontFamily: TYPO.body400, fontSize: 12.5, lineHeight: 19, paddingHorizontal: 14, paddingBottom: 14 },
 });
 
 // ── Section Heading (icon chip + title, matching reference) ────────────────
 function SectionHeading({ icon, title, tint }: { icon: any; title: string; tint?: string }) {
+  const { isDark } = useTheme();
   const Icon = icon;
   const t = tint || GRAD.from;
   return (
@@ -716,7 +744,7 @@ function SectionHeading({ icon, title, tint }: { icon: any; title: string; tint?
       <View style={[sh.chip, { backgroundColor: (t + '1F') }]}>
         <Icon size={16} color={t} />
       </View>
-      <Text style={sh.title}>{title}</Text>
+      <Text style={[sh.title, { color: isDark ? '#fff' : '#0F172A' }]}>{title}</Text>
     </View>
   );
 }
@@ -748,6 +776,9 @@ const gc = StyleSheet.create({
 export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () => void }) {
   const { width } = useWindowDimensions();
   const isWide = width >= 860;
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
+  const SC = useColors();
   const [data, setData] = useState<any>(DEFAULT_SHOWCASE);
   const [loading, setLoading] = useState(true);
   const [lbOpen, setLbOpen] = useState(false);
