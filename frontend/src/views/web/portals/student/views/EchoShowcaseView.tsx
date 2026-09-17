@@ -24,14 +24,14 @@ import {
   Trophy, PanelTop, CheckCircle2, ExternalLink,
 } from 'lucide-react-native';
 import { api, resolveImageUrl } from '@/src/models/services/api';
-import { PALETTE, SC, FONTS, TYPO } from '../tokens';
+import { PALETTE, usePalette, SC, FONTS, TYPO } from '../tokens';
 import { GlassCard } from '../glass';
 import { FadeInView, PressScale } from '../motion';
 import { GRAD } from '../portalkit';
 import { useRouter } from 'expo-router';
 import { EchoImg } from '@/src/views/web/components/EchoChrome';
 import { useToast } from '@/src/views/components';
-import { useTheme, usePalette, useColors } from '@/src/theme/ThemeContext';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 // ── Status badge colors ─────────────────────────────────────────────────────
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
@@ -806,7 +806,6 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
   const isWide = width >= 860;
   const { isDark } = useTheme();
   const PALETTE = usePalette();
-  const SC = useColors();
   const [data, setData] = useState<any>(DEFAULT_SHOWCASE);
   const [loading, setLoading] = useState(true);
   const [lbOpen, setLbOpen] = useState(false);
