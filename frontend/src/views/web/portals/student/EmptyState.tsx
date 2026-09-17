@@ -38,6 +38,7 @@ import { SC, FONTS } from './tokens';
 import { GRADS } from './gradients';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PressScale } from './motion';
+import { useTheme } from '@/src/theme/ThemeContext';
 import {
   Bookmark, Calendar, FileText, GraduationCap, Users, Sparkles,
 } from './iconShims';
@@ -67,10 +68,19 @@ export function EmptyState({
   cta?: { label: string; onPress: () => void };
   compact?: boolean;
 }) {
+  const { isDark } = useTheme();
   const meta = VARIANT_META[variant];
   return (
     <View
-      style={[s.wrap, compact && { paddingVertical: 28 }]}
+      style={[
+        s.wrap,
+        compact && { paddingVertical: 28 },
+        !isDark && {
+          backgroundColor: '#FFFFFF',
+          borderColor: 'rgba(0,0,0,0.08)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+        }
+      ]}
       accessibilityRole="summary"
       accessibilityLabel={`${meta.label}. ${title}. ${body || ''}`}
     >
@@ -78,13 +88,23 @@ export function EmptyState({
         <Illustration variant={variant} />
       </View>
       <Text
-        style={s.title}
+        style={[
+          s.title,
+          { color: isDark ? '#FFFFFF' : '#0F172A' }
+        ]}
         // @ts-ignore web-only role helper
         accessibilityRole={Platform.OS === 'web' ? ('heading' as any) : ('header' as any)}
       >
         {title}
       </Text>
-      {!!body && <Text style={s.body}>{body}</Text>}
+      {!!body && (
+        <Text style={[
+          s.body,
+          { color: isDark ? SC.muted : '#64748B' }
+        ]}>
+          {body}
+        </Text>
+      )}
       {cta && (
         <PressScale onPress={cta.onPress}>
           <View
