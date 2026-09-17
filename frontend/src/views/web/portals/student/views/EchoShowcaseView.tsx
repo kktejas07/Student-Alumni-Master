@@ -31,6 +31,7 @@ import { GRAD } from '../portalkit';
 import { useRouter } from 'expo-router';
 import { EchoImg } from '@/src/views/web/components/EchoChrome';
 import { useToast } from '@/src/views/components';
+import { useTheme, usePalette, useColors } from '@/src/theme/ThemeContext';
 
 // ── Status badge colors ─────────────────────────────────────────────────────
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
@@ -364,12 +365,20 @@ const bc = StyleSheet.create({
 
 // ── Stat Card ──────────────────────────────────────────────────────────────
 function StatCard({ stat }: { stat: any }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   const Icon = STAT_ICONS[stat.icon] || STAT_ICONS.default;
   return (
-    <View style={st.card}>
+    <View style={[
+      st.card,
+      {
+        backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
+        borderColor: isDark ? PALETTE.glassBorder : 'rgba(0,0,0,0.08)',
+      }
+    ]}>
       <View style={st.iconWrap}><Icon size={22} color={GRAD.from} /></View>
-      <Text style={st.value}>{stat.value}</Text>
-      <Text style={st.label}>{stat.label}</Text>
+      <Text style={[st.value, { color: isDark ? '#fff' : '#0F172A' }]}>{stat.value}</Text>
+      <Text style={[st.label, { color: isDark ? PALETTE.muted : '#64748B' }]}>{stat.label}</Text>
     </View>
   );
 }
@@ -391,19 +400,27 @@ const st = StyleSheet.create({
 
 // ── Highlight Card with Directional Step Flow ──────────────────────────────
 function HighlightCard({ h, index, isLast }: { h: any; index: number; isLast: boolean }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   const IconMap: Record<string, any> = { book: BookOpen, network: Network, trending: TrendingUp, star: Star, award: Award, mic: Mic2 };
   const Icon = IconMap[h.icon] || Zap;
   return (
     <View style={{ flex: 1, minWidth: 180, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <View style={hc.card}>
+      <View style={[
+        hc.card,
+        {
+          backgroundColor: isDark ? 'rgba(12, 14, 27, 0.75)' : '#FFFFFF',
+          borderColor: isDark ? 'rgba(139, 132, 255, 0.22)' : 'rgba(139, 132, 255, 0.35)',
+        }
+      ]}>
         <View style={hc.topRow}>
           <View style={hc.iconWrap}><Icon size={18} color="#8B84FF" /></View>
           <View style={hc.stepBadge}>
             <Text style={hc.stepText}>{String(index + 1).padStart(2, '0')}</Text>
           </View>
         </View>
-        <Text style={hc.title}>{h.title}</Text>
-        <Text style={hc.desc}>{h.description}</Text>
+        <Text style={[hc.title, { color: isDark ? '#fff' : '#0F172A' }]}>{h.title}</Text>
+        <Text style={[hc.desc, { color: isDark ? PALETTE.muted : '#64748B' }]}>{h.description}</Text>
       </View>
       {!isLast && (
         <View style={hc.connectorWrap}>
@@ -442,14 +459,25 @@ const hc = StyleSheet.create({
 
 // ── Testimonial Card ───────────────────────────────────────────────────────
 function TestimonialCard({ t }: { t: any }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   const photoUri = t.photo_url ? resolveImageUrl(t.photo_url) : null;
   return (
-    <View style={tc.card}>
-      <Text style={tc.quote}>"{t.quote}"</Text>
+    <View style={[
+      tc.card,
+      {
+        backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
+        borderColor: isDark ? PALETTE.glassBorder : 'rgba(0,0,0,0.08)',
+      }
+    ]}>
+      <Text style={[tc.quote, { color: isDark ? 'rgba(255,255,255,0.85)' : '#334155' }]}>"{t.quote}"</Text>
       <View style={tc.footer}>
         <View style={tc.avatar}>
           {photoUri ? (
-          <Text style={tc.avatarText}>{(t.name || 'U')[0]}</Text>
+            <Image source={{ uri: photoUri }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+          ) : (
+            <Text style={tc.avatarText}>{(t.name || 'U')[0]}</Text>
+          )}
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[tc.name, { color: isDark ? '#fff' : '#0F172A' }]}>{t.name}</Text>
