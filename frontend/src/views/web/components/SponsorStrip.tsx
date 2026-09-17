@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 
 import { request, resolveImageUrl } from '@/src/models/services/api';
 import { GlassCard, Kicker } from '@/src/views/web/portals/student/glass';
+import { TYPO } from '@/src/views/web/portals/student/tokens';
 import { useTheme } from '@/src/theme/ThemeContext';
 
 export type Partner = {
