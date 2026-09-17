@@ -30,7 +30,7 @@ import { useBreakpoint } from '@/src/theme/breakpoints';
 import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
 import { GlassTopbar } from '@/src/motion/apple/components';
 import { FadeInView, PressScale, PulseDot } from './motion';
-import { PALETTE as STATIC_PALETTE, usePalette, TYPO } from './tokens';
+import { PALETTE, usePalette, TYPO } from './tokens';
 import { StudentPortalNavContext, useStudentPortalNav } from './StudentPortalNavContext';
 import { StudentNavId, NAV } from './Sidebar';
 

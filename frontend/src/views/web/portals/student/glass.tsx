@@ -24,7 +24,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Platform, StyleSheet, Pressable, Text, Animated, Easing } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { PALETTE as STATIC_PALETTE, usePalette, SC, TYPO } from './tokens';
+import { PALETTE, usePalette, SC, TYPO } from './tokens';
 import { useTheme } from '@/src/theme/ThemeContext';
 
 /* ─────────────────────────────────────────────────────────────────
