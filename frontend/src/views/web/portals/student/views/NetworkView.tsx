@@ -1668,7 +1668,7 @@ export function NetworkView() {
             </View>
           )}
         </View>
-      </Modal>  </Modal>
+      </Modal>
 
     </View>
   );
