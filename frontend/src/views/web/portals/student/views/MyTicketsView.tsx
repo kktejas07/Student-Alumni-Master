@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { Ticket, CheckCircle, Download, ShieldCheck, QrCode, X, Lock, Calendar, MapPin, User, ArrowRight, AlertCircle, Clock, Store, IndianRupee, Tag, Truck } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GRADS } from '../gradients';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 const GRAD = {
   from: GRADS.brand[0],
