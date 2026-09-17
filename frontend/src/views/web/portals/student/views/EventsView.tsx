@@ -14,6 +14,8 @@ import { useToast } from '@/src/views/components';
 import { track, trackClick, trackScreen, logger as analyticsLogger } from '@/src/analytics';
 
 import { LiveDataLoader, SkeletonPulse } from '@/src/views/web/components/AppLoader';
+import { useTheme } from '@/src/theme/ThemeContext';
+import { EmptyState } from '../EmptyState';
 
 type Ev = {
   id: string;
@@ -132,6 +134,7 @@ interface DropdownSelectProps {
 }
 
 export function DropdownSelect({ label, value, options, onSelect }: DropdownSelectProps) {
+  const { isDark } = useTheme();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<any>(null);
 
@@ -154,7 +157,14 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
 
   return (
     <View ref={wrapRef} style={{ position: 'relative', minWidth: 160, zIndex: open ? 9999 : 1 }}>
-      <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontFamily: FONTS.bold, textTransform: 'uppercase', marginBottom: 4, letterSpacing: 0.5 }}>
+      <Text style={{
+        color: isDark ? 'rgba(255,255,255,0.5)' : '#475569',
+        fontSize: 10.5,
+        fontFamily: FONTS.bold,
+        textTransform: 'uppercase',
+        marginBottom: 5,
+        letterSpacing: 0.5,
+      }}>
         {label}
       </Text>
       <Pressable
@@ -174,17 +184,17 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
           height: 38,
           paddingHorizontal: 12,
           borderRadius: 8,
-          backgroundColor: 'rgba(255,255,255,0.03)',
+          backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF',
           borderWidth: 1,
-          borderColor: open ? '#6366F1' : 'rgba(255,255,255,0.08)',
+          borderColor: open ? '#6366F1' : (isDark ? 'rgba(255,255,255,0.1)' : '#CBD5E1'),
           // @ts-ignore
           cursor: 'pointer',
         }}
       >
-        <Text style={{ color: '#fff', fontSize: 12, fontFamily: FONTS.med }}>
+        <Text style={{ color: isDark ? '#fff' : '#0F172A', fontSize: 12, fontFamily: FONTS.med }}>
           {selectedOption?.label}
         </Text>
-        <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={15} color="rgba(255,255,255,0.6)" />
+        <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={15} color={isDark ? 'rgba(255,255,255,0.6)' : '#64748B'} />
       </Pressable>
       
       {open && (
@@ -195,13 +205,13 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
             left: 0,
             right: 0,
             marginTop: 4,
-            backgroundColor: '#13091F',
-            borderColor: 'rgba(255,255,255,0.09)',
+            backgroundColor: isDark ? '#13091F' : '#FFFFFF',
+            borderColor: isDark ? 'rgba(255,255,255,0.09)' : '#E2E8F0',
             borderWidth: 1,
             borderRadius: 8,
             overflow: 'hidden',
             // @ts-ignore
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.5)' : '0 10px 25px rgba(0,0,0,0.12)',
           }}
         >
           <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
@@ -222,14 +232,20 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
                   style={{
                     paddingHorizontal: 12,
                     paddingVertical: 10,
-                    backgroundColor: isSel ? 'rgba(139, 92, 246, 0.12)' : 'transparent',
+                    backgroundColor: isSel
+                      ? (isDark ? 'rgba(139, 92, 246, 0.15)' : '#EEF2FF')
+                      : 'transparent',
                     borderBottomWidth: 1,
-                    borderBottomColor: 'rgba(255,255,255,0.04)',
+                    borderBottomColor: isDark ? 'rgba(255,255,255,0.04)' : '#F1F5F9',
                     // @ts-ignore
                     cursor: 'pointer',
                   }}
                 >
-                  <Text style={{ color: isSel ? '#A78BFA' : '#fff', fontSize: 12, fontFamily: isSel ? FONTS.bold : FONTS.med }}>
+                  <Text style={{
+                    color: isSel ? (isDark ? '#A78BFA' : '#4F46E5') : (isDark ? '#fff' : '#0F172A'),
+                    fontSize: 12,
+                    fontFamily: isSel ? FONTS.bold : FONTS.med,
+                  }}>
                     {opt.label}
                   </Text>
                 </Pressable>
@@ -243,6 +259,7 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
 }
 
 export function EventsView() {
+  const { isDark } = useTheme();
   const toast = useToast();
   const [eventsData, setEventsData] = useState<any>(null);
   const [eventsLoading, setEventsLoading] = useState(true);
