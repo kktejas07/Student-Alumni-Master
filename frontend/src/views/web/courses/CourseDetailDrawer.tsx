@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { request } from '@/src/models/services/api';
-import { useTheme } from '@/src/context/ThemeContext';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 type Course = any;
 type Tab = 'overview' | 'syllabus' | 'reviews' | 'enroll';

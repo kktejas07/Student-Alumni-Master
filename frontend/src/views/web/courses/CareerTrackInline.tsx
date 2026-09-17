@@ -10,7 +10,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { request } from '@/src/models/services/api';
-import { useTheme } from '@/src/context/ThemeContext';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
