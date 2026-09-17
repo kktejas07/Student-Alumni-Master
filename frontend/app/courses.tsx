@@ -19,6 +19,7 @@ import CourseDetailDrawer from '@/src/views/web/courses/CourseDetailDrawer';
 import AICourseAdvisor from '@/src/views/web/courses/AICourseAdvisor';
 import { request } from '@/src/models/services/api';
 import { StudentPortalNavContext } from '@/src/views/web/portals/student/StudentPortalNavContext';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -91,10 +92,31 @@ const fmtCount = (n: number) => {
 
 export default function CoursesPage() {
   const router = useRouter();
+  const { isDark } = useTheme();
   const user = useAuthStore((s) => s.user);
   const initialized = useAuthStore((s) => s.initialized);
   const isEmbedded = React.useContext(EmbeddedShellContext);
   const studentNav = React.useContext(StudentPortalNavContext);
+
+  const colors = useMemo(() => ({
+    text: isDark ? '#FFFFFF' : '#0F172A',
+    text2: isDark ? 'rgba(255, 255, 255, 0.72)' : '#475569',
+    text3: isDark ? 'rgba(255, 255, 255, 0.46)' : '#64748B',
+    border: isDark ? 'rgba(255, 255, 255, 0.10)' : '#E2E8F0',
+    card: isDark ? '#261944' : '#FFFFFF',
+    cardBorder: isDark ? '#3D2D5C' : '#E2E8F0',
+    sectionCard: isDark ? 'rgba(67, 41, 109, 0.40)' : '#FFFFFF',
+    sectionBorder: isDark ? '#3D2D5C' : '#E2E8F0',
+    searchBg: isDark ? '#261944' : '#FFFFFF',
+    searchBorder: isDark ? '#3D2D5C' : '#CBD5E1',
+    pillBg: isDark ? 'rgba(255, 255, 255, 0.04)' : '#F1F5F9',
+    pillBorder: isDark ? 'rgba(255, 255, 255, 0.10)' : '#E2E8F0',
+    pillText: isDark ? 'rgba(255, 255, 255, 0.72)' : '#475569',
+    dropdownBg: isDark ? '#221538' : '#FFFFFF',
+    sheetBg: isDark ? '#1A0F2E' : '#FFFFFF',
+    modalBg: isDark ? '#13031F' : '#FFFFFF',
+    modalBackdrop: isDark ? 'rgba(7, 2, 15, 0.78)' : 'rgba(15, 23, 42, 0.60)',
+  }), [isDark]);
 
   useEffect(() => {
     if (studentNav?.detailCourse) {
