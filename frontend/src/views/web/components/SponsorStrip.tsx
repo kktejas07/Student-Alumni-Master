@@ -17,7 +17,7 @@ import { useRouter } from 'expo-router';
 
 import { request, resolveImageUrl } from '@/src/models/services/api';
 import { GlassCard, Kicker } from '@/src/views/web/portals/student/glass';
-import { PALETTE, TYPO } from '@/src/views/web/portals/student/tokens';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 export type Partner = {
   id: string;
@@ -188,22 +188,31 @@ function SkeletonLogo({ h, w }: { h: number; w: number }) {
 // ─────────────────────────────────────────────────────────────────────────
 export function DashboardFooter({ portal }: { portal: 'student' | 'alumni' | 'college' | 'mentor' | 'super_admin' }) {
   const router = useRouter();
+  const { isDark } = useTheme();
   const year = new Date().getFullYear();
 
   return (
-    <View style={s.dashFoot}>
+    <View style={[
+      s.dashFoot,
+      {
+        backgroundColor: isDark ? 'rgba(17, 24, 39, 0.95)' : '#FFFFFF',
+        borderTopColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+      }
+    ]}>
       <View style={{ maxWidth: 1280, width: '100%', alignSelf: 'center' }}>
         <View style={s.dashFootRow}>
-          <Text style={s.dashFootCopy}>© {year} StudentAlumni · All rights reserved</Text>
+          <Text style={[s.dashFootCopy, { color: isDark ? 'rgba(255,255,255,0.45)' : '#64748B' }]}>
+            © {year} StudentAlumni · All rights reserved
+          </Text>
           <View style={{ flexDirection: 'row', gap: 18, flexWrap: 'wrap' }}>
             <Pressable onPress={() => router.push('/policy/privacy')}>
-              <Text style={s.dashFootLink}>Privacy Policy</Text>
+              <Text style={[s.dashFootLink, { color: isDark ? 'rgba(255,255,255,0.72)' : '#475569' }]}>Privacy Policy</Text>
             </Pressable>
             <Pressable onPress={() => router.push('/policy/terms')}>
-              <Text style={s.dashFootLink}>Terms of Service</Text>
+              <Text style={[s.dashFootLink, { color: isDark ? 'rgba(255,255,255,0.72)' : '#475569' }]}>Terms of Service</Text>
             </Pressable>
             <Pressable onPress={() => router.push('/policy/cookies')}>
-              <Text style={s.dashFootLink}>Cookies</Text>
+              <Text style={[s.dashFootLink, { color: isDark ? 'rgba(255,255,255,0.72)' : '#475569' }]}>Cookies</Text>
             </Pressable>
           </View>
         </View>

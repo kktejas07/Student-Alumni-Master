@@ -934,9 +934,9 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
         {/* Floating action bar over hero card */}
         <View style={s.heroActionBar}>
           <PressScale onPress={onBack || (() => {})}>
-            <View style={s.floatingBtn}>
-              <ArrowLeft size={14} color="#fff" />
-              <Text style={s.floatingBtnText}>Back</Text>
+            <View style={[s.floatingBtn, { backgroundColor: isDark ? 'rgba(0,0,0,0.6)' : '#FFFFFF', borderColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)' }]}>
+              <ArrowLeft size={14} color={isDark ? '#fff' : '#0F172A'} />
+              <Text style={[s.floatingBtnText, { color: isDark ? '#fff' : '#0F172A' }]}>Back</Text>
             </View>
           </PressScale>
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -958,9 +958,9 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
               </Pressable>
             )}
             <PressScale onPress={() => setShareModalOpen(true)}>
-              <View style={s.floatingBtn}>
-                <Share2 size={13} color="#fff" />
-                <Text style={s.floatingBtnText}>Share</Text>
+              <View style={[s.floatingBtn, { backgroundColor: isDark ? 'rgba(0,0,0,0.6)' : '#FFFFFF', borderColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)' }]}>
+                <Share2 size={13} color={isDark ? '#fff' : '#0F172A'} />
+                <Text style={[s.floatingBtnText, { color: isDark ? '#fff' : '#0F172A' }]}>Share</Text>
               </View>
             </PressScale>
           </View>
@@ -978,38 +978,38 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                   </Text>
                 </View>
                 {data?.organizer_name ? (
-                  <Text style={s.heroEyebrow}>{data.organizer_name.toUpperCase()}</Text>
+                  <Text style={[s.heroEyebrow, { color: isDark ? PALETTE.dim : '#64748B' }]}>{data.organizer_name.toUpperCase()}</Text>
                 ) : null}
               </View>
               {/* Title */}
-              <Text style={s.heroTitle} numberOfLines={3}>
+              <Text style={[s.heroTitle, { color: isDark ? '#fff' : '#0F172A' }]} numberOfLines={3}>
                 {data?.title?.split(' ').slice(0, -1).join(' ')}{' '}
                 <Text style={{ color: GRAD.from }}>{data?.title?.split(' ').slice(-1)[0]}</Text>
               </Text>
               {/* Subtitle */}
-              {data?.subtitle ? <Text style={s.heroSubtitle}>{data.subtitle}</Text> : null}
+              {data?.subtitle ? <Text style={[s.heroSubtitle, { color: isDark ? PALETTE.muted : '#475569' }]}>{data.subtitle}</Text> : null}
               {/* Description */}
-              {data?.description ? <Text style={s.heroDesc} numberOfLines={4}>{data.description}</Text> : null}
+              {data?.description ? <Text style={[s.heroDesc, { color: isDark ? PALETTE.muted : '#334155' }]} numberOfLines={4}>{data.description}</Text> : null}
               {/* Registration deadline pill */}
               {data?.registration?.deadline ? (
-                <View style={s.heroDeadlinePill}>
-                  <Clock size={11} color="#FBBF24" />
-                  <Text style={s.heroDeadlineText}>Registration closes: {data.registration.deadline}</Text>
+                <View style={[s.heroDeadlinePill, { backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.12)', borderColor: isDark ? 'rgba(245,158,11,0.35)' : 'rgba(245,158,11,0.45)' }]}>
+                  <Clock size={11} color={isDark ? '#FBBF24' : '#D97706'} />
+                  <Text style={[s.heroDeadlineText, { color: isDark ? '#FBBF24' : '#B45309' }]}>Registration closes: {data.registration.deadline}</Text>
                 </View>
               ) : null}
               {/* Meta rows */}
               <View style={s.metaGroup}>
                 {data?.date ? (
-                  <View style={s.metaRow}><Calendar size={13} color={PALETTE.muted} /><Text style={s.metaText}>{data.end_date && data.end_date !== data.date ? `${data.date} – ${data.end_date}` : data.date}</Text></View>
+                  <View style={s.metaRow}><Calendar size={13} color={isDark ? PALETTE.muted : '#64748B'} /><Text style={[s.metaText, { color: isDark ? PALETTE.muted : '#334155' }]}>{data.end_date && data.end_date !== data.date ? `${data.date} – ${data.end_date}` : data.date}</Text></View>
                 ) : null}
                 {data?.time ? (
-                  <View style={s.metaRow}><Clock size={13} color={PALETTE.muted} /><Text style={s.metaText}>{data.time}</Text></View>
+                  <View style={s.metaRow}><Clock size={13} color={isDark ? PALETTE.muted : '#64748B'} /><Text style={[s.metaText, { color: isDark ? PALETTE.muted : '#334155' }]}>{data.time}</Text></View>
                 ) : null}
                 {data?.venue ? (
-                  <View style={s.metaRow}><MapPin size={13} color={PALETTE.muted} /><Text style={s.metaText}>{data.venue}</Text></View>
+                  <View style={s.metaRow}><MapPin size={13} color={isDark ? PALETTE.muted : '#64748B'} /><Text style={[s.metaText, { color: isDark ? PALETTE.muted : '#334155' }]}>{data.venue}</Text></View>
                 ) : null}
                 {data?.prize_pool?.total ? (
-                  <View style={s.metaRow}><Trophy size={13} color="#F59E0B" /><Text style={s.metaText}>Prize Pool: {data.prize_pool.total}</Text></View>
+                  <View style={s.metaRow}><Trophy size={13} color="#F59E0B" /><Text style={[s.metaText, { color: isDark ? PALETTE.muted : '#334155' }]}>Prize Pool: {data.prize_pool.total}</Text></View>
                 ) : null}
               </View>
             </View>
@@ -1020,12 +1020,12 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                   <EchoImg source={{ uri: resolveImageUrl(data.hero_image_url) }} style={s.heroImg} resizeMode="cover" fallbackLabel={data?.title || 'Event'} />
                 ) : (
                   <LinearGradient
-                    colors={['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.80)']}
+                    colors={isDark ? ['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.80)'] : ['#EDE9FE', '#DDD6FE', '#C4B5FD']}
                     style={s.heroImg}
                   >
-                    <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, gap: 12 }}>
-                      <Text style={{ fontFamily: TYPO.display800, fontSize: 28, color: '#fff', textAlign: 'center' }}>{data?.title}</Text>
-                      <Text style={{ fontFamily: TYPO.body500, fontSize: 13, color: 'rgba(255,255,255,0.7)', textAlign: 'center' }}>{data?.subtitle}</Text>
+                    <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, gap: 12, paddingHorizontal: 16 }}>
+                      <Text style={{ fontFamily: TYPO.display800, fontSize: 24, color: isDark ? '#fff' : '#4C1D95', textAlign: 'center' }}>{data?.title}</Text>
+                      {data?.subtitle ? <Text style={{ fontFamily: TYPO.body500, fontSize: 13, color: isDark ? 'rgba(255,255,255,0.7)' : '#6D28D9', textAlign: 'center' }}>{data?.subtitle}</Text> : null}
                     </View>
                   </LinearGradient>
                 )}
@@ -1052,8 +1052,8 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
           {/* About */}
           {((data?.description) || highlights.length > 0) && (
           <GlassCard style={[s.aboutCard, !isWide && { width: '100%' }]} padding={22}>
-            <Text style={s.cardTitle}>About the Event</Text>
-            <Text style={s.aboutDesc}>{data?.description || ''}</Text>
+            <Text style={[s.cardTitle, { color: isDark ? '#fff' : '#0F172A' }]}>About the Event</Text>
+            <Text style={[s.aboutDesc, { color: isDark ? PALETTE.muted : '#334155' }]}>{data?.description || ''}</Text>
             {/* Highlights */}
             {highlights.length > 0 && (
             <View style={s.highlightRow}>
@@ -1065,9 +1065,9 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
           {/* Organizers */}
           {data?.organizer_name && (
           <GlassCard style={[s.orgCard, !isWide && { width: '100%' }]} padding={22}>
-            <Text style={s.cardTitle}>Event Organized By</Text>
+            <Text style={[s.cardTitle, { color: isDark ? '#fff' : '#0F172A' }]}>Event Organized By</Text>
             <View style={s.orgRow}>
-              <View style={s.orgAvatar}>
+              <View style={[s.orgAvatar, { backgroundColor: isDark ? 'rgba(123,61,191,0.20)' : 'rgba(123,61,191,0.12)' }]}>
                 {data?.organizer_logo_url ? (
                   <Image source={{ uri: resolveImageUrl(data.organizer_logo_url) }} style={{ width: 38, height: 38, borderRadius: 10 }} resizeMode="contain" />
                 ) : (
@@ -1077,20 +1077,20 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 )}
               </View>
               <View style={s.orgMeta}>
-                <Text style={s.orgName}>{data?.organizer_name || 'Event Organizers'}</Text>
-                <Text style={s.orgSub}>{data?.college || data?.venue || ''}</Text>
+                <Text style={[s.orgName, { color: isDark ? '#fff' : '#0F172A' }]}>{data?.organizer_name || 'Event Organizers'}</Text>
+                <Text style={[s.orgSub, { color: isDark ? PALETTE.muted : '#64748B' }]}>{data?.college || data?.venue || ''}</Text>
               </View>
             </View>
             {showSection('partners') && partners.length > 0 && (
               <>
-                <Text style={s.partnerLabel}>In Association With</Text>
+                <Text style={[s.partnerLabel, { color: isDark ? '#fff' : '#0F172A' }]}>In Association With</Text>
                 <View style={s.partnerRow}>
                   {partners.map((p, i) => (
-                    <View key={i} style={s.partnerChip}>
+                    <View key={i} style={[s.partnerChip, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9', borderColor: isDark ? PALETTE.glassBorder : 'rgba(0,0,0,0.08)' }]}>
                       {p.logo_url ? (
                         <Image source={{ uri: resolveImageUrl(p.logo_url) }} style={{ width: 28, height: 28 }} resizeMode="contain" />
                       ) : (
-                        <Text style={{ fontFamily: TYPO.body700, fontSize: 12, color: PALETTE.text }}>{p.name}</Text>
+                        <Text style={{ fontFamily: TYPO.body700, fontSize: 12, color: isDark ? PALETTE.text : '#0F172A' }}>{p.name}</Text>
                       )}
                     </View>
                   ))}
@@ -1107,7 +1107,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
       {showSection('gallery') && (
       <FadeInView delay={200}>
         <View style={s.sectionHeader}>
-          <Text style={s.sectionTitle}>Moments from the Event</Text>
+          <Text style={[s.sectionTitle, { color: isDark ? '#fff' : '#0F172A' }]}>Moments from the Event</Text>
           {gallery.length > 0 && (
             <Pressable onPress={() => { setLbIndex(0); setLbOpen(true); }}>
               <Text style={s.viewAll}>View all photos →</Text>
@@ -1116,8 +1116,8 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
         </View>
         {gallery.length === 0 ? (
           <GlassCard style={{ padding: 32, alignItems: 'center' }}>
-            <ZoomIn size={28} color={PALETTE.dim} />
-            <Text style={{ color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 10 }}>
+            <ZoomIn size={28} color={isDark ? PALETTE.dim : '#64748B'} />
+            <Text style={{ color: isDark ? PALETTE.muted : '#64748B', fontFamily: FONTS.med, fontSize: 13, marginTop: 10 }}>
               No photos yet. Upload gallery photos via Admin CMS.
             </Text>
           </GlassCard>
@@ -1133,9 +1133,9 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
             <GalleryCell img={gallery[4]} onPress={() => { setLbIndex(4); setLbOpen(true); }} style={{ height: 125 }} />
             {/* Counter card */}
             {gallery.length > 5 && (
-              <Pressable onPress={() => { setLbIndex(5); setLbOpen(true); }} style={s.galleryMore}>
-                <Text style={s.galleryMoreNum}>+{gallery.length - 5}</Text>
-                <Text style={s.galleryMoreLabel}>More Photos</Text>
+              <Pressable onPress={() => { setLbIndex(5); setLbOpen(true); }} style={[s.galleryMore, { backgroundColor: isDark ? 'rgba(123,61,191,0.18)' : '#EDE9FE', borderColor: isDark ? 'rgba(123,61,191,0.30)' : '#C4B5FD' }]}>
+                <Text style={[s.galleryMoreNum, { color: isDark ? '#fff' : '#6D28D9' }]}>+{gallery.length - 5}</Text>
+                <Text style={[s.galleryMoreLabel, { color: isDark ? PALETTE.muted : '#7C3AED' }]}>More Photos</Text>
               </Pressable>
             )}
           </View>
@@ -1152,7 +1152,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
       {showSection('testimonials') && testimonials.length > 0 && (
         <FadeInView delay={240}>
           <View style={s.sectionHeader}>
-            <Text style={s.sectionTitle}>What People Are Saying</Text>
+            <Text style={[s.sectionTitle, { color: isDark ? '#fff' : '#0F172A' }]}>What People Are Saying</Text>
             <Text style={s.viewAll}>View all testimonials →</Text>
           </View>
           <View style={[s.testimonialsRow, !isWide && { flexDirection: 'column' }]}>
@@ -1164,20 +1164,22 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
       {/* ── TIMELINE ────────────────────────────────────────────────────── */}
       {showSection('timeline') && timeline.length > 0 && (
         <FadeInView delay={280}>
-          <Text style={[s.sectionTitle, { marginBottom: 18 }]}>Event Highlights</Text>
+          <Text style={[s.sectionTitle, { color: isDark ? '#fff' : '#0F172A', marginBottom: 18 }]}>Event Highlights</Text>
           <View style={[s.timelineRow, !isWide && { flexDirection: 'column', gap: 0 }]}>
             {timeline.map((item, i) => {
               const IconMap: Record<string, any> = { star: Star, users: Users, code: Zap, network: Network, default: Zap };
               const Icon = IconMap[item.icon] || IconMap.default;
               return (
                 <View key={i} style={[s.tlItem, !isWide && { flexDirection: 'row', gap: 12, paddingVertical: 10 }]}>
-                  <View style={s.tlIconWrap}><Icon size={18} color={GRAD.from} /></View>
+                  <View style={[s.tlIconWrap, { backgroundColor: isDark ? 'rgba(123,61,191,0.18)' : '#EDE9FE', borderColor: isDark ? 'rgba(123,61,191,0.35)' : 'rgba(124,58,237,0.3)' }]}>
+                    <Icon size={18} color={GRAD.from} />
+                  </View>
                   <View style={s.tlContent}>
-                    <Text style={s.tlTitle}>{item.title}</Text>
-                    <Text style={s.tlDesc}>{item.description}</Text>
+                    <Text style={[s.tlTitle, { color: isDark ? '#fff' : '#0F172A' }]}>{item.title}</Text>
+                    <Text style={[s.tlDesc, { color: isDark ? PALETTE.muted : '#64748B' }]}>{item.description}</Text>
                   </View>
                   {isWide && i < timeline.length - 1 && (
-                    <View style={s.tlConnector} />
+                    <View style={[s.tlConnector, { backgroundColor: isDark ? 'rgba(123,61,191,0.30)' : 'rgba(124,58,237,0.20)' }]} />
                   )}
                 </View>
               );
@@ -1260,34 +1262,34 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
               <GlassCard style={[s.infoCard, !isWide && { width: '100%' }]} padding={18}>
                 <View style={s.infoHead}>
                   <Users size={15} color={GRAD.from} />
-                  <Text style={s.infoTitle}>Who can participate</Text>
+                  <Text style={[s.infoTitle, { color: isDark ? '#fff' : '#0F172A' }]}>Who can participate</Text>
                 </View>
-                <Text style={s.infoText}>{data.eligibility}</Text>
+                <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#334155' }]}>{data.eligibility}</Text>
               </GlassCard>
             )}
             {data?.team_composition && (
               <GlassCard style={[s.infoCard, !isWide && { width: '100%' }]} padding={18}>
                 <View style={s.infoHead}>
                   <Users size={15} color={GRAD.from} />
-                  <Text style={s.infoTitle}>Team composition</Text>
+                  <Text style={[s.infoTitle, { color: isDark ? '#fff' : '#0F172A' }]}>Team composition</Text>
                 </View>
-                <Text style={s.infoText}>{data.team_composition}</Text>
+                <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#334155' }]}>{data.team_composition}</Text>
               </GlassCard>
             )}
             {data?.prize_pool && (data.prize_pool.total || data.prize_pool.first) && (
               <GlassCard style={[s.infoCard, !isWide && { width: '100%' }]} padding={18}>
                 <View style={s.infoHead}>
                   <Trophy size={15} color="#F59E0B" />
-                  <Text style={s.infoTitle}>Prize pool</Text>
+                  <Text style={[s.infoTitle, { color: isDark ? '#fff' : '#0F172A' }]}>Prize pool</Text>
                 </View>
-                {data.prize_pool.total ? <Text style={[s.infoTitle, { color: '#FBBF24', marginBottom: 6 }]}>{data.prize_pool.total}</Text> : null}
+                {data.prize_pool.total ? <Text style={[s.infoTitle, { color: '#F59E0B', marginBottom: 6 }]}>{data.prize_pool.total}</Text> : null}
                 <View style={{ gap: 3 }}>
-                  {data.prize_pool.first ? <Text style={s.infoText}> {data.prize_pool.first}</Text> : null}
-                  {data.prize_pool.second ? <Text style={s.infoText}> {data.prize_pool.second}</Text> : null}
-                  {data.prize_pool.third ? <Text style={s.infoText}> {data.prize_pool.third}</Text> : null}
+                  {data.prize_pool.first ? <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#334155' }]}>🥇 {data.prize_pool.first}</Text> : null}
+                  {data.prize_pool.second ? <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#334155' }]}>🥈 {data.prize_pool.second}</Text> : null}
+                  {data.prize_pool.third ? <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#334155' }]}>🥉 {data.prize_pool.third}</Text> : null}
                 </View>
                 {(data.prize_pool.other_prizes || []).filter(Boolean).length > 0 && (
-                  <Text style={[s.infoText, { marginTop: 6 }]}>+ {data.prize_pool.other_prizes.join(', ')}</Text>
+                  <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#475569', marginTop: 6 }]}>+ {data.prize_pool.other_prizes.join(', ')}</Text>
                 )}
               </GlassCard>
             )}
@@ -1331,16 +1333,16 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 {sp.logo_url ? (
                   <Image source={{ uri: resolveImageUrl(sp.logo_url) }} style={{ width: 140, height: 48 }} resizeMode="contain" />
                 ) : (
-                  <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(168,85,247,0.18)', borderWidth: 1, borderColor: 'rgba(192,132,252,0.3)', alignItems: 'center', justifyContent: 'center', marginBottom: 2 }}>
-                    <Building2 size={24} color="#C084FC" />
+                  <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: isDark ? 'rgba(168,85,247,0.18)' : 'rgba(168,85,247,0.10)', borderWidth: 1, borderColor: isDark ? 'rgba(192,132,252,0.3)' : 'rgba(168,85,247,0.25)', alignItems: 'center', justifyContent: 'center', marginBottom: 2 }}>
+                    <Building2 size={24} color={isDark ? '#C084FC' : '#9333EA'} />
                   </View>
                 )}
-                <Text style={{ fontFamily: TYPO.display800, fontSize: 15, color: '#fff', textAlign: 'center', letterSpacing: -0.3 }}>{sp.name}</Text>
+                <Text style={{ fontFamily: TYPO.display800, fontSize: 15, color: isDark ? '#fff' : '#0F172A', textAlign: 'center', letterSpacing: -0.3 }}>{sp.name}</Text>
                 {sp.description ? (
-                  <Text style={{ fontFamily: TYPO.body400, fontSize: 11, color: PALETTE.muted, textAlign: 'center', lineHeight: 16 }} numberOfLines={2}>{sp.description}</Text>
+                  <Text style={{ fontFamily: TYPO.body400, fontSize: 11.5, color: isDark ? PALETTE.muted : '#475569', textAlign: 'center', lineHeight: 16 }} numberOfLines={2}>{sp.description}</Text>
                 ) : null}
-                <View style={{ backgroundColor: 'rgba(123,61,191,0.25)', borderWidth: 1, borderColor: 'rgba(192,132,252,0.4)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 100, marginTop: 4 }}>
-                  <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 10, color: '#D8B4FE', letterSpacing: 0.6 }}>{sp.tier || 'ECOSYSTEM PARTNER'}</Text>
+                <View style={{ backgroundColor: isDark ? 'rgba(123,61,191,0.25)' : 'rgba(123,61,191,0.08)', borderWidth: 1, borderColor: isDark ? 'rgba(192,132,252,0.4)' : 'rgba(124,58,237,0.25)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 100, marginTop: 4 }}>
+                  <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 10, color: isDark ? '#D8B4FE' : '#6D28D9', letterSpacing: 0.6 }}>{sp.tier || 'ECOSYSTEM PARTNER'}</Text>
                 </View>
               </GlassCard>
             ))}
@@ -1363,13 +1365,13 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
               { title: 'Pitch Deck & Presentation Template', description: 'Official 5-minute final round slide deck template (.pptx) formatted for jury review', file_size: '3.1 MB · PPTX', file_url: '#' },
             ]).map((dl: any, i: number) => (
               <GlassCard key={i} style={{ flex: 1, minWidth: 260, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(56,189,248,0.15)', borderWidth: 1, borderColor: 'rgba(56,189,248,0.3)', alignItems: 'center', justifyContent: 'center' }}>
-                  <FileText size={22} color="#38BDF8" />
+                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: isDark ? 'rgba(56,189,248,0.15)' : 'rgba(2,132,199,0.10)', borderWidth: 1, borderColor: isDark ? 'rgba(56,189,248,0.3)' : 'rgba(2,132,199,0.25)', alignItems: 'center', justifyContent: 'center' }}>
+                  <FileText size={22} color={isDark ? '#38BDF8' : '#0284C7'} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: TYPO.display700, fontSize: 14, color: '#fff', letterSpacing: -0.2 }}>{dl.title}</Text>
-                  {dl.description ? <Text style={{ fontFamily: TYPO.body400, fontSize: 11.5, color: PALETTE.muted, lineHeight: 16, marginTop: 2 }}>{dl.description}</Text> : null}
-                  {dl.file_size ? <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 10.5, color: '#38BDF8', marginTop: 4 }}>{dl.file_size}</Text> : null}
+                  <Text style={{ fontFamily: TYPO.display700, fontSize: 14, color: isDark ? '#fff' : '#0F172A', letterSpacing: -0.2 }}>{dl.title}</Text>
+                  {dl.description ? <Text style={{ fontFamily: TYPO.body400, fontSize: 11.5, color: isDark ? PALETTE.muted : '#475569', lineHeight: 16, marginTop: 2 }}>{dl.description}</Text> : null}
+                  {dl.file_size ? <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 10.5, color: isDark ? '#38BDF8' : '#0284C7', marginTop: 4 }}>{dl.file_size}</Text> : null}
                 </View>
                 <Pressable
                   onPress={() => {
@@ -1379,9 +1381,9 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                       toast.show({ title: 'Resource Access', message: `Opening ${dl.title}`, type: 'info' });
                     }
                   }}
-                  style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(2,132,199,0.08)', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(2,132,199,0.22)', alignItems: 'center', justifyContent: 'center' }}
                 >
-                  <Download size={16} color="#38BDF8" />
+                  <Download size={16} color={isDark ? '#38BDF8' : '#0284C7'} />
                 </Pressable>
               </GlassCard>
             ))}
@@ -1393,17 +1395,17 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
       {showSection('cta') && (data?.cta_title || data?.cta_subtitle || data?.cta_button_text) && (
       <FadeInView delay={320}>
         <LinearGradient
-          colors={['rgba(123,61,191,0.25)', 'rgba(95,37,159,0.40)']}
+          colors={isDark ? ['rgba(123,61,191,0.25)', 'rgba(95,37,159,0.40)'] : ['#F5F3FF', '#EDE9FE']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={[s.ctaBanner, !isWide && s.ctaBannerStack]}
+          style={[s.ctaBanner, { borderColor: isDark ? 'rgba(123,61,191,0.25)' : 'rgba(124,58,237,0.2)' }, !isWide && s.ctaBannerStack]}
         >
           <View style={[s.ctaInner, !isWide && s.ctaInnerStack]}>
-            <View style={s.ctaIconWrap}>
+            <View style={[s.ctaIconWrap, { backgroundColor: isDark ? 'rgba(123,61,191,0.20)' : 'rgba(124,58,237,0.12)' }]}>
               <Calendar size={22} color={GRAD.from} />
             </View>
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={s.ctaTitle}>{data?.cta_title || ''}</Text>
-              <Text style={s.ctaSubtitle}>{data?.cta_subtitle || ''}</Text>
+              <Text style={[s.ctaTitle, { color: isDark ? '#fff' : '#0F172A' }]}>{data?.cta_title || ''}</Text>
+              <Text style={[s.ctaSubtitle, { color: isDark ? PALETTE.muted : '#475569' }]}>{data?.cta_subtitle || ''}</Text>
             </View>
             <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.ctaBtn, !isWide && s.ctaBtnFull]}>
               <Text style={s.ctaBtnText}>{data?.cta_button_text || 'Learn More'}</Text>
