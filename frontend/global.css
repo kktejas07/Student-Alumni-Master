@@ -466,3 +466,39 @@ html.light-mode ::placeholder {
   color: #94A3B8 !important;
 }
 
+/* 10. React Native Web Element Overrides in Light Mode */
+html.light-mode [style*="color: rgb(255, 255, 255)"]:not([class*="btn"]):not([style*="background"]):not(button):not(button *),
+html.light-mode [style*="color: #FFFFFF"]:not([class*="btn"]):not(button *),
+html.light-mode [style*="color: #ffffff"]:not([class*="btn"]):not(button *),
+html.light-mode [style*="color: #fff"]:not([class*="btn"]):not(button *) {
+  color: #0F172A !important;
+}
+
+html.light-mode [style*="color: rgb(209, 213, 219)"],
+html.light-mode [style*="color: #D1D5DB"],
+html.light-mode [style*="color: #d1d5db"] {
+  color: #475569 !important;
+}
+
+html.light-mode [style*="color: rgb(156, 163, 175)"],
+html.light-mode [style*="color: #9CA3AF"],
+html.light-mode [style*="color: #9ca3af"] {
+  color: #64748B !important;
+}
+
+html.light-mode [style*="color: rgba(255, 255, 255, 0.7)"],
+html.light-mode [style*="color: rgba(255, 255, 255, 0.8)"],
+html.light-mode [style*="color: rgba(255, 255, 255, 0.9)"],
+html.light-mode [style*="color: rgba(255,255,255,0.7)"],
+html.light-mode [style*="color: rgba(255,255,255,0.8)"],
+html.light-mode [style*="color: rgba(255,255,255,0.9)"] {
+  color: #334155 !important;
+}
+
+html.light-mode [style*="color: rgba(255, 255, 255, 0.5)"],
+html.light-mode [style*="color: rgba(255, 255, 255, 0.6)"],
+html.light-mode [style*="color: rgba(255,255,255,0.5)"],
+html.light-mode [style*="color: rgba(255,255,255,0.6)"] {
+  color: #64748B !important;
+}
+

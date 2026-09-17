@@ -9,6 +9,7 @@ import { GlassCard } from '../glass';
 import { EmptyState } from '../EmptyState';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';
+import { useTheme } from '@/src/theme/ThemeContext';
 import { useToast } from '@/src/views/components';
 
 type WS = {
@@ -24,6 +25,7 @@ const POPULAR_WORKSHOPS = [
 ];
 
 export function MyWorkshopsView() {
+  const { isDark } = useTheme();
   const toast = useToast();
   const { email } = useCurrentUser('workshop1@persona.demo');
   const { data, refresh } = usePortalData<{ items: WS[]; count: number }>(
@@ -73,11 +75,11 @@ export function MyWorkshopsView() {
   return (
     <View style={{ gap: 20 }}>
       <View>
-        <Text style={s.h1}>My Workshops</Text>
-        <Text style={s.sub}>{items.length} total · {completed.length} completed · auto-refreshes every 5s</Text>
+        <Text style={[s.h1, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>My Workshops</Text>
+        <Text style={[s.sub, { color: isDark ? SC.muted : '#64748B' }]}>{items.length} total · {completed.length} completed · auto-refreshes every 5s</Text>
       </View>
 
-      <Section title={`Ongoing (${ongoing.length})`}>
+      <Section title={`Ongoing (${ongoing.length})`} isDark={isDark}>
         {ongoing.map((w, idx) => {
           const currentWeek = w.current_week || 1;
           const pct = w.status === 'registered' ? 0 : Math.max(0, Math.min(100, Math.round((currentWeek / Math.max(1, w.weeks)) * 100)));
@@ -86,43 +88,43 @@ export function MyWorkshopsView() {
             <GlassCard key={w.id} delay={idx * 30} radius={12} padding={16} style={{ gap: 12 }}>
               {/* Top Meta info */}
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <View style={s.iconBox}><GraduationCap size={18} color={SC.accentBright} /></View>
+                <View style={s.iconBox}><GraduationCap size={18} color={isDark ? SC.accentBright : '#7C3AED'} /></View>
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={s.title}>{w.title}</Text>
-                  <Text style={s.meta}>{w.weeks}-week program · ₹{Number(w.fee_inr || 0).toLocaleString()} · enrolled {w.registered_at ? String(w.registered_at).slice(0, 10) : '—'}</Text>
+                  <Text style={[s.title, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{w.title}</Text>
+                  <Text style={[s.meta, { color: isDark ? '#D1D5DB' : '#64748B' }]}>{w.weeks}-week program · ₹{Number(w.fee_inr || 0).toLocaleString()} · enrolled {w.registered_at ? String(w.registered_at).slice(0, 10) : '—'}</Text>
                 </View>
                 <View style={[s.statusPill, w.status === 'registered' ? s.statusRegistered : s.statusPending]}>
-                  <Text style={[s.statusText, { color: w.status === 'registered' ? '#60A5FA' : '#FBBF24' }]}>
+                  <Text style={[s.statusText, { color: w.status === 'registered' ? '#3B82F6' : '#D97706' }]}>
                     {w.status === 'registered' ? 'Enrolled' : `Week ${currentWeek} of ${w.weeks}`}
                   </Text>
                 </View>
               </View>
 
               {/* Progress and Timeline Tracking */}
-              <View style={s.trackingContainer}>
+              <View style={[s.trackingContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)' }]}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <Text style={s.trackingLabel}>Progress Tracing</Text>
-                  <Text style={s.trackingPct}>{pct}% complete</Text>
+                  <Text style={[s.trackingLabel, { color: isDark ? '#D1D5DB' : '#475569' }]}>Progress Tracing</Text>
+                  <Text style={[s.trackingPct, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{pct}% complete</Text>
                 </View>
 
                 {/* Progress Bar */}
-                <View style={s.progressBarBg}>
-                  <View style={[s.progressBarFill, { width: `${pct}%` }]} />
+                <View style={[s.progressBarBg, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)' }]}>
+                  <View style={[s.progressBarFill, { width: `${pct}%`, backgroundColor: isDark ? SC.accentBright : '#7C3AED' }]} />
                 </View>
 
                 {/* Dynamic Milestones Stepper */}
                 <View style={s.timeline}>
                   <View style={s.timelineStep}>
-                    <View style={[s.dot, w.status !== 'registered' && s.dotDone]} />
-                    <Text style={[s.stepText, w.status !== 'registered' && s.stepTextDone]}>Orientation</Text>
+                    <View style={[s.dot, { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)' }, w.status !== 'registered' && s.dotDone]} />
+                    <Text style={[s.stepText, { color: isDark ? '#9CA3AF' : '#64748B' }, w.status !== 'registered' && [s.stepTextDone, { color: isDark ? '#FFFFFF' : '#0F172A' }]]}>Orientation</Text>
                   </View>
                   <View style={s.timelineStep}>
-                    <View style={[s.dot, w.status !== 'registered' && currentWeek >= Math.ceil(w.weeks / 2) && s.dotDone]} />
-                    <Text style={[s.stepText, w.status !== 'registered' && currentWeek >= Math.ceil(w.weeks / 2) && s.stepTextDone]}>Mid-term</Text>
+                    <View style={[s.dot, { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)' }, w.status !== 'registered' && currentWeek >= Math.ceil(w.weeks / 2) && s.dotDone]} />
+                    <Text style={[s.stepText, { color: isDark ? '#9CA3AF' : '#64748B' }, w.status !== 'registered' && currentWeek >= Math.ceil(w.weeks / 2) && [s.stepTextDone, { color: isDark ? '#FFFFFF' : '#0F172A' }]]}>Mid-term</Text>
                   </View>
                   <View style={s.timelineStep}>
-                    <View style={[s.dot, w.status !== 'registered' && currentWeek >= w.weeks && s.dotDone]} />
-                    <Text style={[s.stepText, w.status !== 'registered' && currentWeek >= w.weeks && s.stepTextDone]}>Final evaluation</Text>
+                    <View style={[s.dot, { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)' }, w.status !== 'registered' && currentWeek >= w.weeks && s.dotDone]} />
+                    <Text style={[s.stepText, { color: isDark ? '#9CA3AF' : '#64748B' }, w.status !== 'registered' && currentWeek >= w.weeks && [s.stepTextDone, { color: isDark ? '#FFFFFF' : '#0F172A' }]]}>Final evaluation</Text>
                   </View>
                 </View>
               </View>
@@ -168,15 +170,15 @@ export function MyWorkshopsView() {
         )}
       </Section>
 
-      <Section title={`Completed (${completed.length})`}>
+      <Section title={`Completed (${completed.length})`} isDark={isDark}>
         {completed.map((w, idx) => (
           <GlassCard key={w.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View style={[s.iconBox, { backgroundColor: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.30)' }]}>
               <CheckCircle size={18} color="#22C55E" />
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.title}>{w.title}</Text>
-              <Text style={s.meta}>Completed {w.completed_at ? String(w.completed_at).slice(0, 10) : '—'} · {w.weeks} weeks</Text>
+              <Text style={[s.title, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{w.title}</Text>
+              <Text style={[s.meta, { color: isDark ? '#D1D5DB' : '#64748B' }]}>Completed {w.completed_at ? String(w.completed_at).slice(0, 10) : '—'} · {w.weeks} weeks</Text>
             </View>
             {w.certificate_url && (
               <Pressable
@@ -190,26 +192,26 @@ export function MyWorkshopsView() {
             )}
           </GlassCard>
         ))}
-        {completed.length === 0 && <Text style={s.empty}>No workshops completed yet.</Text>}
+        {completed.length === 0 && <Text style={[s.empty, { color: isDark ? SC.muted : '#64748B' }]}>No workshops completed yet.</Text>}
       </Section>
 
-      <Section title="Explore Structured Workshops">
+      <Section title="Explore Structured Workshops" isDark={isDark}>
         <View style={{ gap: 12 }}>
           {POPULAR_WORKSHOPS.map((item) => {
             const isAlreadyEnrolled = items.some((w) => w.title === item.title);
             return (
               <GlassCard key={item.title} radius={12} padding={16} style={{ gap: 8 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={s.exploreTitle}>{item.title}</Text>
-                  <Text style={s.exploreMeta}>{item.weeks} weeks · ₹{item.fee.toLocaleString()}</Text>
+                  <Text style={[s.exploreTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{item.title}</Text>
+                  <Text style={[s.exploreMeta, { color: isDark ? '#9CA3AF' : '#64748B' }]}>{item.weeks} weeks · ₹{item.fee.toLocaleString()}</Text>
                 </View>
-                <Text style={s.exploreDesc}>{item.desc}</Text>
+                <Text style={[s.exploreDesc, { color: isDark ? 'rgba(255,255,255,0.7)' : '#475569' }]}>{item.desc}</Text>
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 4 }}>
                   {enrollingTitle === item.title ? (
                     <ActivityIndicator size="small" color={SC.accentBright} />
                   ) : isAlreadyEnrolled ? (
                     <View style={[s.actionBtn, s.statusRegistered, { height: 28, pointerEvents: 'none' }]}>
-                      <Text style={[s.btnText, { color: '#60A5FA' }]}>✓ Enrolled</Text>
+                      <Text style={[s.btnText, { color: '#3B82F6' }]}>✓ Enrolled</Text>
                     </View>
                   ) : (
                     <Pressable
@@ -229,10 +231,10 @@ export function MyWorkshopsView() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, isDark }: { title: string; children: React.ReactNode; isDark?: boolean }) {
   return (
     <View>
-      <Text style={s.sectionTitle}>{title}</Text>
+      <Text style={[s.sectionTitle, { color: isDark ? SC.muted : '#64748B' }]}>{title}</Text>
       <View style={{ gap: 8 }}>{children}</View>
     </View>
   );
