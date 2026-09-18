@@ -341,7 +341,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       {/* Completion Banner */}
       {!isCollege && (
         <View style={[st.banner, completion.percentage >= 100 && st.bannerComplete]}>
-          <CompletionRing pct={completion.percentage} size={92} color={completion.percentage >= 100 ? '#10B981' : '#60A5FA'} />
+          <CompletionRing pct={completion.percentage} size={92} color={completion.percentage >= 100 ? '#10B981' : '#2563EB'} />
           <View style={{ flex: 1, minWidth: 0, gap: 10 }}>
             <Text style={st.bannerTitle}>Profile Completion</Text>
             <Text style={st.bannerSub}>Complete your profile to unlock personalized recommendations & higher trust signals.</Text>
@@ -349,7 +349,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
               {completion.items.map((it) => (
                 <View key={it.key} style={[st.itemPill, it.done && st.itemPillDone]}>
                   {it.done ? <Check size={11} color={C.green} /> : <View style={st.dot} />}
-                  <Text style={[st.itemPillText, it.done && { color: C.green }]}>{it.label}</Text>
+                  <Text style={[st.itemPillText, it.done && { color: C.green, fontFamily: 'DMSans_700Bold' }]}>{it.label}</Text>
                 </View>
               ))}
               {completion.percentage >= 100 && (
