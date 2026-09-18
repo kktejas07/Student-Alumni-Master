@@ -583,11 +583,11 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       >
         <View style={{ gap: 14 }}>
           {/* Aadhaar Number Input & Verification */}
-          <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', gap: 10 }}>
+          <View style={{ backgroundColor: 'rgba(37,99,235,0.02)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: C.border, gap: 10 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <ShieldCheck size={18} color="#10B981" />
-                <Text style={{ color: '#F1F5F9', fontFamily: 'DMSans_700Bold', fontSize: 14 }}>Aadhaar Number (UIDAI)</Text>
+                <Text style={{ color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 14 }}>Aadhaar Number (UIDAI)</Text>
               </View>
               {draft.aadhaar_verified ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(16,185,129,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)' }}>
@@ -601,8 +601,8 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
               )}
             </View>
 
-            <Text style={{ color: '#94A3B8', fontSize: 12, lineHeight: 16 }}>
-              Enter your 12-digit Aadhaar number. In compliance with UIDAI security standards, your Aadhaar is stored encrypted and auto-masked as <Text style={{ color: '#CBD5E1', fontFamily: 'DMSans_700Bold' }}>•••• •••• {String(draft.aadhaar_number || '').replace(/\D/g, '').slice(-4) || 'XXXX'}</Text>.
+            <Text style={{ color: C.text2, fontSize: 12, lineHeight: 16 }}>
+              Enter your 12-digit Aadhaar number. In compliance with UIDAI security standards, your Aadhaar is stored encrypted and auto-masked as <Text style={{ color: C.text, fontFamily: 'DMSans_700Bold' }}>•••• •••• {String(draft.aadhaar_number || '').replace(/\D/g, '').slice(-4) || 'XXXX'}</Text>.
             </Text>
 
             <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
@@ -628,10 +628,10 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
 
               <Pressable
                 onPress={() => setShowAadhaar(!showAadhaar)}
-                style={{ height: 42, paddingHorizontal: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}
+                style={{ height: 42, paddingHorizontal: 12, borderRadius: 10, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' }}
                 testID="pf-toggle-aadhaar"
               >
-                {showAadhaar ? <EyeOff size={16} color="#94A3B8" /> : <Eye size={16} color="#94A3B8" />}
+                {showAadhaar ? <EyeOff size={16} color={C.text2} /> : <Eye size={16} color={C.text2} />}
               </Pressable>
 
               <Pressable
@@ -662,7 +662,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Globe size={18} color="#8B5CF6" />
-                <Text style={{ color: '#F1F5F9', fontFamily: 'DMSans_700Bold', fontSize: 14 }}>DigiLocker & Academic Bank of Credits (ABC)</Text>
+                <Text style={{ color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 14 }}>DigiLocker & Academic Bank of Credits (ABC)</Text>
               </View>
               {draft.digilocker_verified ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(16,185,129,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)' }}>
@@ -670,13 +670,13 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
                   <Text style={{ color: '#10B981', fontFamily: 'DMSans_700Bold', fontSize: 11 }}>Linked ({draft.digilocker_doc_count || 3} Docs)</Text>
                 </View>
               ) : (
-                <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' }}>
-                  <Text style={{ color: '#94A3B8', fontFamily: 'DMSans_700Bold', fontSize: 11 }}>Not Connected</Text>
+                <View style={{ backgroundColor: 'rgba(0,0,0,0.04)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1, borderColor: C.border }}>
+                  <Text style={{ color: C.text3, fontFamily: 'DMSans_700Bold', fontSize: 11 }}>Not Connected</Text>
                 </View>
               )}
             </View>
 
-            <Text style={{ color: '#94A3B8', fontSize: 12, lineHeight: 16 }}>
+            <Text style={{ color: C.text2, fontSize: 12, lineHeight: 16 }}>
               Connect your Government DigiLocker account to automatically pull & verify your official degrees, marksheets, and Academic Bank of Credits (ABC) credentials.
             </Text>
 
