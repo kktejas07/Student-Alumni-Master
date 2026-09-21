@@ -202,7 +202,7 @@ export function InternshipsView() {
   const { width } = useWindowDimensions();
   const toast = useToast();
 
-  const [tab, setTab] = useState<'Recommended' | 'Saved' | 'Applied'>('Recommended');
+  const [tab, setTab] = useState<'Recommended' | 'Saved' | 'Applied' | 'Careers'>('Recommended');
   const [selectedType, setSelectedType] = useState<string>('All Types');
   const [selectedMode, setSelectedMode] = useState<string>('All Modes');
   const [q, setQ] = useState('');
@@ -228,6 +228,7 @@ export function InternshipsView() {
 
   const [savedJobs, setSavedJobs] = useState<Job[]>([]);
   const [appliedRaw, setAppliedRaw] = useState<any[]>([]);
+  const [careerApps, setCareerApps] = useState<any[]>([]);
 
   // Modals state
   const [coverModalJob, setCoverModalJob] = useState<Job | null>(null);
@@ -258,6 +259,28 @@ export function InternshipsView() {
       const appliedRes: any = await request(`/student/my-applications?email=${encodeURIComponent(authUser?.email || '')}`);
       const aList = appliedRes.items || [];
       setAppliedRaw(aList);
+
+      try {
+        const cRes: any = await request('/careers/student/my-applications');
+        const cList = cRes?.applications || [];
+        setCareerApps(cList);
+        if (tab === 'Careers') {
+          const filtered = cList.filter((c: any) => {
+            if (!q.trim()) return true;
+            const term = q.toLowerCase();
+            return (
+              (c.opening?.title || '').toLowerCase().includes(term) ||
+              (c.opening?.company_name || '').toLowerCase().includes(term) ||
+              (c.status || '').toLowerCase().includes(term)
+            );
+          });
+          setTotal(filtered.length);
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        // Continue normally
+      }
 
       if (tab === 'Saved') {
         // Filter locally for fast response
@@ -448,11 +471,12 @@ ${email}`;
       <View style={s.headerRow}>
         {/* Left side: Tabs */}
         <View style={s.tabsContainer}>
-          {(['Recommended', 'Saved', 'Applied'] as const).map((t) => {
+          {(['Recommended', 'Saved', 'Applied', 'Careers'] as const).map((t) => {
             const active = tab === t;
             let label: string = t;
             if (t === 'Saved') label = `Saved (${savedJobs.length})`;
             if (t === 'Applied') label = `Applied (${appliedRaw.length})`;
+            if (t === 'Careers') label = `Direct Careers (${careerApps.length})`;
             return (
               <Pressable
                 key={t}
@@ -524,7 +548,125 @@ ${email}`;
 
       {/* List */}
       <View style={{ gap: 12, marginTop: 10 }}>
-        {loading && items.length === 0 ? (
+        {tab === 'Careers' ? (
+          careerApps.length === 0 ? (
+            <EmptyState
+              variant="generic"
+              title="No direct career applications yet"
+              body="Apply to verified first-party openings directly through the StudentAlumni Careers portal."
+              cta={{
+                label: 'Explore Careers Portal',
+                onPress: () => {
+                  if (Platform.OS === 'web') {
+                    window.location.href = '/careers';
+                  }
+                },
+              }}
+            />
+          ) : (
+            careerApps.map((app) => {
+              const op = app.opening || {};
+              const st = (app.status || 'APPLIED').toUpperCase();
+              const isSelected = st === 'SELECTED';
+              const isRejected = st === 'REJECTED';
+              const isReview = st === 'UNDER_REVIEW' || st === 'SHORTLISTED' || st === 'INTERVIEW';
+
+              return (
+                <View
+                  key={app.id || app._id}
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    borderColor: 'rgba(124, 92, 252, 0.25)',
+                    borderWidth: 1.5,
+                    borderRadius: 14,
+                    padding: 18,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.04,
+                    shadowRadius: 6,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                    <View style={{ flex: 1, marginRight: 12 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <View style={{ backgroundColor: 'rgba(124, 92, 252, 0.12)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }}>
+                          <Text style={{ color: '#7C5CFC', fontSize: 10, fontFamily: FONTS.bold, letterSpacing: 0.5 }}>
+                            FIRST-PARTY CAREER APPLICATION
+                          </Text>
+                        </View>
+                        {op.work_mode && (
+                          <Text style={{ color: '#64748B', fontSize: 11, fontFamily: FONTS.med }}>
+                            • {op.work_mode}
+                          </Text>
+                        )}
+                      </View>
+                      <Text style={{ color: '#0F172A', fontSize: 17, fontFamily: FONTS.bold }}>
+                        {op.title || 'Career Opening'}
+                      </Text>
+                      <Text style={{ color: '#475569', fontSize: 13.5, fontFamily: FONTS.med, marginTop: 2 }}>
+                        {op.company_name || 'StudentAlumni'}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 5,
+                        borderRadius: 8,
+                        backgroundColor: isSelected
+                          ? 'rgba(16, 185, 129, 0.12)'
+                          : isRejected
+                          ? 'rgba(239, 68, 68, 0.12)'
+                          : isReview
+                          ? 'rgba(245, 158, 11, 0.12)'
+                          : 'rgba(59, 130, 246, 0.12)',
+                        borderWidth: 1,
+                        borderColor: isSelected
+                          ? '#10B981'
+                          : isRejected
+                          ? '#EF4444'
+                          : isReview
+                          ? '#F59E0B'
+                          : '#3B82F6',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 11.5,
+                          fontFamily: FONTS.bold,
+                          color: isSelected
+                            ? '#10B981'
+                            : isRejected
+                            ? '#EF4444'
+                            : isReview
+                            ? '#D97706'
+                            : '#2563EB',
+                        }}
+                      >
+                        {st.replace('_', ' ')}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={{ borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 10, marginTop: 6, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ color: '#64748B', fontSize: 12, fontFamily: FONTS.med }}>
+                      Applied: {app.created_at ? new Date(app.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                    </Text>
+                    {app.resume_url ? (
+                      <Pressable
+                        onPress={() => { if (Platform.OS === 'web') window.open(app.resume_url, '_blank'); }}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                      >
+                        <Text style={{ color: '#7C5CFC', fontSize: 12, fontFamily: FONTS.bold }}>View Resume</Text>
+                        <ExternalLink size={12} color="#7C5CFC" />
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
+              );
+            })
+          )
+        ) : loading && items.length === 0 ? (
           <SkeletonList n={5} kind="job" gap={12} />
         ) : items.length === 0 ? (
           tab === 'Saved' ? (
