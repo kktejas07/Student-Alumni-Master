@@ -1,28 +1,54 @@
 import pytest
 import httpx
 import uuid
-from datetime import datetime, timezone
-from server import app
-from core.db import db
+import os
+from fastapi import FastAPI
+from routers.careers import router as careers_router
 from core.security import create_access_token
+from core.db import db
 
+# Create test app mounting careers router under /api/careers (matching server.py)
+app = FastAPI()
+api_router_test = FastAPI()
+app.include_router(careers_router, prefix="/api")
+
+
+import jwt
+from core.security import JWT_SECRET, JWT_ALGORITHM
+
+def make_token(sub: str, role: str) -> str:
+    return jwt.encode({"sub": sub, "role": role, "type": "access"}, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 @pytest.mark.anyio
 async def test_careers_module_flow():
-    # Setup test users
-    admin_id = str(uuid.uuid4())
-    student_id = str(uuid.uuid4())
+    from bson import ObjectId
+    admin_oid = ObjectId()
+    student_oid = ObjectId()
 
-    admin_token = create_access_token(data={"sub": admin_id, "role": "superadmin", "type": "access"})
-    student_token = create_access_token(data={"sub": student_id, "role": "student", "type": "access"})
+    admin_token = make_token(str(admin_oid), "superadmin")
+    student_token = make_token(str(student_oid), "student")
 
     admin_headers = {"Authorization": f"Bearer {admin_token}"}
     student_headers = {"Authorization": f"Bearer {student_token}"}
 
+    await db.users.insert_one({
+        "_id": admin_oid,
+        "email": "superadmin@student-alumni.org",
+        "name": "Super Admin Tester",
+        "role": "superadmin",
+    })
+    await db.users.insert_one({
+        "_id": student_oid,
+        "email": "student.tester@college.edu",
+        "name": "Kalyan Student Tester",
+        "role": "student",
+        "phone": "+91 9876543210",
+    })
+
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
         # 1. Super Admin creates a Draft Career Opening
         create_payload = {
-            "title": "Staff Backend Engineer - StudentAlumni",
+            "title": "Lead Software Engineer - StudentAlumni",
             "company_name": "StudentAlumni Core Team",
             "description": "Building next-generation campus and alumni intelligence systems.",
             "responsibilities": ["Design distributed APIs", "Scale MongoDB clusters"],
@@ -32,7 +58,7 @@ async def test_careers_module_flow():
             "work_mode": "REMOTE",
             "location": "Bengaluru, India",
             "experience_level": "SENIOR",
-            "salary_range": "₹24,00,000 - ₹32,00,000",
+            "salary_range": "₹24,00,000 - ₹32,00,000 P.A.",
             "status": "DRAFT",
             "featured": True,
         }
@@ -130,8 +156,9 @@ async def test_careers_module_flow():
         assert close_res.json()["success"] is True
 
         # 14. Applying to a closed opening is blocked
-        student2_id = str(uuid.uuid4())
-        student2_token = create_access_token(data={"sub": student2_id, "role": "student", "type": "access"})
+        student2_oid = ObjectId()
+        await db.users.insert_one({"_id": student2_oid, "email": "s2@test.com", "role": "student"})
+        student2_token = make_token(str(student2_oid), "student")
         apply_closed_res = await client.post(
             f"/api/careers/{opening_id}/apply",
             json=apply_payload,
