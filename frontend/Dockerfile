@@ -15,7 +15,7 @@ ARG EXPO_PUBLIC_POSTHOG_HOST=""
 ARG EXPO_PUBLIC_ANALYTICS_ENABLED="false"
 
 # Use Debian-based slim for 2-3x faster V8 & Metro Bundler compilation
-FROM node:22-slim AS builder
+FROM node:25-slim AS builder
 
 ARG EXPO_PUBLIC_BACKEND_URL
 ARG EXPO_PUBLIC_FIREBASE_API_KEY
