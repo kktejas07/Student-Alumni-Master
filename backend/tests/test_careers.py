@@ -4,13 +4,14 @@ import uuid
 import os
 from fastapi import FastAPI
 from routers.careers import router as careers_router
+from jobs_feed import router as jobs_feed_router
 from core.security import create_access_token
 from core.db import db
 
-# Create test app mounting careers router under /api/careers (matching server.py)
+# Create test app mounting careers router and existing jobs_feed router under /api
 app = FastAPI()
-api_router_test = FastAPI()
 app.include_router(careers_router, prefix="/api")
+app.include_router(jobs_feed_router, prefix="/api")
 
 
 import jwt
@@ -166,3 +167,35 @@ async def test_careers_module_flow():
         )
         assert apply_closed_res.status_code == 400
         assert "closed" in apply_closed_res.json()["detail"].lower()
+
+
+@pytest.mark.anyio
+async def test_existing_jobs_feed_coexistence():
+    """
+    Verify that existing external Jobs feed endpoints remain operational
+    and completely isolated from the new first-party careers module.
+    """
+    from bson import ObjectId
+    user_oid = ObjectId()
+    await db.users.insert_one({"_id": user_oid, "email": "feed.user@example.com", "role": "student"})
+    user_token = make_token(str(user_oid), "student")
+    user_headers = {"Authorization": f"Bearer {user_token}"}
+
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        # 1. Existing jobs feed endpoint returns 200
+        feed_res = await client.get("/api/jobs/feed?page=1&per_page=5", headers=user_headers)
+        assert feed_res.status_code == 200
+        feed_data = feed_res.json()
+        assert "items" in feed_data
+        assert "total" in feed_data
+
+        # 2. First-party careers endpoint returns 200 and does not contain external jobs
+        careers_res = await client.get("/api/careers")
+        assert careers_res.status_code == 200
+        careers_data = careers_res.json()
+        assert "openings" in careers_data
+
+        # Ensure no cross-contamination between systems
+        for opening in careers_data["openings"]:
+            assert "job_id" not in opening  # job_id is external jobs schema
+            assert "company_name" in opening  # company_name is first-party career schema
