@@ -36,7 +36,7 @@ import {
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
-import { useTheme } from '@/src/context/ThemeContext';
+import { useTheme } from '@/src/theme/ThemeContext';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { api } from '@/src/models/services/api';
 
@@ -45,7 +45,7 @@ export default function CareersPage() {
   const params = useLocalSearchParams();
   const { width } = useWindowDimensions();
   const { theme, isDark } = useTheme();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
 
   const isMobile = width < 768;
   const isTablet = width < 1024;
