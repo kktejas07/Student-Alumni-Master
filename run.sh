@@ -129,7 +129,7 @@ start_frontend() {
   else
     EXPO_CMD="npx expo"
   fi
-  EXPO_PUBLIC_BACKEND_URL="http://localhost:8002" $EXPO_CMD start --web --port 8081 &
+  EXPO_PUBLIC_BACKEND_URL="http://localhost:8002" $EXPO_CMD start --web --port 8081 --clear &
   echo $! >> "$PID_FILE"
   success "Frontend started (PID $!) → http://localhost:8081"
 }

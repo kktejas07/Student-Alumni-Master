@@ -239,7 +239,7 @@ export function ContactView() {
                 required
                 placeholder="e.g. Rahul Sharma"
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                onChange={(e) => setForm({ ...form, name: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
                 className="w-full px-4 py-3.5 bg-[#12142B] border border-white/10 rounded-xl text-white text-sm outline-none focus:border-[#8B84FF]"
               />
             </div>
