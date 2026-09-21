@@ -32,15 +32,16 @@ async def test_careers_module_flow():
     admin_headers = {"Authorization": f"Bearer {admin_token}"}
     student_headers = {"Authorization": f"Bearer {student_token}"}
 
+    uid = uuid.uuid4().hex[:8]
     await db.users.insert_one({
         "_id": admin_oid,
-        "email": "superadmin@student-alumni.org",
+        "email": f"superadmin_{uid}@student-alumni.org",
         "name": "Super Admin Tester",
         "role": "superadmin",
     })
     await db.users.insert_one({
         "_id": student_oid,
-        "email": "student.tester@college.edu",
+        "email": f"student_{uid}@college.edu",
         "name": "Kalyan Student Tester",
         "role": "student",
         "phone": "+91 9876543210",
@@ -158,7 +159,7 @@ async def test_careers_module_flow():
 
         # 14. Applying to a closed opening is blocked
         student2_oid = ObjectId()
-        await db.users.insert_one({"_id": student2_oid, "email": "s2@test.com", "role": "student"})
+        await db.users.insert_one({"_id": student2_oid, "email": f"s2_{uid}@test.com", "role": "student"})
         student2_token = make_token(str(student2_oid), "student")
         apply_closed_res = await client.post(
             f"/api/careers/{opening_id}/apply",
@@ -177,7 +178,8 @@ async def test_existing_jobs_feed_coexistence():
     """
     from bson import ObjectId
     user_oid = ObjectId()
-    await db.users.insert_one({"_id": user_oid, "email": "feed.user@example.com", "role": "student"})
+    f_uid = uuid.uuid4().hex[:8]
+    await db.users.insert_one({"_id": user_oid, "email": f"feed_{f_uid}@example.com", "role": "student"})
     user_token = make_token(str(user_oid), "student")
     user_headers = {"Authorization": f"Bearer {user_token}"}
 
