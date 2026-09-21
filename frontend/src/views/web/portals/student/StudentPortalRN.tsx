@@ -69,6 +69,7 @@ export function StudentPortalRN() {
 function StudentPortalInner() {
   const router = useRouter();
   const { tab, go } = usePortalUrl();
+  const { isDark } = useTheme();
   const [active, setActive] = useState<StudentNavId>(tab as StudentNavId);
   const [scrolled, setScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -109,10 +110,10 @@ function StudentPortalInner() {
   const padH = bp.isPhone ? SP.base : bp.atLeast('xl') ? SP.xxl : SP.lg;
 
   return (
-    <View style={[s.shell, { backgroundColor: '#08080F' }]}>
+    <View style={[s.shell, { backgroundColor: isDark ? '#08080F' : '#F4F5FA' }]}>
       <LinearGradient
         pointerEvents="none"
-        colors={['#08080F', '#0C0E1F', '#08080F']}
+        colors={isDark ? ['#08080F', '#0C0E1F', '#08080F'] : ['#F4F5FA', '#EDEBF8', '#F4F5FA']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject as any}
       />

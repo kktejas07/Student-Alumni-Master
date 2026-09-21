@@ -5,6 +5,7 @@ import { QrCode, Award, MapPin, GraduationCap, Github, Linkedin, ExternalLink } 
 import { SC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
 import { STUDENT } from '../data';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 const BADGES = [
   { id: 1, label: 'Top Performer',   color: '#FCD34D' },
@@ -14,39 +15,46 @@ const BADGES = [
 ];
 
 export function ProfileView() {
+  const { isDark } = useTheme();
   const { width } = useWindowDimensions();
   const stack = width < 980;
+
+  const textColor = isDark ? '#FFFFFF' : '#0F172A';
+  const textMuted = isDark ? SC.muted : '#64748B';
+  const cardBg = isDark ? SC.card : '#FFFFFF';
+  const cardBorder = isDark ? SC.border : 'rgba(0,0,0,0.08)';
+
   return (
     <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
       <View style={{ flex: stack ? undefined : 1.5, gap: 12 }}>
-        <View style={s.card}>
+        <View style={[s.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
             <Av initials={STUDENT.initials} size={66} color={SC.primaryL} />
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.name}>{STUDENT.name}</Text>
-              <Text style={s.meta}>{STUDENT.year} · B.Tech CSE</Text>
+              <Text style={[s.name, { color: textColor }]}>{STUDENT.name}</Text>
+              <Text style={[s.meta, { color: textMuted }]}>{STUDENT.year} · B.Tech CSE</Text>
               <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
                 <Badge label="Verified" color="green" />
                 <Badge label={STUDENT.saId} color="purple" />
               </View>
             </View>
-            <Pressable style={s.editBtn}><Text style={{ color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 12 }}>Edit</Text></Pressable>
+            <Pressable style={[s.editBtn, { backgroundColor: cardBg, borderColor: cardBorder }]}><Text style={{ color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 12 }}>Edit</Text></Pressable>
           </View>
           <View style={{ marginTop: 18, gap: 8 }}>
-            <Row Icon={GraduationCap} label="College" value="BITS Pilani · Batch 2026" />
-            <Row Icon={MapPin}        label="Location" value="Pilani, Rajasthan" />
-            <Row Icon={Linkedin}      label="LinkedIn" value="linkedin.com/in/arjunsharma" />
-            <Row Icon={Github}        label="GitHub"   value="github.com/arjunsharma" />
+            <Row Icon={GraduationCap} label="College" value="BITS Pilani · Batch 2026" textMuted={textMuted} textColor={textColor} />
+            <Row Icon={MapPin}        label="Location" value="Pilani, Rajasthan" textMuted={textMuted} textColor={textColor} />
+            <Row Icon={Linkedin}      label="LinkedIn" value="linkedin.com/in/arjunsharma" textMuted={textMuted} textColor={textColor} />
+            <Row Icon={Github}        label="GitHub"   value="github.com/arjunsharma" textMuted={textMuted} textColor={textColor} />
           </View>
         </View>
 
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Achievements & Badges</Text>
+        <View style={[s.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+          <Text style={[s.cardTitle, { color: textColor }]}>Achievements & Badges</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
             {BADGES.map((b) => (
-              <View key={b.id} style={[s.badgeBox, { borderColor: b.color + '60' }]}>
+              <View key={b.id} style={[s.badgeBox, { backgroundColor: cardBg, borderColor: b.color + '60' }]}>
                 <Award size={20} color={b.color} />
-                <Text style={s.badgeLabel}>{b.label}</Text>
+                <Text style={[s.badgeLabel, { color: textColor }]}>{b.label}</Text>
               </View>
             ))}
           </View>
@@ -67,12 +75,12 @@ export function ProfileView() {
   );
 }
 
-function Row({ Icon, label, value }: any) {
+function Row({ Icon, label, value, textMuted, textColor }: any) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
       <View style={s.rowIcon}><Icon size={13} color={SC.accentBright} /></View>
-      <Text style={s.rowLabel}>{label}</Text>
-      <Text numberOfLines={1} style={s.rowValue}>{value}</Text>
+      <Text style={[s.rowLabel, { color: textMuted }]}>{label}</Text>
+      <Text numberOfLines={1} style={[s.rowValue, { color: textColor }]}>{value}</Text>
     </View>
   );
 }

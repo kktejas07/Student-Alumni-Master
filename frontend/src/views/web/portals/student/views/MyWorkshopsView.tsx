@@ -3,12 +3,13 @@
  */
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, Linking, ActivityIndicator } from 'react-native';
-import { GraduationCap, CheckCircle, Award, ExternalLink } from '../iconShims';
+import { GraduationCap, CheckCircle, Award, ExternalLink, Play, FastForward, CheckCheck, Rocket } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GlassCard } from '../glass';
 import { EmptyState } from '../EmptyState';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';
+import { useTheme } from '@/src/theme/ThemeContext';
 import { useToast } from '@/src/views/components';
 
 type WS = {
@@ -24,6 +25,7 @@ const POPULAR_WORKSHOPS = [
 ];
 
 export function MyWorkshopsView() {
+  const { isDark } = useTheme();
   const toast = useToast();
   const { email } = useCurrentUser('workshop1@persona.demo');
   const { data, refresh } = usePortalData<{ items: WS[]; count: number }>(
@@ -42,7 +44,7 @@ export function MyWorkshopsView() {
       });
       refresh();
       toast.success(
-        action === 'complete' ? 'Workshop completed' : action === 'start' ? 'Workshop started' : 'Progress updated',
+        action === 'complete' ? 'Workshop completed!' : action === 'start' ? 'Workshop started!' : 'Progress advanced by 1 week!',
       );
     } catch (e: any) {
       toast.error('Update failed', e?.message || 'Please try again.');
@@ -58,7 +60,7 @@ export function MyWorkshopsView() {
         body: { student_email: email, workshop_title: title, fee_inr: fee, weeks: weeks },
       });
       refresh();
-      toast.success('Enrolled', `You’re now enrolled in ${title}.`);
+      toast.success('Enrolled Successfully', `You are now enrolled in ${title}.`);
     } catch (e: any) {
       toast.error('Enrollment failed', e?.message || 'Please try again.');
     } finally {
@@ -73,11 +75,13 @@ export function MyWorkshopsView() {
   return (
     <View style={{ gap: 20 }}>
       <View>
-        <Text style={s.h1}>My Workshops</Text>
-        <Text style={s.sub}>{items.length} total · {completed.length} completed · auto-refreshes every 5s</Text>
+        <Text style={[s.h1, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>My Workshops</Text>
+        <Text style={[s.sub, { color: isDark ? SC.muted : '#64748B' }]}>
+          {items.length} total · {completed.length} completed · auto-refreshes every 5s
+        </Text>
       </View>
 
-      <Section title={`Ongoing (${ongoing.length})`}>
+      <Section title={`Ongoing Programs (${ongoing.length})`} isDark={isDark}>
         {ongoing.map((w, idx) => {
           const currentWeek = w.current_week || 1;
           const pct = w.status === 'registered' ? 0 : Math.max(0, Math.min(100, Math.round((currentWeek / Math.max(1, w.weeks)) * 100)));
@@ -86,43 +90,47 @@ export function MyWorkshopsView() {
             <GlassCard key={w.id} delay={idx * 30} radius={12} padding={16} style={{ gap: 12 }}>
               {/* Top Meta info */}
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <View style={s.iconBox}><GraduationCap size={18} color={SC.accentBright} /></View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={s.title}>{w.title}</Text>
-                  <Text style={s.meta}>{w.weeks}-week program · ₹{Number(w.fee_inr || 0).toLocaleString()} · enrolled {w.registered_at ? String(w.registered_at).slice(0, 10) : '—'}</Text>
+                <View style={[s.iconBox, { backgroundColor: isDark ? 'rgba(124, 58, 237, 0.12)' : 'rgba(124, 58, 237, 0.08)', borderColor: isDark ? 'rgba(124, 58, 237, 0.35)' : 'rgba(124, 58, 237, 0.25)' }]}>
+                  <GraduationCap size={20} color={isDark ? SC.accentBright : '#7C3AED'} />
                 </View>
-                <View style={[s.statusPill, w.status === 'registered' ? s.statusRegistered : s.statusPending]}>
-                  <Text style={[s.statusText, { color: w.status === 'registered' ? '#60A5FA' : '#FBBF24' }]}>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={[s.title, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{w.title}</Text>
+                  <Text style={[s.meta, { color: isDark ? '#D1D5DB' : '#64748B' }]}>
+                    {w.weeks}-week program · ₹{Number(w.fee_inr || 0).toLocaleString()} · enrolled {w.registered_at ? String(w.registered_at).slice(0, 10) : '—'}
+                  </Text>
+                </View>
+                <View style={[s.statusPill, w.status === 'registered' ? (isDark ? s.statusRegisteredDark : s.statusRegisteredLight) : (isDark ? s.statusPendingDark : s.statusPendingLight)]}>
+                  <Text style={[s.statusText, { color: w.status === 'registered' ? (isDark ? '#60A5FA' : '#2563EB') : (isDark ? '#FBBF24' : '#D97706') }]}>
                     {w.status === 'registered' ? 'Enrolled' : `Week ${currentWeek} of ${w.weeks}`}
                   </Text>
                 </View>
               </View>
 
               {/* Progress and Timeline Tracking */}
-              <View style={s.trackingContainer}>
+              <View style={[s.trackingContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFC', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0' }]}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <Text style={s.trackingLabel}>Progress Tracing</Text>
-                  <Text style={s.trackingPct}>{pct}% complete</Text>
+                  <Text style={[s.trackingLabel, { color: isDark ? '#E5E7EB' : '#334155' }]}>Progress Tracing</Text>
+                  <Text style={[s.trackingPct, { color: isDark ? '#A78BFA' : '#7C3AED' }]}>{pct}% complete</Text>
                 </View>
 
                 {/* Progress Bar */}
-                <View style={s.progressBarBg}>
-                  <View style={[s.progressBarFill, { width: `${pct}%` }]} />
+                <View style={[s.progressBarBg, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0' }]}>
+                  <View style={[s.progressBarFill, { width: `${pct}%`, backgroundColor: isDark ? SC.accentBright : '#7C3AED' }]} />
                 </View>
 
                 {/* Dynamic Milestones Stepper */}
                 <View style={s.timeline}>
                   <View style={s.timelineStep}>
-                    <View style={[s.dot, w.status !== 'registered' && s.dotDone]} />
-                    <Text style={[s.stepText, w.status !== 'registered' && s.stepTextDone]}>Orientation</Text>
+                    <View style={[s.dot, { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : '#CBD5E1' }, w.status !== 'registered' && s.dotDone]} />
+                    <Text style={[s.stepText, { color: isDark ? '#9CA3AF' : '#64748B' }, w.status !== 'registered' && [s.stepTextDone, { color: isDark ? '#FFFFFF' : '#0F172A' }]]}>Orientation</Text>
                   </View>
                   <View style={s.timelineStep}>
-                    <View style={[s.dot, w.status !== 'registered' && currentWeek >= Math.ceil(w.weeks / 2) && s.dotDone]} />
-                    <Text style={[s.stepText, w.status !== 'registered' && currentWeek >= Math.ceil(w.weeks / 2) && s.stepTextDone]}>Mid-term</Text>
+                    <View style={[s.dot, { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : '#CBD5E1' }, w.status !== 'registered' && currentWeek >= Math.ceil(w.weeks / 2) && s.dotDone]} />
+                    <Text style={[s.stepText, { color: isDark ? '#9CA3AF' : '#64748B' }, w.status !== 'registered' && currentWeek >= Math.ceil(w.weeks / 2) && [s.stepTextDone, { color: isDark ? '#FFFFFF' : '#0F172A' }]]}>Mid-term</Text>
                   </View>
                   <View style={s.timelineStep}>
-                    <View style={[s.dot, w.status !== 'registered' && currentWeek >= w.weeks && s.dotDone]} />
-                    <Text style={[s.stepText, w.status !== 'registered' && currentWeek >= w.weeks && s.stepTextDone]}>Final evaluation</Text>
+                    <View style={[s.dot, { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : '#CBD5E1' }, w.status !== 'registered' && currentWeek >= w.weeks && s.dotDone]} />
+                    <Text style={[s.stepText, { color: isDark ? '#9CA3AF' : '#64748B' }, w.status !== 'registered' && currentWeek >= w.weeks && [s.stepTextDone, { color: isDark ? '#FFFFFF' : '#0F172A' }]]}>Final Evaluation</Text>
                   </View>
                 </View>
               </View>
@@ -130,27 +138,33 @@ export function MyWorkshopsView() {
               {/* Simulation Actions */}
               <View style={s.actionRow}>
                 {updatingId === w.id ? (
-                  <ActivityIndicator size="small" color={SC.accentBright} style={{ paddingVertical: 4 }} />
+                  <View style={s.loadingBox}>
+                    <ActivityIndicator size="small" color={isDark ? SC.accentBright : '#7C3AED'} />
+                    <Text style={[s.loadingText, { color: isDark ? '#9CA3AF' : '#64748B' }]}>Updating progress...</Text>
+                  </View>
                 ) : w.status === 'registered' ? (
                   <Pressable
                     onPress={() => handleProgress(w.id, 'start')}
-                    style={({ hovered }: any) => [s.actionBtn, s.startBtn, hovered && { opacity: 0.85 }]}
+                    style={({ hovered }: any) => [s.actionBtn, s.startBtn, hovered && { opacity: 0.88, transform: [{ scale: 1.02 }] }]}
                   >
-                    <Text style={s.btnText}>Start Program</Text>
+                    <Play size={13} color="#FFFFFF" />
+                    <Text style={s.btnTextWhite}>Start Program</Text>
                   </Pressable>
                 ) : (
                   <>
                     <Pressable
                       onPress={() => handleProgress(w.id, 'advance')}
-                      style={({ hovered }: any) => [s.actionBtn, s.nextBtn, hovered && { opacity: 0.85 }]}
+                      style={({ hovered }: any) => [s.actionBtn, s.nextBtn, hovered && { opacity: 0.88, transform: [{ scale: 1.02 }] }]}
                     >
-                      <Text style={s.btnText}>Advance 1 Week</Text>
+                      <FastForward size={13} color="#FFFFFF" />
+                      <Text style={s.btnTextWhite}>Advance 1 Week</Text>
                     </Pressable>
                     <Pressable
                       onPress={() => handleProgress(w.id, 'complete')}
-                      style={({ hovered }: any) => [s.actionBtn, s.completeBtn, hovered && { opacity: 0.85 }]}
+                      style={({ hovered }: any) => [s.actionBtn, s.completeBtn, hovered && { opacity: 0.88, transform: [{ scale: 1.02 }] }]}
                     >
-                      <Text style={s.btnText}>Simulate Completion</Text>
+                      <CheckCheck size={14} color="#FFFFFF" />
+                      <Text style={s.btnTextWhite}>Simulate Completion</Text>
                     </Pressable>
                   </>
                 )}
@@ -168,55 +182,65 @@ export function MyWorkshopsView() {
         )}
       </Section>
 
-      <Section title={`Completed (${completed.length})`}>
+      <Section title={`Completed (${completed.length})`} isDark={isDark}>
         {completed.map((w, idx) => (
           <GlassCard key={w.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={[s.iconBox, { backgroundColor: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.30)' }]}>
-              <CheckCircle size={18} color="#22C55E" />
+            <View style={[s.iconBox, { backgroundColor: isDark ? 'rgba(34,197,94,0.12)' : 'rgba(34,197,94,0.10)', borderColor: isDark ? 'rgba(34,197,94,0.35)' : 'rgba(34,197,94,0.30)' }]}>
+              <CheckCircle size={20} color="#22C55E" />
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.title}>{w.title}</Text>
-              <Text style={s.meta}>Completed {w.completed_at ? String(w.completed_at).slice(0, 10) : '—'} · {w.weeks} weeks</Text>
+              <Text style={[s.title, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{w.title}</Text>
+              <Text style={[s.meta, { color: isDark ? '#D1D5DB' : '#64748B' }]}>Completed {w.completed_at ? String(w.completed_at).slice(0, 10) : '—'} · {w.weeks} weeks</Text>
             </View>
             {w.certificate_url && (
               <Pressable
                 onPress={() => Linking.openURL(w.certificate_url!)}
-                style={({ hovered }: any) => [s.certBtn, hovered && { backgroundColor: SC.cardH }]}
+                style={({ hovered }: any) => [
+                  s.certBtn,
+                  isDark ? s.certBtnDark : s.certBtnLight,
+                  hovered && { opacity: 0.85, transform: [{ scale: 1.02 }] }
+                ]}
               >
-                <Award size={12} color="#FCD34D" />
-                <Text style={s.certText}>Certificate</Text>
-                <ExternalLink size={11} color="#FCD34D" />
+                <Award size={13} color={isDark ? '#FCD34D' : '#B45309'} />
+                <Text style={[s.certText, { color: isDark ? '#FCD34D' : '#B45309' }]}>Certificate</Text>
+                <ExternalLink size={12} color={isDark ? '#FCD34D' : '#B45309'} />
               </Pressable>
             )}
           </GlassCard>
         ))}
-        {completed.length === 0 && <Text style={s.empty}>No workshops completed yet.</Text>}
+        {completed.length === 0 && <Text style={[s.empty, { color: isDark ? SC.muted : '#64748B' }]}>No workshops completed yet.</Text>}
       </Section>
 
-      <Section title="Explore Structured Workshops">
+      <Section title="Explore Structured Workshops" isDark={isDark}>
         <View style={{ gap: 12 }}>
           {POPULAR_WORKSHOPS.map((item) => {
             const isAlreadyEnrolled = items.some((w) => w.title === item.title);
             return (
               <GlassCard key={item.title} radius={12} padding={16} style={{ gap: 8 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={s.exploreTitle}>{item.title}</Text>
-                  <Text style={s.exploreMeta}>{item.weeks} weeks · ₹{item.fee.toLocaleString()}</Text>
+                  <Text style={[s.exploreTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{item.title}</Text>
+                  <Text style={[s.exploreMeta, { color: isDark ? '#9CA3AF' : '#64748B' }]}>{item.weeks} weeks · ₹{item.fee.toLocaleString()}</Text>
                 </View>
-                <Text style={s.exploreDesc}>{item.desc}</Text>
+                <Text style={[s.exploreDesc, { color: isDark ? 'rgba(255,255,255,0.75)' : '#475569' }]}>{item.desc}</Text>
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 4 }}>
                   {enrollingTitle === item.title ? (
-                    <ActivityIndicator size="small" color={SC.accentBright} />
+                    <ActivityIndicator size="small" color={isDark ? SC.accentBright : '#7C3AED'} />
                   ) : isAlreadyEnrolled ? (
-                    <View style={[s.actionBtn, s.statusRegistered, { height: 28, pointerEvents: 'none' }]}>
-                      <Text style={[s.btnText, { color: '#60A5FA' }]}>✓ Enrolled</Text>
+                    <View style={[s.enrolledBadge, isDark ? s.enrolledBadgeDark : s.enrolledBadgeLight]}>
+                      <CheckCircle size={12} color={isDark ? '#60A5FA' : '#2563EB'} />
+                      <Text style={[s.btnText, { color: isDark ? '#60A5FA' : '#2563EB' }]}>Enrolled</Text>
                     </View>
                   ) : (
                     <Pressable
                       onPress={() => handleEnroll(item.title, item.fee, item.weeks)}
-                      style={({ hovered }: any) => [s.actionBtn, s.startBtn, hovered && { opacity: 0.85 }]}
+                      style={({ hovered }: any) => [
+                        s.actionBtn,
+                        s.enrollBtn,
+                        hovered && { opacity: 0.88, transform: [{ scale: 1.02 }] }
+                      ]}
                     >
-                      <Text style={s.btnText}>Quick Enroll</Text>
+                      <Rocket size={13} color="#FFFFFF" />
+                      <Text style={s.btnTextWhite}>Quick Enroll</Text>
                     </Pressable>
                   )}
                 </View>
@@ -229,10 +253,10 @@ export function MyWorkshopsView() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, isDark }: { title: string; children: React.ReactNode; isDark?: boolean }) {
   return (
     <View>
-      <Text style={s.sectionTitle}>{title}</Text>
+      <Text style={[s.sectionTitle, { color: isDark ? SC.muted : '#64748B' }]}>{title}</Text>
       <View style={{ gap: 8 }}>{children}</View>
     </View>
   );
@@ -243,66 +267,109 @@ const s = StyleSheet.create({
   sub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
   sectionTitle: { color: SC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 1, marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12, padding: 14 },
-  iconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(37,99,235,0.10)', borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13.5 },
-  meta: { color: '#D1D5DB', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
-  statusPill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
-  statusPending: { backgroundColor: 'rgba(251,191,36,0.10)', borderColor: 'rgba(251,191,36,0.30)' },
-  statusRegistered: { backgroundColor: 'rgba(96,165,250,0.10)', borderColor: 'rgba(96,165,250,0.30)' },
-  statusText: { fontFamily: FONTS.bold, fontSize: 10.5 },
-  certBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, height: 30, borderRadius: 8, backgroundColor: 'rgba(252,211,77,0.10)', borderColor: 'rgba(252,211,77,0.40)', borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  certText: { color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 11.5 },
+  iconBox: { width: 40, height: 40, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  title: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 14 },
+  meta: { color: '#D1D5DB', fontFamily: FONTS.med, fontSize: 12, marginTop: 3 },
+  
+  // Status Badges
+  statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
+  statusPendingDark: { backgroundColor: 'rgba(251,191,36,0.12)', borderColor: 'rgba(251,191,36,0.35)' },
+  statusPendingLight: { backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(217,119,6,0.25)' },
+  statusRegisteredDark: { backgroundColor: 'rgba(96,165,250,0.12)', borderColor: 'rgba(96,165,250,0.35)' },
+  statusRegisteredLight: { backgroundColor: 'rgba(37,99,235,0.08)', borderColor: 'rgba(37,99,235,0.25)' },
+  statusText: { fontFamily: FONTS.bold, fontSize: 11 },
+
+  // Certificates
+  certBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, height: 32, borderRadius: 8, borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 0.15s ease' } as any) : {}) },
+  certBtnDark: { backgroundColor: 'rgba(252,211,77,0.12)', borderColor: 'rgba(252,211,77,0.40)' },
+  certBtnLight: { backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(217,119,6,0.30)' },
+  certText: { fontFamily: FONTS.bold, fontSize: 12 },
   empty: { color: SC.muted, padding: 16, textAlign: 'center', fontFamily: FONTS.med },
 
   // Tracking Progress Styles
   trackingContainer: {
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 10,
+    padding: 12,
     marginTop: 4,
   },
-  trackingLabel: { color: '#D1D5DB', fontFamily: FONTS.bold, fontSize: 11 },
-  trackingPct: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 11 },
-  progressBarBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' },
-  progressBarFill: { height: '100%', backgroundColor: SC.accentBright },
+  trackingLabel: { fontFamily: FONTS.bold, fontSize: 11.5 },
+  trackingPct: { fontFamily: FONTS.bold, fontSize: 11.5 },
+  progressBarBg: { height: 7, borderRadius: 4, overflow: 'hidden', marginVertical: 4 },
+  progressBarFill: { height: '100%', borderRadius: 4 },
 
   // Milestones Timeline Styles
   timeline: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  timelineStep: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.2)' },
+  timelineStep: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
   dotDone: { backgroundColor: '#10B981', ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 6px #10B981' } as any) : {}) } as any,
-  stepText: { color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 10.5 },
-  stepTextDone: { color: '#FFFFFF', fontFamily: FONTS.bold },
+  stepText: { fontFamily: FONTS.med, fontSize: 11 },
+  stepTextDone: { fontFamily: FONTS.bold },
 
   // Simulator Buttons Row Styles
-  actionRow: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end', marginTop: 4 },
-  actionBtn: { paddingHorizontal: 12, height: 28, borderRadius: 6, justifyContent: 'center', alignItems: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  btnText: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 11.5 },
+  actionRow: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end', alignItems: 'center', marginTop: 6 },
+  loadingBox: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 },
+  loadingText: { fontFamily: FONTS.med, fontSize: 11.5 },
+  actionBtn: { 
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14, 
+    height: 32, 
+    borderRadius: 7, 
+    justifyContent: 'center', 
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 0.15s ease' } as any) : {}) 
+  },
+  btnText: { fontFamily: FONTS.bold, fontSize: 11.5 },
+  btnTextWhite: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 11.5 },
+  
   startBtn: { 
-    backgroundColor: 'rgba(59, 130, 246, 0.25)', 
-    borderColor: 'rgba(59, 130, 246, 0.6)', 
+    backgroundColor: '#2563EB', 
+    borderColor: '#3B82F6', 
     borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 10px rgba(59, 130, 246, 0.4)' } as any) : {})
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 2px 8px rgba(37, 99, 235, 0.35)' } as any) : {})
   },
   nextBtn: { 
-    backgroundColor: 'rgba(245, 158, 11, 0.25)', 
-    borderColor: 'rgba(245, 158, 11, 0.6)', 
+    backgroundColor: '#D97706', 
+    borderColor: '#F59E0B', 
     borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 10px rgba(245, 158, 11, 0.4)' } as any) : {})
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 2px 8px rgba(217, 119, 6, 0.35)' } as any) : {})
   },
   completeBtn: { 
-    backgroundColor: 'rgba(16, 185, 129, 0.25)', 
-    borderColor: 'rgba(16, 185, 129, 0.6)', 
+    backgroundColor: '#059669', 
+    borderColor: '#10B981', 
     borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 10px rgba(16, 185, 129, 0.4)' } as any) : {})
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 2px 8px rgba(5, 150, 105, 0.35)' } as any) : {})
+  },
+  enrollBtn: {
+    backgroundColor: '#7C3AED',
+    borderColor: '#8B5CF6',
+    borderWidth: 1,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 2px 8px rgba(124, 58, 237, 0.35)' } as any) : {})
+  },
+  enrolledBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    height: 30,
+    borderRadius: 6,
+    borderWidth: 1,
+    pointerEvents: 'none' as any,
+  },
+  enrolledBadgeDark: {
+    backgroundColor: 'rgba(96,165,250,0.12)',
+    borderColor: 'rgba(96,165,250,0.35)',
+  },
+  enrolledBadgeLight: {
+    backgroundColor: 'rgba(37,99,235,0.08)',
+    borderColor: 'rgba(37,99,235,0.25)',
   },
 
   // Explore Catalog Styles
-  exploreTitle: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 14 },
-  exploreMeta: { color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 12 },
-  exploreDesc: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 12, lineHeight: 16, marginTop: 4 },
+  exploreTitle: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 14.5 },
+  exploreMeta: { fontFamily: FONTS.med, fontSize: 12 },
+  exploreDesc: { fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18, marginTop: 2 },
 });
 
 

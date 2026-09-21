@@ -24,7 +24,8 @@ import React, { useEffect, useRef } from 'react';
 import { View, Platform, StyleSheet, Pressable, Text, Animated, Easing } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { PALETTE, SC, TYPO } from './tokens';
+import { PALETTE, usePalette, SC, TYPO } from './tokens';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 /* ─────────────────────────────────────────────────────────────────
  * AnimatedAurora — four drifting colored orbs (violet · blue · teal · rose)
@@ -33,13 +34,16 @@ import { PALETTE, SC, TYPO } from './tokens';
 export function AnimatedAurora({ intensity = 'normal' }: {
   intensity?: 'subtle' | 'normal' | 'strong';
 }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   const mul = intensity === 'subtle' ? 0.3 : intensity === 'strong' ? 0.9 : 0.55;
 
+  if (!isDark) {
+    // In light mode, render very subtle orbs so canvas stays clean and high contrast
+    return null;
+  }
+
   if (Platform.OS === 'web') {
-    // Pure CSS: three positioned div "orbs" with their own keyframe loops.
-    // Wrapping in a single layer so the parent only sees one absolutely-
-    // positioned descendant. Pink/rose orb dropped per design feedback;
-    // remaining palette is violet · blue · teal for a calmer canvas.
     return (
       <View pointerEvents="none" style={[a.layer]}>
         {/* @ts-expect-error web-only — styled via inline JSX style sheet */}
@@ -117,7 +121,8 @@ const a = StyleSheet.create({
  *               subtle technical-blueprint texture to the canvas.
  * ───────────────────────────────────────────────────────────────── */
 export function GridOverlay() {
-  if (Platform.OS !== 'web') return null;
+  const { isDark } = useTheme();
+  if (Platform.OS !== 'web' || !isDark) return null;
   return (
     <View
       pointerEvents="none"
@@ -178,6 +183,8 @@ export function GlassCard({
   onPress?: () => void;
   accessibilityLabel?: string;
 }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   // Fade + slide-in on mount
   const opacity = useRef(new Animated.Value(0)).current;
   const ty = useRef(new Animated.Value(8)).current;
@@ -196,9 +203,13 @@ export function GlassCard({
   const { layout, inner: innerStyle } = splitStyles(style);
 
   const base: any = {
-    backgroundColor: strong ? PALETTE.glassStrong : PALETTE.glass,
+    backgroundColor: isDark
+      ? (strong ? PALETTE.glassStrong : PALETTE.glass)
+      : (strong ? '#FFFFFF' : '#FFFFFF'),
     borderWidth: 1,
-    borderColor: hover ? PALETTE.glassBorderHi : PALETTE.glassBorder,
+    borderColor: isDark
+      ? (hover ? PALETTE.glassBorderHi : PALETTE.glassBorder)
+      : (hover ? 'rgba(124,58,237,0.30)' : 'rgba(0,0,0,0.08)'),
     borderRadius: radius,
     padding,
     overflow: 'hidden',
@@ -206,9 +217,13 @@ export function GlassCard({
 
   if (Platform.OS === 'web') {
     Object.assign(base, {
-      backdropFilter: `blur(${blurAmount}px) saturate(180%)`,
-      WebkitBackdropFilter: `blur(${blurAmount}px) saturate(180%)`,
-      boxShadow: PALETTE.violetGlow,
+      backdropFilter: isDark ? `blur(${blurAmount}px) saturate(180%)` : undefined,
+      WebkitBackdropFilter: isDark ? `blur(${blurAmount}px) saturate(180%)` : undefined,
+      boxShadow: isDark
+        ? PALETTE.violetGlow
+        : hover
+        ? '0 10px 28px rgba(124,92,252,0.08), 0 2px 6px rgba(15,23,42,0.04)'
+        : '0 4px 20px rgba(15,23,42,0.05), 0 1px 3px rgba(15,23,42,0.04)',
       transitionProperty: 'transform, box-shadow, border-color',
       transitionDuration: '220ms',
       transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
@@ -227,8 +242,10 @@ export function GlassCard({
       ]}
     >
       {/* 1px top highlight (the glass-edge sparkle) */}
-      <View pointerEvents="none"
-            style={[g.highlight, { borderTopLeftRadius: radius, borderTopRightRadius: radius }]} />
+      {isDark && (
+        <View pointerEvents="none"
+              style={[g.highlight, { borderTopLeftRadius: radius, borderTopRightRadius: radius }]} />
+      )}
       {children}
     </Animated.View>
   );
@@ -318,10 +335,12 @@ const g = StyleSheet.create({
 export function GlassSoft({ children, style, radius = 12 }: {
   children: React.ReactNode; style?: any; radius?: number;
 }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   return (
     <View style={[{
-      backgroundColor: PALETTE.glassSoft,
-      borderColor: PALETTE.glassBorder,
+      backgroundColor: isDark ? PALETTE.glassSoft : '#F8FAFC',
+      borderColor: isDark ? PALETTE.glassBorder : 'rgba(0, 0, 0, 0.06)',
       borderWidth: 1,
       borderRadius: radius,
     }, style]}>
@@ -334,7 +353,7 @@ export function GlassSoft({ children, style, radius = 12 }: {
  * KpiTile — eyebrow + big mono number + delta footer + radial glow.
  * ───────────────────────────────────────────────────────────────── */
 export function KpiTile({
-  label, value, delta, deltaTone = 'positive', glowColor = PALETTE.violet,
+  label, value, delta, deltaTone = 'positive', glowColor,
   delay = 0, style,
 }: {
   label: string;
@@ -345,18 +364,23 @@ export function KpiTile({
   delay?: number;
   style?: any;
 }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   const deltaColor =
-    deltaTone === 'positive' ? PALETTE.teal :
-    deltaTone === 'negative' ? PALETTE.rose : PALETTE.muted;
+    deltaTone === 'positive' ? (isDark ? PALETTE.teal : '#059669') :
+    deltaTone === 'negative' ? (isDark ? PALETTE.rose : '#DC2626') :
+    (isDark ? PALETTE.muted : '#64748B');
+
+  const resolvedGlow = glowColor || (isDark ? PALETTE.violet : 'rgba(124,58,237,0.12)');
 
   return (
     <GlassCard delay={delay} radius={16} padding={18} style={[{ minWidth: 180 }, style]}>
       {/* corner glow */}
-      <View pointerEvents="none" style={[k.glow, { backgroundColor: glowColor }]} />
-      <Text style={k.label}>{label}</Text>
+      {isDark && <View pointerEvents="none" style={[k.glow, { backgroundColor: resolvedGlow }]} />}
+      <Text style={[k.label, { color: isDark ? PALETTE.muted : '#64748B' }]}>{label}</Text>
       <View style={{ height: 6 }} />
       {typeof value === 'string' || typeof value === 'number' ? (
-        <Text style={k.value}>{value}</Text>
+        <Text style={[k.value, { color: isDark ? PALETTE.text : '#0F172A' }]}>{value}</Text>
       ) : value}
       {!!delta && (
         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 }}>

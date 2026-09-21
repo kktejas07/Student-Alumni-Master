@@ -19,6 +19,7 @@ import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeatureP
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 import { request } from '@/src/models/services/api';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -53,11 +54,6 @@ const TAG_META: Record<string, { label: string; icon: IconName; color: string }>
   NEW_INTAKE:    { label: 'New Intake',     icon: 'sparkles',        color: '#EC4899' },
 };
 
-const C = {
-  text: '#fff', text2: 'rgba(255,255,255,0.72)', text3: 'rgba(255,255,255,0.46)',
-  border: 'rgba(255,255,255,0.10)', card: 'rgba(255,255,255,0.04)',
-};
-
 const fmtINR = (n: number) => {
   if (!n) return '₹0';
   if (n >= 10000000) return `₹${(n / 10000000).toFixed(1)}Cr`;
@@ -65,11 +61,11 @@ const fmtINR = (n: number) => {
   return `₹${Math.round(n).toLocaleString('en-IN')}`;
 };
 
-const matchTier = (n: number) => {
-  if (n >= 95) return { bg: 'rgba(16,185,129,0.15)', fg: '#34D399' };
-  if (n >= 85) return { bg: 'rgba(34,211,238,0.15)', fg: '#67E8F9' };
-  if (n >= 75) return { bg: 'rgba(167,139,250,0.15)', fg: '#C4B5FD' };
-  return { bg: 'rgba(110,105,130,0.15)', fg: '#B7B3C6' };
+const matchTier = (n: number, isDark: boolean) => {
+  if (n >= 95) return { bg: isDark ? 'rgba(16,185,129,0.15)' : '#ECFDF5', fg: isDark ? '#34D399' : '#059669', border: isDark ? 'transparent' : '#A7F3D0' };
+  if (n >= 85) return { bg: isDark ? 'rgba(34,211,238,0.15)' : '#ECFEFF', fg: isDark ? '#67E8F9' : '#0891B2', border: isDark ? 'transparent' : '#A5F3FC' };
+  if (n >= 75) return { bg: isDark ? 'rgba(167,139,250,0.15)' : '#F5F3FF', fg: isDark ? '#C4B5FD' : '#7C3AED', border: isDark ? 'transparent' : '#DDD6FE' };
+  return { bg: isDark ? 'rgba(110,105,130,0.15)' : '#F1F5F9', fg: isDark ? '#B7B3C6' : '#64748B', border: isDark ? 'transparent' : '#CBD5E1' };
 };
 
 function useRoleTheme() {
@@ -99,10 +95,54 @@ function useRoleTheme() {
 
 export default function HigherEducationScreen() {
   const router = useRouter();
+  const { isDark } = useTheme();
   const user = useAuthStore((st) => st.user);
   const initialized = useAuthStore((st) => st.initialized);
   const { role, themeColor, activeTabColor, activeTabBorder } = useRoleTheme();
   const isEmbedded = React.useContext(EmbeddedShellContext);
+
+  const colors = useMemo(() => ({
+    bg: isDark ? '#0A1628' : '#F8FAFC',
+    card: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
+    cardBorder: isDark ? 'rgba(255,255,255,0.10)' : '#E2E8F0',
+    cardShadow: isDark ? {} : {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    text: isDark ? '#FFFFFF' : '#0F172A',
+    text2: isDark ? 'rgba(255,255,255,0.72)' : '#334155',
+    text3: isDark ? 'rgba(255,255,255,0.46)' : '#64748B',
+    border: isDark ? 'rgba(255,255,255,0.10)' : '#E2E8F0',
+    statBg: isDark ? 'rgba(0,0,0,0.20)' : '#F8FAFC',
+    statBorder: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0',
+    statValue: isDark ? '#FFFFFF' : '#0F172A',
+    statLabel: isDark ? '#94A3B8' : '#64748B',
+    tabInactiveBg: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
+    tabInactiveBorder: isDark ? 'rgba(255,255,255,0.10)' : '#CBD5E1',
+    tabInactiveText: isDark ? 'rgba(255,255,255,0.72)' : '#475569',
+    detailsBtnBg: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9',
+    detailsBtnBorder: isDark ? 'rgba(255,255,255,0.10)' : '#CBD5E1',
+    detailsBtnText: isDark ? 'rgba(255,255,255,0.85)' : '#334155',
+    compareChkBg: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+    compareChkBorder: isDark ? 'rgba(255,255,255,0.10)' : '#CBD5E1',
+    compareChkText: isDark ? 'rgba(255,255,255,0.50)' : '#64748B',
+    modalBg: isDark ? '#1A1626' : '#FFFFFF',
+    modalBorder: isDark ? 'rgba(255,255,255,0.10)' : '#E2E8F0',
+    inputBg: isDark ? 'rgba(0,0,0,0.20)' : '#F8FAFC',
+    inputBorder: isDark ? 'rgba(255,255,255,0.10)' : '#CBD5E1',
+    inputText: isDark ? '#FFFFFF' : '#0F172A',
+    inputPlaceholder: isDark ? 'rgba(255,255,255,0.46)' : '#94A3B8',
+    aiResultBg: isDark ? 'rgba(0,0,0,0.30)' : '#F8FAFC',
+    degreePillBg: isDark ? 'rgba(59,130,246,0.20)' : '#EFF6FF',
+    degreePillBorder: isDark ? 'transparent' : '#BFDBFE',
+    degreePillText: isDark ? '#93C5FD' : '#2563EB',
+    countryPillBg: isDark ? 'rgba(16,185,129,0.20)' : '#ECFDF5',
+    countryPillBorder: isDark ? 'transparent' : '#A7F3D0',
+    countryPillText: isDark ? '#86EFAC' : '#059669',
+  }), [isDark]);
 
   useEffect(() => {
     if (!isEmbedded && initialized && user) {
@@ -113,6 +153,7 @@ export default function HigherEducationScreen() {
       }
     }
   }, [isEmbedded, initialized, user, router]);
+
   const [tab, setTab] = useState<'programmes' | 'scholarships' | 'countries'>('programmes');
   const [programmes, setProgrammes] = useState<Programme[]>([]);
   const [scholarships, setScholarships] = useState<Scholarship[]>([]);
@@ -186,10 +227,6 @@ export default function HigherEducationScreen() {
     }
   };
 
-  const filterScholarshipsByCountry = (countryId: string) => {
-    setTab('scholarships');
-  };
-
   return (
     <FeaturePageShell
       title="Higher Education"
@@ -224,11 +261,19 @@ export default function HigherEducationScreen() {
           return (
             <Pressable
               key={t.id}
-              style={[s.tab, active && { backgroundColor: activeTabColor, borderColor: activeTabBorder }]}
+              style={[
+                s.tab,
+                {
+                  backgroundColor: active ? activeTabColor : colors.tabInactiveBg,
+                  borderColor: active ? activeTabBorder : colors.tabInactiveBorder,
+                },
+              ]}
               onPress={() => setTab(t.id)}
             >
-              <MaterialCommunityIcons name={t.icon} size={14} color={active ? '#fff' : C.text2} />
-              <Text style={[s.tabText, active && s.tabTextActive]}>{t.label}</Text>
+              <MaterialCommunityIcons name={t.icon} size={14} color={active ? '#fff' : colors.tabInactiveText} />
+              <Text style={[s.tabText, { color: active ? '#fff' : colors.tabInactiveText }, active && s.tabTextActive]}>
+                {t.label}
+              </Text>
             </Pressable>
           );
         })}
@@ -237,20 +282,22 @@ export default function HigherEducationScreen() {
       {loading ? (
         <View style={{ paddingVertical: 60, alignItems: 'center' }}>
           <ActivityIndicator color={themeColor} size="large" />
-          <Text style={{ color: C.text2, marginTop: 10 }}>Loading…</Text>
+          <Text style={{ color: colors.text2, marginTop: 10 }}>Loading…</Text>
         </View>
       ) : (
         <>
           {tab === 'programmes' && (
             <>
               <View style={s.sectionHead}>
-                <Text style={s.sectionTitle}>Recommended Programmes</Text>
-                <Text style={s.sectionSub}>{programmes.length} options matched to your profile</Text>
+                <Text style={[s.sectionTitle, { color: colors.text }]}>Recommended Programmes</Text>
+                <Text style={[s.sectionSub, { color: colors.text3 }]}>{programmes.length} options matched to your profile</Text>
               </View>
               <View style={s.grid}>
                 {programmes.map((p) => (
                   <ProgrammeCard
                     key={p.id} p={p}
+                    colors={colors}
+                    isDark={isDark}
                     selected={selectedIds.has(p.id)}
                     onCompareToggle={() => toggleCompare(p.id)}
                     onApply={() => onApplyClick(p)}
@@ -282,23 +329,33 @@ export default function HigherEducationScreen() {
           {tab === 'scholarships' && (
             <View style={s.grid}>
               {scholarships.map((sch) => (
-                <View key={sch.id} style={[s.card, { borderColor: '#10B98155' }]}>
+                <View
+                  key={sch.id}
+                  style={[
+                    s.card,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: isDark ? '#10B98155' : '#A7F3D0',
+                    },
+                    colors.cardShadow,
+                  ]}
+                >
                   <View style={{ flex: 1, gap: 10 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <View style={[s.pill, { backgroundColor: 'rgba(16,185,129,0.15)' }]}>
-                        <Text style={[s.pillText, { color: '#34D399' }]}>{sch.degree_levels.join('/')}</Text>
+                      <View style={[s.pill, { backgroundColor: isDark ? 'rgba(16,185,129,0.15)' : '#ECFDF5', borderColor: isDark ? 'transparent' : '#A7F3D0', borderWidth: isDark ? 0 : 1 }]}>
+                        <Text style={[s.pillText, { color: isDark ? '#34D399' : '#059669' }]}>{sch.degree_levels.join('/')}</Text>
                       </View>
-                      <View style={[s.pill, { backgroundColor: 'rgba(124,58,237,0.20)' }]}>
-                        <Text style={[s.pillText, { color: '#C4B5FD' }]}>{sch.country}</Text>
+                      <View style={[s.pill, { backgroundColor: isDark ? 'rgba(124,58,237,0.20)' : '#F5F3FF', borderColor: isDark ? 'transparent' : '#DDD6FE', borderWidth: isDark ? 0 : 1 }]}>
+                        <Text style={[s.pillText, { color: isDark ? '#C4B5FD' : '#7C3AED' }]}>{sch.country}</Text>
                       </View>
                     </View>
-                    <Text style={s.cardTitle}>{sch.name}</Text>
-                    <Text style={s.cardSub}>{sch.funder}</Text>
+                    <Text style={[s.cardTitle, { color: colors.text }]}>{sch.name}</Text>
+                    <Text style={[s.cardSub, { color: colors.text2 }]}>{sch.funder}</Text>
                     <View style={s.statsGrid}>
-                      <Stat label="Award" value={fmtINR(sch.award_inr)} good />
-                      <Stat label="Coverage" value={sch.coverage.length > 22 ? sch.coverage.slice(0, 22) + '…' : sch.coverage} />
-                      <Stat label="Deadline" value={new Date(sch.deadline).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })} />
-                      <Stat label="Eligibility" value={sch.eligibility.length > 22 ? sch.eligibility.slice(0, 22) + '…' : sch.eligibility} />
+                      <Stat label="Award" value={fmtINR(sch.award_inr)} good colors={colors} />
+                      <Stat label="Coverage" value={sch.coverage.length > 22 ? sch.coverage.slice(0, 22) + '…' : sch.coverage} colors={colors} />
+                      <Stat label="Deadline" value={new Date(sch.deadline).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })} colors={colors} />
+                      <Stat label="Eligibility" value={sch.eligibility.length > 22 ? sch.eligibility.slice(0, 22) + '…' : sch.eligibility} colors={colors} />
                     </View>
                   </View>
                   <Pressable style={[s.applyBtn, { backgroundColor: '#10B981' }]} onPress={() => Linking.openURL(sch.url)}>
@@ -312,7 +369,18 @@ export default function HigherEducationScreen() {
           {tab === 'countries' && (
             <View style={s.grid}>
               {countries.map((c) => (
-                <Pressable key={c.id} style={[s.card, { borderColor: '#06B6D455' }]} onPress={() => { setTab('programmes'); }}>
+                <Pressable
+                  key={c.id}
+                  style={[
+                    s.card,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: isDark ? '#06B6D455' : '#BAE6FD',
+                    },
+                    colors.cardShadow,
+                  ]}
+                  onPress={() => { setTab('programmes'); }}
+                >
                   <Image
                     source={{
                       uri: `https://flagcdn.com/w80/${(({
@@ -330,17 +398,17 @@ export default function HigherEducationScreen() {
                       width: 44,
                       height: 32,
                       borderRadius: 4,
-                      backgroundColor: 'rgba(255,255,255,0.1)',
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0',
                     }}
                   />
-                  <Text style={s.cardTitle}>{c.name}</Text>
+                  <Text style={[s.cardTitle, { color: colors.text }]}>{c.name}</Text>
                   <View style={{ flexDirection: 'row', gap: 14, marginTop: 4, flexWrap: 'wrap' }}>
-                    <Text style={s.cardSub}>📚 {c.programmes} programmes</Text>
-                    <Text style={s.cardSub}>🎖️ {c.scholarships} funding options</Text>
+                    <Text style={[s.cardSub, { color: colors.text2 }]}>📚 {c.programmes} programmes</Text>
+                    <Text style={[s.cardSub, { color: colors.text2 }]}>🎖️ {c.scholarships} funding options</Text>
                   </View>
                   <View style={s.statsGrid}>
-                    <Stat label="Avg fee/yr" value={fmtINR(c.avg_fee_inr)} />
-                    <Stat label="Avg living/yr" value={fmtINR(c.avg_living_inr)} />
+                    <Stat label="Avg fee/yr" value={fmtINR(c.avg_fee_inr)} colors={colors} />
+                    <Stat label="Avg living/yr" value={fmtINR(c.avg_living_inr)} colors={colors} />
                   </View>
                 </Pressable>
               ))}
@@ -351,11 +419,11 @@ export default function HigherEducationScreen() {
 
       {/* Sticky compare bar */}
       {selectedIds.size >= 2 && (
-        <View style={[s.compareBar, { borderColor: themeColor + '8c' }]}>
-          <MaterialCommunityIcons name="compare-horizontal" size={16} color="#fff" />
-          <Text style={s.compareText}>Compare {selectedIds.size} programmes</Text>
+        <View style={[s.compareBar, { backgroundColor: colors.modalBg, borderColor: themeColor + '8c' }]}>
+          <MaterialCommunityIcons name="compare-horizontal" size={16} color={colors.text} />
+          <Text style={[s.compareText, { color: colors.text }]}>Compare {selectedIds.size} programmes</Text>
           <Pressable onPress={() => setSelectedIds(new Set())}>
-            <Text style={s.compareClear}>Clear</Text>
+            <Text style={[s.compareClear, { color: colors.text3 }]}>Clear</Text>
           </Pressable>
           <Pressable style={[s.compareCTA, { backgroundColor: activeTabColor }]} onPress={() => setCompareOpen(true)}>
             <Text style={s.compareCTAText}>Compare →</Text>
@@ -367,6 +435,7 @@ export default function HigherEducationScreen() {
       <CompareModal
         visible={compareOpen}
         ids={Array.from(selectedIds)}
+        colors={colors}
         onClose={() => setCompareOpen(false)}
         onApply={(p) => {
           setCompareOpen(false);
@@ -383,27 +452,27 @@ export default function HigherEducationScreen() {
         onRequestClose={() => setConfirmAfterRedirectProg(null)}
       >
         <View style={s.modalBackdrop}>
-          <View style={[s.confirmModal, { borderColor: activeTabColor + '4d' }]}>
-            <View style={s.confirmHead}>
-              <MaterialCommunityIcons name="check-decagram" size={20} color="#34D399" />
-              <Text style={s.confirmTitle}>Application Status</Text>
+          <View style={[s.confirmModal, { backgroundColor: colors.modalBg, borderColor: colors.modalBorder }]}>
+            <View style={[s.confirmHead, { borderBottomColor: colors.modalBorder }]}>
+              <MaterialCommunityIcons name="check-decagram" size={20} color="#10B981" />
+              <Text style={[s.confirmTitle, { color: colors.text }]}>Application Status</Text>
             </View>
 
             <View style={s.confirmBody}>
-              <Text style={s.confirmText}>
+              <Text style={[s.confirmText, { color: colors.text }]}>
                 Did you complete your application for <Text style={[s.boldText, { color: themeColor }]}>{confirmAfterRedirectProg?.name}</Text> at <Text style={[s.boldText, { color: themeColor }]}>{confirmAfterRedirectProg?.institution}</Text>?
               </Text>
-              <Text style={s.confirmSubtext}>
+              <Text style={[s.confirmSubtext, { color: colors.text2 }]}>
                 We opened the official university portal in a new tab. If you successfully completed and submitted the application, click "Yes, I Applied" to begin tracking.
               </Text>
             </View>
 
             <View style={s.confirmActions}>
               <Pressable
-                style={s.cancelBtn}
+                style={[s.cancelBtn, { backgroundColor: colors.detailsBtnBg, borderColor: colors.detailsBtnBorder }]}
                 onPress={() => setConfirmAfterRedirectProg(null)}
               >
-                <Text style={s.cancelBtnText}>No, Cancelled</Text>
+                <Text style={[s.cancelBtnText, { color: colors.detailsBtnText }]}>No, Cancelled</Text>
               </Pressable>
               <Pressable
                 style={[s.confirmBtn, { backgroundColor: activeTabColor }]}
@@ -425,6 +494,8 @@ export default function HigherEducationScreen() {
       {/* AI Tools modal */}
       <AIToolsModal
         tool={aiTool}
+        colors={colors}
+        isDark={isDark}
         onClose={() => setAiTool(null)}
         onSwitch={(t) => setAiTool(t)}
       />
@@ -434,43 +505,54 @@ export default function HigherEducationScreen() {
 
 // ─── Programme Card ──────────────────────────────────────────────────────
 function ProgrammeCard({
-  p, selected, onCompareToggle, onApply, onDraftSOP, onDetails, onCoverLetter, appId,
+  p, selected, onCompareToggle, onApply, onDraftSOP, onDetails, onCoverLetter, appId, colors, isDark,
 }: {
   p: Programme; selected: boolean; onCompareToggle: () => void;
   onApply: () => void; onDraftSOP: () => void; onDetails: () => void; onCoverLetter: () => void;
-  appId?: string;
+  appId?: string; colors: any; isDark: boolean;
 }) {
   const router = useRouter();
   const { themeColor, activeTabColor } = useRoleTheme();
-  const tier = matchTier(p.match);
+  const tier = matchTier(p.match, isDark);
   const tags = (p.tags || []).slice(0, 3);
   const overflow = (p.tags || []).length - tags.length;
+
   return (
-    <View style={[s.card, selected && { borderColor: themeColor, borderWidth: 2 }]}>
+    <View
+      style={[
+        s.card,
+        {
+          backgroundColor: colors.card,
+          borderColor: selected ? themeColor : colors.cardBorder,
+          borderWidth: selected ? 2 : 1,
+        },
+        colors.cardShadow,
+      ]}
+    >
       <View style={{ flex: 1, gap: 10 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <View style={{ flexDirection: 'row', gap: 6 }}>
-            <View style={[s.pill, { backgroundColor: 'rgba(59,130,246,0.20)' }]}>
-              <Text style={[s.pillText, { color: '#93C5FD' }]}>{p.degree}</Text>
+            <View style={[s.pill, { backgroundColor: colors.degreePillBg, borderColor: colors.degreePillBorder, borderWidth: isDark ? 0 : 1 }]}>
+              <Text style={[s.pillText, { color: colors.degreePillText }]}>{p.degree}</Text>
             </View>
-            <View style={[s.pill, { backgroundColor: 'rgba(16,185,129,0.20)' }]}>
-              <Text style={[s.pillText, { color: '#86EFAC' }]}>{p.country}</Text>
+            <View style={[s.pill, { backgroundColor: colors.countryPillBg, borderColor: colors.countryPillBorder, borderWidth: isDark ? 0 : 1 }]}>
+              <Text style={[s.pillText, { color: colors.countryPillText }]}>{p.country}</Text>
             </View>
           </View>
-          <View style={[s.matchPill, { backgroundColor: tier.bg }]}>
+          <View style={[s.matchPill, { backgroundColor: tier.bg, borderColor: tier.border, borderWidth: tier.border !== 'transparent' ? 1 : 0 }]}>
             <MaterialCommunityIcons name="sparkles" size={11} color={tier.fg} />
             <Text style={[s.matchText, { color: tier.fg }]}>{p.match}% match</Text>
           </View>
         </View>
    
-        <Text style={s.cardTitle} numberOfLines={2}>{p.name}</Text>
-        <Text style={s.cardSub}>{p.institution}</Text>
+        <Text style={[s.cardTitle, { color: colors.text }]} numberOfLines={2}>{p.name}</Text>
+        <Text style={[s.cardSub, { color: colors.text2 }]}>{p.institution}</Text>
    
         <View style={s.statsGrid}>
-          <Stat label="Duration" value={p.duration} />
-          <Stat label="Fee" value={p.fee} good={p.fee.toLowerCase().includes('funded') || p.fee_amount === 0} />
-          <Stat label="Mode" value={p.mode} />
-          <Stat label="Intake" value={p.intake} />
+          <Stat label="Duration" value={p.duration} colors={colors} />
+          <Stat label="Fee" value={p.fee} good={p.fee.toLowerCase().includes('funded') || p.fee_amount === 0} colors={colors} />
+          <Stat label="Mode" value={p.mode} colors={colors} />
+          <Stat label="Intake" value={p.intake} colors={colors} />
         </View>
    
         {tags.length > 0 && (
@@ -485,8 +567,8 @@ function ProgrammeCard({
               );
             })}
             {overflow > 0 && (
-              <View style={[s.tagPill, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: C.border }]}>
-                <Text style={[s.tagText, { color: C.text2 }]}>+{overflow}</Text>
+              <View style={[s.tagPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', borderColor: colors.border }]}>
+                <Text style={[s.tagText, { color: colors.text2 }]}>+{overflow}</Text>
               </View>
             )}
           </View>
@@ -497,33 +579,39 @@ function ProgrammeCard({
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {appId ? (
             <Pressable
-              style={[s.applyBtn, { flex: 1, backgroundColor: 'rgba(52,211,153,0.15)', borderColor: '#34D399', borderWidth: 1 }]}
+              style={[s.applyBtn, { flex: 1, backgroundColor: isDark ? 'rgba(52,211,153,0.15)' : '#ECFDF5', borderColor: '#10B981', borderWidth: 1 }]}
               onPress={() => router.push(`/applications/${appId}` as any)}
             >
-              <Text style={[s.applyBtnText, { color: '#34D399' }]}>Applied ✓</Text>
+              <Text style={[s.applyBtnText, { color: '#059669' }]}>Applied ✓</Text>
             </Pressable>
           ) : (
             <Pressable style={[s.applyBtn, { flex: 1, backgroundColor: activeTabColor }]} onPress={onApply}>
               <Text style={s.applyBtnText}>Apply →</Text>
             </Pressable>
           )}
-          <Pressable style={s.detailsBtn} onPress={onDetails}>
-            <Text style={s.detailsBtnText}>Eligibility</Text>
+          <Pressable style={[s.detailsBtn, { backgroundColor: colors.detailsBtnBg, borderColor: colors.detailsBtnBorder }]} onPress={onDetails}>
+            <Text style={[s.detailsBtnText, { color: colors.detailsBtnText }]}>Eligibility</Text>
           </Pressable>
         </View>
 
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Pressable style={[s.draftBtn, { backgroundColor: themeColor + '1a', borderColor: themeColor + '66' }]} onPress={onDraftSOP}>
-            <MaterialCommunityIcons name="file-document-edit" size={12} color={themeColor} />
-            <Text style={[s.draftBtnText, { color: themeColor }]}>Draft SOP</Text>
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          <Pressable style={[s.draftBtn, { backgroundColor: isDark ? themeColor + '1a' : '#F5F3FF', borderColor: isDark ? themeColor + '66' : '#DDD6FE' }]} onPress={onDraftSOP}>
+            <MaterialCommunityIcons name="file-document-edit" size={12} color={isDark ? themeColor : '#7C3AED'} />
+            <Text style={[s.draftBtnText, { color: isDark ? themeColor : '#7C3AED' }]}>Draft SOP</Text>
           </Pressable>
-          <Pressable style={[s.draftBtn, { backgroundColor: themeColor + '1a', borderColor: themeColor + '66' }]} onPress={onCoverLetter}>
-            <MaterialCommunityIcons name="email-edit" size={12} color={themeColor} />
-            <Text style={[s.draftBtnText, { color: themeColor }]}>Cover letter</Text>
+          <Pressable style={[s.draftBtn, { backgroundColor: isDark ? themeColor + '1a' : '#F5F3FF', borderColor: isDark ? themeColor + '66' : '#DDD6FE' }]} onPress={onCoverLetter}>
+            <MaterialCommunityIcons name="email-edit" size={12} color={isDark ? themeColor : '#7C3AED'} />
+            <Text style={[s.draftBtnText, { color: isDark ? themeColor : '#7C3AED' }]}>Cover letter</Text>
           </Pressable>
-          <Pressable style={[s.compareChk, selected && { borderColor: themeColor + '8c' }]} onPress={onCompareToggle}>
-            <MaterialCommunityIcons name={selected ? 'checkbox-marked' : 'checkbox-blank-outline'} size={14} color={selected ? themeColor : C.text3} />
-            <Text style={[s.compareChkText, selected && { color: themeColor }]}>Compare</Text>
+          <Pressable
+            style={[
+              s.compareChk,
+              { backgroundColor: colors.compareChkBg, borderColor: selected ? (themeColor + '8c') : colors.compareChkBorder },
+            ]}
+            onPress={onCompareToggle}
+          >
+            <MaterialCommunityIcons name={selected ? 'checkbox-marked' : 'checkbox-blank-outline'} size={14} color={selected ? themeColor : colors.compareChkText} />
+            <Text style={[s.compareChkText, { color: selected ? themeColor : colors.compareChkText }]}>Compare</Text>
           </Pressable>
         </View>
       </View>
@@ -531,18 +619,18 @@ function ProgrammeCard({
   );
 }
 
-function Stat({ label, value, good }: { label: string; value: string; good?: boolean }) {
+function Stat({ label, value, good, colors }: { label: string; value: string; good?: boolean; colors: any }) {
   return (
-    <View style={s.stat}>
-      <Text style={[s.statValue, good && { color: '#34D399' }]}>{value}</Text>
-      <Text style={s.statLabel}>{label}</Text>
+    <View style={[s.stat, { backgroundColor: colors.statBg, borderColor: colors.statBorder }]}>
+      <Text style={[s.statValue, { color: good ? '#10B981' : colors.statValue }]}>{value}</Text>
+      <Text style={[s.statLabel, { color: colors.statLabel }]}>{label}</Text>
     </View>
   );
 }
 
-function CompareModal({ visible, ids, onClose, onApply, appliedAppMap }: {
+function CompareModal({ visible, ids, onClose, onApply, appliedAppMap, colors }: {
   visible: boolean; ids: string[]; onClose: () => void; onApply: (p: Programme) => void;
-  appliedAppMap: Record<string, string>;
+  appliedAppMap: Record<string, string>; colors: any;
 }) {
   const router = useRouter();
   const { activeTabColor } = useRoleTheme();
@@ -559,10 +647,10 @@ function CompareModal({ visible, ids, onClose, onApply, appliedAppMap }: {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={s.modalBackdrop}>
-        <View style={s.compareModal}>
-          <View style={s.modalHead}>
-            <Text style={s.modalTitle}>Compare {ids.length} Programmes</Text>
-            <Pressable onPress={onClose}><MaterialCommunityIcons name="close" size={20} color={C.text2} /></Pressable>
+        <View style={[s.compareModal, { backgroundColor: colors.modalBg, borderColor: colors.modalBorder }]}>
+          <View style={[s.modalHead, { borderBottomColor: colors.modalBorder }]}>
+            <Text style={[s.modalTitle, { color: colors.text }]}>Compare {ids.length} Programmes</Text>
+            <Pressable onPress={onClose}><MaterialCommunityIcons name="close" size={20} color={colors.text2} /></Pressable>
           </View>
           {loading || !data ? (
             <ActivityIndicator color="#A78BFA" size="large" style={{ marginVertical: 40 }} />
@@ -570,19 +658,19 @@ function CompareModal({ visible, ids, onClose, onApply, appliedAppMap }: {
             <ScrollView style={{ flex: 1 }}>
               {data.tied && data.tie_breaker_note && (
                 <View style={s.tieNote}>
-                  <MaterialCommunityIcons name="information" size={14} color="#FCD34D" />
-                  <Text style={s.tieNoteText}>{data.tie_breaker_note}</Text>
+                  <MaterialCommunityIcons name="information" size={14} color="#D97706" />
+                  <Text style={[s.tieNoteText, { color: '#D97706' }]}>{data.tie_breaker_note}</Text>
                 </View>
               )}
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View>
                   {/* Header row */}
-                  <View style={s.compareRow}>
+                  <View style={[s.compareRow, { borderBottomColor: colors.modalBorder }]}>
                     <View style={s.compareLabelCell}><Text style={s.compareLabel}> </Text></View>
                     {data.programmes.map((p) => (
-                      <View key={p.id} style={s.compareCell}>
-                        <Text style={s.compareCellTitle} numberOfLines={2}>{p.name}</Text>
-                        <Text style={s.compareCellSub}>{p.institution}</Text>
+                      <View key={p.id} style={[s.compareCell, { borderLeftColor: colors.modalBorder }]}>
+                        <Text style={[s.compareCellTitle, { color: colors.text }]} numberOfLines={2}>{p.name}</Text>
+                        <Text style={[s.compareCellSub, { color: colors.text3 }]}>{p.institution}</Text>
                       </View>
                     ))}
                   </View>
@@ -599,18 +687,18 @@ function CompareModal({ visible, ids, onClose, onApply, appliedAppMap }: {
                       worstIdx = nums.indexOf(Math.min(...nums));
                     }
                     return (
-                      <View key={row.key} style={s.compareRow}>
+                      <View key={row.key} style={[s.compareRow, { borderBottomColor: colors.modalBorder }]}>
                         <View style={s.compareLabelCell}>
-                          <Text style={s.compareLabel}>{row.label}</Text>
+                          <Text style={[s.compareLabel, { color: colors.text2 }]}>{row.label}</Text>
                         </View>
                         {data.programmes.map((p: any, i: number) => {
                           let v = p[row.key];
                           if (row.key.includes('inr')) v = fmtINR(Number(v));
                           else if (typeof v === 'boolean') v = v ? 'Yes' : 'No';
                           else if (v == null) v = '—';
-                          const tint = i === bestIdx ? '#34D399' : i === worstIdx && bestIdx !== worstIdx ? '#F87171' : C.text;
+                          const tint = i === bestIdx ? '#10B981' : i === worstIdx && bestIdx !== worstIdx ? '#EF4444' : colors.text;
                           return (
-                            <View key={i} style={s.compareCell}>
+                            <View key={i} style={[s.compareCell, { borderLeftColor: colors.modalBorder }]}>
                               <Text style={[s.compareValue, { color: tint }]}>{String(v)}</Text>
                             </View>
                           );
@@ -619,21 +707,21 @@ function CompareModal({ visible, ids, onClose, onApply, appliedAppMap }: {
                     );
                   })}
                   {/* Apply row */}
-                  <View style={s.compareRow}>
+                  <View style={[s.compareRow, { borderBottomColor: colors.modalBorder }]}>
                     <View style={s.compareLabelCell} />
                     {data.programmes.map((p) => {
                       const appId = appliedAppMap[p.id];
                       return (
-                        <View key={p.id} style={s.compareCell}>
+                        <View key={p.id} style={[s.compareCell, { borderLeftColor: colors.modalBorder }]}>
                           {appId ? (
                             <Pressable
-                              style={[s.applyBtn, { backgroundColor: 'rgba(52,211,153,0.15)', borderColor: '#34D399', borderWidth: 1 }]}
+                              style={[s.applyBtn, { backgroundColor: '#ECFDF5', borderColor: '#10B981', borderWidth: 1 }]}
                               onPress={() => {
                                 onClose();
                                 router.push(`/applications/${appId}` as any);
                               }}
                             >
-                              <Text style={[s.applyBtnText, { color: '#34D399' }]}>Applied ✓</Text>
+                              <Text style={[s.applyBtnText, { color: '#059669' }]}>Applied ✓</Text>
                             </Pressable>
                           ) : (
                             <Pressable style={[s.applyBtn, { backgroundColor: activeTabColor }]} onPress={() => onApply(p)}>
@@ -658,8 +746,14 @@ function CompareModal({ visible, ids, onClose, onApply, appliedAppMap }: {
 type ToolType = 'sop' | 'cv' | 'cover' | 'lor' | 'elig' | 'profile';
 
 function AIToolsModal({
-  tool, onClose, onSwitch,
-}: { tool: { type: ToolType; programmeId?: string } | null; onClose: () => void; onSwitch: (t: any) => void }) {
+  tool, onClose, onSwitch, colors, isDark,
+}: {
+  tool: { type: ToolType; programmeId?: string } | null;
+  onClose: () => void;
+  onSwitch: (t: any) => void;
+  colors: any;
+  isDark: boolean;
+}) {
   const { themeColor, activeTabColor, activeTabBorder } = useRoleTheme();
   const [stage, setStage] = useState<'pick' | 'questions' | 'draft'>('pick');
   const [questions, setQuestions] = useState<any[]>([]);
@@ -734,20 +828,26 @@ function AIToolsModal({
   return (
     <Modal visible={!!tool} transparent animationType="slide" onRequestClose={onClose}>
       <View style={s.modalBackdrop}>
-        <View style={s.aiModal}>
-          <View style={s.modalHead}>
-            <Text style={s.modalTitle}>{titleByType[tool.type]}</Text>
-            <Pressable onPress={onClose}><MaterialCommunityIcons name="close" size={20} color={C.text2} /></Pressable>
+        <View style={[s.aiModal, { backgroundColor: colors.modalBg, borderColor: colors.modalBorder }]}>
+          <View style={[s.modalHead, { borderBottomColor: colors.modalBorder }]}>
+            <Text style={[s.modalTitle, { color: colors.text }]}>{titleByType[tool.type]}</Text>
+            <Pressable onPress={onClose}><MaterialCommunityIcons name="close" size={20} color={colors.text2} /></Pressable>
           </View>
 
           {/* Tool switcher */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingBottom: 8, alignItems: 'center' }} style={{ flexGrow: 0 }}>
             {(['sop','cv','cover','lor','elig','profile'] as ToolType[]).map((t) => (
               <Pressable key={t}
-                style={[s.toolChip, tool.type === t && { backgroundColor: activeTabColor, borderColor: activeTabBorder }]}
+                style={[
+                  s.toolChip,
+                  {
+                    backgroundColor: tool.type === t ? activeTabColor : (isDark ? 'rgba(255,255,255,0.04)' : '#F1F5F9'),
+                    borderColor: tool.type === t ? activeTabBorder : colors.cardBorder,
+                  },
+                ]}
                 onPress={() => onSwitch({ type: t, programmeId: tool.programmeId })}
               >
-                <Text style={[s.toolChipText, tool.type === t && { color: '#fff' }]}>
+                <Text style={[s.toolChipText, { color: tool.type === t ? '#fff' : colors.text2 }]}>
                   {t.toUpperCase()}
                 </Text>
               </Pressable>
@@ -759,13 +859,13 @@ function AIToolsModal({
 
             {tool.type === 'profile' && stage === 'questions' && !busy && (
               <View style={{ gap: 8 }}>
-                <Text style={s.aiLabel}>Paste your bio / about-me / LinkedIn summary:</Text>
+                <Text style={[s.aiLabel, { color: colors.text2 }]}>Paste your bio / about-me / LinkedIn summary:</Text>
                 <TextInput
                   value={bio} onChangeText={setBio}
                   multiline numberOfLines={6}
                   placeholder="I'm a final-year CSE student at IIT Bombay with CGPA 8.6…"
-                  placeholderTextColor={C.text3}
-                  style={[s.aiInput, { minHeight: 140, textAlignVertical: 'top' }]}
+                  placeholderTextColor={colors.inputPlaceholder}
+                  style={[s.aiInput, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.inputText, minHeight: 140, textAlignVertical: 'top' }]}
                 />
                 <Pressable style={[s.aiSubmit, { backgroundColor: activeTabColor }]} onPress={submit} disabled={!bio.trim()}>
                   <Text style={s.aiSubmitText}>Parse Profile →</Text>
@@ -777,14 +877,14 @@ function AIToolsModal({
               <View style={{ gap: 12 }}>
                 {questions.map((q) => (
                   <View key={q.id} style={{ gap: 4 }}>
-                    <Text style={s.aiLabel}>{q.label}</Text>
+                    <Text style={[s.aiLabel, { color: colors.text2 }]}>{q.label}</Text>
                     <TextInput
                       value={answers[q.id] || ''}
                       onChangeText={(v) => setAnswers({ ...answers, [q.id]: v })}
                       multiline
                       placeholder="Type here…"
-                      placeholderTextColor={C.text3}
-                      style={[s.aiInput, { minHeight: 70, textAlignVertical: 'top' }]}
+                      placeholderTextColor={colors.inputPlaceholder}
+                      style={[s.aiInput, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.inputText, minHeight: 70, textAlignVertical: 'top' }]}
                     />
                   </View>
                 ))}
@@ -801,13 +901,13 @@ function AIToolsModal({
             {stage === 'draft' && !busy && (content || profileData) && (
               <View style={{ gap: 12 }}>
                 {profileData ? (
-                  <View style={s.aiResult}>
+                  <View style={[s.aiResult, { backgroundColor: colors.aiResultBg, borderColor: colors.cardBorder }]}>
                     <Text style={[s.aiResultTitle, { color: themeColor }]}>Parsed Profile</Text>
-                    <Text style={s.aiResultBody}>{JSON.stringify(profileData, null, 2)}</Text>
+                    <Text style={[s.aiResultBody, { color: colors.text }]}>{JSON.stringify(profileData, null, 2)}</Text>
                   </View>
                 ) : (
-                  <View style={s.aiResult}>
-                    <Text style={s.aiResultBody}>{content}</Text>
+                  <View style={[s.aiResult, { backgroundColor: colors.aiResultBg, borderColor: colors.cardBorder }]}>
+                    <Text style={[s.aiResultBody, { color: colors.text }]}>{content}</Text>
                   </View>
                 )}
                 <Text style={s.aiNote}>✓ Saved to your SA Drive — retrievable from the AI Tools menu.</Text>
@@ -824,8 +924,7 @@ const s = StyleSheet.create({
   toolsBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(124,58,237,0.30)',
-    borderColor: 'rgba(167,139,250,0.55)', borderWidth: 1,
+    borderWidth: 1,
   },
   toolsBtnText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 
@@ -837,26 +936,25 @@ const s = StyleSheet.create({
   },
   errText: { color: '#FCA5A5', fontSize: 12, flex: 1 },
 
-  tabsRow: { flexDirection: 'row', gap: 8 },
+  tabsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   tab: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999,
-    backgroundColor: C.card,
-    borderColor: C.border, borderWidth: 1,
+    borderWidth: 1,
   },
   tabActive: { backgroundColor: '#7C3AED', borderColor: '#A78BFA' },
-  tabText: { color: C.text2, fontSize: 12.5, fontWeight: '600' },
+  tabText: { fontSize: 12.5, fontWeight: '600' },
   tabTextActive: { color: '#fff' },
 
-  sectionHead: { gap: 4 },
-  sectionTitle: { color: '#fff', fontSize: 22, fontWeight: '800', fontFamily: 'Outfit_800ExtraBold' },
-  sectionSub: { color: C.text3, fontSize: 12.5, fontFamily: 'PlusJakartaSans_500Medium' },
+  sectionHead: { gap: 4, marginVertical: 4 },
+  sectionTitle: { fontSize: 22, fontWeight: '800', fontFamily: 'Outfit_800ExtraBold' },
+  sectionSub: { fontSize: 12.5, fontFamily: 'PlusJakartaSans_500Medium' },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   card: {
     flexGrow: 1, flexBasis: 300, maxWidth: 360,
     padding: 16, borderRadius: 16,
-    backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
+    borderWidth: 1,
     gap: 10,
   },
   pill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999 },
@@ -867,18 +965,17 @@ const s = StyleSheet.create({
   },
   matchText: { fontSize: 11.5, fontWeight: '800' },
 
-  cardTitle: { color: '#fff', fontSize: 15, fontWeight: '800', marginTop: 4, fontFamily: 'Outfit_800ExtraBold' },
-  cardSub: { color: C.text2, fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium' },
+  cardTitle: { fontSize: 15, fontWeight: '800', marginTop: 4, fontFamily: 'Outfit_800ExtraBold' },
+  cardSub: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium' },
 
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   stat: {
     flexBasis: '47%', flexGrow: 1,
     padding: 10, borderRadius: 10,
-    backgroundColor: 'rgba(0,0,0,0.20)',
-    borderColor: C.border, borderWidth: 1,
+    borderWidth: 1,
   },
-  statValue: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  statLabel: { color: C.text3, fontSize: 10.5, marginTop: 2 },
+  statValue: { fontSize: 13, fontWeight: '700' },
+  statLabel: { fontSize: 10.5, marginTop: 2 },
 
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
   tagPill: {
@@ -895,40 +992,36 @@ const s = StyleSheet.create({
   applyBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
   detailsBtn: {
     paddingVertical: 11, paddingHorizontal: 14, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderColor: C.border, borderWidth: 1, alignItems: 'center',
+    borderWidth: 1, alignItems: 'center',
   },
-  detailsBtnText: { color: C.text2, fontSize: 12, fontWeight: '700' },
+  detailsBtnText: { fontSize: 12, fontWeight: '700' },
 
   draftBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 9, paddingVertical: 6, borderRadius: 8,
-    backgroundColor: 'rgba(167,139,250,0.10)',
-    borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1,
+    borderWidth: 1,
   },
-  draftBtnText: { color: '#A78BFA', fontSize: 11, fontWeight: '700' },
+  draftBtnText: { fontSize: 11, fontWeight: '700' },
 
   compareChk: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 9, paddingVertical: 6, borderRadius: 8,
     marginLeft: 'auto',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.border, borderWidth: 1,
+    borderWidth: 1,
   },
   compareChkActive: { borderColor: 'rgba(167,139,250,0.55)' },
-  compareChkText: { color: C.text3, fontSize: 11, fontWeight: '700' },
+  compareChkText: { fontSize: 11, fontWeight: '700' },
 
   // Sticky compare bar
   compareBar: {
     position: 'absolute', bottom: 16, left: 16, right: 16,
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14,
-    backgroundColor: '#1A1626',
-    borderColor: 'rgba(167,139,250,0.55)', borderWidth: 1,
+    borderWidth: 1,
     zIndex: 50,
   },
-  compareText: { color: '#fff', fontSize: 13, fontWeight: '700', flex: 1 },
-  compareClear: { color: C.text3, fontSize: 12 },
+  compareText: { fontSize: 13, fontWeight: '700', flex: 1 },
+  compareClear: { fontSize: 12 },
   compareCTA: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
     backgroundColor: '#7C3AED',
@@ -942,51 +1035,49 @@ const s = StyleSheet.create({
   },
   modalHead: {
     flexDirection: 'row', alignItems: 'center',
-    paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: C.border,
+    paddingBottom: 12, borderBottomWidth: 1,
   },
-  modalTitle: { flex: 1, color: '#fff', fontSize: 16, fontWeight: '800' },
+  modalTitle: { flex: 1, fontSize: 16, fontWeight: '800' },
 
   compareModal: {
     width: '100%', maxWidth: 1100, height: '90%',
-    backgroundColor: '#1A1626', borderRadius: 16, padding: 16,
-    borderColor: C.border, borderWidth: 1,
+    borderRadius: 16, padding: 16,
+    borderWidth: 1,
   },
   tieNote: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     padding: 10, borderRadius: 10, marginBottom: 8,
-    backgroundColor: 'rgba(252,211,77,0.10)',
-    borderColor: 'rgba(252,211,77,0.40)', borderWidth: 1,
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FDE68A', borderWidth: 1,
   },
-  tieNoteText: { color: '#FCD34D', fontSize: 12, flex: 1 },
+  tieNoteText: { fontSize: 12, flex: 1, fontWeight: '600' },
 
-  compareRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: C.border, minHeight: 50 },
+  compareRow: { flexDirection: 'row', borderBottomWidth: 1, minHeight: 50 },
   compareLabelCell: { width: 160, padding: 10, justifyContent: 'center' },
-  compareLabel: { color: C.text2, fontSize: 12, fontWeight: '700' },
-  compareCell: { width: 200, padding: 10, justifyContent: 'center', borderLeftWidth: 1, borderLeftColor: C.border },
-  compareCellTitle: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  compareCellSub: { color: C.text3, fontSize: 11, marginTop: 2 },
+  compareLabel: { fontSize: 12, fontWeight: '700' },
+  compareCell: { width: 200, padding: 10, justifyContent: 'center', borderLeftWidth: 1 },
+  compareCellTitle: { fontSize: 13, fontWeight: '700' },
+  compareCellSub: { fontSize: 11, marginTop: 2 },
   compareValue: { fontSize: 13, fontWeight: '600' },
 
   // AI modal
   aiModal: {
     width: '100%', maxWidth: 700, height: '90%',
-    backgroundColor: '#1A1626', borderRadius: 16, padding: 16,
-    borderColor: C.border, borderWidth: 1,
+    borderRadius: 16, padding: 16,
+    borderWidth: 1,
   },
   toolChip: {
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.border, borderWidth: 1,
+    borderWidth: 1,
   },
   toolChipActive: { backgroundColor: '#7C3AED', borderColor: '#A78BFA' },
-  toolChipText: { color: C.text2, fontSize: 10.5, fontWeight: '800' },
+  toolChipText: { fontSize: 10.5, fontWeight: '800' },
 
-  aiLabel: { color: C.text2, fontSize: 12.5, fontWeight: '600' },
+  aiLabel: { fontSize: 12.5, fontWeight: '600' },
   aiInput: {
-    color: '#fff', fontSize: 13,
+    fontSize: 13,
     paddingHorizontal: 12, paddingVertical: 10,
-    borderRadius: 10, borderWidth: 1, borderColor: C.border,
-    backgroundColor: 'rgba(0,0,0,0.20)',
+    borderRadius: 10, borderWidth: 1,
     ...Platform.select({ web: { outlineWidth: 0 as any } as any, default: {} }),
   },
   aiSubmit: {
@@ -997,35 +1088,34 @@ const s = StyleSheet.create({
 
   aiResult: {
     padding: 14, borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    borderColor: C.border, borderWidth: 1,
+    borderWidth: 1,
   },
-  aiResultTitle: { color: '#A78BFA', fontSize: 13, fontWeight: '800', marginBottom: 8 },
-  aiResultBody: { color: '#fff', fontSize: 13, lineHeight: 20 },
-  aiNote: { color: '#34D399', fontSize: 11, fontStyle: 'italic' },
+  aiResultTitle: { fontSize: 13, fontWeight: '800', marginBottom: 8 },
+  aiResultBody: { fontSize: 13, lineHeight: 20 },
+  aiNote: { color: '#10B981', fontSize: 11, fontStyle: 'italic' },
 
   // Confirm modal
   confirmModal: {
     width: '90%', maxWidth: 440,
-    backgroundColor: '#1A1626', borderRadius: 16, padding: 20,
-    borderColor: 'rgba(124,58,237,0.30)', borderWidth: 1,
+    borderRadius: 16, padding: 20,
+    borderWidth: 1,
     gap: 16,
   },
   confirmHead: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: C.border,
+    paddingBottom: 12, borderBottomWidth: 1,
   },
-  confirmTitle: { color: '#fff', fontSize: 16, fontWeight: '800', fontFamily: 'Outfit_800ExtraBold' },
+  confirmTitle: { fontSize: 16, fontWeight: '800', fontFamily: 'Outfit_800ExtraBold' },
   confirmBody: { gap: 8 },
-  confirmText: { color: '#fff', fontSize: 13.5, lineHeight: 20, fontFamily: 'PlusJakartaSans_500Medium' },
-  boldText: { fontWeight: '700', color: '#A78BFA' },
-  confirmSubtext: { color: C.text2, fontSize: 12, lineHeight: 18, fontFamily: 'PlusJakartaSans_500Medium' },
+  confirmText: { fontSize: 13.5, lineHeight: 20, fontFamily: 'PlusJakartaSans_500Medium' },
+  boldText: { fontWeight: '700' },
+  confirmSubtext: { fontSize: 12, lineHeight: 18, fontFamily: 'PlusJakartaSans_500Medium' },
   confirmActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
   cancelBtn: {
     paddingVertical: 9, paddingHorizontal: 14, borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.06)', borderColor: C.border, borderWidth: 1,
+    borderWidth: 1,
   },
-  cancelBtnText: { color: C.text2, fontSize: 12, fontWeight: '700' },
+  cancelBtnText: { fontSize: 12, fontWeight: '700' },
   confirmBtn: {
     paddingVertical: 9, paddingHorizontal: 14, borderRadius: 8,
     backgroundColor: '#7C3AED',

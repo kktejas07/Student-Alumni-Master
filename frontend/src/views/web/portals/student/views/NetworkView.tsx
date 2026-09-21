@@ -30,6 +30,7 @@ import { useToast } from '@/src/views/components';
 import { request, api } from '@/src/models/services/api';
 
 import { StudentPortalNavContext } from '../StudentPortalNavContext';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 type CategoryTab = 'discover' | 'connections' | 'book' | 'requests';
 type FilterType = 'everyone' | 'students' | 'alumnis' | 'mentors' | 'industry';
@@ -48,6 +49,7 @@ function LinkedinGlyph({ size = 14, color = '#fff' }: { size?: number; color?: s
 
 
 export function NetworkView() {
+  const { isDark } = useTheme();
   const toast = useToast();
   const router = useRouter();
   const authUser = useAuthStore((sx) => sx.user);
@@ -549,33 +551,42 @@ export function NetworkView() {
     <View style={s.container}>
       
       {/* Tab Selector row */}
-      <View style={s.tabRow}>
+      <View style={[
+        s.tabRow,
+        {
+          backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF',
+          borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)',
+          borderWidth: 1,
+          borderRadius: 12,
+          padding: 4,
+        }
+      ]}>
         <Pressable 
           onPress={() => setActiveTab('discover')} 
           style={[s.tabBtn, activeTab === 'discover' && s.tabBtnActive]}
         >
-          <Text style={[s.tabBtnText, activeTab === 'discover' && s.tabBtnTextActive]}>Discover</Text>
+          <Text style={[s.tabBtnText, { color: activeTab === 'discover' ? '#FFFFFF' : isDark ? 'rgba(255,255,255,0.7)' : '#334155' }]}>Discover</Text>
         </Pressable>
 
         <Pressable 
           onPress={() => setActiveTab('connections')} 
           style={[s.tabBtn, activeTab === 'connections' && s.tabBtnActive]}
         >
-          <Text style={[s.tabBtnText, activeTab === 'connections' && s.tabBtnTextActive]}>My Connections</Text>
+          <Text style={[s.tabBtnText, { color: activeTab === 'connections' ? '#FFFFFF' : isDark ? 'rgba(255,255,255,0.7)' : '#334155' }]}>My Connections</Text>
         </Pressable>
 
         <Pressable 
           onPress={() => setActiveTab('book')} 
           style={[s.tabBtn, activeTab === 'book' && s.tabBtnActive]}
         >
-          <Text style={[s.tabBtnText, activeTab === 'book' && s.tabBtnTextActive]}>Book a Mentor</Text>
+          <Text style={[s.tabBtnText, { color: activeTab === 'book' ? '#FFFFFF' : isDark ? 'rgba(255,255,255,0.7)' : '#334155' }]}>Book a Mentor</Text>
         </Pressable>
 
         <Pressable 
           onPress={() => setActiveTab('requests')} 
           style={[s.tabBtn, activeTab === 'requests' && s.tabBtnActive, { flexDirection: 'row', alignItems: 'center' }]}
         >
-          <Text style={[s.tabBtnText, activeTab === 'requests' && s.tabBtnTextActive]}>Requests</Text>
+          <Text style={[s.tabBtnText, { color: activeTab === 'requests' ? '#FFFFFF' : isDark ? 'rgba(255,255,255,0.7)' : '#334155' }]}>Requests</Text>
           <View style={[s.reqBadge, activeTab === 'requests' && s.reqBadgeOn, { marginLeft: 6 }]}>
             <Text style={[s.countBadgeText, activeTab === 'requests' && s.countBadgeTextOn]}>{incomingRequests.length + sentRequests.length}</Text>
           </View>
@@ -585,8 +596,14 @@ export function NetworkView() {
       {/* Global Search bar with DB Search Button & Status Feedback */}
       <View style={{ gap: 8, marginBottom: 16 }}>
         <View style={s.searchRowContainer}>
-          <View style={s.searchContainerFlex}>
-            <Search size={16} color="#64748B" style={{ marginRight: 8 }} />
+          <View style={[
+            s.searchContainerFlex,
+            {
+              backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
+              borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#CBD5E1',
+            }
+          ]}>
+            <Search size={16} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 8 }} />
             <TextInput
               value={searchQuery}
               onChangeText={(val) => {
@@ -600,11 +617,11 @@ export function NetworkView() {
               onSubmitEditing={() => handleDatabaseSearch()}
               placeholder="Filter displayed accounts or search DB..."
               placeholderTextColor="#94A3B8"
-              style={s.searchInput}
+              style={[s.searchInput, { color: isDark ? '#FFFFFF' : '#0F172A' }]}
             />
             {searchQuery ? (
               <Pressable onPress={() => { setSearchQuery(''); setQ(''); setDbSearchStatus('idle'); setDbStatusMsg(''); }} style={{ padding: 4 }}>
-                <X size={14} color="#64748B" />
+                <X size={14} color={isDark ? '#94A3B8' : '#64748B'} />
               </Pressable>
             ) : null}
           </View>
@@ -665,13 +682,32 @@ export function NetworkView() {
                 mentors: 'Mentors',
                 industry: 'Industry'
               };
+              const isSelected = filter === f;
               return (
               <Pressable 
                 key={f}
                 onPress={() => setFilter(f as FilterType)} 
-                style={[s.subFilterChip, filter === f && s.subFilterChipOn]}
+                style={[
+                  s.subFilterChip,
+                  {
+                    backgroundColor: isSelected 
+                      ? (isDark ? 'rgba(20, 184, 166, 0.15)' : 'rgba(13, 148, 136, 0.12)')
+                      : (isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF'),
+                    borderColor: isSelected 
+                      ? (isDark ? 'rgba(20, 184, 166, 0.35)' : 'rgba(13, 148, 136, 0.35)')
+                      : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'),
+                  }
+                ]}
               >
-                <Text style={[s.subFilterText, filter === f && s.subFilterTextOn]}>
+                <Text style={[
+                  s.subFilterText,
+                  {
+                    color: isSelected 
+                      ? (isDark ? '#5EEAD4' : '#0F766E')
+                      : (isDark ? 'rgba(255,255,255,0.75)' : '#475569'),
+                    fontFamily: isSelected ? FONTS.bold : FONTS.semi,
+                  }
+                ]}>
                   {filterLabels[f] || f}
                 </Text>
               </Pressable>
@@ -681,50 +717,61 @@ export function NetworkView() {
 
           {/* Discover Sub-category Pill Filters Row */}
           <View style={s.discoverRow}>
-            <Pressable 
-              onPress={() => setDiscoverSubTab('interest')}
-              style={[s.tabBtn, discoverSubTab === 'interest' && s.tabBtnActive]}
-            >
-              <Heart size={12} color={discoverSubTab === 'interest' ? '#5EEAD4' : '#E2E8F0'} style={{ marginRight: 6 }} />
-              <Text style={[s.tabBtnText, discoverSubTab === 'interest' && s.tabBtnTextActive]}>Matched by Interest</Text>
-              <View style={[s.discBadge, discoverSubTab === 'interest' && s.discBadgeOn]}><Text style={s.discBadgeText}>{discoverCounts.interest}</Text></View>
-            </Pressable>
-
-            <Pressable 
-              onPress={() => setDiscoverSubTab('path')}
-              style={[s.tabBtn, discoverSubTab === 'path' && s.tabBtnActive]}
-            >
-              <Settings size={12} color={discoverSubTab === 'path' ? '#F97316' : '#E2E8F0'} style={{ marginRight: 6 }} />
-              <Text style={s.tabBtnText}>Matched by Career Path</Text>
-              <View style={[s.discBadge, { backgroundColor: 'rgba(249,115,22,0.1)' }]}><Text style={[s.discBadgeText, { color: '#F97316' }]}>{discoverCounts.path}</Text></View>
-            </Pressable>
-
-            <Pressable 
-              onPress={() => setDiscoverSubTab('college')}
-              style={[s.tabBtn, discoverSubTab === 'college' && s.tabBtnActive]}
-            >
-              <GraduationCap size={12} color={discoverSubTab === 'college' ? '#3B82F6' : '#E2E8F0'} style={{ marginRight: 6 }} />
-              <Text style={s.tabBtnText}>From Your College</Text>
-              <View style={[s.discBadge, { backgroundColor: 'rgba(59,130,246,0.1)' }]}><Text style={[s.discBadgeText, { color: '#3B82F6' }]}>{discoverCounts.college}</Text></View>
-            </Pressable>
-
-            <Pressable 
-              onPress={() => setDiscoverSubTab('recommended')}
-              style={[s.tabBtn, discoverSubTab === 'recommended' && s.tabBtnActive]}
-            >
-              <Users size={12} color={discoverSubTab === 'recommended' ? '#F59E0B' : '#E2E8F0'} style={{ marginRight: 6 }} />
-              <Text style={s.tabBtnText}>Recommended Mentors</Text>
-              <View style={[s.discBadge, { backgroundColor: 'rgba(245,158,11,0.1)' }]}><Text style={[s.discBadgeText, { color: '#F59E0B' }]}>{discoverCounts.recommended}</Text></View>
-            </Pressable>
-
-            <Pressable 
-              onPress={() => setDiscoverSubTab('expand')}
-              style={[s.tabBtn, discoverSubTab === 'expand' && s.tabBtnActive]}
-            >
-              <Activity size={12} color={discoverSubTab === 'expand' ? '#EC4899' : '#E2E8F0'} style={{ marginRight: 6 }} />
-              <Text style={s.tabBtnText}>Expand Your Horizons</Text>
-              <View style={[s.discBadge, { backgroundColor: 'rgba(236,72,153,0.1)' }]}><Text style={[s.discBadgeText, { color: '#EC4899' }]}>{discoverCounts.expand}</Text></View>
-            </Pressable>
+            {[
+              { key: 'interest', label: 'Matched by Interest', icon: Heart, iconColor: '#14B8A6', count: discoverCounts.interest, badgeBg: 'rgba(20, 184, 166, 0.12)', badgeText: '#0D9488' },
+              { key: 'path', label: 'Matched by Career Path', icon: Settings, iconColor: '#F97316', count: discoverCounts.path, badgeBg: 'rgba(249, 115, 22, 0.12)', badgeText: '#EA580C' },
+              { key: 'college', label: 'From Your College', icon: GraduationCap, iconColor: '#3B82F6', count: discoverCounts.college, badgeBg: 'rgba(59, 130, 246, 0.12)', badgeText: '#2563EB' },
+              { key: 'recommended', label: 'Recommended Mentors', icon: Users, iconColor: '#F59E0B', count: discoverCounts.recommended, badgeBg: 'rgba(245, 158, 11, 0.12)', badgeText: '#D97706' },
+              { key: 'expand', label: 'Expand Your Horizons', icon: Activity, iconColor: '#EC4899', count: discoverCounts.expand, badgeBg: 'rgba(236, 72, 153, 0.12)', badgeText: '#DB2777' },
+            ].map((tab) => {
+              const isSelected = discoverSubTab === tab.key;
+              const Icon = tab.icon;
+              return (
+                <Pressable 
+                  key={tab.key}
+                  onPress={() => setDiscoverSubTab(tab.key as DiscoverSubTab)}
+                  style={[
+                    s.tabBtn,
+                    {
+                      backgroundColor: isSelected ? '#8B5CF6' : (isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF'),
+                      borderColor: isSelected ? 'transparent' : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'),
+                      borderWidth: 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: 12,
+                      paddingVertical: 9,
+                      borderRadius: 10,
+                    }
+                  ]}
+                >
+                  <Icon size={13} color={isSelected ? '#FFFFFF' : (isDark ? '#94A3B8' : '#64748B')} style={{ marginRight: 6 }} />
+                  <Text style={[
+                    s.tabBtnText,
+                    {
+                      color: isSelected ? '#FFFFFF' : (isDark ? 'rgba(255,255,255,0.75)' : '#334155'),
+                      fontFamily: isSelected ? FONTS.bold : FONTS.semi,
+                      fontSize: 12.5,
+                    }
+                  ]}>
+                    {tab.label}
+                  </Text>
+                  <View style={[
+                    s.discBadge,
+                    {
+                      backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : tab.badgeBg,
+                      marginLeft: 6,
+                    }
+                  ]}>
+                    <Text style={[
+                      s.discBadgeText,
+                      { color: isSelected ? '#FFFFFF' : tab.badgeText }
+                    ]}>
+                      {tab.count}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
           </View>
 
           {/* Matched list view */}
@@ -732,37 +779,43 @@ export function NetworkView() {
             <View style={s.sectionFrame}>
               <Pressable 
                 onPress={() => setShowMatchedInterest(!showMatchedInterest)} 
-                style={s.sectionHeaderRow}
+                style={[s.sectionHeaderRow, { borderBottomColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}
               >
-                {discoverSubTab === 'interest' ? <Heart size={18} color="#5EEAD4" style={{ marginRight: 8 }} /> : discoverSubTab === 'path' ? <Briefcase size={18} color="#F97316" style={{ marginRight: 8 }} /> : discoverSubTab === 'college' ? <GraduationCap size={18} color="#3B82F6" style={{ marginRight: 8 }} /> : discoverSubTab === 'recommended' ? <Users size={18} color="#F59E0B" style={{ marginRight: 8 }} /> : <Activity size={18} color="#EC4899" style={{ marginRight: 8 }} />}
+                {discoverSubTab === 'interest' ? <Heart size={18} color="#14B8A6" style={{ marginRight: 8 }} /> : discoverSubTab === 'path' ? <Briefcase size={18} color="#F97316" style={{ marginRight: 8 }} /> : discoverSubTab === 'college' ? <GraduationCap size={18} color="#3B82F6" style={{ marginRight: 8 }} /> : discoverSubTab === 'recommended' ? <Users size={18} color="#F59E0B" style={{ marginRight: 8 }} /> : <Activity size={18} color="#EC4899" style={{ marginRight: 8 }} />}
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={s.secTitle}>
+                    <Text style={[s.secTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>
                       {discoverSubTab === 'interest' ? 'Matched by Interest' : discoverSubTab === 'path' ? 'Matched by Career Path' : discoverSubTab === 'college' ? 'From Your College' : discoverSubTab === 'recommended' ? 'Recommended Mentors' : 'Expand Your Horizons'}
                     </Text>
-                    <View style={s.secBadge}>
-                      <Text style={s.secBadgeText}>{filteredMatchedDiscover.length}</Text>
+                    <View style={[s.secBadge, { backgroundColor: isDark ? 'rgba(20,184,166,0.1)' : 'rgba(20,184,166,0.12)' }]}>
+                      <Text style={[s.secBadgeText, { color: isDark ? '#5EEAD4' : '#0D9488' }]}>{filteredMatchedDiscover.length}</Text>
                     </View>
                   </View>
-                  <Text style={s.secSub}>{activeSection?.subtitle || 'Based on your profile matching criteria.'}</Text>
+                  <Text style={[s.secSub, { color: isDark ? SC.muted : '#475569' }]}>{activeSection?.subtitle || 'Based on your profile matching criteria.'}</Text>
                 </View>
-                <Pressable onPress={() => setShowMatchedInterest(!showMatchedInterest)} style={s.toggleBtn}>
-                  <Text style={s.toggleBtnText}>{showMatchedInterest ? 'Show less' : 'Show more'}</Text>
-                  {showMatchedInterest ? <ChevronUp size={12} color="#5EEAD4" style={{ marginLeft: 4 }} /> : <ChevronDown size={12} color="#5EEAD4" style={{ marginLeft: 4 }} />}
+                <Pressable onPress={() => setShowMatchedInterest(!showMatchedInterest)} style={[s.toggleBtn, { backgroundColor: isDark ? 'rgba(20,184,166,0.06)' : 'rgba(20,184,166,0.1)' }]}>
+                  <Text style={[s.toggleBtnText, { color: isDark ? '#5EEAD4' : '#0D9488' }]}>{showMatchedInterest ? 'Show less' : 'Show more'}</Text>
+                  {showMatchedInterest ? <ChevronUp size={12} color={isDark ? '#5EEAD4' : '#0D9488'} style={{ marginLeft: 4 }} /> : <ChevronDown size={12} color={isDark ? '#5EEAD4' : '#0D9488'} style={{ marginLeft: 4 }} />}
                 </Pressable>
               </Pressable>
 
               {showMatchedInterest && (
                 <View style={s.cardsGrid}>
                   {filteredMatchedDiscover.map((person) => (
-                    <View key={person.id} style={s.profileCard}>
+                    <View key={person.id} style={[
+                      s.profileCard,
+                      {
+                        backgroundColor: isDark ? 'rgba(19, 25, 53, 0.7)' : '#FFFFFF',
+                        borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                      }
+                    ]}>
                       <View>
                         {/* Card Profile Info */}
                         <View style={s.cardProfileRow}>
                           <Av initials={person.avatar} size={42} color={person.color} />
                           <View style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                              <Text numberOfLines={1} style={s.nameBold}>{person.name}</Text>
+                              <Text numberOfLines={1} style={[s.nameBold, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{person.name}</Text>
                               <View style={[
                                 s.rolePillBase, 
                                 person.tag === 'Student' ? s.rolePillStudent : person.tag === 'Mentor' ? s.rolePillMentor : s.rolePillAlumni
@@ -773,8 +826,8 @@ export function NetworkView() {
                                 ]}>{person.tag}</Text>
                               </View>
                             </View>
-                            <Text numberOfLines={1} style={s.subtitleLine}>{person.role}</Text>
-                            <Text numberOfLines={1} style={s.subtitleSubLine}>
+                            <Text numberOfLines={1} style={[s.subtitleLine, { color: isDark ? SC.muted : '#475569' }]}>{person.role}</Text>
+                            <Text numberOfLines={1} style={[s.subtitleSubLine, { color: isDark ? SC.dim : '#64748B' }]}>
                               {person.company ? `${person.company} • ` : ''}{person.college}{person.year ? ` • ${person.year}` : ''}
                             </Text>
                           </View>
@@ -783,51 +836,66 @@ export function NetworkView() {
                         {/* Skill Pills */}
                         <View style={s.skillsRow}>
                           {person.tags.map((skill: string, sIdx: number) => (
-                            <View key={sIdx} style={s.skillChip}><Text style={s.skillChipText}>{skill}</Text></View>
+                            <View key={sIdx} style={[
+                              s.skillChip,
+                              {
+                                backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F1F5F9',
+                                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                              }
+                            ]}>
+                              <Text style={[s.skillChipText, { color: isDark ? SC.dim : '#334155' }]}>{skill}</Text>
+                            </View>
                           ))}
                         </View>
 
                         {/* Mutual Connection Counter */}
                         <View style={s.mutualRow}>
-                          <Users size={12} color={SC.dim} style={{ marginRight: 6 }} />
-                          <Text style={s.mutualText}>{person.mutual} mutual connections</Text>
+                          <Users size={12} color={isDark ? SC.dim : '#64748B'} style={{ marginRight: 6 }} />
+                          <Text style={[s.mutualText, { color: isDark ? SC.dim : '#64748B' }]}>{person.mutual} mutual connections</Text>
                         </View>
                       </View>
 
                       {/* Card Action Row */}
-                      <View style={[s.cardActions, { marginTop: 14, flexDirection: 'column', gap: 8, alignItems: 'stretch' }]}>
+                      <View style={[s.cardActions, { marginTop: 14, flexDirection: 'column', gap: 8, alignItems: 'stretch', borderTopColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
                         
                         {/* Action Button depending on Connection State */}
                         {person.connectionState === 'connected' ? (
                           <View style={[s.draftMsgBtn, { borderColor: 'rgba(34,197,94,0.3)', backgroundColor: 'rgba(34,197,94,0.06)' }]}>
-                            <Check size={12} color="#86EFAC" style={{ marginRight: 6 }} />
-                            <Text style={[s.draftMsgBtnText, { color: '#86EFAC' }]}>Connected</Text>
+                            <Check size={12} color="#16A34A" style={{ marginRight: 6 }} />
+                            <Text style={[s.draftMsgBtnText, { color: '#16A34A' }]}>Connected</Text>
                           </View>
                         ) : person.connectionState === 'pending' || localSent.includes(person.id) ? (
                           <View style={[s.draftMsgBtn, { borderColor: 'rgba(245,158,11,0.3)', backgroundColor: 'rgba(245,158,11,0.06)' }]}>
-                            <Clock size={12} color="#FDE047" style={{ marginRight: 6 }} />
-                            <Text style={[s.draftMsgBtnText, { color: '#FDE047' }]}>Pending Invite</Text>
+                            <Clock size={12} color="#D97706" style={{ marginRight: 6 }} />
+                            <Text style={[s.draftMsgBtnText, { color: '#D97706' }]}>Pending Invite</Text>
                           </View>
                         ) : person.connectionState === 'incoming' ? (
                           <Pressable 
                             onPress={() => handleAcceptRequest(person.id, person.name)}
-                            style={({ hovered }: any) => [s.draftMsgBtn, { borderColor: '#5EEAD4', backgroundColor: '#14B8A6' }, hovered && { opacity: 0.9 }]}
+                            style={({ hovered }: any) => [s.draftMsgBtn, { borderColor: '#14B8A6', backgroundColor: '#14B8A6' }, hovered && { opacity: 0.9 }]}
                           >
-                            <Check size={12} color="#090D16" style={{ marginRight: 6 }} />
-                            <Text style={[s.draftMsgBtnText, { color: '#090D16' }]}>Accept Connection</Text>
+                            <Check size={12} color="#FFFFFF" style={{ marginRight: 6 }} />
+                            <Text style={[s.draftMsgBtnText, { color: '#FFFFFF' }]}>Accept Connection</Text>
                           </Pressable>
                         ) : (
                           <Pressable 
                             onPress={() => handleConnect(person.id, person.name)}
                             disabled={pending.includes(person.id)}
-                            style={({ hovered }: any) => [s.draftMsgBtn, hovered && !pending.includes(person.id) && { borderColor: '#5EEAD4', backgroundColor: 'rgba(94, 234, 212, 0.1)' }]}
+                            style={({ hovered }: any) => [
+                              s.draftMsgBtn, 
+                              {
+                                borderColor: isDark ? 'rgba(94, 234, 212, 0.35)' : 'rgba(13, 148, 136, 0.3)',
+                                backgroundColor: isDark ? 'rgba(94, 234, 212, 0.06)' : 'rgba(13, 148, 136, 0.06)',
+                              },
+                              hovered && !pending.includes(person.id) && { borderColor: '#14B8A6', backgroundColor: 'rgba(20, 184, 166, 0.12)' }
+                            ]}
                           >
                             {pending.includes(person.id) ? (
-                              <ActivityIndicator size="small" color="#5EEAD4" />
+                              <ActivityIndicator size="small" color="#14B8A6" />
                             ) : (
                               <>
-                                <UserPlus size={12} color="#5EEAD4" style={{ marginRight: 6 }} />
-                                <Text style={s.draftMsgBtnText}>Connect</Text>
+                                <UserPlus size={12} color={isDark ? '#5EEAD4' : '#0D9488'} style={{ marginRight: 6 }} />
+                                <Text style={[s.draftMsgBtnText, { color: isDark ? '#5EEAD4' : '#0D9488' }]}>Connect</Text>
                               </>
                             )}
                           </Pressable>
@@ -836,10 +904,14 @@ export function NetworkView() {
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 6 }}>
                           <Pressable 
                             onPress={() => setPickedPerson(person)}
-                            style={({ hovered }: any) => [s.viewProfileBtn, { flex: 1, height: 32 }, hovered && { backgroundColor: '#5EEAD4' }]}
+                            style={({ hovered }: any) => [
+                              s.viewProfileBtn, 
+                              { flex: 1, height: 32, backgroundColor: isDark ? '#14B8A6' : '#0F766E' }, 
+                              hovered && { opacity: 0.9 }
+                            ]}
                           >
-                            <Eye size={12} color="#090D16" style={{ marginRight: 6 }} />
-                            <Text style={s.viewProfileBtnText}>View Profile</Text>
+                            <Eye size={12} color="#FFFFFF" style={{ marginRight: 6 }} />
+                            <Text style={[s.viewProfileBtnText, { color: '#FFFFFF' }]}>View Profile</Text>
                           </Pressable>
 
                           <View style={{ flexDirection: 'row', gap: 6 }}>
@@ -865,10 +937,16 @@ export function NetworkView() {
           )}
 
           {filteredMatchedDiscover.length === 0 && (
-            <View style={s.stubCard}>
-              <Sparkles size={22} color={SC.tealP} style={{ marginBottom: 8 }} />
-              <Text style={s.stubTitle}>No Matches Found</Text>
-              <Text style={s.stubSub}>
+            <View style={[
+              s.stubCard,
+              {
+                backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF',
+                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+              }
+            ]}>
+              <Sparkles size={24} color="#8B5CF6" style={{ marginBottom: 10 }} />
+              <Text style={[s.stubTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>No Matches Found</Text>
+              <Text style={[s.stubSub, { color: isDark ? SC.muted : '#475569' }]}>
                 There are no matching network accounts in the database for this category right now.
               </Text>
             </View>
@@ -876,15 +954,19 @@ export function NetworkView() {
         </View>
       )}
 
-      
-
-      {/* 4. Requests Tab Redesign (Screenshot 2) */}
+       {/* 4. Requests Tab Redesign */}
       {activeTab === 'requests' && (
         <View style={{ gap: 16 }}>
           
-          {/* Incoming Requests (2) */}
-          <View style={s.requestListFrame}>
-            <View style={s.requestListHeaderRow}>
+          {/* Incoming Requests */}
+          <View style={[
+            s.requestListFrame,
+            {
+              backgroundColor: isDark ? SC.card : '#FFFFFF',
+              borderColor: isDark ? SC.border : 'rgba(0,0,0,0.08)',
+            }
+          ]}>
+            <View style={[s.requestListHeaderRow, { borderBottomColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
               <Clock size={16} color="#F59E0B" style={{ marginRight: 8 }} />
               <Text style={[s.requestListTitle, { color: '#F59E0B' }]}>INCOMING REQUESTS ({incomingRequests.length})</Text>
             </View>
@@ -895,19 +977,25 @@ export function NetworkView() {
                 const tagTextStyle = req.role === 'Student' ? s.rolePillStudentText : req.role === 'Mentor' ? s.rolePillMentorText : req.role === 'Industry' ? s.rolePillIndustryText : s.rolePillAlumniText;
 
                 return (
-                  <View key={req.id} style={s.requestRow}>
+                  <View key={req.id} style={[
+                    s.requestRow,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
+                      borderColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)',
+                    }
+                  ]}>
                     <Av initials={req.avatar} size={42} color={req.color} />
                     <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <Text style={s.requestName}>{req.name}</Text>
+                        <Text style={[s.requestName, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{req.name}</Text>
                         <View style={[s.rolePillBase, tagStyle]}>
                           <Text style={[s.rolePillBaseText, tagTextStyle]}>{req.role}</Text>
                         </View>
-                        <Text style={s.requestTimeText}>{req.time}</Text>
+                        <Text style={[s.requestTimeText, { color: isDark ? SC.dim : '#64748B' }]}>{req.time}</Text>
                       </View>
-                      <Text style={s.requestSublineText} numberOfLines={1}>{req.subtitle}</Text>
+                      <Text style={[s.requestSublineText, { color: isDark ? SC.muted : '#475569' }]} numberOfLines={1}>{req.subtitle}</Text>
                       {req.message ? (
-                        <Text style={{ color: '#5EEAD4', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 4, fontStyle: 'italic' }}>
+                        <Text style={{ color: isDark ? '#5EEAD4' : '#0D9488', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 4, fontStyle: 'italic' }}>
                           Note: "{req.message}"
                         </Text>
                       ) : null}
@@ -917,15 +1005,22 @@ export function NetworkView() {
                     <View style={{ flexDirection: 'row', gap: 8 }}>
                       <Pressable 
                         onPress={() => handleAcceptRequest(req.id, req.name)}
-                        style={({ hovered }: any) => [s.acceptBtn, hovered && { backgroundColor: '#5EEAD4' }]}
+                        style={({ hovered }: any) => [s.acceptBtn, hovered && { opacity: 0.9 }]}
                       >
-                        <Text style={s.acceptBtnText}>Accept</Text>
+                        <Text style={[s.acceptBtnText, { color: '#FFFFFF' }]}>Accept</Text>
                       </Pressable>
                       <Pressable 
                         onPress={() => handleIgnoreRequest(req.id, req.name)}
-                        style={({ hovered }: any) => [s.ignoreBtn, hovered && { backgroundColor: 'rgba(255,255,255,0.08)' }]}
+                        style={({ hovered }: any) => [
+                          s.ignoreBtn, 
+                          {
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F1F5F9',
+                            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                          },
+                          hovered && { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0' }
+                        ]}
                       >
-                        <Text style={s.ignoreBtnText}>Ignore</Text>
+                        <Text style={[s.ignoreBtnText, { color: isDark ? SC.muted : '#475569' }]}>Ignore</Text>
                       </Pressable>
                     </View>
                   </View>
@@ -933,16 +1028,22 @@ export function NetworkView() {
               })}
 
               {incomingRequests.length === 0 && (
-                <Text style={s.noRequestText}>No pending incoming requests.</Text>
+                <Text style={[s.noRequestText, { color: isDark ? SC.dim : '#64748B' }]}>No pending incoming requests.</Text>
               )}
             </View>
           </View>
 
-          {/* Sent Requests (1) */}
-          <View style={s.requestListFrame}>
-            <View style={s.requestListHeaderRow}>
+          {/* Sent Requests */}
+          <View style={[
+            s.requestListFrame,
+            {
+              backgroundColor: isDark ? SC.card : '#FFFFFF',
+              borderColor: isDark ? SC.border : 'rgba(0,0,0,0.08)',
+            }
+          ]}>
+            <View style={[s.requestListHeaderRow, { borderBottomColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
               <Users size={16} color="#14B8A6" style={{ marginRight: 8 }} />
-              <Text style={[s.requestListTitle, { color: '#14B8A6' }]}>SENT REQUESTS ({sentRequests.length})</Text>
+              <Text style={[s.requestListTitle, { color: isDark ? '#14B8A6' : '#0D9488' }]}>SENT REQUESTS ({sentRequests.length})</Text>
             </View>
 
             <View style={{ gap: 8, marginTop: 10 }}>
@@ -951,85 +1052,105 @@ export function NetworkView() {
                 const tagTextStyle = req.role === 'Student' ? s.rolePillStudentText : req.role === 'Mentor' ? s.rolePillMentorText : req.role === 'Industry' ? s.rolePillIndustryText : s.rolePillAlumniText;
 
                 return (
-                <View key={req.id} style={s.requestRow}>
+                <View key={req.id} style={[
+                  s.requestRow,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
+                    borderColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)',
+                  }
+                ]}>
                   <Av initials={req.avatar} size={42} color={req.color} />
                   <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <Text style={s.requestName}>{req.name}</Text>
+                      <Text style={[s.requestName, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{req.name}</Text>
                       <View style={[s.rolePillBase, tagStyle]}>
                         <Text style={[s.rolePillBaseText, tagTextStyle]}>{req.role}</Text>
                       </View>
-                      <Text style={s.requestTimeText}>{req.time}</Text>
+                      <Text style={[s.requestTimeText, { color: isDark ? SC.dim : '#64748B' }]}>{req.time}</Text>
                     </View>
-                    <Text style={s.requestSublineText} numberOfLines={1}>{req.subtitle}</Text>
+                    <Text style={[s.requestSublineText, { color: isDark ? SC.muted : '#475569' }]} numberOfLines={1}>{req.subtitle}</Text>
                   </View>
 
                   {/* Pending label */}
                   <View style={s.pendingStatusContainer}>
-                    <Clock size={11} color="#FCD34D" style={{ marginRight: 4 }} />
-                    <Text style={s.pendingStatusText}>Pending</Text>
+                    <Clock size={11} color="#D97706" style={{ marginRight: 4 }} />
+                    <Text style={[s.pendingStatusText, { color: '#D97706' }]}>Pending</Text>
                   </View>
                 </View>
                 );
               })}
 
               {sentRequests.length === 0 && (
-                <Text style={s.noRequestText}>No pending sent requests.</Text>
+                <Text style={[s.noRequestText, { color: isDark ? SC.dim : '#64748B' }]}>No pending sent requests.</Text>
               )}
             </View>
           </View>
         </View>
       )}
 
-      
-
       {/* Connections tab screen */}
       {activeTab === 'connections' && (
         <View style={{ gap: 16 }}>
-          <View style={s.secHeaderRow}>
+          <View style={[s.secHeaderRow, { borderBottomColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
             <View style={[s.secIconBg, { backgroundColor: 'rgba(34,197,94,0.12)' }]}>
-              <Users size={14} color="#86EFAC" />
+              <Users size={14} color="#16A34A" />
             </View>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={s.secTitle}>My Connections</Text>
-                <View style={s.secBadge}><Text style={s.secBadgeText}>{connectionsList.length}</Text></View>
+                <Text style={[s.secTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>My Connections</Text>
+                <View style={[s.secBadge, { backgroundColor: 'rgba(34,197,94,0.12)' }]}>
+                  <Text style={[s.secBadgeText, { color: '#16A34A' }]}>{connectionsList.length}</Text>
+                </View>
               </View>
-              <Text style={s.secSub}>People you are actively connected with</Text>
+              <Text style={[s.secSub, { color: isDark ? SC.muted : '#475569' }]}>People you are actively connected with</Text>
             </View>
           </View>
 
           <View style={s.grid}>
             {connectionsList.map((person) => (
-              <GlassCard key={person.id} radius={14} padding={16} style={s.card}>
+              <View key={person.id} style={[
+                s.card,
+                {
+                  backgroundColor: isDark ? 'rgba(19, 25, 53, 0.7)' : '#FFFFFF',
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                }
+              ]}>
                 <View>
                   <View style={s.cardHead}>
                     <Av initials={person.initials} size={46} color={person.color} photo={person.photo} />
                     <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <Text numberOfLines={1} style={s.cardName}>{person.name}</Text>
+                        <Text numberOfLines={1} style={[s.cardName, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{person.name}</Text>
                         <View style={person.kind === 'mentor' ? s.badgeMentor : person.kind === 'alumni' ? s.badgeAlumni : s.badgeStudent}>
                           <Text style={person.kind === 'mentor' ? s.badgeMentorText : person.kind === 'alumni' ? s.badgeAlumniText : s.badgeStudentText}>{person.tag}</Text>
                         </View>
                       </View>
-                      <Text numberOfLines={1} style={s.cardRole}>{person.role}</Text>
-                      <Text numberOfLines={1} style={s.cardCompany}>{person.company}</Text>
+                      <Text numberOfLines={1} style={[s.cardRole, { color: isDark ? SC.muted : '#475569' }]}>{person.role}</Text>
+                      <Text numberOfLines={1} style={[s.cardCompany, { color: isDark ? SC.dim : '#64748B' }]}>{person.company}</Text>
                     </View>
                   </View>
 
                   <View style={s.tagsRow}>
                     {person.tags.slice(0, 3).map((tag, idx) => (
-                      <View key={idx} style={s.tagChip}><Text style={s.tagChipText}>{tag}</Text></View>
+                      <View key={idx} style={[
+                        s.tagChip,
+                        {
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F1F5F9',
+                          borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                        }
+                      ]}>
+                        <Text style={[s.tagChipText, { color: isDark ? SC.muted : '#334155' }]}>{tag}</Text>
+                      </View>
                     ))}
                   </View>
 
                   <View style={s.mutualRow}>
-                    <Users size={11} color={SC.dim} style={{ marginRight: 6 }} />
-                    <Text style={s.mutualText}>{person.mutual} mutual connections</Text>
+                    <Users size={11} color={isDark ? SC.dim : '#64748B'} style={{ marginRight: 6 }} />
+                    <Text style={[s.mutualText, { color: isDark ? SC.dim : '#64748B' }]}>{person.mutual} mutual connections</Text>
                   </View>
                 </View>
 
-                <View style={s.cardActions}>
+                <View style={[s.cardActions, { borderTopColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
                   {person.kind === 'mentor' ? (
                     <>
                       <Pressable onPress={() => setPickedPerson(person)} style={s.actionBtnOutline}>
@@ -1048,25 +1169,31 @@ export function NetworkView() {
                         <Text style={s.actionBtnOutlineText}>View Profile</Text>
                       </Pressable>
                       <View style={s.connectedBadge}>
-                        <Check size={11} color={SC.green} style={{ marginRight: 4 }} />
-                        <Text style={s.connectedText}>Connected</Text>
+                        <Check size={11} color="#16A34A" style={{ marginRight: 4 }} />
+                        <Text style={[s.connectedText, { color: '#16A34A' }]}>Connected</Text>
                       </View>
                     </>
                   )}
 
                   <View style={{ flexDirection: 'row', gap: 4 }}>
                     <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={s.iconBtn}>
-                      <Linkedin size={12} color={SC.muted} />
+                      <Linkedin size={12} color={isDark ? SC.muted : '#64748B'} />
                     </Pressable>
                   </View>
                 </View>
-              </GlassCard>
+              </View>
             ))}
 
             {connectionsList.length === 0 && (
-              <View style={s.emptyCard}>
-                <Users size={24} color={SC.muted} style={{ marginBottom: 10 }} />
-                <Text style={s.emptyText}>No connections fit the current search filters.</Text>
+              <View style={[
+                s.emptyCard,
+                {
+                  backgroundColor: isDark ? SC.card : '#FFFFFF',
+                  borderColor: isDark ? SC.border : 'rgba(0,0,0,0.08)',
+                }
+              ]}>
+                <Users size={24} color={isDark ? SC.muted : '#64748B'} style={{ marginBottom: 10 }} />
+                <Text style={[s.emptyText, { color: isDark ? SC.muted : '#475569' }]}>No connections fit the current search filters.</Text>
               </View>
             )}
           </View>
@@ -1076,42 +1203,50 @@ export function NetworkView() {
       {/* Book a Mentor tab screen */}
       {activeTab === 'book' && (
         <View style={{ gap: 16 }}>
-          <View style={s.secHeaderRow}>
+          <View style={[s.secHeaderRow, { borderBottomColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
             <View style={[s.secIconBg, { backgroundColor: 'rgba(34,197,94,0.12)' }]}>
-              <Briefcase size={14} color="#86EFAC" />
+              <Briefcase size={14} color="#16A34A" />
             </View>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={s.secTitle}>All Mentors</Text>
-                <View style={s.secBadge}><Text style={s.secBadgeText}>{mentorsList.length}</Text></View>
+                <Text style={[s.secTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>All Mentors</Text>
+                <View style={[s.secBadge, { backgroundColor: 'rgba(34,197,94,0.12)' }]}>
+                  <Text style={[s.secBadgeText, { color: '#16A34A' }]}>{mentorsList.length}</Text>
+                </View>
               </View>
-              <Text style={s.secSub}>Browse experts and schedule your 1:1 sessions</Text>
+              <Text style={[s.secSub, { color: isDark ? SC.muted : '#475569' }]}>Browse experts and schedule your 1:1 sessions</Text>
             </View>
           </View>
 
           <View style={s.grid}>
             {mentorsList.map((m) => (
-              <GlassCard key={m.id} radius={14} padding={16} style={s.card}>
+              <View key={m.id} style={[
+                s.card,
+                {
+                  backgroundColor: isDark ? 'rgba(19, 25, 53, 0.7)' : '#FFFFFF',
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                }
+              ]}>
                 <View>
                   <View style={s.cardHead}>
                     <Av initials={m.initials} size={46} color={m.color} photo={m.photo} />
                     <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <Text numberOfLines={1} style={s.cardName}>{m.name}</Text>
+                        <Text numberOfLines={1} style={[s.cardName, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{m.name}</Text>
                         <View style={s.badgeMentor}><Text style={s.badgeMentorText}>MENTOR</Text></View>
                       </View>
-                      <Text numberOfLines={1} style={s.cardRole}>{m.role}</Text>
-                      <Text numberOfLines={1} style={s.cardCompany}>{m.company}</Text>
+                      <Text numberOfLines={1} style={[s.cardRole, { color: isDark ? SC.muted : '#475569' }]}>{m.role}</Text>
+                      <Text numberOfLines={1} style={[s.cardCompany, { color: isDark ? SC.dim : '#64748B' }]}>{m.company}</Text>
                     </View>
                     
-                    {/* Top-Right Social Links. */}
+                    {/* Top-Right Social Links */}
                     <View style={{ flexDirection: 'row', gap: 4, alignSelf: 'flex-start' }}>
                       <Pressable onPress={() => m.linkedin ? Linking.openURL(m.linkedin.startsWith('http') ? m.linkedin : `https://${m.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={s.iconBtn}>
-                        <Linkedin size={12} color={SC.muted} />
+                        <Linkedin size={12} color={isDark ? SC.muted : '#64748B'} />
                       </Pressable>
                       {m.github && (
                         <Pressable onPress={() => m.github ? Linking.openURL(m.github.startsWith('http') ? m.github : `https://${m.github}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={s.iconBtn}>
-                          <Github size={12} color={SC.muted} />
+                          <Github size={12} color={isDark ? SC.muted : '#64748B'} />
                         </Pressable>
                       )}
                     </View>
@@ -1119,29 +1254,37 @@ export function NetworkView() {
 
                   <View style={s.tagsRow}>
                     {m.tags.slice(0, 3).map((tag, idx) => (
-                      <View key={idx} style={s.tagChip}><Text style={s.tagChipText}>{tag}</Text></View>
+                      <View key={idx} style={[
+                        s.tagChip,
+                        {
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F1F5F9',
+                          borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                        }
+                      ]}>
+                        <Text style={[s.tagChipText, { color: isDark ? SC.muted : '#334155' }]}>{tag}</Text>
+                      </View>
                     ))}
                   </View>
 
                   <View style={s.statsRow}>
                     <View style={s.statItem}>
                       <Star size={11} color={SC.amber} fill={SC.amber} />
-                      <Text style={s.statText}>{m.rating}</Text>
+                      <Text style={[s.statText, { color: isDark ? SC.muted : '#475569' }]}>{m.rating}</Text>
                     </View>
                     <View style={s.statItem}>
-                      <Clock size={11} color={SC.muted} />
-                      <Text style={s.statText}>{m.sessions} sessions</Text>
+                      <Clock size={11} color={isDark ? SC.muted : '#64748B'} />
+                      <Text style={[s.statText, { color: isDark ? SC.muted : '#475569' }]}>{m.sessions} sessions</Text>
                     </View>
                     <Text style={s.priceText}>{m.price}/session</Text>
                   </View>
 
                   <View style={s.mutualRow}>
-                    <Users size={11} color={SC.dim} style={{ marginRight: 6 }} />
-                    <Text style={s.mutualText}>{m.mutual} mutual connections</Text>
+                    <Users size={11} color={isDark ? SC.dim : '#64748B'} style={{ marginRight: 6 }} />
+                    <Text style={[s.mutualText, { color: isDark ? SC.dim : '#64748B' }]}>{m.mutual} mutual connections</Text>
                   </View>
                 </View>
 
-                <View style={s.cardActions}>
+                <View style={[s.cardActions, { borderTopColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
                   <Pressable onPress={() => setPickedPerson(m)} style={[s.actionBtnOutline, { flex: 1, marginRight: 4 }]}>
                     <Eye size={12} color={SC.accentBright} style={{ marginRight: 5 }} />
                     <Text style={s.actionBtnOutlineText}>View Profile</Text>
@@ -1149,13 +1292,13 @@ export function NetworkView() {
 
                   {conn.includes(m.id) || m.connectionState === 'connected' ? (
                     <View style={[s.connectedBadge, { flex: 1, marginRight: 4 }]}>
-                      <Check size={11} color={SC.green} style={{ marginRight: 4 }} />
-                      <Text style={s.connectedText}>Connected</Text>
+                      <Check size={11} color="#16A34A" style={{ marginRight: 4 }} />
+                      <Text style={[s.connectedText, { color: '#16A34A' }]}>Connected</Text>
                     </View>
                   ) : pending.includes(m.id) || m.connectionState === 'pending' ? (
                     <View style={[s.pendingBadge, { flex: 1, marginRight: 4 }]}>
-                      <Clock size={11} color={SC.amber} style={{ marginRight: 4 }} />
-                      <Text style={s.pendingText}>Pending</Text>
+                      <Clock size={11} color="#D97706" style={{ marginRight: 4 }} />
+                      <Text style={[s.pendingText, { color: '#D97706' }]}>Pending</Text>
                     </View>
                   ) : (
                     <Pressable onPress={() => handleConnect(m.id, m.name)} style={[s.actionBtnOutline, { flex: 1, marginRight: 4 }]}>
@@ -1169,13 +1312,19 @@ export function NetworkView() {
                     <Text style={s.actionBtnFillText}>Book</Text>
                   </Pressable>
                 </View>
-              </GlassCard>
+              </View>
             ))}
 
             {mentorsList.length === 0 && (
-              <View style={s.emptyCard}>
-                <Users size={24} color={SC.muted} style={{ marginBottom: 10 }} />
-                <Text style={s.emptyText}>No mentors match the current search filters.</Text>
+              <View style={[
+                s.emptyCard,
+                {
+                  backgroundColor: isDark ? SC.card : '#FFFFFF',
+                  borderColor: isDark ? SC.border : 'rgba(0,0,0,0.08)',
+                }
+              ]}>
+                <Users size={24} color={isDark ? SC.muted : '#64748B'} style={{ marginBottom: 10 }} />
+                <Text style={[s.emptyText, { color: isDark ? SC.muted : '#475569' }]}>No mentors match the current search filters.</Text>
               </View>
             )}
           </View>
@@ -1186,13 +1335,19 @@ export function NetworkView() {
       <Modal visible={!!pickedPerson} animationType="slide" transparent onRequestClose={() => setPickedPerson(null)}>
         <View style={s.backdrop}>
           <Pressable onPress={() => setPickedPerson(null)} style={{ flex: 1 }} />
-          <View style={s.modal}>
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>
+          <View style={[
+            s.modal,
+            {
+              backgroundColor: isDark ? '#0C0818' : '#FFFFFF',
+              borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+            }
+          ]}>
+            <View style={[s.modalHeader, { borderBottomColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
+              <Text style={[s.modalTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>
                 {pickedPerson?.kind === 'mentor' ? 'Mentor Profile' : pickedPerson?.kind === 'alumni' ? 'Alumni Profile' : 'Student Profile'}
               </Text>
               <Pressable onPress={() => setPickedPerson(null)} style={s.closeBtn}>
-                <X size={16} color={SC.text} />
+                <X size={16} color={isDark ? '#FFFFFF' : '#0F172A'} />
               </Pressable>
             </View>
             {pickedPerson && (() => {
@@ -1206,15 +1361,22 @@ export function NetworkView() {
               return (
                 <ScrollView style={{ padding: 20 }} contentContainerStyle={{ gap: 16 }}>
                   {/* Basic Info Card */}
-                  <GlassCard radius={12} padding={16} style={s.profileHeaderCard}>
+                  <View style={[
+                    s.profileHeaderCard,
+                    {
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : '#F8FAFC',
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.06)',
+                      padding: 16,
+                    }
+                  ]}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                       <Av initials={nameInitials} size={64} color={pickedPerson.color} photo={pickedPerson.photo} />
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 18 }}>{pickedPerson.name}</Text>
-                        <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 }}>
+                        <Text style={{ color: isDark ? '#FFFFFF' : '#0F172A', fontFamily: FONTS.xbold, fontSize: 18 }}>{pickedPerson.name}</Text>
+                        <Text style={{ color: isDark ? SC.muted : '#475569', fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 }}>
                           {titleLine}
                         </Text>
-                        <Text style={{ color: SC.dim, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 }}>
+                        <Text style={{ color: isDark ? SC.dim : '#64748B', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 }}>
                           {collegeLine}
                         </Text>
                       </View>
@@ -1239,62 +1401,77 @@ export function NetworkView() {
                         )}
                       </View>
                     </View>
-                  </GlassCard>
+                  </View>
 
                   {/* Bio Card */}
-                  <GlassCard radius={12} padding={16} style={s.profileBioCard}>
-                    <Text style={{ color: 'rgba(255,255,255,0.75)', fontFamily: FONTS.med, fontSize: 13, lineHeight: 18 }}>
+                  <View style={[
+                    s.profileBioCard,
+                    {
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.02)' : '#F8FAFC',
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0,0,0,0.06)',
+                      padding: 16,
+                    }
+                  ]}>
+                    <Text style={{ color: isDark ? 'rgba(255,255,255,0.75)' : '#334155', fontFamily: FONTS.med, fontSize: 13, lineHeight: 18 }}>
                       {bioText}
                     </Text>
-                  </GlassCard>
+                  </View>
 
                   {/* Mentor Stats Section */}
                   {pickedPerson.kind === 'mentor' && (
                     <View style={{ gap: 8 }}>
                       <Text style={{ color: '#F97316', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>MENTOR STATS</Text>
                       <View style={{ flexDirection: 'row', gap: 8 }}>
-                        <GlassCard radius={10} padding={12} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1 }}>
-                          <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.rating}</Text>
-                          <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Rating</Text>
-                        </GlassCard>
-                        <GlassCard radius={10} padding={12} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1 }}>
-                          <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.sessions}</Text>
-                          <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Sessions</Text>
-                        </GlassCard>
-                        <GlassCard radius={10} padding={12} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1 }}>
-                          <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 13 }} numberOfLines={1}>{pickedPerson.price}</Text>
-                          <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Price</Text>
-                        </GlassCard>
+                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F1F5F9', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)', borderWidth: 1, borderRadius: 10, padding: 12 }}>
+                          <Text style={{ color: isDark ? '#FFFFFF' : '#0F172A', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.rating}</Text>
+                          <Text style={{ color: isDark ? SC.muted : '#64748B', fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Rating</Text>
+                        </View>
+                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F1F5F9', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)', borderWidth: 1, borderRadius: 10, padding: 12 }}>
+                          <Text style={{ color: isDark ? '#FFFFFF' : '#0F172A', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.sessions}</Text>
+                          <Text style={{ color: isDark ? SC.muted : '#64748B', fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Sessions</Text>
+                        </View>
+                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F1F5F9', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)', borderWidth: 1, borderRadius: 10, padding: 12 }}>
+                          <Text style={{ color: isDark ? '#FFFFFF' : '#0F172A', fontFamily: FONTS.xbold, fontSize: 13 }} numberOfLines={1}>{pickedPerson.price}</Text>
+                          <Text style={{ color: isDark ? SC.muted : '#64748B', fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Price</Text>
+                        </View>
                       </View>
                     </View>
                   )}
 
                   {/* Skills Section */}
                   <View style={{ gap: 8 }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.50)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>SKILLS</Text>
+                    <Text style={{ color: isDark ? 'rgba(255,255,255,0.50)' : '#64748B', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>SKILLS</Text>
                     <View style={s.tagsRow}>
                       {pickedPerson.tags && pickedPerson.tags.map((tag: string, idx: number) => (
-                        <View key={idx} style={s.tagChip}><Text style={s.tagChipText}>{tag}</Text></View>
+                        <View key={idx} style={[
+                          s.tagChip,
+                          {
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F1F5F9',
+                            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                          }
+                        ]}>
+                          <Text style={[s.tagChipText, { color: isDark ? SC.muted : '#334155' }]}>{tag}</Text>
+                        </View>
                       ))}
                       {(!pickedPerson.tags || pickedPerson.tags.length === 0) && (
-                        <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12 }}>No specified skills.</Text>
+                        <Text style={{ color: isDark ? SC.muted : '#64748B', fontFamily: FONTS.med, fontSize: 12 }}>No specified skills.</Text>
                       )}
                     </View>
                   </View>
 
-                  {/* Connection / Booking Action Button. */}
+                  {/* Connection / Booking Action Button */}
                   <View style={{ marginTop: 8 }}>
                     {pickedPerson.kind === 'mentor' ? (
                       <View style={{ flexDirection: 'row', gap: 10 }}>
                         {isConnected ? (
                           <View style={[s.connectedPillLarge, { flex: 1 }]}>
-                            <Check size={16} color={SC.green} style={{ marginRight: 6 }} />
-                            <Text style={{ color: SC.green, fontFamily: FONTS.bold, fontSize: 14 }}>Connected</Text>
+                            <Check size={16} color="#16A34A" style={{ marginRight: 6 }} />
+                            <Text style={{ color: '#16A34A', fontFamily: FONTS.bold, fontSize: 14 }}>Connected</Text>
                           </View>
                         ) : isPending ? (
                           <View style={[s.pendingPillLarge, { flex: 1 }]}>
-                            <Clock size={16} color={SC.amber} style={{ marginRight: 6 }} />
-                            <Text style={{ color: SC.amber, fontFamily: FONTS.bold, fontSize: 14 }}>Pending</Text>
+                            <Clock size={16} color="#D97706" style={{ marginRight: 6 }} />
+                            <Text style={{ color: '#D97706', fontFamily: FONTS.bold, fontSize: 14 }}>Pending</Text>
                           </View>
                         ) : (
                           <Pressable 
@@ -1316,13 +1493,13 @@ export function NetworkView() {
                       </View>
                     ) : isConnected ? (
                       <View style={s.connectedPillLarge}>
-                        <Check size={16} color={SC.green} style={{ marginRight: 6 }} />
-                        <Text style={{ color: SC.green, fontFamily: FONTS.bold, fontSize: 14 }}>Connected</Text>
+                        <Check size={16} color="#16A34A" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#16A34A', fontFamily: FONTS.bold, fontSize: 14 }}>Connected</Text>
                       </View>
                     ) : isPending ? (
                       <View style={s.pendingPillLarge}>
-                        <Clock size={16} color={SC.amber} style={{ marginRight: 6 }} />
-                        <Text style={{ color: SC.amber, fontFamily: FONTS.bold, fontSize: 14 }}>Request Pending</Text>
+                        <Clock size={16} color="#D97706" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#D97706', fontFamily: FONTS.bold, fontSize: 14 }}>Request Pending</Text>
                       </View>
                     ) : (
                       <Pressable 
@@ -1346,11 +1523,17 @@ export function NetworkView() {
         <View style={s.bookingBackdrop}>
           <Pressable onPress={() => setBookingMentor(null)} style={StyleSheet.absoluteFill} />
           {bookingMentor && (
-            <View style={s.bookingModal}>
-              <View style={s.bookingModalHeader}>
-                <Text style={s.bookingModalTitle}>Book Session</Text>
+            <View style={[
+              s.bookingModal,
+              {
+                backgroundColor: isDark ? '#0C0818' : '#FFFFFF',
+                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+              }
+            ]}>
+              <View style={[s.bookingModalHeader, { borderBottomColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
+                <Text style={[s.bookingModalTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>Book Session</Text>
                 <Pressable onPress={() => setBookingMentor(null)} style={s.bookingCloseBtn}>
-                  <X size={16} color={SC.text} />
+                  <X size={16} color={isDark ? '#FFFFFF' : '#0F172A'} />
                 </Pressable>
               </View>
 
@@ -1358,18 +1541,18 @@ export function NetworkView() {
                 {/* Mentor Header Section */}
                 <View style={{ alignItems: 'center', gap: 8, paddingVertical: 12 }}>
                   <Av initials={bookingMentor.initials} size={64} color={bookingMentor.color} photo={bookingMentor.photo} />
-                  <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 18, textAlign: 'center' }}>
+                  <Text style={{ color: isDark ? '#FFFFFF' : '#0F172A', fontFamily: FONTS.xbold, fontSize: 18, textAlign: 'center' }}>
                     {bookingMentor.name}
                   </Text>
-                  <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center' }}>
+                  <Text style={{ color: isDark ? SC.muted : '#475569', fontFamily: FONTS.med, fontSize: 13, textAlign: 'center' }}>
                     {bookingMentor.role || 'Mentor'}
                   </Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Star size={14} color={SC.amber} fill={SC.amber} />
-                    <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 }}>
+                    <Text style={{ color: isDark ? '#FFFFFF' : '#0F172A', fontFamily: FONTS.bold, fontSize: 12.5 }}>
                       {bookingMentor.rating}
                     </Text>
-                    <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5 }}>
+                    <Text style={{ color: isDark ? SC.muted : '#64748B', fontFamily: FONTS.med, fontSize: 12.5 }}>
                       · {bookingMentor.sessions} sessions
                     </Text>
                   </View>
@@ -1388,21 +1571,21 @@ export function NetworkView() {
 
                 {/* ABOUT */}
                 <View style={{ gap: 6 }}>
-                  <Text style={{ color: 'rgba(255,255,255,0.50)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>ABOUT</Text>
-                  <GlassCard radius={12} padding={14} style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1 }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.75)', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 }}>
+                  <Text style={{ color: isDark ? 'rgba(255,255,255,0.50)' : '#64748B', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>ABOUT</Text>
+                  <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F8FAFC', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)', borderWidth: 1, borderRadius: 12, padding: 14 }}>
+                    <Text style={{ color: isDark ? 'rgba(255,255,255,0.75)' : '#334155', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 }}>
                       {bookingMentor.bio || 'Experienced professional ready to share industry insights, career strategies, and guidance.'}
                     </Text>
-                  </GlassCard>
+                  </View>
                 </View>
 
                 {/* Available Slots */}
                 <View style={{ gap: 6 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Calendar size={14} color={SC.accentBright} />
-                    <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13.5 }}>Available Slots</Text>
+                    <Text style={{ color: isDark ? '#FFFFFF' : '#0F172A', fontFamily: FONTS.bold, fontSize: 13.5 }}>Available Slots</Text>
                   </View>
-                  <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5 }}>
+                  <Text style={{ color: isDark ? SC.muted : '#64748B', fontFamily: FONTS.med, fontSize: 11.5 }}>
                     30-minute 1:1 sessions. Pick a slot that works for you.
                   </Text>
                   
@@ -1413,10 +1596,19 @@ export function NetworkView() {
                         <Pressable 
                           key={idx} 
                           onPress={() => setBookingSlot(slot)}
-                          style={[s.slotChip, { flexDirection: 'row', alignItems: 'center' }, isSelected && s.slotChipActive]}
+                          style={[
+                            s.slotChip, 
+                            { 
+                              flexDirection: 'row', 
+                              alignItems: 'center',
+                              backgroundColor: isSelected ? 'rgba(139,92,246,0.20)' : (isDark ? 'rgba(255,255,255,0.03)' : '#F1F5F9'),
+                              borderColor: isSelected ? SC.primary : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'),
+                            }, 
+                            isSelected && s.slotChipActive
+                          ]}
                         >
-                          <Clock size={12} color={isSelected ? '#fff' : SC.accentBright} style={{ marginRight: 6 }} />
-                          <Text style={[s.slotText, isSelected && s.slotTextActive]}>{slot.label}</Text>
+                          <Clock size={12} color={isSelected ? '#8B5CF6' : (isDark ? SC.muted : '#64748B')} style={{ marginRight: 6 }} />
+                          <Text style={[s.slotText, { color: isSelected ? (isDark ? '#FFFFFF' : '#6D28D9') : (isDark ? SC.muted : '#334155') }]}>{slot.label}</Text>
                         </Pressable>
                       );
                     })}
@@ -1425,21 +1617,21 @@ export function NetworkView() {
 
                 {/* Topic Input */}
                 <View style={{ gap: 6 }}>
-                  <Text style={{ color: 'rgba(255,255,255,0.50)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>WHAT WOULD YOU LIKE TO DISCUSS?</Text>
+                  <Text style={{ color: isDark ? 'rgba(255,255,255,0.50)' : '#64748B', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>WHAT WOULD YOU LIKE TO DISCUSS?</Text>
                   <TextInput
                     value={bookingTopic}
                     onChangeText={setBookingTopic}
                     placeholder="e.g., How do I prepare for FAANG interviews?"
-                    placeholderTextColor={SC.dim}
+                    placeholderTextColor={isDark ? SC.dim : '#94A3B8'}
                     multiline
                     numberOfLines={3}
                     style={{
-                      backgroundColor: 'rgba(0,0,0,0.25)',
-                      borderColor: SC.border,
+                      backgroundColor: isDark ? 'rgba(0,0,0,0.25)' : '#F8FAFC',
+                      borderColor: isDark ? SC.border : '#CBD5E1',
                       borderWidth: 1,
                       borderRadius: 10,
                       padding: 12,
-                      color: '#FFFFFF',
+                      color: isDark ? '#FFFFFF' : '#0F172A',
                       fontFamily: FONTS.med,
                       fontSize: 13,
                       height: 80,
