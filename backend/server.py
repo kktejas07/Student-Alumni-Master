@@ -221,6 +221,14 @@ async def _lifespan(application):
         _safe_create_index(db.echo_discount_coupons, "code", unique=True, sparse=True),
         _safe_create_index(db.echo_orders, [("user_id", 1), ("created_at", -1)]),
         _safe_create_index(db.echo_orders, [("status", 1)]),
+        # First-Party Careers & Opportunities indexes
+        _safe_create_index(db.career_openings, [("status", 1), ("published_at", -1)]),
+        _safe_create_index(db.career_openings, [("featured", -1), ("published_at", -1)]),
+        _safe_create_index(db.career_openings, [("created_at", -1)]),
+        _safe_create_index(db.career_applications, [("career_opening_id", 1), ("student_id", 1)], unique=True),
+        _safe_create_index(db.career_applications, [("student_id", 1), ("created_at", -1)]),
+        _safe_create_index(db.career_applications, [("career_opening_id", 1), ("status", 1)]),
+        _safe_create_index(db.career_application_history, [("application_id", 1), ("changed_at", -1)]),
     ]
     await asyncio.gather(*index_tasks, return_exceptions=True)
 
@@ -3275,6 +3283,10 @@ api_router.include_router(blog_router)
 
 from routers.community import router as community_router
 api_router.include_router(community_router)
+
+# First-Party Careers & Opportunities Router (Dedicated, isolated from jobs_feed)
+from routers.careers import router as careers_router
+api_router.include_router(careers_router)
 
 app.include_router(api_router)
 
