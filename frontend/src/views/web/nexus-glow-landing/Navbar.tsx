@@ -57,14 +57,20 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
   const handleTabClick = (tabKey: 'home' | 'echo' | 'careers' | 'marketplace' | 'verify' | 'contact') => {
     setSelectedTab(tabKey);
     setMenuOpen(false);
+    if (tabKey === 'careers') {
+      router.push('/careers' as any);
+      return;
+    }
+    if (tabKey === 'marketplace') {
+      router.push('/marketplace' as any);
+      return;
+    }
     if (typeof onTabChange === 'function') {
-      onTabChange(tabKey);
+      onTabChange(tabKey as any);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       if (tabKey === 'home') router.push('/');
       else if (tabKey === 'echo') router.push('/echo');
-      else if (tabKey === 'careers') router.push('/careers' as any);
-      else if (tabKey === 'marketplace') router.push('/marketplace' as any);
       else if (tabKey === 'verify') router.push('/certificates/verify' as any);
       else if (tabKey === 'contact') router.push('/contact' as any);
     }
