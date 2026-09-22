@@ -955,13 +955,20 @@ export function CareersAdminView() {
                   title="Cancel"
                   onPress={() => setOpeningModalVisible(false)}
                   disabled={savingOpening}
-                />
+                >
+                  <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 }}>Cancel</Text>
+                </SecondaryButton>
                 <GradientButton
                   title={savingOpening ? 'Saving...' : editingOpening ? 'Update Opening' : 'Create Opening'}
                   Icon={CheckCircle2}
                   onPress={handleSaveOpening}
                   disabled={savingOpening}
-                />
+                >
+                  <CheckCircle2 size={15} color="#FFFFFF" />
+                  <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13, letterSpacing: 0.2 }}>
+                    {savingOpening ? 'Saving...' : editingOpening ? 'Update Opening' : 'Create Opening'}
+                  </Text>
+                </GradientButton>
               </View>
             </View>
           </View>
@@ -1117,13 +1124,20 @@ export function CareersAdminView() {
               </ScrollView>
 
               <View style={s.modalFooter}>
-                <SecondaryButton title="Close" onPress={() => setSelectedApp(null)} />
+                <SecondaryButton title="Close" onPress={() => setSelectedApp(null)}>
+                  <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 }}>Close</Text>
+                </SecondaryButton>
                 <GradientButton
                   title={updatingApp ? 'Updating...' : 'Save Status & Notes'}
                   Icon={CheckCircle2}
                   onPress={handleUpdateApplicationStatus}
                   disabled={updatingApp}
-                />
+                >
+                  <CheckCircle2 size={15} color="#FFFFFF" />
+                  <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13, letterSpacing: 0.2 }}>
+                    {updatingApp ? 'Updating...' : 'Save Status & Notes'}
+                  </Text>
+                </GradientButton>
               </View>
             </View>
           </View>
