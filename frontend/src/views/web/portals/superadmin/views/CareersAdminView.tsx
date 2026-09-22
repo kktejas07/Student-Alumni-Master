@@ -481,7 +481,16 @@ export function CareersAdminView() {
                 </Pressable>
               ))}
 
-              <GradientButton title="Create Opening" Icon={Plus} onPress={openCreateOpeningModal} />
+              <GradientButton
+                title="Create Opening"
+                Icon={Plus}
+                onPress={openCreateOpeningModal}
+              >
+                <Plus size={15} color="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13, letterSpacing: 0.2 }}>
+                  Create Opening
+                </Text>
+              </GradientButton>
             </View>
           </View>
 
