@@ -10,7 +10,7 @@ import {
   LayoutDashboard, Building2, GraduationCap, UserCheck, Users, Calendar, CreditCard,
   BarChart3, CheckCircle, Sparkles, Settings, Workflow, LogOut,
   Upload, Handshake, Megaphone, UserPlus, Mail, Award, ShieldOff, ShieldCheck, Bot, Radar,
-  Video, Store, Tag, GitPullRequest,
+  Video, Store, Tag, GitPullRequest, Briefcase,
 } from 'lucide-react-native';
 import { SAC, useSAC, FONTS, resolveColors } from './tokens';
 import { Badge } from './atoms';
@@ -52,7 +52,7 @@ export type SuperAdminNavId =
   | 'overview' | 'agents' | 'visitor-radar' | 'bgv' | 'colleges' | 'students' | 'mentors' | 'alumni' | 'events'
   | 'payments' | 'analytics' | 'approvals' | 'ai-insights' | 'settings'
   | 'workflows' | 'imports' | 'partners' | 'promotions' | 'talent-pool' | 'echo-showcase'
-  | 'vendors' | 'coupons' | 'newsletter' | 'certificates' | 'email-health' | 'teams' | 'cicd-evaluator' | 'code-health';
+  | 'vendors' | 'coupons' | 'careers' | 'newsletter' | 'certificates' | 'email-health' | 'teams' | 'cicd-evaluator' | 'code-health';
 
 export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?: number; tag?: string }> = [
   { id: 'overview',        label: 'Overview',            Icon: LayoutDashboard,  count: 0 },
@@ -65,6 +65,7 @@ export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?:
   { id: 'students',        label: 'Students',            Icon: GraduationCap },
   { id: 'mentors',         label: 'Mentors',             Icon: UserCheck },
   { id: 'alumni',          label: 'Alumni',              Icon: Users },
+  { id: 'careers',         label: 'Careers',             Icon: Briefcase,        tag: 'NEW' },
   { id: 'talent-pool',     label: 'Talent Pool',         Icon: UserPlus,         tag: 'NEW' },
   { id: 'imports',         label: 'Import Contacts',     Icon: Upload,           tag: 'NEW' },
   { id: 'events',          label: 'Events',              Icon: Calendar },

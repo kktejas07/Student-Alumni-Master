@@ -31,8 +31,9 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
   }, [pathname]);
 
   // Track active tab state
-  const [selectedTab, setSelectedTab] = useState<'home' | 'echo' | 'marketplace' | 'verify' | 'contact'>(() => {
-    if (propActiveTab) return propActiveTab;
+  const [selectedTab, setSelectedTab] = useState<'home' | 'echo' | 'careers' | 'marketplace' | 'verify' | 'contact'>(() => {
+    if (propActiveTab) return propActiveTab as any;
+    if (pathname?.includes('/careers')) return 'careers';
     if (pathname?.includes('/marketplace')) return 'marketplace';
     if (pathname?.includes('/echo')) return 'echo';
     if (pathname?.includes('/verify')) return 'verify';
@@ -42,9 +43,10 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
 
   useEffect(() => {
     if (propActiveTab) {
-      setSelectedTab(propActiveTab);
+      setSelectedTab(propActiveTab as any);
     } else {
-      if (pathname?.includes('/marketplace')) setSelectedTab('marketplace');
+      if (pathname?.includes('/careers')) setSelectedTab('careers');
+      else if (pathname?.includes('/marketplace')) setSelectedTab('marketplace');
       else if (pathname?.includes('/echo')) setSelectedTab('echo');
       else if (pathname?.includes('/verify')) setSelectedTab('verify');
       else if (pathname?.includes('/contact')) setSelectedTab('contact');
@@ -52,16 +54,23 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
     }
   }, [propActiveTab, pathname]);
 
-  const handleTabClick = (tabKey: 'home' | 'echo' | 'marketplace' | 'verify' | 'contact') => {
+  const handleTabClick = (tabKey: 'home' | 'echo' | 'careers' | 'marketplace' | 'verify' | 'contact') => {
     setSelectedTab(tabKey);
     setMenuOpen(false);
+    if (tabKey === 'careers') {
+      router.push('/careers' as any);
+      return;
+    }
+    if (tabKey === 'marketplace') {
+      router.push('/marketplace' as any);
+      return;
+    }
     if (typeof onTabChange === 'function') {
-      onTabChange(tabKey);
+      onTabChange(tabKey as any);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       if (tabKey === 'home') router.push('/');
       else if (tabKey === 'echo') router.push('/echo');
-      else if (tabKey === 'marketplace') router.push('/marketplace' as any);
       else if (tabKey === 'verify') router.push('/certificates/verify' as any);
       else if (tabKey === 'contact') router.push('/contact' as any);
     }
@@ -74,6 +83,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
   const tabs = [
     { key: 'home' as const, label: 'Home' },
     { key: 'echo' as const, label: 'ECHO' },
+    { key: 'careers' as const, label: 'Careers' },
     { key: 'marketplace' as const, label: 'Marketplace' },
     { key: 'verify' as const, label: 'Verify' },
     { key: 'contact' as const, label: 'Contact Us' },

@@ -605,13 +605,21 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
   }, []);
 
   // Smooth Tab Switch with Curtain Motion Effect & URL Sync
-  const handleTabSwitch = (newTab: 'home' | 'echo' | 'verify' | 'contact') => {
+  const handleTabSwitch = (newTab: 'home' | 'echo' | 'careers' | 'marketplace' | 'verify' | 'contact') => {
     if (newTab === 'home') {
       router.push('/');
       return;
     }
     if (newTab === 'echo') {
       router.push('/echo');
+      return;
+    }
+    if (newTab === 'careers') {
+      router.push('/careers' as any);
+      return;
+    }
+    if (newTab === 'marketplace') {
+      router.push('/marketplace' as any);
       return;
     }
     

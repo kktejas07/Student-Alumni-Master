@@ -807,8 +807,65 @@ export const api = {
     request<any>(`/blog/posts/${encodeURIComponent(slug)}`, { auth: false }),
   getCommunityData: () =>
     request<any>('/community/data', { auth: false }),
-  listCampuses: (search?: string) =>
-    request<any>(`/community/campuses${search ? `?q=${encodeURIComponent(search)}` : ''}`, { auth: false }),
+  // ── First-Party Careers & Direct Opportunities ───────────────────────────
+  listPublicCareers: (params?: { search?: string; work_mode?: string; employment_type?: string; experience_level?: string; skip?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.search) qs.append('search', params.search);
+    if (params?.work_mode && params.work_mode !== 'ALL') qs.append('work_mode', params.work_mode);
+    if (params?.employment_type && params.employment_type !== 'ALL') qs.append('employment_type', params.employment_type);
+    if (params?.experience_level && params.experience_level !== 'ALL') qs.append('experience_level', params.experience_level);
+    if (params?.skip !== undefined) qs.append('skip', String(params.skip));
+    if (params?.limit !== undefined) qs.append('limit', String(params.limit));
+    const str = qs.toString();
+    return request<any>(`/careers${str ? `?${str}` : ''}`, { auth: false });
+  },
+  getPublicCareer: (id: string) =>
+    request<any>(`/careers/${encodeURIComponent(id)}`, { auth: false }),
+  applyToCareer: (id: string, payload: { cover_letter?: string; resume_url?: string; phone?: string }) =>
+    request<any>(`/careers/${encodeURIComponent(id)}/apply`, { method: 'POST', body: payload }),
+  getMyCareerApplications: () =>
+    request<any>('/careers/student/my-applications'),
+  getMyCareerApplication: (id: string) =>
+    request<any>(`/careers/student/my-applications/${encodeURIComponent(id)}`),
+  withdrawCareerApplication: (id: string) =>
+    request<any>(`/careers/student/my-applications/${encodeURIComponent(id)}/withdraw`, { method: 'POST' }),
+  getCareerAdminStats: () =>
+    request<any>('/careers/admin/stats'),
+  listAdminCareers: (params?: { status?: string; search?: string; skip?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.status && params.status !== 'ALL') qs.append('status', params.status);
+    if (params?.search) qs.append('search', params.search);
+    if (params?.skip !== undefined) qs.append('skip', String(params.skip));
+    if (params?.limit !== undefined) qs.append('limit', String(params.limit));
+    const str = qs.toString();
+    return request<any>(`/careers/admin/openings${str ? `?${str}` : ''}`);
+  },
+  createAdminCareer: (payload: any) =>
+    request<any>('/careers/admin/openings', { method: 'POST', body: payload }),
+  getAdminCareer: (id: string) =>
+    request<any>(`/careers/admin/openings/${encodeURIComponent(id)}`),
+  updateAdminCareer: (id: string, payload: any) =>
+    request<any>(`/careers/admin/openings/${encodeURIComponent(id)}`, { method: 'PUT', body: payload }),
+  publishAdminCareer: (id: string) =>
+    request<any>(`/careers/admin/openings/${encodeURIComponent(id)}/publish`, { method: 'POST' }),
+  closeAdminCareer: (id: string) =>
+    request<any>(`/careers/admin/openings/${encodeURIComponent(id)}/close`, { method: 'POST' }),
+  deleteAdminCareer: (id: string) =>
+    request<any>(`/careers/admin/openings/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  listAdminCareerApplications: (params?: { opening_id?: string; status?: string; search?: string; skip?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.opening_id && params.opening_id !== 'ALL') qs.append('opening_id', params.opening_id);
+    if (params?.status && params.status !== 'ALL') qs.append('status', params.status);
+    if (params?.search) qs.append('search', params.search);
+    if (params?.skip !== undefined) qs.append('skip', String(params.skip));
+    if (params?.limit !== undefined) qs.append('limit', String(params.limit));
+    const str = qs.toString();
+    return request<any>(`/careers/admin/applications${str ? `?${str}` : ''}`);
+  },
+  getAdminCareerApplication: (id: string) =>
+    request<any>(`/careers/admin/applications/${encodeURIComponent(id)}`),
+  updateAdminCareerApplicationStatus: (id: string, payload: { status: string; admin_notes?: string }) =>
+    request<any>(`/careers/admin/applications/${encodeURIComponent(id)}/status`, { method: 'PATCH', body: payload }),
 };
 
 
