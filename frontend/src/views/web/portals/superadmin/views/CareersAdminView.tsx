@@ -959,7 +959,9 @@ export function CareersAdminView() {
                   title="Cancel"
                   onPress={() => setOpeningModalVisible(false)}
                   disabled={savingOpening}
+                  style={{ paddingHorizontal: 16, paddingVertical: 9 }}
                 >
+                  <X size={14} color={SAC.muted} />
                   <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 }}>Cancel</Text>
                 </SecondaryButton>
                 <GradientButton
