@@ -4,8 +4,8 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useTheme } from '@/src/theme/ThemeContext';
 
 interface NavbarProps {
-  activeTab?: 'home' | 'echo' | 'marketplace' | 'verify' | 'contact';
-  onTabChange?: (tab: 'home' | 'echo' | 'marketplace' | 'verify' | 'contact') => void;
+  activeTab?: 'home' | 'echo' | 'careers' | 'marketplace' | 'verify' | 'contact';
+  onTabChange?: (tab: 'home' | 'echo' | 'careers' | 'marketplace' | 'verify' | 'contact') => void;
 }
 
 export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
