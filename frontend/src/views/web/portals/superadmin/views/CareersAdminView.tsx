@@ -1128,18 +1128,25 @@ export function CareersAdminView() {
               </ScrollView>
 
               <View style={s.modalFooter}>
-                <SecondaryButton title="Close" onPress={() => setSelectedApp(null)}>
+                <SecondaryButton
+                  title="Close"
+                  onPress={() => setSelectedApp(null)}
+                  style={{ paddingHorizontal: 16, paddingVertical: 9 }}
+                >
+                  <X size={14} color={SAC.muted} />
                   <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 }}>Close</Text>
                 </SecondaryButton>
                 <GradientButton
-                  title={updatingApp ? 'Updating...' : 'Save Status & Notes'}
+                  title={updatingApp ? 'Saving...' : 'Save Status & Notes'}
                   Icon={CheckCircle2}
                   onPress={handleUpdateApplicationStatus}
                   disabled={updatingApp}
+                  loading={updatingApp}
+                  style={{ paddingHorizontal: 18, paddingVertical: 9 }}
                 >
                   <CheckCircle2 size={15} color="#FFFFFF" />
                   <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13, letterSpacing: 0.2 }}>
-                    {updatingApp ? 'Updating...' : 'Save Status & Notes'}
+                    {updatingApp ? 'Saving...' : 'Save Status & Notes'}
                   </Text>
                 </GradientButton>
               </View>
