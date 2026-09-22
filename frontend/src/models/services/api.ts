@@ -195,6 +195,7 @@ export const api = {
     full_name: string;
     role: string;
     phone?: string;
+    dob?: string;
   }) => request<any>('/auth/register', { method: 'POST', body: payload, auth: false }),
 
   login: (email: string, password: string) =>
