@@ -720,11 +720,15 @@ export function CareersAdminView() {
                       </View>
 
                       <View style={[s.actionsCell, { width: 120, justifyContent: 'flex-end' }]}>
-                        <SecondaryButton
-                          title="Review"
-                          Icon={Eye}
+                        <GradientButton
+                          size="sm"
                           onPress={() => openApplicationReview(app.id)}
-                        />
+                        >
+                          <Eye size={13} color="#FFFFFF" />
+                          <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12 }}>
+                            Review
+                          </Text>
+                        </GradientButton>
                       </View>
                     </View>
                   );
