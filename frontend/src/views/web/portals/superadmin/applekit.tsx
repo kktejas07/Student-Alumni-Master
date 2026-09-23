@@ -35,10 +35,10 @@ export const GRAD = {
  * GradientButton — primary CTA used everywhere
  * ───────────────────────────────────────────────────────────────── */
 export function GradientButton({
-  onPress, loading, disabled, children, size = 'md', style,
+  onPress, loading, disabled, children, title, Icon, icon: iconProp, size = 'md', style,
 }: {
   onPress?: () => void; loading?: boolean; disabled?: boolean;
-  children: React.ReactNode; size?: 'sm' | 'md' | 'lg'; style?: any;
+  children?: React.ReactNode; title?: string; Icon?: any; icon?: any; size?: 'sm' | 'md' | 'lg'; style?: any;
 }) {
   const T = useSAC();
   Object.assign(k, resolveColors(k, T));
@@ -47,13 +47,16 @@ export function GradientButton({
     : size === 'lg'
     ? { paddingHorizontal: 18, paddingVertical: 11 }
     : { paddingHorizontal: 14, paddingVertical: 9 };
+
+  const TheIcon = Icon || iconProp;
+
   return (
     <Pressable
       onPress={onPress}
       disabled={loading || disabled}
       style={({ hovered }: any) => [
         { opacity: loading || disabled ? 0.6 : 1 },
-        hovered && Platform.OS === 'web' ? { transform: [{ translateY: -1 }] } : null,
+        hovered && Platform.OS === 'web' ? { transform: [{ translateY: -1 }], cursor: 'pointer' } : null,
         style,
       ]}
     >
@@ -62,19 +65,37 @@ export function GradientButton({
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={[k.btn, pad]}
       >
-        {loading ? <ActivityIndicator size="small" color="#fff" /> : children}
+        {loading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : children ? (
+          children
+        ) : (
+          <>
+            {TheIcon && <TheIcon size={size === 'sm' ? 13 : 15} color="#fff" />}
+            {title && (
+              <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: size === 'sm' ? 12 : 13, letterSpacing: 0.2 }}>
+                {title}
+              </Text>
+            )}
+          </>
+        )}
       </LinearGradient>
     </Pressable>
   );
 }
 
-export function SecondaryButton({ onPress, loading, disabled, children, size = 'md', danger, style }: {
+export function SecondaryButton({
+  onPress, loading, disabled, children, title, Icon, icon: iconProp, size = 'md', danger, style,
+}: {
   onPress?: () => void; loading?: boolean; disabled?: boolean;
-  children: React.ReactNode; size?: 'sm' | 'md' | 'lg'; danger?: boolean; style?: any;
+  children?: React.ReactNode; title?: string; Icon?: any; icon?: any; size?: 'sm' | 'md' | 'lg'; danger?: boolean; style?: any;
 }) {
   const pad = size === 'sm'
     ? { paddingHorizontal: 11, paddingVertical: 7 }
     : { paddingHorizontal: 14, paddingVertical: 9 };
+
+  const TheIcon = Icon || iconProp;
+
   return (
     <Pressable
       onPress={onPress}
@@ -83,11 +104,24 @@ export function SecondaryButton({ onPress, loading, disabled, children, size = '
         k.secBtn, pad,
         { opacity: loading || disabled ? 0.6 : 1 },
         danger && { borderColor: 'rgba(239,68,68,0.35)' },
-        hovered && Platform.OS === 'web' ? { backgroundColor: 'rgba(255,255,255,0.05)' } : null,
+        hovered && Platform.OS === 'web' ? { backgroundColor: 'rgba(255,255,255,0.05)', cursor: 'pointer' } : null,
         style,
       ]}
     >
-      {loading ? <ActivityIndicator size="small" color="#7C3AED" /> : children}
+      {loading ? (
+        <ActivityIndicator size="small" color="#7C3AED" />
+      ) : children ? (
+        children
+      ) : (
+        <>
+          {TheIcon && <TheIcon size={size === 'sm' ? 13 : 14} color={danger ? '#EF4444' : SAC.muted} />}
+          {title && (
+            <Text style={{ color: danger ? '#EF4444' : SAC.text, fontFamily: FONTS.bold, fontSize: size === 'sm' ? 12 : 13 }}>
+              {title}
+            </Text>
+          )}
+        </>
+      )}
     </Pressable>
   );
 }

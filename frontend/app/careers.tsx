@@ -161,12 +161,7 @@ export default function CareersPage() {
       >
         {/* Hero Header */}
         <View style={styles.heroSection}>
-          <View style={styles.badgeRow}>
-            <View style={styles.heroBadge}>
-              <Sparkles size={14} color={primaryPurple} />
-              <Text style={styles.heroBadgeText}>First-Party StudentAlumni Opportunities</Text>
-            </View>
-          </View>
+
 
           <Text style={[styles.heroTitle, { color: textColor }]}>
             Shape Your Future with Direct Career Openings
