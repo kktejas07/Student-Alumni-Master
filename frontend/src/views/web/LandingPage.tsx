@@ -3650,7 +3650,7 @@ function themedStyles(T: typeof DARK_T) {
     right: 0,
     bottom: 0,
     zIndex: 150,
-    backgroundColor: 'rgba(5,6,15,0.9)',
+    backgroundColor: T.surface,
     borderTopWidth: 1,
     borderTopColor: T.line,
     backdropFilter: 'blur(16px)' as any,
