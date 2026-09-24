@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useTheme } from '@/src/theme/ThemeContext';
+import { getBaseUrl } from '@/src/lib/env';
 
 interface NavbarProps {
   activeTab?: 'home' | 'echo' | 'careers' | 'marketplace' | 'verify' | 'contact';
@@ -17,6 +18,29 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showMarketplace, setShowMarketplace] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchFlags = async () => {
+      try {
+        const base = getBaseUrl();
+        const res = await fetch(`${base}/api/public/feature-flags`);
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data?.feature_flags) {
+            setShowMarketplace(Boolean(data.feature_flags.show_marketplace));
+          }
+        }
+      } catch (err) {
+        // Fallback gracefully
+      }
+    };
+    fetchFlags();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -84,7 +108,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
     { key: 'home' as const, label: 'Home' },
     { key: 'echo' as const, label: 'ECHO' },
     { key: 'careers' as const, label: 'Careers' },
-    { key: 'marketplace' as const, label: 'Marketplace' },
+    ...(showMarketplace ? [{ key: 'marketplace' as const, label: 'Marketplace' }] : []),
     { key: 'verify' as const, label: 'Verify' },
     { key: 'contact' as const, label: 'Contact Us' },
   ];
