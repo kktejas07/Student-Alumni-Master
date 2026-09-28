@@ -52,8 +52,18 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List
 
+import sys
 import bcrypt
 from dotenv import load_dotenv
+
+_backend_dir = str(Path(__file__).resolve().parent.parent)
+_scripts_dir = str(Path(__file__).resolve().parent)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+if _scripts_dir not in sys.path:
+    sys.path.insert(0, _scripts_dir)
+
+load_dotenv(Path(_backend_dir) / '.env')
 
 from seed_real_datasets import (
     COLLEGES_REAL, COMPANIES_REAL, SKILLS_REAL,
