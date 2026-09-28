@@ -17,6 +17,7 @@ import { useToast } from '@/src/views/components';
 import { SuggestionAutocomplete } from '@/src/views/web/SuggestionAutocomplete';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { DigiLockerOAuthModal } from './DigiLockerOAuthModal';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 const CITY_LIST = [
   'Mumbai', 'Delhi', 'Bengaluru', 'Hyderabad', 'Chennai', 'Kolkata',
@@ -85,6 +86,7 @@ interface Props {
 }
 
 export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, onTakeSelfie }: Props) {
+  const { isDark } = useTheme();
   const isCollege = draft.role === 'college' || useAuthStore.getState().user?.role === 'college';
   const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
   const photo = pendingPhoto || (isCollege ? draft.college_logo_data : (draft.photo_data || draft.face_image_base64));
@@ -340,16 +342,58 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
     <View style={{ gap: 16, zIndex: 10, position: 'relative' }}>
       {/* Completion Banner */}
       {!isCollege && (
-        <View style={[st.banner, completion.percentage >= 100 && st.bannerComplete]}>
-          <CompletionRing pct={completion.percentage} size={92} color={completion.percentage >= 100 ? '#10B981' : '#3B82F6'} trackColor="rgba(255,255,255,0.12)" />
+        <View style={[
+          st.banner,
+          {
+            backgroundColor: isDark ? 'rgba(37,99,235,0.12)' : '#EEF4FF',
+            borderColor: isDark ? 'rgba(59,130,246,0.35)' : '#C7D9FE',
+          },
+          completion.percentage >= 100 && {
+            backgroundColor: isDark ? 'rgba(16,185,129,0.12)' : '#ECFDF5',
+            borderColor: isDark ? 'rgba(16,185,129,0.40)' : '#A7F3D0',
+          }
+        ]}>
+          <CompletionRing
+            pct={completion.percentage}
+            size={92}
+            color={completion.percentage >= 100 ? '#10B981' : (isDark ? '#3B82F6' : '#1D4ED8')}
+            trackColor={isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'}
+          />
           <View style={{ flex: 1, minWidth: 0, gap: 10 }}>
-            <Text style={st.bannerTitle}>Profile Completion</Text>
-            <Text style={st.bannerSub}>Complete your profile to unlock personalized recommendations & higher trust signals.</Text>
+            <Text style={[st.bannerTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>
+              Profile Completion
+            </Text>
+            <Text style={[st.bannerSub, { color: isDark ? '#94A3B8' : '#334155' }]}>
+              Complete your profile to unlock personalized recommendations & higher trust signals.
+            </Text>
             <View style={st.itemsRow}>
               {completion.items.map((it) => (
-                <View key={it.key} style={[st.itemPill, it.done && st.itemPillDone]}>
-                  {it.done ? <Check size={11} color="#34D399" /> : <View style={st.dot} />}
-                  <Text style={[st.itemPillText, it.done && { color: '#34D399', fontFamily: 'DMSans_700Bold' }]}>{it.label}</Text>
+                <View
+                  key={it.key}
+                  style={[
+                    st.itemPill,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
+                      borderColor: isDark ? 'rgba(255,255,255,0.14)' : '#CBD5E1',
+                    },
+                    it.done && {
+                      backgroundColor: isDark ? 'rgba(16,185,129,0.15)' : '#ECFDF5',
+                      borderColor: isDark ? 'rgba(16,185,129,0.40)' : '#A7F3D0',
+                    }
+                  ]}
+                >
+                  {it.done ? (
+                    <Check size={12} color={isDark ? '#34D399' : '#059669'} strokeWidth={2.5} />
+                  ) : (
+                    <View style={[st.dot, { backgroundColor: isDark ? '#64748B' : '#94A3B8' }]} />
+                  )}
+                  <Text style={[
+                    st.itemPillText,
+                    { color: isDark ? '#94A3B8' : '#475569' },
+                    it.done && { color: isDark ? '#34D399' : '#047857', fontFamily: 'DMSans_700Bold' }
+                  ]}>
+                    {it.label}
+                  </Text>
                 </View>
               ))}
               {completion.percentage >= 100 && (
