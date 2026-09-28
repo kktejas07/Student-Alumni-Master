@@ -67,7 +67,7 @@ RUN rm -rf dist \
     && test -f dist/index.html || (echo "ERROR: Expo failed to produce dist/index.html" && exit 1)
 
 # Final production stage: Ultra-lightweight Nginx
-FROM nginx:1.27-alpine
+FROM nginx:1.29-alpine
 
 RUN apk add --no-cache curl gettext
 
