@@ -17,6 +17,7 @@ import { useToast } from '@/src/views/components';
 import { SuggestionAutocomplete } from '@/src/views/web/SuggestionAutocomplete';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { DigiLockerOAuthModal } from './DigiLockerOAuthModal';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 const CITY_LIST = [
   'Mumbai', 'Delhi', 'Bengaluru', 'Hyderabad', 'Chennai', 'Kolkata',
@@ -85,6 +86,7 @@ interface Props {
 }
 
 export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, onTakeSelfie }: Props) {
+  const { isDark } = useTheme();
   const isCollege = draft.role === 'college' || useAuthStore.getState().user?.role === 'college';
   const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
   const photo = pendingPhoto || (isCollege ? draft.college_logo_data : (draft.photo_data || draft.face_image_base64));
@@ -340,16 +342,58 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
     <View style={{ gap: 16, zIndex: 10, position: 'relative' }}>
       {/* Completion Banner */}
       {!isCollege && (
-        <View style={[st.banner, completion.percentage >= 100 && st.bannerComplete]}>
-          <CompletionRing pct={completion.percentage} size={92} color={completion.percentage >= 100 ? '#10B981' : '#2563EB'} />
+        <View style={[
+          st.banner,
+          {
+            backgroundColor: isDark ? 'rgba(37,99,235,0.12)' : '#EEF4FF',
+            borderColor: isDark ? 'rgba(59,130,246,0.35)' : '#C7D9FE',
+          },
+          completion.percentage >= 100 && {
+            backgroundColor: isDark ? 'rgba(16,185,129,0.12)' : '#ECFDF5',
+            borderColor: isDark ? 'rgba(16,185,129,0.40)' : '#A7F3D0',
+          }
+        ]}>
+          <CompletionRing
+            pct={completion.percentage}
+            size={92}
+            color={completion.percentage >= 100 ? '#10B981' : (isDark ? '#3B82F6' : '#1D4ED8')}
+            trackColor={isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'}
+          />
           <View style={{ flex: 1, minWidth: 0, gap: 10 }}>
-            <Text style={st.bannerTitle}>Profile Completion</Text>
-            <Text style={st.bannerSub}>Complete your profile to unlock personalized recommendations & higher trust signals.</Text>
+            <Text style={[st.bannerTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>
+              Profile Completion
+            </Text>
+            <Text style={[st.bannerSub, { color: isDark ? '#94A3B8' : '#334155' }]}>
+              Complete your profile to unlock personalized recommendations & higher trust signals.
+            </Text>
             <View style={st.itemsRow}>
               {completion.items.map((it) => (
-                <View key={it.key} style={[st.itemPill, it.done && st.itemPillDone]}>
-                  {it.done ? <Check size={11} color={C.green} /> : <View style={st.dot} />}
-                  <Text style={[st.itemPillText, it.done && { color: C.green, fontFamily: 'DMSans_700Bold' }]}>{it.label}</Text>
+                <View
+                  key={it.key}
+                  style={[
+                    st.itemPill,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
+                      borderColor: isDark ? 'rgba(255,255,255,0.14)' : '#CBD5E1',
+                    },
+                    it.done && {
+                      backgroundColor: isDark ? 'rgba(16,185,129,0.15)' : '#ECFDF5',
+                      borderColor: isDark ? 'rgba(16,185,129,0.40)' : '#A7F3D0',
+                    }
+                  ]}
+                >
+                  {it.done ? (
+                    <Check size={12} color={isDark ? '#34D399' : '#059669'} strokeWidth={2.5} />
+                  ) : (
+                    <View style={[st.dot, { backgroundColor: isDark ? '#64748B' : '#94A3B8' }]} />
+                  )}
+                  <Text style={[
+                    st.itemPillText,
+                    { color: isDark ? '#94A3B8' : '#475569' },
+                    it.done && { color: isDark ? '#34D399' : '#047857', fontFamily: 'DMSans_700Bold' }
+                  ]}>
+                    {it.label}
+                  </Text>
                 </View>
               ))}
               {completion.percentage >= 100 && (
@@ -1051,26 +1095,26 @@ const st = StyleSheet.create({
   banner: {
     flexDirection: 'row', gap: 18, alignItems: 'center',
     padding: 20, borderRadius: 16,
-    backgroundColor: 'rgba(37,99,235,0.06)',
-    borderColor: 'rgba(37,99,235,0.20)', borderWidth: 1,
+    backgroundColor: 'rgba(37,99,235,0.10)',
+    borderColor: 'rgba(59,130,246,0.30)', borderWidth: 1,
   },
   bannerComplete: {
-    backgroundColor: 'rgba(16,185,129,0.08)',
-    borderColor: 'rgba(16,185,129,0.30)',
+    backgroundColor: 'rgba(16,185,129,0.12)',
+    borderColor: 'rgba(16,185,129,0.40)',
   },
-  bannerTitle: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 17 },
-  bannerSub:   { color: C.text2, fontFamily: 'DMSans_400Regular', fontSize: 12.5 },
+  bannerTitle: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 17, letterSpacing: -0.2 },
+  bannerSub:   { color: '#94A3B8', fontFamily: 'DMSans_400Regular', fontSize: 13, lineHeight: 18 },
   completePill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#10B981', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
   completePillText: { color: '#FFF', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
   itemsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   itemPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.03)', borderColor: 'rgba(0,0,0,0.08)', borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1,
   },
-  itemPillDone: { backgroundColor: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.35)' },
-  itemPillText: { color: C.text2, fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
-  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.text3 },
+  itemPillDone: { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: 'rgba(16,185,129,0.40)' },
+  itemPillText: { color: '#94A3B8', fontFamily: 'DMSans_600SemiBold', fontSize: 11.5 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#64748B' },
 
   // Profile Photo section (new layout matching spec)
   photoRow: { flexDirection: 'row', alignItems: 'center', gap: 18, marginBottom: 4 },

@@ -886,6 +886,7 @@ DEFAULT_PLATFORM_CONTROLS = {
         {"key": "new_signups",          "label": "Allow New Signups",    "description": "Open public registration for students",        "value": True},
         {"key": "ai_features",          "label": "AI Features",          "description": "Agent K and AI insights for all users",         "value": True},
         {"key": "marketplace_install",  "label": "Marketplace Install",  "description": "Allow admins to connect new integrations",      "value": True},
+        {"key": "show_marketplace",     "label": "Show Marketplace",     "description": "Display Marketplace tab in the landing page navigation bar", "value": False},
         {"key": "alumni_donations",     "label": "Alumni Donations",     "description": "Show donation widget on alumni dashboard",      "value": True},
         {"key": "beta_features",        "label": "Beta Features",        "description": "Enable experimental features for testers",      "value": False},
         {"key": "mentor_ratings",       "label": "Mentor Ratings",      "description": "Allow students to rate mentor sessions",      "value": True},
@@ -914,6 +915,20 @@ DEFAULT_PLATFORM_CONTROLS = {
         {"key": "ga4_service_account_json","label": "GA4 Service Account JSON","value": "", "type": "password", "help": "Optional — separate service account for GA4 analytics. If blank, falls back to Firebase Service Account JSON above."},
     ],
 }
+
+
+@router.get("/public/feature-flags")
+async def get_public_feature_flags():
+    """Public read-only feature flags dictionary for landing navbar and other public components."""
+    doc = await _db.platform_controls.find_one({"_id": "singleton"})
+    db_flags = (doc.get("feature_flags") if doc else None) or []
+    defaults_flags = DEFAULT_PLATFORM_CONTROLS["feature_flags"]
+    merged_flags = _merge_settings_with_defaults(db_flags, defaults_flags)
+    flags_dict = {}
+    for f in merged_flags:
+        if isinstance(f, dict) and "key" in f:
+            flags_dict[f["key"]] = bool(f.get("value"))
+    return {"feature_flags": flags_dict}
 
 
 @router.get("/admin/platform-controls")

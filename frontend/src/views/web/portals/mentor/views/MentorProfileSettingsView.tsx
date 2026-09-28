@@ -1977,7 +1977,7 @@ export function MentorProfileSettingsView({
             <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: 0.5 }}>SA-08-438291</Text>
             <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 4 }}>Verified · since 2008</Text>
             <Pressable
-              onPress={() => router.push('/member-id')}
+              onPress={() => router.push('/id-card' as any)}
               style={st.viewIdBtn}
             >
               <IdCard size={14} color="#0F2922" />

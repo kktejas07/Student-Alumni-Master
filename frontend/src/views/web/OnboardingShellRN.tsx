@@ -123,12 +123,20 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const handleFinishOnboarding = async () => {
     try {
       await AsyncStorage.removeItem('sa_onboarding_state');
-      const regRes = await api.register({
-        email: userEmail,
-        password: userPassword || 'SAOnboarded2026!',
-        full_name: userName || userEmail.split('@')[0],
-        role: flow === 'alumnus' ? 'alumni' : flow,
-      }).catch(() => null);
+      let regRes;
+      try {
+        regRes = await api.register({
+          email: userEmail,
+          password: userPassword || 'SAOnboarded2026!',
+          full_name: userName || userEmail.split('@')[0],
+          role: flow === 'alumnus' ? 'alumni' : flow,
+          dob: '2000-01-01', // Default DOB to pass server-side age gate
+        });
+      } catch (err: any) {
+        alert("Registration failed: " + (err.message || "Unknown error"));
+        setIsNavigating(false);
+        return; // Stop the flow so they don't get a mock user
+      }
 
       if (regRes && regRes.user) {
         setUser(regRes.user);
@@ -153,7 +161,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
         course: selectedCourse,
         year: selectedYear,
         goal: selectedGoal,
-        skills: skillLevels,
+        skills: skillLevels,    
         avatar_uri: avatarUri,
         interests,
         institution: instName,

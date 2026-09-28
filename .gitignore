@@ -225,8 +225,12 @@ REMOVED_FILES_AUDIT.md
 docs/REMOVED_FILES_AUDIT.md
 CURRENT_ALL_USERS_REPORT.md
 CURRENT_ALL_USERS_REPORT.html
+QR_PASS_QA_AUDIT.html
+docs/QR_PASS_QA_AUDIT.html
 
 # Local Ponytail quality layer (kept locally)
 .agents/rules/ponytail.md
 .agents/skills/ponytail/
 docs/ponytail-integration.md
+QR_PASS_QA_AUDIT.html
+QR_PASS_QA_AUDIT.md
