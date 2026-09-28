@@ -161,7 +161,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
         course: selectedCourse,
         year: selectedYear,
         goal: selectedGoal,
-        skills: skillLevels,
+        skills: skillLevels,    
         avatar_uri: avatarUri,
         interests,
         institution: instName,
