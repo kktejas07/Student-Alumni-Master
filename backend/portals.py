@@ -335,7 +335,7 @@ async def mentor_dashboard(mentor_email: Optional[str] = None, user: dict = Depe
             "company": mi.get("organization") or "—",
             "rating": avg_rating,
             "sessions": confirmed,
-            "price": mentor.get("expected_rate_inr") or 999,
+            "price": (mentor or {}).get("expected_rate_inr") or 999,
             "college": si.get("institution_name") or "—",
             "batch": si.get("graduation_year") or 2010,
             "expertise": (mentor or {}).get("skills", []) or ["System Design", "Career Strategy"],
@@ -388,7 +388,7 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
                 import jwt
                 from core.security import JWT_SECRET, JWT_ALGORITHM
                 from bson import ObjectId
-                payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
+                payload = jwt.decode(auth[7:], JWT_SECRET or "", algorithms=[JWT_ALGORITHM or "HS256"])
                 if "sub" in payload:
                     me = await _db.users.find_one({"_id": ObjectId(payload["sub"])})
                     if me:
@@ -1496,7 +1496,7 @@ async def delete_super_event(event_id: str, user: dict = Depends(require_role('a
                 r = await _db.events.delete_one({"_id": cand["_id"]})
                 deleted = r.deleted_count
                 break
-    return {"ok": True, "deleted": int(deleted)}
+    return {"ok": True, "deleted": deleted}
 
 
 async def _fetch_razorpay_settlements(db) -> dict:
@@ -3260,7 +3260,7 @@ STEP_REGISTRY: Dict[str, Callable] = {
 
 
 @router.post("/admin/super/workflows/{wf_id}/run")
-async def run_workflow(wf_id: str, body: WorkflowRunRequest = None, user: dict = Depends(require_role('admin'))):
+async def run_workflow(wf_id: str, body: Optional[WorkflowRunRequest] = None, user: dict = Depends(require_role('admin'))):
     """Execute all steps of a workflow and record the result."""
     wf = await _get_workflow_or_404(wf_id)
     steps = wf.get("steps", [])
