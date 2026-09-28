@@ -320,7 +320,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
                   <Pressable
                     key={t.key}
                     onPress={() => {
-                      if (t.key === 'digital-id') { router.push('/member-id' as any); return; }
+                      if (t.key === 'digital-id') { router.push('/id-card' as any); return; }
                       setTab(t.key);
                     }}
                     style={[st.tab, active && st.tabActive]}
@@ -426,7 +426,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
               {draft.is_verified ? 'Verified' : 'Active'} · since {new Date(user?.created_at || Date.now()).getFullYear()}
             </Text>
             <Pressable
-              onPress={() => router.push('/member-id' as any)}
+              onPress={() => router.push('/id-card' as any)}
               style={st.viewIdBtn}
               testID="pf-view-digital-id"
             >
