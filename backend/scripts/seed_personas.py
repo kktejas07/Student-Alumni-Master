@@ -53,6 +53,8 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 import bcrypt
 from dotenv import load_dotenv
 
