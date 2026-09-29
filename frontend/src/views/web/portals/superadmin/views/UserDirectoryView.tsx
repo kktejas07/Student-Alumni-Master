@@ -262,63 +262,68 @@ export function UserDirectoryView({
 
           {/* View Mode Switcher (Grid vs Table) */}
           <View style={st.viewSwitcher}>
-            <Pressable
-              title="Switch to Card Grid View"
-              accessibilityLabel="Switch to Card Grid View"
-              onPress={() => setViewMode('grid')}
-              style={[st.viewModeBtn, viewMode === 'grid' && st.viewModeBtnActive]}
-            >
-              <LayoutGrid size={13} color={viewMode === 'grid' ? '#fff' : SAC.muted} />
-              <Text style={[st.viewModeBtnText, viewMode === 'grid' && { color: '#fff' }]}>Grid</Text>
-            </Pressable>
-            <Pressable
-              title="Switch to Data Table View"
-              accessibilityLabel="Switch to Data Table View"
-              onPress={() => setViewMode('table')}
-              style={[st.viewModeBtn, viewMode === 'table' && st.viewModeBtnActive]}
-            >
-              <List size={13} color={viewMode === 'table' ? '#fff' : SAC.muted} />
-              <Text style={[st.viewModeBtnText, viewMode === 'table' && { color: '#fff' }]}>Table</Text>
-            </Pressable>
+            <ActionTooltip text="Switch to Card Grid View">
+              <Pressable
+                accessibilityLabel="Switch to Card Grid View"
+                onPress={() => setViewMode('grid')}
+                style={[st.viewModeBtn, viewMode === 'grid' && st.viewModeBtnActive]}
+              >
+                <LayoutGrid size={13} color={viewMode === 'grid' ? '#fff' : SAC.muted} />
+                <Text style={[st.viewModeBtnText, viewMode === 'grid' && { color: '#fff' }]}>Grid</Text>
+              </Pressable>
+            </ActionTooltip>
+            <ActionTooltip text="Switch to Data Table View">
+              <Pressable
+                accessibilityLabel="Switch to Data Table View"
+                onPress={() => setViewMode('table')}
+                style={[st.viewModeBtn, viewMode === 'table' && st.viewModeBtnActive]}
+              >
+                <List size={13} color={viewMode === 'table' ? '#fff' : SAC.muted} />
+                <Text style={[st.viewModeBtnText, viewMode === 'table' && { color: '#fff' }]}>Table</Text>
+              </Pressable>
+            </ActionTooltip>
           </View>
 
           {/* Export CSV Button */}
-          <Pressable
-            title="Export filtered student directory to CSV"
-            accessibilityLabel="Export filtered student directory to CSV"
-            onPress={() => setShowExportModal(true)}
-            style={st.toggleBtn}
-          >
-            <FileDown size={12} color={SAC.muted} />
-            <Text style={st.toggleBtnText}>Export CSV</Text>
-          </Pressable>
+          <ActionTooltip text="Export filtered directory to CSV">
+            <Pressable
+              accessibilityLabel="Export filtered student directory to CSV"
+              onPress={() => setShowExportModal(true)}
+              style={st.toggleBtn}
+            >
+              <FileDown size={12} color={SAC.muted} />
+              <Text style={st.toggleBtnText}>Export CSV</Text>
+            </Pressable>
+          </ActionTooltip>
 
           {/* Select Mode Toggle */}
-          <Pressable
-            title={selectMode ? "Cancel multi-select mode" : "Enable multi-select mode for bulk actions"}
-            accessibilityLabel={selectMode ? "Cancel multi-select mode" : "Enable multi-select mode for bulk actions"}
-            onPress={() => { setSelectMode(!selectMode); if (selectMode) clearSelection(); }}
-            style={[st.toggleBtn, selectMode && { borderColor: GRAD.to, backgroundColor: 'rgba(245,158,11,0.10)' }]}
-          >
-            <CheckSquare size={11} color={selectMode ? GRAD.to : SAC.muted} />
-            <Text style={[st.toggleBtnText, selectMode && { color: GRAD.to }]}>
-              {selectMode ? 'Cancel' : 'Select'}
-            </Text>
-          </Pressable>
+          <ActionTooltip text={selectMode ? "Cancel multi-select mode" : "Enable multi-select mode for bulk actions"}>
+            <Pressable
+              accessibilityLabel={selectMode ? "Cancel multi-select mode" : "Enable multi-select mode for bulk actions"}
+              onPress={() => { setSelectMode(!selectMode); if (selectMode) clearSelection(); }}
+              style={[st.toggleBtn, selectMode && { borderColor: GRAD.to, backgroundColor: 'rgba(245,158,11,0.10)' }]}
+            >
+              <CheckSquare size={11} color={selectMode ? GRAD.to : SAC.muted} />
+              <Text style={[st.toggleBtnText, selectMode && { color: GRAD.to }]}>
+                {selectMode ? 'Cancel' : 'Select'}
+              </Text>
+            </Pressable>
+          </ActionTooltip>
 
           {/* Pending filter toggle */}
           {pendingCount > 0 && (
-            <Pressable
-              title={pendingOnly ? "Showing accounts pending approval" : "Filter by accounts pending approval"}
-              accessibilityLabel={pendingOnly ? "Showing accounts pending approval" : "Filter by accounts pending approval"}
-              onPress={() => setPendingOnly(!pendingOnly)}
-              style={st.toggleBtn}
-            >
-              <Filter size={11} color={pendingOnly ? GRAD.to : SAC.muted} />
-              <Text style={[st.toggleBtnText, pendingOnly && { color: GRAD.to }]}>
-                {pendingOnly ? 'Showing pending' : 'Show pending'}
-              </Text>
-            </Pressable>
+            <ActionTooltip text={pendingOnly ? "Showing pending accounts" : "Filter accounts pending approval"}>
+              <Pressable
+                accessibilityLabel={pendingOnly ? "Showing accounts pending approval" : "Filter by accounts pending approval"}
+                onPress={() => setPendingOnly(!pendingOnly)}
+                style={st.toggleBtn}
+              >
+                <Filter size={11} color={pendingOnly ? GRAD.to : SAC.muted} />
+                <Text style={[st.toggleBtnText, pendingOnly && { color: GRAD.to }]}>
+                  {pendingOnly ? 'Showing pending' : 'Show pending'}
+                </Text>
+              </Pressable>
+            </ActionTooltip>
           )}
         </View>
       </Card>
@@ -443,6 +448,52 @@ export function UserDirectoryView({
 }
 
 /* ────────────────────────────────────────────────────────────────────
+ *  ActionTooltip — Instant Floating Tooltip for Web & Mobile
+ * ────────────────────────────────────────────────────────────────── */
+function ActionTooltip({
+  text,
+  children,
+  position = 'top',
+  align = 'center',
+}: {
+  text: string;
+  children: React.ReactNode;
+  position?: 'top' | 'bottom';
+  align?: 'center' | 'right' | 'left';
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  if (!text) return <>{children}</>;
+
+  return (
+    <View
+      style={{ position: 'relative', alignItems: 'center' }}
+      // @ts-ignore — web mouse events
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {children}
+      {hovered && Platform.OS === 'web' && (
+        <View
+          pointerEvents="none"
+          style={[
+            st.customTooltip,
+            position === 'top' ? st.tooltipTop : st.tooltipBottom,
+            align === 'right' ? { right: 0, alignItems: 'flex-end' } :
+            align === 'left' ? { left: 0, alignItems: 'flex-start' } :
+            { alignSelf: 'center' },
+          ]}
+        >
+          <Text style={st.customTooltipText} numberOfLines={1}>
+            {text}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────
  *  UserDirectoryTable — Compact Data Table for High-Volume Management
  * ────────────────────────────────────────────────────────────────── */
 function UserDirectoryTable({
@@ -465,7 +516,7 @@ function UserDirectoryTable({
   onApprove: (id: string) => void;
   onDisable: (id: string) => void;
   onRestore: (id: string) => void;
-  onRemove: (id: string) => void;
+  onRemove: (id: string, name?: string) => void;
   onFlash: (msg: string) => void;
 }) {
   const copyText = (text: string, label: string) => {
@@ -531,17 +582,18 @@ function UserDirectoryTable({
                 {/* Select / Index Checkbox */}
                 <View style={{ width: 44, alignItems: 'center' }}>
                   {selectMode ? (
-                    <Pressable
-                      title={isSelected ? "Deselect student" : "Select student"}
-                      accessibilityLabel={isSelected ? "Deselect student" : "Select student"}
-                      onPress={() => onToggleSelect(u.id)}
-                    >
-                      {isSelected ? (
-                        <SquareCheck size={18} color={GRAD.to} />
-                      ) : (
-                        <Square size={18} color="rgba(255,255,255,0.4)" />
-                      )}
-                    </Pressable>
+                    <ActionTooltip text={isSelected ? "Deselect student" : "Select student"}>
+                      <Pressable
+                        accessibilityLabel={isSelected ? "Deselect student" : "Select student"}
+                        onPress={() => onToggleSelect(u.id)}
+                      >
+                        {isSelected ? (
+                          <SquareCheck size={18} color={GRAD.to} />
+                        ) : (
+                          <Square size={18} color="rgba(255,255,255,0.4)" />
+                        )}
+                      </Pressable>
+                    </ActionTooltip>
                   ) : (
                     <Text style={{ color: SAC.muted, fontSize: 11, fontFamily: FONTS.med }}>{idx + 1}</Text>
                   )}
@@ -555,15 +607,16 @@ function UserDirectoryTable({
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={st.tableName} numberOfLines={1}>{name}</Text>
                     {u.email ? (
-                      <Pressable
-                        title={`Click to copy email: ${u.email}`}
-                        accessibilityLabel={`Click to copy email: ${u.email}`}
-                        onPress={(e: any) => { e?.stopPropagation?.(); copyText(u.email, 'email'); }}
-                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}
-                      >
-                        <Mail size={10} color={SAC.muted} />
-                        <Text style={st.tableEmail} numberOfLines={1}>{u.email}</Text>
-                      </Pressable>
+                      <ActionTooltip text={`Copy email: ${u.email}`} align="left">
+                        <Pressable
+                          accessibilityLabel={`Click to copy email: ${u.email}`}
+                          onPress={(e: any) => { e?.stopPropagation?.(); copyText(u.email, 'email'); }}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}
+                        >
+                          <Mail size={10} color={SAC.muted} />
+                          <Text style={st.tableEmail} numberOfLines={1}>{u.email}</Text>
+                        </Pressable>
+                      </ActionTooltip>
                     ) : null}
                   </View>
                 </View>
@@ -640,58 +693,63 @@ function UserDirectoryTable({
                 {/* Actions */}
                 <View style={{ width: 140, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
                   {/* View Profile */}
-                  <Pressable
-                    title="View & Edit Student Profile"
-                    accessibilityLabel="View & Edit Student Profile"
-                    onPress={(e: any) => { e?.stopPropagation?.(); onView(u.id); }}
-                    style={st.tableActionBtn}
-                  >
-                    <Eye size={12} color="#fff" />
-                    <Text style={st.tableActionBtnText}>View</Text>
-                  </Pressable>
+                  <ActionTooltip text="View Student Profile" align="right">
+                    <Pressable
+                      accessibilityLabel="View & Edit Student Profile"
+                      onPress={(e: any) => { e?.stopPropagation?.(); onView(u.id); }}
+                      style={st.tableActionBtn}
+                    >
+                      <Eye size={12} color="#fff" />
+                      <Text style={st.tableActionBtnText}>View</Text>
+                    </Pressable>
+                  </ActionTooltip>
 
                   {/* Approve */}
                   {!u.approved && !u.disabled && (
-                    <Pressable
-                      title="Approve Student Account"
-                      accessibilityLabel="Approve Student Account"
-                      onPress={(e: any) => { e?.stopPropagation?.(); onApprove(u.id); }}
-                      style={[st.tableIconBtn, { backgroundColor: 'rgba(34,197,94,0.15)', borderColor: 'rgba(34,197,94,0.35)' }]}
-                    >
-                      <ShieldCheck size={12} color="#86EFAC" />
-                    </Pressable>
+                    <ActionTooltip text="Approve Student Account" align="right">
+                      <Pressable
+                        accessibilityLabel="Approve Student Account"
+                        onPress={(e: any) => { e?.stopPropagation?.(); onApprove(u.id); }}
+                        style={[st.tableIconBtn, { backgroundColor: 'rgba(34,197,94,0.15)', borderColor: 'rgba(34,197,94,0.35)' }]}
+                      >
+                        <ShieldCheck size={12} color="#86EFAC" />
+                      </Pressable>
+                    </ActionTooltip>
                   )}
 
                   {/* Restore / Disable */}
                   {u.disabled ? (
-                    <Pressable
-                      title="Restore Disabled Account"
-                      accessibilityLabel="Restore Disabled Account"
-                      onPress={(e: any) => { e?.stopPropagation?.(); onRestore(u.id); }}
-                      style={[st.tableIconBtn, { backgroundColor: 'rgba(245,158,11,0.15)', borderColor: 'rgba(245,158,11,0.35)' }]}
-                    >
-                      <RefreshCw size={11} color="#FCD34D" />
-                    </Pressable>
+                    <ActionTooltip text="Restore Disabled Account" align="right">
+                      <Pressable
+                        accessibilityLabel="Restore Disabled Account"
+                        onPress={(e: any) => { e?.stopPropagation?.(); onRestore(u.id); }}
+                        style={[st.tableIconBtn, { backgroundColor: 'rgba(245,158,11,0.15)', borderColor: 'rgba(245,158,11,0.35)' }]}
+                      >
+                        <RefreshCw size={11} color="#FCD34D" />
+                      </Pressable>
+                    </ActionTooltip>
                   ) : (
-                    <Pressable
-                      title="Disable Student Account"
-                      accessibilityLabel="Disable Student Account"
-                      onPress={(e: any) => { e?.stopPropagation?.(); onDisable(u.id); }}
-                      style={[st.tableIconBtn, { backgroundColor: 'rgba(239,68,68,0.10)', borderColor: 'rgba(239,68,68,0.30)' }]}
-                    >
-                      <ShieldOff size={11} color="#FCA5A5" />
-                    </Pressable>
+                    <ActionTooltip text="Disable Student Account" align="right">
+                      <Pressable
+                        accessibilityLabel="Disable Student Account"
+                        onPress={(e: any) => { e?.stopPropagation?.(); onDisable(u.id); }}
+                        style={[st.tableIconBtn, { backgroundColor: 'rgba(239,68,68,0.10)', borderColor: 'rgba(239,68,68,0.30)' }]}
+                      >
+                        <ShieldOff size={11} color="#FCA5A5" />
+                      </Pressable>
+                    </ActionTooltip>
                   )}
 
                   {/* Delete */}
-                  <Pressable
-                    title="Delete Student Account"
-                    accessibilityLabel="Delete Student Account"
-                    onPress={(e: any) => { e?.stopPropagation?.(); onRemove(u.id, u.name || u.full_name || u.email); }}
-                    style={[st.tableIconBtn, { backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.25)' }]}
-                  >
-                    <Trash2 size={11} color="#FCA5A5" />
-                  </Pressable>
+                  <ActionTooltip text="Delete Student Account" align="right">
+                    <Pressable
+                      accessibilityLabel="Delete Student Account"
+                      onPress={(e: any) => { e?.stopPropagation?.(); onRemove(u.id, u.name || u.full_name || u.email); }}
+                      style={[st.tableIconBtn, { backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.25)' }]}
+                    >
+                      <Trash2 size={11} color="#FCA5A5" />
+                    </Pressable>
+                  </ActionTooltip>
                 </View>
               </Pressable>
             );
@@ -1584,5 +1642,38 @@ const st = StyleSheet.create({
     color: '#FFFFFF',
     fontFamily: FONTS.bold,
     fontSize: 12.5,
+  },
+
+  /* Action Tooltips */
+  customTooltip: {
+    position: 'absolute',
+    paddingHorizontal: 8,
+    paddingVertical: 4.5,
+    borderRadius: 6,
+    backgroundColor: '#1A0E04',
+    borderWidth: 1,
+    borderColor: 'rgba(251,146,60,0.40)',
+    zIndex: 99999,
+    minWidth: 40,
+    ...(Platform.OS === 'web' ? ({
+      boxShadow: '0 8px 22px rgba(0,0,0,0.85), 0 0 0 1px rgba(251,146,60,0.18)',
+      whiteSpace: 'nowrap',
+      pointerEvents: 'none',
+      userSelect: 'none',
+    } as any) : {}),
+  },
+  tooltipTop: {
+    bottom: '100%',
+    marginBottom: 7,
+  },
+  tooltipBottom: {
+    top: '100%',
+    marginTop: 7,
+  },
+  customTooltipText: {
+    color: '#FDBA74',
+    fontFamily: FONTS.bold,
+    fontSize: 11,
+    letterSpacing: 0.1,
   },
 });

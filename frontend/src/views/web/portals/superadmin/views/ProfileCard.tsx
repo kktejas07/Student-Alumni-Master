@@ -123,6 +123,52 @@ function fmtNextSession(iso: string) {
   } catch { return iso; }
 }
 
+/* ────────────────────────────────────────────────────────────────────
+ *  ActionTooltip — Instant Floating Tooltip for Web & Mobile
+ * ────────────────────────────────────────────────────────────────── */
+function ActionTooltip({
+  text,
+  children,
+  position = 'top',
+  align = 'center',
+}: {
+  text: string;
+  children: React.ReactNode;
+  position?: 'top' | 'bottom';
+  align?: 'center' | 'right' | 'left';
+}) {
+  const [hovered, setHovered] = React.useState(false);
+
+  if (!text) return <>{children}</>;
+
+  return (
+    <View
+      style={{ position: 'relative', alignItems: 'center' }}
+      // @ts-ignore — web hover events
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {children}
+      {hovered && Platform.OS === 'web' && (
+        <View
+          pointerEvents="none"
+          style={[
+            s.customTooltip,
+            position === 'top' ? s.tooltipTop : s.tooltipBottom,
+            align === 'right' ? { right: 0, alignItems: 'flex-end' } :
+            align === 'left' ? { left: 0, alignItems: 'flex-start' } :
+            { alignSelf: 'center' },
+          ]}
+        >
+          <Text style={s.customTooltipText} numberOfLines={1}>
+            {text}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 /* ─── Component ──────────────────────────────────────────────────── */
 export function ProfileCard(props: ProfileCardProps) {
   const T = useSAC();
@@ -178,12 +224,14 @@ export function ProfileCard(props: ProfileCardProps) {
               {user.degree || '—'}{user.institution ? ` · ${user.institution}` : ''}
             </Text>
             {user.email ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                <Mail size={11} color={PC.textSecondary} />
-                <Text style={{ color: PC.textSecondary, fontSize: 11, fontFamily: FONTS.med }} numberOfLines={1}>
-                  {user.email}
-                </Text>
-              </View>
+              <ActionTooltip text={`Copy email: ${user.email}`} align="left">
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                  <Mail size={11} color={PC.textSecondary} />
+                  <Text style={{ color: PC.textSecondary, fontSize: 11, fontFamily: FONTS.med }} numberOfLines={1}>
+                    {user.email}
+                  </Text>
+                </View>
+              </ActionTooltip>
             ) : null}
             {user.batchYear ? (
               <Text style={s.idLine} numberOfLines={1}>Batch {user.batchYear}</Text>
@@ -302,66 +350,71 @@ export function ProfileCard(props: ProfileCardProps) {
         {/* APPROVE / REMOVE */}
         {showApprove ? (
           <View style={s.adminRow}>
-            <Pressable
-              title={`Approve student account: ${fullName}`}
-              accessibilityLabel={`Approve profile of ${fullName}`}
-              onPress={(e: any) => { e?.stopPropagation?.(); onApprove?.(user.id); }}
-              style={s.approveBtn}
-            >
-              <ShieldCheck size={12} color={PC.statusActive} />
-              <Text style={[s.approveText, { color: PC.statusActive }]}>Approve</Text>
-            </Pressable>
+            <ActionTooltip text={`Approve student account: ${fullName}`}>
+              <Pressable
+                accessibilityLabel={`Approve profile of ${fullName}`}
+                onPress={(e: any) => { e?.stopPropagation?.(); onApprove?.(user.id); }}
+                style={s.approveBtn}
+              >
+                <ShieldCheck size={12} color={PC.statusActive} />
+                <Text style={[s.approveText, { color: PC.statusActive }]}>Approve</Text>
+              </Pressable>
+            </ActionTooltip>
           </View>
         ) : null}
 
         {/* ACTION ROW */}
         <View style={s.actionRow}>
-          <Pressable
-            title={`View and edit profile of ${fullName}`}
-            accessibilityLabel={`View profile of ${fullName}`}
-            onPress={(e: any) => { e?.stopPropagation?.(); onViewProfile(user.id); }}
-            style={{ flex: 1 }}
-          >
-            <LinearGradient
-              colors={[PC.accentBright, PC.accent, PC.accentDeep]}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              style={s.viewBtn}
+          <ActionTooltip text={`View profile of ${fullName}`}>
+            <Pressable
+              accessibilityLabel={`View profile of ${fullName}`}
+              onPress={(e: any) => { e?.stopPropagation?.(); onViewProfile(user.id); }}
+              style={{ flex: 1 }}
             >
-              <Eye size={14} color="#fff" />
-              <Text style={s.viewBtnText}>View Profile</Text>
-            </LinearGradient>
-          </Pressable>
+              <LinearGradient
+                colors={[PC.accentBright, PC.accent, PC.accentDeep]}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={s.viewBtn}
+              >
+                <Eye size={14} color="#fff" />
+                <Text style={s.viewBtnText}>View Profile</Text>
+              </LinearGradient>
+            </Pressable>
+          </ActionTooltip>
 
           {showRemove ? (
-            <Pressable
-              title={`Delete profile: ${fullName}`}
-              accessibilityLabel={`Remove profile of ${fullName}`}
-              onPress={(e: any) => { e?.stopPropagation?.(); onRemove?.(user.id); }}
-              style={[s.socialBtn, { backgroundColor: PC.dangerBg, borderColor: 'rgba(239,68,68,0.30)', borderWidth: 1 }]}
-            >
-              <Trash2 size={16} color={'#FCA5A5'} />
-            </Pressable>
+            <ActionTooltip text={`Delete profile: ${fullName}`}>
+              <Pressable
+                accessibilityLabel={`Remove profile of ${fullName}`}
+                onPress={(e: any) => { e?.stopPropagation?.(); onRemove?.(user.id); }}
+                style={[s.socialBtn, { backgroundColor: PC.dangerBg, borderColor: 'rgba(239,68,68,0.30)', borderWidth: 1 }]}
+              >
+                <Trash2 size={16} color={'#FCA5A5'} />
+              </Pressable>
+            </ActionTooltip>
           ) : null}
 
           {socials?.linkedinUrl ? (
-            <Pressable
-              title="Open LinkedIn profile in new tab"
-              accessibilityLabel={`Open LinkedIn of ${fullName}`}
-              onPress={(e: any) => { e?.stopPropagation?.(); openSocial(socials.linkedinUrl!); }}
-              style={[s.socialBtn, { backgroundColor: PC.linkedinBg }]}
-            >
-              <LinkedinGlyph size={16} color="#fff" />
-            </Pressable>
+            <ActionTooltip text="Open LinkedIn profile">
+              <Pressable
+                accessibilityLabel={`Open LinkedIn of ${fullName}`}
+                onPress={(e: any) => { e?.stopPropagation?.(); openSocial(socials.linkedinUrl!); }}
+                style={[s.socialBtn, { backgroundColor: PC.linkedinBg }]}
+              >
+                <LinkedinGlyph size={16} color="#fff" />
+              </Pressable>
+            </ActionTooltip>
           ) : null}
           {socials?.githubUrl ? (
-            <Pressable
-              title="Open GitHub profile in new tab"
-              accessibilityLabel={`Open GitHub of ${fullName}`}
-              onPress={(e: any) => { e?.stopPropagation?.(); openSocial(socials.githubUrl!); }}
-              style={[s.socialBtn, { backgroundColor: PC.githubBg, borderColor: PC.cardBorder, borderWidth: 1 }]}
-            >
-              <Code size={16} color="#fff" />
-            </Pressable>
+            <ActionTooltip text="Open GitHub profile">
+              <Pressable
+                accessibilityLabel={`Open GitHub of ${fullName}`}
+                onPress={(e: any) => { e?.stopPropagation?.(); openSocial(socials.githubUrl!); }}
+                style={[s.socialBtn, { backgroundColor: PC.githubBg, borderColor: PC.cardBorder, borderWidth: 1 }]}
+              >
+                <Code size={16} color="#fff" />
+              </Pressable>
+            </ActionTooltip>
           ) : null}
         </View>
       </View>
@@ -533,4 +586,37 @@ const s = StyleSheet.create({
   },
 
   skBox: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6 },
+
+  /* Action Tooltips */
+  customTooltip: {
+    position: 'absolute',
+    paddingHorizontal: 8,
+    paddingVertical: 4.5,
+    borderRadius: 6,
+    backgroundColor: '#1A0E04',
+    borderWidth: 1,
+    borderColor: 'rgba(251,146,60,0.40)',
+    zIndex: 99999,
+    minWidth: 40,
+    ...(Platform.OS === 'web' ? ({
+      boxShadow: '0 8px 22px rgba(0,0,0,0.85), 0 0 0 1px rgba(251,146,60,0.18)',
+      whiteSpace: 'nowrap',
+      pointerEvents: 'none',
+      userSelect: 'none',
+    } as any) : {}),
+  },
+  tooltipTop: {
+    bottom: '100%',
+    marginBottom: 7,
+  },
+  tooltipBottom: {
+    top: '100%',
+    marginTop: 7,
+  },
+  customTooltipText: {
+    color: '#FDBA74',
+    fontFamily: FONTS.bold,
+    fontSize: 11,
+    letterSpacing: 0.1,
+  },
 });
