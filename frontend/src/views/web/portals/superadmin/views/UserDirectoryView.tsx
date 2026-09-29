@@ -271,7 +271,7 @@ export function UserDirectoryView({
           <Pressable
             title="Export filtered student directory to CSV"
             accessibilityLabel="Export filtered student directory to CSV"
-            onPress={exportCsv}
+            onPress={() => setShowExportModal(true)}
             style={st.toggleBtn}
           >
             <FileDown size={12} color={SAC.muted} />
@@ -385,6 +385,15 @@ export function UserDirectoryView({
       )}
 
       <ProfilePanel userId={profileId} onClose={() => setProfileId(null)} onSaved={() => { flash('Updated'); setBump((b) => b + 1); }} />
+      <ExportConfirmModal
+        visible={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onConfirm={exportCsv}
+        count={items.length}
+        totalCount={data?.total || items.length}
+        category={meta.label}
+        fileName={`${cat}_directory_${new Date().toISOString().slice(0, 10)}.csv`}
+      />
       <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
 
       {/* Floating bulk action bar */}
