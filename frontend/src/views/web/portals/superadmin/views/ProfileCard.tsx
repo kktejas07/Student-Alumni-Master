@@ -303,6 +303,7 @@ export function ProfileCard(props: ProfileCardProps) {
         {showApprove ? (
           <View style={s.adminRow}>
             <Pressable
+              title={`Approve student account: ${fullName}`}
               accessibilityLabel={`Approve profile of ${fullName}`}
               onPress={(e: any) => { e?.stopPropagation?.(); onApprove?.(user.id); }}
               style={s.approveBtn}
@@ -316,6 +317,7 @@ export function ProfileCard(props: ProfileCardProps) {
         {/* ACTION ROW */}
         <View style={s.actionRow}>
           <Pressable
+            title={`View and edit profile of ${fullName}`}
             accessibilityLabel={`View profile of ${fullName}`}
             onPress={(e: any) => { e?.stopPropagation?.(); onViewProfile(user.id); }}
             style={{ flex: 1 }}
@@ -332,6 +334,7 @@ export function ProfileCard(props: ProfileCardProps) {
 
           {showRemove ? (
             <Pressable
+              title={`Delete profile: ${fullName}`}
               accessibilityLabel={`Remove profile of ${fullName}`}
               onPress={(e: any) => { e?.stopPropagation?.(); onRemove?.(user.id); }}
               style={[s.socialBtn, { backgroundColor: PC.dangerBg, borderColor: 'rgba(239,68,68,0.30)', borderWidth: 1 }]}
@@ -342,6 +345,7 @@ export function ProfileCard(props: ProfileCardProps) {
 
           {socials?.linkedinUrl ? (
             <Pressable
+              title="Open LinkedIn profile in new tab"
               accessibilityLabel={`Open LinkedIn of ${fullName}`}
               onPress={(e: any) => { e?.stopPropagation?.(); openSocial(socials.linkedinUrl!); }}
               style={[s.socialBtn, { backgroundColor: PC.linkedinBg }]}
@@ -351,6 +355,7 @@ export function ProfileCard(props: ProfileCardProps) {
           ) : null}
           {socials?.githubUrl ? (
             <Pressable
+              title="Open GitHub profile in new tab"
               accessibilityLabel={`Open GitHub of ${fullName}`}
               onPress={(e: any) => { e?.stopPropagation?.(); openSocial(socials.githubUrl!); }}
               style={[s.socialBtn, { backgroundColor: PC.githubBg, borderColor: PC.cardBorder, borderWidth: 1 }]}

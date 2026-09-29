@@ -247,6 +247,8 @@ export function UserDirectoryView({
           {/* View Mode Switcher (Grid vs Table) */}
           <View style={st.viewSwitcher}>
             <Pressable
+              title="Switch to Card Grid View"
+              accessibilityLabel="Switch to Card Grid View"
               onPress={() => setViewMode('grid')}
               style={[st.viewModeBtn, viewMode === 'grid' && st.viewModeBtnActive]}
             >
@@ -254,6 +256,8 @@ export function UserDirectoryView({
               <Text style={[st.viewModeBtnText, viewMode === 'grid' && { color: '#fff' }]}>Grid</Text>
             </Pressable>
             <Pressable
+              title="Switch to Data Table View"
+              accessibilityLabel="Switch to Data Table View"
               onPress={() => setViewMode('table')}
               style={[st.viewModeBtn, viewMode === 'table' && st.viewModeBtnActive]}
             >
@@ -263,13 +267,20 @@ export function UserDirectoryView({
           </View>
 
           {/* Export CSV Button */}
-          <Pressable onPress={exportCsv} style={st.toggleBtn}>
+          <Pressable
+            title="Export filtered student directory to CSV"
+            accessibilityLabel="Export filtered student directory to CSV"
+            onPress={exportCsv}
+            style={st.toggleBtn}
+          >
             <FileDown size={12} color={SAC.muted} />
             <Text style={st.toggleBtnText}>Export CSV</Text>
           </Pressable>
 
           {/* Select Mode Toggle */}
           <Pressable
+            title={selectMode ? "Cancel multi-select mode" : "Enable multi-select mode for bulk actions"}
+            accessibilityLabel={selectMode ? "Cancel multi-select mode" : "Enable multi-select mode for bulk actions"}
             onPress={() => { setSelectMode(!selectMode); if (selectMode) clearSelection(); }}
             style={[st.toggleBtn, selectMode && { borderColor: GRAD.to, backgroundColor: 'rgba(245,158,11,0.10)' }]}
           >
@@ -281,7 +292,12 @@ export function UserDirectoryView({
 
           {/* Pending filter toggle */}
           {pendingCount > 0 && (
-            <Pressable onPress={() => setPendingOnly(!pendingOnly)} style={st.toggleBtn}>
+            <Pressable
+              title={pendingOnly ? "Showing accounts pending approval" : "Filter by accounts pending approval"}
+              accessibilityLabel={pendingOnly ? "Showing accounts pending approval" : "Filter by accounts pending approval"}
+              onPress={() => setPendingOnly(!pendingOnly)}
+              style={st.toggleBtn}
+            >
               <Filter size={11} color={pendingOnly ? GRAD.to : SAC.muted} />
               <Text style={[st.toggleBtnText, pendingOnly && { color: GRAD.to }]}>
                 {pendingOnly ? 'Showing pending' : 'Show pending'}
@@ -485,7 +501,11 @@ function UserDirectoryTable({
                 {/* Select / Index Checkbox */}
                 <View style={{ width: 44, alignItems: 'center' }}>
                   {selectMode ? (
-                    <Pressable onPress={() => onToggleSelect(u.id)}>
+                    <Pressable
+                      title={isSelected ? "Deselect student" : "Select student"}
+                      accessibilityLabel={isSelected ? "Deselect student" : "Select student"}
+                      onPress={() => onToggleSelect(u.id)}
+                    >
                       {isSelected ? (
                         <SquareCheck size={18} color={GRAD.to} />
                       ) : (
@@ -506,6 +526,8 @@ function UserDirectoryTable({
                     <Text style={st.tableName} numberOfLines={1}>{name}</Text>
                     {u.email ? (
                       <Pressable
+                        title={`Click to copy email: ${u.email}`}
+                        accessibilityLabel={`Click to copy email: ${u.email}`}
                         onPress={(e: any) => { e?.stopPropagation?.(); copyText(u.email, 'email'); }}
                         style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}
                       >
@@ -586,8 +608,11 @@ function UserDirectoryTable({
                 </View>
 
                 {/* Actions */}
-                <View style={{ width: 130, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                <View style={{ width: 140, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                  {/* View Profile */}
                   <Pressable
+                    title="View & Edit Student Profile"
+                    accessibilityLabel="View & Edit Student Profile"
                     onPress={(e: any) => { e?.stopPropagation?.(); onView(u.id); }}
                     style={st.tableActionBtn}
                   >
@@ -595,8 +620,11 @@ function UserDirectoryTable({
                     <Text style={st.tableActionBtnText}>View</Text>
                   </Pressable>
 
+                  {/* Approve */}
                   {!u.approved && !u.disabled && (
                     <Pressable
+                      title="Approve Student Account"
+                      accessibilityLabel="Approve Student Account"
                       onPress={(e: any) => { e?.stopPropagation?.(); onApprove(u.id); }}
                       style={[st.tableIconBtn, { backgroundColor: 'rgba(34,197,94,0.15)', borderColor: 'rgba(34,197,94,0.35)' }]}
                     >
@@ -604,8 +632,11 @@ function UserDirectoryTable({
                     </Pressable>
                   )}
 
+                  {/* Restore / Disable */}
                   {u.disabled ? (
                     <Pressable
+                      title="Restore Disabled Account"
+                      accessibilityLabel="Restore Disabled Account"
                       onPress={(e: any) => { e?.stopPropagation?.(); onRestore(u.id); }}
                       style={[st.tableIconBtn, { backgroundColor: 'rgba(245,158,11,0.15)', borderColor: 'rgba(245,158,11,0.35)' }]}
                     >
@@ -613,12 +644,24 @@ function UserDirectoryTable({
                     </Pressable>
                   ) : (
                     <Pressable
+                      title="Disable Student Account"
+                      accessibilityLabel="Disable Student Account"
                       onPress={(e: any) => { e?.stopPropagation?.(); onDisable(u.id); }}
                       style={[st.tableIconBtn, { backgroundColor: 'rgba(239,68,68,0.10)', borderColor: 'rgba(239,68,68,0.30)' }]}
                     >
                       <ShieldOff size={11} color="#FCA5A5" />
                     </Pressable>
                   )}
+
+                  {/* Delete */}
+                  <Pressable
+                    title="Delete Student Account"
+                    accessibilityLabel="Delete Student Account"
+                    onPress={(e: any) => { e?.stopPropagation?.(); onRemove(u.id); }}
+                    style={[st.tableIconBtn, { backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.25)' }]}
+                  >
+                    <Trash2 size={11} color="#FCA5A5" />
+                  </Pressable>
                 </View>
               </Pressable>
             );
