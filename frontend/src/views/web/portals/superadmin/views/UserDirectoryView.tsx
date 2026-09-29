@@ -687,7 +687,7 @@ function UserDirectoryTable({
                   <Pressable
                     title="Delete Student Account"
                     accessibilityLabel="Delete Student Account"
-                    onPress={(e: any) => { e?.stopPropagation?.(); onRemove(u.id); }}
+                    onPress={(e: any) => { e?.stopPropagation?.(); onRemove(u.id, u.name || u.full_name || u.email); }}
                     style={[st.tableIconBtn, { backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.25)' }]}
                   >
                     <Trash2 size={11} color="#FCA5A5" />
@@ -1522,5 +1522,67 @@ const st = StyleSheet.create({
     color: '#FDBA74',
     fontFamily: FONTS.bold,
     fontSize: 11,
+  },
+
+  /* Premium Delete Modal */
+  deleteModalCard: {
+    width: '100%',
+    maxWidth: 480,
+    backgroundColor: '#160B0B',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.35)',
+    overflow: 'hidden',
+    ...(Platform.OS === 'web' ? ({
+      boxShadow: '0 24px 70px rgba(0,0,0,0.85), 0 0 0 1px rgba(239,68,68,0.15)',
+    } as any) : {}),
+  },
+  deleteIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.40)',
+  },
+  deleteIconGrad: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteModalTitle: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.xbold,
+    fontSize: 16,
+    letterSpacing: -0.2,
+  },
+  deleteModalSub: {
+    color: SAC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 12.5,
+    marginTop: 3,
+    lineHeight: 17,
+  },
+  deleteWarnPanel: {
+    backgroundColor: 'rgba(239,68,68,0.08)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.25)',
+    padding: 14,
+  },
+  deleteConfirmBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 10,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 0.15s ease' } as any) : {}),
+  },
+  deleteConfirmBtnText: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.bold,
+    fontSize: 12.5,
   },
 });
