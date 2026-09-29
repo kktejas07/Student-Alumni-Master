@@ -62,6 +62,7 @@ export function UserDirectoryView({
   const [q, setQ]     = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [showExportModal, setShowExportModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id?: string; name?: string; count?: number; isBulk?: boolean } | null>(null);
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [page, setPage] = useState(1);
@@ -130,6 +131,20 @@ export function UserDirectoryView({
       flash('Deleted · auto-restored on next import');
       setData((d: any) => d ? { ...d, items: d.items.filter((u: any) => u.id !== id) } : d);
     } catch { flash('Failed to delete'); }
+  };
+
+  const askRemove = (id: string, name?: string) => {
+    setDeleteTarget({ id, name: name || 'this user account' });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    if (deleteTarget.isBulk) {
+      await bulkRun('delete', 'Deleted');
+    } else if (deleteTarget.id) {
+      await remove(deleteTarget.id);
+    }
+    setDeleteTarget(null);
   };
 
   /* ── Bulk actions ── */
@@ -336,7 +351,7 @@ export function UserDirectoryView({
                 onApprove={approve}
                 onDisable={disable}
                 onRestore={restore}
-                onRemove={remove}
+                onRemove={(id) => askRemove(id, u.name || u.full_name || u.email)}
                 selectMode={selectMode}
                 selected={!!selected[u.id]}
                 onToggleSelect={() => toggleSelect(u.id)}
@@ -355,7 +370,7 @@ export function UserDirectoryView({
           onApprove={approve}
           onDisable={disable}
           onRestore={restore}
-          onRemove={remove}
+          onRemove={(id, name) => askRemove(id, name)}
           onFlash={flash}
         />
       )}
@@ -394,6 +409,11 @@ export function UserDirectoryView({
         category={meta.label}
         fileName={`${cat}_directory_${new Date().toISOString().slice(0, 10)}.csv`}
       />
+      <DeleteConfirmModal
+        target={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
       <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
 
       {/* Floating bulk action bar */}
@@ -410,7 +430,7 @@ export function UserDirectoryView({
           <SecondaryButton onPress={() => bulkRun('disable', 'Disabled')}>
             <ShieldOff size={12} color={SAC.muted} /><Text style={st.secText}>Disable</Text>
           </SecondaryButton>
-          <SecondaryButton danger onPress={() => bulkRun('delete', 'Deleted')}>
+          <SecondaryButton danger onPress={() => setDeleteTarget({ count: selectedIds.length, isBulk: true })}>
             <Trash2 size={12} color={'#FCA5A5'} /><Text style={[st.secText, { color: '#FCA5A5' }]}>Delete</Text>
           </SecondaryButton>
           <Pressable onPress={clearSelection} style={st.bulkClose}>
@@ -1042,6 +1062,113 @@ function ExportConfirmModal({
                   onConfirm();
                 }}
               />
+            </View>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────
+ *  DeleteConfirmModal — Premium Confirmation Alert for Accidental Deletion
+ * ────────────────────────────────────────────────────────────────── */
+function DeleteConfirmModal({
+  target,
+  onClose,
+  onConfirm,
+}: {
+  target: { id?: string; name?: string; count?: number; isBulk?: boolean } | null;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  if (!target) return null;
+
+  const isBulk = !!target.isBulk;
+  const count = target.count || 1;
+  const name = target.name || 'this user account';
+
+  return (
+    <Modal visible={!!target} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={st.modalBg} onPress={onClose}>
+        <Pressable style={st.deleteModalCard} onPress={(e) => e.stopPropagation()}>
+          {/* Top glowing crimson red accent bar */}
+          <LinearGradient
+            colors={['#EF4444', '#DC2626']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ height: 4, width: '100%' }}
+          />
+
+          <View style={{ padding: 22, gap: 16 }}>
+            {/* Header with warning icon */}
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 14 }}>
+              <View style={st.deleteIconBadge}>
+                <LinearGradient
+                  colors={['rgba(239,68,68,0.30)', 'rgba(220,38,38,0.12)']}
+                  style={st.deleteIconGrad}
+                >
+                  <AlertTriangle size={22} color="#EF4444" />
+                </LinearGradient>
+              </View>
+
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={st.deleteModalTitle}>
+                    {isBulk ? 'Delete Selected Users' : 'Delete User Account'}
+                  </Text>
+                  <Pressable
+                    title="Close dialog"
+                    accessibilityLabel="Close delete confirmation dialog"
+                    onPress={onClose}
+                    style={{ padding: 4 }}
+                  >
+                    <X size={16} color={SAC.muted} />
+                  </Pressable>
+                </View>
+                <Text style={st.deleteModalSub}>
+                  {isBulk
+                    ? `Are you sure you want to delete ${count} selected user account${count > 1 ? 's' : ''}?`
+                    : `Are you sure you want to delete the account for `}
+                  {!isBulk && (
+                    <Text style={{ color: '#FCA5A5', fontFamily: FONTS.bold }}>{name}</Text>
+                  )}
+                  {!isBulk ? '?' : ''}
+                </Text>
+              </View>
+            </View>
+
+            {/* Warning info panel */}
+            <View style={st.deleteWarnPanel}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                <Trash2 size={14} color="#EF4444" style={{ marginTop: 2 }} />
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={{ color: '#FCA5A5', fontSize: 12, fontFamily: FONTS.bold }}>
+                    Warning: Accidental Deletion Prevention
+                  </Text>
+                  <Text style={{ color: SAC.muted, fontSize: 11, fontFamily: FONTS.med, lineHeight: 15 }}>
+                    {isBulk
+                      ? `Deleting ${count} accounts will immediately remove their profiles, career tracking data, and access permissions.`
+                      : `Deleting this profile will remove their records and login access from the active directory.`}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Modal Actions */}
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 10, marginTop: 4 }}>
+              <SecondaryButton title="Cancel" onPress={onClose} />
+              <Pressable
+                title="Confirm and delete"
+                accessibilityLabel="Confirm and delete user account"
+                onPress={onConfirm}
+                style={st.deleteConfirmBtn}
+              >
+                <Trash2 size={13} color="#FFFFFF" />
+                <Text style={st.deleteConfirmBtnText}>
+                  {isBulk ? `Delete ${count} Users` : 'Delete Account'}
+                </Text>
+              </Pressable>
             </View>
           </View>
         </Pressable>
