@@ -61,6 +61,7 @@ export function UserDirectoryView({
   const [cat, setCat] = useState<Cat>(category);
   const [q, setQ]     = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [showExportModal, setShowExportModal] = useState(false);
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [page, setPage] = useState(1);
