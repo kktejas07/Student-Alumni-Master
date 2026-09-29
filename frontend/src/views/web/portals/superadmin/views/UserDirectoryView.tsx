@@ -932,6 +932,124 @@ function EditRow({ label, value, onChange }: any) {
   );
 }
 
+/* ────────────────────────────────────────────────────────────────────
+ *  ExportConfirmModal — Premium Confirmation Alert for CSV Downloads
+ * ────────────────────────────────────────────────────────────────── */
+function ExportConfirmModal({
+  visible,
+  onClose,
+  onConfirm,
+  count,
+  totalCount,
+  category,
+  fileName,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  count: number;
+  totalCount: number;
+  category: string;
+  fileName: string;
+}) {
+  if (!visible) return null;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={st.modalBg} onPress={onClose}>
+        <Pressable style={st.exportModalCard} onPress={(e) => e.stopPropagation()}>
+          {/* Top glowing amber gradient bar */}
+          <LinearGradient
+            colors={[GRAD.from, GRAD.to]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ height: 4, width: '100%' }}
+          />
+
+          <View style={{ padding: 22, gap: 16 }}>
+            {/* Header with glowing badge */}
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 14 }}>
+              <View style={st.exportIconBadge}>
+                <LinearGradient
+                  colors={['rgba(251,146,60,0.30)', 'rgba(245,158,11,0.12)']}
+                  style={st.exportIconGrad}
+                >
+                  <FileDown size={22} color={GRAD.to} />
+                </LinearGradient>
+              </View>
+
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={st.exportModalTitle}>Confirm Export</Text>
+                  <Pressable
+                    title="Close dialog"
+                    accessibilityLabel="Close export dialog"
+                    onPress={onClose}
+                    style={{ padding: 4 }}
+                  >
+                    <X size={16} color={SAC.muted} />
+                  </Pressable>
+                </View>
+                <Text style={st.exportModalSub}>
+                  Are you sure you want to download the <Text style={{ color: '#FDBA74', fontFamily: FONTS.bold }}>{category}</Text> directory data?
+                </Text>
+              </View>
+            </View>
+
+            {/* Premium Info Summary Box */}
+            <View style={st.exportInfoPanel}>
+              <View style={st.exportInfoRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                  <Users size={13} color={GRAD.to} />
+                  <Text style={st.exportInfoLabel}>Records to Export</Text>
+                </View>
+                <View style={st.exportCountBadge}>
+                  <Text style={st.exportCountBadgeText}>{count} displayed ({totalCount} total)</Text>
+                </View>
+              </View>
+
+              <View style={st.exportInfoRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                  <FileText size={13} color={GRAD.to} />
+                  <Text style={st.exportInfoLabel}>File Name</Text>
+                </View>
+                <Text style={st.exportInfoVal} numberOfLines={1}>{fileName}</Text>
+              </View>
+
+              <View style={st.exportInfoRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                  <ShieldCheck size={13} color="#86EFAC" />
+                  <Text style={st.exportInfoLabel}>Format & Authorization</Text>
+                </View>
+                <Text style={[st.exportInfoVal, { color: '#86EFAC' }]}>UTF-8 CSV · SuperAdmin</Text>
+              </View>
+
+              <View style={{ borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', paddingTop: 10, marginTop: 4 }}>
+                <Text style={{ color: SAC.muted, fontSize: 11, fontFamily: FONTS.med, lineHeight: 15 }}>
+                  Includes: Name, Email, Phone, College, Degree, Batch, Career Track, Onboarding Progress %, and Account Status.
+                </Text>
+              </View>
+            </View>
+
+            {/* Modal Actions */}
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 10, marginTop: 4 }}>
+              <SecondaryButton title="Cancel" onPress={onClose} />
+              <GradientButton
+                title="Download CSV"
+                Icon={FileDown}
+                onPress={() => {
+                  onClose();
+                  onConfirm();
+                }}
+              />
+            </View>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 /* ─── Styles ──────────────────────────────────────────────────────── */
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
@@ -1202,4 +1320,80 @@ const st = StyleSheet.create({
   pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.card, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   pageBtnText: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
   pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
+
+  /* Premium Export Modal */
+  exportModalCard: {
+    width: '100%',
+    maxWidth: 480,
+    backgroundColor: '#160D04',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(251,146,60,0.35)',
+    overflow: 'hidden',
+    ...(Platform.OS === 'web' ? ({
+      boxShadow: '0 24px 70px rgba(0,0,0,0.85), 0 0 0 1px rgba(251,146,60,0.15)',
+    } as any) : {}),
+  },
+  exportIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(251,146,60,0.40)',
+  },
+  exportIconGrad: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exportModalTitle: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.xbold,
+    fontSize: 16,
+    letterSpacing: -0.2,
+  },
+  exportModalSub: {
+    color: SAC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 12.5,
+    marginTop: 3,
+    lineHeight: 17,
+  },
+  exportInfoPanel: {
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(251,146,60,0.18)',
+    padding: 14,
+    gap: 10,
+  },
+  exportInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  exportInfoLabel: {
+    color: SAC.muted,
+    fontFamily: FONTS.bold,
+    fontSize: 11.5,
+  },
+  exportInfoVal: {
+    color: '#F4F4FA',
+    fontFamily: FONTS.bold,
+    fontSize: 11.5,
+  },
+  exportCountBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: 'rgba(251,146,60,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(251,146,60,0.30)',
+  },
+  exportCountBadgeText: {
+    color: '#FDBA74',
+    fontFamily: FONTS.bold,
+    fontSize: 11,
+  },
 });
