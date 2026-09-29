@@ -17,7 +17,7 @@ import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Eye, ChevronRight, Calendar, Check, Play, Code, Sparkles,
-  ShieldCheck, Trash2,
+  ShieldCheck, Trash2, Mail, Building2,
 } from 'lucide-react-native';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { GRAD } from '../applekit';
@@ -69,6 +69,8 @@ export type ProfileCardProps = {
     id: string;
     firstName: string;
     lastName: string;
+    email?: string;
+    phone?: string;
     avatarUrl?: string;
     status: ProfileCardStatus;
     degree: string;
@@ -77,6 +79,8 @@ export type ProfileCardProps = {
     category: ProfileCardCategory;
     isNew?: boolean;          // newly imported, not yet approved
     approved?: boolean;
+    onboardingCompleted?: boolean;
+    careerPath?: string;
     aadhaarMasked?: string;
     aadhaarVerified?: boolean;
     digilockerVerified?: boolean;
@@ -88,6 +92,7 @@ export type ProfileCardProps = {
     sessionsCompleted: number;
     sessionsTotal: number;
     cgpa?: number;
+    label?: string;
   };
   tags?: string[];
   nextSession?: { dateISO: string; title: string };
@@ -172,12 +177,43 @@ export function ProfileCard(props: ProfileCardProps) {
             <Text style={s.degree} numberOfLines={1}>
               {user.degree || '—'}{user.institution ? ` · ${user.institution}` : ''}
             </Text>
+            {user.email ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                <Mail size={11} color={PC.textSecondary} />
+                <Text style={{ color: PC.textSecondary, fontSize: 11, fontFamily: FONTS.med }} numberOfLines={1}>
+                  {user.email}
+                </Text>
+              </View>
+            ) : null}
             {user.batchYear ? (
               <Text style={s.idLine} numberOfLines={1}>Batch {user.batchYear}</Text>
             ) : null}
           </View>
           <StatusPillCard status={user.status} />
         </View>
+
+        {/* ONBOARDING & CAREER BADGES */}
+        {(user.onboardingCompleted !== undefined || user.careerPath) ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+            {user.onboardingCompleted !== undefined && (
+              <View style={[s.tag, {
+                backgroundColor: user.onboardingCompleted ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
+                borderColor: user.onboardingCompleted ? 'rgba(34,197,94,0.35)' : 'rgba(245,158,11,0.35)',
+              }]}>
+                <Text style={[s.tagText, { color: user.onboardingCompleted ? '#86EFAC' : '#FCD34D', fontSize: 10, fontWeight: '700' }]}>
+                  {user.onboardingCompleted ? '✓ Onboarded' : '⏳ Pending Onboarding'}
+                </Text>
+              </View>
+            )}
+            {user.careerPath ? (
+              <View style={[s.tag, { backgroundColor: 'rgba(251,146,60,0.12)', borderColor: 'rgba(251,146,60,0.30)' }]}>
+                <Text style={[s.tagText, { color: '#FDBA74', fontSize: 10, fontWeight: '700' }]} numberOfLines={1}>
+                  🎯 {user.careerPath}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
         {/* GOALS */}
         {visibleGoals.length > 0 ? (
