@@ -195,7 +195,7 @@ export const api = {
     full_name: string;
     role: string;
     phone?: string;
-    dob?: string;
+    dob?: string; // ISO YYYY-MM-DD — required by backend /auth/register age gate
   }) => request<any>('/auth/register', { method: 'POST', body: payload, auth: false }),
 
   login: (email: string, password: string) =>

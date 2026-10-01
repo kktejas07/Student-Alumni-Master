@@ -30,6 +30,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [userPassword, setUserPassword] = useState('');
+  const [userDob, setUserDob] = useState(''); // ISO YYYY-MM-DD — required by /auth/register
   const [showPwd, setShowPwd] = useState(false);
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [realtimeOtpCode, setRealtimeOtpCode] = useState<string | null>(null);
@@ -121,64 +122,62 @@ function WebOnboardingEngine({ router }: { router: any }) {
   };
 
   const handleFinishOnboarding = async () => {
+    // Validate DOB before attempting registration
+    if (!userDob) {
+      setOtpError('Please enter your date of birth to create your account.');
+      return;
+    }
+
+    let regRes = null;
     try {
       await AsyncStorage.removeItem('sa_onboarding_state');
-      let regRes;
-      try {
-        regRes = await api.register({
-          email: userEmail,
-          password: userPassword || 'SAOnboarded2026!',
-          full_name: userName || userEmail.split('@')[0],
-          role: flow === 'alumnus' ? 'alumni' : flow,
-          dob: '2000-01-01', // Default DOB to pass server-side age gate
-        });
-      } catch (err: any) {
-        alert("Registration failed: " + (err.message || "Unknown error"));
-        setIsNavigating(false);
-        return; // Stop the flow so they don't get a mock user
-      }
-
-      if (regRes && regRes.user) {
-        setUser(regRes.user);
-        setTokens(regRes.access_token, regRes.refresh_token);
-      } else {
-        // Fallback mock user if backend is unavailable or fails
-        setUser({
-          id: `mock-${Date.now()}`,
-          email: userEmail || 'user@example.com',
-          full_name: userName || (userEmail ? userEmail.split('@')[0] : (flow === 'alumnus' ? 'Alumnus' : 'Student')),
-          role: flow === 'alumnus' ? 'alumni' : flow,
-          institution: instName || 'Malla Reddy Institute of Technology',
-          graduation_year: parseInt(selectedYear) || 2027,
-        } as any);
-      }
-
-      await api.completeOnboarding({
-        flow,
+      regRes = await api.register({
         email: userEmail,
-        name: userName,
-        full_name: capitalizeName(userName || userEmail.split('@')[0]),
-        course: selectedCourse,
-        year: selectedYear,
-        goal: selectedGoal,
-        skills: skillLevels,    
-        avatar_uri: avatarUri,
-        interests,
-        institution: instName,
-        // Alumni-specific fields
-        company: alumCompany,
-        role: alumRole,
-        capacity: alumCap,
-        expertise: alumExpertise,
-        mentor_format: mentorFmt,
-        mentor_frequency: mentorFreq,
-        mentor_audience: mentorWho,
-        // Generated SA ID
-        sa_id: generatedSaId,
-      }).catch(() => null);
-    } catch (e) {
-      // Best effort completed
+        password: userPassword || 'SAOnboarded2026!',
+        full_name: userName || userEmail.split('@')[0],
+        role: flow === 'alumnus' ? 'alumni' : flow,
+        dob: userDob,
+      });
+    } catch (regErr: any) {
+      // Surface the real backend error — do NOT fall back to a mock user
+      const msg = regErr?.detail || regErr?.message || 'Registration failed. Please check your details and try again.';
+      setOtpError(msg);
+      return;
     }
+
+    if (!regRes || !regRes.user) {
+      setOtpError('Registration failed. Please try again.');
+      return;
+    }
+
+    // Registration succeeded — establish real auth session
+    setUser(regRes.user);
+    setTokens(regRes.access_token, regRes.refresh_token);
+
+    // Best-effort onboarding metadata (does not block navigation on failure)
+    await api.completeOnboarding({
+      flow,
+      email: userEmail,
+      name: userName,
+      full_name: capitalizeName(userName || userEmail.split('@')[0]),
+      course: selectedCourse,
+      year: selectedYear,
+      goal: selectedGoal,
+      skills: skillLevels,
+      avatar_uri: avatarUri,
+      interests,
+      institution: instName,
+      // Alumni-specific fields
+      company: alumCompany,
+      role: alumRole,
+      capacity: alumCap,
+      expertise: alumExpertise,
+      mentor_format: mentorFmt,
+      mentor_frequency: mentorFreq,
+      mentor_audience: mentorWho,
+      // Generated SA ID
+      sa_id: generatedSaId,
+    }).catch(() => null);
 
     if (flow === 'alumnus') router.replace('/alumni-portal');
     else if (flow === 'college') router.replace('/college-portal');
@@ -702,6 +701,20 @@ function WebOnboardingEngine({ router }: { router: any }) {
                     </div>
                     <div style={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '8px' }}>
                       Strong password ready for account registration.
+                    </div>
+                  </div>
+                  {/* Date of Birth — required by platform age policy */}
+                  <div>
+                    <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Date of Birth</div>
+                    <input
+                      type="date"
+                      value={userDob}
+                      onChange={(e) => setUserDob(e.target.value)}
+                      max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
+                      style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: userDob ? 'var(--text)' : 'var(--muted)', width: '100%', outline: 'none' }}
+                    />
+                    <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '6px' }}>
+                      Required for age verification. Stored securely and encrypted.
                     </div>
                   </div>
                 </div>
