@@ -253,6 +253,19 @@ export default function CoursesPage() {
     return b.enrolled_count - a.enrolled_count;  // popular default
   }, [sortBy]);
 
+  const clearAllFilters = useCallback(() => {
+    setActiveCategory('all');
+    setActiveSubcat(null);
+    setPricingFilter('all');
+    setLevelFilter('all');
+    setDurationFilter('all');
+    setLanguageFilter('all');
+    setProviderFilter('all');
+    setHasMentorFilter(false);
+    setHasCertFilter(false);
+    setSearch('');
+  }, []);
+
   const filteredCourses = useMemo(
     () => allCourses.filter(filterCourse).sort(sortComparator),
     [allCourses, filterCourse, sortComparator]
