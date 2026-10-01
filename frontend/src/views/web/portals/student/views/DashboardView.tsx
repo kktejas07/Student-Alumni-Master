@@ -802,7 +802,7 @@ export function DashboardView() {
                 <div style={{ fontSize: '19px', fontWeight: 700, letterSpacing: '-.4px', color: C.textPrimary }}>{timeLeft}</div>
                 <div style={{ fontSize: '12px', color: C.textSecondary, marginTop: '3px' }}>Thursday · 6:00 pm IST</div>
               </div>
-              <button style={{ fontSize: '13px', fontWeight: 600, background: '#7C5CFC', color: '#FFFFFF', borderRadius: '9px', padding: '9px 16px', border: 'none', cursor: 'pointer' }}>
+              <button onClick={() => window.open('https://meet.google.com/new', '_blank')} style={{ fontSize: '13px', fontWeight: 600, background: '#7C5CFC', color: '#FFFFFF', borderRadius: '9px', padding: '9px 16px', border: 'none', cursor: 'pointer' }}>
                 Join room
               </button>
             </div>
@@ -921,7 +921,7 @@ export function DashboardView() {
                     <div style={{ fontSize: '14px', fontWeight: 600, color: C.textPrimary }}>{men.name}</div>
                     <div style={{ fontSize: '12px', color: C.textSecondary, marginTop: '2px' }}>{men.subline}</div>
                   </div>
-                  <button style={{ fontSize: '12.5px', fontWeight: 600, color: isDark ? '#34D399' : '#059669', border: isDark ? '1px solid #17503E' : '1px solid rgba(5,150,105,0.35)', background: isDark ? 'transparent' : 'rgba(5,150,105,0.06)', borderRadius: '8px', padding: '8px 13px', cursor: 'pointer' }}>
+                  <button onClick={() => { if (portalNav?.navigate) { portalNav.navigate('network'); } else { router.push('/network'); } }} style={{ fontSize: '12.5px', fontWeight: 600, color: isDark ? '#34D399' : '#059669', border: isDark ? '1px solid #17503E' : '1px solid rgba(5,150,105,0.35)', background: isDark ? 'transparent' : 'rgba(5,150,105,0.06)', borderRadius: '8px', padding: '8px 13px', cursor: 'pointer' }}>
                     Book
                   </button>
                 </div>

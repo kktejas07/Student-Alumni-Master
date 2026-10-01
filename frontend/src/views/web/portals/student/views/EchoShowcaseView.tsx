@@ -1407,9 +1407,22 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
               <Text style={[s.ctaTitle, { color: isDark ? '#fff' : '#0F172A' }]}>{data?.cta_title || ''}</Text>
               <Text style={[s.ctaSubtitle, { color: isDark ? PALETTE.muted : '#475569' }]}>{data?.cta_subtitle || ''}</Text>
             </View>
-            <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.ctaBtn, !isWide && s.ctaBtnFull]}>
-              <Text style={s.ctaBtnText}>{data?.cta_button_text || 'Learn More'}</Text>
-            </LinearGradient>
+            <Pressable
+              onPress={() => {
+                if (data?.cta_url) {
+                  Linking.openURL(data.cta_url);
+                } else if (onBack) {
+                  onBack();
+                } else {
+                  try { router.push('/events'); } catch { window.location.href = '/events'; }
+                }
+              }}
+              style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+            >
+              <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.ctaBtn, !isWide && s.ctaBtnFull]}>
+                <Text style={s.ctaBtnText}>{data?.cta_button_text || 'View Upcoming Events'}</Text>
+              </LinearGradient>
+            </Pressable>
           </View>
         </LinearGradient>
       </FadeInView>

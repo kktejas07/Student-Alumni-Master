@@ -166,6 +166,19 @@ export default function EchoEventsLanding() {
     root.querySelectorAll<HTMLElement>(".ev-back").forEach((b) => b.addEventListener("click", () => go("list", true)));
     root.querySelectorAll<HTMLElement>(".ev-back-detail").forEach((b) => b.addEventListener("click", () => go("detail", true)));
 
+    // View Upcoming Events handler
+    root.querySelectorAll<HTMLElement>("button, .ev-btn, span").forEach((el) => {
+      if (el.textContent?.trim().toLowerCase().includes("view upcoming events")) {
+        el.addEventListener("click", () => {
+          go("list", true);
+          setTimeout(() => {
+            const target = document.getElementById("ev-open-snist");
+            if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 400);
+        });
+      }
+    });
+
     const browseBtn = document.getElementById("ev-browse-btn");
     if (browseBtn) browseBtn.addEventListener("click", () => {
       const target = document.getElementById("ev-open-snist");

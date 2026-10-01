@@ -16,7 +16,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, X, Star } from 'lucide-react';
 import {
   View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ScrollView,
-  TextInput, Modal, Animated as RNAnimated, Easing,
+  TextInput, Modal, Animated as RNAnimated, Easing, Linking,
 } from 'react-native';
 import Svg, { Path, Rect, Circle, G, Text as SvgText, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import { useRouter } from 'expo-router';
@@ -469,7 +469,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
                         <Text style={[s.bannerEyebrow, { color: '#F1B8D9' }]}>CAREER AI · NEW</Text>
                         <Text style={s.bannerTitle}>Your readiness is up{"\n"}8% this week.</Text>
                         <Text style={s.bannerSub}>Agent K rebuilt your roadmap. Next milestone: build your professional resume.</Text>
-                        <Pressable style={s.slideBtn}><Text style={s.slideBtnText}>Continue now →</Text></Pressable>
+                        <Pressable onPress={() => router.push('/career-ai')} style={s.slideBtn}><Text style={s.slideBtnText}>Continue now →</Text></Pressable>
                       </View>
                     </View>
                   )}
@@ -597,7 +597,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
                       <View style={s.trackBar}><View style={[s.fillBar, { width: '60%' }]} /></View>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
                         <Text style={{ fontSize: 12, color: '#8A8A9E' }}>ETA ~18 weeks</Text>
-                        <Pressable style={s.primaryBtn}><Text style={s.btnText}>Continue now</Text></Pressable>
+                        <Pressable onPress={() => router.push('/career-ai')} style={s.primaryBtn}><Text style={s.btnText}>Continue now</Text></Pressable>
                       </View>
                     </View>
 
@@ -675,7 +675,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
                           </Text>
                           <Text style={{ color: '#8A8A9E', fontSize: 11 }}>Thursday · 6:00 pm IST</Text>
                         </View>
-                        <Pressable style={s.primaryBtn}><Text style={s.btnText}>Join room</Text></Pressable>
+                        <Pressable onPress={() => { if (Platform.OS === 'web' && typeof window !== 'undefined') { window.open('https://meet.google.com/new', '_blank'); } else { Linking.openURL('https://meet.google.com/new'); } }} style={s.primaryBtn}><Text style={s.btnText}>Join room</Text></Pressable>
                       </View>
                     </View>
 
@@ -911,7 +911,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
                   </View>
                 ) : (
                   <View style={s.idBackContent}>
-                    <Text style={s.idBackH1}>ISSUED BY STUDENTALUMNI</Text>
+                    <Text style={s.idBackH1}>ISSUED BY STUDENT ALUMNI</Text>
                     <Text style={s.idBackSub}>This card confirms a verified college affiliation. Report loss at studentalumni.ai/verify.</Text>
                     <View style={{ marginTop: 20, flexDirection: 'row', justifyContent: 'space-between' }}>
                       <Text style={{ color: '#8A8A9E', fontSize: 11 }}>studentalumni.ai/verify</Text>
