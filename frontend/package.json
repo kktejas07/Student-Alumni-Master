@@ -137,7 +137,7 @@
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "jest": "29.7.0",
-    "jest-expo": "~54.0.17",
+    "jest-expo": "~57.0.5",
     "tailwindcss": "^3.4.19",
     "three": "^0.185.1",
     "ts-jest": "^29.4.9",
