@@ -150,23 +150,23 @@ function injectGlobalStyles() {
     }
     @keyframes sa-marquee-l {
       0% { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
+      100% { transform: translateX(-25%); }
     }
     @keyframes sa-marquee-r {
-      0% { transform: translateX(-50%); }
+      0% { transform: translateX(-25%); }
       100% { transform: translateX(0); }
     }
     .sa-mq-wrap-l {
       display: flex !important;
       flex-direction: row !important;
       width: max-content !important;
-      animation: sa-marquee-l 26s linear infinite !important;
+      animation: sa-marquee-l 36s linear infinite !important;
     }
     .sa-mq-wrap-r {
       display: flex !important;
       flex-direction: row !important;
       width: max-content !important;
-      animation: sa-marquee-r 24s linear infinite !important;
+      animation: sa-marquee-r 32s linear infinite !important;
     }
     .sa-mq-wrap-l:hover, .sa-mq-wrap-r:hover {
       animation-play-state: paused !important;
@@ -204,14 +204,28 @@ const SAMPLE_CREDS: Record<string, [string, string, string]> = {
 };
 
 const COLLEGES_MARQUEE = [
-  'MRIT', 'Malla Reddy College of Engineering', 'SR University',
-  'VJ Data Questers', 'VJ ARC', 'VNR VJIET', 'GITAM',
-  'IUCEE VNRVJIET', 'IEEE Computer Society', 'Garuda Vigilance',
+  '/logos/mlrit.png',
+  '/logos/malla-reddy.png',
+  '/logos/sr-university.png',
+  '/logos/vj-data-questers.png',
+  '/logos/vj-arc.png',
+  '/logos/vnrvjit.png',
+  '/logos/gitam.png',
+  '/logos/iucee.png',
+  '/logos/ieee.png',
+  '/logos/garuda-vigilance.png',
 ];
 
 const INDUSTRY_MARQUEE = [
-  'Deloitte', 'Featherless', 'Atlast', 'Bandiwala',
-  'EXtrive Innovations', 'Larsen & Toubro', 'LinkedIn', 'Google', 'McKinsey',
+  '/logos/google.png',
+  '/logos/mckinsey.png',
+  '/logos/deloitte.png',
+  '/logos/featherless.png',
+  '/logos/atlast.png',
+  '/logos/bandiwala.png',
+  '/logos/extrive.png',
+  '/logos/lt.png',
+  '/logos/linkedin.png',
 ];
 
 /* ── Subtle Right-Side SA Logo Background Watermark (Non-Landing Pages) ── */
@@ -263,7 +277,7 @@ function ScrollCounter({
 /* ── Pure Continuous Smooth Marquee Component ── */
 function Marquee({
   items,
-  duration = 26,
+  duration = 36,
   reverse = false,
 }: {
   items: string[];
@@ -274,6 +288,39 @@ function Marquee({
   const mqCard = isDark ? '#0C0E1B' : '#FFFFFF';
   const mqBorder = isDark ? '#1B1E33' : '#E5E5EA';
   const mqText = isDark ? '#F4F5FB' : '#1D1D1F';
+
+  const cardStyle: React.CSSProperties = {
+    backgroundColor: mqCard,
+    border: `1px solid ${mqBorder}`,
+    borderRadius: '12px',
+    padding: '12px 18px',
+    marginRight: '14px',
+    height: '58px',
+    minWidth: '120px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    fontSize: '11.5px',
+    fontWeight: 700,
+    color: mqText,
+    letterSpacing: '0.2px',
+  };
+
+  const renderItem = (item: string, key: string) => (
+    <div key={key} style={cardStyle}>
+      {item.startsWith('/') ? (
+        <img
+          src={item}
+          alt={item}
+          style={{ maxHeight: '34px', maxWidth: '110px', objectFit: 'contain', display: 'block' }}
+        />
+      ) : (
+        <span>{item}</span>
+      )}
+    </div>
+  );
+
   return (
     <View style={{ overflow: 'hidden', flex: 1 }}>
       <div
@@ -285,60 +332,24 @@ function Marquee({
           animationDuration: `${duration}s`,
         }}
       >
+        {/* 4 identical sets — animation translates -25% (= 1 set) for a seamless gapless loop */}
         <div style={{ display: 'flex', flexDirection: 'row' }}>
-          {items.map((item, idx) => (
-            <div
-              key={`set1-${idx}`}
-              style={{
-                backgroundColor: mqCard,
-                border: `1px solid ${mqBorder}`,
-                borderRadius: '12px',
-                padding: '12px 18px',
-                marginRight: '14px',
-                height: '58px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                fontSize: '11.5px',
-                fontWeight: 700,
-                color: mqText,
-                letterSpacing: '0.2px',
-              }}
-            >
-              <span>{item}</span>
-            </div>
-          ))}
+          {items.map((item, idx) => renderItem(item, `s1-${idx}`))}
         </div>
         <div style={{ display: 'flex', flexDirection: 'row' }}>
-          {items.map((item, idx) => (
-            <div
-              key={`set2-${idx}`}
-              style={{
-                backgroundColor: mqCard,
-                border: `1px solid ${mqBorder}`,
-                borderRadius: '12px',
-                padding: '12px 18px',
-                marginRight: '14px',
-                height: '58px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                fontSize: '11.5px',
-                fontWeight: 700,
-                color: mqText,
-                letterSpacing: '0.2px',
-              }}
-            >
-              <span>{item}</span>
-            </div>
-          ))}
+          {items.map((item, idx) => renderItem(item, `s2-${idx}`))}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'row' }}>
+          {items.map((item, idx) => renderItem(item, `s3-${idx}`))}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'row' }}>
+          {items.map((item, idx) => renderItem(item, `s4-${idx}`))}
         </div>
       </div>
     </View>
   );
 }
+
 
 /* ── Interactive 3D Card Component with 3D Tilt & Physics ── */
 function HoverLiftCard({
