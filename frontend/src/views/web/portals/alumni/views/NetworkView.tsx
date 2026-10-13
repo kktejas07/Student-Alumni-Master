@@ -29,7 +29,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useToast } from '@/src/views/components';
 import { request, api } from '@/src/models/services/api';
 
-import { AlumniPortalNavContext as StudentPortalNavContext } from '../AlumniPortalRN';
+import { AlumniPortalNavContext as StudentPortalNavContext } from '../AlumniPortalNavContext';
 
 type CategoryTab = 'discover' | 'connections' | 'book' | 'requests';
 type FilterType = 'everyone' | 'students' | 'alumnis' | 'mentors' | 'industry';

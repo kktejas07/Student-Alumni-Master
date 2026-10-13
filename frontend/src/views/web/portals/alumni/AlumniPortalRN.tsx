@@ -18,7 +18,7 @@ import { StarryBackground } from '@/src/views/web/nexus-glow-landing/StarryBackg
 import { DashboardFooter } from '../../components/SponsorStrip';
 import { PromoBanner } from '../../components/PromoBanner';
 import { DashboardView } from './views/DashboardView';
-import { StubView } from '../student/views/StubView';
+import { StubView } from './views/StubView';
 import { EventsView } from './views/EventsView';
 import { InternshipsView } from './views/InternshipsView';
 import { NetworkView } from './views/NetworkView';
@@ -39,12 +39,8 @@ import FinancialPage from '@/app/financial';
 import HigherEducationPage from '@/app/higher-education';
 import DealsPage from '@/app/deals';
 import WalletPage from '@/app/wallet';
-
-export const AlumniPortalNavContext = React.createContext<{
-  navigate: (id: StudentNavId, params?: { q?: string }) => void;
-  searchQuery: string;
-  setSearchQuery: (q: string) => void;
-} | null>(null);
+import { AlumniPortalNavContext } from './AlumniPortalNavContext';
+export { AlumniPortalNavContext };
 
 export function AlumniPortalRN() {
   const router = useRouter();

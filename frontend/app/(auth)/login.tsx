@@ -186,6 +186,10 @@ export default function LoginScreen() {
       }
     } catch (err: any) {
       setLoading(false);
+      if (err?.message?.includes('Firebase') || !googleClientId) {
+        setShowGoogleModal(true);
+        return;
+      }
       setErrorMsg(err?.message || 'Google Sign-In failed. Please try again.');
     }
   };
@@ -441,7 +445,11 @@ export default function LoginScreen() {
 
               {/* Error Message Alert */}
               {errorMsg ? (
-                <div style={{ background: 'rgba(240,97,107,.12)', border: '1px solid rgba(240,97,107,.35)', borderRadius: 12, padding: '12px 14px', color: '#F0616B', fontSize: 13.5, marginBottom: 16 }}>
+                <div
+                  role="alert"
+                  data-testid="auth-error-message"
+                  style={{ background: 'rgba(240,97,107,.12)', border: '1px solid rgba(240,97,107,.35)', borderRadius: 12, padding: '12px 14px', color: '#F0616B', fontSize: 13.5, marginBottom: 16 }}
+                >
                   {errorMsg}
                 </div>
               ) : null}
@@ -452,6 +460,8 @@ export default function LoginScreen() {
                 <Mail size={16} color="#8A8A9E" />
                 <input
                   type="email"
+                  aria-label="College Email"
+                  data-testid="email-input"
                   value={email}
                   onChange={(e) => handleEmailChange(e.target.value)}
                   placeholder="devender@mrit.edu"
@@ -490,6 +500,8 @@ export default function LoginScreen() {
                     <Lock size={16} color="#8A8A9E" />
                     <input
                       type={showPwd ? 'text' : 'password'}
+                      aria-label="Password"
+                      data-testid="password-input"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••••"
@@ -508,6 +520,8 @@ export default function LoginScreen() {
               {/* Submit Button */}
               <button
                 type="button"
+                data-testid="login-submit-button"
+                aria-label="Sign in"
                 onClick={() => submitForm()}
                 disabled={loading}
                 style={{

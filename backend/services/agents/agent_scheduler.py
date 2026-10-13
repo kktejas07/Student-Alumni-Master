@@ -167,6 +167,8 @@ class AgentSchedulerService:
 
     async def _loop(self, db=None):
         logger.info("[AgentScheduler] Started 30-minute recurring multi-agent worker.")
+        # Initial sleep so server startup and incoming requests are never blocked
+        await asyncio.sleep(self._interval_seconds)
         while self._running:
             try:
                 await self.run_cycle(db=db)

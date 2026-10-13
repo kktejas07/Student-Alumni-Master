@@ -11,6 +11,7 @@ import io
 import base64
 import random
 import string
+import secrets
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
@@ -42,7 +43,7 @@ JWT_SECRET = os.environ.get('JWT_SECRET')
 if not JWT_SECRET:
     raise RuntimeError("JWT_SECRET is not set. Copy backend/.env.example to backend/.env and set JWT_SECRET.")
 JWT_ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour — short-lived; use refresh token for re-auth
+ACCESS_TOKEN_EXPIRE_MINUTES = 15  # 15 minutes — short-lived access token; use refresh token for re-auth
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 
 
@@ -99,6 +100,7 @@ def create_access_token(user_id: str, email: str, role: str) -> str:
         "sub": user_id,
         "email": email,
         "role": role,
+        "jti": secrets.token_hex(16),
         "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
         "type": "access",
     }
@@ -108,6 +110,7 @@ def create_access_token(user_id: str, email: str, role: str) -> str:
 def create_refresh_token(user_id: str) -> str:
     payload = {
         "sub": user_id,
+        "jti": secrets.token_hex(16),
         "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
         "type": "refresh",
     }

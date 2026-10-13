@@ -181,6 +181,8 @@ class DailyAuditOrchestratorService:
 
     async def _loop(self, db=None):
         logger.info("[DailyAudit] Started 24-Hour Autonomous Operations & Audit Swarm.")
+        # Initial sleep so server startup and incoming requests are never blocked
+        await asyncio.sleep(self._interval_seconds)
         while self._running:
             try:
                 await self.run_24hr_dossier(db=db)

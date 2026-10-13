@@ -8,7 +8,7 @@ Exposes endpoints for:
 """
 from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from core.deps import get_current_user, require_role
 from services.agents.swarm import swarm_engine, SwarmProjectResult
