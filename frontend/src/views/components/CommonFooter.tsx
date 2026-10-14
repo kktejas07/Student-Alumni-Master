@@ -173,8 +173,14 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
           <Pressable onPress={() => { if (typeof window !== 'undefined') window.open('https://codespectra.ai', '_blank'); }} style={styles.linkItem}>
             <Text style={S.footerLinkText}>CodeSpectra</Text>
           </Pressable>
-          <Pressable onPress={() => { if (typeof window !== 'undefined') window.open('https://visionaryx.ai', '_blank'); }} style={styles.linkItem}>
-            <Text style={S.footerLinkText}>VisionaryX</Text>
+          <Pressable onPress={() => { if (typeof window !== 'undefined') window.open('https://studentkare.co/', '_blank'); }} style={styles.linkItem}>
+            <Text style={S.footerLinkText}>StudentKare</Text>
+          </Pressable>
+          <Pressable onPress={() => { if (typeof window !== 'undefined') window.open('https://hyra.org.in/', '_blank'); }} style={styles.linkItem}>
+            <Text style={S.footerLinkText}>HYRA</Text>
+          </Pressable>
+          <Pressable onPress={() => { if (typeof window !== 'undefined') window.open('https://iqe.forgetechno.com/', '_blank'); }} style={styles.linkItem}>
+            <Text style={S.footerLinkText}>IQE</Text>
           </Pressable>
           <Pressable onPress={() => { if (typeof window !== 'undefined') window.open('https://wehive.co.in', '_blank'); }} style={styles.linkItem}>
             <Text style={S.footerLinkText}>WeHive</Text>
