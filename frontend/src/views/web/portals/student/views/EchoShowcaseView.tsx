@@ -1312,18 +1312,14 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
       )}
 
       {/* ── SPONSORS ────────────────────────────────────────────────────── */}
-      {showSection('sponsors') && (
+      {/* Only the event's own sponsors — no hardcoded fallback branding.    */}
+      {showSection('sponsors') && data?.sponsors && data.sponsors.length > 0 && (
         <FadeInView delay={300}>
           <View style={{ marginBottom: 18 }}>
             <SectionHeading icon={Building2} title="Event Sponsors & Industry Partners" tint="#A855F7" />
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 26 }}>
-            {(data?.sponsors && data.sponsors.length > 0 ? data.sponsors : [
-              { name: 'Deloitte', tier: 'TITLE SPONSOR', description: 'Global Leader in Strategy & Tech Innovation' },
-              { name: 'Featherless AI', tier: 'PLATINUM PARTNER', description: 'Decentralized Serverless LLM Inference' },
-              { name: 'VNR VJIET Alumni Assoc.', tier: 'HOST CHAPTER', description: 'Campus Chapter & Ecosystem Host' },
-              { name: 'Garuda Vigilance', tier: 'CYBERSECURITY PARTNER', description: 'Advanced Cloud Defense & Forensics' },
-            ]).map((sp: any, i: number) => (
+            {data.sponsors.map((sp: any, i: number) => (
               <GlassCard key={i} style={{ flex: 1, minWidth: 220, padding: 22, alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 150 }}>
                 {sp.logo_url ? (
                   <Image source={{ uri: resolveImageUrl(sp.logo_url) }} style={{ width: 140, height: 48 }} resizeMode="contain" />
@@ -1346,19 +1342,14 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
       )}
 
       {/* ── DOWNLOADS & RESOURCES ────────────────────────────────────────── */}
-      {showSection('downloads') && (
+      {/* Only the event's own configured resources — no fake '#' rows.      */}
+      {showSection('downloads') && data?.downloads && data.downloads.length > 0 && (
         <FadeInView delay={310}>
           <View style={{ marginBottom: 18 }}>
             <SectionHeading icon={FileText} title="Official Resources & Downloads" tint="#38BDF8" />
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 26 }}>
-            {(data?.downloads && data.downloads.length > 0 ? data.downloads : [
-              { title: 'Event Handbook & Schedule', description: 'Minute-by-minute itinerary, venue floor maps, lab allocations & helpline numbers', file_size: '4.2 MB · PDF', file_url: '#' },
-              { title: 'Hackathon Rulebook & Guidelines', description: 'Judging criteria, submission formats, tech stack policies and academic integrity rules', file_size: '1.8 MB · PDF', file_url: '#' },
-              { title: 'Problem Statements & Track Briefs', description: 'Comprehensive challenge briefs for AI Copilots, FinTech, Web3 and Smart Campus tracks', file_size: '2.4 MB · PDF', file_url: '#' },
-              { title: 'Starter Kits & Sample Datasets', description: 'GitHub starter templates, pre-configured sandbox APIs, sample CSV datasets and SDK docs', file_size: '12.5 MB · ZIP', file_url: '#' },
-              { title: 'Pitch Deck & Presentation Template', description: 'Official 5-minute final round slide deck template (.pptx) formatted for jury review', file_size: '3.1 MB · PPTX', file_url: '#' },
-            ]).map((dl: any, i: number) => (
+            {data.downloads.map((dl: any, i: number) => (
               <GlassCard key={i} style={{ flex: 1, minWidth: 260, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                 <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: isDark ? 'rgba(56,189,248,0.15)' : 'rgba(2,132,199,0.10)', borderWidth: 1, borderColor: isDark ? 'rgba(56,189,248,0.3)' : 'rgba(2,132,199,0.25)', alignItems: 'center', justifyContent: 'center' }}>
                   <FileText size={22} color={isDark ? '#38BDF8' : '#0284C7'} />
@@ -1368,18 +1359,16 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                   {dl.description ? <Text style={{ fontFamily: TYPO.body400, fontSize: 11.5, color: isDark ? PALETTE.muted : '#475569', lineHeight: 16, marginTop: 2 }}>{dl.description}</Text> : null}
                   {dl.file_size ? <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 10.5, color: isDark ? '#38BDF8' : '#0284C7', marginTop: 4 }}>{dl.file_size}</Text> : null}
                 </View>
-                <Pressable
-                  onPress={() => {
-                    if (dl.file_url && dl.file_url !== '#') {
+                {(dl.file_url && dl.file_url !== '#') ? (
+                  <Pressable
+                    onPress={() => {
                       if (Platform.OS === 'web') window.open(dl.file_url, '_blank');
-                    } else {
-                      toast.show({ title: 'Resource Access', message: `Opening ${dl.title}`, type: 'info' });
-                    }
-                  }}
-                  style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(2,132,199,0.08)', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(2,132,199,0.22)', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <Download size={16} color={isDark ? '#38BDF8' : '#0284C7'} />
-                </Pressable>
+                    }}
+                    style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(2,132,199,0.08)', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(2,132,199,0.22)', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <Download size={16} color={isDark ? '#38BDF8' : '#0284C7'} />
+                  </Pressable>
+                ) : null}
               </GlassCard>
             ))}
           </View>

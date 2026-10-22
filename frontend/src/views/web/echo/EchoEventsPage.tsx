@@ -20,6 +20,7 @@ import PaymentStatusScreen, { PaymentResult } from '@/src/views/components/Payme
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { EchoTicketsConfirmationPage } from './EchoTicketsConfirmationPage';
+import { prizePoolDisplayText } from './prizePool';
 
 
 interface EchoEventsPageProps {
@@ -28,107 +29,6 @@ interface EchoEventsPageProps {
 }
 
 const SAMPLE_EVENTS: any[] = [];
-const _UNUSED_SAMPLE_EVENTS = [
-  {
-    id: 'snist',
-    slug: 'snist',
-    title: 'HackWave 3.0 (2026)',
-    college: 'SNIST',
-    college_name: 'Sreenidhi Institute of Science and Technology',
-    college_full: 'Sreenidhi Institute of Science & Technology, Hyderabad',
-    status: 'OPEN',
-    organizer: 'Career Development Center · SNIST in collaboration with StudentAlumni.ai',
-    description: "Build something real. In one overnight sprint. National-Level 24-Hour Tech Fest with 7 Verticals across AI, Security, Hiring and Firesides.",
-    dates: 'September 04 – 05, 2026',
-    date_short: 'September 04, 2026',
-    date_pill: 'Sep 4 – 5, 2026',
-    time: 'Sep 4th, 08:00 AM — Sep 5th, 01:00 PM',
-    venue: 'Sreenidhi Institute of Science & Technology (SNIST), Hyderabad',
-    location_short: 'SNIST Campus, Hyderabad',
-    prize_pool: '₹17,50,000+ Total Pool (₹2,00,000 Mega Grand Pool · ₹50,000 Track Pool · WeHive Visas & Germany Study Abroad)',
-    reg_closes: 'Registrations Open',
-    individual_fee: 599,
-    team_fee: 2495,
-    individual_seats: 'Open — no seat limit',
-    team_slots: 'Open — no seat limit',
-    partners: ['CodeSpectra', 'Featherless', 'Stepupmark', 'Bandiwala', 'WeHive'],
-    poster_banner: '/images/hackwave/hackwave_main_poster.png',
-    gallery_images: [
-      '/images/hackwave/hackwave_main_poster.png',
-      '/images/hackwave/hackwave_full_programme.png',
-      '/images/hackwave/wehive_sponsor_spotlight.jpg',
-      '/images/hackwave/hackwave_speakers.jpg',
-      '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
-      '/images/hackwave/hackwave_techfest_verticals.jpg',
-      '/images/hackwave/hackwave_perks_pool.jpg',
-      '/images/hackwave/stan_mierzwa_poster.png',
-      '/images/hackwave/harish_kotra_poster.png',
-      '/images/hackwave/ken_fishkin_poster.png',
-      '/images/hackwave/sharon_kelley_poster.png',
-      '/images/hackwave/jeremy_livingston_poster.png',
-      '/images/hackwave/suman_kalia_poster.png',
-      '/images/hackwave/m_avinash_rao_poster.png',
-      '/images/hackwave/gopichand_anumolu_poster.png'
-    ],
-    gallery_layout: 'carousel',
-    speakers: [
-      { name: 'Stan Mierzwa, Ph.D.', position: 'Director, Center for Cybersecurity', company: 'Kean University', location: 'Union, New Jersey, USA', linkedin: 'in/stanmierzwa', category: 'International Panel', is_panel_member: true },
-      { name: 'Ken Fishkin', position: 'President', company: 'ISC2 New Jersey Chapter', location: 'New Jersey, USA', linkedin: 'in/kfishkin', category: 'International Panel', is_panel_member: true },
-      { name: 'Sharon Kelley', position: 'Board Member', company: 'ISC2 New Jersey Chapter (MS, MBA, CISSP, CCSP)', location: 'Hoboken, New Jersey, USA', linkedin: 'in/sharon-kelley-0292181', category: 'International Panel', is_panel_member: true },
-      { name: 'Jeremy Livingston', position: 'CISO & Deputy CIO', company: 'Stevens Institute of Technology', location: 'Effort, Pennsylvania, USA', linkedin: 'in/jeremylivin', category: 'International Panel', is_panel_member: true },
-      { name: 'Suman Kalia', position: 'Associate Professor & Chair, Computer Science', company: "Saint Peter's University", location: 'Jersey City, New Jersey, USA', linkedin: 'in/suman-kalia-300b521', category: 'International Panel', is_panel_member: true },
-      { name: 'Jonna Dheeraj', position: 'Account Delivery & Program Management', company: 'Embedded SW · AI · VLSI · 5G · IoT', category: 'Voices That Build', is_panel_member: false },
-      { name: 'Harish Kotra', position: 'DevX Lead', company: 'Quirq', category: 'Voices That Build', is_panel_member: false },
-      { name: 'M Avinash Rao', position: 'Client Account Manager', company: 'Deloitte', category: 'Voices That Build', is_panel_member: false },
-      { name: 'Gopichand Anumolu', position: 'Founder', company: 'ATLAST', category: 'Voices That Build', is_panel_member: false },
-    ],
-    verticals: [
-      { title: 'Build by Sunset', desc: 'Ship something real between morning and dusk. Teams of 2–5, 5 AI tracks, ₹50,000 prize pool.', icon: 'rocket' },
-      { title: 'Codethon', desc: 'Pre-event coding ladder: L1 to L2 to L3. Individual, scored, closes before Sep 4.', icon: 'code' },
-      { title: 'Voices That Build', desc: 'A panel of people who have actually shipped — not people talking about shipping.', icon: 'mic' },
-      { title: 'Meet the People Who Hire', desc: 'Recruiters in the room, not behind a portal. On-the-spot internship and placement offers.', icon: 'briefcase' },
-      { title: 'Cyber Security Conclave', desc: 'Virtual, featuring the ISC2 New Jersey Chapter — global insights on trends, certifications, career pathways (Friday Sep 4, 6:00 PM IST).', icon: 'shield' },
-      { title: 'International Panel', desc: 'Speakers joining live on the big screen from outside India.', icon: 'globe' },
-      { title: 'Between the Builds', desc: 'Sleep, eat, work, find people. Open across both days.', icon: 'bed' },
-      { title: 'Play After Dark', desc: 'Live music when the laptops finally close.', icon: 'music' },
-      { title: 'Build by Fireside', desc: "Where the idea you haven't shipped yet finally gets heard.", icon: 'flame' }
-    ],
-    perks: [
-      { name: 'Featherless AI', desc: 'A full account, free', value: '$29 value', icon: 'sparkles' },
-      { name: 'SetupMark AI', desc: '50 credits, 2 months free', value: '$50 value', icon: 'infinity' },
-      { name: 'CodeSpectra AI', desc: '3 months completely free', value: 'Assessments', icon: 'code' },
-      { name: 'Bandiwala', desc: '15% off food', value: 'Coupon', icon: 'utensils' },
-      { name: 'WeHive Consulting', desc: '15% off services', value: 'Coupon', icon: 'briefcase' },
-      { name: 'Four meal coupons', desc: 'Lunch, dinner, midnight, breakfast', value: 'Included', icon: 'utensils' },
-      { name: 'Certificates for all', desc: 'Participation and winner certificates', value: 'Verifiable', icon: 'award' },
-      { name: 'On-the-spot offers', desc: 'Internship and placement offers, in the room', value: 'Live', icon: 'check' },
-      { name: 'Surprise goodies', desc: 'Extra prizes and drops announced on the day', value: 'Surprise', icon: 'gift' }
-    ],
-    videos: [
-      {
-        title: 'HackWave 3.0 SNIST Official Teaser',
-        video_url: 'https://www.youtube.com/watch?v=M576WGiDBdQ',
-        thumbnail_url: '/images/hackwave/hackwave_main_poster.png',
-        description: 'Watch the official teaser for HackWave 3.0 at SNIST — 7 Verticals, ₹2,00,000 Grand Pool.',
-        platform: 'youtube'
-      },
-      {
-        title: 'Cyber Security with AI Conclave Teaser',
-        video_url: 'https://www.youtube.com/watch?v=aircAruvnKk',
-        thumbnail_url: '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
-        description: 'Keynote highlights featuring ISC2 New Jersey Chapter and international cyber security experts.',
-        platform: 'youtube'
-      },
-      {
-        title: 'Build by Sunset — 24-Hour Hackathon Sprint Highlights',
-        video_url: 'https://www.youtube.com/watch?v=9bZkp7q19f0',
-        thumbnail_url: '/images/hackwave/hackwave_techfest_verticals.jpg',
-        description: 'Overnight build sprint, tech mentorship, and product showcases live from SNIST campus.',
-        platform: 'youtube'
-      }
-    ]
-  }
-];
 
 export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoEventsPageProps) {
   const router = useRouter();
@@ -239,6 +139,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
 
   // Active event resolution — strictly matches selected slug or alias, no cross-showcase fallback
   const activeEvent = events.find((e) => e.slug === selectedSlug || (e.aliases && e.aliases.includes(selectedSlug)));
+  // Safe display text for the prize pill — supports both string and object
+  // `prize_pool` shapes without throwing "Objects are not valid as a React child".
+  const prizePoolPillText = prizePoolDisplayText(activeEvent?.prize_pool);
 
   // Dynamic registration posters derived strictly from active showcase configuration
   const regPosters: string[] = useMemo(() => {
@@ -680,7 +583,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
             currency: orderRes.currency || 'INR',
             name: activeEvent.title || 'Student Alumni ECHO',
             description: isTeam ? `Team Registration: ${teamName} (${currentTeamSize} Members)` : `Individual Pass: ${activeEvent.title}`,
-            image: resolveImageUrl(activeEvent.poster_banner) || '/images/hackwave/hackwave_main_poster.png',
+            image: resolveImageUrl(activeEvent.poster_banner) || undefined,
             order_id: orderRes.order_id,
             prefill: {
               name: fullName,
@@ -1746,9 +1649,11 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
                 <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--amber)', background: 'rgba(245,179,66,.12)', border: '1px solid #4A3410', borderRadius: '100px', padding: '8px 14px' }}>
                   {activeEvent.date_pill}
                 </span>
-                <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#7FB2F7', background: 'rgba(76,141,246,.12)', border: '1px solid #23407A', borderRadius: '100px', padding: '8px 14px' }}>
-                  {activeEvent.prize_pool}
-                </span>
+                {prizePoolPillText ? (
+                  <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#7FB2F7', background: 'rgba(76,141,246,.12)', border: '1px solid #23407A', borderRadius: '100px', padding: '8px 14px' }}>
+                    {prizePoolPillText}
+                  </span>
+                ) : null}
                 <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#6FD6FF', background: 'rgba(47,184,198,.12)', border: '1px solid #1F4E5C', borderRadius: '100px', padding: '8px 14px' }}>
                   {activeEvent.location_short}
                 </span>
@@ -2014,6 +1919,12 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
           {/* ────────────────────────────────────────────────────────── */}
           {/* A NATIONAL-LEVEL TECH FEST — 7 VERTICALS (BANNER 4)       */}
           {/* ────────────────────────────────────────────────────────── */}
+          {/* Rendered only when the event has its own configured categories. */}
+          {/* No hardcoded HackWave vertical fallbacks for other events. */}
+          {(() => {
+            const verticalItems = (activeEvent.categories && activeEvent.categories.length > 0) ? activeEvent.categories : [];
+            if (verticalItems.length === 0) return null;
+            return (
           <div style={{ marginBottom: '32px', border: `1px solid ${isDark ? '#3A2E72' : '#E5E5EA'}`, borderRadius: '22px', background: isDark ? 'linear-gradient(135deg, #1B143A 0%, #110E24 100%)' : 'linear-gradient(135deg, #F8F6FF 0%, #F0F5F8 100%)', padding: '32px 30px' }}>              <div style={{ textAlign: 'center', marginBottom: '26px' }}>
               <span className="ev-detail-section-subtitle" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: '#FFFFFF', background: '#EF4444', borderRadius: '100px', padding: '6px 14px', marginBottom: '12px' }}>
                 THIS IS NOT JUST A HACKATHON
@@ -2027,17 +1938,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
-              {((activeEvent.categories && activeEvent.categories.length > 0) ? activeEvent.categories : (activeEvent.verticals && activeEvent.verticals.length > 0) ? activeEvent.verticals : [
-                { name: 'Build by Sunset', description: 'Ship something real between morning and dusk. Teams of 2–5, 5 AI tracks, ₹50,000 prize pool.', icon: 'rocket' },
-                { name: 'Codethon', description: 'Pre-event coding ladder: L1 to L2 to L3. Individual, scored, closes before Sep 4.', icon: 'code' },
-                { name: 'Voices That Build', description: 'A panel of people who have actually shipped — not people talking about shipping.', icon: 'mic' },
-                { name: 'Meet the People Who Hire', description: 'Recruiters in the room, not behind a portal. On-the-spot internship and placement offers.', icon: 'briefcase' },
-                { name: 'Cyber Security Conclave', description: 'Virtual, featuring the ISC2 New Jersey Chapter — global insights on trends, certifications, career pathways.', icon: 'shield' },
-                { name: 'International Panel', description: 'Speakers joining live on the big screen from outside India.', icon: 'globe' },
-                { name: 'Between the Builds', description: 'Sleep, eat, work, find people. Open across both days.', icon: 'bed' },
-                { name: 'Play After Dark', description: 'Live music when the laptops finally close.', icon: 'music' },
-                { name: 'Build by Fireside', description: "Where the idea you haven't shipped yet finally gets heard.", icon: 'flame' }
-              ]).map((vert: any, vidx: number) => (
+              {verticalItems.map((vert: any, vidx: number) => (
                 <div key={vidx} className="ev-mini ev-detail-vert-card" style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', padding: '16px 18px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px' }}>
                   <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(124,92,252,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', marginTop: '2px' }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" strokeWidth="2"><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9Z" /></svg>
@@ -2050,6 +1951,8 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
               ))}
             </div>
           </div>
+            );
+          })()}
 
           {/* ────────────────────────────────────────────────────────── */}
           {/* CYBER SECURITY WITH AI CONCLAVE (BANNER 2) — from CMS      */}
@@ -2057,12 +1960,8 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
           {(() => {
             const conclave = activeEvent.cyber_conclave;
             if (!conclave || conclave.enabled === false) return null;
-            const sessions = conclave.sessions?.length ? conclave.sessions : [
-              { title: 'Global security trends', description: 'Where the threat landscape is moving.' },
-              { title: 'AI on both sides', description: 'How AI is reshaping defence and attack.' },
-              { title: 'Certifications that matter', description: 'CISSP, CC and the paths worth it.' },
-              { title: 'Career pathways', description: 'How to enter the field from campus.' },
-            ];
+            // Only the event's own configured sessions — no hardcoded HackWave fallbacks.
+            const sessions = conclave.sessions?.length ? conclave.sessions : [];
             return (
               <div style={{ marginBottom: '32px', border: `1px solid ${isDark ? '#4338CA' : '#E5E5EA'}`, borderRadius: '22px', background: isDark ? 'linear-gradient(135deg, #1E1B4B 0%, #0F172A 100%)' : 'linear-gradient(135deg, #F8F6FF 0%, #F0F5F8 100%)', padding: '30px 32px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginBottom: '18px' }}>
@@ -2767,13 +2666,8 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
                         onChange={(e) => setTrack(e.target.value)}
                         style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#FFFFFF', fontSize: '14.5px', fontFamily: 'inherit', cursor: 'pointer' }}
                       >
-                        {(activeEvent.categories && activeEvent.categories.length > 0 ? activeEvent.categories : [
-                          { name: 'AI That Solves a Real Problem' },
-                          { name: 'Beyond the Chatbot' },
-                          { name: 'AI for Builders' },
-                          { name: 'Autonomous AI Workflows' },
-                          { name: 'Build the Unexpected' },
-                        ]).map((cat: any, cidx: number) => (
+                        <option value="" disabled style={{ background: '#161622', color: 'var(--muted)' }}>-- Optional · Select a track --</option>
+                        {((activeEvent.categories && activeEvent.categories.length > 0) ? activeEvent.categories : []).map((cat: any, cidx: number) => (
                           <option key={cidx} value={cat.name || cat} style={{ background: 'var(--panel2)', color: 'var(--text)' }}>
                             {cat.name || cat}
                           </option>
