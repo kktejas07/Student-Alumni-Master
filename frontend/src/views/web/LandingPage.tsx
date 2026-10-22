@@ -285,18 +285,17 @@ function Marquee({
   reverse?: boolean;
 }) {
   const { isDark } = useTheme();
-  const mqCard = isDark ? '#0C0E1B' : '#FFFFFF';
-  const mqBorder = isDark ? '#1B1E33' : '#E5E5EA';
   const mqText = isDark ? '#F4F5FB' : '#1D1D1F';
 
   const cardStyle: React.CSSProperties = {
-    backgroundColor: mqCard,
-    border: `1px solid ${mqBorder}`,
-    borderRadius: '12px',
-    padding: '12px 18px',
+    backgroundColor: '#FFFFFF',
+    border: '1px solid #e5e7eb',
+    borderRadius: '14px',
+    padding: '8px 12px',
     marginRight: '14px',
-    height: '58px',
-    minWidth: '120px',
+    height: '72px',
+    width: '150px',
+    boxSizing: 'border-box',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -313,7 +312,15 @@ function Marquee({
         <img
           src={item}
           alt={item}
-          style={{ maxHeight: '34px', maxWidth: '110px', objectFit: 'contain', display: 'block' }}
+          style={{
+            width: '100px',
+            height: '60px',
+            maxWidth: '100%',
+            maxHeight: '100%',
+            objectFit: 'contain',
+            objectPosition: 'center',
+            display: 'block',
+          }}
         />
       ) : (
         <span>{item}</span>
