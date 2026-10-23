@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { signInWithGoogle } from '@/src/lib/firebaseAuth';
 
 export function OnboardingShellRN() {
   const router = useRouter();
@@ -94,18 +95,19 @@ function WebOnboardingEngine({ router }: { router: any }) {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!userEmail || !userEmail.includes('@')) {
-      setOtpError('Please enter your email address above before continuing with Google.');
-      return;
-    }
     const startTime = Date.now();
     try {
-      const emailToUse = userEmail.trim().toLowerCase();
-      const rawName = userName || emailToUse.split('@')[0];
+      // SECURITY: obtain a real Google ID token via Firebase; the backend no
+      // longer accepts an unverified email as a Google identity.
+      const google = await signInWithGoogle();
+      if (!google) return; // popup closed by user
+      const emailToUse = (google.email || userEmail || '').trim().toLowerCase();
+      const rawName = google.name || userName || emailToUse.split('@')[0];
       const res = await api.oauthGoogle({
+        id_token: google.idToken,
         email: emailToUse,
         full_name: rawName,
-        picture: avatarUri || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        picture: google.picture || avatarUri || undefined,
         role: flow === 'alumnus' ? 'alumni' : flow,
       });
 

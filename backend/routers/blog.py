@@ -7,6 +7,7 @@ import logging
 from typing import List, Optional
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Query, Depends
+from core.deps import require_admin_role
 from pydantic import BaseModel, Field
 from db import db
 
@@ -500,7 +501,7 @@ async def get_blog_post(slug: str):
     return post
 
 
-@router.post("/posts")
+@router.post("/posts", dependencies=[Depends(require_admin_role)])
 async def create_blog_post(payload: BlogPostCreate):
     """Create and publish a new blog post."""
     import re
@@ -522,7 +523,7 @@ async def create_blog_post(payload: BlogPostCreate):
     return {"status": "created", "post": post_doc}
 
 
-@router.delete("/posts/{slug}")
+@router.delete("/posts/{slug}", dependencies=[Depends(require_admin_role)])
 async def delete_blog_post(slug: str):
     """Delete a blog post by slug."""
     res = await db.blog_posts.delete_one({"$or": [{"slug": slug}, {"id": slug}]})

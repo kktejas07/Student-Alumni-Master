@@ -43,7 +43,9 @@ from typing import Any, Dict, Optional, List
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
+
+from core.deps import get_current_user, require_role
 from pydantic import BaseModel
 
 load_dotenv(Path(__file__).parent / ".env")
@@ -225,7 +227,7 @@ async def create_booking(req: BookingCreate):
 
 
 @router.delete("/student/bookings/{booking_id}")
-async def cancel_booking(booking_id: str):
+async def cancel_booking(booking_id: str, current_user: dict = Depends(get_current_user)):
     # Try by short-id suffix or full ObjectId against both bookings and sessions
     q: Dict[str, Any] = {}
     matched_in_bookings = False
@@ -300,7 +302,7 @@ async def cancel_booking(booking_id: str):
 
 
 @router.post("/student/bookings/{booking_id}/complete")
-async def complete_booking(booking_id: str):
+async def complete_booking(booking_id: str, current_user: dict = Depends(get_current_user)):
     q: Dict[str, Any] = {}
     matched_in_bookings = False
     matched_in_sessions = False
@@ -942,7 +944,7 @@ class UserInvite(BaseModel):
     full_name: Optional[str] = None
 
 
-@router.post("/admin/users/invite")
+@router.post("/admin/users/invite", dependencies=[Depends(require_role("admin", "super_admin", "superadmin"))])
 async def invite_user(req: UserInvite):
     if req.role not in ("student", "mentor", "college", "admin"):
         raise HTTPException(400, "Invalid role")
@@ -975,7 +977,7 @@ class EventCreate(BaseModel):
     price: int = 0
 
 
-@router.post("/college/events")
+@router.post("/college/events", dependencies=[Depends(require_role("college", "admin", "super_admin", "superadmin"))])
 async def create_college_event(req: EventCreate):
     try:
         sd = datetime.fromisoformat(req.start_date) if req.start_date else _now() + timedelta(days=14)

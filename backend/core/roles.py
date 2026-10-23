@@ -20,8 +20,7 @@ def _get_db():
     from core.db import db
     return db
 
-_JWT_SECRET = os.environ.get("JWT_SECRET", "")
-_JWT_ALG = os.environ.get("JWT_ALGORITHM", "HS256")
+from core.security import JWT_SECRET as _JWT_SECRET, JWT_ALGORITHM as _JWT_ALG
 
 
 # ═══════════════════════════════════════════════════════════════════════
