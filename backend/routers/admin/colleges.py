@@ -44,7 +44,7 @@ _db        = _client[_DB_NAME]
 # ─── Auth helpers ──────────────────────────────────────────────────
 try:
     import jwt  # PyJWT
-    _JWT_SECRET = os.getenv("JWT_SECRET", "")
+    from core.security import JWT_SECRET as _JWT_SECRET
 except Exception:
     jwt = None  # type: ignore
     _JWT_SECRET = ""

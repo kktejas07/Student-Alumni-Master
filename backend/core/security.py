@@ -49,6 +49,13 @@ REFRESH_TOKEN_EXPIRE_DAYS = 30
 # ─── Fernet encryption-at-rest ─────────────────────────────────────────
 _FERNET_KEY = os.environ.get("FERNET_KEY")
 if not _FERNET_KEY:
+    # SECURITY: an ephemeral key makes encrypted PII unreadable after a restart
+    # and across workers. Only tolerate it in development/test.
+    _env = (os.environ.get("ENV") or os.environ.get("ENVIRONMENT") or "development").lower()
+    if _env in ("production", "prod", "staging"):
+        raise RuntimeError("FERNET_KEY is not set. Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\" and add it to backend/.env")
+    import logging as _logging
+    _logging.getLogger(__name__).warning("FERNET_KEY is not set; using an ephemeral key (development only). Encrypted fields will not survive a restart.")
     try:
         _FERNET_KEY = Fernet.generate_key().decode() if _HAS_CRYPTOGRAPHY else "dummy_key_for_dev_booting_without_cryptography_32b_len="
     except Exception:

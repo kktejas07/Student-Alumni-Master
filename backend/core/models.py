@@ -8,6 +8,10 @@ from datetime import datetime
 # UserRole: 3 primary user types + admin/college (managed roles)
 UserRole = Literal["student", "alumni", "mentor", "college", "admin", "super_admin"]
 
+# SelfServiceRole: the only roles a client may choose at signup / OAuth.
+# admin and super_admin are created by seeding or by an existing admin.
+SelfServiceRole = Literal["student", "alumni", "mentor", "college"]
+
 # CareerPath: Drives all personalization on the platform
 CareerPath = Literal["job", "higher_education", "startup", "business"]
 

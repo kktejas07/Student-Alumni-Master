@@ -64,7 +64,7 @@ import re
 from cachetools import TTLCache, cached
 from pathlib import Path
 
-from core.deps import get_current_user, require_role
+from core.deps import get_current_user, require_role, require_admin_role
 from pydantic import BaseModel
 
 # Instantiate TTL Caches for high-traffic endpoints
@@ -388,7 +388,7 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
                 import jwt
                 from core.security import JWT_SECRET, JWT_ALGORITHM
                 from bson import ObjectId
-                payload = jwt.decode(auth[7:], JWT_SECRET or "", algorithms=[JWT_ALGORITHM or "HS256"])
+                payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
                 if "sub" in payload:
                     me = await _db.users.find_one({"_id": ObjectId(payload["sub"])})
                     if me:
@@ -1444,7 +1444,7 @@ async def create_super_event(payload: EventPayload, user: dict = Depends(require
     return {"ok": True, "event": _serialize_event(doc)}
 
 
-@router.patch("/admin/super/events/{event_id}")
+@router.patch("/admin/super/events/{event_id}", dependencies=[Depends(require_admin_role)])
 async def update_super_event(event_id: str, payload: EventPayload):
     """Update an existing event by Mongo `_id` or short `id`."""
     # try ObjectId first, then fall back to short-id match
@@ -3145,7 +3145,7 @@ async def create_workflow(req: WorkflowCreateRequest, user: dict = Depends(requi
     return {"ok": True, "id": str(result.inserted_id)}
 
 
-@router.post("/admin/super/workflows/fire-event")
+@router.post("/admin/super/workflows/fire-event", dependencies=[Depends(require_admin_role)])
 async def fire_workflow_event_endpoint(event_type: str = Body(...), payload: Optional[Dict[str, Any]] = Body(None)):
     """Manually fire a workflow event. All workflows with matching event_triggers will run."""
     try:
@@ -3323,7 +3323,7 @@ async def get_workflow_detail(wf_id: str, user: dict = Depends(require_role('adm
     return wf
 
 
-@router.patch("/admin/super/workflows/{wf_id}")
+@router.patch("/admin/super/workflows/{wf_id}", dependencies=[Depends(require_admin_role)])
 async def update_workflow(wf_id: str, req: WorkflowUpdateRequest):
     """Update workflow name, trigger, steps, or color."""
     await _get_workflow_or_404(wf_id)

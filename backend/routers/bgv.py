@@ -21,7 +21,9 @@ import secrets
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 
-from fastapi import APIRouter, HTTPException, Query, Body, Header
+from fastapi import APIRouter, HTTPException, Query, Body, Header, Depends
+
+from core.deps import require_admin_role
 from pydantic import BaseModel
 from bson import ObjectId
 
@@ -417,7 +419,7 @@ def generate_claim_email_html(
 # SuperAdmin Endpoints: Analytics & Country/LinkedIn Distribution
 # =========================================================================
 
-@router.get("/admin/analytics")
+@router.get("/admin/analytics", dependencies=[Depends(require_admin_role)])
 async def get_accounts_analytics():
     """
     Computes real-time distribution across:
@@ -553,7 +555,7 @@ async def get_accounts_analytics():
 # Accounts Listing with Country & LinkedIn Filters
 # =========================================================================
 
-@router.get("/admin/list")
+@router.get("/admin/list", dependencies=[Depends(require_admin_role)])
 async def list_accounts_by_vertical(
     vertical: str = Query("all", regex="^(all|real|test|unregistered)$"),
     country: str = Query("all", description="Filter by Country name (e.g. India, United States, or all)"),
@@ -830,7 +832,7 @@ class MonthlyReminderSettingsPayload(BaseModel):
     test_email: Optional[str] = None
 
 
-@router.get("/admin/monthly-reminders/status")
+@router.get("/admin/monthly-reminders/status", dependencies=[Depends(require_admin_role)])
 async def get_monthly_reminders_status():
     """Returns the current configuration and execution metrics for monthly claim notifications."""
     settings_doc = await db.settings.find_one({"id": "bgv_monthly_reminders"}) or {}
@@ -886,7 +888,7 @@ async def get_monthly_reminders_status():
     }
 
 
-@router.post("/admin/monthly-reminders/settings")
+@router.post("/admin/monthly-reminders/settings", dependencies=[Depends(require_admin_role)])
 async def update_monthly_reminders_settings(payload: MonthlyReminderSettingsPayload):
     """Updates settings for monthly automated claim notifications."""
     data = {
@@ -923,7 +925,7 @@ class RunMonthlyRemindersPayload(BaseModel):
     limit: Optional[int] = 500
 
 
-@router.post("/admin/monthly-reminders/run")
+@router.post("/admin/monthly-reminders/run", dependencies=[Depends(require_admin_role)])
 async def run_monthly_claim_reminders(payload: RunMonthlyRemindersPayload = Body(default_factory=RunMonthlyRemindersPayload)):
     """
     Executes the monthly claim reminder email broadcast for all eligible unregistered records.
@@ -1113,7 +1115,7 @@ class SendSingleClaimEmailPayload(BaseModel):
     email: Optional[str] = None
 
 
-@router.post("/admin/monthly-reminders/send-single")
+@router.post("/admin/monthly-reminders/send-single", dependencies=[Depends(require_admin_role)])
 async def send_single_claim_email(payload: SendSingleClaimEmailPayload):
     """Sends an immediate personalized profile claim email notification to a specific unregistered record."""
     col_name = payload.collection if payload.collection in ["users", "talent_pool", "echo_registrations"] else "users"
@@ -1200,7 +1202,7 @@ class UpdateProfilePayload(BaseModel):
     roll_number: Optional[str] = None
 
 
-@router.post("/admin/update-profile")
+@router.post("/admin/update-profile", dependencies=[Depends(require_admin_role)])
 async def update_account_profile(payload: UpdateProfilePayload):
     """Updates an individual's LinkedIn profile, Country, location, and contact information."""
     col_name = payload.collection if payload.collection in ["users", "talent_pool", "echo_registrations"] else "users"
@@ -1249,7 +1251,7 @@ async def update_account_profile(payload: UpdateProfilePayload):
     return {"ok": True, "message": "Profile updated successfully."}
 
 
-@router.post("/admin/enrich-profiles")
+@router.post("/admin/enrich-profiles", dependencies=[Depends(require_admin_role)])
 async def auto_enrich_profiles():
     """
     Scans all database profiles to:
@@ -1320,7 +1322,7 @@ class ToggleTestPayload(BaseModel):
     is_test: bool
 
 
-@router.post("/admin/toggle-test")
+@router.post("/admin/toggle-test", dependencies=[Depends(require_admin_role)])
 async def toggle_test_status(payload: ToggleTestPayload):
     """Toggles the 'is_test' flag on a user, talent profile, or event attendee."""
     col_name = payload.collection if payload.collection in ["users", "talent_pool", "echo_registrations"] else "users"
@@ -1342,7 +1344,7 @@ async def toggle_test_status(payload: ToggleTestPayload):
     }
 
 
-@router.post("/admin/purge-test")
+@router.post("/admin/purge-test", dependencies=[Depends(require_admin_role)])
 async def purge_test_accounts(confirm: bool = Body(False, embed=True)):
     """Safely purges identified test accounts with safety guardrails."""
     if not confirm:
@@ -1915,7 +1917,7 @@ async def digilocker_oauth_sync(
 # Admin Action: Backfill SA IDs and BGV IDs
 # =========================================================================
 
-@router.post("/admin/backfill")
+@router.post("/admin/backfill", dependencies=[Depends(require_admin_role)])
 async def backfill_bgv_identifiers():
     """
     Backfills missing sa_id and bgv_id across all registered users and directory records.
@@ -2075,7 +2077,7 @@ def calculate_trust_score(user_obj: Dict[str, Any]) -> Dict[str, Any]:
 class PurgeAccountsRequest(BaseModel):
     dry_run: bool = True
 
-@router.post("/admin/purge-test-accounts")
+@router.post("/admin/purge-test-accounts", dependencies=[Depends(require_admin_role)])
 async def purge_test_accounts(body: PurgeAccountsRequest):
     """
     Super Admin endpoint to detect and dry-run or purge test/mock accounts.
@@ -2124,7 +2126,7 @@ async def purge_test_accounts(body: PurgeAccountsRequest):
     }
 
 
-@router.get("/admin/visa-readiness")
+@router.get("/admin/visa-readiness", dependencies=[Depends(require_admin_role)])
 async def get_visa_readiness_radar():
     """Returns country-wise visa and BGV readiness metrics for study-abroad and international hiring."""
     germany_users = await db.users.count_documents({"$or": [{"target_country": "Germany"}, {"country": "Germany"}]}) or 148
@@ -2178,7 +2180,7 @@ class SendClaimInvitesRequest(BaseModel):
     account_ids: Optional[List[str]] = None
     target_group: Optional[str] = "unregistered_attendees"
 
-@router.post("/admin/send-claim-invites")
+@router.post("/admin/send-claim-invites", dependencies=[Depends(require_admin_role)])
 async def send_claim_invites_campaign(body: SendClaimInvitesRequest):
     """Launches 1-click verification & account claim email campaign for unregistered records."""
     count = len(body.account_ids) if body.account_ids else 45
@@ -2198,7 +2200,7 @@ class GenerateApiKeyRequest(BaseModel):
     webhook_url: Optional[str] = None
     monthly_quota: Optional[int] = 50000
 
-@router.get("/admin/api-keys")
+@router.get("/admin/api-keys", dependencies=[Depends(require_admin_role)])
 async def list_enterprise_bgv_api_keys():
     """Returns active enterprise BGV API keys and webhook integrations."""
     keys_cursor = await db.bgv_api_keys.find({}).to_list(50)
@@ -2233,7 +2235,7 @@ async def list_enterprise_bgv_api_keys():
     return {"api_keys": keys_cursor}
 
 
-@router.post("/admin/api-keys/generate")
+@router.post("/admin/api-keys/generate", dependencies=[Depends(require_admin_role)])
 async def generate_enterprise_bgv_api_key(body: GenerateApiKeyRequest):
     """Generates a cryptographic live API key for background check partners."""
     raw_key = f"sa_live_{secrets.token_hex(16)}"
@@ -2258,7 +2260,7 @@ async def generate_enterprise_bgv_api_key(body: GenerateApiKeyRequest):
     }
 
 
-@router.post("/admin/api-keys/revoke/{key_id}")
+@router.post("/admin/api-keys/revoke/{key_id}", dependencies=[Depends(require_admin_role)])
 async def revoke_enterprise_bgv_api_key(key_id: str):
     """Revokes an enterprise API key immediately."""
     await db.bgv_api_keys.update_one({"_id": ObjectId(key_id)}, {"$set": {"status": "revoked"}})

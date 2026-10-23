@@ -52,7 +52,8 @@ router = APIRouter(prefix="/api/echo", tags=["echo-showcase"])
 
 
 @router.post("/sync-unstop")
-async def sync_unstop_opportunities():
+async def sync_unstop_opportunities(request: Request):
+    await _require_admin(request)
     """Scrape and sync live hackathons, workshops, quizzes, and competitions from Unstop into ECHO showcases."""
     try:
         logger.info("⚡ [UNSTOP SYNC] Manual trigger received. Scraping opportunities from Unstop...")
@@ -5661,6 +5662,7 @@ async def export_echo_registrations_csv(
     request: Request,
     slug: Optional[str] = None,
     status: Optional[str] = None,
+    _=Depends(_require_admin),
 ):
     """
     Generate and stream CSV of student event & hackathon registrations (Hackwave 3.0 / ECHO 2026).
@@ -5767,6 +5769,7 @@ async def export_incomplete_profiles_csv(
     request: Request,
     slug: Optional[str] = None,
     filter_type: Optional[str] = Query("all", description="'all', 'no_account', 'incomplete_profile'"),
+    _=Depends(_require_admin),
 ):
     """
     Generate and stream CSV of registrants who do NOT have an SA account or have incomplete (<100%) profiles.

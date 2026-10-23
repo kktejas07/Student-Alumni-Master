@@ -30,8 +30,7 @@ from core.db import db as _db
 
 router = APIRouter(tags=["admin-settings"])
 
-_JWT_SECRET = os.environ.get("JWT_SECRET", "")
-_JWT_ALG = os.environ.get("JWT_ALGORITHM", "HS256")
+from core.security import JWT_SECRET as _JWT_SECRET, JWT_ALGORITHM as _JWT_ALG
 
 
 async def _resolve_user(authorization: Optional[str]) -> Optional[dict]:
@@ -991,28 +990,6 @@ async def patch_platform_controls(body: PlatformControlsPatch, authorization: Op
         upsert=True,
     )
     return {"ok": True}
-
-
-@router.get("/admin/platform-controls")
-async def get_platform_controls_full(authorization: Optional[str] = Header(None)):
-    """Returns controls + dropdown options for every system setting."""
-    await _require_admin(authorization)
-    doc = await _db.platform_controls.find_one({"_id": "singleton"})
-    if not doc:
-        await _db.platform_controls.insert_one({"_id": "singleton", **DEFAULT_PLATFORM_CONTROLS, "updated_at": datetime.now(timezone.utc)})
-        doc = DEFAULT_PLATFORM_CONTROLS
-    db_flags = doc.get("feature_flags") or []
-    db_settings = doc.get("system_settings") or []
-    defaults_flags = DEFAULT_PLATFORM_CONTROLS["feature_flags"]
-    defaults_settings = DEFAULT_PLATFORM_CONTROLS["system_settings"]
-    merged_flags = _merge_settings_with_defaults(db_flags, defaults_flags)
-    merged_settings = _merge_settings_with_defaults(db_settings, defaults_settings)
-    result = {
-        "feature_flags":   merged_flags,
-        "system_settings": merged_settings,
-        "system_settings_options": SYSTEM_SETTING_OPTIONS,
-    }
-    return result
 
 
 class SystemSettingPatch(BaseModel):

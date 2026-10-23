@@ -30,6 +30,7 @@ from pydantic import BaseModel
 load_dotenv(Path(__file__).parent / '.env')
 
 from core.db import db as _db
+from core.deps import get_current_user
 
 router = APIRouter(tags=["auth-analytics"])
 
@@ -176,9 +177,14 @@ async def my_sessions(email: Optional[str] = None):
 
 
 @router.post("/auth/sessions/{device_id}/revoke")
-async def revoke_session(device_id: str, email: Optional[str] = None):
+async def revoke_session(device_id: str, email: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    # SECURITY: a user may only revoke their own sessions; admins may revoke any.
+    me = (current_user.get("email") or "").lower().strip()
+    role = (current_user.get("role") or "").lower()
     if not email:
-        raise HTTPException(400, "email required")
+        email = me
+    if email.lower().strip() != me and role not in ("admin", "super_admin", "superadmin"):
+        raise HTTPException(403, "Cannot revoke another user's session")
     await _db.auth_sessions.update_one(
         {"device_id": device_id, "email": email.lower().strip()},
         {"$set": {"revoked": True, "revoked_at": datetime.utcnow()}},
