@@ -15,33 +15,36 @@ from services.agents.daily_audit_agents import (
 )
 
 @pytest.mark.anyio
-async def test_unit_test_auditor_agent():
+async def test_unit_test_auditor_skips_unless_enabled(monkeypatch):
+    """Without DAILY_AUDIT_RUN_TESTS=1 the job must say SKIPPED, never a fake pass count."""
+    monkeypatch.delenv("DAILY_AUDIT_RUN_TESTS", raising=False)
     res: UnitTestAuditReport = await daily_audit_service.audit_unit_tests()
-    assert res.total_tests == 60
-    assert res.passed == 60
-    assert res.failed == 0
-    assert len(res.test_suites_audited) >= 5
+    assert res.total_tests == 0 and res.passed == 0 and res.failed == 0
+    assert res.regression_status.startswith("SKIPPED")
+    assert res.grade == "N/A"
 
 @pytest.mark.anyio
-async def test_analytics_auditor_agent():
+async def test_analytics_auditor_reports_zeros_without_db():
     res: AnalyticsAuditReport = await daily_audit_service.audit_platform_analytics(db=None)
-    assert res.dau_active_users > 0
-    assert res.system_growth_score > 80.0
-    assert len(res.top_career_tracks) >= 2
+    assert res.dau_active_users == 0
+    assert res.new_users_24h == 0
+    assert res.system_growth_score == 0.0
+    assert res.top_career_tracks == ["(no database connection)"]
 
 @pytest.mark.anyio
-async def test_log_anomaly_auditor_agent():
+async def test_log_anomaly_auditor_is_unknown_without_logs():
     res: LogAnomalyAuditReport = await daily_audit_service.audit_debugging_logs(db=None)
-    assert res.total_log_entries_analyzed > 1000
-    assert res.error_rate_percent < 0.1
-    assert len(res.root_cause_analysis) >= 2
-    assert "Optimal" in res.system_stability_index
+    assert res.total_log_entries_analyzed == 0
+    assert res.critical_exceptions_count == 0
+    assert res.system_stability_index.startswith("UNKNOWN")
+    assert len(res.root_cause_analysis) >= 1
 
 @pytest.mark.anyio
-async def test_daily_dossier_compilation():
+async def test_daily_dossier_compilation(monkeypatch):
+    monkeypatch.delenv("DAILY_AUDIT_RUN_TESTS", raising=False)
     dossier: DailyDossierResponse = await daily_audit_service.run_24hr_dossier(db=None)
     assert dossier.dossier_id.startswith("DOSSIER-")
-    assert dossier.health_status == "HEALTHY"
-    assert dossier.unit_tests.passed == 60
-    assert dossier.analytics.dau_active_users > 0
-    assert len(dossier.debugging_logs.root_cause_analysis) >= 2
+    # Nothing was measured, so the verdict must not claim health.
+    assert dossier.health_status == "UNKNOWN"
+    assert "not run here" in dossier.executive_verdict
+    assert dossier.unit_tests.total_tests == 0

@@ -597,29 +597,48 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
         </View>
       )}
 
+      {/* Platform analytics load error (KPIs, activity, users, enrollments) */}
+      {analyticsError && !analytics && (
+        <View style={[s.card, s.stateRow]}>
+          <Text style={s.stateText}>Could not load platform analytics: {analyticsError}</Text>
+          <Pressable onPress={refreshAnalytics} style={s.retryBtn}>
+            <RefreshCw size={12} color={T.accentBright} />
+            <Text style={s.retryText}>Retry</Text>
+          </Pressable>
+        </View>
+      )}
+
       {/* 8 KPI tiles in 2 rows */}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-        {KPIS_MAPPED.map((k) => {
-          const Icon = KPI_ICONS[k.icon] || Building2;
-          const isUp = (k.delta || '').includes('↑');
+        {KPIS_MAPPED.map((kpi) => {
+          const Icon = KPI_ICONS[kpi.icon] || Building2;
+          const isRevenue = kpi.id === 'revenue';
+          const tileLoading = isRevenue ? (overviewLoading && !overview) : (analyticsLoading && !analytics);
+          const tileError = isRevenue ? (overviewError && !overview) : (analyticsError && !analytics);
+          const highlight = kpi.id === 'approvals' && realPending > 0;
           return (
             <View
-              key={k.id}
+              key={kpi.id}
               className="db-tile sa-stat-card"
               style={[s.card, { width: stack ? '100%' : '23.5%', minWidth: 200, padding: 18, overflow: 'hidden' }]}
             >
               <View style={{ position: 'relative', zIndex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                    <Icon size={18} color={T.dim} />
+                   {tileLoading && <ActivityIndicator size="small" color={T.dim} />}
                 </View>
                 <View style={{ marginTop: 14 }}>
-                   <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: T.muted }}>{k.label}</Text>
+                   <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: T.muted }}>{kpi.label}</Text>
                    <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 4 }}>
-                      <Text style={{ fontFamily: FONTS.bold, fontSize: 24, letterSpacing: -0.5, color: T.text }}>{k.value}</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isUp ? T.okTint : T.bg2, paddingHorizontal: 6, paddingVertical: 4, borderRadius: 6 }}>
-                         {isUp && <TrendingUp size={12} color={T.ok} style={{ marginRight: 4 }} />}
-                         <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: isUp ? T.ok : T.dim }}>{k.delta.replace('↑ ', '')}</Text>
-                      </View>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: tileError ? 16 : 24, letterSpacing: -0.5, color: tileError ? T.muted : T.text }}>
+                        {tileError ? 'Unavailable' : tileLoading ? '...' : kpi.value}
+                      </Text>
+                      {!tileError && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: highlight ? T.okTint : T.bg2, paddingHorizontal: 6, paddingVertical: 4, borderRadius: 6 }}>
+                           {highlight && <TrendingUp size={12} color={T.ok} style={{ marginRight: 4 }} />}
+                           <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: highlight ? T.ok : T.dim }}>{kpi.delta}</Text>
+                        </View>
+                      )}
                    </View>
                 </View>
               </View>
@@ -634,10 +653,22 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
         <View style={[s.card, { flex: stack ? undefined : 1.7, overflow: 'hidden' }]} className="db-tile sa-stat-card">
           <View style={s.cardHead}>
             <Text style={s.cardTitle}>Recent Activity</Text>
-            <Pressable onPress={() => onNavigate?.('analytics')}><Text style={s.linkRight}>View all →</Text></Pressable>
+            <Pressable onPress={() => onNavigate?.('analytics')}><Text style={s.linkRight}>View all</Text></Pressable>
           </View>
-          <View style={{ gap: 9 }}>
-            {recentAct.slice(0, 3).map((a: any) => {
+          <View style={{ gap: 9, marginTop: 12 }}>
+            {analyticsLoading && !analytics ? (
+              <View style={s.stateRow}><ActivityIndicator size="small" color={T.dim} /><Text style={s.stateText}>Loading activity...</Text></View>
+            ) : analyticsError && !analytics ? (
+              <View style={s.stateRow}>
+                <Text style={s.stateText}>Activity could not be loaded.</Text>
+                <Pressable onPress={refreshAnalytics} style={s.retryBtn}>
+                  <RefreshCw size={12} color={T.accentBright} />
+                  <Text style={s.retryText}>Retry</Text>
+                </Pressable>
+              </View>
+            ) : recentAct.length === 0 ? (
+              <Text style={s.emptyText}>No activity yet. New bookings and sign-ups will appear here.</Text>
+            ) : recentAct.slice(0, 5).map((a) => {
               const isChecked = checkedTasks.includes(a.id);
               return (
                 <Pressable
@@ -651,23 +682,37 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                    </View>
                    <View style={{ flex: 1, minWidth: 0 }}>
                      <Text style={{ fontFamily: FONTS.semi, fontSize: 14, lineHeight: 20, color: T.text }} numberOfLines={2}>{a.text}</Text>
-                     <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.dim, marginTop: 4 }}>{a.sub} · {a.time}</Text>
+                     <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.dim, marginTop: 4 }}>{a.sub}{relativeTime(a.at) ? ` · ${relativeTime(a.at)}` : ''}</Text>
                    </View>
                 </Pressable>
               );
             })}
           </View>
-          <Pressable onPress={() => onNavigate?.('users')} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 }}>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: T.amber }}>{realPending} pending approvals</Text>
-            <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: T.muted }}>awaiting review</Text>
-          </Pressable>
+          {analytics && (
+            <Pressable onPress={() => onNavigate?.('users')} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 }}>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: T.amber }}>{realPending} pending approval{realPending === 1 ? '' : 's'}</Text>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: T.muted }}>awaiting review</Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Platform Users distribution */}
         <View style={[s.card, { flex: stack ? undefined : 1, overflow: 'hidden' }]} className="db-tile sa-stat-card">
           <Text style={s.cardTitle}>Platform Users</Text>
           <View style={{ gap: 14, marginTop: 14 }}>
-            {PLATFORM_USERS.map((u) => (
+            {analyticsLoading && !analytics ? (
+              <View style={s.stateRow}><ActivityIndicator size="small" color={T.dim} /><Text style={s.stateText}>Loading...</Text></View>
+            ) : analyticsError && !analytics ? (
+              <View style={s.stateRow}>
+                <Text style={s.stateText}>Could not load user counts.</Text>
+                <Pressable onPress={refreshAnalytics} style={s.retryBtn}>
+                  <RefreshCw size={12} color={T.accentBright} />
+                  <Text style={s.retryText}>Retry</Text>
+                </Pressable>
+              </View>
+            ) : roleTotal === 0 ? (
+              <Text style={s.emptyText}>No users yet.</Text>
+            ) : PLATFORM_USERS.map((u) => (
               <View key={u.label}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
                   <Text style={s.distLabel}>{u.label}</Text>
@@ -676,7 +721,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                 <View style={s.distTrack}>
                   <View style={[s.distFill, { width: `${u.pct}%` as any, backgroundColor: u.color }]} />
                 </View>
-                <Text style={s.distCount}>{u.count}</Text>
+                <Text style={s.distCount}>{u.count.toLocaleString('en-IN')}</Text>
               </View>
             ))}
           </View>
@@ -688,39 +733,71 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
         {/* Bar chart */}
         <View style={[s.card, { flex: stack ? undefined : 1.5 }]}>
           <Text style={s.cardTitle}>Monthly Enrollments</Text>
-          <Text style={s.cardSub}>New students / month</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, height: 130, marginTop: 22, paddingHorizontal: 4 }}>
-            {MONTHLY_ENROLLMENTS.map((m, i) => {
-              const isLast = i === MONTHLY_ENROLLMENTS.length - 1;
-              const h = Math.round((m.value / maxEnroll) * 110);
-              return (
-                <View key={m.month} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
-                  <Text style={[s.barValue, { color: isLast ? T.accentBright : T.dim }]}>{(m.value / 1000).toFixed(1)}k</Text>
-                  <LinearGradient
-                    colors={[isLast ? T.accentBright : T.primary, isLast ? T.accent : T.primaryD] as any}
-                    start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
-                    style={{ width: '100%', height: h, borderTopLeftRadius: 5, borderTopRightRadius: 5, opacity: isLast ? 1 : 0.7 }}
-                  />
-                  <Text style={[s.barMonth, isLast && { color: '#F4F4FA', fontFamily: FONTS.bold }]}>{m.month}</Text>
-                </View>
-              );
-            })}
-          </View>
+          <Text style={s.cardSub}>New student accounts per month, last 6 months</Text>
+          {analyticsLoading && !analytics ? (
+            <View style={[s.stateRow, { height: 130, marginTop: 22 }]}><ActivityIndicator size="small" color={T.dim} /><Text style={s.stateText}>Loading...</Text></View>
+          ) : analyticsError && !analytics ? (
+            <View style={[s.stateRow, { marginTop: 22 }]}>
+              <Text style={s.stateText}>Could not load enrollments.</Text>
+              <Pressable onPress={refreshAnalytics} style={s.retryBtn}>
+                <RefreshCw size={12} color={T.accentBright} />
+                <Text style={s.retryText}>Retry</Text>
+              </Pressable>
+            </View>
+          ) : MONTHLY_ENROLLMENTS.length === 0 || enrollTotal === 0 ? (
+            <View style={{ height: 130, marginTop: 22, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={s.emptyText}>No student enrollments in the last 6 months.</Text>
+            </View>
+          ) : (
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, height: 130, marginTop: 22, paddingHorizontal: 4 }}>
+              {MONTHLY_ENROLLMENTS.map((m, i) => {
+                const isLast = i === MONTHLY_ENROLLMENTS.length - 1;
+                const h = Math.max(2, Math.round(((m.value || 0) / maxEnroll) * 110));
+                return (
+                  <View key={`${m.month}-${i}`} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+                    <Text style={[s.barValue, { color: isLast ? T.accentBright : T.dim }]}>{(m.value || 0).toLocaleString('en-IN')}</Text>
+                    <LinearGradient
+                      colors={[isLast ? T.accentBright : T.primary, isLast ? T.accent : T.primaryD] as any}
+                      start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+                      style={{ width: '100%', height: h, borderTopLeftRadius: 5, borderTopRightRadius: 5, opacity: isLast ? 1 : 0.7 }}
+                    />
+                    <Text style={[s.barMonth, isLast && { color: '#F4F4FA', fontFamily: FONTS.bold }]}>{m.month}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          )}
         </View>
 
         {/* Revenue Breakdown */}
         <View style={[s.card, { flex: stack ? undefined : 1 }]}>
           <Text style={s.cardTitle}>Revenue Breakdown</Text>
-          <Text style={s.cardSub}>Revenue by event · {REVENUE_BREAKDOWN.length} sources</Text>
+          <Text style={s.cardSub}>
+            {REVENUE_BREAKDOWN.length > 0
+              ? `Paid registrations by event · ${REVENUE_BREAKDOWN.length} source${REVENUE_BREAKDOWN.length === 1 ? '' : 's'}`
+              : 'Paid registrations by event'}
+          </Text>
           <View style={{ gap: 12, marginTop: 16 }}>
-            {REVENUE_BREAKDOWN.map((r) => (
-              <View key={r.source}>
+            {overviewLoading && !overview ? (
+              <View style={s.stateRow}><ActivityIndicator size="small" color={T.dim} /><Text style={s.stateText}>Loading...</Text></View>
+            ) : overviewError && !overview ? (
+              <View style={s.stateRow}>
+                <Text style={s.stateText}>Could not load revenue: {overviewError}</Text>
+                <Pressable onPress={refreshOverview} style={s.retryBtn}>
+                  <RefreshCw size={12} color={T.accentBright} />
+                  <Text style={s.retryText}>Retry</Text>
+                </Pressable>
+              </View>
+            ) : REVENUE_BREAKDOWN.length === 0 ? (
+              <Text style={s.emptyText}>No paid registrations yet.</Text>
+            ) : REVENUE_BREAKDOWN.map((r, i) => (
+              <View key={`${r.source}-${i}`}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
-                  <Text style={s.distLabel}>{r.source}</Text>
+                  <Text style={s.distLabel} numberOfLines={1}>{r.source}</Text>
                   <Text style={s.revAmount}>{r.amount}</Text>
                 </View>
                 <View style={s.distTrack}>
-                  <View style={[s.distFill, { width: `${r.pct}%` as any, backgroundColor: r.color }]} />
+                  <View style={[s.distFill, { width: `${Math.min(100, Math.max(0, r.pct))}%` as any, backgroundColor: r.color }]} />
                 </View>
               </View>
             ))}
@@ -768,6 +845,18 @@ const s = StyleSheet.create({
 
   barValue: { fontFamily: FONTS.bold, fontSize: 10 },
   barMonth: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 },
+
+  // Loading / empty / error states
+  stateRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10 },
+  stateText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, flexShrink: 1 },
+  emptyText: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center', paddingVertical: 12 },
+  retryBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+    borderColor: SAC.border, borderWidth: 1, backgroundColor: SAC.bg2,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  retryText: { color: SAC.accentBright, fontFamily: FONTS.bold, fontSize: 11.5 },
 
   // Ad Manager
   adManagerWrap: {

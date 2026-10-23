@@ -298,7 +298,7 @@ export function DashboardView({
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 6 }}>
-                  <View style={s.matchPill}><Text style={s.matchPillText}>✦ {m.match}% match</Text></View>
+                  {typeof m.match === 'number' ? <View style={s.matchPill}><Text style={s.matchPillText}>{m.match}% match</Text></View> : null}
                   <Badge label={m.type} color="purple" />
                 </View>
               </Pressable>
@@ -380,33 +380,45 @@ export function DashboardView({
         </View>
       </View>
 
-      {/* Profile completion CTA */}
-      <LinearGradient
-        colors={[SC.primary, SC.primaryD] as any}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={s.completionCard}
-      >
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <Text style={s.completionLabel}>Profile Score</Text>
-            <View style={s.completionScorePill}><Text style={s.completionScoreText}>{PROFILE_COMPLETION.score}%</Text></View>
+      {/* Profile completion CTA (only once a real score is available) */}
+      {hasData && (
+        <LinearGradient
+          colors={[SC.primary, SC.primaryD] as any}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={s.completionCard}
+        >
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <Text style={s.completionLabel}>Profile Score</Text>
+              <View style={s.completionScorePill}><Text style={s.completionScoreText}>{PROFILE_COMPLETION.score}%</Text></View>
+            </View>
+            <Text style={s.completionTitle}>
+              {PROFILE_COMPLETION.score >= 100 ? 'Your profile is complete' : 'Complete your profile to unlock more opportunities'}
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+              {PROFILE_COMPLETION.missing.map((m) => (
+                <View key={m} style={s.missingChip}><Text style={s.missingText}>{m}</Text></View>
+              ))}
+            </View>
           </View>
-          <Text style={s.completionTitle}>Complete your profile to unlock more opportunities</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-            {PROFILE_COMPLETION.missing.map((m) => (
-              <View key={m} style={s.missingChip}><Text style={s.missingText}>{m}</Text></View>
-            ))}
-          </View>
-        </View>
-        <Pressable onPress={onOpenProfile} style={({ hovered }: any) => [s.completeCta, hovered && { backgroundColor: '#fff' }]}>
-          <Text style={s.completeCtaText}>Complete Profile →</Text>
-        </Pressable>
-      </LinearGradient>
+          <Pressable onPress={onOpenProfile} style={({ hovered }: any) => [s.completeCta, hovered && { backgroundColor: '#fff' }]}>
+            <Text style={s.completeCtaText}>{PROFILE_COMPLETION.score >= 100 ? 'View Profile →' : 'Complete Profile →'}</Text>
+          </Pressable>
+        </LinearGradient>
+      )}
     </View>
   );
 }
 
 const s = StyleSheet.create({
+  /* Loading / empty / error states */
+  skeleton:  { borderRadius: 14, backgroundColor: SC.card, borderWidth: 1, borderColor: SC.border, minWidth: 120 },
+  emptyLine: { color: SC.dim, fontFamily: FONTS.med, fontSize: 12 },
+  errorBox:  { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(239,68,68,0.35)', backgroundColor: 'rgba(239,68,68,0.08)' },
+  errorText: { flex: 1, minWidth: 160, color: '#FCA5A5', fontFamily: FONTS.med, fontSize: 12 },
+  retryBtn:  { paddingHorizontal: 12, height: 30, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(239,68,68,0.45)', alignItems: 'center', justifyContent: 'center' },
+  retryText: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 },
+
   briefRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14,

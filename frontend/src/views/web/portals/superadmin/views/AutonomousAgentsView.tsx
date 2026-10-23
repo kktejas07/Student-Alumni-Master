@@ -99,7 +99,7 @@ export function AutonomousAgentsView() {
 
   // Broadcast Modal State
   const [broadcastModalVisible, setBroadcastModalVisible] = useState(false);
-  const [broadcastChannel, setBroadcastChannel] = useState<'telegram' | 'whatsapp' | 'discord'>('telegram');
+  const [broadcastChannel, setBroadcastChannel] = useState<'whatsapp' | 'email'>('whatsapp');
   const [broadcastTitle, setBroadcastTitle] = useState('ECHO 2026 Hackathon Registrations Open!');
   const [broadcastMsg, setBroadcastMsg] = useState('→ Registrations are officially open for Student Alumni Hackathon 2026! Over $15,000 in prizes & free cloud credits.');
   const [broadcastLoading, setBroadcastLoading] = useState(false);
@@ -1334,7 +1334,7 @@ export function AutonomousAgentsView() {
                 <View style={{ gap: 12 }}>
                   <Text style={s.label}>Target Channel</Text>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {['telegram', 'whatsapp', 'discord'].map((ch) => (
+                    {['whatsapp', 'email'].map((ch) => (
                       <Pressable
                         key={ch}
                         onPress={() => setBroadcastChannel(ch as any)}

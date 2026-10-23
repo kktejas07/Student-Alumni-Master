@@ -57,7 +57,7 @@ type CollegeDashboard = {
   deptPlacement: { dept: string; pct: number; placed: number; color: string }[];
   recentActivity: { id: string | number; kind?: string; text: string; time: string; icon: string; tint: string }[];
   upcomingEvents: { id: string | number; title: string; date: string; attending: number; color: string }[];
-  topRecruiters: { id: string | number; name: string; offers: number; ctc: string; color: string }[];
+  topRecruiters: { id: string | number; name: string; offers: number; ctc: string | null; color: string }[];
 };
 
 /** Labels for the four KPI tiles, used only as placeholders when the API has no numbers. */
@@ -352,7 +352,7 @@ export function DashboardView({
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text numberOfLines={1} style={s.recruiterName}>{r.name}</Text>
-                  <Text style={s.recruiterMeta}>{r.offers} offers · {r.ctc}</Text>
+                  <Text style={s.recruiterMeta}>{r.offers} offers{r.ctc ? ` · ${r.ctc}` : ''}</Text>
                 </View>
               </View>
             ))}
