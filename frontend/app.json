@@ -26,7 +26,10 @@
         "backgroundColor": "#0a0f1e"
       },
       "edgeToEdgeEnabled": true,
-      "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE"]
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -61,6 +64,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
     }
   }
 }
