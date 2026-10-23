@@ -34,7 +34,7 @@ from core.security import (
     generate_unique_id, generate_qr_code,
     JWT_SECRET, JWT_ALGORITHM
 )
-from core.models import UserRole, SelfServiceRole, AuthResponse, UserResponse
+from core.models import SelfServiceRole, AuthResponse, UserResponse
 from core.security import serialize_user
 from core.deps import get_current_user
 from core.email import send_email
