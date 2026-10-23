@@ -88,10 +88,8 @@ async def test_run_as_leader_starts_jobs_once(monkeypatch):
     task = asyncio.create_task(leader.run_as_leader(db, start_jobs))
     await asyncio.sleep(2.5)
     task.cancel()
-    try:
+    with pytest.raises(asyncio.CancelledError):
         await task
-    except asyncio.CancelledError:
-        pass
     assert starts == [1]
     # lease released on cancellation
     assert db.scheduler_leases.doc is None
