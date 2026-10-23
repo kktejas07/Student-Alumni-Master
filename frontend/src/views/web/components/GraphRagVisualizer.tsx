@@ -18,7 +18,7 @@ export function GraphRagVisualizer() {
   const fetchTopology = async (q?: string) => {
     setLoading(true);
     try {
-      const res: any = await request('/api/ai/graph-rag/topology', {
+      const res: any = await request('/ai/graph-rag/topology', {
         method: 'POST',
         body: { query: q || undefined }
       });

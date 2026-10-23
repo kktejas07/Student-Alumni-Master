@@ -43,7 +43,7 @@ export function GlobalAiSpotlight({ visible, onClose }: { visible: boolean; onCl
     setAnswer(null);
     setCitations([]);
     try {
-      const res: any = await request('/api/ai/spotlight/ask', {
+      const res: any = await request('/ai/spotlight/ask', {
         method: 'POST',
         body: { query: text, user_role: 'student' }
       });

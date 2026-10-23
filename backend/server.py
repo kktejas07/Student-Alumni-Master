@@ -2704,22 +2704,6 @@ async def update_teams_meeting(meeting_id: str, payload: TeamsMeetingCreate, use
     return updated
 
 
-@api_router.post("/integrations/teams/meetings/{meeting_id}/register", include_in_schema=False)
-async def register_for_teams_meeting(meeting_id: str, payload: TeamsMeetingRegister):
-    """Public registration endpoint for non-logged-in users."""
-    result = await _register(
-        meeting_id=meeting_id,
-        db=db,
-        full_name=payload.full_name,
-        email=payload.email,
-        phone=payload.phone,
-        seat_limit=None,
-    )
-    if not result["success"]:
-        raise HTTPException(400, result["error"])
-    return result
-
-
 @api_router.get("/integrations/teams/meetings/{meeting_id}/attendance")
 async def get_teams_attendance(meeting_id: str, email: Optional[str] = None):
     """Get attendance for a Teams meeting."""

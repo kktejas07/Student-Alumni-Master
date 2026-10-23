@@ -16,7 +16,7 @@ from services.syllabus_agent import MentorSyllabusAgent
 from core.rate_limiter import rate_limit_ai_requests
 
 router = APIRouter(
-    prefix="/api/ai",
+    prefix="/ai",  # mounted under api_router (/api) → /api/ai/*
     tags=["ai-platform-services"],
     dependencies=[Depends(rate_limit_ai_requests)]
 )
