@@ -5,6 +5,7 @@
  * Emits screen_view on entry and screen_exit with active duration on exit.
  */
 
+import { Platform } from 'react-native';
 import { useEffect, useRef } from 'react';
 import { updateScreenContext } from '../core/context';
 import { dispatcher } from '../core/dispatcher';
@@ -47,7 +48,8 @@ export function useScreenAnalytics(screenName: string, props: Record<string, any
       }
     };
 
-    if (typeof document !== 'undefined') {
+    const canUseDom = Platform.OS === 'web' && typeof document !== 'undefined';
+    if (canUseDom) {
       document.addEventListener('visibilitychange', handleVisibilityChange);
     }
 
@@ -59,7 +61,7 @@ export function useScreenAnalytics(screenName: string, props: Record<string, any
         activeTimeRef.current += now - lastActiveStartRef.current;
       }
 
-      if (typeof document !== 'undefined') {
+      if (canUseDom) {
         document.removeEventListener('visibilitychange', handleVisibilityChange);
       }
 
