@@ -3272,6 +3272,10 @@ api_router.include_router(community_router)
 from routers.careers import router as careers_router
 api_router.include_router(careers_router)
 
+# Public website contact form (POST /api/contact)
+from routers.public_contact import router as public_contact_router
+api_router.include_router(public_contact_router)
+
 app.include_router(api_router)
 
 
