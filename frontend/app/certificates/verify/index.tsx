@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
+import { WebOnlyRoute } from '@/src/lib/nativeGuard';
 import {
   View,
   Text,
@@ -83,7 +84,7 @@ const TRUST_FEATURES = [
   },
 ];
 
-export default function CertificateVerifyPortal() {
+function CertificateVerifyPortal() {
   const { id: queryId } = useLocalSearchParams<{ id?: string }>();
   const [searchId, setSearchId] = useState(queryId || '');
   const [loading, setLoading] = useState(false);
@@ -2030,3 +2031,11 @@ const styles = StyleSheet.create({
   },
 });
 
+/**
+ * Native guard — this route renders web-only UI. On iOS/Android show a
+ * placeholder that opens the page on studentalumni.ai instead of crashing.
+ */
+export default function CertificateVerifyPortalRoute() {
+  if (Platform.OS !== 'web') return <WebOnlyRoute path="/certificates/verify" />;
+  return <CertificateVerifyPortal />;
+}

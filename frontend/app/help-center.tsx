@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { WebOnlyRoute } from '@/src/lib/nativeGuard';
+import { View, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 
-export default function HelpCenterPage() {
+function HelpCenterPage() {
   const [activeCat, setActiveCat] = useState<string | null>(null);
   const [openAcc, setOpenAcc] = useState<Record<number, boolean>>({});
 
@@ -615,3 +616,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 });
+
+/**
+ * Native guard — this route renders web-only UI. On iOS/Android show a
+ * placeholder that opens the page on studentalumni.ai instead of crashing.
+ */
+export default function HelpCenterPageRoute() {
+  if (Platform.OS !== 'web') return <WebOnlyRoute path="/help-center" />;
+  return <HelpCenterPage />;
+}

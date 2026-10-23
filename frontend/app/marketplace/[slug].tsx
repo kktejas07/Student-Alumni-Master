@@ -3,7 +3,8 @@
  * Pre-order food, beverages, and exclusive handcrafts to collect at the event.
  */
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { WebOnlyRoute } from '@/src/lib/nativeGuard';
+import { View, StyleSheet, ScrollView, Platform } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 import { EchoMarketplace } from '@/src/views/web/echo/EchoMarketplace';
@@ -26,7 +27,7 @@ const THEME_VARS = {
   '--danger': '#F87186',
 } as React.CSSProperties;
 
-export default function EchoMarketplacePage() {
+function EchoMarketplacePage() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
 
   return (
@@ -38,4 +39,13 @@ export default function EchoMarketplacePage() {
       <EchoFooter />
     </div>
   );
+}
+
+/**
+ * Native guard — this route renders web-only UI. On iOS/Android show a
+ * placeholder that opens the page on studentalumni.ai instead of crashing.
+ */
+export default function EchoMarketplacePageRoute() {
+  if (Platform.OS !== 'web') return <WebOnlyRoute />;
+  return <EchoMarketplacePage />;
 }
