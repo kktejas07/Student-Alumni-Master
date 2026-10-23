@@ -37,11 +37,12 @@ export default function HomeTab() {
             userName={fullName}
             notifCount={2}
             onOpenNotifications={() => router.push('/notifications')}
-            onOpenProfile={() => router.push('/profile' as any)}
+            onOpenProfile={() => router.push('/(tabs)/profile' as any)}
             onActionPress={(id) => {
-              if (id === 'create-event') router.push('/courses');
-              else if (id === 'earnings') router.push('/deals');
-              else if (id === 'feedback' || id === 'analytics') router.push('/network');
+              if (id === 'create-event') router.push('/events');
+              else if (id === 'earnings') router.push('/wallet' as any);
+              else if (id === 'analytics') router.push('/analytics' as any);
+              else if (id === 'feedback') router.push('/network');
             }}
           />
         ) : role === 'college' ? (
@@ -49,12 +50,12 @@ export default function HomeTab() {
             collegeName={fullName ? `${fullName} Admin` : 'College Admin'}
             notifCount={4}
             onOpenNotifications={() => router.push('/notifications')}
-            onOpenProfile={() => router.push('/profile' as any)}
+            onOpenProfile={() => router.push('/(tabs)/profile' as any)}
             onActionPress={(id) => {
               if (id === 'announce') router.push('/notifications');
-              else if (id === 'new-event') router.push('/deals');
-              else if (id === 'analytics') router.push('/network');
-              else if (id === 'students') router.push('/network');
+              else if (id === 'new-event' || id === 'events') router.push('/events');
+              else if (id === 'analytics' || id === 'placement') router.push('/analytics' as any);
+              else if (id === 'students' || id === 'alumni') router.push('/network');
             }}
           />
         ) : (
@@ -62,17 +63,22 @@ export default function HomeTab() {
             userName={fullName}
             notifCount={3}
             onOpenNotifications={() => router.push('/notifications')}
-            onOpenProfile={() => router.push('/profile' as any)}
+            onOpenProfile={() => router.push('/(tabs)/profile' as any)}
             onActionPress={(id) => {
+              // The dashboard emits `job-<id>`, `event-<id>` and `course-<id>` for
+              // its cards; the bare ids are kept for the quick-action tiles.
+              if (id.startsWith('event-')) { router.push(`/event/${id.slice('event-'.length)}` as any); return; }
+              if (id.startsWith('job-')) { router.push('/internships'); return; }
+              if (id.startsWith('course-')) { router.push('/courses'); return; }
               switch (id) {
                 case 'alumni': router.push('/network'); break;
-                case 'jobs': router.push('/courses'); break;
-                case 'events': router.push('/deals'); break;
+                case 'jobs': router.push('/internships'); break;
+                case 'events': router.push('/events'); break;
                 case 'mentorship': router.push('/network'); break;
                 case 'announce': router.push('/notifications'); break;
                 case 'leaderboard': router.push('/network'); break;
-                case 'resources': router.push('/courses'); break;
-                case 'settings': router.push('/profile' as any); break;
+                case 'resources': router.push('/resources' as any); break;
+                case 'settings': router.push('/(tabs)/profile' as any); break;
               }
             }}
           />
