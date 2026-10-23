@@ -388,7 +388,6 @@ async def get_mentor_earnings(mentor_email: Optional[str] = None, user: dict = D
     start_month = start_today.replace(day=1)
     today_v, week_v, month_v = await total_since(start_today), await total_since(start_week), await total_since(start_month)
 
-    paid_out = 0.0
     try:
         cur = _db.mentor_payouts.aggregate([{"$match": {"mentor_id": mentor_id, "status": {"$in": ["paid", "completed"]}}},
                                            {"$group": {"_id": None, "s": {"$sum": {"$toDouble": {"$ifNull": ["$amount", 0]}}}}}])
