@@ -60,7 +60,7 @@ class GenerateMouRequest(BaseModel):
 
 class DispatchBroadcastRequest(BaseModel):
     community_ids: List[str]
-    channel: Optional[str] = "telegram"
+    channel: Optional[str] = "whatsapp"  # whatsapp | email (telegram/discord not integrated)
     content_title: Optional[str] = "ECHO 2026 Hackathon Announcement"
     message: Optional[str] = "🚀 Registrations now open for Student Alumni Hackathon 2026!"
 
@@ -393,7 +393,7 @@ async def dispatch_community_broadcast(
 ):
     """Dispatches event announcements and job openings to community Telegram & WhatsApp groups."""
     from db import db
-    return await community_broadcast_service.dispatch_broadcast(db, req.community_ids, req.channel or "telegram", req.content_title or "ECHO 2026 Hackathon Announcement", req.message or "")
+    return await community_broadcast_service.dispatch_broadcast(db, req.community_ids, req.channel or "whatsapp", req.content_title or "Student Alumni announcement", req.message or "")
 
 @router.post("/outreach/ambassadors/match")
 async def match_alumni_regional_ambassador(

@@ -31,6 +31,7 @@ import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
 import { useRouter } from 'expo-router';
 import LandingPage from '@/src/views/web/LandingPage';
+import { request } from '@/src/models/services/api';
 
 export default function ContactPage() {
   if (Platform.OS === 'web') {
@@ -49,6 +50,7 @@ export default function ContactPage() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const topics = [
     { id: 'general', label: 'General Inquiry', icon: MessageSquare },
@@ -73,13 +75,29 @@ export default function ContactPage() {
     Linking.openURL(`mailto:${recipientEmail}`).catch(() => {});
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.fullName || !form.email || !form.message) return;
     setSending(true);
-    setTimeout(() => {
-      setSending(false);
+    setSubmitError(null);
+    try {
+      await request('/contact', {
+        method: 'POST',
+        auth: false,
+        body: {
+          full_name: form.fullName.trim(),
+          email: form.email.trim(),
+          phone: form.phone?.trim() || undefined,
+          organization: form.organization?.trim() || undefined,
+          topic: selectedTopic,
+          message: form.message.trim(),
+        },
+      });
       setSubmitted(true);
-    }, 800);
+    } catch (e: any) {
+      setSubmitError(e?.message || 'Could not send your message. Please try again or email us directly.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -484,6 +502,9 @@ export default function ContactPage() {
                   />
                 </View>
 
+                {submitError ? (
+                  <Text style={{ color: '#FCA5A5', fontSize: 13, marginBottom: 10 }}>{submitError}</Text>
+                ) : null}
                 <Pressable
                   onPress={handleSubmit}
                   disabled={sending || !form.fullName || !form.email || !form.message}

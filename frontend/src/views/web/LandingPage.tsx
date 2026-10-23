@@ -35,6 +35,7 @@ import CommonFooter from '@/src/views/components/CommonFooter';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import EchoEventsPage from '@/src/views/web/echo/EchoEventsPage';
+import { request } from '@/src/models/services/api';
 
 /* ── Brand Color Palette ── */
 const DARK_T = {
@@ -194,14 +195,6 @@ function injectGlobalStyles() {
   document.head.appendChild(s);
 }
 if (typeof document !== 'undefined') injectGlobalStyles();
-
-/* ── Sample Verifiable Credentials Database ── */
-const SAMPLE_CREDS: Record<string, [string, string, string]> = {
-  'SA-EXC-2026-0002': ['Certificate of Excellence', 'Sreenidhi Institute of Science & Technology', 'Feb 14, 2026'],
-  'SA-FAC-2026-0001': ['Faculty Award — Mentorship', 'StudentAlumni Academic Council', 'Jan 09, 2026'],
-  'SA-AMB-2026-0012': ['Campus Ambassador Badge', 'StudentAlumni Campus Relations', 'Mar 02, 2026'],
-  'ECHO26-P-0001': ['ECHO Specialization — Product', 'ECHO 2026 · VNR VJIET', 'Jul 31, 2026'],
-};
 
 const COLLEGES_MARQUEE = [
   '/logos/mlrit.png',
@@ -548,7 +541,10 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
     issuer: string;
     date: string;
     hash: string;
+    valid: boolean;
+    statusLabel: string;
   } | null>(null);
+  const [verifyBusy, setVerifyBusy] = useState(false);
 
   // BGV desk state
   const [bgvKind, setBgvKind] = useState('Single candidate');
@@ -798,21 +794,42 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
   const numbersTrigger = scrollY > 900 || activeTab !== 'home';
 
   // Verification Search Logic
-  const triggerVerification = (forceId?: string) => {
-    const q = (forceId || verifyInput).trim().toUpperCase();
+  // Verification runs against the public certificate registry; nothing is
+  // decided on the client.
+  const triggerVerification = async (forceId?: string) => {
+    const q = (forceId || verifyInput).trim();
     if (!q) return;
-    const hit = SAMPLE_CREDS[q];
-    let hashNum = 0;
-    for (let i = 0; i < q.length; i++) hashNum = (hashNum * 31 + q.charCodeAt(i)) & 0xffffffff;
-    const hash = (Math.abs(hashNum).toString(16) + 'a7f31c9e4b2058').slice(0, 18);
-
-    setVerifyResult({
-      id: q,
-      title: hit ? hit[0] : 'Verified Campus Credential',
-      issuer: hit ? hit[1] : 'StudentAlumni Academic Council',
-      date: hit ? hit[2] : 'Feb 2026',
-      hash,
-    });
+    setVerifyBusy(true);
+    try {
+      const data: any = await request(`/certificates/verify/${encodeURIComponent(q)}`, { auth: false });
+      const cert = data?.certificate || {};
+      const issued = data?.issued_at || cert.issued_at || cert.issued_on || '';
+      const date = issued
+        ? new Date(issued).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: '2-digit' })
+        : '—';
+      const user = data?.user || {};
+      setVerifyResult({
+        id: data?.identifier || data?.certificate_id || user.sa_id || q.toUpperCase(),
+        title: data?.title || (data?.type === 'id_card' || data?.type === 'user' ? `${user.full_name || 'Member'} · Digital ID` : 'Verified Credential'),
+        issuer: data?.issuer || user.institution || 'Student Alumni Network',
+        date,
+        hash: data?.verification_code || cert.verification_hash || cert.verification_code || '—',
+        valid: data?.valid !== false,
+        statusLabel: data?.status_label || 'Officially Verified',
+      });
+    } catch (e: any) {
+      setVerifyResult({
+        id: q.toUpperCase(),
+        title: 'No matching record',
+        issuer: '—',
+        date: '—',
+        hash: '—',
+        valid: false,
+        statusLabel: /404|not found/i.test(String(e?.message || '')) ? 'NOT FOUND' : 'VERIFICATION FAILED',
+      });
+    } finally {
+      setVerifyBusy(false);
+    }
   };
 
   return (
@@ -1113,32 +1130,8 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   />
                 </View>
                 <GlowButton onPress={() => triggerVerification()} style={styles.verifySubmitBtn} textStyle={styles.verifySubmitBtnText}>
-                  Verify Credential →
+                  {verifyBusy ? 'Checking…' : 'Verify Credential →'}
                 </GlowButton>
-              </View>
-
-              {/* Sample Chips */}
-              <View style={styles.sampleChipsRow}>
-                <Text style={styles.sampleChipsLabel}>Try sample IDs:</Text>
-                {[
-                  { id: 'SA-EXC-2026-0002', tag: 'Excellence' },
-                  { id: 'SA-FAC-2026-0001', tag: 'Faculty' },
-                  { id: 'SA-AMB-2026-0012', tag: 'Ambassador' },
-                  { id: 'ECHO26-P-0001', tag: 'Specialization' },
-                ].map((item) => (
-                  <Pressable
-                    key={item.id}
-                    onPress={() => {
-                      setVerifyInput(item.id);
-                      triggerVerification(item.id);
-                    }}
-                    style={styles.sampleChip}
-                  >
-                    <Text style={styles.sampleChipText}>
-                      {item.id} <Text style={{ color: T.muted2, fontWeight: '500' }}>({item.tag})</Text>
-                    </Text>
-                  </Pressable>
-                ))}
               </View>
 
               {/* Verification Result Box */}
@@ -1146,9 +1139,13 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 <View style={styles.verifyResultBox}>
                   <View style={styles.verifyResultTop}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                      <View style={styles.validStatusIcon}>
+                      <View style={[styles.validStatusIcon, !verifyResult.valid && { borderColor: '#F87171' }]}>
                         <Svg width="18" height="18" viewBox="0 0 24 24">
-                          <Path d="M5 12.5l4 4 10-10.5" stroke="#34D399" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                          {verifyResult.valid ? (
+                            <Path d="M5 12.5l4 4 10-10.5" stroke="#34D399" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                          ) : (
+                            <Path d="M6 6l12 12M18 6L6 18" stroke="#F87171" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+                          )}
                         </Svg>
                       </View>
                       <View>
@@ -1156,8 +1153,10 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                         <Text style={styles.verifyResultId}>{verifyResult.id}</Text>
                       </View>
                     </View>
-                    <View style={styles.validStatusBadge}>
-                      <Text style={styles.validStatusText}>SIGNATURE VALID</Text>
+                    <View style={[styles.validStatusBadge, !verifyResult.valid && { backgroundColor: 'rgba(248,113,113,0.12)', borderColor: 'rgba(248,113,113,0.4)' }]}>
+                      <Text style={[styles.validStatusText, !verifyResult.valid && { color: '#F87171' }]}>
+                        {verifyResult.valid ? 'SIGNATURE VALID' : verifyResult.statusLabel}
+                      </Text>
                     </View>
                   </View>
                   <View style={styles.verifyResultGrid}>
