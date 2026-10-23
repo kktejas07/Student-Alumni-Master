@@ -13,6 +13,13 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTheme } from '@/src/theme/ThemeContext';
+import Svg, {
+  Path,
+  Circle,
+  Rect,
+  Text as SvgText,
+} from 'react-native-svg';
 
 // Open an external link: new tab on web, system browser on native.
 const openExternal = (url: string) => {
@@ -22,13 +29,6 @@ const openExternal = (url: string) => {
     Linking.openURL(url).catch(() => {});
   }
 };
-import { useTheme } from '@/src/theme/ThemeContext';
-import Svg, {
-  Path,
-  Circle,
-  Rect,
-  Text as SvgText,
-} from 'react-native-svg';
 
 const DARK_T = {
   bg: '#08080F',

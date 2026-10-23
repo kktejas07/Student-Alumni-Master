@@ -5,7 +5,7 @@
  *   • mentor          → MentorDashboardView
  *   • college         → CollegeDashboardView
  */
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
