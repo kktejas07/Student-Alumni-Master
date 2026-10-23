@@ -192,15 +192,17 @@ class DailyAuditOrchestratorService:
         if db is not None:
             try:
                 entries = int(await db.audit_logs.count_documents({"$or": [{"ts": {"$gte": since}}, {"ts": {"$gte": since.isoformat()}}]}))
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("Failed to count audit_logs entries for 24-hour debug audit: %s", exc, exc_info=True)
+                notes.append("Could not read audit_logs entries for the last 24 h (using fallback count=0).")
             try:
                 errors = int(await db.visitor_events.count_documents({
                     "event": {"$in": ["app_error", "api_error"]},
                     "$or": [{"created_at": {"$gte": since}}, {"created_at": {"$gte": since.isoformat()}}],
                 }))
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("Failed to count visitor error events for 24-hour debug audit: %s", exc, exc_info=True)
+                notes.append("Could not read visitor error events for the last 24 h (using fallback count=0).")
             notes.append(f"{entries} audit_logs entries and {errors} client-reported errors in the last 24 h.")
         else:
             notes.append("No database connection; no logs analysed.")
