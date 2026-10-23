@@ -219,7 +219,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const runAiDraftNewsletter = async () => {
     setAiDrafting(true);
     try {
-      const res: any = await request('/api/newsletter/admin/ai-draft', {
+      const res: any = await request('/newsletter/admin/ai-draft', {
         method: 'POST',
         auth: true,
         body: {

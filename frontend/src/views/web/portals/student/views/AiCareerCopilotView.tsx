@@ -35,7 +35,7 @@ export function AiCareerCopilotView() {
     if (!resumeText.trim()) return;
     setAtsLoading(true);
     try {
-      const res: any = await request('/api/ai/career/ats-analyze', {
+      const res: any = await request('/ai/career/ats-analyze', {
         method: 'POST',
         body: {
           resume_text: resumeText.trim(),
@@ -57,7 +57,7 @@ export function AiCareerCopilotView() {
     setStudentAnswer('');
 
     try {
-      const res: any = await request('/api/ai/career/mock-interview-turn', {
+      const res: any = await request('/ai/career/mock-interview-turn', {
         method: 'POST',
         body: {
           role: mockRole,

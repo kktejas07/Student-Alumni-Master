@@ -17,7 +17,7 @@ from services.agents.code_health_agent import code_health_agent
 
 logger = logging.getLogger("code_health_router")
 
-router = APIRouter(prefix="/api/admin/code-health", tags=["Admin Code Health"])
+router = APIRouter(prefix="/admin/code-health", tags=["Admin Code Health"])  # mounted under /api
 
 
 class RunTriggerRequest(BaseModel):

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { request } from "@/src/models/services/api";
 
 // Analytics instrumentation per standards §3
 const trackScreen = (screenName: string, meta: Record<string, any>) => {
@@ -39,10 +40,10 @@ export const CodeHealthView: React.FC = () => {
     setLoading(true);
     try {
       const [resStatus, resMetrics, resFindings, resAutofixes] = await Promise.all([
-        fetch("/api/admin/code-health/status").then((r) => r.json()).catch(() => null),
-        fetch("/api/admin/code-health/metrics?range=30d").then((r) => r.json()).catch(() => null),
-        fetch("/api/admin/code-health/findings?status=open&limit=100").then((r) => r.json()).catch(() => null),
-        fetch("/api/admin/code-health/autofixes?limit=50").then((r) => r.json()).catch(() => null),
+        request<any>("/admin/code-health/status").catch(() => null),
+        request<any>("/admin/code-health/metrics?range=30d").catch(() => null),
+        request<any>("/admin/code-health/findings?status=open&limit=100").catch(() => null),
+        request<any>("/admin/code-health/autofixes?limit=50").catch(() => null),
       ]);
 
       if (resStatus) setStatus(resStatus);
@@ -61,12 +62,10 @@ export const CodeHealthView: React.FC = () => {
     setRunningCycle(true);
     setActionMsg("Running full codebase audit...");
     try {
-      const res = await fetch("/api/admin/code-health/run", {
+      const data = await request<any>("/admin/code-health/run", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scope: "repo", autofix: false }),
+        body: { scope: "repo", autofix: false },
       });
-      const data = await res.json();
       setActionMsg(`Audit complete! Score: ${data.health_score}/100, Open Findings: ${data.total_findings}`);
       fetchData();
     } catch (e: any) {
@@ -79,10 +78,9 @@ export const CodeHealthView: React.FC = () => {
   const handleStartLoop = async () => {
     trackClick("code_health_start_loop");
     try {
-      await fetch("/api/admin/code-health/loop-agent/start", {
+      await request("/admin/code-health/loop-agent/start", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ interval_seconds: 86400 }),
+        body: { interval_seconds: 86400 },
       });
       setActionMsg("24h Loop worker started.");
       fetchData();
@@ -94,7 +92,7 @@ export const CodeHealthView: React.FC = () => {
   const handleStopLoop = async () => {
     trackClick("code_health_stop_loop");
     try {
-      await fetch("/api/admin/code-health/loop-agent/stop", { method: "POST" });
+      await request("/admin/code-health/loop-agent/stop", { method: "POST" });
       setActionMsg("Loop worker stopped.");
       fetchData();
     } catch (e: any) {
@@ -105,10 +103,9 @@ export const CodeHealthView: React.FC = () => {
   const handlePatchStatus = async (fingerprint: string, newStatus: string) => {
     trackClick("code_health_patch_status", { fingerprint, newStatus });
     try {
-      await fetch(`/api/admin/code-health/findings/${fingerprint}`, {
+      await request(`/admin/code-health/findings/${fingerprint}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus, admin_note: "Updated from SuperAdmin UI" }),
+        body: { status: newStatus, admin_note: "Updated from SuperAdmin UI" },
       });
       setActionMsg(`Finding updated to ${newStatus}`);
       fetchData();

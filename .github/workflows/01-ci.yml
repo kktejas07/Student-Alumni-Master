@@ -54,6 +54,9 @@ jobs:
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
       AGENT_K_SCHEDULER_ENABLED: "0"
+      # The flag background_sync.py actually reads; keeps APScheduler off in CI.
+      SYNC_SCHEDULER_ENABLED: "0"
+      ENV: development
 
     steps:
       - uses: actions/checkout@v4
