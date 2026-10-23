@@ -256,64 +256,87 @@ async def _lifespan(application):
     except Exception as _e:
         logger.warning("Could not init Agent K collection: %s", _e)
 
-    # Start the hourly content sync scheduler.
-    try:
-        from background_sync import start_sync_scheduler, check_dependencies
-        check_dependencies()
-        start_sync_scheduler()
-    except Exception as _e:
-        logger.warning("Could not start background sync scheduler: %s", _e)
-
-    # Start the workflow automation cron tick (60s polling).
-    try:
-        from workflow_automation import run_cron_workflows as _run_cron
-        from newsletter import process_scheduled_campaigns as _process_sched
-        from echo_showcase import sweep_expired_echo_payments as _sweep_echo_pay
-
-        async def _wf_cron_tick():
-            while True:
-                try:
-                    await _run_cron()
-                except Exception:
-                    pass
-                try:
-                    await _process_sched(db)
-                except Exception:
-                    pass
-                try:
-                    sweep_summary = await _sweep_echo_pay(db)
-                    if sweep_summary.get("failed") or sweep_summary.get("reminded"):
-                        logger.info("ECHO payment sweep: %s", sweep_summary)
-                except Exception:
-                    pass
-                await asyncio.sleep(60)
-        asyncio.create_task(_wf_cron_tick())
-    except Exception as _e:
-        logger.warning("Could not start Workflow cron: %s", _e)
-
     try:
         from core.email_quality import warmup as _email_warmup
         asyncio.create_task(_email_warmup())
     except Exception as _e:
         logger.warning("Could not warm email quality list: %s", _e)
 
-    # Start the 30-minute recurring multi-agent scheduler worker
-    try:
-        from services.agents.agent_scheduler import agent_scheduler
-        agent_scheduler.start(db=db)
-    except Exception as _e:
-        logger.warning("Could not start 30-minute Agent Scheduler: %s", _e)
+    # Background schedulers run in exactly ONE worker. With UVICORN_WORKERS>1
+    # every process used to start them, so crons, payment sweeps and
+    # newsletter sends ran N times. core.leader hands out a Mongo lease.
+    async def _start_background_jobs():
+        # Start the hourly content sync scheduler.
+        try:
+            from background_sync import start_sync_scheduler, check_dependencies
+            check_dependencies()
+            start_sync_scheduler()
+        except Exception as _e:
+            logger.warning("Could not start background sync scheduler: %s", _e)
 
-    # Start the 24-hour autonomous operations & audit swarm
+        # Start the workflow automation cron tick (60s polling).
+        try:
+            from workflow_automation import run_cron_workflows as _run_cron
+            from newsletter import process_scheduled_campaigns as _process_sched
+            from echo_showcase import sweep_expired_echo_payments as _sweep_echo_pay
+
+            async def _wf_cron_tick():
+                while True:
+                    try:
+                        await _run_cron()
+                    except Exception as _ce:
+                        logger.exception("workflow cron tick failed: %s", _ce)
+                    try:
+                        await _process_sched(db)
+                    except Exception as _ce:
+                        logger.exception("scheduled newsletter processing failed: %s", _ce)
+                    try:
+                        sweep_summary = await _sweep_echo_pay(db)
+                        if sweep_summary.get("failed") or sweep_summary.get("reminded"):
+                            logger.info("ECHO payment sweep: %s", sweep_summary)
+                    except Exception as _ce:
+                        logger.exception("ECHO payment sweep failed: %s", _ce)
+                    await asyncio.sleep(60)
+            asyncio.create_task(_wf_cron_tick())
+        except Exception as _e:
+            logger.warning("Could not start Workflow cron: %s", _e)
+
+        # Start the 30-minute recurring multi-agent scheduler worker
+        try:
+            from services.agents.agent_scheduler import agent_scheduler
+            agent_scheduler.start(db=db)
+        except Exception as _e:
+            logger.warning("Could not start 30-minute Agent Scheduler: %s", _e)
+
+        # Start the 24-hour autonomous operations & audit swarm
+        try:
+            from services.agents.daily_audit_agents import daily_audit_service
+            daily_audit_service.start(db=db)
+        except Exception as _e:
+            logger.warning("Could not start 24-hour Daily Audit Swarm: %s", _e)
+
+
     try:
-        from services.agents.daily_audit_agents import daily_audit_service
-        daily_audit_service.start(db=db)
+        from core.leader import run_as_leader
+        _leader_task = asyncio.create_task(run_as_leader(db, _start_background_jobs))
+        application.state.leader_task = _leader_task
     except Exception as _e:
-        logger.warning("Could not start 24-hour Daily Audit Swarm: %s", _e)
+        logger.warning("Could not start scheduler leader supervisor: %s", _e)
 
     yield  # ← application runs here
 
     # ── SHUTDOWN ─────────────────────────────────────────────────────────────
+
+    try:
+        _lt = getattr(application.state, "leader_task", None)
+        if _lt and not _lt.done():
+            _lt.cancel()
+            try:
+                await _lt
+            except (asyncio.CancelledError, Exception):
+                pass
+    except Exception:
+        pass
 
     try:
         from services.agents.daily_audit_agents import daily_audit_service
