@@ -166,7 +166,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                 y="214"
                 textAnchor="middle"
                 style={{
-                  fontFamily: "'Outfit', 'Manrope', -apple-system, sans-serif",
+                  fontFamily: "'Outfit', 'DM Sans', -apple-system, sans-serif",
                   fontSize: '124px',
                   fontWeight: 800,
                   fill: '#FFFFFF',
@@ -176,7 +176,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
               </text>
             </svg>
             {!isMobile && (
-              <span style={{ fontSize: '17px', fontWeight: 700, letterSpacing: '-0.3px', color: theme.text, fontFamily: "'Outfit', 'Manrope', sans-serif", transition: 'color 0.3s ease' }}>
+              <span style={{ fontSize: '17px', fontWeight: 700, letterSpacing: '-0.3px', color: theme.text, fontFamily: "'Outfit', 'DM Sans', sans-serif", transition: 'color 0.3s ease' }}>
                 StudentAlumni
               </span>
             )}
@@ -207,7 +207,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                       padding: '6px 2px',
                       cursor: 'pointer',
                       transition: 'color 0.2s ease',
-                      fontFamily: "'Outfit', 'Manrope', sans-serif",
+                      fontFamily: "'Outfit', 'DM Sans', sans-serif",
                     }}
                   >
                     <span>{tab.label}</span>
@@ -292,7 +292,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                     padding: '9px 24px',
                     border: 'none',
                     cursor: 'pointer',
-                    fontFamily: "'Outfit', 'Manrope', sans-serif",
+                    fontFamily: "'Outfit', 'DM Sans', sans-serif",
                     boxShadow: '0 4px 14px rgba(91,79,233,0.35)',
                     transition: 'transform 0.2s ease, filter 0.2s ease',
                   }}
@@ -312,7 +312,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                       cursor: 'pointer',
                       padding: '6px 4px',
                       transition: 'color 0.2s ease',
-                      fontFamily: "'Outfit', 'Manrope', sans-serif",
+                      fontFamily: "'Outfit', 'DM Sans', sans-serif",
                     }}
                   >
                     Sign in
@@ -329,7 +329,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                       border: 'none',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
-                      fontFamily: "'Outfit', 'Manrope', sans-serif",
+                      fontFamily: "'Outfit', 'DM Sans', sans-serif",
                       boxShadow: '0 4px 14px rgba(91,79,233,0.35)',
                       transition: 'transform 0.2s ease, filter 0.2s ease',
                     }}
@@ -414,7 +414,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                   borderRadius: '10px',
                   padding: '10px 14px',
                   cursor: 'pointer',
-                  fontFamily: "'Outfit', 'Manrope', sans-serif",
+                  fontFamily: "'Outfit', 'DM Sans', sans-serif",
                 }}
               >
                 {tab.label}
@@ -446,7 +446,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                   padding: '10px 20px',
                   border: 'none',
                   cursor: 'pointer',
-                  fontFamily: "'Outfit', 'Manrope', sans-serif",
+                  fontFamily: "'Outfit', 'DM Sans', sans-serif",
                 }}
               >
                 Dashboard
@@ -465,7 +465,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                     borderRadius: '100px',
                     padding: '10px 16px',
                     cursor: 'pointer',
-                    fontFamily: "'Outfit', 'Manrope', sans-serif",
+                    fontFamily: "'Outfit', 'DM Sans', sans-serif",
                   }}
                 >
                   Sign in
@@ -482,7 +482,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                     padding: '10px 16px',
                     border: 'none',
                     cursor: 'pointer',
-                    fontFamily: "'Outfit', 'Manrope', sans-serif",
+                    fontFamily: "'Outfit', 'DM Sans', sans-serif",
                   }}
                 >
                   Get Started

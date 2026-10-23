@@ -15,13 +15,6 @@ import {
   Outfit_700Bold,
   Outfit_800ExtraBold,
 } from '@expo-google-fonts/outfit';
-import {
-  Manrope_400Regular,
-  Manrope_500Medium,
-  Manrope_600SemiBold,
-  Manrope_700Bold,
-  Manrope_800ExtraBold,
-} from '@expo-google-fonts/manrope';
 import { ActivityIndicator, LogBox, Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -116,15 +109,8 @@ export default function RootLayout() {
     Outfit_600SemiBold,
     Outfit_700Bold,
     Outfit_800ExtraBold,
-    PlusJakartaSans_400Regular: Manrope_400Regular,
-    PlusJakartaSans_500Medium: Manrope_500Medium,
-    PlusJakartaSans_600SemiBold: Manrope_600SemiBold,
-    PlusJakartaSans_700Bold: Manrope_700Bold,
-    PlusJakartaSans_800ExtraBold: Manrope_800ExtraBold,
-    JetBrainsMono_400Regular: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    JetBrainsMono_500Medium: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    JetBrainsMono_600SemiBold: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    JetBrainsMono_700Bold: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    // Mono — one bundled weight (see src/theme/typography.ts)
+    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
 

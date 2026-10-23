@@ -103,9 +103,9 @@ function injectGlobalStyles() {
   const s = document.createElement('style');
   s.id = STYLES_KEY;
   s.textContent = `
-    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; overflow-x: hidden; }
+    html, body { margin: 0; padding: 0; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; overflow-x: hidden; }
     
     @keyframes sa-twinkle {
       0%, 100% { opacity: 0.25; transform: scale(0.85); }
@@ -874,7 +874,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
             transform: curtainTransform,
             opacity: curtainOpacity,
             transition: 'transform 0.65s cubic-bezier(0.76, 0, 0.24, 1), opacity 0.45s ease',
-            fontFamily: "'Manrope', sans-serif",
+            fontFamily: "'DM Sans', sans-serif",
           }}
         >
           {/* Centered Brand Content with Logo Shine and Text Shimmer */}
@@ -909,7 +909,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   </linearGradient>
                 </defs>
                 <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#sa-curtain-badge)" />
-                <text x="150" y="212" textAnchor="middle" style={{ fontFamily: "'Manrope', sans-serif", fontSize: '122px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>
+                <text x="150" y="212" textAnchor="middle" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '122px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>
                   SA
                 </text>
               </svg>
@@ -1752,7 +1752,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                       fill="#FFFFFF"
                       fontSize="128"
                       fontWeight="800"
-                      fontFamily="'Manrope', sans-serif"
+                      fontFamily="'DM Sans', sans-serif"
                       letterSpacing="-4px"
                     >
                       SA
@@ -2345,7 +2345,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                           <circle cx="30" cy="230" r="3" fill="#4B4E65" />
                         </>
                       )}
-                      <text x="30" y="278" textAnchor="middle" fill={roadmapProgress >= 0.05 ? T.text : T.dim} fontSize="17" fontWeight="700" fontFamily="'Manrope', sans-serif">01 Foundations</text>
+                      <text x="30" y="278" textAnchor="middle" fill={roadmapProgress >= 0.05 ? T.text : T.dim} fontSize="17" fontWeight="700" fontFamily="'DM Sans', sans-serif">01 Foundations</text>
                     </g>
 
                     {/* Milestone 02: Skill plan */}
@@ -2362,7 +2362,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                           <circle cx="360" cy="70" r="3" fill="#4B4E65" />
                         </>
                       )}
-                      <text x="360" y="32" textAnchor="middle" fill={roadmapProgress >= 0.30 ? T.text : T.dim} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">02 Skill plan</text>
+                      <text x="360" y="32" textAnchor="middle" fill={roadmapProgress >= 0.30 ? T.text : T.dim} fontSize="18" fontWeight="700" fontFamily="'DM Sans', sans-serif">02 Skill plan</text>
                     </g>
 
                     {/* Milestone 03: Opportunities */}
@@ -2379,7 +2379,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                           <circle cx="700" cy="230" r="3" fill="#4B4E65" />
                         </>
                       )}
-                      <text x="700" y="278" textAnchor="middle" fill={roadmapProgress >= 0.56 ? T.text : T.dim} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">03 Opportunities</text>
+                      <text x="700" y="278" textAnchor="middle" fill={roadmapProgress >= 0.56 ? T.text : T.dim} fontSize="18" fontWeight="700" fontFamily="'DM Sans', sans-serif">03 Opportunities</text>
                     </g>
 
                     {/* Milestone 04: Full-time */}
@@ -2396,7 +2396,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                           <circle cx="1010" cy="60" r="3" fill="#4B4E65" />
                         </>
                       )}
-                      <text x="1010" y="22" textAnchor="middle" fill={roadmapProgress >= 0.82 ? T.text : T.dim} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">04 Full-time</text>
+                      <text x="1010" y="22" textAnchor="middle" fill={roadmapProgress >= 0.82 ? T.text : T.dim} fontSize="18" fontWeight="700" fontFamily="'DM Sans', sans-serif">04 Full-time</text>
                     </g>
                   </svg>
                 </View>
@@ -2581,8 +2581,8 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                     
                     {/* Center User Hub */}
                     <circle cx="310" cy="270" r="52" fill="#0C0E1B" stroke="#5B4FE9" strokeWidth="2.4" />
-                    <text x="310" y="266" textAnchor="middle" fill={T.text} fontSize="16" fontWeight="800" fontFamily="'Manrope', sans-serif">YOU</text>
-                    <text x="310" y="286" textAnchor="middle" fill={T.muted} fontSize="9.5" fontWeight="700" letterSpacing="1.4" fontFamily="'Manrope', sans-serif">YEAR 3</text>
+                    <text x="310" y="266" textAnchor="middle" fill={T.text} fontSize="16" fontWeight="800" fontFamily="'DM Sans', sans-serif">YOU</text>
+                    <text x="310" y="286" textAnchor="middle" fill={T.muted} fontSize="9.5" fontWeight="700" letterSpacing="1.4" fontFamily="'DM Sans', sans-serif">YEAR 3</text>
 
                     {[
                       { x: 310, y: 132, score: '98', name: 'Priya R. — Product, Bengaluru', why: 'Same course, four years ahead. Mentors three students each term.' },
@@ -2619,7 +2619,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                             fill={isSelected ? '#FFFFFF' : '#8B84FF'}
                             fontSize={isSelected ? '14' : '13'}
                             fontWeight="700"
-                            fontFamily="'Manrope', sans-serif"
+                            fontFamily="'DM Sans', sans-serif"
                           >
                             {node.score}
                           </text>

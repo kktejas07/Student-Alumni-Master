@@ -181,7 +181,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderColor: C.border },
   brain: { width: 36, height: 36, borderRadius: 999,
     backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' },
-  title: { color: '#fff', fontFamily: 'DMSans_900Black', fontSize: 14.5 },
+  title: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14.5 },
   subtitle: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
   closeBtn: { width: 30, height: 30, borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.06)',
