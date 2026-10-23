@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Student Portal — Dashboard view (true RN port of HTML spec).
  *
@@ -11,7 +10,7 @@
  *   • Profile completion CTA
  */
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -20,7 +19,6 @@ import {
 } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { Av, Badge, KpiCard } from '../atoms';
-import * as MOCK from '../../student/data';
 import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
@@ -31,14 +29,68 @@ import { useToast } from '@/src/views/components';
 
 const KPI_ICONS = { matches: Briefcase, applications: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp, events: Calendar } as const;
 
-const STUDENT_MOCK = {
-  student: MOCK.STUDENT,
-  kpis: MOCK.KPIS,
-  topMatches: MOCK.TOP_MATCHES,
-  recommendedMentors: MOCK.RECOMMENDED_MENTORS,
-  upcomingEvents: MOCK.UPCOMING_EVENTS,
-  profileCompletion: MOCK.PROFILE_COMPLETION,
+/**
+ * Response shape of GET /api/student/dashboard (backend/portals.py,
+ * `student_dashboard`). Lists may be empty; `tier` may be absent.
+ */
+type StudentTier = {
+  tier: string;
+  score: number;
+  visuals?: { glow?: string; [k: string]: any };
+  suggestions?: { skills?: string[]; [k: string]: any };
 };
+type StudentDashboard = {
+  student: {
+    id: string;
+    name: string;
+    initials: string;
+    year: string;
+    saId: string | null;
+    career: { goal: string; progressPct: number };
+    career_score: number;
+    tier: StudentTier | null;
+  };
+  stats?: Record<string, string | number>;
+  kpis: { id: string; label: string; value: string; delta: string; color: string }[];
+  topMatches: { id: string; role: string; company: string; location: string; match: number; type: string; logo: string; logoBg: string }[];
+  recommendedMentors: {
+    id: string; name: string; initials: string; role: string; company: string;
+    rating: number; sessions: number; price: number; color: string;
+    bio?: string; skills?: string[]; avatar?: string;
+  }[];
+  upcomingEvents: { id: string | number; title: string; date: string; mode: string; kind: string; price?: number; accent: string }[];
+  profileCompletion: { score: number; missing: string[] };
+};
+
+const EMPTY: StudentDashboard = {
+  student: {
+    id: '', name: '', initials: '', year: '', saId: null,
+    career: { goal: '', progressPct: 0 },
+    career_score: 0,
+    tier: null,
+  },
+  kpis: [],
+  topMatches: [],
+  recommendedMentors: [],
+  upcomingEvents: [],
+  profileCompletion: { score: 0, missing: [] },
+};
+
+/** Labels for the four KPI tiles, shown only as placeholders when the API has no numbers. */
+const KPI_PLACEHOLDERS: StudentDashboard['kpis'] = [
+  { id: 'matches',      label: 'Profile Strength',   value: '--', delta: 'No data yet', color: 'purple' },
+  { id: 'applications', label: 'Applications',       value: '--', delta: 'No data yet', color: 'blue' },
+  { id: 'mentors',      label: 'Mentor Connections', value: '--', delta: 'No data yet', color: 'green' },
+  { id: 'events',       label: 'Events',             value: '--', delta: 'No data yet', color: 'red' },
+];
+
+function SkeletonBlock({ height, flex }: { height: number; flex?: number }) {
+  return <View style={[s.skeleton, { height }, flex !== undefined && { flex }]} />;
+}
+
+function EmptyLine({ text }: { text: string }) {
+  return <Text style={s.emptyLine}>{text}</Text>;
+}
 
 export function DashboardView({
   onOpenProfile, onOpenInternships, onOpenNetwork, onOpenEvents, onOpenCareerAi,
@@ -51,15 +103,18 @@ export function DashboardView({
 } = {}) {
   const router = useRouter();
   const toast = useToast();
-  const { data } = usePortalData<typeof STUDENT_MOCK>('/student/dashboard', STUDENT_MOCK);
-  // Live counters polled every 15s so users can SEE auto-refresh working
-  const { data: live } = usePortalData<any>('/live/counters', null as any, 15_000);
-  const STUDENT = data!.student;
-  const KPIS = data!.kpis;
-  const TOP_MATCHES = data!.topMatches;
-  const RECOMMENDED_MENTORS = data!.recommendedMentors;
-  const UPCOMING_EVENTS = data!.upcomingEvents;
-  const PROFILE_COMPLETION = data!.profileCompletion;
+  const { data, loading, error, refresh } = usePortalData<StudentDashboard>('/student/dashboard', EMPTY);
+  const view: StudentDashboard = data || EMPTY;
+  const STUDENT = view.student;
+  // The API always returns four KPI entries; an empty list means nothing has loaded.
+  const hasData = view.kpis.length > 0;
+  const KPIS = hasData ? view.kpis : KPI_PLACEHOLDERS;
+  const TOP_MATCHES = view.topMatches;
+  const RECOMMENDED_MENTORS = view.recommendedMentors;
+  const UPCOMING_EVENTS = view.upcomingEvents;
+  const PROFILE_COMPLETION = view.profileCompletion;
+  const tier = STUDENT.tier;
+  const tierGlow = tier?.visuals?.glow || '#378FE9';
 
   const [briefText, setBriefText] = React.useState<string>('');
   const [briefLoading, setBriefLoading] = React.useState<boolean>(false);
@@ -69,8 +124,38 @@ export function DashboardView({
   const matchW = stack ? '100%' : '64%';
   const mentorW = stack ? '100%' : '34%';
 
+  if (loading && !hasData) {
+    return (
+      <View style={{ gap: 16 }}>
+        <SkeletonBlock height={64} />
+        <SkeletonBlock height={160} />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+          {[0, 1, 2, 3].map((i) => <SkeletonBlock key={i} height={104} flex={1} />)}
+        </View>
+        <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
+          <SkeletonBlock height={220} flex={stack ? undefined : 1.9} />
+          <SkeletonBlock height={220} flex={stack ? undefined : 1} />
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+          <ActivityIndicator size="small" color={SC.primary} />
+          <Text style={s.emptyLine}>Loading dashboard</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={{ gap: 16 }}>
+      {/* Error banner: request failed. Any previously loaded data stays on screen. */}
+      {error && (
+        <View style={s.errorBox}>
+          <Text style={s.errorText}>Could not load dashboard data. {error}</Text>
+          <Pressable onPress={refresh} style={({ hovered }: any) => [s.retryBtn, hovered && { opacity: 0.9 }]}>
+            <Text style={s.retryText}>Retry</Text>
+          </Pressable>
+        </View>
+      )}
+
       {/* Ad Banner */}
       <AdBanner />
 
@@ -108,31 +193,25 @@ export function DashboardView({
       <LiveStrip accent="#22C55E" keys={['users', 'bookings', 'applications', 'workshops']} />
 
       {/* TIER BANNER — glowing badge + score + tier-driven suggestions */}
-      {STUDENT.tier && (
+      {tier && (
         <View style={s.tierCard}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-            <TierBadge tier={STUDENT.tier.tier} size="lg" />
+            <TierBadge tier={tier.tier} size="lg" />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={s.tierKicker}>YOUR TIER · BASED ON COLLEGE • SKILLS • PROFILE</Text>
               <Text style={s.tierTitle}>
-                {STUDENT.tier.tier} <Text style={s.tierScore}>· {STUDENT.tier.score}/100</Text>
-              </Text>
-              <Text style={s.tierSub}>
-                {STUDENT.tier.tier === 'Platinum' && 'You unlock FAANG, OpenAI & Stripe-level opportunities.'}
-                {STUDENT.tier.tier === 'Gold' && 'Top Indian tech & senior roles are pinned for you.'}
-                {STUDENT.tier.tier === 'Silver' && 'Solid foundation — keep building your stack to reach Gold.'}
-                {STUDENT.tier.tier === 'Bronze' && 'Build your portfolio — first projects unlock Silver tier.'}
+                {tier.tier} <Text style={s.tierScore}>· {tier.score}/100</Text>
               </Text>
             </View>
           </View>
 
-          {/* Tier suggestions row */}
-          {STUDENT.tier.suggestions && (
+          {/* Tier suggestions row (only skills the API suggested) */}
+          {(tier.suggestions?.skills || []).length > 0 && (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-              {(STUDENT.tier.suggestions.skills || []).slice(0, 3).map((skill: string) => (
+              {(tier.suggestions?.skills || []).slice(0, 3).map((skill: string) => (
                 <View key={skill} style={s.tierChip}>
-                  <Sparkles size={10} color={STUDENT.tier.visuals?.glow || '#378FE9'} />
-                  <Text style={[s.tierChipText, { color: STUDENT.tier.visuals?.glow || '#378FE9' }]}>{skill}</Text>
+                  <Sparkles size={10} color={tierGlow} />
+                  <Text style={[s.tierChipText, { color: tierGlow }]}>{skill}</Text>
                 </View>
               ))}
             </View>
@@ -146,8 +225,17 @@ export function DashboardView({
           <Sparkles size={13} color={SC.accent} />
           <Text style={s.kicker}>AI CAREER ASSISTANT · PERSONALISED ROADMAP</Text>
         </View>
-        <Text style={s.roadmapTitle}>You’re {STUDENT.career.progressPct}% toward your goal:</Text>
-        <Text style={s.roadmapGoal}>{STUDENT.career.goal}</Text>
+        {hasData && STUDENT.career.goal ? (
+          <>
+            <Text style={s.roadmapTitle}>You’re {STUDENT.career.progressPct}% toward your goal:</Text>
+            <Text style={s.roadmapGoal}>{STUDENT.career.goal}</Text>
+          </>
+        ) : (
+          <>
+            <Text style={s.roadmapTitle}>No career goal set yet</Text>
+            <Text style={s.emptyLine}>Set a goal in Career AI to track your progress here.</Text>
+          </>
+        )}
 
         <View style={{ marginTop: 14 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -196,6 +284,7 @@ export function DashboardView({
             <Pressable onPress={onOpenInternships}><Text style={s.seeAll}>See all →</Text></Pressable>
           </View>
           <View style={{ gap: 10 }}>
+            {TOP_MATCHES.length === 0 && <EmptyLine text="No matches yet. Complete your profile to get recommendations." />}
             {TOP_MATCHES.slice(0, 3).map((m) => (
               <Pressable key={m.id} style={({ hovered }: any) => [s.matchRow, hovered && { backgroundColor: SC.cardH }]}>
                 <View style={[s.companyLogo, { backgroundColor: m.logoBg }]}><Text style={s.companyLogoText}>{m.logo}</Text></View>
@@ -224,6 +313,7 @@ export function DashboardView({
             <Pressable onPress={onOpenNetwork}><Text style={s.seeAll}>See all →</Text></Pressable>
           </View>
           <View style={{ gap: 10 }}>
+            {RECOMMENDED_MENTORS.length === 0 && <EmptyLine text="No mentor recommendations yet." />}
             {RECOMMENDED_MENTORS.slice(0, 2).map((m) => (
               <View key={m.id} style={s.mentorCard}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -249,11 +339,11 @@ export function DashboardView({
                       id: m.id,
                       name: m.name,
                       title: m.role,
-                      bio: (m.bio || 'Experienced professional ready to share industry insights, career strategies, and guidance.').slice(0, 200) + ((m.bio || '').length > 200 ? '...' : ''),
-                      avatar: m.avatar || `https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200`,
+                      bio: (m.bio || '').slice(0, 200) + ((m.bio || '').length > 200 ? '...' : ''),
+                      avatar: m.avatar || '',
                       rating: String(m.rating),
                       sessions: String(m.sessions),
-                      tags: m.skills?.join(',') || 'System Design,Career Strategy',
+                      tags: m.skills?.join(',') || '',
                     }
                   } as any)}
                   style={({ hovered }: any) => [s.bookCta, hovered && { backgroundColor: SC.primaryL }]}
@@ -274,6 +364,7 @@ export function DashboardView({
           <Pressable onPress={onOpenEvents}><Text style={s.seeAll}>See all →</Text></Pressable>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+          {UPCOMING_EVENTS.length === 0 && <EmptyLine text="No upcoming events." />}
           {UPCOMING_EVENTS.map((e) => (
             <Pressable key={e.id} style={({ hovered }: any) => [s.eventCard, hovered && { backgroundColor: SC.cardH }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>

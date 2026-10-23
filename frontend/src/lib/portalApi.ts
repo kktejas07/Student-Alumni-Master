@@ -17,6 +17,9 @@ export async function fetchPortal<T>(path: string): Promise<T> {
   return request<T>(path);
 }
 
+/** Alias kept for callers written against `getPortal`. */
+export const getPortal = fetchPortal;
+
 export async function postPortal<T = any>(path: string, opts?: { method?: string; body?: any }): Promise<T> {
   return request<T>(path, {
     method: opts?.method || 'POST',

@@ -16,8 +16,7 @@ import {
   UserPlus, Calendar, Briefcase, Bell, TrendingUp, Building2, Plus,
 } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
-import { Av, Badge, KpiCard } from '../atoms';
-import * as MOCK from '../data';
+import { Badge, KpiCard } from '../atoms';
 import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
 
@@ -33,14 +32,76 @@ const ACTIVITY_ICONS: Record<string, any> = {
   GraduationCap, UserPlus, Calendar, Briefcase, Bell, TrendingUp,
 };
 
-const COLLEGE_MOCK = {
-  college: MOCK.COLLEGE,
-  kpis: MOCK.KPIS,
-  deptPlacement: MOCK.DEPT_PLACEMENT,
-  recentActivity: MOCK.RECENT_ACTIVITY,
-  upcomingEvents: MOCK.UPCOMING_EVENTS,
-  topRecruiters: MOCK.TOP_RECRUITERS,
+/**
+ * Response shape of GET /api/admin/college-stats (backend/portals.py,
+ * `college_admin_stats`). Every list may legitimately be empty.
+ */
+type CollegeTier = {
+  tier: string;
+  score: number;
+  naac?: string;
+  visuals?: { bg?: string; text?: string; border?: string; icon?: string };
 };
+type CollegeDashboard = {
+  college: {
+    name: string;
+    shortName: string;
+    initials: string;
+    rank: string;
+    emoji: string;
+    placementRate: number;
+    upcomingHighlight: string;
+    tier: CollegeTier | null;
+  };
+  kpis: { id: string; label: string; value: string; delta: string; color: string }[];
+  deptPlacement: { dept: string; pct: number; placed: number; color: string }[];
+  recentActivity: { id: string | number; kind?: string; text: string; time: string; icon: string; tint: string }[];
+  upcomingEvents: { id: string | number; title: string; date: string; attending: number; color: string }[];
+  topRecruiters: { id: string | number; name: string; offers: number; ctc: string; color: string }[];
+};
+
+/** Labels for the four KPI tiles, used only as placeholders when the API has no numbers. */
+const KPI_PLACEHOLDERS: CollegeDashboard['kpis'] = [
+  { id: 'students',  label: 'Total Students',    value: '--', delta: 'No data yet', color: 'blue' },
+  { id: 'alumni',    label: 'Alumni Network',    value: '--', delta: 'No data yet', color: 'purple' },
+  { id: 'placement', label: 'Placement Rate',    value: '--', delta: 'No data yet', color: 'green' },
+  { id: 'events',    label: 'Events This Month', value: '--', delta: 'No data yet', color: 'amber' },
+];
+
+function makeEmpty(collegeName: string): CollegeDashboard {
+  const name = collegeName || 'Your college';
+  return {
+    college: {
+      name,
+      shortName: name,
+      initials: name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase(),
+      rank: '',
+      emoji: '',
+      placementRate: 0,
+      upcomingHighlight: '',
+      tier: null,
+    },
+    kpis: [],
+    deptPlacement: [],
+    recentActivity: [],
+    upcomingEvents: [],
+    topRecruiters: [],
+  };
+}
+
+/** Day-of-month from a date string such as "May 10, 2026"; "--" when absent. */
+function dayOf(date: string): string {
+  const m = /\b(\d{1,2})\b/.exec(date || '');
+  return m ? m[1] : '--';
+}
+
+function SkeletonBlock({ height, flex }: { height: number; flex?: number }) {
+  return <View style={[s.skeleton, { height }, flex !== undefined && { flex }]} />;
+}
+
+function EmptyLine({ text }: { text: string }) {
+  return <Text style={s.emptyLine}>{text}</Text>;
+}
 
 export function DashboardView({
   onOpenProfile,
@@ -51,12 +112,13 @@ export function DashboardView({
 }) {
   const user = useAuthStore((state) => state.user);
   const collegeName = (user as any)?.institution || user?.college_info?.institution_name || user?.school_info?.institution_name || '';
+  const EMPTY = React.useMemo(() => makeEmpty(collegeName), [collegeName]);
 
-  const { data, loading } = usePortalData<typeof COLLEGE_MOCK>(
+  const { data, loading, error, refresh } = usePortalData<CollegeDashboard>(
     collegeName
       ? `/admin/college-stats?college_name=${encodeURIComponent(collegeName)}`
       : '/admin/college-stats',
-    COLLEGE_MOCK
+    EMPTY
   );
 
   const { width } = useWindowDimensions();
@@ -65,40 +127,72 @@ export function DashboardView({
   const [briefText, setBriefText] = React.useState<string>('');
   const [briefLoading, setBriefLoading] = React.useState<boolean>(false);
 
-  if (loading && data === COLLEGE_MOCK) {
+  const view: CollegeDashboard = data || EMPTY;
+  const COLLEGE = view.college;
+  // The API always returns four KPI entries; an empty list means nothing has loaded.
+  const hasData = view.kpis.length > 0;
+  const KPIS = hasData ? view.kpis : KPI_PLACEHOLDERS;
+  const DEPT_PLACEMENT = view.deptPlacement;
+  const RECENT_ACTIVITY = view.recentActivity;
+  const UPCOMING_EVENTS = view.upcomingEvents;
+  const TOP_RECRUITERS = view.topRecruiters;
+
+  if (loading && !hasData) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <ActivityIndicator size="large" color="#FCD34D" />
+      <View style={{ gap: 16 }}>
+        <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
+          <View style={{ flex: 1, gap: 8 }}>
+            <SkeletonBlock height={26} />
+            <SkeletonBlock height={14} />
+          </View>
+          {!stack && <SkeletonBlock height={64} flex={0.6} />}
+        </View>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+          {[0, 1, 2, 3].map((i) => <SkeletonBlock key={i} height={104} flex={1} />)}
+        </View>
+        <SkeletonBlock height={96} />
+        <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
+          <SkeletonBlock height={240} flex={stack ? undefined : 1.7} />
+          <SkeletonBlock height={240} flex={stack ? undefined : 1} />
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+          <ActivityIndicator size="small" color="#FCD34D" />
+          <Text style={s.emptyLine}>Loading dashboard</Text>
+        </View>
       </View>
     );
   }
 
-  const COLLEGE = data!.college;
-  const KPIS = data!.kpis;
-  const DEPT_PLACEMENT = data!.deptPlacement;
-  const RECENT_ACTIVITY = data!.recentActivity;
-  const UPCOMING_EVENTS = data!.upcomingEvents;
-  const TOP_RECRUITERS = data!.topRecruiters;
-
   return (
     <View style={{ gap: 16 }}>
-      {/* Live counters */}
-
+      {/* Error banner: request failed. Any previously loaded data stays on screen. */}
+      {error && (
+        <View style={s.errorBox}>
+          <Text style={s.errorText}>Could not load dashboard data. {error}</Text>
+          <Pressable onPress={refresh} style={({ hovered }: any) => [s.retryBtn, hovered && { opacity: 0.9 }]}>
+            <Text style={s.retryText}>Retry</Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Hero */}
       <View style={{ flexDirection: stack ? 'column' : 'row', alignItems: stack ? 'flex-start' : 'center', gap: 16 }}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.heroTitle}>Good morning, {(user?.full_name || 'Admin').split(' ')[0]} </Text>
-          <Text style={s.heroSub}>{COLLEGE.placementRate}% placement rate · {COLLEGE.upcomingHighlight}</Text>
+          <Text style={s.heroSub}>
+            {hasData
+              ? `${COLLEGE.name} · ${COLLEGE.placementRate}% placement rate${COLLEGE.upcomingHighlight && COLLEGE.upcomingHighlight !== '—' ? ` · ${COLLEGE.upcomingHighlight}` : ''}`
+              : `${COLLEGE.name} · No dashboard data yet`}
+          </Text>
         </View>
         {/* TIER BANNER */}
-        {(COLLEGE as any).tier && (
+        {COLLEGE.tier && (
           <View style={s.tierBanner}>
-            <TierBadge tier={(COLLEGE as any).tier.tier} size="lg" />
+            <TierBadge tier={COLLEGE.tier.tier} size="lg" />
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.tierKicker}>INSTITUTIONAL TIER · NAAC {(COLLEGE as any).tier.naac}</Text>
+              <Text style={s.tierKicker}>INSTITUTIONAL TIER{COLLEGE.tier.naac ? ` · NAAC ${COLLEGE.tier.naac}` : ''}</Text>
               <Text style={s.tierTitle}>
-                {(COLLEGE as any).tier.tier} <Text style={s.tierScore}>· {(COLLEGE as any).tier.score}/100</Text>
+                {COLLEGE.tier.tier} <Text style={s.tierScore}>· {COLLEGE.tier.score}/100</Text>
               </Text>
             </View>
           </View>
@@ -170,6 +264,7 @@ export function DashboardView({
             <Pressable onPress={() => onNavigate?.('analytics')}><Text style={s.linkRight}>Full report →</Text></Pressable>
           </View>
           <View style={{ gap: 14, marginTop: 14 }}>
+            {DEPT_PLACEMENT.length === 0 && <EmptyLine text="No department placement data yet." />}
             {DEPT_PLACEMENT.map((d) => (
               <View key={d.dept}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -195,10 +290,11 @@ export function DashboardView({
             <Pressable onPress={() => onNavigate?.('events')}><Text style={s.linkRight}>See all →</Text></Pressable>
           </View>
           <View style={{ gap: 10, marginTop: 12 }}>
+            {UPCOMING_EVENTS.length === 0 && <EmptyLine text="No upcoming events." />}
             {UPCOMING_EVENTS.map((e) => (
               <View key={e.id} style={s.eventRow}>
                 <View style={[s.eventDate, { backgroundColor: e.color + '15', borderColor: e.color + '40' }]}>
-                  <Text style={[s.eventDateNum, { color: e.color }]}>17</Text>
+                  <Text style={[s.eventDateNum, { color: e.color }]}>{dayOf(e.date)}</Text>
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text numberOfLines={1} style={s.eventTitle}>{e.title}</Text>
@@ -223,6 +319,7 @@ export function DashboardView({
             <Pressable onPress={() => onNavigate?.('analytics')}><Text style={s.linkRight}>View all →</Text></Pressable>
           </View>
           <View style={{ gap: 12, marginTop: 12 }}>
+            {RECENT_ACTIVITY.length === 0 && <EmptyLine text="No recent activity." />}
             {RECENT_ACTIVITY.map((a) => {
               const Icon = ACTIVITY_ICONS[a.icon] || Bell;
               return (
@@ -247,10 +344,11 @@ export function DashboardView({
             <Pressable onPress={() => onNavigate?.('placements')}><Text style={s.linkRight}>All →</Text></Pressable>
           </View>
           <View style={{ gap: 10, marginTop: 12 }}>
+            {TOP_RECRUITERS.length === 0 && <EmptyLine text="No recruiter data yet." />}
             {TOP_RECRUITERS.map((r) => (
               <View key={r.id} style={s.recruiterRow}>
                 <View style={[s.recruiterLogo, { backgroundColor: r.color }]}>
-                  <Text style={s.recruiterLogoText}>{r.name[0]}</Text>
+                  <Text style={s.recruiterLogoText}>{(r.name || '?')[0]}</Text>
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text numberOfLines={1} style={s.recruiterName}>{r.name}</Text>
@@ -302,6 +400,14 @@ export function DashboardView({
 const s = StyleSheet.create({
   heroTitle: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.5 },
   heroSub:   { color: CC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
+
+  /* Loading / empty / error states */
+  skeleton:  { borderRadius: 14, backgroundColor: CC.card, borderWidth: 1, borderColor: CC.border, minWidth: 120 },
+  emptyLine: { color: CC.dim, fontFamily: FONTS.med, fontSize: 12 },
+  errorBox:  { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(239,68,68,0.35)', backgroundColor: 'rgba(239,68,68,0.08)' },
+  errorText: { flex: 1, minWidth: 160, color: '#FCA5A5', fontFamily: FONTS.med, fontSize: 12 },
+  retryBtn:  { paddingHorizontal: 12, height: 30, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(239,68,68,0.45)', alignItems: 'center', justifyContent: 'center' },
+  retryText: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 },
 
   tierBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
