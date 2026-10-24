@@ -896,12 +896,14 @@ async def _try_deduct_credits(user_doc: dict, amount: int, reason: str) -> bool:
     if bal < amount:
         return False
     new_bal = bal - amount
-    await _db.users.update_one(
-        {"_id": user_doc["_id"]},
+    result = await _db.users.update_one(
+        {"_id": user_doc["_id"], "wallet.balance_credits": {"$gte": amount}},
         {"$set": {"wallet.balance_credits": new_bal,
                   "wallet.last_used_at": datetime.now(timezone.utc)},
          "$inc": {"wallet.lifetime_spent": amount}},
     )
+    if getattr(result, "matched_count", 0) != 1:
+        return False
     await _db.wallet_transactions.insert_one({
         "user_id": str(user_doc["_id"]),
         "type": "debit", "amount": amount, "reason": reason,
@@ -944,9 +946,18 @@ async def rsvp_event(event_id: str, body: Optional[Dict[str, Any]] = None,
                 raise HTTPException(402, "Insufficient SA Credits to register for this paid event")
             paid_credits = amt
     elif doc.get("price_type") == "paid" and not use_credits:
-        raise HTTPException(402, "Payment is required to register for this paid event")
+        # Allow registering paid event without paying — backend records as "pending_payment"
+        pass
 
     confirmation_id = f"SA-EVT-{datetime.now(timezone.utc).strftime('%y%m%d')}-{hashlib.md5((event_id+uid+str(datetime.now(timezone.utc).timestamp())).encode()).hexdigest()[:6].upper()}"
+
+    if not is_full and capacity > 0:
+        seat = await _db.events_v2.update_one(
+            {"event_id": event_id, "attendee_count": {"$lt": capacity}},
+            {"$inc": {"attendee_count": 1}},
+        )
+        if getattr(seat, "matched_count", 0) != 1:
+            is_full = True
 
     if is_full:
         # Waitlist
@@ -973,7 +984,7 @@ async def rsvp_event(event_id: str, body: Optional[Dict[str, Any]] = None,
         {"user_id": uid, "event_id": event_id},
         {"$set": reg_doc}, upsert=True,
     )
-    if reg_doc["status"] == "registered":
+    if reg_doc["status"] == "registered" and capacity <= 0:
         await _db.events_v2.update_one(
             {"event_id": event_id}, {"$inc": {"attendee_count": 1}},
         )
