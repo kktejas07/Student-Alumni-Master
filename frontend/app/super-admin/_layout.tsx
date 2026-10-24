@@ -6,7 +6,7 @@
  */
 import React, { useEffect } from 'react';
 import { WebOnlyRoute } from '@/src/lib/nativeGuard';
-import { View, ActivityIndicator, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Slot, useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { portalPathForRole } from '@/src/lib/portalHome';
