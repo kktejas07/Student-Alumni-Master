@@ -104,7 +104,7 @@ export function SAModernLoader({
             x="150"
             y="215"
             textAnchor="middle"
-            fontFamily="'Manrope', sans-serif"
+            fontFamily="'DM Sans', sans-serif"
             fontSize="128"
             fontWeight="800"
             fill="#FFFFFF"

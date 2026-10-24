@@ -109,7 +109,7 @@ export default function ContactPage() {
               html, body, #root {
                 background: #05060F !important;
                 color: #F4F5FB !important;
-                font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
               }
               .sa-jewel-text {
                 background: linear-gradient(135deg, #F5D0FE 0%, #C084FC 25%, #818CF8 50%, #38BDF8 75%, #E879F9 100%) !important;

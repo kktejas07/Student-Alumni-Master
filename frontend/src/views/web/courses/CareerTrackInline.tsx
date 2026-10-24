@@ -468,7 +468,7 @@ const s = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.10)',
   },
-  heroTitle: { color: '#FFFFFF', fontFamily: 'DMSans_900Black', fontSize: 26 },
+  heroTitle: { color: '#FFFFFF', fontFamily: 'DMSans_800ExtraBold', fontSize: 26 },
   heroSub: { color: 'rgba(255,255,255,0.92)', fontFamily: 'DMSans_600SemiBold', fontSize: 13 },
   heroStats: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
   heroStat: {
@@ -569,7 +569,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  weekBadgeText: { fontFamily: 'DMSans_900Black', fontSize: 12 },
+  weekBadgeText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 12 },
   weekTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 13.5 },
   weekMeta: { fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
   weekBody: { gap: 10, paddingTop: 4 },

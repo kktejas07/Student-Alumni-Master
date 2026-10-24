@@ -335,7 +335,7 @@ export default function CertificateVerifyPortal() {
               html, body, #root {
                 background: #05060F !important;
                 color: #F4F5FB !important;
-                font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
               }
               .sa-jewel-text {
                 background: linear-gradient(135deg, #F5D0FE 0%, #C084FC 25%, #818CF8 50%, #38BDF8 75%, #E879F9 100%) !important;
@@ -1100,7 +1100,7 @@ const styles = StyleSheet.create({
     letterSpacing: -1.4,
     lineHeight: Platform.OS === 'web' ? 56 : 36,
     marginBottom: 16,
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
   },
   jewelText: {
     color: '#C084FC',
@@ -1144,7 +1144,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#F4F5FB',
     fontSize: 15,
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
     height: '100%',
   },
   clearBtn: {
@@ -1346,7 +1346,7 @@ const styles = StyleSheet.create({
     color: '#8B84FF',
     fontSize: 13.5,
     fontWeight: '700',
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
   },
   qrBadgePill: {
     flexDirection: 'row',
@@ -1522,7 +1522,7 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     fontWeight: '700',
     marginTop: 2,
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
   },
 
   /* Hash Box */
@@ -1564,7 +1564,7 @@ const styles = StyleSheet.create({
     color: '#10B981',
     fontSize: 13.5,
     fontWeight: '600',
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
     letterSpacing: 0.5,
   },
 
@@ -1850,7 +1850,7 @@ const styles = StyleSheet.create({
     color: '#8B84FF',
     fontSize: 13,
     fontWeight: '700',
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
     marginTop: 4,
   },
 
