@@ -54,4 +54,8 @@ def require_role(*allowed_roles: str):
         return user
     return role_checker
 
-__all__ = ['get_current_user', 'require_role']
+# Shared admin gate. Accepts both spellings of the super-admin role that exist
+# in the codebase so routers can depend on one symbol.
+require_admin_role = require_role("admin", "super_admin", "superadmin")
+
+__all__ = ['get_current_user', 'require_role', 'require_admin_role']

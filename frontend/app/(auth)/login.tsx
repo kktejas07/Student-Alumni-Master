@@ -12,7 +12,8 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, useWindowDimensions, Linking } from 'react-native';
+import { View, StyleSheet, ScrollView, useWindowDimensions, Platform } from 'react-native';
+import NativeLoginScreen from '@/src/views/auth/NativeLoginScreen';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
@@ -69,6 +70,13 @@ const SLIDES = [
 ];
 
 export default function LoginScreen() {
+  // The web screen below renders raw DOM (<style>, <div>, className) which
+  // crashes on iOS/Android. Native gets a React Native form instead.
+  if (Platform.OS !== 'web') return <NativeLoginScreen />;
+  return <WebLoginScreen />;
+}
+
+function WebLoginScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string }>();
   const { width } = useWindowDimensions();
@@ -139,8 +147,6 @@ export default function LoginScreen() {
     }, 400);
   };
 
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
-  const [googleEmailInput, setGoogleEmailInput] = useState('');
   const [googleClientId, setGoogleClientId] = useState('');
 
   // Fetch OAuth Config on mount and initialize Firebase Auth
@@ -163,13 +169,7 @@ export default function LoginScreen() {
       .catch(() => null);
   }, []);
 
-  const handleGoogleSignIn = async (overrideEmail?: string) => {
-    if (overrideEmail && overrideEmail.includes('@')) {
-      setShowGoogleModal(false);
-      await processGoogleAuth({ email: overrideEmail });
-      return;
-    }
-
+  const handleGoogleSignIn = async () => {
     setLoading(true);
     setErrorMsg('');
     try {
@@ -195,11 +195,16 @@ export default function LoginScreen() {
   };
 
   const processGoogleAuth = async (payload: { id_token?: string; email?: string; full_name?: string; picture?: string }) => {
-    const emailToUse = (payload.email || googleEmailInput).trim().toLowerCase();
+    const emailToUse = (payload.email || '').trim().toLowerCase();
 
+    // SECURITY: the backend only accepts verified provider tokens. Never let a
+    // typed-in email stand in for a Google account.
+    if (!payload.id_token) {
+      setErrorMsg('Google Sign-In did not return a token. Please try again.');
+      return;
+    }
     if (!emailToUse || !emailToUse.includes('@')) {
-      setErrorMsg('Please enter a valid Google account email.');
-      setShowGoogleModal(true);
+      setErrorMsg('Google account did not provide an email address.');
       return;
     }
 
@@ -570,132 +575,6 @@ export default function LoginScreen() {
 
       </ScrollView>
 
-      {/* Google Sign-In Account Selector Modal */}
-      {showGoogleModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(5, 6, 15, 0.88)',
-          backdropFilter: 'blur(10px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: 20
-        }}>
-          <div style={{
-            background: '#0D0E1A',
-            border: '1px solid #2A2D45',
-            borderRadius: 20,
-            padding: '32px 28px',
-            maxWidth: 440,
-            width: '100%',
-            boxShadow: '0 25px 50px rgba(0,0,0,0.7)',
-            animation: 'ob-in 0.3s ease'
-          }}>
-            <div style={{ textAlign: 'center', marginBottom: 24 }}>
-              <svg width="32" height="32" viewBox="0 0 48 48" style={{ marginBottom: 12 }}>
-                <path fill="#4285F4" d="M45 24c0-1.6-.14-3.13-.4-4.6H24v8.7h11.7c-.5 2.7-2.05 5-4.35 6.55v5.4h7c4.1-3.78 6.65-9.35 6.65-16.05Z"></path>
-                <path fill="#34A853" d="M24 46c5.85 0 10.75-1.94 14.35-5.25l-7-5.4c-1.94 1.3-4.42 2.07-7.35 2.07-5.65 0-10.44-3.81-12.14-8.94h-7.2v5.6C7.3 41.2 14.98 46 24 46Z"></path>
-                <path fill="#FBBC05" d="M11.86 28.48A13.4 13.4 0 0 1 11.15 24c0-1.56.27-3.07.71-4.48v-5.6h-7.2A21.9 21.9 0 0 0 2 24c0 3.55.85 6.9 2.66 10.08l7.2-5.6Z"></path>
-                <path fill="#EA4335" d="M24 10.6c3.18 0 6.04 1.1 8.29 3.23l6.2-6.2C34.73 4.1 29.84 2 24 2 14.98 2 7.3 6.8 4.66 13.92l7.2 5.6C13.56 14.4 18.35 10.6 24 10.6Z"></path>
-              </svg>
-              <h3 style={{ margin: '0 0 6px 0', fontSize: 20, color: '#FFFFFF', fontWeight: '700' }}>Choose an account</h3>
-              <p style={{ margin: 0, fontSize: 13.5, color: '#9AA0B4' }}>to continue to <strong style={{ color: '#FFF' }}>Student Alumni</strong></p>
-            </div>
-
-            {email && email.includes('@') ? (
-              <div
-                onClick={() => handleGoogleSignIn(email)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 14,
-                  padding: '14px 16px',
-                  background: 'rgba(139, 132, 255, 0.08)',
-                  border: '1px solid rgba(139, 132, 255, 0.25)',
-                  borderRadius: 12,
-                  marginBottom: 16,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#8B84FF', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: 16 }}>
-                  {email.charAt(0).toUpperCase()}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: '600', color: '#FFF' }}>{email.split('@')[0]}</div>
-                  <div style={{ fontSize: 12.5, color: '#9AA0B4' }}>{email}</div>
-                </div>
-                <span style={{ fontSize: 12, color: '#8B84FF', fontWeight: 600 }}>Sign in →</span>
-              </div>
-            ) : null}
-
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 12, fontWeight: '600', color: '#7B8199', marginBottom: 8, letterSpacing: '0.8px' }}>
-                {email && email.includes('@') ? 'OR USE ANOTHER GOOGLE ACCOUNT' : 'ENTER GOOGLE ACCOUNT EMAIL'}
-              </div>
-              <input
-                type="email"
-                placeholder="you@gmail.com or college@edu"
-                value={googleEmailInput}
-                onChange={(e) => setGoogleEmailInput(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '13px 15px',
-                  background: '#05060F',
-                  border: '1px solid #2A2D45',
-                  borderRadius: 12,
-                  color: '#FFF',
-                  fontSize: 14,
-                  outline: 'none'
-                }}
-              />
-            </div>
-
-            <p style={{ fontSize: 11.5, color: '#6C728F', lineHeight: 1.5, marginBottom: 22, textAlign: 'center' }}>
-              To continue, Google will share your name, email address, language preference, and profile picture with Student Alumni.
-            </p>
-
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                onClick={() => setShowGoogleModal(false)}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid #2A2D45',
-                  color: '#9AA0B4',
-                  padding: '10px 18px',
-                  borderRadius: 10,
-                  cursor: 'pointer',
-                  fontSize: 13.5
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => handleGoogleSignIn(googleEmailInput)}
-                style={{
-                  background: '#8B84FF',
-                  border: 'none',
-                  color: '#FFF',
-                  padding: '10px 22px',
-                  borderRadius: 10,
-                  cursor: 'pointer',
-                  fontSize: 13.5,
-                  fontWeight: 600
-                }}
-              >
-                Sign in with Google
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </View>
   );
 }

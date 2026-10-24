@@ -11,7 +11,6 @@
  */
 import { create } from 'zustand';
 import { Platform } from 'react-native';
-import { request } from '@/src/models/services/api';
 
 type RunListItem = {
   id: string;
@@ -41,10 +40,9 @@ export const useAgentKStore = create<AgentKStore>((set, get) => ({
   openQuickLauncher: () => set({ quickLauncherOpen: true }),
   closeQuickLauncher: () => set({ quickLauncherOpen: false }),
   fetchRuns: async () => {
-    try {
-      const r = await request('/agent-k/runs?limit=20');
-      if (r && Array.isArray(r.runs)) set({ runs: r.runs });
-    } catch {/* ignore */}
+    // There is no /agent-k/runs endpoint on the backend yet; the runs page
+    // is a redirect to /agent-k. Keep the store shape, return nothing.
+    set({ runs: [] });
   },
 }));
 

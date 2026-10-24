@@ -64,7 +64,7 @@ import re
 from cachetools import TTLCache, cached
 from pathlib import Path
 
-from core.deps import get_current_user, require_role
+from core.deps import get_current_user, require_role, require_admin_role
 from pydantic import BaseModel
 
 # Instantiate TTL Caches for high-traffic endpoints
@@ -355,16 +355,62 @@ async def mentor_dashboard(mentor_email: Optional[str] = None, user: dict = Depe
 
 @router.get("/mentor/earnings")
 async def get_mentor_earnings(mentor_email: Optional[str] = None, user: dict = Depends(require_role('mentor'))):
-    """Get mentor earnings summary linked directly to mentor wallet."""
+    """Mentor earnings computed from completed bookings (amount_paid).
+
+    Previously returned a flat 500 for every field. Earnings = sum of
+    amount_paid on this mentor's bookings with status completed; the
+    available-to-withdraw figure subtracts recorded payouts in
+    mentor_payouts (none exist yet, so it equals total earned).
+    """
+    now = datetime.now(timezone.utc)
+    mentor_id = str(user["_id"])
+    email = (user.get("email") or "").lower()
+    base = {
+        "$or": [{"mentor_id": mentor_id}, {"mentor_email": email}],
+        "status": {"$in": ["completed", "done"]},
+    }
+
+    async def total_since(since: Optional[datetime]) -> float:
+        q = dict(base)
+        if since is not None:
+            q["$and"] = [{"$or": [{"completed_at": {"$gte": since}}, {"completed_at": {"$gte": since.isoformat()}},
+                                   {"scheduled_at": {"$gte": since}}, {"scheduled_at": {"$gte": since.isoformat()}}]}]
+        try:
+            cur = _db.bookings.aggregate([{"$match": q}, {"$group": {"_id": None, "s": {"$sum": {"$toDouble": {"$ifNull": ["$amount_paid", 0]}}}}}])
+            rows = await cur.to_list(1)
+            return float(rows[0]["s"]) if rows else 0.0
+        except Exception:
+            return 0.0
+
+    total = await total_since(None)
+    start_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_week = start_today - timedelta(days=start_today.weekday())
+    start_month = start_today.replace(day=1)
+    today_v, week_v, month_v = await total_since(start_today), await total_since(start_week), await total_since(start_month)
+
+    try:
+        cur = _db.mentor_payouts.aggregate([{"$match": {"mentor_id": mentor_id, "status": {"$in": ["paid", "completed"]}}},
+                                           {"$group": {"_id": None, "s": {"$sum": {"$toDouble": {"$ifNull": ["$amount", 0]}}}}}])
+        rows = await cur.to_list(1)
+        paid_out = float(rows[0]["s"]) if rows else 0.0
+    except Exception:
+        paid_out = 0.0
+    available = max(0.0, total - paid_out)
+
+    def fmt(v: float) -> str:
+        return f"₹{v:,.0f}"
+
     return {
-        "total_earned": 500,
-        "available_withdraw": 500,
-        "this_month": 500,
-        "this_week": 500,
-        "today": 500,
+        "total_earned": round(total, 2),
+        "available_withdraw": round(available, 2),
+        "paid_out": round(paid_out, 2),
+        "this_month": round(month_v, 2),
+        "this_week": round(week_v, 2),
+        "today": round(today_v, 2),
         "currency": "INR",
-        "formatted_total": "₹500",
-        "formatted_available": "₹500"
+        "formatted_total": fmt(total),
+        "formatted_available": fmt(available),
+        "basis": "sum of amount_paid on completed bookings",
     }
 
 
@@ -388,7 +434,7 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
                 import jwt
                 from core.security import JWT_SECRET, JWT_ALGORITHM
                 from bson import ObjectId
-                payload = jwt.decode(auth[7:], JWT_SECRET or "", algorithms=[JWT_ALGORITHM or "HS256"])
+                payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
                 if "sub" in payload:
                     me = await _db.users.find_one({"_id": ObjectId(payload["sub"])})
                     if me:
@@ -423,7 +469,7 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
             "role": it.get("title", "Intern"),
             "company": it.get("company", "—"),
             "location": it.get("location", "Remote"),
-            "match": 87,
+            "match": None,  # no matching model yet; do not invent a score
             "type": "Internship",
             "logo": (it.get("company") or "?")[0],
             "logoBg": _color_for(it.get("company", "")),
@@ -443,12 +489,12 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
             "initials": _initials(mname),
             "role": mi.get("job_title") or "Senior Mentor",
             "company": mi.get("organization") or "—",
-            "rating": m.get("rating") or 4.9,
+            "rating": m.get("rating"),
             "sessions": msess,
-            "price": m.get("expected_rate_inr") or 999,
+            "price": m.get("expected_rate_inr"),
             "color": _color_for(mname),
-            "bio": mi.get("bio") or "Experienced professional ready to share industry insights, career strategies, and guidance.",
-            "skills": m.get("skills") or ["System Design", "Career Strategy"],
+            "bio": mi.get("bio") or "",
+            "skills": m.get("skills") or [],
         })
 
     from services.profile_service import compute_profile_completion
@@ -475,21 +521,12 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
         real_events_count = user_reg_events
         events_subtext = "Registered"
     else:
-        real_events_count = platform_upcoming if platform_upcoming > 0 else 7
+        real_events_count = platform_upcoming
         events_subtext = "Upcoming"
 
-    # Test/demo account detection vs real user account
-    is_test_account = bool((student or {}).get("is_demo")) or (student_email or "").endswith("@studentalumni.in") or (student_email or "").startswith("test") or sid == ""
-    if is_test_account:
-        if profile_strength == 0:
-            profile_strength = 92
-        if real_apps_count == 0:
-            real_apps_count = 16
-        if real_net_count == 0:
-            real_net_count = 128
-        if real_events_count == 0:
-            real_events_count = 7
-            events_subtext = "Upcoming"
+    # Note: an earlier version inflated zeros for "test" accounts (92% profile,
+    # 16 applications, 128 connections, 7 events). Every account now sees its
+    # real numbers.
 
     upcoming = []
     completed_sessions = my_bookings
@@ -520,7 +557,7 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
             "initials": _initials(name),
             "year": "Final Year" if (si.get("graduation_year") or 2027) <= datetime.now().year + 1 else "Junior Year",
             "saId": student.get("sa_id") if student else None,
-            "career": {"goal": sti.get("career_goal") or "Software Engineer at a Top Tech Company", "progressPct": progress_pct},
+            "career": {"goal": sti.get("career_goal") or "", "progressPct": progress_pct},
             "career_score": profile_strength,
             "tier": tier,
         },
@@ -911,7 +948,7 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
             {"$sort": {"count": -1}},
             {"$limit": 1},
         ]).to_list(1)
-        college_name = agg[0]["_id"] if agg else "St. Xavier's College"
+        college_name = agg[0]["_id"] if agg else (user.get("institution") or (user.get("college_info") or {}).get("institution_name") or "Your college")
 
     college_query = {
         "$or": [
@@ -933,17 +970,21 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
     palette = ["#22D3EE", "#A78BFA", "#34D399", "#FBBF24", "#F472B6"]
     dept_placement = []
     for i, d in enumerate(dept_agg):
+        # Real per-department placement: alumni of this branch with a current employer.
+        branch_q = {"role": "alumni", "alumni_info.branch_or_stream": d["_id"], **college_query}
+        try:
+            branch_alumni = await _db.users.count_documents(branch_q)
+            branch_placed = await _db.users.count_documents({**branch_q, "alumni_info.current_employer": {"$nin": [None, "", "—", "-"]}})
+        except Exception:
+            branch_alumni, branch_placed = 0, 0
         dept_placement.append({
             "dept": d["_id"],
-            "pct": 88 + (i * 2 % 12),
-            "placed": d["count"],
+            "students": d["count"],
+            "placed": branch_placed,
+            "pct": int(branch_placed / branch_alumni * 100) if branch_alumni else 0,
             "color": palette[i % len(palette)],
         })
-    if not dept_placement:
-        dept_placement = [
-            {"dept": "Computer Science", "pct": 98, "placed": 235, "color": "#22D3EE"},
-            {"dept": "Design",           "pct": 96, "placed":  43, "color": "#A78BFA"},
-        ]
+    # No fabricated departments: an empty list means no department data yet.
 
     # Recent activity from new students + events
     recent = []
@@ -1000,7 +1041,7 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
             "id": _short_id(ev.get("_id")),
             "title": ev.get("title", "Event"),
             "date": date_str,
-            "attending": regs or 240,
+            "attending": regs,
             "color": _color_for(ev.get("title", "")),
         })
 
@@ -1010,14 +1051,14 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
         {"$sort": {"offers": -1}},
         {"$limit": 5},
     ]).to_list(5)
-    ctcs = ["38 LPA", "32 LPA", "28 LPA", "22 LPA", "18 LPA"]
     top_recruiters = []
     for i, r in enumerate(rec_agg):
+        # CTC is not tracked on internship records; omit rather than invent a ladder.
         top_recruiters.append({
             "id": i + 1,
             "name": r["_id"] or "Unknown",
             "offers": r["offers"],
-            "ctc": ctcs[i] if i < len(ctcs) else "12 LPA",
+            "ctc": None,
             "color": _color_for(r["_id"] or ""),
         })
 
@@ -1052,8 +1093,8 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
             "tier": tier,
         },
         "kpis": [
-            {"id": "students",  "label": "Total Students",     "value": str(students_cnt),      "delta": "↑ this semester",        "color": "blue"},
-            {"id": "alumni",    "label": "Alumni Network",     "value": str(alumni_cnt),        "delta": "growing",                 "color": "purple"},
+            {"id": "students",  "label": "Total Students",     "value": str(students_cnt),      "delta": "registered on platform",  "color": "blue"},
+            {"id": "alumni",    "label": "Alumni Network",     "value": str(alumni_cnt),        "delta": "registered on platform",  "color": "purple"},
             {"id": "placement", "label": "Placement Rate",     "value": f"{placement_pct_num}%", "delta": f"from {alumni_cnt} alumni",  "color": "green"},
             {"id": "events",    "label": "Events This Month",  "value": str(events_this_month),  "delta": f"{len(upcoming)} upcoming","color": "amber"},
         ],
@@ -1444,7 +1485,7 @@ async def create_super_event(payload: EventPayload, user: dict = Depends(require
     return {"ok": True, "event": _serialize_event(doc)}
 
 
-@router.patch("/admin/super/events/{event_id}")
+@router.patch("/admin/super/events/{event_id}", dependencies=[Depends(require_admin_role)])
 async def update_super_event(event_id: str, payload: EventPayload):
     """Update an existing event by Mongo `_id` or short `id`."""
     # try ObjectId first, then fall back to short-id match
@@ -2278,52 +2319,6 @@ async def college_alumni_list(college_name: Optional[str] = None, limit: int = 3
             "github_url": a.get("github_url") or "",
         })
 
-    if not out:
-        out = [
-            {
-                "id": "mock_alumni_1",
-                "name": "Ishaan Alumni",
-                "initials": "IA",
-                "batch": 2023,
-                "role": "SDE-2",
-                "company": "Amazon",
-                "city": "Bengaluru",
-                "donor": False,
-                "color": "#F59E0B",
-                "skills": ["AWS", "Node.js", "System Design"],
-                "linkedin_url": "https://linkedin.com",
-                "github_url": "https://github.com",
-            },
-            {
-                "id": "mock_alumni_2",
-                "name": "Riya Alumni",
-                "initials": "RA",
-                "batch": 2020,
-                "role": "Product Manager",
-                "company": "Google",
-                "city": "Hyderabad",
-                "donor": True,
-                "color": "#10B981",
-                "skills": ["Product Strategy", "Agile", "UX"],
-                "linkedin_url": "https://linkedin.com",
-                "github_url": "",
-            },
-            {
-                "id": "mock_alumni_3",
-                "name": "Aarav Test Alumni",
-                "initials": "AA",
-                "batch": 2022,
-                "role": "Data Scientist",
-                "company": "Microsoft",
-                "city": "Pune",
-                "donor": False,
-                "color": "#22D3EE",
-                "skills": ["Python", "Machine Learning", "SQL"],
-                "linkedin_url": "",
-                "github_url": "https://github.com",
-            }
-        ]
-
     return {"items": out, "college": college_name}
 
 
@@ -3145,7 +3140,7 @@ async def create_workflow(req: WorkflowCreateRequest, user: dict = Depends(requi
     return {"ok": True, "id": str(result.inserted_id)}
 
 
-@router.post("/admin/super/workflows/fire-event")
+@router.post("/admin/super/workflows/fire-event", dependencies=[Depends(require_admin_role)])
 async def fire_workflow_event_endpoint(event_type: str = Body(...), payload: Optional[Dict[str, Any]] = Body(None)):
     """Manually fire a workflow event. All workflows with matching event_triggers will run."""
     try:
@@ -3156,107 +3151,8 @@ async def fire_workflow_event_endpoint(event_type: str = Body(...), payload: Opt
         raise HTTPException(502, f"Automation engine error: {e}")
 
 
-# ── Step registry: maps step label → async function ──────────────
-# Each function receives (db, params) and returns (success: bool, message: str)
-async def _step_verify_email(db, params) -> tuple:
-    import re
-    email = params.get("email", "") if params else ""
-    if not email:
-        return True, "No email provided, skipping verification"
-    pattern = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
-    if re.match(pattern, email):
-        return True, f"Email {email} is valid"
-    return False, f"Email {email} is invalid"
-
-
-async def _step_linkedin_check(db, params) -> tuple:
-    return True, "LinkedIn check passed"
-
-
-async def _step_auto_approve(db, params) -> tuple:
-    return True, "Auto-approved"
-
-
-async def _step_daily_scan(db, params) -> tuple:
-    return True, "Daily scan completed"
-
-
-async def _step_notify_counsellor(db, params) -> tuple:
-    return True, "Counsellor notified"
-
-
-async def _step_schedule_call(db, params) -> tuple:
-    return True, "Call scheduled"
-
-
-async def _step_compute_payouts(db, params) -> tuple:
-    return True, "Payouts computed"
-
-
-async def _step_stripe_transfer(db, params) -> tuple:
-    return True, "Stripe transfer initiated"
-
-
-async def _step_email_receipt(db, params) -> tuple:
-    return True, "Receipt emailed"
-
-
-async def _step_day_welcome(db, params) -> tuple:
-    return True, "Welcome message sent"
-
-
-async def _step_mentor_pitch(db, params) -> tuple:
-    return True, "Mentor pitch sent"
-
-
-async def _step_hackathon(db, params) -> tuple:
-    return True, "Hackathon invite sent"
-
-
-async def _step_detect_no_show(db, params) -> tuple:
-    return True, "No-show detected"
-
-
-async def _step_auto_refund(db, params) -> tuple:
-    return True, "Refund processed"
-
-
-async def _step_notify_both(db, params) -> tuple:
-    return True, "Both parties notified"
-
-
-async def _step_find_donors(db, params) -> tuple:
-    return True, "High-value donors identified"
-
-
-async def _step_personalize_copy(db, params) -> tuple:
-    return True, "Personalized copy generated"
-
-
-async def _step_sendgrid(db, params) -> tuple:
-    return True, "SendGrid email sent"
-
-
-STEP_REGISTRY: Dict[str, Callable] = {
-    "Verify email": _step_verify_email,
-    "LinkedIn check": _step_linkedin_check,
-    "Auto-approve if rank<200": _step_auto_approve,
-    "Daily scan": _step_daily_scan,
-    "Notify counsellor": _step_notify_counsellor,
-    "Schedule call": _step_schedule_call,
-    "Compute payouts": _step_compute_payouts,
-    "Stripe transfer": _step_stripe_transfer,
-    "Email receipt": _step_email_receipt,
-    "Day 0 welcome": _step_day_welcome,
-    "Day 3 mentor pitch": _step_mentor_pitch,
-    "Day 7 hackathon": _step_hackathon,
-    "Detect no-show": _step_detect_no_show,
-    "Auto-refund": _step_auto_refund,
-    "Notify both parties": _step_notify_both,
-    "Find big donors": _step_find_donors,
-    "Personalize copy": _step_personalize_copy,
-    "Send via SendGrid": _step_sendgrid,
-}
+# ── Step registry: single source of truth lives in workflow_automation ──
+from workflow_automation import STEP_REGISTRY  # noqa: E402
 
 
 @router.post("/admin/super/workflows/{wf_id}/run")
@@ -3323,7 +3219,7 @@ async def get_workflow_detail(wf_id: str, user: dict = Depends(require_role('adm
     return wf
 
 
-@router.patch("/admin/super/workflows/{wf_id}")
+@router.patch("/admin/super/workflows/{wf_id}", dependencies=[Depends(require_admin_role)])
 async def update_workflow(wf_id: str, req: WorkflowUpdateRequest):
     """Update workflow name, trigger, steps, or color."""
     await _get_workflow_or_404(wf_id)

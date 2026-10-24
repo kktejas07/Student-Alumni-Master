@@ -3807,7 +3807,7 @@ function RegistrationsPanel() {
             onChange={(e: any) => setEventSlug(e.target.value)}
             style={{
               backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 8, padding: '8px 12px', color: SAC.text, fontSize: 12, fontFamily: 'Inter',
+              borderRadius: 8, padding: '8px 12px', color: SAC.text, fontSize: 12, fontFamily: 'DM Sans',
               outline: 'none', cursor: 'pointer', minWidth: 140,
             }}
           >
@@ -4985,7 +4985,7 @@ function VolunteersPanel() {
             onChange={(e: any) => setFilterEvent(e.target.value)}
             style={{
               backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 8, padding: '8px 12px', color: SAC.text, fontSize: 12, fontFamily: 'Inter',
+              borderRadius: 8, padding: '8px 12px', color: SAC.text, fontSize: 12, fontFamily: 'DM Sans',
               outline: 'none', cursor: 'pointer', minWidth: 150,
             }}
           >

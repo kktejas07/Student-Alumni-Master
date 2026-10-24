@@ -77,8 +77,8 @@ function EchoNavGroup({
   C: any;
 }) {
   const [showcases, setShowcases] = React.useState<any[]>([
-    { slug: 'vnr-vjiet', title: 'VNR VJIET Hackathon' },
-    { slug: 'snist', title: 'SNIST Hackwave 3.0' },
+    { slug: 'vnr-echo-2026', title: 'VNR ECHO 2026' },
+    { slug: 'snist', title: 'HackWave 3.0' },
   ]);
 
   React.useEffect(() => {
@@ -96,7 +96,7 @@ function EchoNavGroup({
     return () => { mounted = false; };
   }, []);
 
-  const firstSlug = showcases[0]?.slug || 'vnr-vjiet';
+  const firstSlug = showcases[0]?.slug || 'vnr-echo-2026';
   const isChildActive = active === 'echo-showcase' || active?.startsWith('echo-showcase:') || showcases.some((s) => s.slug === active || active === `echo-showcase:${s.slug}`) || (
     !['dashboard', 'career-ai', 'internships', 'network', 'my-bookings', 'myevents', 'events',
       'my-workshops', 'my-tickets', 'my-certificates', 'courses', 'financial', 'deals', 'wallet', 'higher-ed', 'rentals', 'profile'].includes(active)

@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { signInWithGoogle } from '@/src/lib/firebaseAuth';
 
 export function OnboardingShellRN() {
   const router = useRouter();
@@ -94,18 +95,19 @@ function WebOnboardingEngine({ router }: { router: any }) {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!userEmail || !userEmail.includes('@')) {
-      setOtpError('Please enter your email address above before continuing with Google.');
-      return;
-    }
     const startTime = Date.now();
     try {
-      const emailToUse = userEmail.trim().toLowerCase();
-      const rawName = userName || emailToUse.split('@')[0];
+      // SECURITY: obtain a real Google ID token via Firebase; the backend no
+      // longer accepts an unverified email as a Google identity.
+      const google = await signInWithGoogle();
+      if (!google) return; // popup closed by user
+      const emailToUse = (google.email || userEmail || '').trim().toLowerCase();
+      const rawName = google.name || userName || emailToUse.split('@')[0];
       const res = await api.oauthGoogle({
+        id_token: google.idToken,
         email: emailToUse,
         full_name: rawName,
-        picture: avatarUri || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        picture: google.picture || avatarUri || undefined,
         role: flow === 'alumnus' ? 'alumni' : flow,
       });
 
@@ -402,7 +404,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
     <div
       id="ob-root"
       style={{
-        fontFamily: "'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         color: 'var(--text)',
         backgroundColor: 'var(--bg)',
         minHeight: '100vh',
@@ -513,7 +515,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
         <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#obWatermarkGrad)" />
         <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#obWatermarkInner)" />
         <text
-          style={{ fontFamily: "'Manrope', sans-serif", fontSize: '128px', fontWeight: 800, letterSpacing: '-4px', fill: '#FFFFFF' }}
+          style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '128px', fontWeight: 800, letterSpacing: '-4px', fill: '#FFFFFF' }}
           textAnchor="middle"
           x="150"
           y="215"
@@ -547,7 +549,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
               </defs>
               <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#obBadge)" />
               <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="rgba(255,255,255,.16)" />
-              <text x="150" y="216" textAnchor="middle" style={{ fontFamily: "'Manrope', sans-serif", fontSize: '126px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>
+              <text x="150" y="216" textAnchor="middle" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '126px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>
                 SA
               </text>
             </svg>
@@ -2053,7 +2055,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <svg width="24" height="28" viewBox="0 0 300 350">
                               <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="rgba(255,255,255,.22)" stroke="#FFFFFF" strokeWidth="12" />
-                              <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Manrope', sans-serif", fontSize: '122px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>SA</text>
+                              <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '122px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>SA</text>
                             </svg>
                             <span style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '1.4px' }}>STUDENTALUMNI</span>
                           </div>

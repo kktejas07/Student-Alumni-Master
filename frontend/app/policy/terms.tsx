@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { WebOnlyRoute } from '@/src/lib/nativeGuard';
 import { View, StyleSheet, ScrollView, useWindowDimensions, Platform } from 'react-native';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
@@ -18,7 +19,7 @@ const JUMP_SECTIONS = [
   { id: 'tm-7', label: '08. Governing law and disputes' },
 ];
 
-export default function TermsOfServicePage() {
+function TermsOfServicePage() {
   const { width } = useWindowDimensions();
   const [activeSection, setActiveSection] = useState('tm-0');
   const isMobile = width < 860;
@@ -269,3 +270,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 });
+
+/**
+ * Native guard — this route renders web-only UI. On iOS/Android show a
+ * placeholder that opens the page on studentalumni.ai instead of crashing.
+ */
+export default function TermsOfServicePageRoute() {
+  if (Platform.OS !== 'web') return <WebOnlyRoute path="/policy/terms" />;
+  return <TermsOfServicePage />;
+}

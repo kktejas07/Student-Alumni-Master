@@ -1,10 +1,8 @@
 /**
- * Web-only authenticated platform shell.
+ * /platform — legacy entry point kept as a pure redirect.
  *
- * Routes the user to the appropriate role-specific sidebar dashboard:
- *   - student / alumni → StudentPlatform
- *   - mentor          → MentorPlatform
- *   - college / admin → CollegePlatform
+ * Sends the signed-in user to their role portal (/student-portal,
+ * /alumni-portal, /mentor-portal, /college-portal, /super-admin).
  *
  * On native (iOS/Android) this route is a no-op redirect to /(tabs).
  * The mobile experience continues to use the existing tab navigator.
@@ -14,9 +12,6 @@ import { View, Platform, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { Colors as C } from '@/src/theme';
-import StudentPlatform from '@/src/views/web/platform/StudentPlatform';
-import MentorPlatform from '@/src/views/web/platform/MentorPlatform';
-import CollegePlatform from '@/src/views/web/platform/CollegePlatform';
 
 export default function PlatformRoute() {
   const router = useRouter();

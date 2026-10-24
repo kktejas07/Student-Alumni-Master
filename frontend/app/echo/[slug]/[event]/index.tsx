@@ -9,7 +9,9 @@ export default function EchoCampusEventPage() {
 
   return (
     <View style={s.container}>
-      <EchoEventsPage initialView="detail" initialSlug={slug || 'snist'} />
+      {/* No event-slug defaulting: a missing slug must never render another
+          event's content — fall back to the events list instead. */}
+      <EchoEventsPage initialView={slug ? 'detail' : 'list'} initialSlug={slug} />
     </View>
   );
 }

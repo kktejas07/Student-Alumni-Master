@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: -0.5,
     marginBottom: 6,
-    fontFamily: Platform.OS === 'web' ? "'Manrope', sans-serif" : 'System',
+    fontFamily: Platform.OS === 'web' ? "'DM Sans', sans-serif" : 'System',
   },
   tag: {
     color: '#8B84FF',
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     marginBottom: 20,
     textTransform: 'uppercase',
-    fontFamily: Platform.OS === 'web' ? "'Manrope', sans-serif" : 'System',
+    fontFamily: Platform.OS === 'web' ? "'DM Sans', sans-serif" : 'System',
   },
   progressPercent: {
     fontSize: 16,

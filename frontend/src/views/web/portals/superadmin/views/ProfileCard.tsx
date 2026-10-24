@@ -517,7 +517,7 @@ const s = StyleSheet.create({
   catLabel: { color: PC.textMuted, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.4 },
   degree: { color: PC.textSecondary, fontFamily: FONTS.med, fontSize: 12.5 },
   idLine: { color: PC.textMuted, fontFamily: FONTS.med, fontSize: 11,
-    ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}) },
+    ...(Platform.OS === 'web' ? ({ fontFamily: 'SpaceMono, "SF Mono", monospace' } as any) : {}) },
 
   statusPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,

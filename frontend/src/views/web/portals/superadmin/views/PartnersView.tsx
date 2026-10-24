@@ -18,23 +18,24 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, TextInput, ScrollView, Platform, Modal,
-  Image, ActivityIndicator,
+  View, Text, Pressable, StyleSheet, TextInput, Platform, Image,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import {
-  Handshake, Plus, Pencil, Trash2, X, Check, Upload, ArrowUp, ArrowDown,
-  GraduationCap, Building2, Sparkles, GripVertical, AlertTriangle, Eye, EyeOff,
+  Handshake, Plus, X, Upload, ArrowUp, ArrowDown,
+  GraduationCap, Building2, Sparkles, GripVertical,
   ImagePlus, RefreshCw, Search,
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   TopTabs, SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox,
 } from '../applekit';
 import { request, resolveImageUrl } from '@/src/models/services/api';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
+import {
+  crud, useThemedCrudStyles, RowActions, DeleteConfirmBar, CheckToggle, EditorModal, useWebImageInput,
+} from './shared/adminCrud';
 
 /* ────────────────────────────────────────────────────────────────────
  * Types & constants
@@ -71,7 +72,7 @@ type TabId = (typeof TAB_OPTIONS)[number]['id'];
  * Root
  * ────────────────────────────────────────────────────────────────── */
 export function PartnersView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
-  const T = useSAC();
+  const T = useThemedCrudStyles();
   Object.assign(s, resolveColors(s, T));
   const { toast, flash, hide } = useToast();
   const [partners, setPartners] = useState<Partner[] | null>(null);
@@ -185,12 +186,12 @@ export function PartnersView({ sub, onSub }: { sub?: string; onSub?: (s: string)
     <View style={{ gap: 14 }}>
       {/* Header */}
       <Card>
-        <View style={s.headRow}>
+        <View style={crud.headRow}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
             <IconBox size={38}><Handshake size={18} color={GRAD.to} /></IconBox>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.title}>Collaboration Partners</Text>
-              <Text style={s.sub}>
+              <Text style={crud.title}>Collaboration Partners</Text>
+              <Text style={crud.sub}>
                 Logos displayed on the public landing page and the dashboard footer of
                 every portal. Reorder using arrows or drag-and-drop, toggle visibility,
                 or upload new partners with Base64 logos.
@@ -199,23 +200,23 @@ export function PartnersView({ sub, onSub }: { sub?: string; onSub?: (s: string)
           </View>
           <GradientButton onPress={() => { setEditing({} as Partner); setCreating(true); }}>
             <Plus size={13} color="#fff" />
-            <Text style={s.btnText}>Add partner</Text>
+            <Text style={crud.btnText}>Add partner</Text>
           </GradientButton>
         </View>
       </Card>
 
       {/* Filters */}
       <Card>
-        <View style={s.filtersRow}>
+        <View style={crud.filtersRow}>
           <TopTabs<TabId>
             tabs={TAB_OPTIONS as any}
             active={tab}
             onChange={setTab}
           />
           <SearchField value={q} onChange={setQ} placeholder="Search by name…" width={280} />
-          <Pressable onPress={load} style={s.refreshBtn}>
+          <Pressable onPress={load} style={crud.refreshBtn}>
             <RefreshCw size={11} color={SAC.muted} />
-            <Text style={s.refreshText}>Refresh</Text>
+            <Text style={crud.refreshText}>Refresh</Text>
           </Pressable>
         </View>
       </Card>
@@ -344,8 +345,8 @@ function PartnerRow({
         )}
 
         {/* Order pill */}
-        <View style={s.orderPill}>
-          <Text style={s.orderText}>{globalIdx + 1}</Text>
+        <View style={crud.orderPill}>
+          <Text style={crud.orderText}>{globalIdx + 1}</Text>
         </View>
 
         {/* Up / Down arrows */}
@@ -391,48 +392,24 @@ function PartnerRow({
           </View>
         </View>
 
-        {/* Toggle active */}
-        <Pressable
-          onPress={onToggleActive}
-          style={[s.toggleBtn, partner.is_active && s.toggleBtnOn]}
-        >
-          {partner.is_active
-            ? <Eye  size={12} color={GRAD.to} />
-            : <EyeOff size={12} color={SAC.muted} />}
-          <Text style={[s.toggleText, partner.is_active && { color: GRAD.to }]}>
-            {partner.is_active ? 'Visible' : 'Hidden'}
-          </Text>
-        </Pressable>
-
-        {/* Edit / Delete */}
-        <View style={{ flexDirection: 'row', gap: 6 }}>
-          <Pressable onPress={onEdit} style={s.iconBtn}>
-            <Pencil size={12} color={SAC.muted} />
-          </Pressable>
-          <Pressable onPress={() => setConfirmDel(true)} style={[s.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
-            <Trash2 size={12} color="#FCA5A5" />
-          </Pressable>
-        </View>
+        {/* Toggle active / Edit / Delete */}
+        <RowActions
+          active={!!partner.is_active}
+          onToggle={onToggleActive}
+          onEdit={onEdit}
+          onRequestDelete={() => setConfirmDel(true)}
+          onLabel="Visible"
+          offLabel="Hidden"
+        />
       </View>
 
       {/* Inline delete confirm */}
       {confirmDel && (
-        <Animated.View entering={FadeIn.duration(160)} style={s.confirmBar}>
-          <AlertTriangle size={13} color="#FCA5A5" />
-          <Text style={[s.muted, { color: '#FCA5A5', flex: 1 }]}>
-            Delete "{partner.name}"? This cannot be undone.
-          </Text>
-          <SecondaryButton size="sm" onPress={() => setConfirmDel(false)}>
-            <Text style={s.secText}>Cancel</Text>
-          </SecondaryButton>
-          <Pressable
-            onPress={() => { setConfirmDel(false); onDelete(); }}
-            style={s.destructiveBtn}
-          >
-            <Trash2 size={11} color="#fff" />
-            <Text style={s.btnText}>Delete</Text>
-          </Pressable>
-        </Animated.View>
+        <DeleteConfirmBar
+          name={partner.name}
+          onCancel={() => setConfirmDel(false)}
+          onConfirm={() => { setConfirmDel(false); onDelete(); }}
+        />
       )}
     </Animated.View>
   );
@@ -472,44 +449,15 @@ function PartnerEditor({
 
   const update = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
-  // Convert File → base64 data URI
-  const readAsDataURL = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const r = new FileReader();
-      r.onload = () => resolve(String(r.result));
-      r.onerror = reject;
-      r.readAsDataURL(file);
-    });
-
   // Web file picker hookup
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const c = colorFileRef.current;
-    const w = whiteFileRef.current;
-    const wire = (el: any, target: 'logo_url' | 'logo_white_url') => {
-      if (!el) return () => {};
-      const handler = async (e: any) => {
-        const f = e.target.files?.[0];
-        if (!f) return;
-        if (!/^image\//.test(f.type)) {
-          setError('Please choose an image file (PNG, JPG, SVG)');
-          return;
-        }
-        if (f.size > 2_000_000) {
-          setError('Logo must be under 2 MB');
-          return;
-        }
-        setError(null);
-        const dataUri = await readAsDataURL(f);
-        update(target, dataUri);
-      };
-      el.addEventListener('change', handler);
-      return () => el.removeEventListener('change', handler);
-    };
-    const off1 = wire(c, 'logo_url');
-    const off2 = wire(w, 'logo_white_url');
-    return () => { off1(); off2(); };
-  }, []);
+  useWebImageInput(
+    [
+      { ref: colorFileRef, onDataUri: (uri) => update('logo_url', uri) },
+      { ref: whiteFileRef, onDataUri: (uri) => update('logo_white_url', uri) },
+    ],
+    setError,
+    { type: 'Please choose an image file (PNG, JPG, SVG)', size: 'Logo must be under 2 MB' },
+  );
 
   const submit = async () => {
     if (!form.name.trim()) { setError('Name is required'); return; }
@@ -538,22 +486,18 @@ function PartnerEditor({
   };
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
-      <View style={s.modalBg}>
-        <Animated.View entering={FadeInDown.duration(220)} style={s.modalCard}>
-          {/* Header */}
-          <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
-            <IconBox size={40}><Handshake size={20} color={GRAD.to} /></IconBox>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.modalTitle}>{isCreate ? 'Add collaboration partner' : 'Edit partner'}</Text>
-              <Text style={s.muted}>
-                {isCreate ? 'Upload a logo and choose the category — it will appear instantly on the public landing page.' : 'Update the partner details.'}
-              </Text>
-            </View>
-            <Pressable onPress={onClose}><X size={16} color={SAC.muted} /></Pressable>
-          </LinearGradient>
-
-          <ScrollView style={{ maxHeight: 560 }} contentContainerStyle={{ padding: 20, gap: 16 }}>
+    <EditorModal
+      Icon={Handshake}
+      title={isCreate ? 'Add collaboration partner' : 'Edit partner'}
+      subtitle={isCreate ? 'Upload a logo and choose the category — it will appear instantly on the public landing page.' : 'Update the partner details.'}
+      onClose={onClose}
+      maxWidth={640}
+      bodyMaxHeight={560}
+      error={error}
+      busy={busy}
+      submitLabel={isCreate ? 'Add partner' : 'Save changes'}
+      onSubmit={submit}
+    >
             {/* Name */}
             <View>
               <SectionLabel>PARTNER NAME</SectionLabel>
@@ -562,7 +506,7 @@ function PartnerEditor({
                 onChangeText={(v) => update('name', v)}
                 placeholder="e.g. Acme University, Bright Pvt Ltd"
                 placeholderTextColor={SAC.dim}
-                style={[s.input, { marginTop: 8 }]}
+                style={[crud.input, { marginTop: 8 }]}
               />
             </View>
 
@@ -634,47 +578,21 @@ function PartnerEditor({
                   onChangeText={(v) => update('display_order', parseInt(v) || 0)}
                   keyboardType="numeric"
                   placeholderTextColor={SAC.dim}
-                  style={[s.input, { marginTop: 8 }]}
+                  style={[crud.input, { marginTop: 8 }]}
                 />
-                <Text style={[s.muted, { marginTop: 4 }]}>Lower numbers appear first. (You can drag to reorder after saving.)</Text>
+                <Text style={[crud.muted, { marginTop: 4 }]}>Lower numbers appear first. (You can drag to reorder after saving.)</Text>
               </View>
               <View style={{ flex: 1, minWidth: 160 }}>
                 <SectionLabel>VISIBILITY</SectionLabel>
-                <Pressable
-                  onPress={() => update('is_active', !form.is_active)}
-                  style={[s.toggleRow, { marginTop: 8 }]}
-                >
-                  <View style={[s.checkBox, form.is_active && { backgroundColor: GRAD.to, borderColor: GRAD.to }]}>
-                    {form.is_active && <Check size={11} color="#fff" />}
-                  </View>
-                  <Text style={s.checkLabel}>
-                    {form.is_active ? 'Visible on landing & footer' : 'Hidden (saved but not shown publicly)'}
-                  </Text>
-                </Pressable>
+                <CheckToggle
+                  value={form.is_active}
+                  onToggle={() => update('is_active', !form.is_active)}
+                  label={form.is_active ? 'Visible on landing & footer' : 'Hidden (saved but not shown publicly)'}
+                  style={{ marginTop: 8 }}
+                />
               </View>
             </View>
-
-            {error && (
-              <View style={s.warnBox}>
-                <AlertTriangle size={12} color="#FCA5A5" />
-                <Text style={[s.muted, { color: '#FCA5A5', flex: 1 }]}>{error}</Text>
-              </View>
-            )}
-
-            {/* Actions */}
-            <View style={s.actionsRow}>
-              <SecondaryButton onPress={onClose}>
-                <Text style={s.secText}>Cancel</Text>
-              </SecondaryButton>
-              <GradientButton onPress={submit} loading={busy}>
-                <Check size={13} color="#fff" />
-                <Text style={s.btnText}>{isCreate ? 'Add partner' : 'Save changes'}</Text>
-              </GradientButton>
-            </View>
-          </ScrollView>
-        </Animated.View>
-      </View>
-    </Modal>
+    </EditorModal>
   );
 }
 
@@ -693,15 +611,15 @@ function LogoPicker({
         <View style={[s.logoPreview, dark && s.logoPreviewDark]}>
           <Image source={{ uri: value }} style={s.logoPreviewImg} resizeMode="contain" />
           <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-            <Text style={s.muted}>Logo uploaded · {Math.round((value.length / 1000))} KB (base64)</Text>
+            <Text style={crud.muted}>Logo uploaded · {Math.round((value.length / 1000))} KB (base64)</Text>
             <View style={{ flexDirection: 'row', gap: 6 }}>
               <SecondaryButton size="sm" onPress={onPick}>
                 <Upload size={11} color={SAC.muted} />
-                <Text style={s.secText}>Replace</Text>
+                <Text style={crud.secText}>Replace</Text>
               </SecondaryButton>
               <SecondaryButton size="sm" danger onPress={onClear}>
                 <X size={11} color="#FCA5A5" />
-                <Text style={[s.secText, { color: '#FCA5A5' }]}>Remove</Text>
+                <Text style={[crud.secText, { color: '#FCA5A5' }]}>Remove</Text>
               </SecondaryButton>
             </View>
           </View>
@@ -713,8 +631,8 @@ function LogoPicker({
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={s.logoDropTitle}>Click to upload</Text>
-            <Text style={s.muted}>{hint}</Text>
-            <Text style={[s.muted, { marginTop: 2 }]}>PNG · JPG · SVG · max 2 MB</Text>
+            <Text style={crud.muted}>{hint}</Text>
+            <Text style={[crud.muted, { marginTop: 2 }]}>PNG · JPG · SVG · max 2 MB</Text>
           </View>
         </Pressable>
       )}
@@ -726,21 +644,6 @@ function LogoPicker({
  * Styles
  * ────────────────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
-  headRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
-  sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
-  muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
-  btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
-  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-
-  filtersRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' as any },
-  refreshBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 9, paddingVertical: 6, borderRadius: 7,
-    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  refreshText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
 
   /* row */
   row: {
@@ -756,13 +659,6 @@ const s = StyleSheet.create({
     width: 18, alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'grab' } as any) : {}),
   },
-  orderPill: {
-    width: 30, height: 24, borderRadius: 8,
-    backgroundColor: 'rgba(245,158,11,0.10)',
-    borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  orderText: { color: GRAD.to, fontFamily: FONTS.xbold, fontSize: 11 },
 
   arrowCol: { gap: 3 },
   arrowBtn: {
@@ -789,59 +685,7 @@ const s = StyleSheet.create({
   },
   catBadgeText: { fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.3 },
 
-  toggleBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
-    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  toggleBtnOn: { borderColor: 'rgba(245,158,11,0.45)', backgroundColor: 'rgba(245,158,11,0.10)' },
-  toggleText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
-
-  iconBtn: {
-    width: 28, height: 28, borderRadius: 8,
-    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
-    alignItems: 'center', justifyContent: 'center',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-
-  confirmBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-    paddingVertical: 10, paddingHorizontal: 14, marginTop: -4,
-    borderRadius: 12, borderWidth: 1,
-    borderColor: 'rgba(239,68,68,0.35)',
-    backgroundColor: 'rgba(239,68,68,0.06)',
-  },
-  destructiveBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-
   /* modal */
-  modalBg: {
-    flex: 1, backgroundColor: SAC.panel2,
-    alignItems: 'center', justifyContent: 'center', padding: 20,
-    ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
-  },
-  modalCard: {
-    width: '100%', maxWidth: 640, maxHeight: '92%',
-    backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2,
-    overflow: 'hidden',
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
-  },
-  modalHero: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border,
-  },
-  modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
-
-  input: {
-    color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
-    backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
-    paddingHorizontal: 12, paddingVertical: 10,
-    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
-  },
 
   catPick: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -850,23 +694,6 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   catPickText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-
-  toggleRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 12, paddingVertical: 10, borderRadius: 9,
-    backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  checkBox: { width: 16, height: 16, borderRadius: 5, borderWidth: 1.4, borderColor: SAC.border2, alignItems: 'center', justifyContent: 'center' },
-  checkLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5, flex: 1 },
-
-  warnBox: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    padding: 10, borderRadius: 9,
-    backgroundColor: 'rgba(239,68,68,0.06)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)',
-  },
-
-  actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
 
   /* logo picker */
   logoDrop: {

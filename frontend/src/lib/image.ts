@@ -5,10 +5,11 @@
  * `fileToDataUrl` reads an image File into a base64 data URL (legacy fallback).
  */
 
+import { Platform } from 'react-native';
 import { BASE_URL } from '@/src/models/services/api';
 
 function getAuthHeaders(): Record<string, string> {
-  if (typeof window === 'undefined') return {};
+  if (Platform.OS !== 'web' || typeof window === 'undefined' || typeof localStorage === 'undefined') return {};
   try {
     // Try both storage keys — app uses scd_access_token, older versions used auth_tokens
     const token = localStorage.getItem('scd_access_token') || (() => {

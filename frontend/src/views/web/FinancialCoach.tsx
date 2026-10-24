@@ -410,7 +410,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontFamily: 'DMSans_900Black', fontSize: 14 },
+  title: { fontFamily: 'DMSans_800ExtraBold', fontSize: 14 },
   subtitle: { fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
   closeBtn: {
     width: 30,

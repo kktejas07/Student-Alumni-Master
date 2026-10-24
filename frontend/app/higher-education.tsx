@@ -948,7 +948,7 @@ const s = StyleSheet.create({
 
   sectionHead: { gap: 4, marginVertical: 4 },
   sectionTitle: { fontSize: 22, fontWeight: '800', fontFamily: 'Outfit_800ExtraBold' },
-  sectionSub: { fontSize: 12.5, fontFamily: 'PlusJakartaSans_500Medium' },
+  sectionSub: { fontSize: 12.5, fontFamily: 'DMSans_500Medium' },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   card: {
@@ -966,7 +966,7 @@ const s = StyleSheet.create({
   matchText: { fontSize: 11.5, fontWeight: '800' },
 
   cardTitle: { fontSize: 15, fontWeight: '800', marginTop: 4, fontFamily: 'Outfit_800ExtraBold' },
-  cardSub: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium' },
+  cardSub: { fontSize: 12, fontFamily: 'DMSans_500Medium' },
 
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   stat: {
@@ -1107,9 +1107,9 @@ const s = StyleSheet.create({
   },
   confirmTitle: { fontSize: 16, fontWeight: '800', fontFamily: 'Outfit_800ExtraBold' },
   confirmBody: { gap: 8 },
-  confirmText: { fontSize: 13.5, lineHeight: 20, fontFamily: 'PlusJakartaSans_500Medium' },
+  confirmText: { fontSize: 13.5, lineHeight: 20, fontFamily: 'DMSans_500Medium' },
   boldText: { fontWeight: '700' },
-  confirmSubtext: { fontSize: 12, lineHeight: 18, fontFamily: 'PlusJakartaSans_500Medium' },
+  confirmSubtext: { fontSize: 12, lineHeight: 18, fontFamily: 'DMSans_500Medium' },
   confirmActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
   cancelBtn: {
     paddingVertical: 9, paddingHorizontal: 14, borderRadius: 8,

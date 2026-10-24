@@ -496,8 +496,6 @@ export const api = {
     request<any>(`/echo/admin/media/${encodeURIComponent(filename)}`, { method: 'DELETE' }),
   bulkDeleteEchoMedia: (filenames: string[]) =>
     request<any>('/echo/admin/media/bulk-delete', { method: 'POST', body: { filenames } }),
-  restoreEchoShowcaseVersion: (id: string, versionIndex: number) =>
-    request<any>(`/echo/admin/showcases/${id}/restore/${versionIndex}`, { method: 'POST' }),
   adminEchoRegistrations: (params?: { slug?: string; status?: string; search?: string; has_sa_account?: boolean; profile_status?: string }) => {
     const q = new URLSearchParams();
     q.set('_t', String(Date.now()));

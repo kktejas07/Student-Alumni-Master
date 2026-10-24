@@ -32,6 +32,7 @@ import { useRouter } from 'expo-router';
 import { EchoImg } from '@/src/views/web/components/EchoChrome';
 import { useToast } from '@/src/views/components';
 import { useTheme } from '@/src/theme/ThemeContext';
+import { getBaseUrl } from '@/src/lib/env';
 
 // ── Status badge colors ─────────────────────────────────────────────────────
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
@@ -198,21 +199,31 @@ function HeroBannerCarousel({ banners, data, isWide, onBack, canonicalSlug, show
             </LinearGradient>
           </Pressable>
         )}
-        <PressScale
-          onPress={() => {
-            const base = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8002';
-            if (Platform.OS === 'web') {
-              window.open(`${base}/api/echo/handbook/download`, '_blank');
-            } else {
-              Linking.openURL(`${base}/api/echo/handbook/download`);
-            }
-          }}
-        >
-          <View style={[bc.shareBtn, { backgroundColor: 'rgba(124,58,237,0.45)', borderColor: '#A78BFA' }]}>
-            <FileText size={13} color="#fff" />
-            <Text style={bc.btnText}>Event Handbook (PDF)</Text>
-          </View>
-        </PressScale>
+        {Boolean(
+          data?.handbook_url ||
+          (data?.downloads || []).some((d: any) => {
+            const cat = (d?.category || '').toLowerCase();
+            const title = (d?.title || '').toLowerCase();
+            return Boolean(d?.file_url && (cat.includes('handbook') || cat.includes('brochure') || cat.includes('guide') || title.includes('handbook') || title.includes('brochure') || title.includes('guide')));
+          })
+        ) && (
+          <PressScale
+            onPress={() => {
+              const base = getBaseUrl();
+              const url = `${base}/api/echo/showcases/${canonicalSlug}/handbook`;
+              if (Platform.OS === 'web') {
+                window.open(url, '_blank');
+              } else {
+                Linking.openURL(url);
+              }
+            }}
+          >
+            <View style={[bc.shareBtn, { backgroundColor: 'rgba(124,58,237,0.45)', borderColor: '#A78BFA' }]}>
+              <FileText size={13} color="#fff" />
+              <Text style={bc.btnText}>Event Handbook (PDF)</Text>
+            </View>
+          </PressScale>
+        )}
         <PressScale onPress={onShare}>
           <View style={bc.shareBtn}>
             <Share2 size={13} color="#fff" />
@@ -806,7 +817,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
   const isWide = width >= 860;
   const { isDark } = useTheme();
   const PALETTE = usePalette();
-  const [data, setData] = useState<any>(DEFAULT_SHOWCASE);
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [lbOpen, setLbOpen] = useState(false);
   const [lbIndex, setLbIndex] = useState(0);
@@ -828,38 +839,22 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
     setLoading(true);
     const resolve = async () => {
       try {
-        let targetSlug = slug;
-        if (targetSlug === 'vnrvjit' || targetSlug === 'vnr' || targetSlug === 'vnr-vjit') {
-          targetSlug = 'vnr-vjiet';
-        }
-        if (!targetSlug) {
-          const list: any = await api.listEchoShowcases();
-          const items: any[] = list?.items || list || [];
-          const first = items.find(
-            (s: any) => s?.status === 'published' || !s?.status
-          ) || items[0];
-          targetSlug = first?.slug;
-        }
+        const targetSlug = slug?.trim();
         if (!targetSlug) {
           if (mounted) setData(null);
           return;
         }
         const d = await api.getEchoShowcase(targetSlug);
-        if (mounted && d) {
-          console.log('[STUDENT GET RESPONSE]', {
-            targetSlug,
-            title: d.title,
-            hero_image_url: d.hero_image_url,
-            hero_cover_url: d.hero_cover_url,
-            resolved_hero_url: resolveImageUrl(d.hero_image_url),
-          });
+        if (mounted && d && (d.title || d._id || d.slug)) {
           setData(d);
           if (Platform.OS === 'web' && (d.seo_title || d.title)) {
             document.title = d.seo_title || `${d.title} | Student Alumni Platform`;
           }
+        } else {
+          if (mounted) setData(null);
         }
       } catch {
-        /* keep default (neutral) data */
+        if (mounted) setData(null);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -887,7 +882,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
           Showcase not found
         </Text>
         <Text style={{ color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center', maxWidth: 320 }}>
-          No event showcase is published yet. Check back soon.
+          The requested event showcase was not found or is no longer published.
         </Text>
       </View>
     );
@@ -895,13 +890,13 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
 
   const statusKey = data?.event_status_badge || 'Upcoming';
   const statusCol = STATUS_COLORS[statusKey] || STATUS_COLORS.default;
-  const stats: any[] = data?.stats || DEFAULT_SHOWCASE.stats;
-  const highlights: any[] = data?.highlights || DEFAULT_SHOWCASE.highlights;
-  const testimonials: any[] = (data?.testimonials || DEFAULT_SHOWCASE.testimonials).filter(
+  const stats: any[] = data?.stats || [];
+  const highlights: any[] = data?.highlights || [];
+  const testimonials: any[] = (data?.testimonials || []).filter(
     (t: any) => t.visible !== false
   );
-  const timeline: any[] = data?.timeline || DEFAULT_SHOWCASE.timeline;
-  const partners: any[] = data?.partners || DEFAULT_SHOWCASE.partners;
+  const timeline: any[] = data?.timeline || [];
+  const partners: any[] = data?.partners || [];
   const canonicalSlug: string = data?.slug || slug || '';
 
   return (
@@ -1317,18 +1312,14 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
       )}
 
       {/* ── SPONSORS ────────────────────────────────────────────────────── */}
-      {showSection('sponsors') && (
+      {/* Only the event's own sponsors — no hardcoded fallback branding.    */}
+      {showSection('sponsors') && data?.sponsors && data.sponsors.length > 0 && (
         <FadeInView delay={300}>
           <View style={{ marginBottom: 18 }}>
             <SectionHeading icon={Building2} title="Event Sponsors & Industry Partners" tint="#A855F7" />
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 26 }}>
-            {(data?.sponsors && data.sponsors.length > 0 ? data.sponsors : [
-              { name: 'Deloitte', tier: 'TITLE SPONSOR', description: 'Global Leader in Strategy & Tech Innovation' },
-              { name: 'Featherless AI', tier: 'PLATINUM PARTNER', description: 'Decentralized Serverless LLM Inference' },
-              { name: 'VNR VJIET Alumni Assoc.', tier: 'HOST CHAPTER', description: 'Campus Chapter & Ecosystem Host' },
-              { name: 'Garuda Vigilance', tier: 'CYBERSECURITY PARTNER', description: 'Advanced Cloud Defense & Forensics' },
-            ]).map((sp: any, i: number) => (
+            {data.sponsors.map((sp: any, i: number) => (
               <GlassCard key={i} style={{ flex: 1, minWidth: 220, padding: 22, alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 150 }}>
                 {sp.logo_url ? (
                   <Image source={{ uri: resolveImageUrl(sp.logo_url) }} style={{ width: 140, height: 48 }} resizeMode="contain" />
@@ -1351,19 +1342,14 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
       )}
 
       {/* ── DOWNLOADS & RESOURCES ────────────────────────────────────────── */}
-      {showSection('downloads') && (
+      {/* Only the event's own configured resources — no fake '#' rows.      */}
+      {showSection('downloads') && data?.downloads && data.downloads.length > 0 && (
         <FadeInView delay={310}>
           <View style={{ marginBottom: 18 }}>
             <SectionHeading icon={FileText} title="Official Resources & Downloads" tint="#38BDF8" />
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 26 }}>
-            {(data?.downloads && data.downloads.length > 0 ? data.downloads : [
-              { title: 'Event Handbook & Schedule', description: 'Minute-by-minute itinerary, venue floor maps, lab allocations & helpline numbers', file_size: '4.2 MB · PDF', file_url: '#' },
-              { title: 'Hackathon Rulebook & Guidelines', description: 'Judging criteria, submission formats, tech stack policies and academic integrity rules', file_size: '1.8 MB · PDF', file_url: '#' },
-              { title: 'Problem Statements & Track Briefs', description: 'Comprehensive challenge briefs for AI Copilots, FinTech, Web3 and Smart Campus tracks', file_size: '2.4 MB · PDF', file_url: '#' },
-              { title: 'Starter Kits & Sample Datasets', description: 'GitHub starter templates, pre-configured sandbox APIs, sample CSV datasets and SDK docs', file_size: '12.5 MB · ZIP', file_url: '#' },
-              { title: 'Pitch Deck & Presentation Template', description: 'Official 5-minute final round slide deck template (.pptx) formatted for jury review', file_size: '3.1 MB · PPTX', file_url: '#' },
-            ]).map((dl: any, i: number) => (
+            {data.downloads.map((dl: any, i: number) => (
               <GlassCard key={i} style={{ flex: 1, minWidth: 260, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                 <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: isDark ? 'rgba(56,189,248,0.15)' : 'rgba(2,132,199,0.10)', borderWidth: 1, borderColor: isDark ? 'rgba(56,189,248,0.3)' : 'rgba(2,132,199,0.25)', alignItems: 'center', justifyContent: 'center' }}>
                   <FileText size={22} color={isDark ? '#38BDF8' : '#0284C7'} />
@@ -1373,18 +1359,16 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                   {dl.description ? <Text style={{ fontFamily: TYPO.body400, fontSize: 11.5, color: isDark ? PALETTE.muted : '#475569', lineHeight: 16, marginTop: 2 }}>{dl.description}</Text> : null}
                   {dl.file_size ? <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 10.5, color: isDark ? '#38BDF8' : '#0284C7', marginTop: 4 }}>{dl.file_size}</Text> : null}
                 </View>
-                <Pressable
-                  onPress={() => {
-                    if (dl.file_url && dl.file_url !== '#') {
+                {(dl.file_url && dl.file_url !== '#') ? (
+                  <Pressable
+                    onPress={() => {
                       if (Platform.OS === 'web') window.open(dl.file_url, '_blank');
-                    } else {
-                      toast.show({ title: 'Resource Access', message: `Opening ${dl.title}`, type: 'info' });
-                    }
-                  }}
-                  style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(2,132,199,0.08)', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(2,132,199,0.22)', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <Download size={16} color={isDark ? '#38BDF8' : '#0284C7'} />
-                </Pressable>
+                    }}
+                    style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(2,132,199,0.08)', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(2,132,199,0.22)', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <Download size={16} color={isDark ? '#38BDF8' : '#0284C7'} />
+                  </Pressable>
+                ) : null}
               </GlassCard>
             ))}
           </View>
@@ -1428,15 +1412,16 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
               </View>
 
               <Text style={s.shareModalSub}>
-                Share <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>{data?.title || 'SNIST Hackwave 3.0'}</Text> with your friends & teammates:
+                Share <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>{data?.title || 'ECHO Event'}</Text> with your friends & teammates:
               </Text>
 
               <View style={{ gap: 10, marginTop: 8 }}>
                 {/* WhatsApp */}
                 <Pressable
                   onPress={() => {
-                    const url = typeof window !== 'undefined' ? window.location.href : 'https://studentalumni.ai/echo/snist';
-                    const text = encodeURIComponent(` Join ${data?.title || 'SNIST Hackwave 3.0'} — National Level AI Hackathon!\n\nRegister now: ${url}`);
+                    const fallbackUrl = (data?.slug || slug) ? `https://studentalumni.ai/echo/${data?.slug || slug}` : 'https://studentalumni.ai';
+                    const url = typeof window !== 'undefined' ? window.location.href : fallbackUrl;
+                    const text = encodeURIComponent(` Join ${data?.title || 'ECHO Event'}!\n\nRegister now: ${url}`);
                     const waUrl = `https://api.whatsapp.com/send?text=${text}`;
                     if (Platform.OS === 'web' && typeof window !== 'undefined') window.open(waUrl, '_blank');
                     else Linking.openURL(waUrl);
@@ -1451,8 +1436,9 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 {/* Telegram */}
                 <Pressable
                   onPress={() => {
-                    const url = typeof window !== 'undefined' ? window.location.href : 'https://studentalumni.ai/echo/snist';
-                    const text = encodeURIComponent(` Join ${data?.title || 'SNIST Hackwave 3.0'} — National Level AI Hackathon!`);
+                    const fallbackUrl = (data?.slug || slug) ? `https://studentalumni.ai/echo/${data?.slug || slug}` : 'https://studentalumni.ai';
+                    const url = typeof window !== 'undefined' ? window.location.href : fallbackUrl;
+                    const text = encodeURIComponent(` Join ${data?.title || 'ECHO Event'}!`);
                     const tgUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${text}`;
                     if (Platform.OS === 'web' && typeof window !== 'undefined') window.open(tgUrl, '_blank');
                     else Linking.openURL(tgUrl);
@@ -1467,7 +1453,8 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 {/* Copy Link */}
                 <Pressable
                   onPress={() => {
-                    const url = typeof window !== 'undefined' ? window.location.href : 'https://studentalumni.ai/echo/snist';
+                    const fallbackUrl = (data?.slug || slug) ? `https://studentalumni.ai/echo/${data?.slug || slug}` : 'https://studentalumni.ai';
+                    const url = typeof window !== 'undefined' ? window.location.href : fallbackUrl;
                     if (typeof window !== 'undefined' && navigator.clipboard) {
                       navigator.clipboard.writeText(url);
                       toast.success('Event link copied to clipboard!');

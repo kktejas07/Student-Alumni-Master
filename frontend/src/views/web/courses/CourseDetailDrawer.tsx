@@ -392,7 +392,7 @@ const s = StyleSheet.create({
   },
   headerLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   providerLine: { fontFamily: 'DMSans_700Bold', fontSize: 11 },
-  title: { fontFamily: 'DMSans_900Black', fontSize: 17 },
+  title: { fontFamily: 'DMSans_800ExtraBold', fontSize: 17 },
   closeBtn: {
     width: 32,
     height: 32,
@@ -437,7 +437,7 @@ const s = StyleSheet.create({
     gap: 4,
     alignItems: 'flex-start',
   },
-  statValue: { fontFamily: 'DMSans_900Black', fontSize: 15 },
+  statValue: { fontFamily: 'DMSans_800ExtraBold', fontSize: 15 },
   statLabel: {
     fontFamily: 'DMSans_700Bold',
     fontSize: 9.5,
@@ -481,7 +481,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  syllabusWeekText: { color: '#2563EB', fontFamily: 'DMSans_900Black', fontSize: 11 },
+  syllabusWeekText: { color: '#2563EB', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
   syllabusTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
   syllabusBody: {
     fontFamily: 'DMSans_600SemiBold',
@@ -499,7 +499,7 @@ const s = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
   },
-  reviewBigRating: { color: '#F59E0B', fontFamily: 'DMSans_900Black', fontSize: 32 },
+  reviewBigRating: { color: '#F59E0B', fontFamily: 'DMSans_800ExtraBold', fontSize: 32 },
   reviewMeta: { fontFamily: 'DMSans_600SemiBold', fontSize: 11, marginTop: 2 },
   reviewCard: {
     paddingHorizontal: 14,
@@ -519,20 +519,20 @@ const s = StyleSheet.create({
     gap: 10,
     borderWidth: 1,
   },
-  priceFree: { color: '#10B981', fontFamily: 'DMSans_900Black', fontSize: 28 },
+  priceFree: { color: '#10B981', fontFamily: 'DMSans_800ExtraBold', fontSize: 28 },
   priceStrike: {
     fontFamily: 'DMSans_700Bold',
     fontSize: 14,
     textDecorationLine: 'line-through',
   },
-  pricePaid: { fontFamily: 'DMSans_900Black', fontSize: 22 },
+  pricePaid: { fontFamily: 'DMSans_800ExtraBold', fontSize: 22 },
   discountBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
     backgroundColor: '#2563EB',
   },
-  discountText: { color: '#fff', fontFamily: 'DMSans_900Black', fontSize: 10 },
+  discountText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 10 },
   certBadge: {
     flexDirection: 'row',
     alignItems: 'center',

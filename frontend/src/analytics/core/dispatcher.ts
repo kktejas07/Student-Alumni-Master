@@ -5,6 +5,7 @@
  * sanitization, validation, ring-buffer queueing, sampling, and offline replay.
  */
 
+import { Platform } from 'react-native';
 import { CONFIG } from '../config';
 import { EVENTS } from '../constants/events';
 import { ConsoleProvider } from '../providers/console';
@@ -54,8 +55,8 @@ class AnalyticsDispatcher {
     // Set up auto-flush timer
     this.scheduleFlush();
 
-    // Web visibility & pagehide listener
-    if (typeof window !== 'undefined') {
+    // Web visibility & pagehide listener (window exists on RN too, so check Platform)
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
       window.addEventListener('pagehide', () => {
         this.flushSync();
       });

@@ -35,7 +35,7 @@ from core.security import (
     generate_unique_id, generate_qr_code,
     JWT_SECRET, JWT_ALGORITHM
 )
-from core.models import UserRole, AuthResponse, UserResponse
+from core.models import SelfServiceRole, AuthResponse, UserResponse
 from core.security import serialize_user
 from core.deps import get_current_user
 from core.email import send_email
@@ -278,7 +278,7 @@ class OAuthCallback(BaseModel):
     email: Optional[EmailStr] = None
     full_name: Optional[str] = None
     picture: Optional[str] = None
-    role: Optional[UserRole] = "student"   # Used only when creating a new account
+    role: Optional[SelfServiceRole] = "student"   # Used only when creating a new account
 
 
 
@@ -626,7 +626,7 @@ async def refresh_token(request: Request, response: Response, payload: Optional[
         raise HTTPException(400, "Missing refresh_token")
 
     try:
-        data = jwt.decode(token, JWT_SECRET or "", algorithms=[JWT_ALGORITHM])
+        data = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         if data.get("type") != "refresh":
             raise HTTPException(401, "Invalid token type")
 
@@ -1565,9 +1565,15 @@ async def auth_google(request: Request, req: OAuthCallback):
             profile = _verify_firebase_token(req.id_token)
 
         if profile is None:
-            email = req.email or "google.user@studentalumni.ai"
-            full_name = req.full_name or "Google User"
-            profile = {"email": email, "name": full_name, "picture": req.picture}
+            # SECURITY: never trust a client-supplied email. Only allow the
+            # unverified mock profile in explicit development mode, mirroring
+            # the LinkedIn/GitHub handlers.
+            if not client_id and os.getenv("ENV") == "development":
+                if not req.email or not req.full_name:
+                    raise HTTPException(400, "Development mock mode requires email/full_name")
+                profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+            else:
+                raise HTTPException(401, "Google sign-in requires a valid id_token.")
 
         user = await _upsert_oauth_user(
             provider="google",

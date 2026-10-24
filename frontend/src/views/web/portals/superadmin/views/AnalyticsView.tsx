@@ -396,43 +396,25 @@ function RetentionCard({ cohorts }: { cohorts: { cohort: string; week: string; u
 }
 
 function PageViewsCard({ pages }: { pages: { path: string; views: number }[] }) {
-  const maxViews = Math.max(...pages.map(p => p.views), 1);
   return (
     <Card style={{ padding: 20, gap: 12 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <FileText size={16} color="#3B82F6" />
         <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>Top Pages</Text>
       </View>
-      {pages.length > 0 ? pages.slice(0, 8).map((p, i) => (
-        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={{ height: 6, width: `${(p.views / maxViews) * 100}%`, maxWidth: 120, borderRadius: 3, backgroundColor: '#3B82F6' }} />
-          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }} numberOfLines={1}>{p.path}</Text>
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#3B82F6' }}>{fmt(p.views)}</Text>
-        </View>
-      )) : (
-        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>Configure Firebase Analytics to see page views</Text>
-      )}
+      <BarList items={pages.map(p => ({ label: p.path, value: p.views }))} color="#3B82F6" limit={8} maxWidth={120} labelLines={1} emptyText="Configure Firebase Analytics to see page views" />
     </Card>
   );
 }
 
 function AcquisitionCard({ sources }: { sources: { source: string; sessions: number }[] }) {
-  const maxSessions = Math.max(...sources.map(s => s.sessions), 1);
   return (
     <Card style={{ padding: 20, gap: 12 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Zap size={16} color="#8B5CF6" />
         <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>Acquisition Sources</Text>
       </View>
-      {sources.length > 0 ? sources.slice(0, 6).map((s, i) => (
-        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={{ height: 6, width: `${(s.sessions / maxSessions) * 100}%`, maxWidth: 100, borderRadius: 3, backgroundColor: '#8B5CF6' }} />
-          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }}>{s.source}</Text>
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#8B5CF6' }}>{fmt(s.sessions)}</Text>
-        </View>
-      )) : (
-        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>Configure Firebase Analytics to see acquisition data</Text>
-      )}
+      <BarList items={sources.map(s => ({ label: s.source, value: s.sessions }))} color="#8B5CF6" limit={6} emptyText="Configure Firebase Analytics to see acquisition data" />
     </Card>
   );
 }
@@ -692,6 +674,56 @@ function TopCollegesCard({ colleges }: { colleges: College[] }) {
 
 // ── PostHog Cards ────────────────────────────────────────────────────────────
 
+// ── Shared mini-chart primitives ─────────────────────────────────────────────
+
+function PhStat({ value, label }: { value: string | number; label: string }) {
+  return (
+    <View style={{ flex: 1, minWidth: 130, padding: 12, borderRadius: 10, backgroundColor: 'rgba(29,74,255,0.1)' }}>
+      <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: '#1D4AFF' }}>{value}</Text>
+      <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>{label}</Text>
+    </View>
+  );
+}
+
+/** Horizontal proportional bars with label + value; optional per-row fade. */
+function BarList({ items, color, limit, maxWidth = 100, labelLines, fade = false, emptyText, gap = 0 }: {
+  items: { label: string; value: number }[];
+  color: string;
+  limit: number;
+  maxWidth?: number;
+  labelLines?: number;
+  fade?: boolean;
+  emptyText?: string;
+  gap?: number;
+}) {
+  if (items.length === 0) {
+    return emptyText ? <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>{emptyText}</Text> : null;
+  }
+  const max = Math.max(...items.map(i => i.value), 1);
+  return (
+    <View style={{ gap }}>
+      {items.slice(0, limit).map((item, i) => (
+        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ height: 6, width: `${(item.value / max) * 100}%`, maxWidth, borderRadius: 3, backgroundColor: color, ...(fade ? { opacity: 1 - i * 0.15 } : {}) }} />
+          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }} numberOfLines={labelLines}>{item.label}</Text>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color }}>{fmt(item.value)}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** Titled bar group; renders nothing when empty. */
+function BarSection({ title, items, color }: { title: string; items: { label: string; value: number }[]; color: string }) {
+  if (items.length === 0) return null;
+  return (
+    <View>
+      <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>{title}</Text>
+      <BarList items={items} color={color} limit={5} fade gap={6} />
+    </View>
+  );
+}
+
 function PostHogOverview({ ph }: { ph: PostHogData }) {
   const t = ph.totals_30d || { events: 0, users: 0, pageviews: 0 };
   const s = ph.sessions || { sessions: 0, users: 0, has_session_data: false };
@@ -716,26 +748,11 @@ function PostHogOverview({ ph }: { ph: PostHogData }) {
         </Text>
       ) : (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-          <View style={{ flex: 1, minWidth: 130, padding: 12, borderRadius: 10, backgroundColor: 'rgba(29,74,255,0.1)' }}>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: '#1D4AFF' }}>{ph.realtime_active ?? 0}</Text>
-            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>Active now (5m)</Text>
-          </View>
-          <View style={{ flex: 1, minWidth: 130, padding: 12, borderRadius: 10, backgroundColor: 'rgba(29,74,255,0.1)' }}>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: '#1D4AFF' }}>{fmt(t.events)}</Text>
-            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>Events (30d)</Text>
-          </View>
-          <View style={{ flex: 1, minWidth: 130, padding: 12, borderRadius: 10, backgroundColor: 'rgba(29,74,255,0.1)' }}>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: '#1D4AFF' }}>{fmt(t.users)}</Text>
-            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>Unique users (30d)</Text>
-          </View>
-          <View style={{ flex: 1, minWidth: 130, padding: 12, borderRadius: 10, backgroundColor: 'rgba(29,74,255,0.1)' }}>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: '#1D4AFF' }}>{fmt(t.pageviews)}</Text>
-            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>Pageviews (30d)</Text>
-          </View>
-          <View style={{ flex: 1, minWidth: 130, padding: 12, borderRadius: 10, backgroundColor: 'rgba(29,74,255,0.1)' }}>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: '#1D4AFF' }}>{s.has_session_data ? fmt(s.sessions) : '—'}</Text>
-            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>{s.has_session_data ? 'Sessions (30d)' : 'Sessions (no data)'}</Text>
-          </View>
+          <PhStat value={ph.realtime_active ?? 0} label="Active now (5m)" />
+          <PhStat value={fmt(t.events)} label="Events (30d)" />
+          <PhStat value={fmt(t.users)} label="Unique users (30d)" />
+          <PhStat value={fmt(t.pageviews)} label="Pageviews (30d)" />
+          <PhStat value={s.has_session_data ? fmt(s.sessions) : '—'} label={s.has_session_data ? 'Sessions (30d)' : 'Sessions (no data)'} />
         </View>
       )}
     </Card>
@@ -777,57 +794,36 @@ function PostHogTrendsCard({ ph }: { ph: PostHogData }) {
 
 function PostHogEventsCard({ ph }: { ph: PostHogData }) {
   const events = ph.top_events || [];
-  const maxCount = Math.max(...events.map(e => e.count), 1);
   return (
     <Card style={{ padding: 20, gap: 12 }}>
       <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>Top Events</Text>
-      {events.length > 0 ? events.slice(0, 8).map((e, i) => (
-        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={{ height: 6, width: `${(e.count / maxCount) * 100}%`, maxWidth: 120, borderRadius: 3, backgroundColor: '#1D4AFF' }} />
-          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }} numberOfLines={1}>{e.event}</Text>
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#1D4AFF' }}>{fmt(e.count)}</Text>
-        </View>
-      )) : <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No event data</Text>}
+      <BarList items={events.map(e => ({ label: e.event, value: e.count }))} color="#1D4AFF" limit={8} maxWidth={120} labelLines={1} emptyText="No event data" />
     </Card>
   );
 }
 
 function PostHogPathsCard({ ph }: { ph: PostHogData }) {
   const paths = ph.top_paths || [];
-  const maxViews = Math.max(...paths.map(p => p.views), 1);
   return (
     <Card style={{ padding: 20, gap: 12 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <FileText size={16} color="#1D4AFF" />
         <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>Top Paths</Text>
       </View>
-      {paths.length > 0 ? paths.slice(0, 8).map((p, i) => (
-        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={{ height: 6, width: `${(p.views / maxViews) * 100}%`, maxWidth: 100, borderRadius: 3, backgroundColor: '#1D4AFF' }} />
-          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }} numberOfLines={1}>{p.path}</Text>
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#1D4AFF' }}>{fmt(p.views)}</Text>
-        </View>
-      )) : <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No pageview data</Text>}
+      <BarList items={paths.map(p => ({ label: p.path, value: p.views }))} color="#1D4AFF" limit={8} labelLines={1} emptyText="No pageview data" />
     </Card>
   );
 }
 
 function PostHogSourcesCard({ ph }: { ph: PostHogData }) {
   const sources = ph.sources || [];
-  const maxSessions = Math.max(...sources.map(s => s.sessions), 1);
   return (
     <Card style={{ padding: 20, gap: 12 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Zap size={16} color="#1D4AFF" />
         <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>Acquisition Sources</Text>
       </View>
-      {sources.length > 0 ? sources.slice(0, 6).map((s, i) => (
-        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={{ height: 6, width: `${(s.sessions / maxSessions) * 100}%`, maxWidth: 100, borderRadius: 3, backgroundColor: '#1D4AFF' }} />
-          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }}>{s.source}</Text>
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#1D4AFF' }}>{fmt(s.sessions)}</Text>
-        </View>
-      )) : <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No acquisition data</Text>}
+      <BarList items={sources.map(s => ({ label: s.source, value: s.sessions }))} color="#1D4AFF" limit={6} emptyText="No acquisition data" />
     </Card>
   );
 }
@@ -859,20 +855,6 @@ function PostHogCountriesCard({ ph }: { ph: PostHogData }) {
 
 function PostHogDevicesCard({ ph }: { ph: PostHogData }) {
   const devices = ph.devices || { by_os: [], by_browser: [], by_device: [] };
-  const bars = (items: { label: string; value: number }[], color: string) => {
-    const max = Math.max(...items.map(i => i.value), 1);
-    return (
-      <View style={{ gap: 6 }}>
-        {items.slice(0, 5).map((item, i) => (
-          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <View style={{ height: 6, width: `${(item.value / max) * 100}%`, maxWidth: 100, borderRadius: 3, backgroundColor: color, opacity: 1 - i * 0.15 }} />
-            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }}>{item.label}</Text>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color }}>{fmt(item.value)}</Text>
-          </View>
-        ))}
-      </View>
-    );
-  };
   return (
     <Card style={{ padding: 20, gap: 14 }}>
       <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>PostHog Devices</Text>
@@ -887,8 +869,8 @@ function PostHogDevicesCard({ ph }: { ph: PostHogData }) {
           ))}
         </View>
       )}
-      {devices.by_os.length > 0 && <View><Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>By OS</Text>{bars(devices.by_os, '#1D4AFF')}</View>}
-      {devices.by_browser.length > 0 && <View><Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>By Browser</Text>{bars(devices.by_browser, '#A78BFA')}</View>}
+      <BarSection title="By OS" items={devices.by_os} color='#1D4AFF' />
+      <BarSection title="By Browser" items={devices.by_browser} color='#A78BFA' />
     </Card>
   );
 }
@@ -913,26 +895,12 @@ function GaDailyCard({ series }: { series: { date: string; count: number }[] }) 
 }
 
 function GaDevicesCard({ devices }: { devices: FirebaseData['devices'] }) {
-  const bars = (items: { label: string; value: number }[], color: string) => {
-    const max = Math.max(...items.map(i => i.value), 1);
-    return (
-      <View style={{ gap: 6 }}>
-        {items.slice(0, 5).map((item, i) => (
-          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <View style={{ height: 6, width: `${(item.value / max) * 100}%`, maxWidth: 100, borderRadius: 3, backgroundColor: color, opacity: 1 - i * 0.15 }} />
-            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }}>{item.label}</Text>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color }}>{fmt(item.value)}</Text>
-          </View>
-        ))}
-      </View>
-    );
-  };
   return (
     <Card style={{ padding: 20, gap: 14 }}>
       <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>GA4 Devices</Text>
-      {devices.by_os.length > 0 && <View><Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>By OS</Text>{bars(devices.by_os, '#3B82F6')}</View>}
-      {devices.by_browser.length > 0 && <View><Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>By Browser</Text>{bars(devices.by_browser, '#A78BFA')}</View>}
-      {devices.by_device.length > 0 && <View><Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>By Device</Text>{bars(devices.by_device, '#60A5FA')}</View>}
+      <BarSection title="By OS" items={devices.by_os} color='#3B82F6' />
+      <BarSection title="By Browser" items={devices.by_browser} color='#A78BFA' />
+      <BarSection title="By Device" items={devices.by_device} color='#60A5FA' />
       {devices.by_os.length === 0 && devices.by_browser.length === 0 && <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>Configure GA4 to see device breakdown</Text>}
     </Card>
   );

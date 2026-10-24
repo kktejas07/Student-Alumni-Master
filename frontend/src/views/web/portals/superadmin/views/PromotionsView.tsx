@@ -15,22 +15,23 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, TextInput, ScrollView, Platform, Modal,
-  Image,
+  View, Text, Pressable, StyleSheet, TextInput, Platform, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import {
-  Megaphone, Plus, Pencil, Trash2, X, Check, AlertTriangle, Eye, EyeOff,
-  RefreshCw, ImagePlus, Upload, ArrowRight, Sparkles,
+  Megaphone, Plus, X, Check, RefreshCw, ImagePlus, Upload, ArrowRight, Sparkles,
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox,
 } from '../applekit';
 import { request, resolveImageUrl } from '@/src/models/services/api';
 import { PromoTone } from '@/src/views/web/components/PromoBanner';
+import {
+  crud, useThemedCrudStyles, RowActions, DeleteConfirmBar, CheckToggle, EditorModal, useWebImageInput,
+} from './shared/adminCrud';
 
 /* ────────────────────────────────────────────────────────────────────
  * Types
@@ -80,7 +81,7 @@ const AUDIENCE_OPTIONS: Array<{ id: Audience; label: string }> = [
  * Root
  * ────────────────────────────────────────────────────────────────── */
 export function PromotionsView() {
-  const T = useSAC();
+  const T = useThemedCrudStyles();
   Object.assign(s, resolveColors(s, T));
   const { toast, flash, hide } = useToast();
   const [items, setItems] = useState<Promotion[] | null>(null);
@@ -141,12 +142,12 @@ export function PromotionsView() {
     <View style={{ gap: 14 }}>
       {/* Header */}
       <Card>
-        <View style={s.headRow}>
+        <View style={crud.headRow}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
             <IconBox size={38}><Megaphone size={18} color={GRAD.to} /></IconBox>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.title}>Promotional banners</Text>
-              <Text style={s.sub}>
+              <Text style={crud.title}>Promotional banners</Text>
+              <Text style={crud.sub}>
                 Push announcements, deals, or product updates to one or more
                 portals. Promotions appear at the top of the dashboard view
                 and respect each user's dismissed list.
@@ -155,18 +156,18 @@ export function PromotionsView() {
           </View>
           <GradientButton onPress={() => { setEditing(blankPromo()); setCreating(true); }}>
             <Plus size={13} color="#fff" />
-            <Text style={s.btnText}>New promotion</Text>
+            <Text style={crud.btnText}>New promotion</Text>
           </GradientButton>
         </View>
       </Card>
 
       {/* Filters */}
       <Card>
-        <View style={s.filtersRow}>
+        <View style={crud.filtersRow}>
           <SearchField value={q} onChange={setQ} placeholder="Search by title or body…" width={320} />
-          <Pressable onPress={load} style={s.refreshBtn}>
+          <Pressable onPress={load} style={crud.refreshBtn}>
             <RefreshCw size={11} color={SAC.muted} />
-            <Text style={s.refreshText}>Refresh</Text>
+            <Text style={crud.refreshText}>Refresh</Text>
           </Pressable>
         </View>
       </Card>
@@ -255,8 +256,8 @@ function PromoRow({
         />
 
         {/* Order pill */}
-        <View style={s.orderPill}>
-          <Text style={s.orderText}>{promo.display_order}</Text>
+        <View style={crud.orderPill}>
+          <Text style={crud.orderText}>{promo.display_order}</Text>
         </View>
 
         {/* Icon / image */}
@@ -289,7 +290,7 @@ function PromoRow({
               </View>
             ))}
             {promo.audience.length > 4 && (
-              <Text style={s.muted}>+{promo.audience.length - 4} more</Text>
+              <Text style={crud.muted}>+{promo.audience.length - 4} more</Text>
             )}
             {promo.is_active ? (
               <StatusPill kind="success" label="Live" dot />
@@ -299,41 +300,23 @@ function PromoRow({
           </View>
         </View>
 
-        {/* Toggle */}
-        <Pressable onPress={onToggle} style={[s.toggleBtn, promo.is_active && s.toggleBtnOn]}>
-          {promo.is_active
-            ? <Eye  size={12} color={GRAD.to} />
-            : <EyeOff size={12} color={SAC.muted} />}
-          <Text style={[s.toggleText, promo.is_active && { color: GRAD.to }]}>
-            {promo.is_active ? 'Live' : 'Paused'}
-          </Text>
-        </Pressable>
-
-        {/* Edit / Delete */}
-        <View style={{ flexDirection: 'row', gap: 6 }}>
-          <Pressable onPress={onEdit} style={s.iconBtn}>
-            <Pencil size={12} color={SAC.muted} />
-          </Pressable>
-          <Pressable onPress={() => setConfirmDel(true)} style={[s.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
-            <Trash2 size={12} color="#FCA5A5" />
-          </Pressable>
-        </View>
+        {/* Toggle / Edit / Delete */}
+        <RowActions
+          active={!!promo.is_active}
+          onToggle={onToggle}
+          onEdit={onEdit}
+          onRequestDelete={() => setConfirmDel(true)}
+          onLabel="Live"
+          offLabel="Paused"
+        />
       </View>
 
       {confirmDel && (
-        <Animated.View entering={FadeIn.duration(160)} style={s.confirmBar}>
-          <AlertTriangle size={13} color="#FCA5A5" />
-          <Text style={[s.muted, { color: '#FCA5A5', flex: 1 }]}>
-            Delete "{promo.title}"? This cannot be undone.
-          </Text>
-          <SecondaryButton size="sm" onPress={() => setConfirmDel(false)}>
-            <Text style={s.secText}>Cancel</Text>
-          </SecondaryButton>
-          <Pressable onPress={() => { setConfirmDel(false); onDelete(); }} style={s.destructiveBtn}>
-            <Trash2 size={11} color="#fff" />
-            <Text style={s.btnText}>Delete</Text>
-          </Pressable>
-        </Animated.View>
+        <DeleteConfirmBar
+          name={promo.title}
+          onCancel={() => setConfirmDel(false)}
+          onConfirm={() => { setConfirmDel(false); onDelete(); }}
+        />
       )}
     </Animated.View>
   );
@@ -369,23 +352,11 @@ function PromoEditor({
     });
   };
 
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const el = fileRef.current;
-    if (!el) return;
-    const h = (e: any) => {
-      const f = e.target.files?.[0];
-      if (!f) return;
-      if (!/^image\//.test(f.type)) { setError('Choose a PNG / JPG / SVG'); return; }
-      if (f.size > 2_000_000)       { setError('Image must be under 2 MB'); return; }
-      setError(null);
-      const r = new FileReader();
-      r.onload = () => update('image_url', String(r.result));
-      r.readAsDataURL(f);
-    };
-    el.addEventListener('change', h);
-    return () => el.removeEventListener('change', h);
-  }, []);
+  useWebImageInput(
+    [{ ref: fileRef, onDataUri: (uri) => update('image_url', uri) }],
+    setError,
+    { type: 'Choose a PNG / JPG / SVG', size: 'Image must be under 2 MB' },
+  );
 
   const submit = async () => {
     if (!form.title.trim()) { setError('Title is required'); return; }
@@ -422,23 +393,20 @@ function PromoEditor({
   const previewTone = TONE_PREVIEW[form.tone] || TONE_PREVIEW.violet;
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
-      <View style={s.modalBg}>
-        <Animated.View entering={FadeInDown.duration(220)} style={s.modalCard}>
-          <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
-            <IconBox size={40}><Megaphone size={20} color={GRAD.to} /></IconBox>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.modalTitle}>{isCreate ? 'New promotion' : 'Edit promotion'}</Text>
-              <Text style={s.muted}>
-                {isCreate
-                  ? 'Compose the message, pick a tone, and choose which portals see it.'
-                  : 'Update this promotion. Changes go live immediately.'}
-              </Text>
-            </View>
-            <Pressable onPress={onClose}><X size={16} color={SAC.muted} /></Pressable>
-          </LinearGradient>
-
-          <ScrollView style={{ maxHeight: 600 }} contentContainerStyle={{ padding: 20, gap: 16 }}>
+    <EditorModal
+      Icon={Megaphone}
+      title={isCreate ? 'New promotion' : 'Edit promotion'}
+      subtitle={isCreate
+        ? 'Compose the message, pick a tone, and choose which portals see it.'
+        : 'Update this promotion. Changes go live immediately.'}
+      onClose={onClose}
+      maxWidth={720}
+      bodyMaxHeight={600}
+      error={error}
+      busy={busy}
+      submitLabel={isCreate ? 'Publish' : 'Save changes'}
+      onSubmit={submit}
+    >
             {/* Live preview */}
             <View>
               <SectionLabel>LIVE PREVIEW</SectionLabel>
@@ -487,7 +455,7 @@ function PromoEditor({
                 onChangeText={(v) => update('title', v)}
                 placeholder="e.g. Year-end placement drive opens Friday"
                 placeholderTextColor={SAC.dim}
-                style={[s.input, { marginTop: 8 }]}
+                style={[crud.input, { marginTop: 8 }]}
               />
             </View>
 
@@ -501,7 +469,7 @@ function PromoEditor({
                 placeholderTextColor={SAC.dim}
                 multiline
                 numberOfLines={2}
-                style={[s.input, { marginTop: 8, minHeight: 70 }]}
+                style={[crud.input, { marginTop: 8, minHeight: 70 }]}
               />
             </View>
 
@@ -515,7 +483,7 @@ function PromoEditor({
                   placeholder="NEW · DEAL · BETA"
                   placeholderTextColor={SAC.dim}
                   maxLength={12}
-                  style={[s.input, { marginTop: 8 }]}
+                  style={[crud.input, { marginTop: 8 }]}
                 />
               </View>
               <View style={{ flex: 2, minWidth: 240 }}>
@@ -544,7 +512,7 @@ function PromoEditor({
                   onChangeText={(v) => update('cta_label', v)}
                   placeholder="Learn more"
                   placeholderTextColor={SAC.dim}
-                  style={[s.input, { marginTop: 8 }]}
+                  style={[crud.input, { marginTop: 8 }]}
                 />
               </View>
               <View style={{ flex: 2, minWidth: 240 }}>
@@ -554,7 +522,7 @@ function PromoEditor({
                   onChangeText={(v) => update('cta_url', v)}
                   placeholder="https://… or /super-admin/imports"
                   placeholderTextColor={SAC.dim}
-                  style={[s.input, { marginTop: 8 }]}
+                  style={[crud.input, { marginTop: 8 }]}
                 />
               </View>
             </View>
@@ -583,13 +551,13 @@ function PromoEditor({
                   <View style={s.imgRow}>
                     <Image source={{ uri: form.image_url }} style={s.imgPrev} resizeMode="cover" />
                     <View style={{ flex: 1, gap: 6 }}>
-                      <Text style={s.muted}>{Math.round(form.image_url.length / 1000)} KB (base64)</Text>
+                      <Text style={crud.muted}>{Math.round(form.image_url.length / 1000)} KB (base64)</Text>
                       <View style={{ flexDirection: 'row', gap: 6 }}>
                         <SecondaryButton size="sm" onPress={() => fileRef.current?.click?.()}>
-                          <Upload size={11} color={SAC.muted} /><Text style={s.secText}>Replace</Text>
+                          <Upload size={11} color={SAC.muted} /><Text style={crud.secText}>Replace</Text>
                         </SecondaryButton>
                         <SecondaryButton size="sm" danger onPress={() => update('image_url', null)}>
-                          <X size={11} color="#FCA5A5" /><Text style={[s.secText, { color: '#FCA5A5' }]}>Remove</Text>
+                          <X size={11} color="#FCA5A5" /><Text style={[crud.secText, { color: '#FCA5A5' }]}>Remove</Text>
                         </SecondaryButton>
                       </View>
                     </View>
@@ -597,7 +565,7 @@ function PromoEditor({
                 ) : (
                   <Pressable onPress={() => fileRef.current?.click?.()} style={s.imgDrop}>
                     <ImagePlus size={16} color={GRAD.to} />
-                    <Text style={s.muted}>Click to upload a thumbnail · PNG / JPG · max 2 MB</Text>
+                    <Text style={crud.muted}>Click to upload a thumbnail · PNG / JPG · max 2 MB</Text>
                   </Pressable>
                 )}
                 {Platform.OS === 'web' && (
@@ -616,49 +584,29 @@ function PromoEditor({
                   onChangeText={(v) => update('display_order', parseInt(v) || 0)}
                   keyboardType="numeric"
                   placeholderTextColor={SAC.dim}
-                  style={[s.input, { marginTop: 8 }]}
+                  style={[crud.input, { marginTop: 8 }]}
                 />
               </View>
               <View style={{ flex: 1, minWidth: 160 }}>
                 <SectionLabel>STATUS</SectionLabel>
-                <Pressable onPress={() => update('is_active', !form.is_active)} style={[s.toggleRow, { marginTop: 8 }]}>
-                  <View style={[s.checkBox, form.is_active && { backgroundColor: GRAD.to, borderColor: GRAD.to }]}>
-                    {form.is_active && <Check size={11} color="#fff" />}
-                  </View>
-                  <Text style={s.checkLabel}>{form.is_active ? 'Live now' : 'Paused (not shown)'}</Text>
-                </Pressable>
+                <CheckToggle
+                  value={form.is_active}
+                  onToggle={() => update('is_active', !form.is_active)}
+                  label={form.is_active ? 'Live now' : 'Paused (not shown)'}
+                  style={{ marginTop: 8 }}
+                />
               </View>
               <View style={{ flex: 1, minWidth: 160 }}>
                 <SectionLabel>DISMISSIBLE</SectionLabel>
-                <Pressable onPress={() => update('dismissible', !form.dismissible)} style={[s.toggleRow, { marginTop: 8 }]}>
-                  <View style={[s.checkBox, form.dismissible && { backgroundColor: GRAD.to, borderColor: GRAD.to }]}>
-                    {form.dismissible && <Check size={11} color="#fff" />}
-                  </View>
-                  <Text style={s.checkLabel}>{form.dismissible ? 'Users can close it' : 'Sticky (no close)'}</Text>
-                </Pressable>
+                <CheckToggle
+                  value={form.dismissible}
+                  onToggle={() => update('dismissible', !form.dismissible)}
+                  label={form.dismissible ? 'Users can close it' : 'Sticky (no close)'}
+                  style={{ marginTop: 8 }}
+                />
               </View>
             </View>
-
-            {error && (
-              <View style={s.warnBox}>
-                <AlertTriangle size={12} color="#FCA5A5" />
-                <Text style={[s.muted, { color: '#FCA5A5', flex: 1 }]}>{error}</Text>
-              </View>
-            )}
-
-            <View style={s.actionsRow}>
-              <SecondaryButton onPress={onClose}>
-                <Text style={s.secText}>Cancel</Text>
-              </SecondaryButton>
-              <GradientButton onPress={submit} loading={busy}>
-                <Check size={13} color="#fff" />
-                <Text style={s.btnText}>{isCreate ? 'Publish' : 'Save changes'}</Text>
-              </GradientButton>
-            </View>
-          </ScrollView>
-        </Animated.View>
-      </View>
-    </Modal>
+    </EditorModal>
   );
 }
 
@@ -666,21 +614,6 @@ function PromoEditor({
  * Styles
  * ────────────────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
-  headRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
-  sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
-  muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
-  btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
-  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-
-  filtersRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' as any },
-  refreshBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 9, paddingVertical: 6, borderRadius: 7,
-    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  refreshText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
 
   /* row */
   row: {
@@ -691,13 +624,6 @@ const s = StyleSheet.create({
   },
   rowInactive: { opacity: 0.6 },
   stripe: { position: 'absolute' as any, left: 0, top: 0, bottom: 0, width: 4 },
-  orderPill: {
-    width: 30, height: 24, borderRadius: 8,
-    backgroundColor: 'rgba(245,158,11,0.10)',
-    borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  orderText: { color: GRAD.to, fontFamily: FONTS.xbold, fontSize: 11 },
   thumb: { width: 56, height: 40, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)' },
   toneIconBox: {
     width: 36, height: 36, borderRadius: 10,
@@ -720,59 +646,7 @@ const s = StyleSheet.create({
   },
   audChipText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10 },
 
-  toggleBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
-    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  toggleBtnOn: { borderColor: 'rgba(245,158,11,0.45)', backgroundColor: 'rgba(245,158,11,0.10)' },
-  toggleText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
-
-  iconBtn: {
-    width: 28, height: 28, borderRadius: 8,
-    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
-    alignItems: 'center', justifyContent: 'center',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-
-  confirmBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-    paddingVertical: 10, paddingHorizontal: 14, marginTop: -4,
-    borderRadius: 12, borderWidth: 1,
-    borderColor: 'rgba(239,68,68,0.35)',
-    backgroundColor: 'rgba(239,68,68,0.06)',
-  },
-  destructiveBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-
   /* modal */
-  modalBg: {
-    flex: 1, backgroundColor: SAC.panel2,
-    alignItems: 'center', justifyContent: 'center', padding: 20,
-    ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
-  },
-  modalCard: {
-    width: '100%', maxWidth: 720, maxHeight: '92%',
-    backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2,
-    overflow: 'hidden',
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
-  },
-  modalHero: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border,
-  },
-  modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
-
-  input: {
-    color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
-    backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
-    paddingHorizontal: 12, paddingVertical: 10,
-    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
-  },
 
   tonePick: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -791,22 +665,6 @@ const s = StyleSheet.create({
   },
   audPickOn: { borderColor: 'rgba(245,158,11,0.50)', backgroundColor: 'rgba(245,158,11,0.10)' },
   audPickText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
-
-  toggleRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 12, paddingVertical: 10, borderRadius: 9,
-    backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  checkBox: { width: 16, height: 16, borderRadius: 5, borderWidth: 1.4, borderColor: SAC.border2, alignItems: 'center', justifyContent: 'center' },
-  checkLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5, flex: 1 },
-
-  warnBox: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    padding: 10, borderRadius: 9,
-    backgroundColor: 'rgba(239,68,68,0.06)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)',
-  },
-  actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
 
   /* image picker */
   imgDrop: {

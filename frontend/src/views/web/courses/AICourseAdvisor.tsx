@@ -293,7 +293,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontFamily: 'DMSans_900Black', fontSize: 14 },
+  title: { fontFamily: 'DMSans_800ExtraBold', fontSize: 14 },
   subtitle: { fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
   closeBtn: {
     width: 30,
@@ -323,7 +323,7 @@ const s = StyleSheet.create({
     borderRadius: 6,
   },
   cmdBadgeText: {
-    fontFamily: 'DMSans_900Black',
+    fontFamily: 'DMSans_800ExtraBold',
     fontSize: 9,
     letterSpacing: 0.6,
   },
