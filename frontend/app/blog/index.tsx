@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { WebOnlyRoute } from '@/src/lib/nativeGuard';
 import { View, StyleSheet, ScrollView, useWindowDimensions, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
@@ -159,7 +160,7 @@ const POSTS = [
 
 const CATEGORIES = ['All', 'Placements', 'Mentorship', 'Product', 'Campus', 'Engineering', 'Saved'];
 
-export default function BlogListingPage() {
+function BlogListingPage() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const [activeCategory, setActiveCategory] = useState('All');
@@ -557,3 +558,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 });
+
+/**
+ * Native guard — this route renders web-only UI. On iOS/Android show a
+ * placeholder that opens the page on studentalumni.ai instead of crashing.
+ */
+export default function BlogListingPageRoute() {
+  if (Platform.OS !== 'web') return <WebOnlyRoute path="/blog" />;
+  return <BlogListingPage />;
+}

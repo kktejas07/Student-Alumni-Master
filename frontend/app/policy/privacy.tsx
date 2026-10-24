@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { WebOnlyRoute } from '@/src/lib/nativeGuard';
 import { View, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
@@ -66,7 +67,7 @@ function PolicyTable({ columns, head, rows }: { columns: string; head: string[];
   );
 }
 
-export default function PrivacyPolicyPage() {
+function PrivacyPolicyPage() {
   const [activeSection, setActiveSection] = useState('pr-0');
 
   useEffect(() => {
@@ -402,3 +403,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 });
+
+/**
+ * Native guard — this route renders web-only UI. On iOS/Android show a
+ * placeholder that opens the page on studentalumni.ai instead of crashing.
+ */
+export default function PrivacyPolicyPageRoute() {
+  if (Platform.OS !== 'web') return <WebOnlyRoute path="/policy/privacy" />;
+  return <PrivacyPolicyPage />;
+}

@@ -9,6 +9,8 @@ import {
   TextInput,
   Pressable,
   useWindowDimensions,
+  Linking,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/src/theme/ThemeContext';
@@ -18,6 +20,15 @@ import Svg, {
   Rect,
   Text as SvgText,
 } from 'react-native-svg';
+
+// Open an external link: new tab on web, system browser on native.
+const openExternal = (url: string) => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    window.open(url, '_blank');
+  } else {
+    Linking.openURL(url).catch(() => {});
+  }
+};
 
 const DARK_T = {
   bg: '#08080F',
@@ -96,7 +107,7 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
           <View style={styles.socialRow}>
             <Pressable
               onPress={() => {
-                if (typeof window !== 'undefined') window.open('https://linkedin.com/company/student-alumni', '_blank');
+                openExternal('https://linkedin.com/company/student-alumni');
               }}
               style={S.socialBtn}
               accessibilityLabel="LinkedIn"
@@ -110,7 +121,7 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
 
             <Pressable
               onPress={() => {
-                if (typeof window !== 'undefined') window.open('https://www.instagram.com/studentalumni.ai/', '_blank');
+                openExternal('https://www.instagram.com/studentalumni.ai/');
               }}
               style={S.socialBtn}
               accessibilityLabel="Instagram"
@@ -124,7 +135,7 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
 
             <Pressable
               onPress={() => {
-                if (typeof window !== 'undefined') window.open('https://chat.whatsapp.com/G2kc2u0gzh68DKSjlOyCxu', '_blank');
+                openExternal('https://chat.whatsapp.com/G2kc2u0gzh68DKSjlOyCxu');
               }}
               style={[S.socialBtn, { backgroundColor: 'rgba(37,211,102,0.15)', borderColor: 'rgba(37,211,102,0.3)' }]}
               accessibilityLabel="WhatsApp Community"
@@ -170,19 +181,19 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
         {/* Our Entities Column */}
         <View style={[styles.footerLinksCol, isMobile && { flexBasis: '45%', maxWidth: '45%' as any }]}>
           <Text style={S.footerColHeader}>OUR ENTITIES</Text>
-          <Pressable onPress={() => { if (typeof window !== 'undefined') window.open('https://codespectra.ai', '_blank'); }} style={styles.linkItem}>
+          <Pressable onPress={() => { openExternal('https://codespectra.ai'); }} style={styles.linkItem}>
             <Text style={S.footerLinkText}>CodeSpectra</Text>
           </Pressable>
-          <Pressable onPress={() => { if (typeof window !== 'undefined') window.open('https://studentkare.co/', '_blank'); }} style={styles.linkItem}>
+          <Pressable onPress={() => { openExternal('https://studentkare.co/'); }} style={styles.linkItem}>
             <Text style={S.footerLinkText}>StudentKare</Text>
           </Pressable>
-          <Pressable onPress={() => { if (typeof window !== 'undefined') window.open('https://hyra.org.in/', '_blank'); }} style={styles.linkItem}>
+          <Pressable onPress={() => { openExternal('https://hyra.org.in/'); }} style={styles.linkItem}>
             <Text style={S.footerLinkText}>HYRA</Text>
           </Pressable>
-          <Pressable onPress={() => { if (typeof window !== 'undefined') window.open('https://iqe.forgetechno.com/', '_blank'); }} style={styles.linkItem}>
+          <Pressable onPress={() => { openExternal('https://iqe.forgetechno.com/'); }} style={styles.linkItem}>
             <Text style={S.footerLinkText}>IQE</Text>
           </Pressable>
-          <Pressable onPress={() => { if (typeof window !== 'undefined') window.open('https://wehive.co.in', '_blank'); }} style={styles.linkItem}>
+          <Pressable onPress={() => { openExternal('https://wehive.co.in'); }} style={styles.linkItem}>
             <Text style={S.footerLinkText}>WeHive</Text>
           </Pressable>
         </View>

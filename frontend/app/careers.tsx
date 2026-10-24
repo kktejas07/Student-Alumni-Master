@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { WebOnlyRoute } from '@/src/lib/nativeGuard';
 import {
   View,
   Text,
@@ -40,7 +41,7 @@ import { useTheme } from '@/src/theme/ThemeContext';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { api } from '@/src/models/services/api';
 
-export default function CareersPage() {
+function CareersPage() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { width } = useWindowDimensions();
@@ -1236,3 +1237,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+/**
+ * Native guard — this route renders web-only UI. On iOS/Android show a
+ * placeholder that opens the page on studentalumni.ai instead of crashing.
+ */
+export default function CareersPageRoute() {
+  if (Platform.OS !== 'web') return <WebOnlyRoute path="/careers" />;
+  return <CareersPage />;
+}

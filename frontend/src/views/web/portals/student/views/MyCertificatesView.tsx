@@ -5,7 +5,7 @@
  * (ECHO / Hackwave 3.0, Built by Sunset, Cyber Conclave, Workshops, Courses).
  */
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Linking, Modal } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Linking, Modal, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Award, Search, ArrowUpDown, Download, ExternalLink, CheckCircle2, ShieldCheck, Share2, Sparkles, Filter, Copy, Shield, Lock, X } from '../iconShims';
 import { SC, FONTS } from '../tokens';
@@ -109,8 +109,10 @@ export function MyCertificatesView() {
   const openVerifyGated = (code: string) => {
     if (!requireUnlocked(code)) return;
     const url = `/certificates/verify/${code}`;
-    if (typeof window !== 'undefined') {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
       window.open(url, '_blank');
+    } else {
+      Linking.openURL(`https://studentalumni.ai${url}`).catch(() => {});
     }
   };
 
@@ -142,7 +144,7 @@ export function MyCertificatesView() {
     const ext = abs.toLowerCase().includes('.pdf') ? '.pdf' : '.png';
     try {
       setDownloading(cert.id);
-      if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof document !== 'undefined') {
         const a = document.createElement('a');
         a.href = abs;
         a.download = `certificate-${cert.code}${ext}`;
@@ -154,8 +156,8 @@ export function MyCertificatesView() {
         Linking.openURL(abs);
       }
     } catch {
-      if (typeof window !== 'undefined') window.open(abs, '_blank');
-      else Linking.openURL(abs);
+      if (Platform.OS === 'web' && typeof window !== 'undefined') window.open(abs, '_blank');
+      else Linking.openURL(abs).catch(() => {});
     } finally {
       setDownloading(null);
     }

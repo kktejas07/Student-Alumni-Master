@@ -12,7 +12,8 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, useWindowDimensions, Linking } from 'react-native';
+import { View, StyleSheet, ScrollView, useWindowDimensions, Linking, Platform } from 'react-native';
+import NativeLoginScreen from '@/src/views/auth/NativeLoginScreen';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
@@ -69,6 +70,13 @@ const SLIDES = [
 ];
 
 export default function LoginScreen() {
+  // The web screen below renders raw DOM (<style>, <div>, className) which
+  // crashes on iOS/Android. Native gets a React Native form instead.
+  if (Platform.OS !== 'web') return <NativeLoginScreen />;
+  return <WebLoginScreen />;
+}
+
+function WebLoginScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string }>();
   const { width } = useWindowDimensions();

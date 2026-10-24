@@ -5,12 +5,13 @@
  * Captures clicks on elements with data-analytics-id or data-attr attributes.
  */
 
+import { Platform } from 'react-native';
 import { dispatcher } from '../core/dispatcher';
 
 let listening = false;
 
 export function initGlobalClickListener(): void {
-  if (listening || typeof window === 'undefined' || typeof document === 'undefined') {
+  if (listening || Platform.OS !== 'web' || typeof window === 'undefined' || typeof document === 'undefined') {
     return;
   }
 
