@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, useWindowDimensions, Linking, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, useWindowDimensions, Platform } from 'react-native';
 import NativeLoginScreen from '@/src/views/auth/NativeLoginScreen';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
