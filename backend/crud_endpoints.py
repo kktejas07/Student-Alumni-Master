@@ -608,8 +608,10 @@ class WorkshopEnroll(BaseModel):
 
 
 @router.post("/student/workshops/enroll")
-async def enroll_workshop(req: WorkshopEnroll):
-    student = await _resolve_user("student", req.student_email)
+async def enroll_workshop(req: WorkshopEnroll, user: dict = Depends(require_role('student', 'alumni'))):
+    # Scoped to the caller: `student_email` in the body is ignored. These
+    # three endpoints used to accept any email with no authentication.
+    student = user
     # Idempotent on (student, title)
     existing = await _db.workshop_registrations.find_one({
         "student_id": str(student["_id"]),
@@ -619,7 +621,7 @@ async def enroll_workshop(req: WorkshopEnroll):
         return {"ok": True, "already": True, "registration_id": _short_id(existing["_id"])}
     doc = {
         "student_id": str(student["_id"]),
-        "student_email": student["email"],
+        "student_email": student.get("email"),
         "workshop_title": req.workshop_title,
         "fee_inr": req.fee_inr,
         "weeks": req.weeks,
@@ -632,8 +634,8 @@ async def enroll_workshop(req: WorkshopEnroll):
 
 
 @router.get("/student/my-workshops")
-async def my_workshops(email: Optional[str] = None):
-    student = await _resolve_user("student", email)
+async def my_workshops(email: Optional[str] = None, user: dict = Depends(require_role('student', 'alumni'))):
+    student = user
     out = []
     async for w in _db.workshop_registrations.find({"student_id": str(student["_id"])}).sort("registered_at", -1).limit(50):
         out.append({
@@ -651,19 +653,18 @@ async def my_workshops(email: Optional[str] = None):
 
 
 class WorkshopProgressReq(BaseModel):
-    student_email: str
+    student_email: Optional[str] = None  # ignored; kept for client compatibility
     registration_id: str
     action: str  # "start", "advance", "complete"
 
 
 @router.post("/student/workshops/progress")
-async def progress_workshop(req: WorkshopProgressReq):
+async def progress_workshop(req: WorkshopProgressReq, user: dict = Depends(require_role('student', 'alumni'))):
     if req.action not in ["start", "advance", "complete"]:
         raise HTTPException(400, f"Invalid action: {req.action}. Must be 'start', 'advance', or 'complete'.")
 
-    # Resolve student to ensure strict authorization and scoping
-    student = await _resolve_user("student", req.student_email)
-    student_id_str = str(student["_id"])
+    # Scoped to the authenticated caller; the body's student_email is ignored.
+    student_id_str = str(user["_id"])
 
     # Find the registration scoped strictly to the student
     reg = None
@@ -715,7 +716,7 @@ async def progress_workshop(req: WorkshopProgressReq):
         # with a unique verification code + public verify URL, replacing the
         # old placeholder certificates.example.com link.
         cert = await _issue_workshop_certificate(
-            reg, student, req.student_email or student.get("email") or ""
+            reg, user, user.get("email") or ""
         )
         if cert:
             update_doc["certificate_url"] = cert["verify_url"]
