@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { WebOnlyRoute } from '@/src/lib/nativeGuard';
 import {
   View,
   Text,
@@ -34,11 +33,8 @@ import { useRouter } from 'expo-router';
 import LandingPage from '@/src/views/web/LandingPage';
 import { request } from '@/src/models/services/api';
 
-function ContactPage() {
-  if (Platform.OS === 'web') {
-    return <LandingPage initialTab="contact" />;
-  }
-
+/** Native contact form (web renders the landing-page contact tab instead). */
+function NativeContactPage() {
   const router = useRouter();
   const [selectedTopic, setSelectedTopic] = useState<'general' | 'hr' | 'colleges' | 'mentors'>('general');
   const [form, setForm] = useState({
@@ -1030,11 +1026,8 @@ const styles = StyleSheet.create({
   },
 });
 
-/**
- * Native guard — this route renders web-only UI. On iOS/Android show a
- * placeholder that opens the page on studentalumni.ai instead of crashing.
- */
+/** Web renders the landing-page contact tab; native gets the in-app form. */
 export default function ContactPageRoute() {
-  if (Platform.OS !== 'web') return <WebOnlyRoute path="/contact" />;
-  return <ContactPage />;
+  if (Platform.OS !== 'web') return <NativeContactPage />;
+  return <LandingPage initialTab="contact" />;
 }

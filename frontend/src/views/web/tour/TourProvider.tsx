@@ -183,11 +183,11 @@ export function useTour(): Ctx {
  * useAutoTour — auto-launches the given tour the first time the user
  * lands on this portal. Subsequent visits are silent.
  */
-export function useAutoTour(key: TourKey, opts: { delayMs?: number } = {}) {
+export function useAutoTour(key: TourKey | null | undefined, opts: { delayMs?: number; enabled?: boolean } = {}) {
   const { active, status, start } = useTour();
   const started = useRef(false);
   useEffect(() => {
-    if (Platform.OS !== 'web') return;
+    if (Platform.OS !== 'web' || !key || opts.enabled === false) return;
     if (started.current) return;
     if (active) return;
     const seen = !!status[key]?.completed_at;

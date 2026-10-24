@@ -10,7 +10,7 @@
  * Sidebar/TopBar/views read `tab`/`sub`/`deeper` from the URL and navigate by
  * pushing new segment paths.
  */
-import { NAV } from '@/src/views/web/portals/superadmin/Sidebar';
+import { NAV } from '@/src/views/web/portals/superadmin/nav';
 import { PortalUrlProvider } from '@/src/views/web/portals/portalUrl';
 import { SuperAdminPortalRN } from '@/src/views/web/portals/superadmin/SuperAdminPortalRN';
 
