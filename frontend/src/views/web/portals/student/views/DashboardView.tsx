@@ -32,11 +32,14 @@ import { View, Text, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StudentPortalNavContext } from '../StudentPortalNavContext';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useTheme } from '@/src/theme/ThemeContext';
+import { request } from '@/src/models/services/api';
 
 export function DashboardView() {
   const router = useRouter();
   const portalNav = useContext(StudentPortalNavContext);
   const authUser = useAuthStore((u) => u.user);
+  const { isDark } = useTheme();
 
   // Tabs: 'opportunities' | 'intelligence'
   const [activeTab, setActiveTab] = useState<'opportunities' | 'intelligence'>('opportunities');
@@ -63,6 +66,57 @@ export function DashboardView() {
 
   // Streak Days State
   const [activeStreakDay, setActiveStreakDay] = useState<number | null>(null);
+  const [skillStreak, setSkillStreak] = useState(0);
+
+  // Top Matches Data
+  const [topMatches, setTopMatches] = useState<any[]>([]);
+  const [totalMatches, setTotalMatches] = useState(267);
+  const [applyModalJob, setApplyModalJob] = useState<any | null>(null);
+  const [topMentors, setTopMentors] = useState<any[]>([]);
+
+  useEffect(() => {
+    request<any>('/opportunities?limit=3')
+      .then((res) => {
+        if (res && res.items) {
+          setTopMatches(res.items.slice(0, 3));
+          setTotalMatches(res.total || 0);
+        }
+      })
+      .catch(() => {});
+
+    request<any>('/student/network?limit=20')
+      .then((res) => {
+        if (res && Array.isArray(res)) {
+          const mentors = res.filter((u: any) => u.role === 'Mentor').slice(0, 3);
+          setTopMentors(mentors);
+        } else if (res && Array.isArray(res.items)) {
+          const mentors = res.items.filter((u: any) => u.role === 'Mentor').slice(0, 3);
+          setTopMentors(mentors);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    // Ping daily_login to keep the streak alive even if they bypassed the login screen via stored token
+    request<any>('/wallet/track', {
+      method: 'POST',
+      body: { activity_type: 'daily_login' },
+    }).finally(() => {
+      request<any>('/users/me/stats')
+        .then((res) => {
+          if (res && typeof res.skill_streak === 'number') {
+            setSkillStreak(res.skill_streak);
+            if (res.skill_streak > 0) {
+              setActiveStreakDay(Math.min(res.skill_streak, 7) - 1);
+            } else {
+              setActiveStreakDay(-1);
+            }
+          }
+        })
+        .catch(() => {});
+    });
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -140,12 +194,75 @@ export function DashboardView() {
 
   const completedCount = tasks.filter((t) => t.done).length;
 
+  // Theme-aware tokens for DashboardView:
+  const C = isDark ? {
+    textPrimary: '#F4F4FA',
+    textSecondary: '#8A8A9E',
+    textMuted: '#6A6A7E',
+    bgCard: '#101019',
+    bgCardAlt: '#14141F',
+    bgTrack: '#262638',
+    borderCard: '#1F1F30',
+    borderItem: '#262638',
+    borderHover: '#2C2A52',
+    shadowCard: '0 1px 0 rgba(255,255,255,.03) inset, 0 18px 40px rgba(0,0,0,.35)',
+    shadowCardHover: '0 18px 44px rgba(0,0,0,.45)',
+    communityBg: 'linear-gradient(135deg, rgba(124,92,252,0.12) 0%, rgba(16,185,129,0.1) 100%)',
+    communityBorder: 'rgba(124,92,252,0.3)',
+    couponCardBg: 'linear-gradient(135deg, rgba(124,92,246,0.12) 0%, rgba(245,158,11,0.08) 100%)',
+    couponCardBorder: 'rgba(124,92,246,0.2)',
+    tabBg: '#101019',
+    tabBorder: '#1F1F30',
+    tabActiveBg: 'rgba(124,92,252,.18)',
+    tabActiveText: '#F4F4FA',
+    tabActiveBorder: '#3A2E72',
+    goalBannerBg: 'linear-gradient(150deg, #14141F, #101019 60%)',
+    goalBannerBorder: '#2C2A52',
+    insightBg: 'rgba(124,92,252,.07)',
+    insightBorder: '#2C2A52',
+    proTipBg: 'rgba(0,0,0,0.3)',
+    proTipBorder: '#232338',
+    proTipText: '#B4B4CB',
+    perkBg: 'linear-gradient(145deg, rgba(124,92,252,0.08) 0%, #14141F 100%)',
+    perkBorder: '#3A2E72',
+  } : {
+    textPrimary: '#0F172A',
+    textSecondary: '#64748B',
+    textMuted: '#94A3B8',
+    bgCard: '#FFFFFF',
+    bgCardAlt: '#F8FAFC',
+    bgTrack: '#E2E8F0',
+    borderCard: 'rgba(0, 0, 0, 0.08)',
+    borderItem: 'rgba(0, 0, 0, 0.06)',
+    borderHover: '#C4B5FD',
+    shadowCard: '0 4px 20px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.04)',
+    shadowCardHover: '0 10px 28px rgba(124, 92, 252, 0.08)',
+    communityBg: 'linear-gradient(135deg, rgba(124,92,252,0.06) 0%, rgba(16,185,129,0.05) 100%)',
+    communityBorder: 'rgba(124,92,252,0.2)',
+    couponCardBg: 'linear-gradient(135deg, rgba(124,92,246,0.06) 0%, rgba(245,158,11,0.05) 100%)',
+    couponCardBorder: 'rgba(124,92,246,0.18)',
+    tabBg: '#F1F5F9',
+    tabBorder: '#E2E8F0',
+    tabActiveBg: '#FFFFFF',
+    tabActiveText: '#6D28D9',
+    tabActiveBorder: '#DDD6FE',
+    goalBannerBg: 'linear-gradient(150deg, #FFFFFF, #F8FAFC 60%)',
+    goalBannerBorder: 'rgba(124,92,252,0.2)',
+    insightBg: 'rgba(124,92,252,.04)',
+    insightBorder: 'rgba(124,92,252,0.18)',
+    proTipBg: '#F8FAFC',
+    proTipBorder: 'rgba(0, 0, 0, 0.06)',
+    proTipText: '#475569',
+    perkBg: 'linear-gradient(145deg, rgba(124,92,252,0.04) 0%, #FFFFFF 100%)',
+    perkBorder: 'rgba(124,92,252,0.18)',
+  };
+
   return (
     <div
       id="db-page-dash"
       style={{
         width: '100%',
-        color: '#F4F4FA',
+        color: C.textPrimary,
         fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif",
         display: 'flex',
         flexDirection: 'column',
@@ -169,22 +286,23 @@ export function DashboardView() {
           50% { transform: scale(1.12) rotate(3deg); }
         }
         .db-card {
-          background: #101019;
-          border: 1px solid #1F1F30;
+          background: ${C.bgCard};
+          border: 1px solid ${C.borderCard};
           border-radius: 20px;
-          box-shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 18px 40px rgba(0,0,0,.35);
+          box-shadow: ${C.shadowCard};
           transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         .db-card:hover {
-          border-color: #2C2A52;
+          border-color: ${C.borderHover};
+          box-shadow: ${C.shadowCardHover};
           transform: translateY(-2px);
         }
         .db-coupon {
           position: relative;
           overflow: hidden;
-          border: 1px solid #4A3410;
+          border: 1px solid ${isDark ? '#4A3410' : '#FDE68A'};
           border-radius: 14px;
-          background: #14141F;
+          background: ${isDark ? '#14141F' : '#FFFFFF'};
           min-height: 190px;
           display: flex;
           flex-direction: column;
@@ -210,7 +328,7 @@ export function DashboardView() {
           position: 'relative',
           borderRadius: '20px',
           overflow: 'hidden',
-          border: '1px solid #3B2B7A',
+          border: isDark ? '1px solid #3B2B7A' : '1px solid rgba(124,92,252,0.3)',
           minHeight: '300px',
           background:
             heroSlide === 0
@@ -228,7 +346,7 @@ export function DashboardView() {
               <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '3px', color: '#E9DDFF', marginBottom: '12px' }}>
                 {HERO_SLIDES[heroSlide].tag}
               </div>
-              <h1 style={{ fontSize: '38px', fontWeight: 700, letterSpacing: '-1.4px', lineHeight: 1.1, margin: '0 0 10px' }}>
+              <h1 style={{ fontSize: '38px', fontWeight: 700, letterSpacing: '-1.4px', lineHeight: 1.1, margin: '0 0 10px', color: '#FFFFFF' }}>
                 {HERO_SLIDES[heroSlide].title}
               </h1>
               <div style={{ fontSize: '15px', color: '#DCCEF7', marginBottom: '12px', fontWeight: 500 }}>
@@ -288,13 +406,13 @@ export function DashboardView() {
       </div>
 
       {/* ── Official Student Alumni Community Channels Banner ── */}
-      <div style={{ marginTop: '16px', background: 'linear-gradient(135deg, rgba(124,92,252,0.12) 0%, rgba(16,185,129,0.1) 100%)', border: '1px solid rgba(124,92,252,0.3)', borderRadius: '16px', padding: '18px 24px' }}>
+      <div style={{ marginTop: '16px', background: C.communityBg, border: `1px solid ${C.communityBorder}`, borderRadius: '16px', padding: '18px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1.4px', color: '#38BDF8', marginBottom: '4px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1.4px', color: isDark ? '#38BDF8' : '#0284C7', marginBottom: '4px' }}>
               JOIN OFFICIAL STUDENT ALUMNI COMMUNITY CHANNELS
             </div>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: C.textPrimary }}>
               Connect with 95,000+ verified students & alumni across India
             </div>
           </div>
@@ -308,9 +426,9 @@ export function DashboardView() {
                 textDecoration: 'none',
                 padding: '9px 16px',
                 borderRadius: '10px',
-                background: 'rgba(16,185,129,0.18)',
-                border: '1px solid rgba(16,185,129,0.4)',
-                color: '#34D399',
+                background: isDark ? 'rgba(16,185,129,0.18)' : 'rgba(16,185,129,0.12)',
+                border: isDark ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(16,185,129,0.3)',
+                color: isDark ? '#34D399' : '#059669',
                 fontSize: '13px',
                 fontWeight: 700,
                 display: 'inline-flex',
@@ -329,9 +447,9 @@ export function DashboardView() {
                 textDecoration: 'none',
                 padding: '9px 16px',
                 borderRadius: '10px',
-                background: 'rgba(236,72,153,0.18)',
-                border: '1px solid rgba(236,72,153,0.4)',
-                color: '#F472B6',
+                background: isDark ? 'rgba(236,72,153,0.18)' : 'rgba(236,72,153,0.12)',
+                border: isDark ? '1px solid rgba(236,72,153,0.4)' : '1px solid rgba(236,72,153,0.3)',
+                color: isDark ? '#F472B6' : '#DB2777',
                 fontSize: '13px',
                 fontWeight: 700,
                 display: 'inline-flex',
@@ -350,9 +468,9 @@ export function DashboardView() {
                 textDecoration: 'none',
                 padding: '9px 16px',
                 borderRadius: '10px',
-                background: 'rgba(56,189,248,0.18)',
-                border: '1px solid rgba(56,189,248,0.4)',
-                color: '#38BDF8',
+                background: isDark ? 'rgba(56,189,248,0.18)' : 'rgba(56,189,248,0.12)',
+                border: isDark ? '1px solid rgba(56,189,248,0.4)' : '1px solid rgba(56,189,248,0.3)',
+                color: isDark ? '#38BDF8' : '#0284C7',
                 fontSize: '13px',
                 fontWeight: 700,
                 display: 'inline-flex',
@@ -369,27 +487,27 @@ export function DashboardView() {
       {/* ── 2. Available Coupons — Link to Wallet ── */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '9px', margin: '10px 0 14px' }}>
-          <span style={{ fontSize: '12.5px', fontWeight: 700, letterSpacing: '1.6px', color: '#F59E0B' }}>
+          <span style={{ fontSize: '12.5px', fontWeight: 700, letterSpacing: '1.6px', color: isDark ? '#F59E0B' : '#D97706' }}>
             AVAILABLE COUPONS
           </span>
         </div>
         <div
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '20px 24px', background: 'linear-gradient(135deg, rgba(124,92,246,0.12) 0%, rgba(245,158,11,0.08) 100%)',
-            border: '1px solid rgba(124,92,246,0.2)', borderRadius: '16px', cursor: 'pointer',
+            padding: '20px 24px', background: C.couponCardBg,
+            border: `1px solid ${C.couponCardBorder}`, borderRadius: '16px', cursor: 'pointer',
           }}
           onClick={() => window.location.href = '/student-portal?tab=wallet'}
         >
           <div>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: '#F4F5FB', marginBottom: '4px' }}>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: C.textPrimary, marginBottom: '4px' }}>
               🎫 Browse Marketplace & Partner Coupons
             </div>
-            <div style={{ fontSize: '13px', color: '#9CA3AF' }}>
+            <div style={{ fontSize: '13px', color: C.textSecondary }}>
               Find discount codes for food, beverages, partners, and more — all in your wallet.
             </div>
           </div>
-          <span style={{ color: '#A78BFA', fontSize: '20px' }}>→</span>
+          <span style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontSize: '20px' }}>→</span>
         </div>
       </div>
 
@@ -399,12 +517,12 @@ export function DashboardView() {
         <div className="db-card" style={{ padding: '20px 22px 22px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px' }}>
             <div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#A78BFA', marginBottom: '10px' }}>Profile Strength</div>
-              <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1 }}>50%</div>
-              <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '8px' }}>Keep going!</div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: isDark ? '#A78BFA' : '#7C5CFC', marginBottom: '10px' }}>Profile Strength</div>
+              <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1, color: C.textPrimary }}>50%</div>
+              <div style={{ fontSize: '12.5px', color: C.textSecondary, marginTop: '8px' }}>Keep going!</div>
             </div>
             <svg width="46" height="46" viewBox="0 0 46 46" style={{ flex: 'none' }}>
-              <circle cx="23" cy="23" r="19" style={{ fill: 'none', stroke: '#262638', strokeWidth: 4 }} />
+              <circle cx="23" cy="23" r="19" style={{ fill: 'none', stroke: C.bgTrack, strokeWidth: 4 }} />
               <circle cx="23" cy="23" r="19" style={{ fill: 'none', stroke: '#7C5CFC', strokeWidth: 4, strokeLinecap: 'round', transform: 'rotate(-90deg)', transformOrigin: '23px 23px', strokeDasharray: 119.4, strokeDashoffset: 59.7 }} />
             </svg>
           </div>
@@ -414,11 +532,11 @@ export function DashboardView() {
         <div className="db-card" style={{ padding: '20px 22px 22px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px' }}>
             <div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#A78BFA', marginBottom: '10px' }}>Applications</div>
-              <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1 }}>0</div>
-              <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '8px' }}>0 applied</div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: isDark ? '#A78BFA' : '#7C5CFC', marginBottom: '10px' }}>Applications</div>
+              <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1, color: C.textPrimary }}>0</div>
+              <div style={{ fontSize: '12.5px', color: C.textSecondary, marginTop: '8px' }}>0 applied</div>
             </div>
-            <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'rgba(124,92,252,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: '#A78BFA' }}>
+            <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: isDark ? 'rgba(124,92,252,.14)' : 'rgba(124,92,252,.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: isDark ? '#A78BFA' : '#7C5CFC' }}>
               
             </span>
           </div>
@@ -428,11 +546,11 @@ export function DashboardView() {
         <div className="db-card" style={{ padding: '20px 22px 22px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px' }}>
             <div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#34D399', marginBottom: '10px' }}>Network</div>
-              <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1 }}>0</div>
-              <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '8px' }}>Connections</div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: isDark ? '#34D399' : '#059669', marginBottom: '10px' }}>Network</div>
+              <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1, color: C.textPrimary }}>0</div>
+              <div style={{ fontSize: '12.5px', color: C.textSecondary, marginTop: '8px' }}>Connections</div>
             </div>
-            <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'rgba(16, 185, 129, 0.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: '#34D399' }}>
+            <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: isDark ? 'rgba(16, 185, 129, 0.13)' : 'rgba(16, 185, 129, 0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: isDark ? '#34D399' : '#059669' }}>
               
             </span>
           </div>
@@ -442,11 +560,11 @@ export function DashboardView() {
         <div className="db-card" style={{ padding: '20px 22px 22px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px' }}>
             <div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#F0616B', marginBottom: '10px' }}>Events</div>
-              <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1 }}>8</div>
-              <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '8px' }}>Registered</div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: isDark ? '#F0616B' : '#E11D48', marginBottom: '10px' }}>Events</div>
+              <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1, color: C.textPrimary }}>8</div>
+              <div style={{ fontSize: '12.5px', color: C.textSecondary, marginTop: '8px' }}>Registered</div>
             </div>
-            <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'rgba(240, 97, 107, 0.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: '#F0616B' }}>
+            <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: isDark ? 'rgba(240, 97, 107, 0.13)' : 'rgba(240, 97, 107, 0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: isDark ? '#F0616B' : '#E11D48' }}>
               
             </span>
           </div>
@@ -454,7 +572,7 @@ export function DashboardView() {
       </div>
 
       {/* ── 4. Interactive Tabs Switcher ── */}
-      <div style={{ display: 'inline-flex', gap: '6px', padding: '6px', border: '1px solid #1F1F30', borderRadius: '14px', background: '#101019', width: 'fit-content' }}>
+      <div style={{ display: 'inline-flex', gap: '6px', padding: '6px', border: `1px solid ${C.tabBorder}`, borderRadius: '14px', background: C.tabBg, width: 'fit-content' }}>
         <span
           onClick={() => setActiveTab('opportunities')}
           style={{
@@ -467,9 +585,10 @@ export function DashboardView() {
             fontSize: '14.5px',
             fontWeight: 600,
             cursor: 'pointer',
-            background: activeTab === 'opportunities' ? 'rgba(124,92,252,.18)' : 'transparent',
-            color: activeTab === 'opportunities' ? '#F4F4FA' : '#8A8A9E',
-            border: activeTab === 'opportunities' ? '1px solid #3A2E72' : '1px solid transparent',
+            background: activeTab === 'opportunities' ? C.tabActiveBg : 'transparent',
+            color: activeTab === 'opportunities' ? C.tabActiveText : C.textSecondary,
+            border: activeTab === 'opportunities' ? `1px solid ${C.tabActiveBorder}` : '1px solid transparent',
+            boxShadow: activeTab === 'opportunities' && !isDark ? '0 2px 6px rgba(109,40,217,0.08)' : 'none',
           }}
         >
            Opportunities
@@ -486,9 +605,10 @@ export function DashboardView() {
             fontSize: '14.5px',
             fontWeight: 600,
             cursor: 'pointer',
-            background: activeTab === 'intelligence' ? 'rgba(124,92,252,.18)' : 'transparent',
-            color: activeTab === 'intelligence' ? '#F4F4FA' : '#8A8A9E',
-            border: activeTab === 'intelligence' ? '1px solid #3A2E72' : '1px solid transparent',
+            background: activeTab === 'intelligence' ? C.tabActiveBg : 'transparent',
+            color: activeTab === 'intelligence' ? C.tabActiveText : C.textSecondary,
+            border: activeTab === 'intelligence' ? `1px solid ${C.tabActiveBorder}` : '1px solid transparent',
+            boxShadow: activeTab === 'intelligence' && !isDark ? '0 2px 6px rgba(109,40,217,0.08)' : 'none',
           }}
         >
            Intelligence Center
@@ -500,12 +620,12 @@ export function DashboardView() {
         <div id="db-bento" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '16px' }}>
           {/* Career Readiness */}
           <div className="db-tile db-card" style={{ gridColumn: 'span 5', gridRow: 'span 2', padding: '20px 22px 22px' }}>
-            <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#A78BFA', marginBottom: '14px' }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: isDark ? '#A78BFA' : '#7C5CFC', marginBottom: '14px' }}>
               CAREER READINESS
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '22px', marginBottom: '22px' }}>
               <svg width="112" height="112" viewBox="0 0 112 112" style={{ flex: 'none' }}>
-                <circle cx="56" cy="56" r="46" style={{ fill: 'none', stroke: '#262638', strokeWidth: 9 }} />
+                <circle cx="56" cy="56" r="46" style={{ fill: 'none', stroke: C.bgTrack, strokeWidth: 9 }} />
                 <circle cx="56" cy="56" r="46" style={{ fill: 'none', stroke: 'url(#dbRingGrad)', strokeWidth: 9, strokeLinecap: 'round', transform: 'rotate(-90deg)', transformOrigin: '56px 56px', strokeDasharray: 289, strokeDashoffset: 185 }} />
                 <defs>
                   <linearGradient id="dbRingGrad" x1="0" y1="0" x2="1" y2="1">
@@ -513,28 +633,28 @@ export function DashboardView() {
                     <stop offset="1" stopColor="#2FB8C6" />
                   </linearGradient>
                 </defs>
-                <text x="56" y="63" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '26px', fontWeight: 700, fill: '#F4F4FA' }}>
+                <text x="56" y="63" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '26px', fontWeight: 700, fill: C.textPrimary }}>
                   36%
                 </text>
               </svg>
               <div>
-                <div style={{ fontSize: '22px', fontWeight: 700, letterSpacing: '-.6px' }}>Builder</div>
-                <div style={{ fontSize: '13px', color: '#8A8A9E', marginTop: '3px' }}> Industry Ready</div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '12px', fontSize: '12px', fontWeight: 600, color: '#34D399', background: 'rgba(16, 185, 129, 0.13)', borderRadius: '7px', padding: '5px 9px' }}>
+                <div style={{ fontSize: '22px', fontWeight: 700, letterSpacing: '-.6px', color: C.textPrimary }}>Builder</div>
+                <div style={{ fontSize: '13px', color: C.textSecondary, marginTop: '3px' }}> Industry Ready</div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '12px', fontSize: '12px', fontWeight: 600, color: isDark ? '#34D399' : '#059669', background: isDark ? 'rgba(16, 185, 129, 0.13)' : 'rgba(16, 185, 129, 0.10)', borderRadius: '7px', padding: '5px 9px' }}>
                   ↗ +8% this week
                 </div>
               </div>
             </div>
-            <div style={{ borderTop: '1px solid #1F1F30', paddingTop: '18px' }}>
+            <div style={{ borderTop: `1px solid ${C.borderItem}`, paddingTop: '18px' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 600 }}>Build your professional resume</span>
-                <span style={{ fontSize: '12.5px', color: '#A78BFA' }}>60%</span>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: C.textPrimary }}>Build your professional resume</span>
+                <span style={{ fontSize: '12.5px', color: isDark ? '#A78BFA' : '#7C5CFC' }}>60%</span>
               </div>
-              <div style={{ height: '6px', borderRadius: '3px', background: '#262638', overflow: 'hidden', marginBottom: '16px' }}>
+              <div style={{ height: '6px', borderRadius: '3px', background: C.bgTrack, overflow: 'hidden', marginBottom: '16px' }}>
                 <div style={{ height: '100%', width: '60%', borderRadius: '3px', background: 'linear-gradient(90deg, #7C5CFC, #2FB8C6)' }} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                <span style={{ fontSize: '12.5px', color: '#8A8A9E' }}>ETA ~18 weeks</span>
+                <span style={{ fontSize: '12.5px', color: C.textSecondary }}>ETA ~18 weeks</span>
                 <button onClick={() => router.push('/career-ai')} style={{ fontSize: '13px', fontWeight: 600, background: '#7C5CFC', color: '#FFFFFF', borderRadius: '9px', padding: '9px 16px', border: 'none', cursor: 'pointer' }}>
                   Continue now
                 </button>
@@ -544,7 +664,7 @@ export function DashboardView() {
 
           {/* Today's Focus - Agent K */}
           <div className="db-tile db-card" style={{ gridColumn: 'span 4', gridRow: 'span 2', padding: '20px 22px 22px' }}>
-            <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#A78BFA', marginBottom: '14px' }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: isDark ? '#A78BFA' : '#7C5CFC', marginBottom: '14px' }}>
               TODAY'S FOCUS · AGENT K
             </div>
             <div style={{ display: 'grid', gap: '9px' }}>
@@ -557,70 +677,112 @@ export function DashboardView() {
                     gridTemplateColumns: 'max-content minmax(0, 1fr)',
                     gap: '12px',
                     alignItems: 'start',
-                    border: '1px solid #262638',
+                    border: `1px solid ${C.borderItem}`,
                     borderRadius: '12px',
-                    background: '#14141F',
+                    background: C.bgCardAlt,
                     padding: '13px 14px',
                     cursor: 'pointer',
                     opacity: t.done ? 0.72 : 1,
                   }}
                 >
-                  <span style={{ width: '18px', height: '18px', borderRadius: '6px', border: `1.5px solid ${t.done ? '#7C5CFC' : '#262638'}`, background: t.done ? '#7C5CFC' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '1px' }}>
+                  <span style={{ width: '18px', height: '18px', borderRadius: '6px', border: `1.5px solid ${t.done ? '#7C5CFC' : (isDark ? '#262638' : '#CBD5E1')}`, background: t.done ? '#7C5CFC' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '1px' }}>
                     {t.done && <Check size={12} color='#FFFFFF' />}
                   </span>
                   <div>
-                    <div style={{ fontSize: '14px', fontWeight: 500, lineHeight: 1.4, textDecoration: t.done ? 'line-through' : 'none', color: t.done ? '#8A8A9E' : '#FFFFFF' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 500, lineHeight: 1.4, textDecoration: t.done ? 'line-through' : 'none', color: t.done ? C.textSecondary : C.textPrimary }}>
                       {t.text}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#6A6A7E', marginTop: '4px' }}>{t.sub}</div>
+                    <div style={{ fontSize: '12px', color: C.textMuted, marginTop: '4px' }}>{t.sub}</div>
                   </div>
                 </div>
               ))}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px', fontSize: '12.5px', color: '#8A8A9E' }}>
-              <span style={{ color: '#A78BFA', fontWeight: 600 }}>{completedCount} of 3</span> done today
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px', fontSize: '12.5px', color: C.textSecondary }}>
+              <span style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>{completedCount} of 3</span> done today
             </div>
           </div>
 
+          {/* Apply Confirmation Modal */}
+          {applyModalJob && (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)' }}>
+              <div className="db-card" style={{ background: C.bgCard, padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '400px', border: `1px solid ${C.borderCard}` }}>
+                <div style={{ fontSize: '18px', fontWeight: 600, color: C.textPrimary, marginBottom: '12px' }}>Confirm Application</div>
+                <div style={{ fontSize: '14px', color: C.textSecondary, marginBottom: '24px', lineHeight: '1.5' }}>
+                  We redirected you to the external application page for <span style={{ color: C.textPrimary, fontWeight: 600 }}>{applyModalJob.title}</span> at <span style={{ color: C.textPrimary, fontWeight: 600 }}>{applyModalJob.company}</span>. 
+                  <br /><br />
+                  Once you finish submitting your details there, confirm it here to track its progress in your dashboard.
+                </div>
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                  <button 
+                    onClick={() => setApplyModalJob(null)}
+                    style={{ padding: '10px 16px', borderRadius: '8px', background: 'transparent', color: C.textSecondary, border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={async () => {
+                      try {
+                        await request(`/student/internships/${applyModalJob.id || applyModalJob.job_id}/apply`, { 
+                          method: 'POST',
+                          body: { student_email: authUser?.email || undefined }
+                        });
+                        setTopMatches(prev => prev.map(job => (
+                          job === applyModalJob || (job.title === applyModalJob.title && job.company === applyModalJob.company)
+                        ) ? { ...job, applied: true } : job));
+                        setApplyModalJob(null);
+                      } catch (e) {
+                        setApplyModalJob(null);
+                      }
+                    }}
+                    style={{ padding: '10px 16px', borderRadius: '8px', background: '#34D399', color: '#04291D', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    Yes, I applied
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Skill Streak */}
           <div className="db-tile db-card" style={{ gridColumn: 'span 3', padding: '20px 22px 22px' }}>
-            <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#8A8A9E', marginBottom: '14px' }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: C.textSecondary, marginBottom: '14px' }}>
               SKILL STREAK
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px' }}>
-              <span style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px' }}>0</span>
-              <span style={{ fontSize: '14px', color: '#8A8A9E' }}>days</span>
-              <span style={{ fontSize: '20px', marginLeft: 'auto', animation: 'db-flame 2.2s ease-in-out infinite', display: 'inline-block' }}></span>
+              <span style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px', color: C.textPrimary }}>{skillStreak}</span>
+              <span style={{ fontSize: '14px', color: C.textSecondary }}>days</span>
+              <span style={{ fontSize: '20px', marginLeft: 'auto', animation: 'db-flame 2.2s ease-in-out infinite', display: 'inline-block' }}>🔥</span>
             </div>
             <div style={{ display: 'flex', gap: '5px', marginTop: '16px' }}>
               {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => (
                 <span
                   key={idx}
-                  onClick={() => setActiveStreakDay(idx)}
                   style={{
                     flex: 1,
                     height: '26px',
                     borderRadius: '6px',
-                    background: activeStreakDay !== null && idx <= activeStreakDay ? 'linear-gradient(180deg, #F59E0B, #C2410C)' : '#262638',
-                    cursor: 'pointer',
+                    background: activeStreakDay !== null && idx <= activeStreakDay ? 'linear-gradient(180deg, #F59E0B, #C2410C)' : C.bgTrack,
+                    cursor: 'default',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '10px',
                     fontWeight: 700,
-                    color: '#FFFFFF',
+                    color: activeStreakDay !== null && idx <= activeStreakDay ? '#FFFFFF' : C.textSecondary,
                   }}
                 >
                   {day}
                 </span>
               ))}
             </div>
-            <div style={{ fontSize: '12.5px', color: '#F0616B', marginTop: '12px' }}>Start your streak today</div>
+            <div style={{ fontSize: '12.5px', color: skillStreak > 0 ? (isDark ? '#10B981' : '#059669') : (isDark ? '#F0616B' : '#E11D48'), marginTop: '12px' }}>
+              {skillStreak > 0 ? "You're on a streak!" : "Start your streak today"}
+            </div>
           </div>
 
           {/* Next 1:1 Session */}
           <div className="db-tile db-card" style={{ gridColumn: 'span 4', padding: '20px 22px 22px' }}>
-            <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#8A8A9E', marginBottom: '14px' }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: C.textSecondary, marginBottom: '14px' }}>
               NEXT SESSION
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '13px', marginBottom: '16px' }}>
@@ -628,17 +790,17 @@ export function DashboardView() {
                 RS
               </span>
               <div style={{ minWidth: 0, flex: '1 1 auto' }}>
-                <div style={{ fontSize: '15.5px', fontWeight: 600 }}>Rahul Sharma</div>
-                <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '2px' }}>Senior SDE @ Google</div>
+                <div style={{ fontSize: '15.5px', fontWeight: 600, color: C.textPrimary }}>Rahul Sharma</div>
+                <div style={{ fontSize: '12.5px', color: C.textSecondary, marginTop: '2px' }}>Senior SDE @ Google</div>
               </div>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 700, color: '#34D399' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 700, color: isDark ? '#34D399' : '#059669' }}>
                 CONFIRMED
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', borderTop: '1px solid #1F1F30', paddingTop: '15px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', borderTop: `1px solid ${C.borderItem}`, paddingTop: '15px' }}>
               <div>
-                <div style={{ fontSize: '19px', fontWeight: 700, letterSpacing: '-.4px' }}>{timeLeft}</div>
-                <div style={{ fontSize: '12px', color: '#8A8A9E', marginTop: '3px' }}>Thursday · 6:00 pm IST</div>
+                <div style={{ fontSize: '19px', fontWeight: 700, letterSpacing: '-.4px', color: C.textPrimary }}>{timeLeft}</div>
+                <div style={{ fontSize: '12px', color: C.textSecondary, marginTop: '3px' }}>Thursday · 6:00 pm IST</div>
               </div>
               <button style={{ fontSize: '13px', fontWeight: 600, background: '#7C5CFC', color: '#FFFFFF', borderRadius: '9px', padding: '9px 16px', border: 'none', cursor: 'pointer' }}>
                 Join room
@@ -648,35 +810,35 @@ export function DashboardView() {
 
           {/* Applications Breakdown */}
           <div className="db-tile db-card" style={{ gridColumn: 'span 3', padding: '20px 22px 22px' }}>
-            <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#8A8A9E', marginBottom: '14px' }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: C.textSecondary, marginBottom: '14px' }}>
               APPLICATIONS
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px', marginBottom: '18px' }}>
-              <span style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px' }}>267</span>
-              <span style={{ fontSize: '13.5px', color: '#8A8A9E' }}>matches open</span>
+              <span style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px', color: C.textPrimary }}>267</span>
+              <span style={{ fontSize: '13.5px', color: C.textSecondary }}>matches open</span>
             </div>
             <div style={{ display: 'grid', gap: '10px' }}>
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#8A8A9E', marginBottom: '5px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: C.textSecondary, marginBottom: '5px' }}>
                   <span>Saved</span><span>0</span>
                 </div>
-                <div style={{ height: '5px', borderRadius: '3px', background: '#262638', overflow: 'hidden' }}>
+                <div style={{ height: '5px', borderRadius: '3px', background: C.bgTrack, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: '4%', background: '#7C5CFC' }} />
                 </div>
               </div>
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#8A8A9E', marginBottom: '5px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: C.textSecondary, marginBottom: '5px' }}>
                   <span>Applied</span><span>0</span>
                 </div>
-                <div style={{ height: '5px', borderRadius: '3px', background: '#262638', overflow: 'hidden' }}>
+                <div style={{ height: '5px', borderRadius: '3px', background: C.bgTrack, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: '0%', background: '#2FB8C6' }} />
                 </div>
               </div>
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#8A8A9E', marginBottom: '5px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: C.textSecondary, marginBottom: '5px' }}>
                   <span>Interviews</span><span>0</span>
                 </div>
-                <div style={{ height: '5px', borderRadius: '3px', background: '#262638', overflow: 'hidden' }}>
+                <div style={{ height: '5px', borderRadius: '3px', background: C.bgTrack, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: '0%', background: '#10B981' }} />
                 </div>
               </div>
@@ -686,77 +848,98 @@ export function DashboardView() {
           {/* Top Matches For You */}
           <div className="db-tile db-card" style={{ gridColumn: 'span 7', padding: '20px 22px 22px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '14px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#A78BFA' }}>TOP MATCHES FOR YOU</div>
-              <span onClick={() => portalNav?.navigate('internships')} style={{ fontSize: '12.5px', fontWeight: 600, color: '#A78BFA', cursor: 'pointer' }}>
-                View all 267 →
+              <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: isDark ? '#A78BFA' : '#7C5CFC' }}>TOP MATCHES FOR YOU</div>
+              <span onClick={() => portalNav?.navigate('internships')} style={{ fontSize: '12.5px', fontWeight: 600, color: isDark ? '#A78BFA' : '#7C5CFC', cursor: 'pointer' }}>
+                View all {totalMatches} →
               </span>
             </div>
             <div style={{ display: 'grid', gap: '8px' }}>
-              {[
-                { initial: 'B', color: '#22D3EE', textColor: '#06323B', title: 'Account Executive', sub: 'Boulevard · USA · ₹22-28 LPA', match: 30 },
-                { initial: 'D', color: '#F59E0B', textColor: '#3A2404', title: 'Senior Brand Content Manager', sub: 'Demandbase · USA · ₹14-18 LPA', match: 30 },
-                { initial: 'J', color: '#10B981', textColor: '#04291D', title: 'Principal Revenue Operations Manager', sub: 'Jobber · Canada · ₹32-38 LPA', match: 30 },
-              ].map((m) => (
-                <div key={m.title} style={{ display: 'grid', gridTemplateColumns: '38px minmax(0, 1fr) 92px max-content', gap: '13px', alignItems: 'center', borderRadius: '11px', padding: '10px 11px', background: 'rgba(255,255,255,0.02)' }}>
-                  <span style={{ width: '38px', height: '38px', borderRadius: '10px', background: m.color, color: m.textColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 700 }}>
-                    {m.initial}
+              {topMatches.length > 0 ? topMatches.map((m, idx) => {
+                const initial = m.title ? m.title.charAt(0).toUpperCase() : 'O';
+                const colors = [
+                  { bg: '#22D3EE', text: '#06323B' },
+                  { bg: '#F59E0B', text: '#3A2404' },
+                  { bg: '#10B981', text: '#04291D' }
+                ];
+                const c = colors[idx % colors.length];
+                const matchPct = Math.min(100, Math.max(0, Math.round((m.match_score || 0) * 100)));
+                const sub = `${m.company || 'Unknown'} · ${m.location || 'Remote'}${m.stipend ? ' · ' + m.stipend : ''}`;
+                
+                return (
+                <div key={m.id || idx} style={{ display: 'grid', gridTemplateColumns: '38px minmax(0, 1fr) 92px max-content', gap: '13px', alignItems: 'center', borderRadius: '11px', padding: '10px 11px', background: C.bgCardAlt, border: `1px solid ${C.borderItem}` }}>
+                  <span style={{ width: '38px', height: '38px', borderRadius: '10px', background: c.bg, color: c.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 700 }}>
+                    {initial}
                   </span>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '14.5px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
-                    <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '2px' }}>{m.sub}</div>
+                    <div style={{ fontSize: '14.5px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: C.textPrimary }}>{m.title}</div>
+                    <div style={{ fontSize: '12.5px', color: C.textSecondary, marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>
                   </div>
                   <div>
-                    <div style={{ height: '5px', borderRadius: '3px', background: '#262638', overflow: 'hidden', marginBottom: '4px' }}>
-                      <div style={{ height: '100%', width: `${m.match}%`, background: 'linear-gradient(90deg, #7C5CFC, #34D399)' }} />
+                    <div style={{ height: '5px', borderRadius: '3px', background: C.bgTrack, overflow: 'hidden', marginBottom: '4px' }}>
+                      <div style={{ height: '100%', width: `${matchPct}%`, background: 'linear-gradient(90deg, #7C5CFC, #34D399)' }} />
                     </div>
-                    <div style={{ fontSize: '11px', color: '#8A8A9E' }}>{m.match}% match</div>
+                    <div style={{ fontSize: '11px', color: C.textSecondary }}>{matchPct}% match</div>
                   </div>
-                  <button style={{ fontSize: '12.5px', fontWeight: 600, background: '#7C5CFC', color: '#FFFFFF', borderRadius: '8px', padding: '8px 14px', border: 'none', cursor: 'pointer' }}>
-                    Apply
+                  <button 
+                    disabled={m.applied}
+                    onClick={() => {
+                      if (m.applied) return;
+                      const url = m.url || (m.source_urls && m.source_urls[0]);
+                      if (url) {
+                        window.open(url, '_blank');
+                        setApplyModalJob(m);
+                      } else {
+                        portalNav?.navigate('internships');
+                      }
+                    }}
+                    style={{ fontSize: '12.5px', fontWeight: 600, background: m.applied ? (isDark ? 'rgba(255,255,255,0.05)' : '#E2E8F0') : '#7C5CFC', color: m.applied ? C.textSecondary : '#FFFFFF', borderRadius: '8px', padding: '8px 14px', border: 'none', cursor: m.applied ? 'default' : 'pointer' }}
+                  >
+                    {m.applied ? 'Applied' : 'Apply'}
                   </button>
                 </div>
-              ))}
+              )}) : (
+                <div style={{ fontSize: '13px', color: C.textSecondary, padding: '20px', textAlign: 'center' }}>No matches found right now.</div>
+              )}
             </div>
           </div>
 
           {/* Mentors With Capacity */}
           <div className="db-tile db-card" style={{ gridColumn: 'span 5', padding: '20px 22px 22px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '14px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#34D399' }}>MENTORS WITH CAPACITY</div>
-              <span onClick={() => portalNav?.navigate('network')} style={{ fontSize: '12.5px', fontWeight: 600, color: '#34D399', cursor: 'pointer' }}>
+              <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: isDark ? '#34D399' : '#059669' }}>MENTORS WITH CAPACITY</div>
+              <span onClick={() => portalNav?.navigate('network')} style={{ fontSize: '12.5px', fontWeight: 600, color: isDark ? '#34D399' : '#059669', cursor: 'pointer' }}>
                 View all →
               </span>
             </div>
             <div style={{ display: 'grid', gap: '8px' }}>
-              {[
-                { initial: 'PM', color: '#DB2777', name: 'Priya Mehta', role: 'PM @ Microsoft · 4.8' },
-                { initial: 'AV', color: '#10B981', name: 'Arjun Verma', role: 'Data Scientist @ Amazon · 4.7' },
-                { initial: 'VS', color: '#2563EB', name: 'Vikram Singh', role: 'Cloud Architect @ AWS · 4.9' },
-              ].map((men) => (
-                <div key={men.name} style={{ display: 'grid', gridTemplateColumns: '36px minmax(0, 1fr) max-content', gap: '12px', alignItems: 'center', borderRadius: '11px', padding: '9px 11px', background: 'rgba(255,255,255,0.02)' }}>
-                  <span style={{ width: '36px', height: '36px', borderRadius: '50%', background: men.color, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700 }}>
-                    {men.initial}
+              {(topMentors && topMentors.length > 0 ? topMentors : []).map((men) => (
+                <div key={men.id || men.name} style={{ display: 'grid', gridTemplateColumns: '36px minmax(0, 1fr) max-content', gap: '12px', alignItems: 'center', borderRadius: '11px', padding: '9px 11px', background: C.bgCardAlt, border: `1px solid ${C.borderItem}` }}>
+                  <span style={{ width: '36px', height: '36px', borderRadius: '50%', background: men.color || '#10B981', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700 }}>
+                    {men.initials || 'M'}
                   </span>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '14px', fontWeight: 600 }}>{men.name}</div>
-                    <div style={{ fontSize: '12px', color: '#8A8A9E', marginTop: '2px' }}>{men.role}</div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: C.textPrimary }}>{men.name}</div>
+                    <div style={{ fontSize: '12px', color: C.textSecondary, marginTop: '2px' }}>{men.subline}</div>
                   </div>
-                  <button style={{ fontSize: '12.5px', fontWeight: 600, color: '#34D399', border: '1px solid #17503E', background: 'transparent', borderRadius: '8px', padding: '8px 13px', cursor: 'pointer' }}>
+                  <button style={{ fontSize: '12.5px', fontWeight: 600, color: isDark ? '#34D399' : '#059669', border: isDark ? '1px solid #17503E' : '1px solid rgba(5,150,105,0.35)', background: isDark ? 'transparent' : 'rgba(5,150,105,0.06)', borderRadius: '8px', padding: '8px 13px', cursor: 'pointer' }}>
                     Book
                   </button>
                 </div>
               ))}
+              {(!topMentors || topMentors.length === 0) && (
+                <div style={{ fontSize: '13px', color: C.textSecondary, padding: '20px', textAlign: 'center' }}>No mentors available with capacity right now.</div>
+              )}
             </div>
           </div>
 
           {/* Network Growth */}
           <div className="db-tile db-card" style={{ gridColumn: 'span 4', padding: '20px 22px 22px' }}>
-            <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#8A8A9E', marginBottom: '14px' }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: C.textSecondary, marginBottom: '14px' }}>
               NETWORK GROWTH
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px', marginBottom: '12px' }}>
-              <span style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px' }}>8</span>
-              <span style={{ fontSize: '13.5px', color: '#8A8A9E' }}>events registered</span>
+              <span style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px', color: C.textPrimary }}>8</span>
+              <span style={{ fontSize: '13.5px', color: C.textSecondary }}>events registered</span>
             </div>
             <svg viewBox="0 0 300 90" style={{ width: '100%', height: '90px' }}>
               <defs>
@@ -768,16 +951,16 @@ export function DashboardView() {
               <path d="M6 78 L60 70 L114 56 L168 58 L222 38 L294 14 L294 88 L6 88 Z" fill="url(#dbSpark)" />
               <path d="M6 78 L60 70 L114 56 L168 58 L222 38 L294 14" fill="none" stroke="#2FB8C6" strokeWidth="2.4" />
             </svg>
-            <div style={{ fontSize: '12.5px', color: '#8A8A9E' }}>
-              Profile strength <strong style={{ color: '#F4F4FA', fontWeight: 600 }}>50%</strong> · 0 connections yet
+            <div style={{ fontSize: '12.5px', color: C.textSecondary }}>
+              Profile strength <strong style={{ color: C.textPrimary, fontWeight: 600 }}>50%</strong> · 0 connections yet
             </div>
           </div>
 
           {/* Continuous Infinite Marquee: Upcoming on Campus */}
           <div className="db-tile db-card db-marq-container" style={{ gridColumn: 'span 12', padding: '20px 22px 22px', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '14px', marginBottom: '14px' }}>
-              <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#F59E0B' }}>UPCOMING ON CAMPUS</div>
-              <span onClick={() => portalNav?.navigate('events')} style={{ fontSize: '12.5px', fontWeight: 600, color: '#F59E0B', cursor: 'pointer' }}>
+              <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: isDark ? '#F59E0B' : '#D97706' }}>UPCOMING ON CAMPUS</div>
+              <span onClick={() => portalNav?.navigate('events')} style={{ fontSize: '12.5px', fontWeight: 600, color: isDark ? '#F59E0B' : '#D97706', cursor: 'pointer' }}>
                 My events →
               </span>
             </div>
@@ -797,9 +980,9 @@ export function DashboardView() {
                     style={{
                       flex: 'none',
                       minWidth: '210px',
-                      border: '1px solid #262638',
+                      border: `1px solid ${C.borderItem}`,
                       borderRadius: '12px',
-                      background: '#14141F',
+                      background: C.bgCardAlt,
                       padding: '13px 15px',
                       cursor: 'pointer',
                     }}
@@ -810,8 +993,8 @@ export function DashboardView() {
                         {ev.when.split(' · ')[0]}
                       </span>
                     </div>
-                    <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '3px' }}>{ev.name}</div>
-                    <div style={{ fontSize: '12px', color: '#8A8A9E' }}>{ev.when.split(' · ')[1]}</div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '3px', color: C.textPrimary }}>{ev.name}</div>
+                    <div style={{ fontSize: '12px', color: C.textSecondary }}>{ev.when.split(' · ')[1]}</div>
                   </div>
                 ))}
               </div>
@@ -824,35 +1007,35 @@ export function DashboardView() {
       {activeTab === 'intelligence' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Current Goal Banner */}
-          <div className="db-card" style={{ border: '1px solid #2C2A52', background: 'linear-gradient(150deg, #14141F, #101019 60%)', padding: '26px 28px 28px' }}>
+          <div className="db-card" style={{ border: `1px solid ${C.goalBannerBorder}`, background: C.goalBannerBg, padding: '26px 28px 28px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
               <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#A78BFA' }} />
-              <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1.6px', color: '#A78BFA' }}>CURRENT GOAL</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1.6px', color: isDark ? '#A78BFA' : '#7C5CFC' }}>CURRENT GOAL</span>
             </div>
-            <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', marginBottom: '12px' }}>
+            <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', marginBottom: '12px', color: C.textPrimary }}>
               explore at a Top Company in your field
             </div>
-            <div style={{ display: 'flex', gap: '22px', flexWrap: 'wrap', fontSize: '13.5px', color: '#8A8A9E', marginBottom: '26px' }}>
-              <span>✦ Level: <strong style={{ color: '#A78BFA', fontWeight: 600 }}>Builder</strong></span>
-              <span>✦ Target: <strong style={{ color: '#A78BFA', fontWeight: 600 }}>Industry Ready</strong></span>
-              <span>✦ ETA: <strong style={{ color: '#A78BFA', fontWeight: 600 }}>~18 Weeks</strong></span>
+            <div style={{ display: 'flex', gap: '22px', flexWrap: 'wrap', fontSize: '13.5px', color: C.textSecondary, marginBottom: '26px' }}>
+              <span>✦ Level: <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>Builder</strong></span>
+              <span>✦ Target: <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>Industry Ready</strong></span>
+              <span>✦ ETA: <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>~18 Weeks</strong></span>
             </div>
           </div>
 
           {/* 5 Stats Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '14px' }}>
             {[
-              { title: 'READINESS SCORE', val: '36%', sub: '+8% from last week', subCol: '#34D399' },
-              { title: 'TARGET READINESS', val: '100%', sub: 'Industry Ready', subCol: '#34D399' },
-              { title: 'CAREER LEVEL', val: 'Builder', sub: 'Current Level', subCol: '#F59E0B' },
-              { title: 'PROFILE STRENGTH', val: '50%', sub: '+8% from last week', subCol: '#34D399' },
-              { title: 'SKILL STREAK', val: '0 Days', sub: 'Start your streak!', subCol: '#F0616B' },
+              { title: 'READINESS SCORE', val: '36%', sub: '+8% from last week', subCol: isDark ? '#34D399' : '#059669' },
+              { title: 'TARGET READINESS', val: '100%', sub: 'Industry Ready', subCol: isDark ? '#34D399' : '#059669' },
+              { title: 'CAREER LEVEL', val: 'Builder', sub: 'Current Level', subCol: isDark ? '#F59E0B' : '#D97706' },
+              { title: 'PROFILE STRENGTH', val: '50%', sub: '+8% from last week', subCol: isDark ? '#34D399' : '#059669' },
+              { title: 'SKILL STREAK', val: '0 Days', sub: 'Start your streak!', subCol: isDark ? '#F0616B' : '#E11D48' },
             ].map((stat) => (
               <div key={stat.title} className="db-card" style={{ padding: '18px 20px 20px' }}>
-                <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.2px', color: '#8A8A9E', marginBottom: '12px' }}>
+                <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.2px', color: C.textSecondary, marginBottom: '12px' }}>
                   {stat.title}
                 </div>
-                <div style={{ fontSize: '30px', fontWeight: 700, letterSpacing: '-1.2px' }}>{stat.val}</div>
+                <div style={{ fontSize: '30px', fontWeight: 700, letterSpacing: '-1.2px', color: C.textPrimary }}>{stat.val}</div>
                 <div style={{ fontSize: '12.5px', color: stat.subCol, marginTop: '8px' }}>{stat.sub}</div>
               </div>
             ))}
@@ -860,7 +1043,7 @@ export function DashboardView() {
 
           {/* Career Growth Prediction Area Chart */}
           <div className="db-card" style={{ padding: '24px 26px 26px' }}>
-            <div style={{ fontSize: '12.5px', fontWeight: 700, letterSpacing: '1.8px', color: '#8A8A9E', marginBottom: '22px' }}>
+            <div style={{ fontSize: '12.5px', fontWeight: 700, letterSpacing: '1.8px', color: C.textSecondary, marginBottom: '22px' }}>
               CAREER GROWTH PREDICTION
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: '24px', alignItems: 'center' }}>
@@ -868,12 +1051,12 @@ export function DashboardView() {
                 <svg width="100%" height="100%" viewBox="0 0 780 200" preserveAspectRatio="none">
                   <defs>
                     <linearGradient id="dbCg" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0" stopColor="#7C5CFC" stopOpacity="0.34" />
+                      <stop offset="0" stopColor="#7C5CFC" stopOpacity={isDark ? "0.34" : "0.20"} />
                       <stop offset="1" stopColor="#7C5CFC" stopOpacity="0" />
                     </linearGradient>
                   </defs>
                   <path d="M40 190 L180 168 L320 132 L460 128 L600 106 L740 60 L740 210 L40 210 Z" fill="url(#dbCg)" />
-                  <path d="M40 190 L180 168 L320 132 L460 128 L600 106 L740 60" fill="none" stroke="#8B7BFF" strokeWidth="2.6" />
+                  <path d="M40 190 L180 168 L320 132 L460 128 L600 106 L740 60" fill="none" stroke={isDark ? "#8B7BFF" : "#7C5CFC"} strokeWidth="2.6" />
                   {[
                     { cx: 40, cy: 190, label: '36%', time: 'Today' },
                     { cx: 180, cy: 168, label: '44%', time: '7 Days' },
@@ -883,23 +1066,23 @@ export function DashboardView() {
                     { cx: 740, cy: 60, label: '92%', time: '180 Days' },
                   ].map((p) => (
                     <g key={p.time}>
-                      <circle cx={p.cx} cy={p.cy} r="5" fill="#B9AEFF" />
-                      <text x={p.cx} y={p.cy - 12} textAnchor="middle" fill="#F4F4FA" fontSize="14" fontWeight="600">
+                      <circle cx={p.cx} cy={p.cy} r="5" fill={isDark ? "#B9AEFF" : "#7C5CFC"} />
+                      <text x={p.cx} y={p.cy - 12} textAnchor="middle" fill={C.textPrimary} fontSize="14" fontWeight="600">
                         {p.label}
                       </text>
-                      <text x={p.cx} y={195} textAnchor="middle" fill="#8A8A9E" fontSize="12">
+                      <text x={p.cx} y={195} textAnchor="middle" fill={C.textSecondary} fontSize="12">
                         {p.time}
                       </text>
                     </g>
                   ))}
                 </svg>
               </div>
-              <div style={{ border: '1px solid #2C2A52', borderRadius: '16px', background: 'rgba(124,92,252,.07)', padding: '22px 24px 24px' }}>
-                <div style={{ fontSize: '17px', fontWeight: 700, marginBottom: '12px' }}>Prediction Insight</div>
-                <div style={{ fontSize: '14px', lineHeight: 1.6, color: '#8A8A9E', marginBottom: '20px' }}>
-                  You're on the right track! Consistent action can take you from <strong style={{ color: '#A78BFA', fontWeight: 600 }}>36%</strong> to <strong style={{ color: '#A78BFA', fontWeight: 600 }}>92%</strong> readiness in 18 weeks.
+              <div style={{ border: `1px solid ${C.insightBorder}`, borderRadius: '16px', background: C.insightBg, padding: '22px 24px 24px' }}>
+                <div style={{ fontSize: '17px', fontWeight: 700, marginBottom: '12px', color: C.textPrimary }}>Prediction Insight</div>
+                <div style={{ fontSize: '14px', lineHeight: 1.6, color: C.textSecondary, marginBottom: '20px' }}>
+                  You're on the right track! Consistent action can take you from <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>36%</strong> to <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>92%</strong> readiness in 18 weeks.
                 </div>
-                <button style={{ width: '100%', padding: '11px', fontSize: '13.5px', fontWeight: 600, color: '#A78BFA', border: '1px solid #2C2A52', background: 'transparent', borderRadius: '9px', cursor: 'pointer' }}>
+                <button style={{ width: '100%', padding: '11px', fontSize: '13.5px', fontWeight: 600, color: isDark ? '#A78BFA' : '#7C5CFC', border: `1px solid ${C.insightBorder}`, background: 'transparent', borderRadius: '9px', cursor: 'pointer' }}>
                   View Full Analysis
                 </button>
               </div>
@@ -912,13 +1095,13 @@ export function DashboardView() {
         <div className="db-card" style={{ padding: '28px 30px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '14px' }}>
             <div>
-              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.8px', color: '#A78BFA', marginBottom: '6px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.8px', color: isDark ? '#A78BFA' : '#7C5CFC', marginBottom: '6px' }}>
                 PLATFORM VERTICAL PERKS & PRO TIPS
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#FFF' }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: C.textPrimary }}>
                 Tips, Coupons & Offers across all StudentAlumni Verticals
               </div>
-              <div style={{ fontSize: '14px', color: '#8A8A9E', marginTop: '6px' }}>
+              <div style={{ fontSize: '14px', color: C.textSecondary, marginTop: '6px' }}>
                 Curated guidance, verified promo codes, and special benefits for Career, ECHO Events, Mentorship, Startups, and Health.
               </div>
             </div>
@@ -936,24 +1119,24 @@ export function DashboardView() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '18px' }}>
             {/* 1. Career & Placement */}
-            <div style={{ border: '1px solid #3A2E72', borderRadius: '18px', background: 'linear-gradient(145deg, rgba(124,92,252,0.08) 0%, #14141F 100%)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ border: `1px solid ${C.perkBorder}`, borderRadius: '18px', background: C.perkBg, padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: '#A78BFA' }}>CAREER & PLACEMENT</span>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '4px 8px' }}>FEATURED</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: isDark ? '#A78BFA' : '#7C5CFC' }}>CAREER & PLACEMENT</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: isDark ? '#34D399' : '#059669', background: isDark ? 'rgba(52,211,153,0.12)' : 'rgba(52,211,153,0.10)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '4px 8px' }}>FEATURED</span>
               </div>
-              <div style={{ fontSize: '17px', fontWeight: 700, color: '#FFF' }}>Resume & Mock Interview Pass</div>
+              <div style={{ fontSize: '17px', fontWeight: 700, color: C.textPrimary }}>Resume & Mock Interview Pass</div>
               
-              <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #232338', borderRadius: '12px', padding: '12px 14px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, color: '#8A8A9E', marginBottom: '4px' }}>PRO TIP</div>
-                <div style={{ fontSize: '13px', color: '#B4B4CB', lineHeight: 1.5 }}>
+              <div style={{ background: C.proTipBg, border: `1px solid ${C.proTipBorder}`, borderRadius: '12px', padding: '12px 14px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: C.textSecondary, marginBottom: '4px' }}>PRO TIP</div>
+                <div style={{ fontSize: '13px', color: C.proTipText, lineHeight: 1.5 }}>
                   Upload your ATS resume 48h before campus CDC drives for 3.2x higher interview callback rates.
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed #4B3FA8', borderRadius: '12px', padding: '12px 14px', background: 'rgba(124,92,252,0.06)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: `1px dashed ${isDark ? '#4B3FA8' : '#A78BFA'}`, borderRadius: '12px', padding: '12px 14px', background: isDark ? 'rgba(124,92,252,0.06)' : 'rgba(124,92,252,0.04)' }}>
                 <div>
-                  <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#FFF', fontFamily: 'monospace' }}>SA-CAREER-PRO</div>
-                  <div style={{ fontSize: '11.5px', color: '#8A8A9E' }}>100% Free Unlimited ATS Scans</div>
+                  <div style={{ fontSize: '13.5px', fontWeight: 700, color: isDark ? '#FFF' : '#6D28D9', fontFamily: 'monospace' }}>SA-CAREER-PRO</div>
+                  <div style={{ fontSize: '11.5px', color: C.textSecondary }}>100% Free Unlimited ATS Scans</div>
                 </div>
                 <span
                   onClick={() => {
@@ -961,7 +1144,7 @@ export function DashboardView() {
                     setCopiedCoupon('SA-CAREER-PRO');
                     setTimeout(() => setCopiedCoupon(null), 2500);
                   }}
-                  style={{ fontSize: '12px', fontWeight: 700, color: '#A78BFA', cursor: 'pointer', background: 'rgba(124,92,252,0.18)', borderRadius: '6px', padding: '6px 12px' }}
+                  style={{ fontSize: '12px', fontWeight: 700, color: isDark ? '#A78BFA' : '#7C5CFC', cursor: 'pointer', background: isDark ? 'rgba(124,92,252,0.18)' : 'rgba(124,92,252,0.12)', borderRadius: '6px', padding: '6px 12px' }}
                 >
                   {copiedCoupon === 'SA-CAREER-PRO' ? 'COPIED ✓' : 'COPY'}
                 </span>
@@ -969,24 +1152,24 @@ export function DashboardView() {
             </div>
 
             {/* 2. ECHO Events & Hackathons */}
-            <div style={{ border: '1px solid rgba(52,211,153,0.3)', borderRadius: '18px', background: 'linear-gradient(145deg, rgba(52,211,153,0.08) 0%, #14141F 100%)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ border: `1px solid ${isDark ? 'rgba(52,211,153,0.3)' : 'rgba(52,211,153,0.25)'}`, borderRadius: '18px', background: isDark ? 'linear-gradient(145deg, rgba(52,211,153,0.08) 0%, #14141F 100%)' : 'linear-gradient(145deg, rgba(52,211,153,0.05) 0%, #FFFFFF 100%)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: '#34D399' }}>ECHO EVENTS & HACKATHONS</span>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '4px 8px' }}>LIVE OFFER</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: isDark ? '#34D399' : '#059669' }}>ECHO EVENTS & HACKATHONS</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: isDark ? '#34D399' : '#059669', background: isDark ? 'rgba(52,211,153,0.12)' : 'rgba(52,211,153,0.10)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '4px 8px' }}>LIVE OFFER</span>
               </div>
-              <div style={{ fontSize: '17px', fontWeight: 700, color: '#FFF' }}>VIP Gate Pass & Meal Voucher</div>
+              <div style={{ fontSize: '17px', fontWeight: 700, color: C.textPrimary }}>VIP Gate Pass & Meal Voucher</div>
               
-              <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #232338', borderRadius: '12px', padding: '12px 14px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, color: '#8A8A9E', marginBottom: '4px' }}>PRO TIP</div>
-                <div style={{ fontSize: '13px', color: '#B4B4CB', lineHeight: 1.5 }}>
+              <div style={{ background: C.proTipBg, border: `1px solid ${C.proTipBorder}`, borderRadius: '12px', padding: '12px 14px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: C.textSecondary, marginBottom: '4px' }}>PRO TIP</div>
+                <div style={{ fontSize: '13px', color: C.proTipText, lineHeight: 1.5 }}>
                   Check in early at Gate 2 with your SA ID to receive VIP front-row seating & complimentary breakfast combos.
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed rgba(52,211,153,0.4)', borderRadius: '12px', padding: '12px 14px', background: 'rgba(52,211,153,0.06)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: `1px dashed ${isDark ? 'rgba(52,211,153,0.4)' : 'rgba(52,211,153,0.5)'}`, borderRadius: '12px', padding: '12px 14px', background: isDark ? 'rgba(52,211,153,0.06)' : 'rgba(52,211,153,0.04)' }}>
                 <div>
-                  <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#FFF', fontFamily: 'monospace' }}>ECHO-VIP-500</div>
-                  <div style={{ fontSize: '11.5px', color: '#8A8A9E' }}>₹500 OFF Premium Pass</div>
+                  <div style={{ fontSize: '13.5px', fontWeight: 700, color: isDark ? '#FFF' : '#047857', fontFamily: 'monospace' }}>ECHO-VIP-500</div>
+                  <div style={{ fontSize: '11.5px', color: C.textSecondary }}>₹500 OFF Premium Pass</div>
                 </div>
                 <span
                   onClick={() => {
@@ -994,7 +1177,7 @@ export function DashboardView() {
                     setCopiedCoupon('ECHO-VIP-500');
                     setTimeout(() => setCopiedCoupon(null), 2500);
                   }}
-                  style={{ fontSize: '12px', fontWeight: 700, color: '#34D399', cursor: 'pointer', background: 'rgba(52,211,153,0.18)', borderRadius: '6px', padding: '6px 12px' }}
+                  style={{ fontSize: '12px', fontWeight: 700, color: isDark ? '#34D399' : '#059669', cursor: 'pointer', background: isDark ? 'rgba(52,211,153,0.18)' : 'rgba(52,211,153,0.12)', borderRadius: '6px', padding: '6px 12px' }}
                 >
                   {copiedCoupon === 'ECHO-VIP-500' ? 'COPIED ✓' : 'COPY'}
                 </span>
@@ -1002,24 +1185,24 @@ export function DashboardView() {
             </div>
 
             {/* 3. Alumni Mentorship */}
-            <div style={{ border: '1px solid rgba(245,179,66,0.3)', borderRadius: '18px', background: 'linear-gradient(145deg, rgba(245,179,66,0.08) 0%, #14141F 100%)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ border: `1px solid ${isDark ? 'rgba(245,179,66,0.3)' : 'rgba(245,179,66,0.25)'}`, borderRadius: '18px', background: isDark ? 'linear-gradient(145deg, rgba(245,179,66,0.08) 0%, #14141F 100%)' : 'linear-gradient(145deg, rgba(245,179,66,0.05) 0%, #FFFFFF 100%)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: '#F59E0B' }}>ALUMNI MENTORSHIP</span>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#F59E0B', background: 'rgba(245,179,66,0.12)', border: '1px solid rgba(245,179,66,0.3)', borderRadius: '6px', padding: '4px 8px' }}>POPULAR</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: isDark ? '#F59E0B' : '#D97706' }}>ALUMNI MENTORSHIP</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: isDark ? '#F59E0B' : '#D97706', background: isDark ? 'rgba(245,179,66,0.12)' : 'rgba(245,179,66,0.10)', border: '1px solid rgba(245,179,66,0.3)', borderRadius: '6px', padding: '4px 8px' }}>POPULAR</span>
               </div>
-              <div style={{ fontSize: '17px', fontWeight: 700, color: '#FFF' }}>1-on-1 Mentor Session Credit</div>
+              <div style={{ fontSize: '17px', fontWeight: 700, color: C.textPrimary }}>1-on-1 Mentor Session Credit</div>
               
-              <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #232338', borderRadius: '12px', padding: '12px 14px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, color: '#8A8A9E', marginBottom: '4px' }}>PRO TIP</div>
-                <div style={{ fontSize: '13px', color: '#B4B4CB', lineHeight: 1.5 }}>
+              <div style={{ background: C.proTipBg, border: `1px solid ${C.proTipBorder}`, borderRadius: '12px', padding: '12px 14px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: C.textSecondary, marginBottom: '4px' }}>PRO TIP</div>
+                <div style={{ fontSize: '13px', color: C.proTipText, lineHeight: 1.5 }}>
                   Prepare 3 specific domain questions before booking a 1-on-1 session to receive direct referral recommendations.
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed rgba(245,179,66,0.4)', borderRadius: '12px', padding: '12px 14px', background: 'rgba(245,179,66,0.06)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: `1px dashed ${isDark ? 'rgba(245,179,66,0.4)' : 'rgba(245,179,66,0.5)'}`, borderRadius: '12px', padding: '12px 14px', background: isDark ? 'rgba(245,179,66,0.06)' : 'rgba(245,179,66,0.04)' }}>
                 <div>
-                  <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#FFF', fontFamily: 'monospace' }}>MENTOR-100-FREE</div>
-                  <div style={{ fontSize: '11.5px', color: '#8A8A9E' }}>100% OFF First 1-on-1 Booking</div>
+                  <div style={{ fontSize: '13.5px', fontWeight: 700, color: isDark ? '#FFF' : '#B45309', fontFamily: 'monospace' }}>MENTOR-100-FREE</div>
+                  <div style={{ fontSize: '11.5px', color: C.textSecondary }}>100% OFF First 1-on-1 Booking</div>
                 </div>
                 <span
                   onClick={() => {
@@ -1027,7 +1210,7 @@ export function DashboardView() {
                     setCopiedCoupon('MENTOR-100-FREE');
                     setTimeout(() => setCopiedCoupon(null), 2500);
                   }}
-                  style={{ fontSize: '12px', fontWeight: 700, color: '#F59E0B', cursor: 'pointer', background: 'rgba(245,179,66,0.18)', borderRadius: '6px', padding: '6px 12px' }}
+                  style={{ fontSize: '12px', fontWeight: 700, color: isDark ? '#F59E0B' : '#D97706', cursor: 'pointer', background: isDark ? 'rgba(245,179,66,0.18)' : 'rgba(245,179,66,0.12)', borderRadius: '6px', padding: '6px 12px' }}
                 >
                   {copiedCoupon === 'MENTOR-100-FREE' ? 'COPIED ✓' : 'COPY'}
                 </span>
@@ -1035,24 +1218,24 @@ export function DashboardView() {
             </div>
 
             {/* 4. Startups & Incubator */}
-            <div style={{ border: '1px solid #3A2E72', borderRadius: '18px', background: 'linear-gradient(145deg, rgba(124,92,252,0.08) 0%, #14141F 100%)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ border: `1px solid ${C.perkBorder}`, borderRadius: '18px', background: C.perkBg, padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: '#A78BFA' }}>STARTUPS & INCUBATOR</span>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#A78BFA', background: 'rgba(124,92,252,0.15)', border: '1px solid rgba(124,92,252,0.3)', borderRadius: '6px', padding: '4px 8px' }}>GRANT PERK</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: isDark ? '#A78BFA' : '#7C5CFC' }}>STARTUPS & INCUBATOR</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: isDark ? '#A78BFA' : '#7C5CFC', background: isDark ? 'rgba(124,92,252,0.15)' : 'rgba(124,92,252,0.10)', border: '1px solid rgba(124,92,252,0.3)', borderRadius: '6px', padding: '4px 8px' }}>GRANT PERK</span>
               </div>
-              <div style={{ fontSize: '17px', fontWeight: 700, color: '#FFF' }}>$1,000 Cloud Credits & Legal Support</div>
+              <div style={{ fontSize: '17px', fontWeight: 700, color: C.textPrimary }}>$1,000 Cloud Credits & Legal Support</div>
               
-              <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #232338', borderRadius: '12px', padding: '12px 14px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, color: '#8A8A9E', marginBottom: '4px' }}>PRO TIP</div>
-                <div style={{ fontSize: '13px', color: '#B4B4CB', lineHeight: 1.5 }}>
+              <div style={{ background: C.proTipBg, border: `1px solid ${C.proTipBorder}`, borderRadius: '12px', padding: '12px 14px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: C.textSecondary, marginBottom: '4px' }}>PRO TIP</div>
+                <div style={{ fontSize: '13px', color: C.proTipText, lineHeight: 1.5 }}>
                   Submit your prototype pitch deck before Friday to qualify for the $5,000 SA Innovation Seed Grant.
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed #4B3FA8', borderRadius: '12px', padding: '12px 14px', background: 'rgba(124,92,252,0.06)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: `1px dashed ${isDark ? '#4B3FA8' : '#A78BFA'}`, borderRadius: '12px', padding: '12px 14px', background: isDark ? 'rgba(124,92,252,0.06)' : 'rgba(124,92,252,0.04)' }}>
                 <div>
-                  <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#FFF', fontFamily: 'monospace' }}>AWS-CLOUD-1000</div>
-                  <div style={{ fontSize: '11.5px', color: '#8A8A9E' }}>$1,000 AWS & Cloud Vouchers</div>
+                  <div style={{ fontSize: '13.5px', fontWeight: 700, color: isDark ? '#FFF' : '#6D28D9', fontFamily: 'monospace' }}>AWS-CLOUD-1000</div>
+                  <div style={{ fontSize: '11.5px', color: C.textSecondary }}>$1,000 AWS & Cloud Vouchers</div>
                 </div>
                 <span
                   onClick={() => {
@@ -1060,7 +1243,7 @@ export function DashboardView() {
                     setCopiedCoupon('AWS-CLOUD-1000');
                     setTimeout(() => setCopiedCoupon(null), 2500);
                   }}
-                  style={{ fontSize: '12px', fontWeight: 700, color: '#A78BFA', cursor: 'pointer', background: 'rgba(124,92,252,0.18)', borderRadius: '6px', padding: '6px 12px' }}
+                  style={{ fontSize: '12px', fontWeight: 700, color: isDark ? '#A78BFA' : '#7C5CFC', cursor: 'pointer', background: isDark ? 'rgba(124,92,252,0.18)' : 'rgba(124,92,252,0.12)', borderRadius: '6px', padding: '6px 12px' }}
                 >
                   {copiedCoupon === 'AWS-CLOUD-1000' ? 'COPIED ✓' : 'COPY'}
                 </span>
@@ -1068,24 +1251,24 @@ export function DashboardView() {
             </div>
 
             {/* 5. Student Health & SA Care */}
-            <div style={{ border: '1px solid rgba(52,211,153,0.3)', borderRadius: '18px', background: 'linear-gradient(145deg, rgba(52,211,153,0.08) 0%, #14141F 100%)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ border: `1px solid ${isDark ? 'rgba(52,211,153,0.3)' : 'rgba(52,211,153,0.25)'}`, borderRadius: '18px', background: isDark ? 'linear-gradient(145deg, rgba(52,211,153,0.08) 0%, #14141F 100%)' : 'linear-gradient(145deg, rgba(52,211,153,0.05) 0%, #FFFFFF 100%)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: '#34D399' }}>STUDENT HEALTH & CARE</span>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '4px 8px' }}>WELLNESS PERK</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: isDark ? '#34D399' : '#059669' }}>STUDENT HEALTH & CARE</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: isDark ? '#34D399' : '#059669', background: isDark ? 'rgba(52,211,153,0.12)' : 'rgba(52,211,153,0.10)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '4px 8px' }}>WELLNESS PERK</span>
               </div>
-              <div style={{ fontSize: '17px', fontWeight: 700, color: '#FFF' }}>Annual Health & Telehealth Pass</div>
+              <div style={{ fontSize: '17px', fontWeight: 700, color: C.textPrimary }}>Annual Health & Telehealth Pass</div>
               
-              <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #232338', borderRadius: '12px', padding: '12px 14px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, color: '#8A8A9E', marginBottom: '4px' }}>PRO TIP</div>
-                <div style={{ fontSize: '13.5px', color: '#B4B4CB', lineHeight: 1.5 }}>
+              <div style={{ background: C.proTipBg, border: `1px solid ${C.proTipBorder}`, borderRadius: '12px', padding: '12px 14px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: C.textSecondary, marginBottom: '4px' }}>PRO TIP</div>
+                <div style={{ fontSize: '13.5px', color: C.proTipText, lineHeight: 1.5 }}>
                   Schedule your annual preventive health checkup on campus to claim your free fitness & wellness passes.
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed rgba(52,211,153,0.4)', borderRadius: '12px', padding: '12px 14px', background: 'rgba(52,211,153,0.06)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: `1px dashed ${isDark ? 'rgba(52,211,153,0.4)' : 'rgba(52,211,153,0.5)'}`, borderRadius: '12px', padding: '12px 14px', background: isDark ? 'rgba(52,211,153,0.06)' : 'rgba(52,211,153,0.04)' }}>
                 <div>
-                  <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#FFF', fontFamily: 'monospace' }}>CARE-CHECKUP-FREE</div>
-                  <div style={{ fontSize: '11.5px', color: '#8A8A9E' }}>100% Covered Dental & Health Scan</div>
+                  <div style={{ fontSize: '13.5px', fontWeight: 700, color: isDark ? '#FFF' : '#047857', fontFamily: 'monospace' }}>CARE-CHECKUP-FREE</div>
+                  <div style={{ fontSize: '11.5px', color: C.textSecondary }}>100% Covered Dental & Health Scan</div>
                 </div>
                 <span
                   onClick={() => {
@@ -1093,7 +1276,7 @@ export function DashboardView() {
                     setCopiedCoupon('CARE-CHECKUP-FREE');
                     setTimeout(() => setCopiedCoupon(null), 2500);
                   }}
-                  style={{ fontSize: '12px', fontWeight: 700, color: '#34D399', cursor: 'pointer', background: 'rgba(52,211,153,0.18)', borderRadius: '6px', padding: '6px 12px' }}
+                  style={{ fontSize: '12px', fontWeight: 700, color: isDark ? '#34D399' : '#059669', cursor: 'pointer', background: isDark ? 'rgba(52,211,153,0.18)' : 'rgba(52,211,153,0.12)', borderRadius: '6px', padding: '6px 12px' }}
                 >
                   {copiedCoupon === 'CARE-CHECKUP-FREE' ? 'COPIED ✓' : 'COPY'}
                 </span>

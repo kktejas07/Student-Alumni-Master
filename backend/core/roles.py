@@ -20,8 +20,7 @@ def _get_db():
     from core.db import db
     return db
 
-_JWT_SECRET = os.environ.get("JWT_SECRET", "")
-_JWT_ALG = os.environ.get("JWT_ALGORITHM", "HS256")
+from core.security import JWT_SECRET as _JWT_SECRET, JWT_ALGORITHM as _JWT_ALG
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -270,7 +269,7 @@ async def seed_admin_roles(db=None):
     """Ensure all system roles exist in admin_roles collection.
     Call on startup or via migration. Uses $setOnInsert for idempotency.
     If db is provided, uses it; otherwise creates its own connection."""
-    target_db = db or _get_db()
+    target_db = db if db is not None else _get_db()
     for role_def in SYSTEM_ROLES:
         await target_db.admin_roles.update_one(
             {"key": role_def["key"]},
@@ -284,4 +283,4 @@ async def seed_admin_roles(db=None):
             }},
             upsert=True,
         )
-    print(f"✅ Seeded {len(SYSTEM_ROLES)} system roles to admin_roles collection")
+    print(f"[Roles] Seeded {len(SYSTEM_ROLES)} system roles to admin_roles collection")

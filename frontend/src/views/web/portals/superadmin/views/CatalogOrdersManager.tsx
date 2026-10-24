@@ -1,50 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Pressable, ScrollView, TextInput, StyleSheet, Platform } from 'react-native';
-import { Plus, Trash2, Edit2, Check, X, RefreshCw } from 'lucide-react-native';
+import { View, Text, Pressable, Platform } from 'react-native';
+import { Plus, Trash2, Edit2, RefreshCw } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { SAC, FONTS } from '../tokens';
 import { Card, GradientButton, SecondaryButton } from '../applekit';
-
-const Field = (props: any) => (
-  <TextInput
-    style={[{
-      backgroundColor: SAC.bg,
-      color: SAC.text,
-      borderWidth: 1,
-      borderColor: SAC.border,
-      borderRadius: 8,
-      padding: 10,
-      fontSize: 14,
-      fontFamily: FONTS.regular
-    }, props.style]}
-    placeholderTextColor={SAC.muted}
-    {...props}
-  />
-);
-
-const Toggle = ({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) => (
-  <Pressable onPress={() => onChange(!value)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}>
-    <View
-      style={[{
-        width: 40, height: 22, borderRadius: 11, padding: 2,
-        backgroundColor: value ? '#10B981' : 'rgba(255,255,255,0.12)',
-        justifyContent: value ? 'flex-end' : 'flex-start',
-      }]}
-    >
-      <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff' }} />
-    </View>
-    <Text style={{ color: SAC.text, fontFamily: FONTS.med, fontSize: 13 }}>{label}</Text>
-  </Pressable>
-);
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
+import {
+  Field, fileToBase64, FormLabel, EDITOR_PANEL_STYLE, SectionHeader, WEB_SELECT_STYLE,
+  NamePriceRow, CategoryStockRow, StallRow, ServingsField, DescriptionField, AvailabilityToggle,
+} from '../../shared/catalog';
 
 export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string; slug: string }) {
   const [items, setItems] = useState<any[]>([]);
@@ -174,6 +137,8 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
     }
   };
 
+  const patch = (p: Record<string, any>) => setEditingItem((prev: any) => ({ ...prev, ...p }));
+
   if (loading) {
     return (
       <View style={{ padding: 40, alignItems: 'center' }}>
@@ -188,86 +153,31 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
       
       {/* CATALOG SECTION */}
       <Card>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 18, color: SAC.text }}>Catalog Items ({items.length})</Text>
-          <SecondaryButton onPress={() => setEditingItem({ category: 'handcraft', stock_limit: 0 })}><Text style={{ color: SAC.text }}>Add Item</Text></SecondaryButton>
-        </View>
+        <SectionHeader
+          title={`Catalog Items (${items.length})`}
+          right={<SecondaryButton onPress={() => setEditingItem({ category: 'handcraft', stock_limit: 0 })}><Text style={{ color: SAC.text }}>Add Item</Text></SecondaryButton>}
+        />
 
         {editingItem && (
-          <View style={{ padding: 16, backgroundColor: SAC.panel, borderRadius: 12, borderWidth: 1, borderColor: SAC.border, marginBottom: 16, gap: 12 }}>
+          <View style={EDITOR_PANEL_STYLE}>
             <Text style={{ color: SAC.text, fontFamily: FONTS.med }}>{editingItem.id ? 'Edit Item' : 'New Item'}</Text>
+            <NamePriceRow item={editingItem} onChange={patch} />
+            <CategoryStockRow item={editingItem} onChange={patch} stockValue={String(editingItem.stock_limit || 0)} />
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Name</Text>
-                <Field value={editingItem.name || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, name: v })} placeholder="e.g. Handmade Mug" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Price</Text>
-                <Field value={String(editingItem.price || '')} onChangeText={(v: string) => setEditingItem({ ...editingItem, price: Number(v) })} placeholder="0" />
-              </View>
-            </View>
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Category</Text>
-                {Platform.OS === 'web' ? (
-                  <select
-                    value={editingItem.category || 'food'}
-                    onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
-                    style={{
-                      backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1,
-                      borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 14,
-                      fontFamily: FONTS.regular, width: '100%', outline: 'none',
-                    }}
-                  >
-                    <option value="food">Food</option>
-                    <option value="beverages">Beverages</option>
-                    <option value="snacks">Snacks</option>
-                    <option value="cafe">Cafe / Coffee</option>
-                    <option value="handcraft">Handcraft</option>
-                    <option value="merchandise">Merchandise</option>
-                    <option value="stationery">Stationery</option>
-                    <option value="apparel">Apparel / Clothing</option>
-                    <option value="accessories">Accessories</option>
-                    <option value="electronics">Electronics</option>
-                    <option value="health">Health & Wellness</option>
-                    <option value="other">Other</option>
-                  </select>
-                ) : (
-                  <Field value={editingItem.category || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, category: v })} placeholder="Select category" />
-                )}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Stock Limit (0 = unlimited)</Text>
-                <Field value={String(editingItem.stock_limit || 0)} onChangeText={(v: string) => setEditingItem({ ...editingItem, stock_limit: Number(v) })} placeholder="0" />
-              </View>
-            </View>
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Vendor Name</Text>
+                <FormLabel>Vendor Name</FormLabel>
                 <Field value={editingItem.vendor_name || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, vendor_name: v })} placeholder="e.g. Tasty Tacos" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Vendor ID</Text>
+                <FormLabel>Vendor ID</FormLabel>
                 <Field value={editingItem.vendor_id || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, vendor_id: v })} placeholder="vendor123" />
               </View>
             </View>
+            <StallRow item={editingItem} onChange={patch} />
+            <ServingsField item={editingItem} onChange={patch} />
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Stall No.</Text>
-                <Field value={editingItem.stall_no || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, stall_no: v })} placeholder="e.g. B-12" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Stall Location</Text>
-                <Field value={editingItem.stall_location || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, stall_location: v })} placeholder="e.g. Food Court, Block A" />
-              </View>
-            </View>
-            <View>
-              <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Servings / Portion Info</Text>
-              <Field value={editingItem.servings || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, servings: v })} placeholder="e.g. Serves 2-3, 500ml, 1 piece" />
-            </View>
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Image URL (Optional)</Text>
+                <FormLabel>Image URL (Optional)</FormLabel>
                 <Field value={editingItem.images?.[0] || editingItem.image_base64 || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, image_base64: v, images: v ? [v] : [] })} placeholder="https://... or paste base64" />
               </View>
               <View style={{ width: 120, justifyContent: 'flex-end', paddingBottom: 4 }}>
@@ -293,15 +203,8 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
                 />
               </View>
             </View>
-            <View>
-              <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Description</Text>
-              <Field value={editingItem.description || ''} onChangeText={(v: string) => setEditingItem({ ...editingItem, description: v })} placeholder="Description" multiline />
-            </View>
-            <Toggle
-              value={editingItem.is_active !== false}
-              onChange={(v) => setEditingItem({ ...editingItem, is_active: v })}
-              label={editingItem.is_active === false ? 'Unavailable (hidden from shoppers)' : 'Available for purchase'}
-            />
+            <DescriptionField item={editingItem} onChange={patch} />
+            <AvailabilityToggle item={editingItem} onChange={patch} />
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
               <SecondaryButton onPress={() => setEditingItem(null)}><Text style={{ color: SAC.text }}>Cancel</Text></SecondaryButton>
               <GradientButton onPress={() => saveItem(editingItem)}><Text style={{ color: SAC.text }}>Save Item</Text></GradientButton>
@@ -346,21 +249,21 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
         </View>
 
         {editingVendor && (
-          <View style={{ padding: 16, backgroundColor: SAC.panel, borderRadius: 12, borderWidth: 1, borderColor: SAC.border, marginBottom: 16, gap: 12 }}>
+          <View style={EDITOR_PANEL_STYLE}>
             <Text style={{ color: SAC.text, fontFamily: FONTS.med }}>New Vendor Account</Text>
             <Text style={{ color: SAC.muted, fontSize: 12 }}>Vendors sign in at /vendor-portal/login with these credentials.</Text>
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Vendor ID</Text>
+                <FormLabel>Vendor ID</FormLabel>
                 <Field value={editingVendor.vendor_id || ''} onChangeText={(v: string) => setEditingVendor({ ...editingVendor, vendor_id: v.replace(/\\s+/g, '_') })} placeholder="e.g. tastytacos" autoCapitalize="none" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Passcode</Text>
+                <FormLabel>Passcode</FormLabel>
                 <Field value={editingVendor.passcode || ''} onChangeText={(v: string) => setEditingVendor({ ...editingVendor, passcode: v })} placeholder="e.g. 1234" keyboardType="number-pad" secureTextEntry />
               </View>
             </View>
             <View>
-              <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Name (optional)</Text>
+              <FormLabel>Name (optional)</FormLabel>
               <Field value={editingVendor.name || ''} onChangeText={(v: string) => setEditingVendor({ ...editingVendor, name: v })} placeholder="e.g. Tasty Tacos" />
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
@@ -394,24 +297,24 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
         </View>
 
         {editingCoupon && (
-          <View style={{ padding: 16, backgroundColor: SAC.panel, borderRadius: 12, borderWidth: 1, borderColor: SAC.border, marginBottom: 16, gap: 12 }}>
+          <View style={EDITOR_PANEL_STYLE}>
             <Text style={{ color: SAC.text, fontFamily: FONTS.med }}>{editingCoupon._id ? 'Edit Coupon' : 'New Coupon'}</Text>
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Code</Text>
+                <FormLabel>Code</FormLabel>
                 <Field value={editingCoupon.code || ''} onChangeText={(v: string) => setEditingCoupon({ ...editingCoupon, code: v.toUpperCase() })} placeholder="e.g. SAVE20" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Type (percentage/fixed)</Text>
+                <FormLabel>Type (percentage/fixed)</FormLabel>
                 <Field value={editingCoupon.discount_type || 'percentage'} onChangeText={(v: string) => setEditingCoupon({ ...editingCoupon, discount_type: v })} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Discount Value</Text>
+                <FormLabel>Discount Value</FormLabel>
                 <Field value={String(editingCoupon.discount_value || '')} onChangeText={(v: string) => setEditingCoupon({ ...editingCoupon, discount_value: Number(v) })} placeholder="20" />
               </View>
             </View>
             <View>
-              <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 4 }}>Vendor (leave empty for all vendors)</Text>
+              <FormLabel>Vendor (leave empty for all vendors)</FormLabel>
               {Platform.OS === 'web' ? (
                 <select
                   value={editingCoupon.vendor_id || ''}
@@ -420,11 +323,7 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
                     const vname = vendors.find((v: any) => v.vendor_id === vid)?.name || '';
                     setEditingCoupon({ ...editingCoupon, vendor_id: vid || null, vendor_name: vname || null });
                   }}
-                  style={{
-                    backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1,
-                    borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 14,
-                    fontFamily: FONTS.regular, width: '100%', outline: 'none',
-                  }}
+                  style={WEB_SELECT_STYLE}
                 >
                   <option value="">All Vendors (global)</option>
                   {vendors.map((v: any) => (

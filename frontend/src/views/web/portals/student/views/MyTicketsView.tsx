@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { Ticket, CheckCircle, Download, ShieldCheck, QrCode, X, Lock, Calendar, MapPin, User, ArrowRight, AlertCircle, Clock, Store, IndianRupee, Tag, Truck } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GRADS } from '../gradients';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 const GRAD = {
   from: GRADS.brand[0],
@@ -112,6 +113,9 @@ type MarketplaceOrder = {
   delivery_info?: string;
   created_at?: string;
   razorpay_order_id?: string;
+  refund_status?: string;
+  refund_amount?: number;
+  refund_reason?: string;
 };
 
 function sessionColor(name: string) {
@@ -131,6 +135,7 @@ const inr = (n: number | undefined) => (n || 0).toLocaleString('en-IN');
 
 export function MyTicketsView() {
   const router = useRouter();
+  const { isDark } = useTheme();
   const [items, setItems] = useState<RegItem[]>([]);
   const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -240,13 +245,11 @@ export function MyTicketsView() {
   const usedCoupons = items.reduce((a, i) => a + i.coupons.filter(c => c.used).length, 0);
   const mpPaid = orders.reduce((a, o) => a + (o.payment_status === 'paid' || o.status === 'paid' ? Number(o.final_amount || 0) : 0), 0);
 
-  const hasTickets = items.length > 0;
-
   if (loading) {
     return (
       <View style={{ alignItems: 'center', paddingVertical: 60 }}>
         <ActivityIndicator size="large" color={SC.accentBright} />
-        <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 12 }}>Loading tickets...</Text>
+        <Text style={{ color: isDark ? SC.muted : '#64748B', fontFamily: FONTS.med, fontSize: 13, marginTop: 12 }}>Loading tickets...</Text>
       </View>
     );
   }
@@ -256,16 +259,16 @@ export function MyTicketsView() {
       {/* Header */}
       <View style={s.headerRow}>
         <View style={{ flex: 1 }}>
-          <Text style={s.h1}>My Tickets & Passes</Text>
-          <Text style={s.sub}>
+          <Text style={[s.h1, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>My Tickets & Passes</Text>
+          <Text style={[s.sub, { color: isDark ? SC.muted : '#64748B' }]}>
             {items.length} event{items.length !== 1 ? 's' : ''} · {totalCoupons} pass{totalCoupons !== 1 ? 'es' : ''} · ₹{totalPaid.toLocaleString('en-IN')} paid
             {orders.length > 0 && ` · ${orders.length} order${orders.length !== 1 ? 's' : ''}`}
           </Text>
         </View>
         {usedCoupons > 0 && (
           <View style={s.usedBadge}>
-            <CheckCircle size={11} color="#34D399" />
-            <Text style={{ color: '#34D399', fontFamily: FONTS.bold, fontSize: 11 }}>{usedCoupons} used</Text>
+            <CheckCircle size={11} color="#10B981" />
+            <Text style={{ color: '#10B981', fontFamily: FONTS.bold, fontSize: 11 }}>{usedCoupons} used</Text>
           </View>
         )}
       </View>
@@ -273,15 +276,15 @@ export function MyTicketsView() {
       {/* ── Event Tickets ── */}
       <View style={s.sectionHeader}>
         <View style={s.sectionIcon}><Ticket size={13} color={GRAD.from} /></View>
-        <Text style={s.sectionTitle}>{items.length > 0 ? `${items[0].registration.event_title?.toUpperCase() || items[0].registration.showcase_title?.toUpperCase() || 'ECHO 2026'} TICKETS` : 'EVENT TICKETS'}</Text>
+        <Text style={[s.sectionTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{items.length > 0 ? `${items[0].registration.event_title?.toUpperCase() || items[0].registration.showcase_title?.toUpperCase() || 'ECHO 2026'} TICKETS` : 'EVENT TICKETS'}</Text>
       </View>
 
       {authError ? (
         <View style={{ alignItems: 'center', padding: 40, gap: 12 }}>
-          <Text style={{ fontSize: 16, fontWeight: 600, color: '#F87171', textAlign: 'center' }}>
+          <Text style={{ fontSize: 16, fontWeight: '600', color: '#EF4444', textAlign: 'center' }}>
             Please sign in to view your tickets
           </Text>
-          <Text style={{ fontSize: 13, color: SC.muted, textAlign: 'center', maxWidth: 360 }}>
+          <Text style={{ fontSize: 13, color: isDark ? SC.muted : '#64748B', textAlign: 'center', maxWidth: 360 }}>
             Your session may have expired. Sign in again to access your event registrations and session passes.
           </Text>
           <Pressable
@@ -353,8 +356,8 @@ export function MyTicketsView() {
                 
                 {/* Dashed separator */}
                 <View style={s.tkSeparator}>
-                  <View style={[s.tkCutout, { left: -12 }]} />
-                  <View style={[s.tkCutout, { right: -12 }]} />
+                  <View style={[s.tkCutout, { left: -12, backgroundColor: isDark ? '#0a0f1e' : '#F5F5F7' }]} />
+                  <View style={[s.tkCutout, { right: -12, backgroundColor: isDark ? '#0a0f1e' : '#F5F5F7' }]} />
                   <View style={s.tkDashLine} />
                 </View>
                 
@@ -385,7 +388,8 @@ export function MyTicketsView() {
                       key={c.coupon_code || i} 
                       onPress={() => setPreviewCoupon(c)}
                       style={({ hovered }: any) => [
-                        s.sessionPassCard, 
+                        s.sessionPassCard,
+                        { backgroundColor: isDark ? '#14141F' : '#FFFFFF', borderColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' },
                         isUsed && s.sessionPassUsed,
                         hovered && { opacity: 0.85 }
                       ]}
@@ -397,11 +401,11 @@ export function MyTicketsView() {
                       )}
                       <View style={s.sessionPassHeader}>
                         <View style={s.sessionPassIcon}>
-                          <Ticket size={20} color={isUsed ? '#34D399' : '#A78BFA'} />
+                          <Ticket size={20} color={isUsed ? '#10B981' : '#7C3AED'} />
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={s.sessionPassName} numberOfLines={1}>{c.session_name || 'Session Pass'}</Text>
-                          <Text style={s.sessionPassSub} numberOfLines={1}>{isUsed ? `Used at ${new Date(c.used_at || '').toLocaleTimeString()}` : 'Ready to use'}</Text>
+                          <Text style={[s.sessionPassName, { color: isDark ? '#FFFFFF' : '#0F172A' }]} numberOfLines={1}>{c.session_name || 'Session Pass'}</Text>
+                          <Text style={[s.sessionPassSub, { color: isDark ? SC.muted : '#64748B' }]} numberOfLines={1}>{isUsed ? `Used at ${new Date(c.used_at || '').toLocaleTimeString()}` : 'Ready to use'}</Text>
                         </View>
                         {!isUsed && (
                           <View style={s.readyBadge}>
@@ -410,25 +414,25 @@ export function MyTicketsView() {
                         )}
                       </View>
                       
-                      <View style={s.spSeparator}>
-                        <View style={[s.spCutout, { left: -9 }]} />
-                        <View style={[s.spCutout, { right: -9 }]} />
+                      <View style={[s.spSeparator, { borderTopColor: isDark ? SC.border : '#E2E8F0' }]}>
+                        <View style={[s.spCutout, { left: -9, backgroundColor: isDark ? '#0a0f1e' : '#F5F5F7' }]} />
+                        <View style={[s.spCutout, { right: -9, backgroundColor: isDark ? '#0a0f1e' : '#F5F5F7' }]} />
                       </View>
                       
                       <View style={s.sessionPassFooter}>
-                        <Text style={s.spCode}>{c.coupon_code}</Text>
-                        <Text style={s.spActionText}>Show QR →</Text>
+                        <Text style={[s.spCode, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{c.coupon_code}</Text>
+                        <Text style={[s.spActionText, { color: isDark ? '#A78BFA' : '#7C3AED' }]}>Show QR →</Text>
                       </View>
                     </Pressable>
                   );
                 }) : (
-                  <Text style={{ color: SC.dim, fontFamily: FONTS.med, fontSize: 13, marginTop: 10 }}>No session passes.</Text>
+                  <Text style={{ color: isDark ? SC.dim : '#94A3B8', fontFamily: FONTS.med, fontSize: 13, marginTop: 10 }}>No session passes.</Text>
                 )}
                 
                 {item.coupons.length > 0 && (
-                  <View style={s.spNoteBox}>
-                    <ShieldCheck size={16} color="#A78BFA" />
-                    <Text style={s.spNoteText}>Passes are bound to your SA ID and cannot be transferred. Screenshots will not scan.</Text>
+                  <View style={[s.spNoteBox, { backgroundColor: isDark ? SC.glassBgSoft : '#F8FAFC', borderColor: isDark ? SC.border : '#E2E8F0' }]}>
+                    <ShieldCheck size={16} color={isDark ? '#A78BFA' : '#7C3AED'} />
+                    <Text style={[s.spNoteText, { color: isDark ? SC.muted : '#64748B' }]}>Passes are bound to your SA ID and cannot be transferred. Screenshots will not scan.</Text>
                   </View>
                 )}
               </View>
@@ -440,8 +444,8 @@ export function MyTicketsView() {
       {/* ── Marketplace Orders ── */}
       <View style={[s.sectionHeader, { marginTop: 6 }]}>
         <View style={s.sectionIcon}><Store size={13} color={GRAD.from} /></View>
-        <Text style={s.sectionTitle}>MARKETPLACE ORDERS</Text>
-        {orders.length > 0 && <Text style={s.sectionMeta}>₹{mpPaid.toLocaleString('en-IN')} paid</Text>}
+        <Text style={[s.sectionTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>MARKETPLACE ORDERS</Text>
+        {orders.length > 0 && <Text style={[s.sectionMeta, { color: isDark ? SC.muted : '#64748B' }]}>₹{mpPaid.toLocaleString('en-IN')} paid</Text>}
       </View>
 
       {orders.length === 0 ? (
@@ -453,7 +457,7 @@ export function MyTicketsView() {
         />
       ) : (
         <View style={s.passGrid}>
-          {orders.map((order, idx) => {
+          {orders.map((order) => {
           const oItems = order.items || [];
           const paid = order.payment_status === 'paid' || order.status === 'paid';
           const free = order.payment_status === 'free' || (order.final_amount === 0 && paid);
@@ -470,10 +474,10 @@ export function MyTicketsView() {
           const orderStatus = allFulfilled
             ? { c: '#6366F1', label: 'COLLECTED', icon: CheckCircle }
             : statusMap[orderStatusKey] || (free || paid
-              ? { c: '#34D399', label: isDelivery ? 'PAID · DELIVER TO TABLE' : 'PAID · COLLECT AT STALL', icon: CheckCircle }
+              ? { c: '#10B981', label: isDelivery ? 'PAID · DELIVER TO TABLE' : 'PAID · COLLECT AT STALL', icon: CheckCircle }
               : pending
-                ? { c: '#FBBF24', label: 'PENDING PAYMENT', icon: Clock }
-                : { c: '#FB7185', label: 'NOT PAID', icon: AlertCircle });
+                ? { c: '#F59E0B', label: 'PENDING PAYMENT', icon: Clock }
+                : { c: '#EF4444', label: 'NOT PAID', icon: AlertCircle });
           const OrderStatusIcon = orderStatus.icon;
 
           return (
@@ -481,7 +485,8 @@ export function MyTicketsView() {
               key={order.id} 
               onPress={() => !allFulfilled && openMarketplaceQr(order.id)}
               style={({ hovered }: any) => [
-                s.sessionPassCard, 
+                s.sessionPassCard,
+                { backgroundColor: isDark ? '#14141F' : '#FFFFFF', borderColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' },
                 allFulfilled && s.sessionPassUsed,
                 hovered && !allFulfilled && { opacity: 0.85 }
               ]}
@@ -496,8 +501,8 @@ export function MyTicketsView() {
                   <OrderStatusIcon size={20} color={orderStatus.c} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.sessionPassName} numberOfLines={1}>Order #{order.id.substring(0, 8).toUpperCase()}</Text>
-                  <Text style={s.sessionPassSub} numberOfLines={1}>
+                  <Text style={[s.sessionPassName, { color: isDark ? '#FFFFFF' : '#0F172A' }]} numberOfLines={1}>Order #{order.id.substring(0, 8).toUpperCase()}</Text>
+                  <Text style={[s.sessionPassSub, { color: isDark ? SC.muted : '#64748B' }]} numberOfLines={1}>
                     {oItems.map((i: any) => `${i.quantity}x ${i.name}`).join(', ')}
                   </Text>
                 </View>
@@ -508,26 +513,26 @@ export function MyTicketsView() {
               
               {isDelivery && order.delivery_info && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingHorizontal: 4 }}>
-                  <Text style={{ fontSize: 12, color: '#10B981', fontWeight: 600 }}>📍 Deliver to: {order.delivery_info}</Text>
+                  <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600' }}>📍 Deliver to: {order.delivery_info}</Text>
                 </View>
               )}
               
               {order.refund_status === 'refunded' && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingHorizontal: 4, paddingVertical: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)' }}>
-                  <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: 600 }}>💸 Refunded ₹{order.refund_amount}</Text>
-                  <Text style={{ fontSize: 10, color: SC.muted }}>— {order.refund_reason}</Text>
+                  <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600' }}>💸 Refunded ₹{order.refund_amount}</Text>
+                  <Text style={{ fontSize: 10, color: isDark ? SC.muted : '#64748B' }}>— {order.refund_reason}</Text>
                 </View>
               )}
               
-              <View style={s.spSeparator}>
-                <View style={[s.spCutout, { left: -9 }]} />
-                <View style={[s.spCutout, { right: -9 }]} />
+              <View style={[s.spSeparator, { borderTopColor: isDark ? SC.border : '#E2E8F0' }]}>
+                <View style={[s.spCutout, { left: -9, backgroundColor: isDark ? '#0a0f1e' : '#F5F5F7' }]} />
+                <View style={[s.spCutout, { right: -9, backgroundColor: isDark ? '#0a0f1e' : '#F5F5F7' }]} />
               </View>
               
               <View style={s.sessionPassFooter}>
-                <Text style={s.spCode}>₹{inr(order.final_amount)} paid</Text>
+                <Text style={[s.spCode, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>₹{inr(order.final_amount)} paid</Text>
                 {!allFulfilled ? (
-                  <Text style={s.spActionText}>Show QR →</Text>
+                  <Text style={[s.spActionText, { color: isDark ? '#A78BFA' : '#7C3AED' }]}>Show QR →</Text>
                 ) : (
                   <Text style={[s.spActionText, { color: '#6366F1' }]}>Collected ✓</Text>
                 )}
@@ -542,16 +547,16 @@ export function MyTicketsView() {
       {previewCoupon && (
         <Modal visible transparent animationType="fade" onRequestClose={() => setPreviewCoupon(null)}>
           <View style={s.overlay}>
-            <View style={s.modal}>
+            <View style={[s.modal, { backgroundColor: isDark ? '#14141F' : '#FFFFFF', borderColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
               <View style={s.modalHeader}>
                 <View style={{ flex: 1, paddingRight: 8 }}>
-                  <Text style={s.modalTitle}>{previewCoupon.session_name || 'Session Pass'}</Text>
-                  <Text style={s.modalSub}>
+                  <Text style={[s.modalTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{previewCoupon.session_name || 'Session Pass'}</Text>
+                  <Text style={[s.modalSub, { color: isDark ? SC.muted : '#64748B' }]}>
                     {previewCoupon.used ? '✓ Availed' : previewCoupon.session_locked ? 'Session locked' : 'Show at venue counter'}
                   </Text>
                 </View>
-                <Pressable onPress={() => setPreviewCoupon(null)} style={s.closeBtn}>
-                  <X size={16} color={SC.muted} />
+                <Pressable onPress={() => setPreviewCoupon(null)} style={[s.closeBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }]}>
+                  <X size={16} color={isDark ? SC.muted : '#64748B'} />
                 </Pressable>
               </View>
 
@@ -560,14 +565,14 @@ export function MyTicketsView() {
                   <View style={s.lockedBox}>
                     <Lock size={36} color="#F59E0B" />
                     <Text style={s.lockedTitle}>Not yet released</Text>
-                    <Text style={s.lockedSub}>This pass will unlock when the session opens.</Text>
+                    <Text style={[s.lockedSub, { color: isDark ? SC.muted : '#64748B' }]}>This pass will unlock when the session opens.</Text>
                   </View>
                 ) : previewCoupon.used ? (
                   <View style={s.usedBox}>
                     <CheckCircle size={40} color="#10B981" />
                     <Text style={s.usedTitle}>Pass Availed ✓</Text>
                     {previewCoupon.used_at && (
-                      <Text style={s.usedAt}>
+                      <Text style={[s.usedAt, { color: isDark ? SC.muted : '#64748B' }]}>
                         {new Date(previewCoupon.used_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </Text>
                     )}
@@ -577,8 +582,8 @@ export function MyTicketsView() {
                           window.open(`https://www.google.com/maps/search/?api=1&query=${previewCoupon!.scanned_lat},${previewCoupon!.scanned_lng}`, '_blank');
                       }}>
                         <View style={s.mapLink}>
-                          <MapPin size={12} color="#A78BFA" />
-                          <Text style={{ color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 12 }}>View scan location</Text>
+                          <MapPin size={12} color="#7C3AED" />
+                          <Text style={{ color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 12 }}>View scan location</Text>
                         </View>
                       </Pressable>
                     )}
@@ -592,8 +597,8 @@ export function MyTicketsView() {
                         style={{ width: 200, height: 200, display: 'block' }}
                       />
                     </View>
-                    <Text style={s.codeText}>{previewCoupon.coupon_code}</Text>
-                    <Text style={s.codeSub}>Show this at the session counter</Text>
+                    <Text style={[s.codeText, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{previewCoupon.coupon_code}</Text>
+                    <Text style={[s.codeSub, { color: isDark ? SC.muted : '#64748B' }]}>Show this at the session counter</Text>
                   </>
                 )}
               </View>
@@ -610,14 +615,14 @@ export function MyTicketsView() {
       {previewReg && (
         <Modal visible transparent animationType="fade" onRequestClose={() => setPreviewReg(null)}>
           <View style={s.overlay}>
-            <View style={s.modal}>
+            <View style={[s.modal, { backgroundColor: isDark ? '#14141F' : '#FFFFFF', borderColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
               <View style={s.modalHeader}>
                 <View style={{ flex: 1, paddingRight: 8 }}>
-                  <Text style={s.modalTitle}>{previewReg.event_title || previewReg.showcase_title || 'Event Ticket'}</Text>
-                  <Text style={s.modalSub}>Entry Pass · Show at gates</Text>
+                  <Text style={[s.modalTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{previewReg.event_title || previewReg.showcase_title || 'Event Ticket'}</Text>
+                  <Text style={[s.modalSub, { color: isDark ? SC.muted : '#64748B' }]}>Entry Pass · Show at gates</Text>
                 </View>
-                <Pressable onPress={() => setPreviewReg(null)} style={s.closeBtn}>
-                  <X size={16} color={SC.muted} />
+                <Pressable onPress={() => setPreviewReg(null)} style={[s.closeBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }]}>
+                  <X size={16} color={isDark ? SC.muted : '#64748B'} />
                 </Pressable>
               </View>
 
@@ -629,8 +634,8 @@ export function MyTicketsView() {
                     style={{ width: 200, height: 200, display: 'block' }}
                   />
                 </View>
-                <Text style={s.codeText}>{previewReg.id?.substring(0, 8).toUpperCase()}</Text>
-                <Text style={s.codeSub}>Hold this code near the scanner</Text>
+                <Text style={[s.codeText, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{previewReg.id?.substring(0, 8).toUpperCase()}</Text>
+                <Text style={[s.codeSub, { color: isDark ? SC.muted : '#64748B' }]}>Hold this code near the scanner</Text>
               </View>
 
               <Pressable onPress={() => setPreviewReg(null)} style={s.doneBtn}>
@@ -680,7 +685,7 @@ const s = StyleSheet.create({
   sessionPassName: { color: SC.text, fontFamily: FONTS.bold, fontSize: 15.5 },
   sessionPassSub: { color: SC.muted, fontSize: 12.5, marginTop: 3 },
   readyBadge: { backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(16,185,129,0.3)', borderRadius: 7, paddingHorizontal: 9, paddingVertical: 5 },
-  readyBadgeText: { color: '#34D399', fontFamily: FONTS.bold, fontSize: 11 },
+  readyBadgeText: { color: '#10B981', fontFamily: FONTS.bold, fontSize: 11 },
   spSeparator: { height: 18, justifyContent: 'center', borderTopWidth: 1, borderTopColor: SC.border, borderStyle: 'dashed' },
   spCutout: { position: 'absolute', width: 18, height: 18, borderRadius: 9, backgroundColor: SC.bg, top: -9 },
   sessionPassFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 4, paddingHorizontal: 20, paddingBottom: 18 },
@@ -688,7 +693,6 @@ const s = StyleSheet.create({
   spActionText: { color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 12.5 },
   spNoteBox: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: SC.border, borderRadius: 16, backgroundColor: SC.glassBgSoft, padding: 16, paddingHorizontal: 18 },
   spNoteText: { color: SC.muted, fontSize: 12.5, lineHeight: 18, flex: 1 },
-
 
   h1: { color: SC.text, fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.5 },
   sub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 3 },
@@ -739,7 +743,7 @@ const s = StyleSheet.create({
   passIcon: { width: 24, height: 24, borderRadius: 7, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   passName: { fontFamily: FONTS.bold, fontSize: 12 },
   passCode: { color: SC.dim, fontFamily: FONTS.med, fontSize: 10, letterSpacing: 0.4, marginTop: 1 },
-  usedDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#34D399' },
+  usedDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981' },
   tapHint: { color: SC.dim, fontFamily: FONTS.med, fontSize: 10, marginTop: 10, textAlign: 'center' },
 
   // Marketplace order card
@@ -780,7 +784,7 @@ const s = StyleSheet.create({
   lockedSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center' },
 
   usedBox: { alignItems: 'center', gap: 8, paddingVertical: 20, paddingHorizontal: 16, backgroundColor: 'rgba(16,185,129,0.07)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(16,185,129,0.2)', width: '100%' },
-  usedTitle: { color: '#34D399', fontFamily: FONTS.bold, fontSize: 15 },
+  usedTitle: { color: '#10B981', fontFamily: FONTS.bold, fontSize: 15 },
   usedAt: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12 },
   mapLink: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
 

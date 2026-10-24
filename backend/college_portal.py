@@ -15,7 +15,7 @@ import time
 import logging
 import random
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, File
 from pydantic import BaseModel
@@ -282,68 +282,13 @@ async def edit_college_student(student_id: str, payload: EditStudentPayload, use
         del updated_student["_id"]
     return {"ok": True, "student": updated_student}
 
-class EditStudentPayload(BaseModel):
-    name: str | None = None
-    email: str | None = None
-    dept: str | None = None
-    year: str | None = None
-    cgpa: float | None = None
-    attendance: int | None = None
-    placed: bool | None = None
-    company: str | None = None
-    package_lpa: float | None = None
-
-@router.put("/college/students/{student_id}")
-async def edit_college_student(student_id: str, payload: EditStudentPayload, user: dict = Depends(_auth())):
-    student = await _db.college_students.find_one({"college_id": str(user["_id"]), "id": student_id})
-    if not student:
-        raise HTTPException(404, "Student not found")
-        
-    update_data = {}
-    if payload.name is not None:
-        update_data["name"] = payload.name
-        initials = "".join([p[0] for p in payload.name.split() if p]).upper()[:2]
-        if initials:
-            update_data["initials"] = initials
-    if payload.email is not None: update_data["email"] = payload.email
-    if payload.dept is not None: 
-        update_data["dept"] = payload.dept
-        update_data["color"] = COLORS.get(payload.dept, "#3B82F6")
-    if payload.year is not None: update_data["year"] = payload.year
-    if payload.cgpa is not None: update_data["cgpa"] = payload.cgpa
-    if payload.attendance is not None: update_data["attendance"] = payload.attendance
-    if payload.placed is not None: update_data["placed"] = payload.placed
-    if payload.company is not None: update_data["company"] = payload.company
-    if payload.package_lpa is not None: update_data["package_lpa"] = payload.package_lpa
-
-    # Re-calculate status if cgpa or attendance changed
-    new_cgpa = update_data.get("cgpa", student.get("cgpa", 0))
-    new_att = update_data.get("attendance", student.get("attendance", 0))
-    
-    if new_cgpa >= 9.0:
-        update_data["status"] = "top"
-    elif new_cgpa < 7.0 or new_att < 75:
-        update_data["status"] = "at_risk"
-    else:
-        update_data["status"] = "good"
-
-    if update_data:
-        await _db.college_students.update_one(
-            {"college_id": str(user["_id"]), "id": student_id},
-            {"$set": update_data}
-        )
-        
-    updated_student = await _db.college_students.find_one({"college_id": str(user["_id"]), "id": student_id})
-    if updated_student and "_id" in updated_student:
-        del updated_student["_id"]
-    return {"ok": True, "student": updated_student}
-
 @router.get("/college/students/export")
 async def export_college_students_csv(
     q: str = Query(""),
     dept: str = Query("all"),
     year: str = Query("all"),
     status: str = Query("all"),
+    user: dict = Depends(_auth()),
 ):
     import csv
     import io
@@ -590,6 +535,8 @@ async def upload_college_students(file: UploadFile = File(...), user: dict = Dep
         raise HTTPException(400, "Must be a CSV or XLSX file")
         
     contents = await file.read()
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(contents)
     if len(contents) > 5 * 1024 * 1024:  # 5MB limit
         raise HTTPException(400, "File too large. Maximum size is 5MB.")
 

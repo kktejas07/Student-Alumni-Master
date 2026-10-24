@@ -49,6 +49,13 @@ REFRESH_TOKEN_EXPIRE_DAYS = 30
 # ─── Fernet encryption-at-rest ─────────────────────────────────────────
 _FERNET_KEY = os.environ.get("FERNET_KEY")
 if not _FERNET_KEY:
+    # SECURITY: an ephemeral key makes encrypted PII unreadable after a restart
+    # and across workers. Only tolerate it in development/test.
+    _env = (os.environ.get("ENV") or os.environ.get("ENVIRONMENT") or "development").lower()
+    if _env in ("production", "prod", "staging"):
+        raise RuntimeError("FERNET_KEY is not set. Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\" and add it to backend/.env")
+    import logging as _logging
+    _logging.getLogger(__name__).warning("FERNET_KEY is not set; using an ephemeral key (development only). Encrypted fields will not survive a restart.")
     try:
         _FERNET_KEY = Fernet.generate_key().decode() if _HAS_CRYPTOGRAPHY else "dummy_key_for_dev_booting_without_cryptography_32b_len="
     except Exception:
@@ -131,7 +138,7 @@ def generate_qr_code(data: str) -> str:
     qr.make(fit=True)
     img = qr.make_image(fill_color="#5F259F", back_color="#FFFFFF")
     buf = io.BytesIO()
-    img.save(buf, format="PNG")
+    img.save(buf)
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
@@ -149,7 +156,7 @@ async def _audit_log(user_id: str, field: str, old_value, new_value, *,
             "new_value": new_value if new_value is not None else None,
             "source": source,
             "validation_status": validation_status,
-            "is_manual_entry": bool(is_manual_entry),
+            "is_manual_entry": is_manual_entry,
             "ts": datetime.now(timezone.utc),
         })
     except Exception:
@@ -191,7 +198,7 @@ def _safe_block(model_cls, value):
         return None
 
 
-def serialize_user(user: dict) -> dict:
+def serialize_user(user: dict | None) -> dict | None:
     """Strip internal fields and decrypt at-rest sensitive data for API responses."""
     if not user:
         return None
@@ -221,7 +228,7 @@ def serialize_user(user: dict) -> dict:
         "dob":          decrypt_value(user.get("dob")),
         "country_code": user.get("country_code"),
         "postal_code":  decrypt_value(user.get("postal_code")),
-        "created_at": user.get("created_at"),
+        "created_at": user.get("created_at") or datetime.now(timezone.utc),
         "first_name":     user.get("first_name"),
         "last_name":      user.get("last_name"),
         "headline":       user.get("headline"),

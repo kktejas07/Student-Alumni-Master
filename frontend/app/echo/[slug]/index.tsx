@@ -9,7 +9,7 @@ export default function EchoShowcasePage() {
 
   return (
     <View style={s.container}>
-      <EchoEventsPage initialView="detail" initialSlug={slug || 'snist'} />
+      <EchoEventsPage initialView="detail" initialSlug={slug} />
     </View>
   );
 }

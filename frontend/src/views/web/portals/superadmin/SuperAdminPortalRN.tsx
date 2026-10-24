@@ -42,6 +42,9 @@ import { TeamsMeetingsView } from './views/TeamsMeetingsView';
 import { EmailQualityView } from './views/EmailQualityView';
 import { BGVAccountVerticalsView } from './views/BGVAccountVerticalsView';
 import { VisitorIntelligenceView } from './views/VisitorIntelligenceView';
+import { CICDEvaluatorView } from './views/CICDEvaluatorView';
+import { CodeHealthView } from './views/CodeHealthView';
+import { CareersAdminView } from './views/CareersAdminView';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
@@ -128,6 +131,8 @@ export function SuperAdminPortalRN() {
           {active === 'overview'        && <OverviewView onNavigate={(id) => go(id as SuperAdminNavId)} />}
           {active === 'visitor-radar'   && <VisitorIntelligenceView />}
           {active === 'agents'          && <AutonomousAgentsView />}
+          {active === 'cicd-evaluator'  && <CICDEvaluatorView />}
+          {active === 'code-health'     && <CodeHealthView />}
           {active === 'bgv'             && <BGVAccountVerticalsView />}
           {active === 'colleges'    && <CollegesView {...subFor('colleges')} />}
           {active === 'students'    && <StudentsView />}
@@ -149,6 +154,7 @@ export function SuperAdminPortalRN() {
           {active === 'echo-showcase' && <EchoShowcaseAdminView {...subFor('echo-showcase')} />}
           {active === 'vendors' && <VendorsView />}
           {active === 'coupons' && <CouponsView />}
+          {active === 'careers' && <CareersAdminView />}
           {active === 'certificates' && <CertificatesView {...subFor('certificates')} />}
           {active === 'teams'        && <TeamsMeetingsView />}
           <DashboardFooter portal="super_admin" />

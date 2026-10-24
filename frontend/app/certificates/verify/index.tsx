@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
+import { WebOnlyRoute } from '@/src/lib/nativeGuard';
 import {
   View,
   Text,
@@ -83,7 +84,7 @@ const TRUST_FEATURES = [
   },
 ];
 
-export default function CertificateVerifyPortal() {
+function CertificateVerifyPortal() {
   const { id: queryId } = useLocalSearchParams<{ id?: string }>();
   const [searchId, setSearchId] = useState(queryId || '');
   const [loading, setLoading] = useState(false);
@@ -335,7 +336,7 @@ export default function CertificateVerifyPortal() {
               html, body, #root {
                 background: #05060F !important;
                 color: #F4F5FB !important;
-                font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
               }
               .sa-jewel-text {
                 background: linear-gradient(135deg, #F5D0FE 0%, #C084FC 25%, #818CF8 50%, #38BDF8 75%, #E879F9 100%) !important;
@@ -575,7 +576,6 @@ export default function CertificateVerifyPortal() {
                       <Text style={styles.metaCardTitle}>Credential Verification Details</Text>
                       <View style={styles.metaGrid}>
                         <MetaItem label="Recipient Name" value={certData.recipient_name} icon={User} />
-                        <MetaItem label="Certificate ID" value={certData.id || certData.certificate_id} icon={Hash} />
                         {certData.roll_number && (
                           <MetaItem label="Roll / Registration No" value={certData.roll_number} icon={Award} />
                         )}
@@ -676,7 +676,7 @@ export default function CertificateVerifyPortal() {
                           <View style={{ flex: 1 }}>
                             <Text style={styles.auditStepTitle}>1. Genesis Record Creation</Text>
                             <Text style={styles.auditStepDesc}>
-                              SHA-256 digest minted on {certData.issue_date || '2026-02-15'} signed by issuing organization registry.
+                              SHA-256 digest minted and signed by the issuing organization registry.
                             </Text>
                           </View>
                         </View>
@@ -700,8 +700,7 @@ export default function CertificateVerifyPortal() {
                           <View style={{ flex: 1 }}>
                             <Text style={styles.auditStepTitle}>3. Recipient Identity Binding</Text>
                             <Text style={styles.auditStepDesc}>
-                              Bound to recipient {certData.recipient_name}
-                              {certData.roll_number ? ` (Roll No: ${certData.roll_number})` : ''}.
+                              Credential identity bound to the recipient&apos;s registered profile on the ledger.
                             </Text>
                           </View>
                         </View>
@@ -753,27 +752,7 @@ export default function CertificateVerifyPortal() {
                       </View>
                     </View>
 
-                    {/* Action Buttons */}
-                    <View style={styles.actionsGrid}>
-                      {certData.image_url && (
-                        <Pressable
-                          onPress={() => downloadCertificate(certData.image_url, certData.recipient_name)}
-                          style={styles.primaryActionBtn}
-                        >
-                          <Download size={16} color="#ffffff" />
-                          <Text style={styles.primaryActionBtnText}>Download Official Certificate</Text>
-                        </Pressable>
-                      )}
-
-                      <Pressable
-                        onPress={() => downloadBGVReport(certData)}
-                        style={styles.secondaryActionBtn}
-                      >
-                        <FileCheck size={16} color="#8B84FF" />
-                        <Text style={styles.secondaryActionBtnText}>Download BGV Report</Text>
-                      </Pressable>
                     </View>
-                  </View>
                 ) : result.type === 'id_card' && userData ? (
                   /* CASE B: SA Member ID Card Result */
                   <View style={styles.resultContent}>
@@ -870,17 +849,6 @@ export default function CertificateVerifyPortal() {
                           </Text>
                         </Pressable>
                       </View>
-                    </View>
-
-                    {/* Actions */}
-                    <View style={styles.actionsGrid}>
-                      <Pressable
-                        onPress={() => downloadBGVReport(userData)}
-                        style={styles.primaryActionBtn}
-                      >
-                        <FileCheck size={16} color="#ffffff" />
-                        <Text style={styles.primaryActionBtnText}>Download Complete BGV Profile Report</Text>
-                      </Pressable>
                     </View>
                   </View>
                 ) : null}
@@ -1133,7 +1101,7 @@ const styles = StyleSheet.create({
     letterSpacing: -1.4,
     lineHeight: Platform.OS === 'web' ? 56 : 36,
     marginBottom: 16,
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
   },
   jewelText: {
     color: '#C084FC',
@@ -1177,7 +1145,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#F4F5FB',
     fontSize: 15,
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
     height: '100%',
   },
   clearBtn: {
@@ -1379,7 +1347,7 @@ const styles = StyleSheet.create({
     color: '#8B84FF',
     fontSize: 13.5,
     fontWeight: '700',
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
   },
   qrBadgePill: {
     flexDirection: 'row',
@@ -1555,7 +1523,7 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     fontWeight: '700',
     marginTop: 2,
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
   },
 
   /* Hash Box */
@@ -1597,7 +1565,7 @@ const styles = StyleSheet.create({
     color: '#10B981',
     fontSize: 13.5,
     fontWeight: '600',
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
     letterSpacing: 0.5,
   },
 
@@ -1883,7 +1851,7 @@ const styles = StyleSheet.create({
     color: '#8B84FF',
     fontSize: 13,
     fontWeight: '700',
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
     marginTop: 4,
   },
 
@@ -2063,3 +2031,11 @@ const styles = StyleSheet.create({
   },
 });
 
+/**
+ * Native guard — this route renders web-only UI. On iOS/Android show a
+ * placeholder that opens the page on studentalumni.ai instead of crashing.
+ */
+export default function CertificateVerifyPortalRoute() {
+  if (Platform.OS !== 'web') return <WebOnlyRoute path="/certificates/verify" />;
+  return <CertificateVerifyPortal />;
+}

@@ -31,7 +31,7 @@ from pathlib import Path
 from datetime import datetime, timezone, date as _date
 from typing import Any, Dict, List, Optional
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile, Query, Body
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import logging
 
@@ -46,12 +46,14 @@ from core.security import (
 )
 from core.email import send_email, render_html_email, generate_pdf_from_html
 from core.whatsapp import send_wa_message, send_wa_documents
+from core.config import JWT_SECRET, JWT_ALGORITHM
 
 router = APIRouter(prefix="/api/echo", tags=["echo-showcase"])
 
 
 @router.post("/sync-unstop")
-async def sync_unstop_opportunities():
+async def sync_unstop_opportunities(request: Request):
+    await _require_admin(request)
     """Scrape and sync live hackathons, workshops, quizzes, and competitions from Unstop into ECHO showcases."""
     try:
         logger.info("⚡ [UNSTOP SYNC] Manual trigger received. Scraping opportunities from Unstop...")
@@ -75,6 +77,8 @@ async def import_tickets_preview(
     """
     await _require_admin(request)
     content = await file.read()
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(content)
     from scripts.import_unstop_csv import parse_unstop_csv, build_registrations
     rows = parse_unstop_csv(content)
     if not rows:
@@ -109,6 +113,8 @@ async def import_tickets_registrations(
     await _require_admin(request)
     db = _get_db(request)
     content = await file.read()
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(content)
 
     from scripts.import_unstop_csv import parse_unstop_csv, build_registrations
 
@@ -394,7 +400,7 @@ async def _require_admin(request: Request):
         raise HTTPException(status_code=401, detail="Missing token")
     token = auth.split(" ", 1)[1]
     import jwt as _jwt
-    JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
+    # Uses centralized JWT_SECRET from core.config
     try:
         payload = _jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
     except Exception:
@@ -411,7 +417,7 @@ async def _require_scan_access(request: Request):
         raise HTTPException(status_code=401, detail="Missing token")
     token = auth.split(" ", 1)[1]
     import jwt as _jwt
-    JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
+    # Uses centralized JWT_SECRET from core.config
     try:
         payload = _jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
     except Exception:
@@ -548,12 +554,42 @@ async def _send_coupon_scan_email(reg: dict, session_name: str, coupon_code: str
         pass
 
 
+_ALIAS_MAP = {
+    # VNR ECHO 2026 canonical slug and historical aliases
+    "vnrvjit": "vnr-echo-2026",
+    "vnr": "vnr-echo-2026",
+    "vnr-vjiet": "vnr-echo-2026",
+    "vnr-echo": "vnr-echo-2026",
+    "vnr-2026": "vnr-echo-2026",
+    # SNIST / HackWave canonical slug and historical aliases
+    "snist-hackwave": "snist",
+    "hackwave": "snist",
+    "hackwave3": "snist",
+    "hackwave-3": "snist",
+    "hackwave-3.0": "snist",
+}
+
+
+def resolve_canonical_slug(slug: str) -> str:
+    """Resolve an incoming slug alias to its canonical showcase slug."""
+    s = (slug or "").strip().lower()
+    return _ALIAS_MAP.get(s, s)
+
+
 def _slug_query(slug: str) -> dict:
     """Match a showcase by its canonical slug OR any of its legacy aliases."""
-    slug = (slug or "").strip()
-    if not slug:
+    s = (slug or "").strip().lower()
+    if not s:
         return {}
-    return {"$or": [{"slug": slug}, {"aliases": slug}]}
+    canonical = _ALIAS_MAP.get(s, s)
+    return {
+        "$or": [
+            {"slug": canonical},
+            {"slug": s},
+            {"aliases": canonical},
+            {"aliases": s},
+        ]
+    }
 
 
 # ── Payments + invoices helpers ──────────────────────────────────────────────
@@ -909,6 +945,31 @@ async def _assert_registration_open(db, showcase: dict) -> None:
             raise HTTPException(status_code=400, detail="Sorry — this event has reached full capacity")
 
 
+def _get_showcase_handbook_file(showcase: Optional[dict]) -> tuple[Optional[Path], str]:
+    if not showcase:
+        return None, ""
+    url = (showcase.get("handbook_url") or "").strip()
+    if not url:
+        for d in showcase.get("downloads") or []:
+            if isinstance(d, dict):
+                u = (d.get("file_url") or "").strip()
+                cat = (d.get("category") or "").strip().lower()
+                tit = (d.get("title") or "").strip().lower()
+                if u and (cat in ("handbook", "brochure", "guide") or "handbook" in tit or "guide" in tit or "brochure" in tit):
+                    url = u
+                    break
+    if url and not url.startswith("http://") and not url.startswith("https://"):
+        fname = Path(url).name
+        for cand in [
+            Path(__file__).parent / "static" / fname,
+            Path(__file__).parent.parent / "frontend" / "public" / fname,
+            Path(__file__).parent / fname,
+        ]:
+            if cand.exists():
+                return cand, fname
+    return None, ""
+
+
 async def _send_registration_confirmation(db, reg: dict, showcase: dict | None, team_name: str | None = None) -> None:
     """Email a confirmation (with QR) for FREE or confirmed registrations.
 
@@ -923,9 +984,10 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict | None, 
             return
         title = reg.get("showcase_title") or (showcase or {}).get("title") or "Event Registration"
         reg_id = reg.get("id") or ""
+        slug = (showcase or {}).get("slug") or reg.get("slug") or ""
         import urllib.parse
         ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
-        handbook_url = f"https://studentalumni.ai/api/echo/handbook/download"
+        handbook_url = f"https://studentalumni.ai/api/echo/showcases/{slug}/handbook/download" if slug else "https://studentalumni.ai/api/echo/handbook/download"
         ticket_block = _ticket_email_block(reg, showcase or {}, ticket_url)
         
         # Team info block
@@ -948,11 +1010,11 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict | None, 
 
         # Attach Handbook PDF if present
         attachments = []
-        pdf_file = Path(__file__).parent / "static" / "HackWave_3.0_Event_Handbook.pdf"
-        if pdf_file.exists():
+        pdf_file, pdf_filename = _get_showcase_handbook_file(showcase)
+        if pdf_file and pdf_file.exists():
             try:
                 attachments.append({
-                    "filename": "HackWave_3.0_Event_Handbook.pdf",
+                    "filename": pdf_filename,
                     "content": pdf_file.read_bytes(),
                 })
             except Exception as _pdf_err:
@@ -975,12 +1037,12 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict | None, 
             </table>
             {ticket_block}
             <div style="margin:20px 0;padding:16px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;">
-              <h3 style="margin:0 0 6px 0;color:#6d28d9;font-size:15px;">Official Event Handbook Attached</h3>
+              <h3 style="margin:0 0 6px 0;color:#6d28d9;font-size:15px;">Official Event Handbook</h3>
               <p style="margin:0 0 12px 0;color:#4c1d95;font-size:13px;">
-                Find full details on schedule, 5 hackathon tracks, meals, rules, and rewards in the attached <strong>HackWave_3.0_Event_Handbook.pdf</strong>.
+                Find full details on schedule, tracks, meals, rules, and rewards in the official event handbook.
               </p>
               <a href="{handbook_url}"
-                 style="display:inline-block;padding:8px 16px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px;">Download Event Handbook PDF</a>
+                 style="display:inline-block;padding:8px 16px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px;">Download Event Handbook</a>
             </div>
             <p style="margin:0 0 22px 0;color:#374151;">
               You can view your ticket anytime from your dashboard under <strong>My Tickets</strong>.
@@ -1065,17 +1127,18 @@ async def _send_team_member_confirmation(db, member_reg: dict, showcase: dict, p
         member_name = member_reg.get("full_name") or "Team Member"
         
         import urllib.parse
+        slug = (showcase or {}).get("slug") or member_reg.get("slug") or ""
         ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
-        handbook_url = f"https://studentalumni.ai/api/echo/handbook/download"
+        handbook_url = f"https://studentalumni.ai/api/echo/showcases/{slug}/handbook/download" if slug else "https://studentalumni.ai/api/echo/handbook/download"
         ticket_block = _ticket_email_block(member_reg, showcase or {}, ticket_url)
         
         # Attach Handbook PDF if present
         attachments = []
-        pdf_file = Path(__file__).parent / "static" / "HackWave_3.0_Event_Handbook.pdf"
-        if pdf_file.exists():
+        pdf_file, pdf_filename = _get_showcase_handbook_file(showcase)
+        if pdf_file and pdf_file.exists():
             try:
                 attachments.append({
-                    "filename": "HackWave_3.0_Event_Handbook.pdf",
+                    "filename": pdf_filename,
                     "content": pdf_file.read_bytes(),
                 })
             except Exception as _pdf_err:
@@ -1111,12 +1174,12 @@ async def _send_team_member_confirmation(db, member_reg: dict, showcase: dict, p
             {ticket_block}
 
             <div style="margin:20px 0;padding:16px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;">
-              <h3 style="margin:0 0 6px 0;color:#6d28d9;font-size:15px;">Official Event Handbook Attached</h3>
+              <h3 style="margin:0 0 6px 0;color:#6d28d9;font-size:15px;">Official Event Handbook</h3>
               <p style="margin:0 0 12px 0;color:#4c1d95;font-size:13px;">
-                Find full details on schedule, 5 hackathon tracks, meals, rules, and rewards in the attached <strong>HackWave_3.0_Event_Handbook.pdf</strong>.
+                Find full details on schedule, tracks, meals, rules, and rewards in the official event handbook.
               </p>
               <a href="{handbook_url}"
-                 style="display:inline-block;padding:8px 16px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px;">Download Event Handbook PDF</a>
+                 style="display:inline-block;padding:8px 16px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px;">Download Event Handbook</a>
             </div>
 
             <p style="margin:18px 0 22px 0;color:#374151;">
@@ -3055,16 +3118,16 @@ class ShowcaseUpdateSchema(BaseModel):
 
 
 # ── Seed Default Data ────────────────────────────────────────────────────────
-DEFAULT_SHOWCASE_SEED = {
-    "title": "HackWave 3.0 (2026)",
-    "slug": "snist",
-    "aliases": ["hackwave-3.0", "hackwave-3", "hackwave", "snist"],
-    "subtitle": "Career Development Center · SNIST in collaboration with StudentAlumni.ai",
-    "description": "Build something real. In one overnight sprint. National-Level 24-Hour Tech Fest with 7 Verticals across AI, Security, Hiring and Firesides.",
-    "date": "September 04 – 05, 2026",
-    "time": "Sep 4th, 08:00 AM — Sep 5th, 01:00 PM",
-    "venue": "Sreenidhi Institute of Science and Technology (SNIST), Hyderabad",
-    "college": "SNIST",
+VNR_SHOWCASE_SEED = {
+    "title": "VNR ECHO 2026",
+    "slug": "vnr-echo-2026",
+    "aliases": ["vnrvjit", "vnrjvit", "vnr", "vnr-vjiet", "vnr-vjit"],
+    "subtitle": "Empowering Tomorrow's Leaders · VNR VJIET in collaboration with StudentAlumni.ai",
+    "description": "Walk in with an idea, walk out with a product. A 12-hour intensive build sprint for VNR VJIET students.",
+    "date": "August 15, 2026",
+    "time": "9:00 AM – 9:00 PM",
+    "venue": "Main Auditorium, VNR VJIET, Hyderabad",
+    "college": "VNR VJIET",
     "category": "college-event",
     "status": "published",
     "event_status_badge": "Upcoming",
@@ -3072,7 +3135,7 @@ DEFAULT_SHOWCASE_SEED = {
     "hero_cover_url": "https://picsum.photos/seed/echo2026-hero/1200/700",
     "hero_thumbnail_url": "https://picsum.photos/seed/echo2026-hero/800/500",
     "hero_bg_url": "https://picsum.photos/seed/echo2026-bg/1600/900",
-    "organizer_name": "Student Alumni Cell",
+    "organizer_name": "Student Alumni Cell · VNR VJIET",
     "organizer_logo_url": None,
     "stats": [
         { "label": "Students Attended", "value": "320+", "icon": "users", "display_order": 0 },
@@ -3132,17 +3195,15 @@ DEFAULT_SHOWCASE_SEED = {
         { "question": "Do I need to know AI/ML to attend?", "answer": "No. The keynotes and workshops are beginner-friendly. You can join a team with mixed skills." }
     ],
     "eligibility": "Open to all undergrad and postgrad students. Teams of 4–5 encouraged; individual starts welcome.",
-    "prize_pool": { "total": "₹17,50,000+", "tracks": "₹50,000", "grand_pool": "₹2,00,000", "wehive_germany": "₹15,00,000", "visas": "2 Business Visas", "other_prizes": ["2 Business Visas sponsored in full", "Up to ₹15,00,000 Germany Master's Sponsorship", "₹2,00,000 Mega Grand Pool", "₹50,000 Hackathon Tracks"] },
+    "prize_pool": { "total": "₹30,000", "tracks": "₹10,000", "grand_pool": "₹20,000", "wehive_germany": None, "visas": None, "other_prizes": ["Track Winners Certificate", "Overall Winner Trophy"] },
     "team_composition": "4–5 members, at least one member from each of design, coding and presentation.",
     "partners": [
-        { "name": "WeHive", "kind": "visa_partner", "logo_url": None },
         { "name": "CodeSpectra", "kind": "sponsor", "logo_url": None },
         { "name": "Featherless", "kind": "sponsor", "logo_url": None }
     ],
     "sponsors": [
         { "name": "Tech Corp", "tier": "Title Sponsor", "website_url": "https://example.com", "logo_url": None, "priority": 0 },
-        { "name": "InnoLabs", "tier": "Gold Sponsor", "website_url": "https://example.com", "logo_url": None, "priority": 1 },
-        { "name": "BrightFuture", "tier": "Silver Sponsor", "website_url": "https://example.com", "logo_url": None, "priority": 2 }
+        { "name": "InnoLabs", "tier": "Gold Sponsor", "website_url": "https://example.com", "logo_url": None, "priority": 1 }
     ],
     "perks": [
         { "name": "Networking with Industry Leaders", "description": "Direct access to professionals from Google, Microsoft, and startups", "value": "Live", "icon": "users" },
@@ -3170,38 +3231,12 @@ DEFAULT_SHOWCASE_SEED = {
     "downloads": [
         { "title": "VNR ECHO 2026 Brochure", "description": "Official event guide & schedule", "file_url": "", "file_size": "2.4 MB", "category": "Brochure" }
     ],
-    "videos": [
-        {
-            "title": "HackWave 3.0 SNIST Official Teaser",
-            "video_url": "/videos/hackwave_teaser.mp4",
-            "thumbnail_url": "/images/hackwave/hackwave_main_poster.png",
-            "description": "Watch the official teaser for HackWave 3.0 at SNIST — 7 Verticals, ₹2,00,000 Grand Pool.",
-            "platform": "mp4"
-        },
-        {
-            "title": "Cyber Security with AI Conclave Teaser",
-            "video_url": "/videos/cybersecurity_conclave.mp4",
-            "thumbnail_url": "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
-            "description": "Keynote highlights featuring ISC2 New Jersey Chapter and international cyber security experts.",
-            "platform": "mp4"
-        },
-        {
-            "title": "Build by Sunset — 24-Hour Hackathon Sprint Highlights",
-            "video_url": "/videos/build_by_sunset.mp4",
-            "thumbnail_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-            "description": "Overnight build sprint, tech mentorship, and product showcases live from SNIST campus.",
-            "platform": "mp4"
-        }
-    ],
+    "videos": [],
     "gallery": [
         { "url": "https://picsum.photos/seed/echo2026-1/800/600", "caption": "Keynote session", "alt": "Keynote session at VNR ECHO 2026", "featured": True, "order": 0, "hero": True },
         { "url": "https://picsum.photos/seed/echo2026-2/800/600", "caption": "Audience & panels", "alt": "Panel discussion", "order": 1 },
         { "url": "https://picsum.photos/seed/echo2026-3/800/600", "caption": "Graduation ceremony", "alt": "Ceremony moments", "order": 2 },
-        { "url": "https://picsum.photos/seed/echo2026-4/800/600", "caption": "Workshops", "alt": "Hands-on workshops", "order": 3 },
-        { "url": "https://picsum.photos/seed/echo2026-5/800/600", "caption": "Event highlights", "alt": "Event highlights", "order": 4 },
-        { "url": "https://picsum.photos/seed/echo2026-6/800/600", "caption": "Networking", "alt": "Networking session", "order": 5 },
-        { "url": "https://picsum.photos/seed/echo2026-7/800/600", "caption": "Main hall", "alt": "Main auditorium", "order": 6 },
-        { "url": "https://picsum.photos/seed/echo2026-8/800/600", "caption": "Student experience", "alt": "Student experience", "order": 7 }
+        { "url": "https://picsum.photos/seed/echo2026-4/800/600", "caption": "Workshops", "alt": "Hands-on workshops", "order": 3 }
     ],
     "gallery_layout": "grid",
     "cta_title": "Stay tuned for more events!",
@@ -3220,16 +3255,10 @@ DEFAULT_SHOWCASE_SEED = {
         "deadline": "",
         "payment_note": "Free entry for VNR VJIET students. Registrations close 1 day before the event.",
         "payment_url": None,
-        "poster_images": [
-            "https://picsum.photos/seed/echo2026-poster1/900/1200",
-            "https://picsum.photos/seed/echo2026-poster2/900/1200",
-            "https://picsum.photos/seed/echo2026-poster3/900/1200"
-        ],
+        "poster_images": [],
         "contact_phones": [
             "91214 95077",
-            "84669 65800",
-            "+91 6281 083 332",
-            "+91 63001 97713"
+            "84669 65800"
         ],
     },
     "created_at": _now(),
@@ -3237,43 +3266,282 @@ DEFAULT_SHOWCASE_SEED = {
     "created_by": "system"
 }
 
+SNIST_SHOWCASE_SEED = {
+    "title": "HackWave 3.0 (2026)",
+    "slug": "snist",
+    "aliases": ["hackwave-3.0", "hackwave-3", "hackwave", "snist"],
+    "subtitle": "Career Development Center · SNIST in collaboration with StudentAlumni.ai",
+    "description": "Build something real. In one overnight sprint. National-Level 24-Hour Tech Fest with 7 Verticals across AI, Security, Hiring and Firesides.",
+    "date": "September 04 – 05, 2026",
+    "time": "Sep 4th, 08:00 AM — Sep 5th, 01:00 PM",
+    "venue": "Sreenidhi Institute of Science and Technology (SNIST), Hyderabad",
+    "college": "SNIST",
+    "category": "college-event",
+    "status": "published",
+    "event_status_badge": "Upcoming",
+    "hero_image_url": "/images/hackwave/hackwave_main_poster.png",
+    "hero_cover_url": "/images/hackwave/hackwave_main_poster.png",
+    "hero_thumbnail_url": "/images/hackwave/hackwave_main_poster.png",
+    "hero_bg_url": "/images/hackwave/hackwave_main_poster.png",
+    "hero_banners": [
+        "/images/hackwave/hackwave_main_poster.png",
+        "/images/hackwave/hackwave_full_programme.png"
+    ],
+    "organizer_name": "Career Development Center · SNIST in collaboration with StudentAlumni.ai",
+    "organizer_logo_url": None,
+    "stats": [
+        { "label": "Students Attended", "value": "1200+", "icon": "users", "display_order": 0 },
+        { "label": "Expert Speakers",   "value": "18+",  "icon": "speakers", "display_order": 1 },
+        { "label": "Verticals",         "value": "7",    "icon": "sessions", "display_order": 2 },
+        { "label": "Mega Grand Pool",   "value": "₹2L",  "icon": "trophy", "display_order": 3 },
+        { "label": "Total Prize Pool",  "value": "₹17.5L+", "icon": "feedback", "display_order": 4 }
+    ],
+    "highlights": [
+        { "icon": "code", "title": "Build by Sunset", "description": "Overnight 24-hour sprint", "display_order": 0 },
+        { "icon": "shield", "title": "Cyber Security Conclave", "description": "ISC2 NJ Chapter virtual conclave", "display_order": 1 },
+        { "icon": "briefcase", "title": "Meet Who Hire", "description": "On-the-spot placement and internship offers", "display_order": 2 }
+    ],
+    "about_cards": [
+        { "icon": "book", "title": "Learn", "description": "Industry insights from leading cybersecurity & AI practitioners" },
+        { "icon": "network", "title": "Connect", "description": "Recruiters and hiring managers in the room" },
+        { "icon": "trending", "title": "Grow", "description": "₹17,50,000+ total rewards and sponsorship pool" }
+    ],
+    "testimonials": [
+        { "name": "Karthik R.", "branch": "Computer Science", "department": "Computer Science", "year": "Final Year", "quote": "HackWave set a new benchmark for college tech fests. The on-the-spot interviews were real.", "rating": 5, "visible": True, "sort_order": 0 },
+        { "name": "Meera P.", "branch": "Information Technology", "department": "Information Technology", "year": "Pre-final Year", "quote": "The Cyber Security Conclave with the ISC2 NJ chapter opened my eyes to real security pathways.", "rating": 5, "visible": True, "sort_order": 1 }
+    ],
+    "timeline": [
+        { "icon": "star", "title": "Day 1: Kickoff & Build Sprint", "description": "Opening keynote, problem statement release, and 24-hour build" },
+        { "icon": "shield", "title": "Day 1 Evening: Cyber Conclave", "description": "ISC2 New Jersey virtual session and Q&A" },
+        { "icon": "code", "title": "Day 2 Morning: Demos & Judging", "description": "Pitch deck presentation to industry judges" },
+        { "icon": "award", "title": "Day 2 Afternoon: Awards & Offers", "description": "Distribution of prizes, visas, and internship letters" }
+    ],
+    "speakers": [
+        { "name": "Stan Mierzwa, Ph.D.", "position": "Director, Center for Cybersecurity", "company": "Kean University", "location": "Union, New Jersey, USA", "linkedin_url": "https://linkedin.com/in/stanmierzwa", "bio": "Leading cybersecurity education and research.", "is_panel_member": True, "category": "International Panel", "sort_order": 0, "visible": True },
+        { "name": "Ken Fishkin", "position": "President", "company": "ISC2 New Jersey Chapter", "location": "New Jersey, USA", "linkedin_url": "https://linkedin.com/in/kfishkin", "bio": "Champion for cybersecurity career entry from university campus.", "is_panel_member": True, "category": "International Panel", "sort_order": 1, "visible": True },
+        { "name": "Sharon Kelley", "position": "Board Member", "company": "ISC2 New Jersey Chapter", "location": "Hoboken, New Jersey, USA", "linkedin_url": "https://linkedin.com/in/sharon-kelley-0292181", "bio": "Security leader, educator, and governance mentor.", "is_panel_member": True, "category": "International Panel", "sort_order": 2, "visible": True },
+        { "name": "Jeremy Livingston", "position": "CISO & Deputy CIO", "company": "Stevens Institute of Technology", "location": "Effort, Pennsylvania, USA", "linkedin_url": "https://linkedin.com/in/jeremylivin", "bio": "Leading cybersecurity and higher ed IT infrastructure.", "is_panel_member": True, "category": "International Panel", "sort_order": 3, "visible": True },
+        { "name": "Suman Kalia", "position": "Associate Professor & Chair, Computer Science", "company": "Saint Peter's University", "location": "Jersey City, New Jersey, USA", "linkedin_url": "https://linkedin.com/in/suman-kalia-300b521", "bio": "Academic leader in algorithms and security engineering.", "is_panel_member": True, "category": "International Panel", "sort_order": 4, "visible": True },
+        { "name": "Jonna Dheeraj", "position": "Account Delivery & Program Management", "company": "Embedded SW · AI · VLSI · 5G · IoT", "location": "Hyderabad, India", "bio": "Building high-performance embedded systems.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 5, "visible": True },
+        { "name": "Harish Kotra", "position": "DevX Lead", "company": "Quirq", "location": "Hyderabad, India", "bio": "Developer relations leader and community builder.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 6, "visible": True },
+        { "name": "M Avinash Rao", "position": "Client Account Manager", "company": "Deloitte", "location": "Hyderabad, India", "bio": "Enterprise tech consulting and digital delivery expert.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 7, "visible": True },
+        { "name": "Gopichand Anumolu", "position": "Founder", "company": "ATLAST", "location": "Hyderabad, India", "bio": "Startup founder engineering developer tools.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 8, "visible": True }
+    ],
+    "categories": [
+        { "name": "AI That Solves a Real Problem", "description": "Build an AI application that solves a meaningful, real-world problem with high value.", "icon": "target", "color": "#F43F5E" },
+        { "name": "Beyond the Chatbot", "description": "Reimagine AI interaction via voice, visual, workflows, and automation.", "icon": "rocket", "color": "#8B5CF6" },
+        { "name": "AI for Builders", "description": "Developer and creator tools that remove friction and accelerate workflows.", "icon": "wrench", "color": "#3B82F6" },
+        { "name": "Autonomous AI Workflows", "description": "Multi-step reasoning, tool-using autonomous agent systems.", "icon": "cpu", "color": "#10B981" },
+        { "name": "Build the Unexpected", "description": "Original, creative, and ambitious concepts that surprise and delight.", "icon": "sparkles", "color": "#F59E0B" }
+    ],
+    "schedule": [
+        { "time": "08:00 AM", "title": "Check-in & Kit Collection", "description": "QR entry passes scanned, badge and t-shirt distribution.", "session_type": "break", "day": 1 },
+        { "time": "09:30 AM", "title": "Opening Keynote & Problem Releases", "description": "Introduction of 7 verticals and tracks.", "session_type": "keynote", "day": 1 },
+        { "time": "06:00 PM", "title": "Cyber Security Conclave (Virtual)", "description": "Live virtual stream with ISC2 New Jersey Chapter.", "session_type": "panel", "day": 1 },
+        { "time": "09:00 AM", "title": "Final Submission & Judging", "description": "Evaluation by expert panels.", "session_type": "activity", "day": 2 },
+        { "time": "12:00 PM", "title": "Valedictory & Prize Distribution", "description": "Grand pool & visa awards ceremony.", "session_type": "activity", "day": 2 }
+    ],
+    "panels": [
+        { "topic": "Cyber Security Trends & Pathways", "description": "Global insights from ISC2 NJ Chapter panelists.", "panelists": ["Stan Mierzwa, Ph.D.", "Ken Fishkin", "Sharon Kelley", "Jeremy Livingston", "Suman Kalia"] }
+    ],
+    "faqs": [
+        { "question": "Who can register?", "answer": "Students across all engineering and technology colleges with a valid student ID." },
+        { "question": "What is the team size?", "answer": "Individual or teams of 2 to 5 members." },
+        { "question": "What is included in the ticket?", "answer": "Full access to 7 verticals, 4 meal coupons, official t-shirt, participation certificate, and judging entry." }
+    ],
+    "eligibility": "Undergraduate and postgraduate students from any recognised institute.",
+    "prize_pool": {
+        "total": "₹17,50,000+",
+        "tracks": "₹50,000",
+        "grand_pool": "₹2,00,000",
+        "wehive_germany": "₹15,00,000",
+        "visas": "2 Business Visas",
+        "other_prizes": [
+            "2 Business Visas sponsored in full",
+            "Up to ₹15,00,000 Germany Master's Sponsorship",
+            "₹2,00,000 Mega Grand Pool",
+            "₹50,000 Hackathon Tracks"
+        ]
+    },
+    "team_composition": "Teams of 2–5 members recommended.",
+    "partners": [
+        { "name": "WeHive", "kind": "visa_partner", "logo_url": None },
+        { "name": "CodeSpectra", "kind": "sponsor", "logo_url": None },
+        { "name": "Featherless", "kind": "sponsor", "logo_url": None }
+    ],
+    "sponsors": [
+        { "name": "WeHive Consulting", "tier": "Visa & Global Partner", "website_url": "https://wehive.com", "logo_url": None, "priority": 0 }
+    ],
+    "perks": [
+        { "name": "Networking with Industry Leaders", "description": "Direct access to professionals from Google, Microsoft, and startups", "value": "Live", "icon": "users" },
+        { "name": "Hackathon Prizes", "description": "₹2,00,000 Mega Grand Pool (₹50,000 Track Pool)", "value": "₹2,00,000", "icon": "trophy" },
+        { "name": "Certificates for all", "description": "Participation and winner certificates with QR verification", "value": "Verifiable", "icon": "award" },
+        { "name": "Free Food & Refreshments", "description": "Meals, snacks, and beverages throughout the overnight sprint", "value": "Included", "icon": "coffee" },
+        { "name": "Internship Opportunities", "description": "On-the-spot internship offers from partner companies", "value": "Live", "icon": "briefcase" },
+        { "name": "Cyber Security Certs", "description": "ISC2-powered cert prep track with global panelists", "value": "Premium", "icon": "shield" },
+        { "name": "Open Source Bounties", "description": "Bounties and prizes for best open-source contributions", "value": "Live", "icon": "code" },
+        { "name": "Workshop Kits", "description": "Hands-on lab materials for AI, Security and Cloud tracks", "value": "Included", "icon": "wrench" },
+        { "name": "Exclusive Swag", "description": "HackWave 3.0 t-shirt, stickers, and badges for all participants", "value": "Included", "icon": "shirt" }
+    ],
+    "ticker_messages": [
+        { "text": "HackWave 3.0 — National-Level 24-Hour Tech Fest" },
+        { "text": "7 Verticals · AI, Security, Hiring & Firesides" },
+        { "text": "₹2,00,000 Mega Grand Pool · ₹50,000 Track Pool" },
+        { "text": "Certificates · Internship offers · Swag & Meal Coupons" },
+        { "text": "September 04–05, 2026 · SNIST Campus, Hyderabad" },
+        { "text": "Built with love for students across all campuses" }
+    ],
+    "cyber_conclave": {
+        "enabled": True,
+        "badge": "INTERNATIONAL VIRTUAL CONCLAVE",
+        "title": "Cyber Security with AI",
+        "subtitle": "ISC2 New Jersey Chapter × StudentAlumni.ai — Global insights for students building a career in security",
+        "date_label": "Friday, September 4, 2026",
+        "time_label": "6:00 PM IST · 8:30 AM ET",
+        "sessions": [
+            { "title": "Global security trends", "description": "Where the threat landscape is moving." },
+            { "title": "AI on both sides", "description": "How AI is reshaping defence and attack." },
+            { "title": "Certifications that matter", "description": "CISSP, CC and the paths worth it." },
+            { "title": "Career pathways", "description": "How to enter the field from campus." }
+        ]
+    },
+    "handbook_url": "/HackWave_3.0_Event_Handbook.pdf",
+    "downloads": [
+        { "title": "HackWave 3.0 Event Handbook", "description": "Official participant guide & 7 verticals rules", "file_url": "/HackWave_3.0_Event_Handbook.pdf", "file_size": "2.1 MB", "category": "Handbook" }
+    ],
+    "videos": [
+        {
+            "title": "HackWave 3.0 SNIST Official Teaser",
+            "video_url": "https://www.youtube.com/watch?v=M576WGiDBdQ",
+            "thumbnail_url": "/images/hackwave/hackwave_main_poster.png",
+            "description": "Watch the official teaser for HackWave 3.0 at SNIST — 7 Verticals, ₹17,50,000+ Prize & Sponsorship Pool.",
+            "platform": "youtube"
+        }
+    ],
+    "gallery": [
+        { "url": "/images/hackwave/hackwave_main_poster.png", "caption": "Official HackWave Poster", "alt": "HackWave 3.0 SNIST", "featured": True, "order": 0, "hero": True },
+        { "url": "/images/hackwave/hackwave_full_programme.png", "caption": "Full Programme Guide", "alt": "Programme Guide", "order": 1 }
+    ],
+    "gallery_layout": "grid",
+    "cta_title": "Register for HackWave 3.0!",
+    "cta_subtitle": "Experience the overnight build sprint at SNIST.",
+    "cta_button_text": "Get Entry Pass",
+    "cta_url": None,
+    "seo_title": "HackWave 3.0 — SNIST 24-Hour Tech Fest",
+    "seo_description": "Join HackWave 3.0 at SNIST for overnight hackathon, international cybersecurity conclave, and hiring.",
+    "seo_keywords": "SNIST, HackWave 3.0, Hackathon, Cybersecurity, Student Alumni",
+    "sections": dict(DEFAULT_SECTIONS),
+    "registration": {
+        "enabled": True,
+        "fee": 599,
+        "individual_fee": 599,
+        "team_fee": 2495,
+        "currency": "INR",
+        "max_seats": 985,
+        "deadline": "2026-09-04T13:00:00+05:30",
+        "payment_note": "Includes 4 meals, swag, hackathon entry, and certificate.",
+        "payment_url": None,
+        "poster_images": [
+            "/images/hackwave/hackwave_main_poster.png",
+            "/images/hackwave/hackwave_full_programme.png"
+        ],
+        "contact_phones": [
+            "91214 95077",
+            "84669 65800"
+        ]
+    },
+    "created_at": _now(),
+    "updated_at": _now(),
+    "created_by": "system"
+}
+
+DEFAULT_SHOWCASE_SEED = VNR_SHOWCASE_SEED
+
 
 async def seed_echo_showcase(db: AsyncIOMotorDatabase):
-    """Seed initial VNR ECHO 2026 showcase if missing, and ensure gallery_layout exists."""
+    """Seed SNIST and VNR showcases if missing, and ensure gallery_layout exists."""
     try:
-        seed_slug = str(DEFAULT_SHOWCASE_SEED.get("slug") or "vnr-echo-2026")
-        seed_aliases = DEFAULT_SHOWCASE_SEED.get("aliases") or []
-        existing = await db.echo_showcases.find_one(_slug_query(seed_slug or ""))
-        if not existing and seed_aliases:
-            existing = await db.echo_showcases.find_one(
-                {"aliases": {"$in": seed_aliases}}
-            )
-        if not existing:
-            doc = dict(DEFAULT_SHOWCASE_SEED)
-            doc["created_at"] = _now()
-            doc["updated_at"] = _now()
-            await db.echo_showcases.insert_one(doc)
+        # 1. Seed SNIST if missing
+        snist_existing = await db.echo_showcases.find_one(_slug_query("snist"))
+        if not snist_existing:
+            s_doc = dict(SNIST_SHOWCASE_SEED)
+            s_doc["created_at"] = _now()
+            s_doc["updated_at"] = _now()
+            await db.echo_showcases.insert_one(s_doc)
+            print("[ECHO CMS] Seeded default snist showcase")
+
+        # 2. Seed VNR if missing
+        vnr_existing = await db.echo_showcases.find_one(_slug_query("vnr-echo-2026"))
+        if not vnr_existing:
+            v_doc = dict(VNR_SHOWCASE_SEED)
+            v_doc["created_at"] = _now()
+            v_doc["updated_at"] = _now()
+            await db.echo_showcases.insert_one(v_doc)
             print("[ECHO CMS] Seeded default vnr-echo-2026 showcase")
-        else:
-            await db.echo_showcases.update_many({"gallery_layout": {"$exists": False}}, {"$set": {"gallery_layout": "grid"}})
+
+        await db.echo_showcases.update_many({"gallery_layout": {"$exists": False}}, {"$set": {"gallery_layout": "grid"}})
     except Exception as e:
         print(f"[ECHO CMS] Seed warning: {e}")
 
 
-# ── Public handbook download endpoint ─────────────────────────────────────
-from fastapi.responses import FileResponse
+# ── Showcase-specific handbook download endpoints ────────────────────────────
+from fastapi.responses import FileResponse, RedirectResponse
 
+@router.get("/showcases/{slug}/handbook")
+@router.get("/showcases/{slug}/handbook/download")
+async def download_showcase_handbook(slug: str, request: Request):
+    db = _get_db(request)
+    doc = await db.echo_showcases.find_one(_slug_query(slug))
+    if not doc:
+        raise HTTPException(status_code=404, detail="Showcase not found")
+
+    # 1. Check showcase.handbook_url
+    handbook_url = (doc.get("handbook_url") or "").strip()
+
+    # 2. Check showcase.downloads for a handbook/brochure/guide item
+    if not handbook_url:
+        downloads = doc.get("downloads") or []
+        for d in downloads:
+            cat = (d.get("category") or "").lower()
+            title = (d.get("title") or "").lower()
+            url = (d.get("file_url") or "").strip()
+            if url and (cat in ("handbook", "brochure", "guide") or "handbook" in title or "guide" in title or "brochure" in title):
+                handbook_url = url
+                break
+
+    if not handbook_url:
+        raise HTTPException(status_code=404, detail="Handbook not available for this showcase")
+
+    # If it's an external URL (http/https), redirect
+    if handbook_url.startswith("http://") or handbook_url.startswith("https://"):
+        return RedirectResponse(url=handbook_url)
+
+    # If it's a local static path, resolve it
+    filename = Path(handbook_url).name
+    candidate_paths = [
+        Path(__file__).parent / "static" / filename,
+        Path(__file__).parent / "uploads" / filename,
+        Path(__file__).parent / "uploads" / "documents" / filename,
+        Path(__file__).parent.parent / "uploads" / filename,
+    ]
+    for p in candidate_paths:
+        if p.is_file():
+            return FileResponse(
+                path=str(p),
+                filename=filename,
+                media_type="application/pdf"
+            )
+
+    raise HTTPException(status_code=404, detail="Handbook file not found on server")
+
+
+# ── Legacy handbook redirect endpoint (preserves backwards compatibility) ──
 @router.get("/handbook")
 @router.get("/handbook/download")
-async def download_handbook():
-    pdf_file = Path(__file__).parent / "static" / "HackWave_3.0_Event_Handbook.pdf"
-    if not pdf_file.exists():
-        raise HTTPException(status_code=404, detail="Event handbook PDF not found")
-    return FileResponse(
-        path=str(pdf_file),
-        filename="HackWave_3.0_Event_Handbook.pdf",
-        media_type="application/pdf"
-    )
+async def download_handbook_legacy(slug: Optional[str] = Query(None)):
+    target_slug = slug or "snist"
+    return RedirectResponse(url=f"/api/echo/showcases/{target_slug}/handbook", status_code=307)
+
 
 # ── Public endpoints ─────────────────────────────────────────────────────────
 @router.get("/showcases")
@@ -3300,274 +3568,9 @@ async def get_showcase(slug: str, request: Request):
     db = _get_db(request)
     doc = await db.echo_showcases.find_one(_slug_query(slug))
     if not doc:
-        # Auto-seed the default showcase on first hit so a fresh DB serves content,
-        # but only when the requested slug is the seed's canonical slug/alias or hackwave.
-        seed_slug = DEFAULT_SHOWCASE_SEED.get("slug")
-        seed_aliases = DEFAULT_SHOWCASE_SEED.get("aliases") or []
-        if slug in (seed_slug, *seed_aliases, "hackwave-3.0", "hackwave-3", "hackwave", "snist"):
-            await seed_echo_showcase(db)
-            doc = await db.echo_showcases.find_one(_slug_query(slug))
-            if not doc and slug in ("hackwave-3.0", "hackwave-3", "hackwave", "snist"):
-                hw_doc = {
-                    "_id": ObjectId(),
-                    "title": "HackWave 3.0 (2026)",
-                    "slug": slug if slug == "snist" else "hackwave-3.0",
-                    "aliases": ["hackwave-3.0", "hackwave-3", "hackwave", "snist"],
-                    "subtitle": "Career Development Center · SNIST in collaboration with StudentAlumni.ai",
-                    "description": "Build something real. In one overnight sprint. National-Level 24-Hour Tech Fest with 7 Verticals across AI, Security, Hiring and Firesides.",
-                    "date": "September 04 – 05, 2026",
-                    "dates": "September 04 – 05, 2026",
-                    "time": "Sep 4th, 08:00 AM — Sep 5th, 01:00 PM",
-                    "venue": "Sreenidhi Institute of Science and Technology (SNIST), Hyderabad",
-                    "college": "SNIST",
-                    "college_name": "Sreenidhi Institute of Science and Technology",
-                    "college_full": "Sreenidhi Institute of Science and Technology",
-                    "organizer_name": "Career Development Center · SNIST in collaboration with StudentAlumni.ai",
-                    "status": "published",
-                    "event_status_badge": "Upcoming",
-                    "fee": 599,
-                    "individual_fee": 599,
-                    "team_fee": 2495,
-                    "available_seats": 985,
-                    "team_slots_available": 197,
-                    "prize_pool": "₹17,50,000+ Total Prize & Sponsorship Pool (including 2 fully sponsored business visas)",
-                    "prize_pool_detail": {
-                        "total": "₹17,50,000+",
-                        "tracks": "₹50,000",
-                        "grand_pool": "₹2,00,000",
-                        "wehive_germany": "₹15,00,000",
-                        "visas": "2 Business Visas fully sponsored by WeHive"
-                    },
-                    "reg_closes": "Sep 02, 2026 · 7:00 PM IST (Closing in 30 mins)",
-                    "hero_image_url": "/images/hackwave/hackwave_main_poster.png",
-                    "banner_url": "/images/hackwave/hackwave_main_poster.png",
-                    "poster_url": "/images/hackwave/hackwave_main_poster.png",
-                    "gallery_images": [
-                        "/images/hackwave/hackwave_main_poster.png",
-                        "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
-                        "/images/hackwave/hackwave_speakers.jpg",
-                        "/images/hackwave/hackwave_techfest_verticals.jpg",
-                        "/images/hackwave/hackwave_perks_pool.jpg"
-                    ],
-                    "videos": [
-                        {
-                            "title": "HackWave 3.0 SNIST Official Teaser",
-                            "video_url": "https://www.youtube.com/watch?v=M576WGiDBdQ",
-                            "thumbnail_url": "/images/hackwave/hackwave_main_poster.png",
-                            "description": "Watch the official teaser for HackWave 3.0 at SNIST — 7 Verticals, ₹17,50,000+ Prize & Sponsorship Pool.",
-                            "platform": "youtube"
-                        },
-                        {
-                            "title": "Cyber Security with AI Conclave Teaser",
-                            "video_url": "https://www.youtube.com/watch?v=aircAruvnKk",
-                            "thumbnail_url": "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
-                            "description": "Keynote highlights featuring ISC2 New Jersey Chapter and international cyber security experts.",
-                            "platform": "youtube"
-                        },
-                        {
-                            "title": "Build by Sunset — 24-Hour Hackathon Sprint Highlights",
-                            "video_url": "https://www.youtube.com/watch?v=9bZkp7q19f0",
-                            "thumbnail_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-                            "description": "Overnight build sprint, tech mentorship, and product showcases live from SNIST campus.",
-                            "platform": "youtube"
-                        }
-                    ],
-                    "cyber_security_conclave": {
-                        "title": "Cyber Security with AI",
-                        "presented_by": "ISC2 New Jersey Chapter x StudentAlumni.ai",
-                        "subtitle": "Global insights for students building a career in security",
-                        "date_time": "Friday, September 4, 2026 · 6:00 PM IST · 8:30 AM ET",
-                        "topics": [
-                            {"title": "Global security trends", "description": "Where the threat landscape is moving."},
-                            {"title": "AI on both sides", "description": "How AI is reshaping defence and attack."},
-                            {"title": "Certifications that matter", "description": "CISSP, CC and the paths worth it."},
-                            {"title": "Career pathways", "description": "How to enter the field from campus."}
-                        ]
-                    },
-                    "speakers": [
-                        {"name": "Stan Mierzwa, Ph.D.", "position": "Director, Center for Cybersecurity", "company": "Kean University", "location": "Union, New Jersey, USA", "linkedin_url": "https://linkedin.com/in/stanmierzwa", "bio": "Leading cybersecurity education and research.", "is_panel_member": True, "category": "International Panel", "sort_order": 0, "visible": True},
-                        {"name": "Ken Fishkin", "position": "President", "company": "ISC2 New Jersey Chapter", "location": "New Jersey, USA", "linkedin_url": "https://linkedin.com/in/kfishkin", "bio": "Champion for cybersecurity career entry from university campus.", "is_panel_member": True, "category": "International Panel", "sort_order": 1, "visible": True},
-                        {"name": "Sharon Kelley", "position": "Board Member", "company": "ISC2 New Jersey Chapter (MS, MBA, CISSP, CCSP)", "location": "Hoboken, New Jersey, USA", "linkedin_url": "https://linkedin.com/in/sharon-kelley-0292181", "bio": "Security leader, educator, and governance mentor.", "is_panel_member": True, "category": "International Panel", "sort_order": 2, "visible": True},
-                        {"name": "Jeremy Livingston", "position": "CISO & Deputy CIO", "company": "Stevens Institute of Technology", "location": "Effort, Pennsylvania, USA", "linkedin_url": "https://linkedin.com/in/jeremylivin", "bio": "Leading cybersecurity and higher ed IT infrastructure.", "is_panel_member": True, "category": "International Panel", "sort_order": 3, "visible": True},
-                        {"name": "Suman Kalia", "position": "Associate Professor & Chair, Computer Science", "company": "Saint Peter's University", "location": "Jersey City, New Jersey, USA", "linkedin_url": "https://linkedin.com/in/suman-kalia-300b521", "bio": "Academic leader in algorithms and security engineering.", "is_panel_member": True, "category": "International Panel", "sort_order": 4, "visible": True},
-                        {"name": "Jonna Dheeraj", "position": "Account Delivery & Program Management", "company": "Embedded SW · AI · VLSI · 5G · IoT", "location": "Hyderabad, India", "bio": "Building high-performance embedded systems and VLSI architectures.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 5, "visible": True},
-                        {"name": "Harish Kotra", "position": "DevX Lead", "company": "Quirq", "location": "Hyderabad, India", "bio": "Developer relations leader and community builder.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 6, "visible": True},
-                        {"name": "M Avinash Rao", "position": "Client Account Manager", "company": "Deloitte", "location": "Hyderabad, India", "bio": "Enterprise tech consulting and digital delivery expert.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 7, "visible": True},
-                        {"name": "Gopichand Anumolu", "position": "Founder", "company": "ATLAST", "location": "Hyderabad, India", "bio": "Startup founder engineering developer tools and student platforms.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 8, "visible": True}
-                    ],
-                    "verticals": [
-                        {"title": "Build by Sunset", "description": "Ship something real between morning and dusk. Teams of 2–5, 5 AI tracks, ₹50,000 prize pool.", "icon": "rocket"},
-                        {"title": "Codethon", "description": "Pre-event coding ladder: L1 to L2 to L3. Individual, scored, closes before Sep 4.", "icon": "code"},
-                        {"title": "Voices That Build", "description": "A panel of people who have actually shipped — not people talking about shipping.", "icon": "mic"},
-                        {"title": "Meet the People Who Hire", "description": "Recruiters in the room, not behind a portal. On-the-spot internship and placement offers.", "icon": "briefcase"},
-                        {"title": "Cyber Security Conclave", "description": "Virtual, featuring the ISC2 New Jersey Chapter — global insights on trends, certifications, career pathways (Friday Sep 4, 6:00 PM IST · 8:30 AM ET).", "icon": "shield"},
-                        {"title": "International Panel", "description": "Speakers joining live on the big screen from outside India.", "icon": "globe"},
-                        {"title": "Between the Builds", "description": "Sleep, eat, work, find people. Open across both days.", "icon": "bed"},
-                        {"title": "Play After Dark", "description": "Live music when the laptops finally close.", "icon": "music"},
-                        {"title": "Build by Fireside", "description": "Where the idea you haven't shipped yet finally gets heard.", "icon": "flame"}
-                    ],
-                    "perks": [
-                        {"name": "Featherless AI", "desc": "A full account, free", "value": "$29 value", "icon": "sparkles"},
-                        {"name": "SetupMark AI", "desc": "50 credits, 2 months free", "value": "$50 value", "icon": "infinity"},
-                        {"name": "CodeSpectra AI", "desc": "3 months completely free", "value": "Assessments", "icon": "code"},
-                        {"name": "Bandiwala", "desc": "15% off food", "value": "Coupon", "icon": "utensils"},
-                        {"name": "WeHive Consulting", "desc": "15% off services", "value": "Coupon", "icon": "briefcase"},
-                        {"name": "Four meal coupons", "desc": "Lunch, dinner, midnight, breakfast", "value": "Included", "icon": "coffee"},
-                        {"name": "Certificates for all", "desc": "Participation and winner certificates", "value": "Verifiable", "icon": "award"},
-                        {"name": "On-the-spot offers", "desc": "Internship and placement offers, in the room", "value": "Live", "icon": "check"},
-                        {"name": "Surprise goodies", "desc": "Extra prizes and drops announced on the day", "value": "Surprise", "icon": "gift"}
-                    ],
-                    "categories": [
-                        {"name": "AI That Solves a Real Problem", "description": "Build an AI application that solves a meaningful, real-world problem with high value.", "icon": "target", "color": "#F43F5E"},
-                        {"name": "Beyond the Chatbot", "description": "Reimagine AI interaction via voice, visual, workflows, and automation.", "icon": "rocket", "color": "#8B5CF6"},
-                        {"name": "AI for Builders", "description": "Developer and creator tools that remove friction and accelerate workflows.", "icon": "wrench", "color": "#3B82F6"},
-                        {"name": "Autonomous AI Workflows", "description": "Multi-step reasoning, tool-using autonomous agent systems.", "icon": "cpu", "color": "#10B981"},
-                        {"name": "Build the Unexpected", "description": "Original, creative, and ambitious concepts that surprise and delight.", "icon": "sparkles", "color": "#F59E0B"}
-                    ],
-                    "registration": {
-                        "status": "open",
-                        "fee": 599,
-                        "individual_fee": 599,
-                        "team_fee": 2495,
-                        "currency": "INR",
-                        "available_seats": 985,
-                        "team_slots_available": 197,
-                        "deadline": "2026-09-04T13:00:00+05:30",
-                        "external_url": None,
-                        "payment_url": None
-                    },
-                    "ticker_messages": [
-                        {"text": "The network is a feed until it meets in person."},
-                        {"text": "86 ECHO events across 31 campuses."},
-                        {"text": "267 roles matched, 41 with a warm referral path."},
-                        {"text": "Verified by your college email — free forever for students."},
-                        {"text": "HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ₹2,00,000 Mega Grand Pool (₹50,000 Track Pool)"},
-                        {"text": "Built with love for students across all campuses"}
-                    ],
-                    "cyber_conclave": {
-                        "enabled": True,
-                        "badge": "INTERNATIONAL VIRTUAL CONCLAVE",
-                        "title": "Cyber Security with AI",
-                        "subtitle": "Global insights for students building a career in security · Presented by ISC2 New Jersey Chapter (USA) × StudentAlumni.ai",
-                        "date_label": "FRIDAY, SEPTEMBER 4, 2026",
-                        "time_label": "6:00 PM IST · 8:30 AM ET",
-                        "sessions": [
-                            {"title": "Global security trends", "description": "Where the threat landscape is moving."},
-                            {"title": "AI on both sides", "description": "How AI is reshaping defence and attack."},
-                            {"title": "Certifications that matter", "description": "CISSP, CC and the paths worth it."},
-                            {"title": "Career pathways", "description": "How to enter the field from campus."}
-                        ]
-                    },
-                    "partners": [
-                        {"name": "CodeSpectra", "kind": "association", "logo_url": None},
-                        {"name": "Featherless", "kind": "association", "logo_url": None},
-                        {"name": "Stepupmark", "kind": "association", "logo_url": None},
-                        {"name": "Bandiwala", "kind": "perk", "logo_url": None},
-                        {"name": "WeHive", "kind": "perk", "logo_url": None}
-                    ],
-                    "handbook_url": "/HackWave_3.0_Event_Handbook.pdf",
-                    "created_at": _now(),
-                    "updated_at": _now()
-                }
-                await db.echo_showcases.insert_one(hw_doc)
-                doc = await db.echo_showcases.find_one(_slug_query(slug))
-
-        # CBIT inline seed
-        if not doc and slug == "cbit":
-            cbit_doc = {
-                "_id": ObjectId(),
-                "title": "CBIT ECHO 2026",
-                "slug": "cbit",
-                "aliases": ["cbit-echo-2026", "cbit"],
-                "subtitle": "Innovation, Careers & AI Engineering",
-                "description": "Empowering Tomorrow's Leaders — a day of keynotes, hackathons, career tracks and AI workshops at CBIT Hyderabad.",
-                "date": "July 31, 2026",
-                "time": "09:30 AM — 04:30 PM",
-                "venue": "Main Auditorium, CBIT Hyderabad",
-                "college": "CBIT",
-                "college_name": "Chaitanya Bharathi Institute of Technology",
-                "college_full": "Chaitanya Bharathi Institute of Technology, Hyderabad",
-                "organizer_name": "CBIT Student Council in collaboration with StudentAlumni.ai",
-                "status": "published",
-                "event_status_badge": "Upcoming",
-                "fee": 499,
-                "individual_fee": 499,
-                "team_fee": 1999,
-                "available_seats": 350,
-                "team_slots_available": 70,
-                "prize_pool": "₹35,000 prize pool",
-                "reg_closes": "2026-07-28",
-                "hero_image_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-                "banner_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-                "poster_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-                "gallery_images": [],
-                "speakers": [
-                    {"name": "Vijay Raghavan", "position": "Chief AI Architect", "company": "Google", "location": "Bangalore, India", "bio": "Leads large-scale ML systems.", "is_panel_member": True, "category": "Keynote Speaker", "session_title": "AI at Scale", "sort_order": 0, "visible": True},
-                    {"name": "Sneha Reddy", "position": "VP Engineering", "company": "Microsoft", "location": "Hyderabad, India", "bio": "Product leader behind developer tooling.", "is_panel_member": True, "category": "Panelist", "sort_order": 1, "visible": True},
-                    {"name": "Dr. Kavitha Nair", "position": "Professor & NLP Researcher", "company": "VNR VJIET", "location": "Hyderabad, India", "bio": "Researcher in NLP and student mentor.", "is_panel_member": True, "category": "Academic Mentor", "sort_order": 2, "visible": True},
-                    {"name": "Arjun Mehta", "position": "Founder", "company": "BrightFuture Labs", "location": "Hyderabad, India", "bio": "Serial entrepreneur building edtech.", "is_panel_member": False, "category": "Industry Speaker", "sort_order": 3, "visible": True}
-                ],
-                "categories": [
-                    {"name": "Healthcare & MedTech", "description": "Build AI solutions for diagnosis and telemedicine.", "icon": "heartpulse", "color": "#F43F5E"},
-                    {"name": "EdTech & Learning", "description": "Personalised learning and exam-prep tools.", "icon": "graduation-cap", "color": "#8B5CF6"},
-                    {"name": "FinTech & Inclusion", "description": "Financial literacy and UPI innovation.", "icon": "landmark", "color": "#F59E0B"}
-                ],
-                "partners": [
-                    {"name": "Deloitte", "kind": "association", "logo_url": None},
-                    {"name": "Featherless", "kind": "association", "logo_url": None},
-                    {"name": "Atlast", "kind": "association", "logo_url": None}
-                ],
-                "perks": [
-                    {"name": "Networking with Industry Leaders", "description": "Direct access to professionals from top companies", "value": "Live", "icon": "users"},
-                    {"name": "Hackathon Prizes", "description": "₹35,000 prize pool", "value": "₹35,000", "icon": "trophy"},
-                    {"name": "Certificates for all", "description": "Participation and winner certificates", "value": "Verifiable", "icon": "award"},
-                    {"name": "Free Food", "description": "Lunch and refreshments included", "value": "Included", "icon": "coffee"},
-                    {"name": "Internship Opportunities", "description": "On-the-spot offers from partner companies", "value": "Live", "icon": "briefcase"}
-                ],
-                "ticker_messages": [
-                    {"text": "CBIT ECHO 2026 — Empowering Tomorrow's Leaders"},
-                    {"text": "320+ students · 12 speakers · 3 hackathon tracks"},
-                    {"text": "Free entry for all CBIT students"},
-                    {"text": "Certificates, networking, and internship opportunities"},
-                    {"text": "July 31, 2026 · Main Auditorium, CBIT Hyderabad"}
-                ],
-                "cyber_conclave": {
-                    "enabled": False,
-                    "badge": "",
-                    "title": "",
-                    "subtitle": "",
-                    "date_label": "",
-                    "time_label": "",
-                    "sessions": []
-                },
-                "schedule": [],
-                "panels": [],
-                "faqs": [],
-                "highlights": [],
-                "testimonials": [],
-                "timeline": [],
-                "downloads": [],
-                "videos": [],
-                "gallery": [],
-                "sponsors": [],
-                "sections": dict(DEFAULT_SECTIONS),
-                "registration": {
-                    "enabled": True,
-                    "fee": 499,
-                    "individual_fee": 499,
-                    "team_fee": 1999,
-                    "currency": "INR",
-                    "max_seats": 350,
-                    "deadline": "2026-07-28T23:59:59Z",
-                    "payment_url": None,
-                    "contact_phones": []
-                },
-                "handbook_url": None,
-                "created_at": _now(),
-                "updated_at": _now()
-            }
-            await db.echo_showcases.insert_one(cbit_doc)
-            doc = await db.echo_showcases.find_one(_slug_query(slug))
+        # Auto-seed default showcases if fresh database
+        await seed_echo_showcase(db)
+        doc = await db.echo_showcases.find_one(_slug_query(slug))
 
     if not doc:
         raise HTTPException(status_code=404, detail="Showcase not found")
@@ -3866,7 +3869,7 @@ async def register_for_showcase(
     if auth.startswith("Bearer "):
         try:
             import jwt as _jwt
-            JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
+            # Uses centralized JWT_SECRET from core.config
             payload_token = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
             user = await db.users.find_one({"_id": ObjectId(payload_token.get("sub"))})
         except Exception:
@@ -4088,7 +4091,7 @@ async def my_showcase_registration(slug: str, request: Request):
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer "):
         import jwt as _jwt
-        JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
+        # Uses centralized JWT_SECRET from core.config
         try:
             payload = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
             user = await db.users.find_one({"_id": ObjectId(payload.get("sub"))})
@@ -4198,7 +4201,7 @@ async def _resolve_user(request: Request, db) -> Optional[dict]:
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer "):
         import jwt as _jwt
-        JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
+        # Uses centralized JWT_SECRET from core.config
         try:
             p = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
             return await db.users.find_one({"_id": ObjectId(p.get("sub"))})
@@ -4885,7 +4888,7 @@ async def admin_echo_registrations(
                 user_map[u.get("phone").strip()] = u_data
 
     # Batch-fetch issued certificates from db.certificates
-    cert_map: Dict[str, dict] = {}
+    cert_map: Dict[str, list] = {}  # reg_id/email → list of cert docs
     frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
     if reg_ids or all_emails:
         c_or = []
@@ -4899,14 +4902,16 @@ async def admin_echo_registrations(
                 "id": c.get("id") or str(c.get("_id")),
                 "verification_code": c_code,
                 "title": c.get("title") or c.get("certification_name") or "ECHO Certificate",
+                "category_key": c.get("category_key"),
                 "issued_at": c.get("issued_at") or c.get("created_at"),
                 "verify_url": f"{frontend_url}/certificates/verify/{c_code}",
                 "image_url": c.get("image_url"),
             }
-            if c.get("reg_id"):
-                cert_map[c.get("reg_id")] = c_data
-            if c.get("recipient_email"):
-                cert_map[c.get("recipient_email").lower().strip()] = c_data
+            for k in [c.get("reg_id"), c.get("recipient_email", "").lower().strip()]:
+                if k:
+                    cert_map.setdefault(k, [])
+                    if c_code not in [x.get("verification_code") for x in cert_map[k]]:
+                        cert_map[k].append(c_data)
 
     items = []
     for r in regs:
@@ -4919,12 +4924,57 @@ async def admin_echo_registrations(
         u_email = (s.get("email") or "").lower().strip()
         u_phone = (s.get("phone") or "").strip()
         sa_user = user_map.get(u_email) or user_map.get(u_phone)
-        has_sa = bool(sa_user or s.get("user_id"))
-        comp_pct = sa_user.get("profile_completion_pct", 0) if sa_user else 0
-        is_100 = sa_user.get("is_profile_100", False) if sa_user else False
+        has_sa = bool(sa_user or s.get("user_id") or u_email)
 
-        cert_data = cert_map.get(rid) or cert_map.get(u_email)
-        has_cert = bool(cert_data or s.get("certificate_issued"))
+        if sa_user:
+            comp_pct = sa_user.get("profile_completion_pct", 0)
+        else:
+            reg_eval = {
+                "email": u_email,
+                "full_name": s.get("full_name"),
+                "institution": s.get("college"),
+                "branch": s.get("branch"),
+                "year_of_study": s.get("year"),
+                "phone": u_phone,
+            }
+            eval_res = compute_profile_completion(reg_eval)
+            comp_pct = eval_res.get("percentage", 0)
+
+        # Allow explicitly flag or 100% score
+        is_100 = bool(s.get("is_profile_100") or (sa_user and sa_user.get("is_profile_100")) or comp_pct >= 100)
+        if is_100 and comp_pct < 100:
+            comp_pct = 100
+
+        certs_all = []
+        _seen_codes = set()
+        for _cc in (cert_map.get(rid) or []) + (cert_map.get(u_email) or []):
+            _code = _cc.get("verification_code")
+            if _code and _code not in _seen_codes:
+                _seen_codes.add(_code)
+                certs_all.append(_cc)
+        cert_data = certs_all[0] if certs_all else None
+        has_cert = bool(certs_all or s.get("certificate_issued") or s.get("has_3_certificates"))
+
+        # Synthesize the 3-cert matrix from actual certs when the reg has no flags set
+        c3 = s.get("certificates_3_status") or {}
+        if not c3 and certs_all:
+            def _match_cat(keyword: str):
+                for cc in certs_all:
+                    t = (cc.get("title") or "").lower()
+                    ck = (cc.get("category_key") or "").lower()
+                    if keyword in ck or keyword in t:
+                        return {
+                            "issued": True,
+                            "code": cc.get("verification_code"),
+                            "title": cc.get("title"),
+                            "verify_url": cc.get("verify_url"),
+                        }
+                return None
+            c3 = {
+                "built_by_sunset": _match_cat("sunset") or {"issued": False, "code": None},
+                "hackwave_participation": _match_cat("hackwave") or {"issued": False, "code": None},
+                "cyber_conclave": _match_cat("cyber") or {"issued": False, "code": None},
+            }
 
         items.append({
             "id": s.get("id"),
@@ -4971,6 +5021,10 @@ async def admin_echo_registrations(
             "parent_reg_id": s.get("parent_reg_id"),
             "team_leader_name": s.get("team_leader_name"),
             "team_leader_email": s.get("team_leader_email"),
+            "certificates_3_status": c3,
+            "has_3_certificates": s.get("has_3_certificates") or len([v for v in c3.values() if v.get("issued")]) >= 2,
+            "cert_email_status": s.get("cert_email_status"),
+            "cert_email_updated_at": s.get("cert_email_updated_at"),
         })
 
     # Apply filters
@@ -5081,6 +5135,343 @@ async def admin_echo_issue_certificate(
         "verify_url": verify_url,
         "certificate": cert_doc
     }
+
+
+async def issue_3_echo_certificates(db, reg: dict) -> dict:
+    """
+    Issue 3 official certificates for Hackwave 3.0 / ECHO Showcase:
+      1. Built by Sunset (Project Build Certificate)
+      2. Common Certificate of Participation — Hackwave 3.0
+      3. Cyber Conclave Certificate
+    Upserts into db.certificates (enabling /certificates/verify/{code} & profile sync).
+    """
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    email = (reg.get("email") or "").lower().strip()
+    full_name = (reg.get("full_name") or "").strip() or "ECHO Participant"
+    showcase_title = reg.get("showcase_title") or "Hackwave 3.0"
+    reg_id = reg.get("id") or str(reg.get("_id"))
+    
+    cert_types = [
+        ("built_by_sunset", "Built by Sunset — Project Build Certificate", "HW3-SUNSET"),
+        ("hackwave_participation", f"Certificate of Participation — {showcase_title}", "HW3-PART"),
+        ("cyber_conclave", "Cyber Conclave — Professional Certificate", "HW3-CYBER"),
+    ]
+
+    existing_certs = reg.get("certificates_3_status") or {}
+    results = {}
+    now_str = _now()
+
+    for key, title, prefix in cert_types:
+        existing = existing_certs.get(key)
+        if existing and existing.get("code"):
+            code = existing["code"]
+        else:
+            # Email-level dedup: one set of certs per email per category per event.
+            # Re-issues across repeat registrations must reuse the original code,
+            # otherwise one user accumulates N×3 certificates in My Certificates.
+            code = None
+            if email:
+                # Legacy docs predate category_key — match it OR the exact title.
+                prior = await db.certificates.find_one({
+                    "recipient_email": {"$regex": f"^{re.escape(email)}$", "$options": "i"},
+                    "slug": reg.get("slug"),
+                    "$or": [{"category_key": key}, {"title": title}],
+                })
+                if prior:
+                    code = prior.get("verification_code") or prior.get("certificate_id") or prior.get("id")
+            if not code:
+                code = f"{prefix}-{secrets.token_hex(4).upper()}"
+
+        verify_url = f"{frontend_url}/certificates/verify/{code}"
+        
+        cert_doc = {
+            "id": code,
+            "certificate_id": code,
+            "verification_code": code,
+            "title": title,
+            "certification_name": title,
+            "category_key": key,
+            "recipient_name": full_name,
+            "recipient_email": email,
+            "recipient_phone": reg.get("phone"),
+            "roll_number": reg.get("roll_number") or reg.get("sa_id") or "",
+            "reg_id": reg_id,
+            "slug": reg.get("slug"),
+            "showcase_title": showcase_title,
+            "issuer": "StudentAlumni × Hackwave 3.0",
+            "issued_at": now_str,
+            "issue_date": datetime.now(timezone.utc).strftime("%d %B %Y"),
+            "created_at": now_str,
+            "status": "valid",
+            "status_label": "Officially Verified Certificate",
+            "image_url": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800",
+            "verify_url": verify_url,
+        }
+
+        await db.certificates.update_one({"verification_code": code}, {"$set": cert_doc}, upsert=True)
+        results[key] = {
+            "issued": True,
+            "code": code,
+            "title": title,
+            "verify_url": verify_url,
+            "delivered_at": now_str,
+        }
+
+    # Update echo_registrations document with 3-certificate delivery status
+    await db.echo_registrations.update_one(
+        {"_id": reg["_id"]},
+        {"$set": {
+            "certificates_3_status": results,
+            "has_3_certificates": True,
+            "certificate_issued": True,
+            "certificate_code": results["hackwave_participation"]["code"],
+            "certificate_url": results["hackwave_participation"]["verify_url"],
+            "certificates_delivered_count": 3,
+            "certificates_updated_at": now_str,
+        }}
+    )
+
+    return results
+
+
+async def _send_single_cert_email(
+    email: str,
+    full_name: str,
+    title: str,
+    code: str,
+    verify_url: str,
+    idx: int,
+    total: int,
+) -> bool:
+    """Send ONE individual certificate email (professional template). Returns True on provider accept."""
+    from core.email_templates import render_single_cert_email
+    email_content = render_single_cert_email(full_name, title, code, verify_url, idx, total)
+    try:
+        return bool(await send_email(email, f"🎓 {title} — {code}", email_content))
+    except Exception as e:
+        logger.warning(f"Single-cert email error ({code}): {e}")
+        return False
+
+
+ORDERED_3_CERT_KEYS = ["built_by_sunset", "hackwave_participation", "cyber_conclave"]
+
+
+async def _issue_3_with_emails(db, reg: dict, force_resend: bool = False) -> tuple:
+    """Issue all 3 certs for one registration + per-cert individual emails.
+
+    force_resend=False skips regs that already have all 3 codes AND emailed
+    status (safe to re-run bulk without spamming). Returns
+    (certs, email_status, new_count, skipped).
+    """
+    pre = reg.get("certificates_3_status") or {}
+    pre_codes = {k: (pre.get(k) or {}).get("code") for k in ORDERED_3_CERT_KEYS}
+    pre_emailed = {
+        k: bool((pre.get(k) or {}).get("email_sent"))
+        or bool(((reg.get("cert_email_status") or {}).get(k) or {}).get("email_sent"))
+        for k in ORDERED_3_CERT_KEYS
+    }
+
+    certs = await issue_3_echo_certificates(db, reg)
+    new_count = sum(1 for k in ORDERED_3_CERT_KEYS if certs.get(k, {}).get("code") != pre_codes.get(k))
+
+    if not force_resend and new_count == 0 and all(pre_emailed.values()):
+        return certs, {k: {"email_sent": True, "skipped_resend": True,
+                           "code": (certs.get(k) or {}).get("code")} for k in ORDERED_3_CERT_KEYS}, 0, True
+
+    email = (reg.get("email") or "").lower().strip()
+    full_name = (reg.get("full_name") or "").strip() or "ECHO Participant"
+    email_status: dict = {}
+    now_str = _now()
+    try:
+        total = len([k for k in ORDERED_3_CERT_KEYS if k in certs])
+        for i, key in enumerate(ORDERED_3_CERT_KEYS, start=1):
+            c = certs.get(key)
+            if not c:
+                continue
+            title = c.get("title", key)
+            code = c.get("code", "")
+            verify_url = c.get("verify_url", "")
+            sent = await _send_single_cert_email(email, full_name, title, code, verify_url, i, total) if email else False
+            err = None if sent else ("no recipient email" if not email else "provider rejected / not configured — see email_failures")
+            email_status[key] = {
+                "email_sent": sent,
+                "email_sent_at": now_str if sent else None,
+                "email_error": err,
+                "code": code,
+                "title": title,
+            }
+            certs[key]["email_sent"] = sent
+            certs[key]["email_sent_at"] = now_str if sent else None
+            certs[key]["email_error"] = err
+        await db.echo_registrations.update_one(
+            {"_id": reg["_id"]},
+            {"$set": {
+                "certificates_3_status": certs,
+                "cert_email_status": email_status,
+                "cert_email_updated_at": now_str,
+            }},
+        )
+        for key in ORDERED_3_CERT_KEYS:
+            c = certs.get(key)
+            if c and c.get("code"):
+                await db.certificates.update_one(
+                    {"verification_code": c["code"]},
+                    {"$set": {
+                        "email_sent": c.get("email_sent", False),
+                        "email_sent_at": c.get("email_sent_at"),
+                        "email_error": c.get("email_error"),
+                    }},
+                )
+    except Exception as e:
+        logger.warning(f"Issue-3-certificates per-cert email error: {e}")
+
+    return certs, email_status, new_count, False
+
+
+@router.post("/admin/registrations/{reg_id}/issue-3-certificates")
+async def admin_echo_issue_3_certificates(
+    reg_id: str,
+    request: Request,
+    _=Depends(_require_admin),
+):
+    """Issue all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave) for a registration."""
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg and ObjectId.is_valid(reg_id):
+        reg = await db.echo_registrations.find_one({"_id": ObjectId(reg_id)})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+
+    # Per-certificate individual emails (1 email per cert — scales to 1..N certs)
+    # + per-cert delivery status persisted for admin visibility.
+    certs, email_status, _new_count, _skipped = await _issue_3_with_emails(db, reg, force_resend=True)
+
+    sent_count = sum(1 for v in email_status.values() if v.get("email_sent"))
+    return {
+        "status": "success",
+        "message": f"All 3 certificates issued for {reg.get('full_name')} — {sent_count}/3 emails sent",
+        "certificates": certs,
+        "email_status": email_status,
+    }
+
+
+@router.post("/admin/bulk-issue-3-certificates")
+async def admin_echo_bulk_issue_3_certificates(
+    request: Request,
+    slug: Optional[str] = Query(None, description="Optional showcase slug filter"),
+    resend: bool = Query(False, description="Resend emails even where already sent"),
+    _=Depends(_require_admin),
+):
+    """One-click bulk: issue all 3 certificates to ALL registrations at once.
+
+    Dedup-safe (email+category+event reuse) — re-runs skip fully-issued+emailed
+    regs unless resend=true. Returns per-run summary with email delivery counts.
+    """
+    db = _get_db(request)
+    q: dict = {"slug": slug} if slug else {}
+    regs = await db.echo_registrations.find(q).to_list(10000)
+
+    processed = 0
+    regs_new_certs = 0
+    emails_sent = 0
+    emails_failed = 0
+    skipped = 0
+    failures: list = []
+    for reg in regs:
+        try:
+            _certs, estatus, new_count, was_skipped = await _issue_3_with_emails(
+                db, reg, force_resend=resend
+            )
+            processed += 1
+            if was_skipped:
+                skipped += 1
+                emails_sent += sum(1 for v in estatus.values() if v.get("email_sent"))
+                continue
+            if new_count > 0:
+                regs_new_certs += 1
+            emails_sent += sum(1 for v in estatus.values() if v.get("email_sent"))
+            emails_failed += sum(1 for v in estatus.values() if not v.get("email_sent"))
+        except Exception as e:
+            failures.append({"reg_id": reg.get("id"), "email": reg.get("email"), "error": str(e)[:200]})
+
+    return {
+        "status": "success",
+        "message": f"Bulk issue complete: {processed} processed, {regs_new_certs} newly issued, {emails_sent} emails sent, {skipped} skipped (already done)",
+        "total_registrations": len(regs),
+        "processed": processed,
+        "regs_newly_issued": regs_new_certs,
+        "emails_sent": emails_sent,
+        "emails_failed": emails_failed,
+        "skipped_already_done": skipped,
+        "failures": failures[:50],
+    }
+
+
+@router.post("/admin/registrations/{reg_id}/reset-certificates")
+async def admin_echo_reset_certificates(
+    reg_id: str,
+    request: Request,
+    _=Depends(_require_admin),
+):
+    """Reset certificate issued flags on a registration so it can be re-issued.
+
+    Clears: certificate_issued, has_3_certificates, certificates_3_status,
+    cert_email_status, certificate_code, certificate_url.
+    Does NOT delete existing db.certificates docs (those remain verifiable).
+    """
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg and ObjectId.is_valid(reg_id):
+        reg = await db.echo_registrations.find_one({"_id": ObjectId(reg_id)})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+
+    await db.echo_registrations.update_one(
+        {"_id": reg["_id"]},
+        {"$unset": {
+            "certificate_issued": "",
+            "has_3_certificates": "",
+            "certificates_3_status": "",
+            "cert_email_status": "",
+            "cert_email_updated_at": "",
+            "certificate_code": "",
+            "certificate_url": "",
+            "certificate_issued_at": "",
+            "certificates_delivered_count": "",
+            "certificates_updated_at": "",
+        }},
+    )
+    return {"status": "success", "message": f"Certificate flags reset for {reg.get('full_name')} — ready to re-issue"}
+
+
+@router.post("/admin/certificates/upload-template")
+async def admin_echo_upload_cert_template(
+    request: Request,
+    category: str = Body(..., description="built_by_sunset, hackwave_participation, cyber_conclave"),
+    title: str = Body(..., description="Template title"),
+    file_url: str = Body(..., description="Template file URL or base64"),
+    _=Depends(_require_admin),
+):
+    """Upload or configure a custom certificate template asset for Hackwave / ECHO events."""
+    db = _get_db(request)
+    template_doc = {
+        "category": category,
+        "title": title,
+        "file_url": file_url,
+        "updated_at": _now(),
+    }
+    await db.echo_cert_templates.update_one({"category": category}, {"$set": template_doc}, upsert=True)
+    return {"status": "success", "template": template_doc}
+
+
+@router.get("/admin/certificates/templates")
+async def admin_echo_get_cert_templates(request: Request, _=Depends(_require_admin)):
+    """List configured certificate templates for ECHO events."""
+    db = _get_db(request)
+    items = await db.echo_cert_templates.find({}).to_list(100)
+    for i in items:
+        i["_id"] = str(i["_id"])
+    return {"templates": items}
 
 
 @router.post("/admin/showcases/{slug}/bulk-issue-certificates")
@@ -5271,6 +5662,7 @@ async def export_echo_registrations_csv(
     request: Request,
     slug: Optional[str] = None,
     status: Optional[str] = None,
+    _=Depends(_require_admin),
 ):
     """
     Generate and stream CSV of student event & hackathon registrations (Hackwave 3.0 / ECHO 2026).
@@ -5369,6 +5761,122 @@ async def export_echo_registrations_csv(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+
+@router.get("/admin/export-incomplete-profiles-csv")
+@router.get("/export-incomplete-profiles-csv")
+async def export_incomplete_profiles_csv(
+    request: Request,
+    slug: Optional[str] = None,
+    filter_type: Optional[str] = Query("all", description="'all', 'no_account', 'incomplete_profile'"),
+    _=Depends(_require_admin),
+):
+    """
+    Generate and stream CSV of registrants who do NOT have an SA account or have incomplete (<100%) profiles.
+    Includes full name, email, phone, college, account status, completion %, missing items, and registration date.
+    """
+    import csv
+    import io
+    from fastapi.responses import Response
+    from services.profile_service import compute_profile_completion
+
+    db = _get_db(request)
+    query: Dict[str, Any] = {}
+    if slug:
+        query["slug"] = slug
+
+    regs = await db.echo_registrations.find(query).sort("created_at", -1).to_list(10000)
+
+    # Collect emails and phones for batch lookup
+    all_emails = list({r.get("email").lower().strip() for r in regs if r.get("email")})
+    all_phones = list({r.get("phone").strip() for r in regs if r.get("phone")})
+
+    user_map: Dict[str, dict] = {}
+    if all_emails or all_phones:
+        u_or = []
+        if all_emails:
+            u_or.append({"email": {"$in": all_emails}})
+        if all_phones:
+            u_or.append({"phone": {"$in": all_phones}})
+        
+        async for u in db.users.find({"$or": u_or}):
+            comp = compute_profile_completion(u)
+            u_info = {
+                "user_id": str(u.get("_id")),
+                "email": u.get("email"),
+                "phone": u.get("phone"),
+                "full_name": u.get("full_name"),
+                "profile_completion_pct": comp.get("percentage", 0),
+                "is_100": comp.get("percentage", 0) >= 100,
+                "missing_items": [item["label"] for item in comp.get("items", []) if not item["done"]],
+            }
+            if u.get("email"):
+                user_map[u.get("email").lower().strip()] = u_info
+            if u.get("phone"):
+                user_map[u.get("phone").strip()] = u_info
+
+    output = io.StringIO()
+    headers = [
+        "Registration ID",
+        "Event Title",
+        "Event Slug",
+        "Full Name",
+        "Email",
+        "Phone Number",
+        "College / Campus",
+        "Account Status",
+        "Profile Completion %",
+        "Missing Profile Requirements",
+        "Registration Date"
+    ]
+
+    writer = csv.DictWriter(output, fieldnames=headers)
+    writer.writeheader()
+
+    exported_count = 0
+    for r in regs:
+        email = (r.get("email") or "").lower().strip()
+        phone = (r.get("phone") or "").strip()
+        
+        sa_user = user_map.get(email) or user_map.get(phone)
+        has_account = bool(sa_user or r.get("user_id"))
+        pct = sa_user.get("profile_completion_pct", 0) if sa_user else 0
+
+        if has_account and pct >= 100:
+            continue  # Skip 100% complete accounts
+
+        if filter_type == "no_account" and has_account:
+            continue
+        if filter_type == "incomplete_profile" and (not has_account or pct >= 100):
+            continue
+
+        account_status = "No SA Account" if not has_account else f"Incomplete SA Profile ({pct}%)"
+        missing_str = "Create SA Account" if not has_account else (", ".join(sa_user.get("missing_items", [])) or "Incomplete profile details")
+
+        writer.writerow({
+            "Registration ID": r.get("id") or str(r.get("_id")),
+            "Event Title": r.get("showcase_title") or r.get("event_title") or r.get("slug") or "",
+            "Event Slug": r.get("slug") or "",
+            "Full Name": r.get("full_name") or "",
+            "Email": r.get("email") or "",
+            "Phone Number": r.get("phone") or "",
+            "College / Campus": r.get("college") or r.get("showcase_college") or "",
+            "Account Status": account_status,
+            "Profile Completion %": f"{pct}%" if has_account else "0%",
+            "Missing Profile Requirements": missing_str,
+            "Registration Date": r.get("registered_at") or r.get("created_at") or "",
+        })
+        exported_count += 1
+
+    csv_data = output.getvalue()
+    filename = f"incomplete_profiles_export_{filter_type}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 
 
 
@@ -5675,11 +6183,11 @@ async def admin_broadcast_send(
     reg_url = f"{frontend_url}/echo/{event_slug}/register"
 
     attachments = []
-    pdf_file = Path(__file__).parent / "static" / "HackWave_3.0_Event_Handbook.pdf"
-    if pdf_file.exists():
+    pdf_file, pdf_filename = _get_showcase_handbook_file(showcase)
+    if pdf_file and pdf_file.exists():
         try:
             attachments.append({
-                "filename": "HackWave_3.0_Event_Handbook.pdf",
+                "filename": pdf_filename,
                 "content": pdf_file.read_bytes(),
             })
         except Exception:
@@ -6640,6 +7148,9 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
         file_bytes = base64.b64decode(data)
     else:
         raise HTTPException(status_code=400, detail="No file or base64 data provided")
+
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(file_bytes)
 
     MAX_SIZE = 10 * 1024 * 1024
     if len(file_bytes) > MAX_SIZE:

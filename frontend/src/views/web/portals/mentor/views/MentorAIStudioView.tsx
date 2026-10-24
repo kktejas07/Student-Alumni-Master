@@ -338,7 +338,7 @@ function ImpactTile({ icon, label, value, accent }: { icon: any; label: string; 
 const s = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
   headerIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  h1: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 20 },
+  h1: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 20 },
   h1Sub: { color: MC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 2 },
   refreshBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5, height: 32, paddingHorizontal: 12, borderRadius: 9,
@@ -349,22 +349,22 @@ const s = StyleSheet.create({
   
   kpi: { minWidth: 140, flex: 1, backgroundColor: MC.card, borderWidth: 1, borderRadius: 12, padding: 14 },
   kpiLabel: { fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.5 },
-  kpiValue: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 24 },
+  kpiValue: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 24 },
 
   sectionCard: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   sectionIcon: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  sectionTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
+  sectionTitle: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 15 },
 
   gapRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  gapName: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12, width: 120 },
+  gapName: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12, width: 120 },
   gapBarTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' },
   gapBarFill: { height: '100%', borderRadius: 4 },
   gapScore: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11, width: 130, textAlign: 'right' },
 
   colHeader: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 11, textTransform: 'uppercase' },
   tableRow: { flexDirection: 'row', paddingVertical: 12, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
-  menteeName: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13 },
+  menteeName: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13 },
   flagText: { color: '#FCA5A5', fontSize: 10, marginTop: 2 },
   riskBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
   riskText: { fontFamily: FONTS.bold, fontSize: 10, textTransform: 'uppercase' },
@@ -373,21 +373,21 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, height: 30, borderRadius: 8,
     backgroundColor: TINT, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  prepCtaText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 11 },
+  prepCtaText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 11 },
 
   prepRow: { flexDirection: 'row', gap: 8 },
   prepLabel: { color: TINT, fontFamily: FONTS.bold, fontSize: 12, width: 60 },
-  prepValue: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12, flex: 1, lineHeight: 18 },
+  prepValue: { color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 12, flex: 1, lineHeight: 18 },
 
   insightCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  insightText: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13, flex: 1 },
+  insightText: { color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 13, flex: 1 },
 
   activityText: { color: '#D1D5DB', fontFamily: FONTS.med, fontSize: 12.5 },
   dateBox: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: `rgba(59,130,246,0.1)`, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   dateText: { fontFamily: FONTS.bold, fontSize: 11 },
 
   rankNum: { color: GOLD, fontFamily: FONTS.xbold, fontSize: 14 },
-  scoreText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 14 },
+  scoreText: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 14 },
 
-  resourceText: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5, textDecorationLine: 'underline' },
+  resourceText: { color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 12.5, textDecorationLine: 'underline' },
 });

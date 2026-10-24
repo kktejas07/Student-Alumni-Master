@@ -8,7 +8,7 @@ Exposes endpoints for:
 """
 from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from core.deps import get_current_user, require_role
 from services.agents.swarm import swarm_engine, SwarmProjectResult
@@ -60,7 +60,7 @@ class GenerateMouRequest(BaseModel):
 
 class DispatchBroadcastRequest(BaseModel):
     community_ids: List[str]
-    channel: Optional[str] = "telegram"
+    channel: Optional[str] = "whatsapp"  # whatsapp | email (telegram/discord not integrated)
     content_title: Optional[str] = "ECHO 2026 Hackathon Announcement"
     message: Optional[str] = "🚀 Registrations now open for Student Alumni Hackathon 2026!"
 
@@ -92,7 +92,7 @@ router = APIRouter(prefix="/admin/agents", tags=["Autonomous Agents"])
 
 
 @router.get("/overview")
-async def get_agent_ecosystem_overview(user=Depends(require_role("admin", "superadmin", "college"))):
+async def get_agent_ecosystem_overview(user=Depends(require_role("admin", "superadmin", "super_admin"))):
     """Returns overview of all available autonomous agents and their operational status."""
     return {
         "status": "healthy",
@@ -145,7 +145,7 @@ async def get_agent_ecosystem_overview(user=Depends(require_role("admin", "super
 @router.post("/swarm/run", response_model=SwarmProjectResult)
 async def run_multi_agent_swarm(
     req: SwarmRunRequest,
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Triggers the MetaGPT/ChatDev multi-agent swarm to design, architect, code, and review a project."""
     return await swarm_engine.run_swarm_pipeline(req.project_title, req.user_prompt, req.domain or "edtech")
@@ -153,7 +153,7 @@ async def run_multi_agent_swarm(
 @router.post("/autopilot/run", response_model=AutoPilotTaskResult)
 async def run_autopilot_task(
     req: AutoPilotRunRequest,
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Triggers the AutoGPT goal-driven autonomous loop to execute an administrative or career campaign goal."""
     return await autopilot_engine.execute_goal(req.goal, req.context)
@@ -161,7 +161,7 @@ async def run_autopilot_task(
 @router.post("/qa/simulate", response_model=QASimulationReport)
 async def run_qa_persona_simulation(
     req: QASimulateRequest = Body(default_factory=QASimulateRequest),
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Executes synthetic user journey testing across full-stack endpoints."""
     return await qa_agent.run_persona_simulation(req.persona or "student")
@@ -169,7 +169,7 @@ async def run_qa_persona_simulation(
 @router.post("/specialized/{agent_type}", response_model=AgentReport)
 async def run_specialized_agent(
     agent_type: str,
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Executes a specialized operational agent audit (security, data_hygiene, moderation)."""
     if agent_type == "security":
@@ -186,12 +186,12 @@ async def run_specialized_agent(
 from services.agents.agent_scheduler import agent_scheduler, SchedulerStatusResponse
 
 @router.get("/scheduler/status", response_model=SchedulerStatusResponse)
-async def get_agent_scheduler_status(user=Depends(require_role("admin", "superadmin", "college"))):
+async def get_agent_scheduler_status(user=Depends(require_role("admin", "superadmin", "super_admin"))):
     """Returns the operational telemetry and task statuses of the 30-minute recurring agent worker."""
     return agent_scheduler.get_status()
 
 @router.post("/scheduler/trigger-now")
-async def trigger_agent_scheduler_cycle(user=Depends(require_role("admin", "superadmin", "college"))):
+async def trigger_agent_scheduler_cycle(user=Depends(require_role("admin", "superadmin", "super_admin"))):
     """Manually triggers the 30-minute multi-agent swarm cycle on demand."""
     from db import db
     results = await agent_scheduler.run_cycle(db=db)
@@ -205,7 +205,7 @@ from services.agents.daily_audit_agents import (
 )
 
 @router.get("/daily-audit/latest", response_model=DailyDossierResponse)
-async def get_latest_daily_audit_dossier(user=Depends(require_role("admin", "superadmin", "college"))):
+async def get_latest_daily_audit_dossier(user=Depends(require_role("admin", "superadmin", "super_admin"))):
     """Returns the most recent 24-hour audit dossier covering unit tests, analytics, and debugging logs."""
     from db import db
     dossier = daily_audit_service.get_latest_dossier()
@@ -214,7 +214,7 @@ async def get_latest_daily_audit_dossier(user=Depends(require_role("admin", "sup
     return dossier
 
 @router.post("/daily-audit/trigger-now", response_model=DailyDossierResponse)
-async def trigger_daily_audit_cycle(user=Depends(require_role("admin", "superadmin", "college"))):
+async def trigger_daily_audit_cycle(user=Depends(require_role("admin", "superadmin", "super_admin"))):
     """Manually compiles and executes the 24-hour audit swarm across unit tests, analytics, and logs."""
     from db import db
     return await daily_audit_service.run_24hr_dossier(db=db)
@@ -224,14 +224,14 @@ async def trigger_daily_audit_cycle(user=Depends(require_role("admin", "superadm
 from services.agents.custom_teams_engine import custom_teams_engine, CustomTeamRunResult
 
 @router.get("/teams")
-async def list_custom_agent_teams(user=Depends(require_role("admin", "superadmin", "college"))):
+async def list_custom_agent_teams(user=Depends(require_role("admin", "superadmin", "super_admin"))):
     """Fetches all custom and pre-seeded AI agent teams."""
     from db import db
     teams = await custom_teams_engine.get_all_teams(db)
     return {"teams": teams}
 
 @router.get("/teams/{team_id}")
-async def get_custom_agent_team(team_id: str, user=Depends(require_role("admin", "superadmin", "college"))):
+async def get_custom_agent_team(team_id: str, user=Depends(require_role("admin", "superadmin", "super_admin"))):
     """Fetches details for a specific AI agent team."""
     from db import db
     team = await custom_teams_engine.get_team(db, team_id)
@@ -242,7 +242,7 @@ async def get_custom_agent_team(team_id: str, user=Depends(require_role("admin",
 @router.post("/teams")
 async def create_custom_agent_team(
     team_data: Dict[str, Any] = Body(...),
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Creates a new custom AI agent team."""
     from db import db
@@ -253,7 +253,7 @@ async def create_custom_agent_team(
 async def update_custom_agent_team(
     team_id: str,
     team_data: Dict[str, Any] = Body(...),
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Updates an existing custom AI agent team."""
     from db import db
@@ -266,7 +266,7 @@ async def update_custom_agent_team(
 @router.delete("/teams/{team_id}")
 async def delete_custom_agent_team(
     team_id: str,
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Deletes a custom AI agent team."""
     from db import db
@@ -277,7 +277,7 @@ async def delete_custom_agent_team(
 async def run_custom_agent_team(
     team_id: str,
     req: TeamRunRequest,
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Executes a collaborative task across all agents in the selected AI team."""
     from db import db
@@ -291,14 +291,14 @@ async def run_custom_agent_team(
 from services.agents.outreach_scout_service import outreach_scout_service
 
 @router.get("/outreach/status")
-async def get_outreach_scout_status(user=Depends(require_role("admin", "superadmin", "college"))):
+async def get_outreach_scout_status(user=Depends(require_role("admin", "superadmin", "super_admin"))):
     """Returns status of 8-hour automated community outreach scouting worker."""
     return outreach_scout_service.get_status()
 
 @router.get("/outreach/communities")
 async def list_scouted_communities(
     domain: Optional[str] = None,
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Fetches scouted student communities across domains with full contact details and free goodies."""
     from db import db
@@ -306,7 +306,7 @@ async def list_scouted_communities(
     return {"communities": communities, "status": outreach_scout_service.get_status()}
 
 @router.post("/outreach/scout-now")
-async def trigger_outreach_scout(user=Depends(require_role("admin", "superadmin", "college"))):
+async def trigger_outreach_scout(user=Depends(require_role("admin", "superadmin", "super_admin"))):
     """Manually triggers the 8-hour community & goodies scouting worker."""
     from db import db
     return await outreach_scout_service.scout_now(db)
@@ -314,7 +314,7 @@ async def trigger_outreach_scout(user=Depends(require_role("admin", "superadmin"
 @router.post("/outreach/communities/convert-profile")
 async def convert_community_to_user_profile(
     req: ConvertProfileRequest,
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Converts/Registers a scouted community lead into a Super Admin user profile (community_partner, mentor, or student)."""
     from db import db
@@ -326,7 +326,7 @@ async def convert_community_to_user_profile(
 @router.put("/outreach/scheduler/interval")
 async def update_scheduler_interval(
     req: SchedulerIntervalRequest,
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Dynamically updates the scouting cadence interval."""
     return outreach_scout_service.set_interval_hours(req.hours)
@@ -335,7 +335,7 @@ async def update_scheduler_interval(
 async def update_community_crm_stage(
     community_id: str,
     req: UpdateStageRequest,
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Updates community stage in the CRM Kanban pipeline."""
     from db import db
@@ -344,7 +344,7 @@ async def update_community_crm_stage(
 @router.post("/outreach/campaign/dispatch")
 async def dispatch_outreach_campaign(
     req: DispatchCampaignRequest,
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Dispatches automated email/WhatsApp outreach campaign to community lead."""
     from db import db
@@ -357,7 +357,7 @@ async def dispatch_outreach_campaign(
 async def match_community_event_cohost(
     community_id: str,
     req: MatchEventRequest = Body(default_factory=MatchEventRequest),
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Matches a community as official co-host / sponsor for an ECHO event."""
     from db import db
@@ -369,7 +369,7 @@ from services.agents.mou_generator_service import mou_generator_service
 from services.agents.community_broadcast_service import community_broadcast_service
 
 @router.get("/outreach/analytics")
-async def get_outreach_impact_analytics(user=Depends(require_role("admin", "superadmin", "college"))):
+async def get_outreach_impact_analytics(user=Depends(require_role("admin", "superadmin", "super_admin"))):
     """Returns live Impact ROI analytics (Total $ Unlocked, Student Reach, Perks Claimed)."""
     from db import db
     return await outreach_scout_service.get_impact_analytics(db)
@@ -377,7 +377,7 @@ async def get_outreach_impact_analytics(user=Depends(require_role("admin", "supe
 @router.post("/outreach/mou/generate")
 async def generate_partnership_mou(
     req: GenerateMouRequest,
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Generates official MoU contract document for partner community."""
     from db import db
@@ -389,16 +389,16 @@ async def generate_partnership_mou(
 @router.post("/outreach/broadcast")
 async def dispatch_community_broadcast(
     req: DispatchBroadcastRequest,
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Dispatches event announcements and job openings to community Telegram & WhatsApp groups."""
     from db import db
-    return await community_broadcast_service.dispatch_broadcast(db, req.community_ids, req.channel or "telegram", req.content_title or "ECHO 2026 Hackathon Announcement", req.message or "")
+    return await community_broadcast_service.dispatch_broadcast(db, req.community_ids, req.channel or "whatsapp", req.content_title or "Student Alumni announcement", req.message or "")
 
 @router.post("/outreach/ambassadors/match")
 async def match_alumni_regional_ambassador(
     req: MatchAmbassadorRequest,
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Matches a verified alumni in the region to serve as Ambassador for student community."""
     from db import db
@@ -415,7 +415,7 @@ from services.agents.campus_venue_speaker_service import campus_venue_speaker_se
 @router.post("/outreach/blogs/generate")
 async def generate_community_or_event_blog(
     req: GenerateBlogRequest = Body(default_factory=GenerateBlogRequest),
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Auto-generates structured blog posts for student communities or events and syncs to db.blogs."""
     from db import db
@@ -432,7 +432,7 @@ async def generate_community_or_event_blog(
 @router.get("/outreach/venues")
 async def scout_campus_venues(
     city: str = Query("Bengaluru"),
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Scouts auditorium halls, campus centers, and co-working spaces in target city."""
     from db import db
@@ -442,7 +442,7 @@ async def scout_campus_venues(
 @router.post("/outreach/speakers/match")
 async def match_alumni_guest_speaker(
     req: MatchSpeakerRequest = Body(default_factory=MatchSpeakerRequest),
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Matches domain expert alumni as guest speaker and drafts invitation."""
     from db import db
@@ -451,7 +451,7 @@ async def match_alumni_guest_speaker(
 @router.post("/outreach/media-kit/generate")
 async def generate_community_media_kit(
     req: MediaKitRequest,
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Builds digital media kit & bi-weekly newsletter payload."""
     from db import db
@@ -460,7 +460,7 @@ async def generate_community_media_kit(
 @router.post("/outreach/social-spotlight")
 async def generate_social_media_spotlight(
     req: SocialSpotlightRequest,
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Generates formatted LinkedIn & Twitter/X spotlight posts."""
     from db import db
@@ -474,7 +474,7 @@ async def generate_social_media_spotlight(
 
 
 @router.get("/observability")
-async def get_agent_observability_alias(user=Depends(require_role("admin", "superadmin", "college"))):
+async def get_agent_observability_alias(user=Depends(require_role("admin", "superadmin", "super_admin"))):
     """Returns AI LLM & RAG observability telemetry."""
     from services.agents.ai_observability import ai_observability
     from db import db
@@ -484,7 +484,7 @@ async def get_agent_observability_alias(user=Depends(require_role("admin", "supe
 @router.post("/outreach/goodies-harvester/run")
 async def trigger_goodies_harvester_loop(
     req: HarvesterLoopRequest = Body(default_factory=HarvesterLoopRequest),
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Triggers the Multi-Agent Goodies & Offer Harvester Loop to scout platforms for free coupons, dev credits, and swag."""
     from db import db
@@ -493,8 +493,61 @@ async def trigger_goodies_harvester_loop(
 @router.post("/outreach/specs-dispatcher/run")
 async def trigger_multi_spec_outreach_loop(
     req: DispatchSpecLoopRequest = Body(default_factory=DispatchSpecLoopRequest),
-    user=Depends(require_role("admin", "superadmin", "college"))
+    user=Depends(require_role("admin", "superadmin", "super_admin"))
 ):
     """Dispatches customized Partnership Specs (Goodies, Event Sponsorship, Mentorship) to platforms & partner communities in an automated loop."""
     from db import db
     return await outreach_scout_service.run_multi_spec_outreach_loop(db, req.spec_type or "goodies_partnership")
+
+
+# ── CI/CD, Git Scout & PR Evaluator Loop Agent Endpoints ─────────────────────
+from services.agents.cicd_pr_evaluator_agent import (
+    git_repo_scout_agent,
+    cicd_pr_evaluator_agent,
+    cicd_loop_agent,
+    PREvalRequest,
+)
+
+@router.post("/cicd/scout-repo")
+@router.post("/cicd-scout")
+async def scout_git_repository(
+    repo_url: str = Query("https://github.com/kktejas07/Student-Alumni-Master", description="Git repository URL to scout"),
+    user=Depends(require_role("admin", "superadmin"))
+):
+    """Scout git repository for CI/CD workflow health, security scans & quality gates."""
+    return await git_repo_scout_agent.scout_repository(repo_url)
+
+@router.post("/cicd/evaluate-pr")
+@router.post("/evaluate-pr")
+async def evaluate_pull_request(
+    req: PREvalRequest = Body(default_factory=PREvalRequest),
+    user=Depends(require_role("admin", "superadmin"))
+):
+    """Evaluate Pull Request diff across Security SAST, Lints, Test Coverage & Risk."""
+    return await cicd_pr_evaluator_agent.evaluate_pr(req)
+
+@router.get("/cicd/loop/status")
+async def get_cicd_loop_status(
+    user=Depends(require_role("admin", "superadmin"))
+):
+    """Get status of the continuous CI/CD PR Evaluator background loop agent."""
+    return cicd_loop_agent.get_status()
+
+@router.post("/cicd/loop/start")
+@router.post("/cicd-loop")
+async def start_cicd_loop(
+    interval_seconds: int = Query(1800, ge=60, le=86400),
+    user=Depends(require_role("admin", "superadmin"))
+):
+    """Start the continuous background loop worker for PR evaluation & test auditing."""
+    started = cicd_loop_agent.start_loop(interval_seconds=interval_seconds)
+    return {"status": "success" if started else "already_running", "agent": cicd_loop_agent.get_status()}
+
+@router.post("/cicd/loop/stop")
+async def stop_cicd_loop(
+    user=Depends(require_role("admin", "superadmin"))
+):
+    """Stop the continuous background loop worker."""
+    stopped = cicd_loop_agent.stop_loop()
+    return {"status": "success" if stopped else "not_running", "agent": cicd_loop_agent.get_status()}
+

@@ -40,12 +40,7 @@ export const SC = {
   pink:  '#EC4899',
 } as const;
 
-export const FONTS = {
-  bold:  'DMSans_700Bold',
-  semi:  'DMSans_600SemiBold',
-  med:   'DMSans_500Medium',
-  xbold: 'DMSans_800ExtraBold',
-};
+export { FONTS } from '@/src/theme/typography';
 
 export const PALETTE = {
   // Canvas
@@ -82,26 +77,7 @@ export const PALETTE = {
   violetGlow:   '0 4px 16px rgba(37,99,235,0.12)',
 } as const;
 
-export const TYPO = {
-  // Display (Outfit)
-  display400: 'Outfit_400Regular',
-  display500: 'Outfit_500Medium',
-  display600: 'Outfit_600SemiBold',
-  display700: 'Outfit_700Bold',
-  display800: 'Outfit_800ExtraBold',
-
-  // Body (Plus Jakarta Sans)
-  body400:  'PlusJakartaSans_400Regular',
-  body500:  'PlusJakartaSans_500Medium',
-  body600:  'PlusJakartaSans_600SemiBold',
-  body700:  'PlusJakartaSans_700Bold',
-
-  // Mono (JetBrains Mono)
-  mono400:  'JetBrainsMono_400Regular',
-  mono500:  'JetBrainsMono_500Medium',
-  mono600:  'JetBrainsMono_600SemiBold',
-  mono700:  'JetBrainsMono_700Bold',
-} as const;
+export { TYPO } from '@/src/theme/typography';
 
 export function useColors() {
   return SC;

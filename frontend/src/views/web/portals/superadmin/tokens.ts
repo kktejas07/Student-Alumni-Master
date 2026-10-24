@@ -6,26 +6,27 @@
  * import resolveColors() to make module-scope StyleSheets theme-aware.
  */
 import { useTheme } from '@/src/theme/ThemeContext';
+import { COLORS } from '@/src/theme/tokens';
 
 // ─── Core tokens (from DESIGN-HANDOFF §1.2) ────────────────────────────────
 
 export const DARK_SAC = {
   // Core (exact values from sa-dashboard-export.html reference)
-  bg:        '#08080F',
-  bgPage:    '#08080F',
-  panel:     '#101019',
-  panel2:    '#14141F',
-  line:      '#1F1F30',
-  line2:     '#262638',
-  text:      '#F4F4FA',
-  muted:     '#8A8A9E',
+  bg:        COLORS.bg,
+  bgPage:    COLORS.bg,
+  panel:     COLORS.surface1,
+  panel2:    COLORS.surface2,
+  line:      COLORS.line,
+  line2:     COLORS.line2,
+  text:      COLORS.text,
+  muted:     COLORS.textS,
   dim:       '#7E7E92',
   chrome:    'rgba(8,8,15,.82)',
   chromeSolid:'rgba(16,16,25,.92)',
 
   // Brand / accent
-  violet:    '#7C5CFC',
-  violetLt:  '#A78BFA',
+  violet:    COLORS.primary,
+  violetLt:  COLORS.primaryLight,
   accentLine:'#2C2A52',
   tint:      'rgba(124,92,252,.10)',
   tintStrong:'rgba(124,92,252,.18)',
@@ -36,13 +37,13 @@ export const DARK_SAC = {
   ev1: '#A78BFA', ev2: '#34D399', ev3: '#F1B8D9', ev4: '#F59E0B', ev5: '#6FD6FF',
 
   // Semantic
-  ok:        '#34D399',
+  ok:        COLORS.green,
   okTint:    'rgba(16,185,129,.13)',
   okLine:    '#17503E',
-  amber:     '#F59E0B',
+  amber:     COLORS.amber,
   warnTint:  'rgba(245,158,11,.10)',
   warnLine:  '#4A3410',
-  danger:    '#F0616B',
+  danger:    COLORS.red,
   dangerTint:'rgba(240,97,107,.13)',
   green:     '#10B981',
   sky:       '#6FD6FF',
@@ -76,9 +77,9 @@ export const DARK_SAC = {
   gradEnd:   '#34D3A6',
 
   // Backward-compatible aliases (old code uses these)
-  primary:       '#7C5CFC',
+  primary:       COLORS.primary,
   primaryD:      '#5B3FD9',
-  primaryL:      '#A78BFA',
+  primaryL:      COLORS.primaryLight,
   accent:        '#F59E0B',
   accentBright:  '#FCD34D',
   card:          '#101019',
@@ -87,11 +88,11 @@ export const DARK_SAC = {
   border:        '#1F1F30',
   border2:       '#262638',
   bg2:           '#101019',
-  red:           '#F0616B',
-  blue:          '#3B82F6',
+  red:           COLORS.red,
+  blue:          COLORS.blue,
   purple:        '#8B5CF6',
   pink:          '#EC4899',
-  teal:          '#22D3EE',
+  teal:          COLORS.cyan,
 } as const;
 
 export const LIGHT_SAC = {
@@ -219,14 +220,5 @@ export function resolveColors<T extends Record<string, any>>(sheet: T, tokens: S
   return result;
 }
 
-/**
- * Font tokens — Outfit for dashboard surfaces (DESIGN-HANDOFF §2).
- * Dashboard, Events, Resources use Outfit; Landing/Onboarding use Manrope.
- */
-export const FONTS = {
-  bold:  'Outfit_700Bold',
-  semi:  'Outfit_600SemiBold',
-  med:   'Outfit_500Medium',
-  xbold: 'Outfit_700Bold',
-  regular: 'Outfit_400Regular',
-};
+// Font tokens: one type system for every portal (src/theme/typography.ts).
+export { FONTS } from '@/src/theme/typography';

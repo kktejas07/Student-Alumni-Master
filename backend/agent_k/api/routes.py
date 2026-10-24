@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Header, Body, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import jwt
-from server import limiter, JWT_SECRET, JWT_ALGORITHM
+from core.config import limiter, JWT_SECRET, JWT_ALGORITHM
 from core.middleware import get_real_ip
 from bson import ObjectId
 
@@ -103,7 +103,7 @@ async def agent_k_feedback(body: FeedbackRequest, authorization: Optional[str] =
         raise HTTPException(401, "Not authenticated")
         
     memory = ChatMemory()
-    success = await memory.add_feedback(body.response_id, body.is_helpful, body.comment)
+    success = await memory.add_feedback(body.response_id, body.is_helpful, body.comment or "")
     if not success:
         raise HTTPException(404, "Response not found")
     return {"status": "success"}
@@ -336,7 +336,7 @@ async def get_hackwave_copilot_info(authorization: Optional[str] = Header(None))
     
     # Check if user has an active ticket
     user_tickets = []
-    if user_id:
+    if user_id and user:
         regs = await _db.echo_registrations.find({"$or": [{"user_id": user_id}, {"email": user.get("email")}]}).to_list(10)
         for r in regs:
             user_tickets.append({
@@ -407,7 +407,7 @@ class HackWaveQueryRequest(BaseModel):
 async def query_hackwave_copilot(body: HackWaveQueryRequest, authorization: Optional[str] = Header(None)):
     """Handles HackWave 3.0 natural-language queries for Agent K."""
     user = await resolve_user(authorization)
-    q = (body.query or "").lower().trim()
+    q = (body.query or "").lower().strip()
     
     if "prize" in q or "pool" in q or "money" in q:
         return {
@@ -430,7 +430,7 @@ async def query_hackwave_copilot(body: HackWaveQueryRequest, authorization: Opti
     if "ticket" in q or "qr" in q or "pass" in q or "price" in q:
         user_id = str(user["_id"]) if user else None
         ticket_str = ""
-        if user_id:
+        if user_id and user:
             regs = await _db.echo_registrations.find({"$or": [{"user_id": user_id}, {"email": user.get("email")}]}).to_list(5)
             if regs:
                 t = regs[0]

@@ -39,7 +39,7 @@ _db        = _client[_DB_NAME]
 # ─── Token / auth helpers ──────────────────────────────────────────
 try:
     import jwt
-    _JWT_SECRET = os.getenv("JWT_SECRET", "")
+    from core.security import JWT_SECRET as _JWT_SECRET
 except Exception:
     jwt = None  # type: ignore
     _JWT_SECRET = ""
@@ -481,6 +481,9 @@ async def admin_import_talent_csv(
         raise HTTPException(400, "Only CSV or XLSX files are supported")
 
     content = await file.read()
+
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(content)
 
     rows: List[Dict[str, str]] = []
     if file.filename.lower().endswith(".csv"):
@@ -1014,7 +1017,11 @@ async def ai_parse_resume(
     """AI Resume Parser: Extracts skills, education, experience, and projects from resume."""
     await _require_admin(authorization)
     filename = file.filename or "resume.pdf"
-    
+
+    from security_scanner import scan_file_for_viruses_async
+    content = await file.read()
+    await scan_file_for_viruses_async(content)
+
     return {
         "filename": filename,
         "parsed_profile": {

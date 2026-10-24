@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import io
+import logging
 import os
 import random
 import re
@@ -33,7 +34,7 @@ from core.security import (
     generate_unique_id, generate_qr_code,
     JWT_SECRET, JWT_ALGORITHM
 )
-from core.models import UserRole, AuthResponse, UserResponse
+from core.models import SelfServiceRole, AuthResponse, UserResponse
 from core.security import serialize_user
 from core.deps import get_current_user
 from core.email import send_email
@@ -42,6 +43,25 @@ from firebase_admin import credentials, initialize_app, auth as fb_auth
 
 router = APIRouter(tags=["auth"])
 limiter = Limiter(key_func=get_real_ip)
+logger = logging.getLogger("auth")
+
+try:
+    from activity_credits import _record_activity
+except ImportError:
+    try:
+        from backend.activity_credits import _record_activity
+    except ImportError:
+        _record_activity = None
+
+
+async def _try_record_activity(user: dict, activity_type: str = "daily_login") -> None:
+    """Best-effort activity credit recording. Never raises or breaks auth flows."""
+    if not _record_activity or not user:
+        return
+    try:
+        await _record_activity(user, activity_type)
+    except Exception as e:
+        logger.warning(f"[AUTH] Could not record {activity_type} activity: {e}")
 
 
 def _compute_age(dob_str: Optional[str]) -> Optional[int]:
@@ -76,7 +96,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     full_name: str
-    role: UserRole
+    role: SelfServiceRole
     phone: Optional[str] = None
     # Per spec — Date of Birth is mandatory at registration. ISO 8601 (YYYY-MM-DD).
     # Backend enforces minimum age of 18 unless the role is 'student' (>=13).
@@ -187,7 +207,7 @@ class OAuthCallback(BaseModel):
     email: Optional[EmailStr] = None
     full_name: Optional[str] = None
     picture: Optional[str] = None
-    role: Optional[UserRole] = "student"   # Used only when creating a new account
+    role: Optional[SelfServiceRole] = "student"   # Used only when creating a new account
 
 
 
@@ -494,8 +514,9 @@ async def login(request: Request, req: LoginRequest):
             {"_id": user["_id"]},
             {"$set": {"last_login": datetime.now(timezone.utc)}}
         )
+        await _try_record_activity(user, "daily_login")
     except Exception as e:
-        print(f"[LOGIN] Failed to update last_login: {e}", flush=True)
+        logger.warning(f"[LOGIN] Failed to update last_login: {e}")
 
     # ── Stage 5: Serialize user profile ──
     _t_ser0 = _time.perf_counter()
@@ -524,7 +545,7 @@ async def refresh_token(request: Request, payload: dict):
     if not token:
         raise HTTPException(400, "Missing refresh_token")
     try:
-        data = jwt.decode(token, JWT_SECRET or "", algorithms=[JWT_ALGORITHM])
+        data = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         if data.get("type") != "refresh":
             raise HTTPException(401, "Invalid token type")
         user = await db.users.find_one({"_id": ObjectId(data["sub"])})
@@ -572,22 +593,8 @@ def _generate_totp_qr(uri: str) -> str:
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
-@router.get("/downloads/sa_flows.zip")
-async def download_sa_flows_zip():
-    """Serves the bundled flow-screenshots ZIP for the current user session."""
-    p = "/app/backend/static_downloads/sa_flows.zip"
-    if not os.path.exists(p):
-        raise HTTPException(404, "Archive not found")
-    return FileResponse(p, media_type="application/zip", filename="sa_flows.zip")
 
 
-@router.get("/downloads/expo_qr.png")
-async def download_expo_qr():
-    """Serves the QR code that Expo Go can scan to open the live app."""
-    p = "/app/backend/static_downloads/expo_qr.png"
-    if not os.path.exists(p):
-        raise HTTPException(404, "QR not found")
-    return FileResponse(p, media_type="image/png")
 
 
 # ----------------------------------------------------------------------------
@@ -1130,6 +1137,7 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
                 update["photo_data"] = picture
         await db.users.update_one({"_id": user["_id"]}, {"$set": update})
         updated = await db.users.find_one({"_id": user["_id"]})
+        await _try_record_activity(updated or user, "daily_login")
         return updated if updated is not None else user
 
     # New OAuth user — create with onboarding NOT yet completed so the client
@@ -1161,6 +1169,7 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
     }
     res = await db.users.insert_one(user_doc)
     user_doc["_id"] = res.inserted_id
+    await _try_record_activity(user_doc, "daily_login")
     return user_doc
 
 
@@ -1353,91 +1362,118 @@ async def _verify_github_token(code: Optional[str], client_id: str = "", client_
 async def auth_google(request: Request, req: OAuthCallback):
     """Continue-with-Google flow.
 
-    Real flow: client (Expo) opens Google OAuth → receives `id_token` → POSTs here.
-    The `id_token` must be a real Google JWT that is verified against the configured
-    GOOGLE_OAUTH_CLIENT_ID. Mock mode (passing email/full_name directly) is ONLY
-    allowed when ENV=development and no client_id is configured.
+    Real flow: client (Expo/Web) opens Google OAuth → receives `id_token` → POSTs here.
+    The `id_token` can be a Google JWT or Firebase ID token.
     """
-    creds = await _get_oauth_creds()
-    client_id = creds.get("google_oauth_client_id", "")
-    profile = _verify_google_token(req.id_token, client_id) if req.id_token else None
-    if profile is None:
-        email = req.email or "google.user@studentalumni.ai"
-        full_name = req.full_name or "Google User"
-        profile = {"email": email, "name": full_name, "picture": req.picture}
+    try:
+        creds = await _get_oauth_creds()
+        client_id = creds.get("google_oauth_client_id", "")
+        profile = _verify_google_token(req.id_token, client_id) if req.id_token else None
 
-    user = await _upsert_oauth_user(
-        provider="google",
-        email=profile.get("email") or "",
-        full_name=profile.get("name") or profile.get("full_name") or "",
-        picture=profile.get("picture"),
-        role=req.role or "student",
-    )
-    return AuthResponse(
-        access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
-        refresh_token=create_refresh_token(str(user["_id"])),
-        user=UserResponse(**serialize_user(user)),
-    )
+        # If standard Google OAuth verification is not configured or fails, try Firebase token verification
+        if profile is None and req.id_token:
+            profile = _verify_firebase_token(req.id_token)
+
+        if profile is None:
+            # SECURITY: never trust a client-supplied email. Only allow the
+            # unverified mock profile in explicit development mode, mirroring
+            # the LinkedIn/GitHub handlers.
+            if not client_id and os.getenv("ENV") == "development":
+                if not req.email or not req.full_name:
+                    raise HTTPException(400, "Development mock mode requires email/full_name")
+                profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+            else:
+                raise HTTPException(401, "Google sign-in requires a valid id_token.")
+
+        user = await _upsert_oauth_user(
+            provider="google",
+            email=profile.get("email") or "",
+            full_name=profile.get("name") or profile.get("full_name") or req.full_name or "",
+            picture=profile.get("picture") or req.picture,
+            role=req.role or "student",
+        )
+        return AuthResponse(
+            access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
+            refresh_token=create_refresh_token(str(user["_id"])),
+            user=UserResponse(**serialize_user(user)),
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[AUTH_GOOGLE] Failed to authenticate Google user: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Google authentication failed: {str(e)}")
 
 
 @router.post("/auth/linkedin", response_model=AuthResponse)
 @limiter.limit("20/minute")
 async def auth_linkedin(request: Request, req: OAuthCallback):
     """Continue-with-LinkedIn flow. Same structure as /auth/google."""
-    creds = await _get_oauth_creds()
-    client_id = creds.get("linkedin_oauth_client_id", "")
-    client_secret = creds.get("linkedin_oauth_client_secret", "")
-    profile = await _verify_linkedin_token(req.access_token, client_id, client_secret) if req.access_token else None
-    if profile is None:
-        if not client_id and os.getenv("ENV") == "development":
-            if not req.email or not req.full_name:
-                raise HTTPException(400, "Development mock mode requires email/full_name")
-            profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
-        else:
-            raise HTTPException(400, "LinkedIn OAuth requires a valid access_token. Configure linkedin_oauth_client_id in platform settings or set ENV=development for mock mode.")
+    try:
+        creds = await _get_oauth_creds()
+        client_id = creds.get("linkedin_oauth_client_id", "")
+        client_secret = creds.get("linkedin_oauth_client_secret", "")
+        profile = await _verify_linkedin_token(req.access_token, client_id, client_secret) if req.access_token else None
+        if profile is None:
+            if not client_id and os.getenv("ENV") == "development":
+                if not req.email or not req.full_name:
+                    raise HTTPException(400, "Development mock mode requires email/full_name")
+                profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+            else:
+                raise HTTPException(400, "LinkedIn OAuth requires a valid access_token. Configure linkedin_oauth_client_id in platform settings or set ENV=development for mock mode.")
 
-    user = await _upsert_oauth_user(
-        provider="linkedin",
-        email=profile.get("email") or "",
-        full_name=profile.get("name") or profile.get("full_name") or "",
-        picture=profile.get("picture"),
-        role=req.role or "student",
-    )
-    return AuthResponse(
-        access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
-        refresh_token=create_refresh_token(str(user["_id"])),
-        user=UserResponse(**serialize_user(user)),
-    )
+        user = await _upsert_oauth_user(
+            provider="linkedin",
+            email=profile.get("email") or "",
+            full_name=profile.get("name") or profile.get("full_name") or "",
+            picture=profile.get("picture"),
+            role=req.role or "student",
+        )
+        return AuthResponse(
+            access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
+            refresh_token=create_refresh_token(str(user["_id"])),
+            user=UserResponse(**serialize_user(user)),
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[AUTH_LINKEDIN] Error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"LinkedIn authentication failed: {str(e)}")
 
 
 @router.post("/auth/github", response_model=AuthResponse)
 @limiter.limit("20/minute")
 async def auth_github(request: Request, req: OAuthCallback):
     """Continue-with-GitHub flow. Uses OAuth code exchange (not id_token)."""
-    creds = await _get_oauth_creds()
-    client_id = creds.get("github_oauth_client_id", "")
-    client_secret = creds.get("github_oauth_client_secret", "")
-    profile = await _verify_github_token(req.access_token, client_id, client_secret) if req.access_token else None
-    if profile is None:
-        if not client_id and os.getenv("ENV") == "development":
-            if not req.email or not req.full_name:
-                raise HTTPException(400, "Development mock mode requires email/full_name")
-            profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
-        else:
-            raise HTTPException(400, "GitHub OAuth requires a valid authorization code. Configure github_oauth_client_id / github_oauth_client_secret in platform settings or set ENV=development for mock mode.")
+    try:
+        creds = await _get_oauth_creds()
+        client_id = creds.get("github_oauth_client_id", "")
+        client_secret = creds.get("github_oauth_client_secret", "")
+        profile = await _verify_github_token(req.access_token, client_id, client_secret) if req.access_token else None
+        if profile is None:
+            if not client_id and os.getenv("ENV") == "development":
+                if not req.email or not req.full_name:
+                    raise HTTPException(400, "Development mock mode requires email/full_name")
+                profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+            else:
+                raise HTTPException(400, "GitHub OAuth requires a valid authorization code. Configure github_oauth_client_id / github_oauth_client_secret in platform settings or set ENV=development for mock mode.")
 
-    user = await _upsert_oauth_user(
-        provider="github",
-        email=profile.get("email") or "",
-        full_name=profile.get("name") or profile.get("full_name") or "",
-        picture=profile.get("picture"),
-        role=req.role or "student",
-    )
-    return AuthResponse(
-        access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
-        refresh_token=create_refresh_token(str(user["_id"])),
-        user=UserResponse(**serialize_user(user)),
-    )
+        user = await _upsert_oauth_user(
+            provider="github",
+            email=profile.get("email") or "",
+            full_name=profile.get("name") or profile.get("full_name") or "",
+            picture=profile.get("picture"),
+            role=req.role or "student",
+        )
+        return AuthResponse(
+            access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
+            refresh_token=create_refresh_token(str(user["_id"])),
+            user=UserResponse(**serialize_user(user)),
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[AUTH_GITHUB] Error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"GitHub authentication failed: {str(e)}")
 
 
 # ─── Firebase Auth ──────────────────────────────────────────────────
@@ -1485,34 +1521,40 @@ def _verify_firebase_token(id_token: str) -> Optional[dict]:
 async def auth_firebase(request: Request, req: OAuthCallback):
     """Firebase Auth — accepts a Firebase ID token from any provider (Google, GitHub, phone, etc.)
     and issues a platform JWT. Configure firebase_service_account in platform settings."""
-    creds = await _get_oauth_creds()
-    fb_service_account = creds.get("firebase_service_account", "")
+    try:
+        creds = await _get_oauth_creds()
+        fb_service_account = creds.get("firebase_service_account", "")
 
-    if fb_service_account and not os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON"):
-        os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"] = fb_service_account
+        if fb_service_account and not os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON"):
+            os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"] = fb_service_account
 
-    profile = _verify_firebase_token(req.id_token) if req.id_token else None
-    if profile is None:
-        if not fb_service_account and os.getenv("ENV") == "development":
-            if not req.email or not req.full_name:
-                raise HTTPException(400, "Development mock mode requires email/full_name")
-            profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
-        else:
-            raise HTTPException(400, "Firebase Auth requires a valid id_token. Configure firebase_service_account in platform settings or set ENV=development for mock mode.")
+        profile = _verify_firebase_token(req.id_token) if req.id_token else None
+        if profile is None:
+            if not fb_service_account and os.getenv("ENV") == "development":
+                if not req.email or not req.full_name:
+                    raise HTTPException(400, "Development mock mode requires email/full_name")
+                profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+            else:
+                raise HTTPException(400, "Firebase Auth requires a valid id_token. Configure firebase_service_account in platform settings or set ENV=development for mock mode.")
 
-    provider = profile.get("firebase_provider", "firebase")
-    user = await _upsert_oauth_user(
-        provider=provider or "google",
-        email=profile.get("email") or "",
-        full_name=profile.get("name") or req.full_name or "",
-        picture=profile.get("picture"),
-        role=req.role or "student",
-    )
-    return AuthResponse(
-        access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
-        refresh_token=create_refresh_token(str(user["_id"])),
-        user=UserResponse(**serialize_user(user)),
-    )
+        provider = profile.get("firebase_provider", "firebase")
+        user = await _upsert_oauth_user(
+            provider=provider or "google",
+            email=profile.get("email") or "",
+            full_name=profile.get("name") or req.full_name or "",
+            picture=profile.get("picture"),
+            role=req.role or "student",
+        )
+        return AuthResponse(
+            access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
+            refresh_token=create_refresh_token(str(user["_id"])),
+            user=UserResponse(**serialize_user(user)),
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[AUTH_FIREBASE] Error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Firebase authentication failed: {str(e)}")
 
 
 # ----------------------------------------------------------------------------

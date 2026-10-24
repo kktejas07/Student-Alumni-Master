@@ -9,6 +9,8 @@ import {
   TextInput,
   Pressable,
   useWindowDimensions,
+  Linking,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/src/theme/ThemeContext';
@@ -18,6 +20,15 @@ import Svg, {
   Rect,
   Text as SvgText,
 } from 'react-native-svg';
+
+// Open an external link: new tab on web, system browser on native.
+const openExternal = (url: string) => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    window.open(url, '_blank');
+  } else {
+    Linking.openURL(url).catch(() => {});
+  }
+};
 
 const DARK_T = {
   bg: '#08080F',
@@ -96,41 +107,41 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
           <View style={styles.socialRow}>
             <Pressable
               onPress={() => {
-                if (typeof window !== 'undefined') window.open('https://linkedin.com/company/student-alumni', '_blank');
+                openExternal('https://linkedin.com/company/student-alumni');
               }}
               style={S.socialBtn}
               accessibilityLabel="LinkedIn"
             >
               <Svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <Path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" fill="#D5D8E4" />
-                <Rect x="2" y="9" width="4" height="12" fill="#D5D8E4" />
-                <Circle cx="4" cy="4" r="2" fill="#D5D8E4" />
+                <Path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" fill="#0A66C2" />
+                <Rect x="2" y="9" width="4" height="12" fill="#0A66C2" />
+                <Circle cx="4" cy="4" r="2" fill="#0A66C2" />
               </Svg>
             </Pressable>
 
             <Pressable
               onPress={() => {
-                if (typeof window !== 'undefined') window.open('https://www.instagram.com/studentalumni.ai/', '_blank');
+                openExternal('https://www.instagram.com/studentalumni.ai/');
               }}
               style={S.socialBtn}
               accessibilityLabel="Instagram"
             >
               <Svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <Rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="#D5D8E4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <Circle cx="12" cy="12" r="4.2" stroke="#D5D8E4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <Circle cx="17.6" cy="6.4" r="1.2" fill="#D5D8E4" />
+                <Rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="#E1306C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <Circle cx="12" cy="12" r="4.2" stroke="#E1306C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <Circle cx="17.6" cy="6.4" r="1.2" fill="#E1306C" />
               </Svg>
             </Pressable>
 
             <Pressable
               onPress={() => {
-                if (typeof window !== 'undefined') window.open('https://chat.whatsapp.com/G2kc2u0gzh68DKSjlOyCxu', '_blank');
+                openExternal('https://chat.whatsapp.com/G2kc2u0gzh68DKSjlOyCxu');
               }}
-              style={[S.socialBtn, { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: 'rgba(16,185,129,0.3)' }]}
+              style={[S.socialBtn, { backgroundColor: 'rgba(37,211,102,0.15)', borderColor: 'rgba(37,211,102,0.3)' }]}
               accessibilityLabel="WhatsApp Community"
             >
               <Svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <Path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" fill="#34D399" />
+                <Path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" fill="#25D366" />
               </Svg>
             </Pressable>
           </View>
@@ -170,13 +181,19 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
         {/* Our Entities Column */}
         <View style={[styles.footerLinksCol, isMobile && { flexBasis: '45%', maxWidth: '45%' as any }]}>
           <Text style={S.footerColHeader}>OUR ENTITIES</Text>
-          <Pressable onPress={() => { if (typeof window !== 'undefined') window.open('https://codespectra.ai', '_blank'); }} style={styles.linkItem}>
+          <Pressable onPress={() => { openExternal('https://codespectra.ai'); }} style={styles.linkItem}>
             <Text style={S.footerLinkText}>CodeSpectra</Text>
           </Pressable>
-          <Pressable onPress={() => { if (typeof window !== 'undefined') window.open('https://visionaryx.ai', '_blank'); }} style={styles.linkItem}>
-            <Text style={S.footerLinkText}>VisionaryX</Text>
+          <Pressable onPress={() => { openExternal('https://studentkare.co/'); }} style={styles.linkItem}>
+            <Text style={S.footerLinkText}>StudentKare</Text>
           </Pressable>
-          <Pressable onPress={() => { if (typeof window !== 'undefined') window.open('https://wehive.co.in', '_blank'); }} style={styles.linkItem}>
+          <Pressable onPress={() => { openExternal('https://hyra.org.in/'); }} style={styles.linkItem}>
+            <Text style={S.footerLinkText}>HYRA</Text>
+          </Pressable>
+          <Pressable onPress={() => { openExternal('https://iqe.forgetechno.com/'); }} style={styles.linkItem}>
+            <Text style={S.footerLinkText}>IQE</Text>
+          </Pressable>
+          <Pressable onPress={() => { openExternal('https://wehive.co.in'); }} style={styles.linkItem}>
             <Text style={S.footerLinkText}>WeHive</Text>
           </Pressable>
         </View>

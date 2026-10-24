@@ -54,7 +54,7 @@ _db        = _client[_DB_NAME]
 # ─── Token / role helpers ──────────────────────────────────────────
 try:
     import jwt  # PyJWT
-    _JWT_SECRET = os.getenv("JWT_SECRET", "")
+    from core.security import JWT_SECRET as _JWT_SECRET
 except Exception:
     jwt = None  # type: ignore
     _JWT_SECRET = ""
@@ -546,6 +546,8 @@ async def upload_file(
     """Parse file, return preview + auto-mapped headers + per-row validation report."""
     await _require_admin(authorization)
     content = await file.read()
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(content)
     if len(content) > 500 * 1024 * 1024:
         raise HTTPException(413, "File exceeds 500 MB limit")
 
@@ -1599,6 +1601,9 @@ async def list_users(
             "account_status": "registered" if is_reg else "unregistered",
             "completeness_score": completeness,
             "approved": approved,
+            "disabled": bool(u.get("disabled", False)),
+            "career_path": u.get("career_path") or "",
+            "onboarding_completed": bool(u.get("onboarding_completed", False)),
             "tags": tags[:4],
             "badges": tags[:4],
             "is_new": bool(u.get("created_by") in ("import", "manual")) and not u.get("approved"),

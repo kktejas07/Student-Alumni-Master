@@ -15,6 +15,7 @@
  */
 
 // Fix 11: GAINS is the single source of truth — imported from shared constants
+import { Platform } from 'react-native';
 import { GAINS } from './careerConstants';
 
 // Colours matching the Career AI dark theme (re-stated as RGB for jsPDF)
@@ -282,6 +283,9 @@ function drawFooter(doc: any, pageW: number, pageH: number, pageNum: number, tot
 }
 
 export async function generateCareerReportPdf(data: CareerReportData): Promise<void> {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') {
+    throw new Error('Career report PDF export is only available on the web.');
+  }
   // Dynamic script injection to bypass Metro bundler's strict AMD require parsing
   let jsPDF = (window as any).jspdf?.jsPDF;
   if (!jsPDF) {

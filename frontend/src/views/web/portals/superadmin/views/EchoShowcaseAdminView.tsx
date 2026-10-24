@@ -172,7 +172,7 @@ import {
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users,
   Ticket, Mail, ScanLine, Phone, Edit2,
   CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle, Download, FileSpreadsheet, MapPin,
-  UserCheck, GraduationCap, CreditCard,
+  UserCheck, GraduationCap, CreditCard, Award, Sparkles, Bot, Play,
 } from 'lucide-react-native';
 import {
   GRAD, GradientButton, SecondaryButton, Card,
@@ -250,13 +250,13 @@ type FormTab =
   | 'sections' | 'registration' | 'catalog' | 'seo' | 'publish';
 
 const PAGE_TABS: Array<{ id: PageTab; label: string; icon?: any }> = [
+  { id: 'registrations', label: 'Registrations & Payments', icon: Users },
+  { id: 'scan-monitor', label: 'Live Scan & Certificates', icon: Award },
   { id: 'all', label: 'All Showcases', icon: Layout },
   { id: 'create', label: 'Create Showcase', icon: PlusCircle },
   { id: 'drafts', label: 'Drafts', icon: FileText },
-  { id: 'registrations', label: 'Registrations & Payments', icon: Users },
   { id: 'interns', label: 'Internal Hiring & Interns', icon: UserCheck },
   { id: 'volunteers', label: 'Volunteers', icon: Users },
-  { id: 'scan-monitor', label: 'Live Scan Monitor', icon: ScanLine },
   { id: 'media', label: 'Media Library', icon: Images },
 ];
 
@@ -3148,6 +3148,64 @@ function RegistrationsPanel() {
   const PER_PAGE = 20;
   const { flash } = useToast();
   const [showImport, setShowImport] = useState(false);
+  const [sendingReminders, setSendingReminders] = useState(false);
+
+  const handleSendProfileReminders = async () => {
+    const ok = await confirm({
+      title: 'Send Profile & SA Reminders',
+      message: 'Send automated 100% profile & SA account reminders via Email + WhatsApp to all incomplete registrants?',
+      confirmText: 'Send Reminders',
+    });
+    if (!ok) return;
+    setSendingReminders(true);
+    try {
+      const res = await api.adminEchoSendProfileReminders({ target_group: 'all_incomplete', channel: 'both' });
+      flash(`Loop Agent Dispatched! Processed: ${res?.processed_count}, Emails: ${res?.emails_sent}, WhatsApp: ${res?.whatsapp_sent}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to send reminders');
+    } finally {
+      setSendingReminders(false);
+    }
+  };
+
+  const handleIssueCert = async (reg: any) => {
+    try {
+      const res = await api.adminEchoIssueCertificate(reg.id);
+      flash(`Certificate issued for ${reg.full_name}! Code: ${res?.code}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to issue certificate');
+    }
+  };
+
+  const saAccountBadge = (reg: any) => {
+    if (reg.is_profile_100) {
+      return (
+        <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.4)' }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#34D399' }}>
+            SA Member ✓ (100%)
+          </Text>
+        </View>
+      );
+    }
+    if (reg.has_sa_account) {
+      return (
+        <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(245,179,66,0.18)', borderWidth: 1, borderColor: 'rgba(245,179,66,0.4)' }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#F5B342' }}>
+            SA Member ({reg.profile_completion_pct || 0}%)
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' }}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#FCA5A5' }}>
+          No SA Account
+        </Text>
+      </View>
+    );
+  };
 
   useEffect(() => { setPage(0); }, [q, status, eventSlug, rows]);
 
@@ -3578,6 +3636,24 @@ function RegistrationsPanel() {
           <Download size={14} color="#fff" />
           <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export CSV (Registrations)</Text>
         </Pressable>
+
+        <Pressable
+          onPress={() => {
+            const apiBase = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) || 'http://localhost:8000';
+            const exportUrl = `${apiBase}/api/echo/admin/export-incomplete-profiles-csv?filter_type=all${eventSlug !== 'all' ? `&slug=${eventSlug}` : ''}`;
+            if (typeof window !== 'undefined') {
+              window.open(exportUrl, '_blank');
+            }
+          }}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: '#7C5CFC',
+            borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
+          }}
+        >
+          <Download size={14} color="#fff" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export Incomplete &amp; No-Account CSV</Text>
+        </Pressable>
       </View>
 
       {/* Segmented Audience Broadcasts & Notices */}
@@ -3731,7 +3807,7 @@ function RegistrationsPanel() {
             onChange={(e: any) => setEventSlug(e.target.value)}
             style={{
               backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 8, padding: '8px 12px', color: SAC.text, fontSize: 12, fontFamily: 'Inter',
+              borderRadius: 8, padding: '8px 12px', color: SAC.text, fontSize: 12, fontFamily: 'DM Sans',
               outline: 'none', cursor: 'pointer', minWidth: 140,
             }}
           >
@@ -3774,19 +3850,6 @@ function RegistrationsPanel() {
           <Download size={13} color="#fff" />
           <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export All Events (CSV)</Text>
         </Pressable>
-        {eventSlug && eventSlug !== 'all' && (
-          <Pressable
-            onPress={() => triggerExportCsv(eventSlug, status)}
-            style={{
-              flexDirection: 'row', alignItems: 'center', gap: 6,
-              backgroundColor: '#4F46E5',
-              borderRadius: 8, paddingHorizontal: 13, paddingVertical: 8, cursor: 'pointer',
-            }}
-          >
-            <Download size={13} color="#fff" />
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export Selected Event (CSV)</Text>
-          </Pressable>
-        )}
       </View>
 
       {/* Registrations table */}
@@ -3808,21 +3871,22 @@ function RegistrationsPanel() {
             <View style={{ minWidth: 1050, flex: 1 }}>
               {/* Header */}
               <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: SAC.border }}>
-                <Text style={{ flex: 1.5, minWidth: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ATTENDEE</Text>
-                <Text style={{ width: 70, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>TYPE</Text>
-                <Text style={{ width: 50, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SIZE</Text>
-                <Text style={{ flex: 1.5, minWidth: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>EVENT</Text>
-                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>AMOUNT</Text>
-                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>PAYMENT</Text>
-                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>STATUS</Text>
-                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
-                <Text style={{ width: 80, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
+                <Text style={{ flex: 1.5, minWidth: 160, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ATTENDEE</Text>
+                <Text style={{ width: 140, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SA ACCOUNT & PROFILE</Text>
+                <Text style={{ width: 60, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>TYPE</Text>
+                <Text style={{ width: 45, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SIZE</Text>
+                <Text style={{ flex: 1.3, minWidth: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>EVENT</Text>
+                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>AMOUNT</Text>
+                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>PAYMENT</Text>
+                <Text style={{ width: 130, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ECHO CERTIFICATE</Text>
+                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
+                <Text style={{ width: 110, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
               </View>
               {paged.map((r: any, i: number) => {
                 const isTeam = r.registration_type === 'team' || !!r.team_name || (r.team_size && r.team_size > 1);
                 return (
                 <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
-                  <View style={{ flex: 1.5, minWidth: 180 }}>
+                  <View style={{ flex: 1.5, minWidth: 160 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                       <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: SAC.text }}>{r.full_name || '—'}</Text>
                       {r.source && r.source !== 'our_platform' && r.source !== 'studentalumni' && (
@@ -3857,7 +3921,13 @@ function RegistrationsPanel() {
                       </View>
                     )}
                   </View>
-                  <View style={{ width: 70 }}>
+                  
+                  {/* SA Account & Profile Column */}
+                  <View style={{ width: 140, justifyContent: 'center', paddingRight: 6 }}>
+                    {saAccountBadge(r)}
+                  </View>
+
+                  <View style={{ width: 60 }}>
                     <View style={{ 
                       backgroundColor: isTeam ? 'rgba(124,58,237,0.15)' : 'rgba(52,211,153,0.15)',
                       paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
@@ -3869,16 +3939,16 @@ function RegistrationsPanel() {
                       </Text>
                     </View>
                   </View>
-                  <View style={{ width: 50, paddingTop: 4 }}>
+                  <View style={{ width: 45, paddingTop: 4 }}>
                     <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: '#e5e7eb' }}>
                       {isTeam ? (r.team_size > 1 ? r.team_size : 1) : 1}
                     </Text>
                   </View>
-                  <View style={{ flex: 1.5, minWidth: 180 }}>
+                  <View style={{ flex: 1.3, minWidth: 150 }}>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: '#e5e7eb' }}>{r.event_title || r.slug || '—'}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{r.college || ''}</Text>
                   </View>
-                  <View style={{ width: 120, minWidth: 0, paddingTop: 2 }}>
+                  <View style={{ width: 90, minWidth: 0, paddingTop: 2 }}>
                     {r.is_team_member ? (
                       <View>
                         <Text style={{ fontFamily: FONTS.xbold, fontSize: 11.5, color: '#C4B5FD' }}>
@@ -3901,33 +3971,32 @@ function RegistrationsPanel() {
                       </View>
                     )}
                   </View>
-                  <View style={{ width: 120, minWidth: 0 }}>
+                  <View style={{ width: 90, minWidth: 0 }}>
                     <StatusPill
                       kind={r.payment_status === 'paid' ? 'success' : r.payment_status === 'pending' ? 'warn' : r.payment_status === 'failed' ? 'danger' : 'neutral'}
                       label={(r.payment_status || '—').toUpperCase()}
                     />
                   </View>
-                  <View style={{ width: 120, minWidth: 0 }}>
-                    {r.payment_status === 'paid' ? (
-                      <>
-                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 10, color: '#86EFAC' }}>
-                          {r.coupons_issued > 0 ? `Ticket +${r.coupons_issued}` : 'Ticket'}
+
+                  {/* ECHO Certificate Column */}
+                  <View style={{ width: 130, justifyContent: 'center', paddingRight: 6 }}>
+                    {r.has_certificate ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(124,92,252,0.18)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 }}>
+                        <Award size={11} color="#C9A7FF" />
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#D8B4FE' }}>
+                          {r.certificate?.verification_code || 'Issued'}
                         </Text>
-                          <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9.5, color: SAC.dim }}>
-                            {r.invoice_issued ? (r.invoice_no || 'Invoice issued') : 'No invoice'}
-                          </Text>
-                        </>
-                    ) : r.payment_status === 'pending' ? (
-                      <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: '#FCD34D' }}>
-                        Nothing — awaiting payment
-                      </Text>
+                      </View>
                     ) : (
-                      <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: '#FCA5A5' }}>
-                        Not issued
-                      </Text>
+                      <Pressable
+                        onPress={() => handleIssueCert(r)}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3, alignSelf: 'flex-start' }}>
+                        <Award size={11} color="#A78BFA" />
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#A78BFA' }}>Issue Cert</Text>
+                      </Pressable>
                     )}
                   </View>
-                  <View style={{ width: 120, minWidth: 0 }}>
+                  <View style={{ width: 90, minWidth: 0 }}>
                     <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>
                       {(r.registered_at || '').slice(0, 10) || '—'}
                     </Text>
@@ -4916,7 +4985,7 @@ function VolunteersPanel() {
             onChange={(e: any) => setFilterEvent(e.target.value)}
             style={{
               backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 8, padding: '8px 12px', color: SAC.text, fontSize: 12, fontFamily: 'Inter',
+              borderRadius: 8, padding: '8px 12px', color: SAC.text, fontSize: 12, fontFamily: 'DM Sans',
               outline: 'none', cursor: 'pointer', minWidth: 150,
             }}
           >
@@ -5009,6 +5078,7 @@ function VolunteersPanel() {
 // ── Live Scan Monitor Panel ───────────────────────────────────────────────────
 function LiveScanMonitorPanel() {
   const { flash } = useToast();
+  const { confirm } = useConfirm();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sendingReminders, setSendingReminders] = useState(false);
@@ -5113,7 +5183,12 @@ function LiveScanMonitorPanel() {
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
 
   const handleSendProfileReminders = async () => {
-    if (typeof window !== 'undefined' && !window.confirm('Send automated 100% profile & SA account reminders via Email + WhatsApp to all incomplete registrants?')) return;
+    const ok = await confirm({
+      title: 'Send Profile & SA Reminders',
+      message: 'Send automated 100% profile & SA account reminders via Email + WhatsApp to all incomplete registrants?',
+      confirmText: 'Send Reminders',
+    });
+    if (!ok) return;
     setSendingReminders(true);
     try {
       const res = await api.adminEchoSendProfileReminders({ target_group: 'all_incomplete', channel: 'both' });
@@ -5136,6 +5211,72 @@ function LiveScanMonitorPanel() {
     }
   };
 
+  const handleIssue3Certs = async (reg: any) => {
+    try {
+      const res = await request(`/echo/admin/registrations/${reg.id}/issue-3-certificates`, { method: 'POST' });
+      flash(`All 3 certificates issued for ${reg.full_name}! (Built by Sunset, Hackwave 3.0, Cyber Conclave)`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to issue 3 certificates', 'error');
+    }
+  };
+
+  const handleResetCerts = async (reg: any) => {
+    const ok = await confirm({
+      title: 'Reset Certificate Status',
+      message: `Reset issued flags for ${reg.full_name} (${reg.email})? Existing certificates stay verifiable; the row returns to "Issue All 3 Certs" so you can re-issue.`,
+      confirmText: 'Reset & Re-issue',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await request(`/echo/admin/registrations/${reg.id}/reset-certificates`, { method: 'POST' });
+      flash(`Certificate status reset for ${reg.full_name}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to reset', 'error');
+    }
+  };
+
+  const handleBulkDispatch3Certs = async () => {
+    const ok = await confirm({
+      title: 'Dispatch 3 Certs to 100% Profiles',
+      message: 'Run the autonomous agent to issue and deliver all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave) via Email & WhatsApp to attendees with 100% completed profiles?',
+      confirmText: 'Dispatch Certificates',
+    });
+    if (!ok) return;
+    setSendingReminders(true);
+    try {
+      const res = await api.adminEchoSendProfileReminders({ target_group: 'complete_100_dispatch', channel: 'both' });
+      flash(`Autonomous Agent Dispatched 3 Certificates! Processed: ${res?.processed_count}, Emails: ${res?.emails_sent}, WhatsApp: ${res?.whatsapp_sent}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to dispatch certificates', 'error');
+    } finally {
+      setSendingReminders(false);
+    }
+  };
+
+  const [bulkIssuing, setBulkIssuing] = useState(false);
+  const handleBulkIssueAll = async () => {
+    const ok = await confirm({
+      title: 'Issue 3 Certs to ALL',
+      message: `Issue all 3 certificates to ALL ${data.length} registrants at once + send each person their 3 individual emails? Already-issued users are skipped automatically.`,
+      confirmText: 'Issue to All',
+    });
+    if (!ok) return;
+    setBulkIssuing(true);
+    try {
+      const res = await api.adminEchoBulkIssue3Certs();
+      flash(res?.message || `Bulk issue complete: ${res?.processed} processed, ${res?.emails_sent} emails sent`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Bulk issue failed', 'error');
+    } finally {
+      setBulkIssuing(false);
+    }
+  };
+
   const sourceBadge = (s: string | null | undefined) => {
     if (!s || s === 'our_platform' || s === 'studentalumni') return null;
     const isUnstop = s === 'unstop';
@@ -5151,20 +5292,21 @@ function LiveScanMonitorPanel() {
   };
 
   const saAccountBadge = (reg: any) => {
-    if (reg.is_profile_100) {
+    const pct = reg.profile_completion_pct || 0;
+    if (reg.is_profile_100 || pct >= 100) {
       return (
         <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.4)' }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#34D399' }}>
-            SA Member ✓ (100%)
+            Profile 100% Complete ✓
           </Text>
         </View>
       );
     }
-    if (reg.has_sa_account) {
+    if (pct > 0) {
       return (
         <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(245,179,66,0.18)', borderWidth: 1, borderColor: 'rgba(245,179,66,0.4)' }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#F5B342' }}>
-            SA Member ({reg.profile_completion_pct || 0}%)
+            Profile ({pct}%) · Incomplete
           </Text>
         </View>
       );
@@ -5172,7 +5314,7 @@ function LiveScanMonitorPanel() {
     return (
       <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' }}>
         <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#FCA5A5' }}>
-          No SA Account
+          Profile (0%) · Incomplete
         </Text>
       </View>
     );
@@ -5187,8 +5329,146 @@ function LiveScanMonitorPanel() {
     return `${date} · ${time}`;
   };
 
+  const openMap = (lat?: number, lng?: number) => {
+    if (lat && lng && typeof window !== 'undefined') {
+      window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank');
+    }
+  };
+
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
+  const [certTitle, setCertTitle] = useState('Built by Sunset — Project Build Certificate');
+  const [certRecipientEmail, setCertRecipientEmail] = useState('');
+  const [certIssuer, setCertIssuer] = useState('StudentAlumni × Hackwave 3.0');
+  const [uploadingCert, setUploadingCert] = useState(false);
+
+  const handleCustomUploadCert = async () => {
+    if (!certRecipientEmail) {
+      flash('Please enter attendee email', 'error');
+      return;
+    }
+    setUploadingCert(true);
+    try {
+      const res: any = await request('/certificates/upload', {
+        method: 'POST',
+        body: JSON.stringify({
+          recipient_email: certRecipientEmail,
+          title: certTitle,
+          issuer: certIssuer,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      flash(`Certificate uploaded & dual-synced! Code: ${res?.verification_code || 'Issued'}`);
+      setUploadModalVisible(false);
+      setCertRecipientEmail('');
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Upload failed', 'error');
+    } finally {
+      setUploadingCert(false);
+    }
+  };
+
+  const [loopAgentStatus, setLoopAgentStatus] = useState<any>(null);
+  const [loopAgentLoading, setLoopAgentLoading] = useState(false);
+
+  const fetchLoopAgentStatus = useCallback(async () => {
+    try {
+      const res: any = await request('/echo/admin/loop-agent/status');
+      setLoopAgentStatus(res);
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLoopAgentStatus();
+  }, [fetchLoopAgentStatus]);
+
+  const handleToggleLoopAgent = async (start: boolean) => {
+    setLoopAgentLoading(true);
+    try {
+      const endpoint = start ? '/echo/admin/loop-agent/start?interval_seconds=86400' : '/echo/admin/loop-agent/stop';
+      const res: any = await request(endpoint, { method: 'POST' });
+      flash(res?.message || (start ? '24h Daily Loop Agent activated!' : 'Loop Agent paused.'));
+      fetchLoopAgentStatus();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to update loop agent status', 'error');
+    } finally {
+      setLoopAgentLoading(false);
+    }
+  };
+
   return (
     <View style={{ flex: 1, gap: 20 }}>
+      {/* 24h Daily Autonomous Profile Loop Agent Banner */}
+      <View style={{ backgroundColor: 'rgba(124,92,252,0.12)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(124,92,252,0.3)', padding: 18, gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <View style={{ flex: 1, minWidth: 280 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <Bot size={20} color="#C9A7FF" />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>
+                24h Autonomous Daily Profile Alert Loop Agent
+              </Text>
+              <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: loopAgentStatus?.is_running ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)', borderWidth: 1, borderColor: loopAgentStatus?.is_running ? '#10B981' : '#F59E0B' }}>
+                <Text style={{ color: loopAgentStatus?.is_running ? '#34D399' : '#FBBF24', fontFamily: FONTS.bold, fontSize: 11 }}>
+                  {loopAgentStatus?.is_running ? '● DAILY LOOP ACTIVE (24h)' : '● IDLE / MANUAL'}
+                </Text>
+              </View>
+            </View>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: '#C7D2FE' }}>
+              Automatically scans incomplete profiles daily at 09:00 UTC, dispatches email & WhatsApp completion alerts, and auto-issues all 3 certificates upon 100% completion.
+            </Text>
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {loopAgentStatus?.is_running ? (
+              <Pressable
+                onPress={() => handleToggleLoopAgent(false)}
+                disabled={loopAgentLoading}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(239,68,68,0.2)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#EF4444' }}>
+                <X size={14} color="#FCA5A5" />
+                <Text style={{ color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 }}>⏸️ Pause 24h Loop</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={() => handleToggleLoopAgent(true)}
+                disabled={loopAgentLoading}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(16,185,129,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#10B981' }}>
+                <Play size={14} color="#6EE7B7" />
+                <Text style={{ color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 12 }}>▶️ Enable 24h Daily Loop</Text>
+              </Pressable>
+            )}
+
+            <Pressable
+              onPress={handleSendProfileReminders}
+              disabled={sendingReminders}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#7C5CFC', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 }}>
+              <Zap size={14} color="#FFF" />
+              <Text style={{ color: '#FFF', fontFamily: FONTS.bold, fontSize: 12 }}>
+                {sendingReminders ? 'Sending Alerts...' : '⚡ Trigger Daily Alert Loop Now'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {loopAgentStatus?.last_run_stats && (
+          <View style={{ flexDirection: 'row', gap: 16, flexWrap: 'wrap', paddingTop: 8, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
+              🕒 Last Execution: <Text style={{ color: '#FFF', fontFamily: FONTS.bold }}>{loopAgentStatus.last_run_at ? new Date(loopAgentStatus.last_run_at).toLocaleString() : 'Never'}</Text>
+            </Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
+              📧 Daily Emails Sent: <Text style={{ color: '#34D399', fontFamily: FONTS.bold }}>{loopAgentStatus.last_run_stats.emails_sent || 0}</Text>
+            </Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
+              💬 WhatsApp Alerts: <Text style={{ color: '#34D399', fontFamily: FONTS.bold }}>{loopAgentStatus.last_run_stats.whatsapp_sent || 0}</Text>
+            </Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
+              🔄 Total Cycles: <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold }}>{loopAgentStatus.total_cycles_executed || 0}</Text>
+            </Text>
+          </View>
+        )}
+      </View>
+
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
         <View>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: SAC.text }}>Live Scan & SA Member Monitor</Text>
@@ -5198,10 +5478,39 @@ function LiveScanMonitorPanel() {
           <Pressable
             onPress={handleSendProfileReminders}
             disabled={sendingReminders}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.25)', borderPadding: 8, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#7C5CFC' }}>
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#7C5CFC' }}>
             <Sparkles size={14} color="#C9A7FF" />
             <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold, fontSize: 12 }}>
               {sendingReminders ? 'Loop Agent Sending...' : '⚡ Send 100% Profile & SA Reminders'}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={handleBulkDispatch3Certs}
+            disabled={sendingReminders}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(16,185,129,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#10B981' }}>
+            <Award size={14} color="#6EE7B7" />
+            <Text style={{ color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 12 }}>
+              🎓 Dispatch 3 Certs to 100% Profiles
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={handleBulkIssueAll}
+            disabled={bulkIssuing || sendingReminders}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(245,158,11,0.22)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#F59E0B', opacity: (bulkIssuing || sendingReminders) ? 0.6 : 1 }}>
+            <Award size={14} color="#FCD34D" />
+            <Text style={{ color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 12 }}>
+              {bulkIssuing ? 'Issuing to All…' : '🎓 Issue 3 Certs to ALL'}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setUploadModalVisible(true)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(59,130,246,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#3B82F6' }}>
+            <Upload size={14} color="#93C5FD" />
+            <Text style={{ color: '#93C5FD', fontFamily: FONTS.bold, fontSize: 12 }}>
+              ⬆️ Upload Cert & Dual-Sync
             </Text>
           </Pressable>
 
@@ -5350,20 +5659,53 @@ function LiveScanMonitorPanel() {
                 )}
               </View>
 
-              <View style={{ flex: 1.8, justifyContent: 'center', gap: 6 }}>
-                {reg.has_certificate ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.18)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' }}>
-                    <Award size={12} color="#C9A7FF" />
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 10.5, color: '#D8B4FE' }}>
-                      Cert: {reg.certificate?.verification_code || 'Issued'}
-                    </Text>
+              <View style={{ flex: 2.0, justifyContent: 'center', gap: 4 }}>
+                {reg.certificates_3_status ? (
+                  <View style={{ gap: 3 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#D8B4FE' }}>🌅 Sunset:</Text>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: reg.certificates_3_status.built_by_sunset?.issued ? '#34D399' : 'rgba(255,255,255,0.4)' }}>
+                        {reg.certificates_3_status.built_by_sunset?.issued ? `✓ ${reg.certificates_3_status.built_by_sunset.code}` : 'Pending ⏳'}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#D8B4FE' }}>🏆 Hackwave:</Text>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: reg.certificates_3_status.hackwave_participation?.issued ? '#34D399' : 'rgba(255,255,255,0.4)' }}>
+                        {reg.certificates_3_status.hackwave_participation?.issued ? `✓ ${reg.certificates_3_status.hackwave_participation.code}` : 'Pending ⏳'}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#D8B4FE' }}>🛡️ Cyber:</Text>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: reg.certificates_3_status.cyber_conclave?.issued ? '#34D399' : 'rgba(255,255,255,0.4)' }}>
+                        {reg.certificates_3_status.cyber_conclave?.issued ? `✓ ${reg.certificates_3_status.cyber_conclave.code}` : 'Pending ⏳'}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => handleResetCerts(reg)}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3, alignSelf: 'flex-start', marginTop: 2 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 8.5, color: '#FCA5A5' }}>Reset & Re-issue</Text>
+                    </Pressable>
+                  </View>
+                ) : reg.has_certificate ? (
+                  <View style={{ gap: 4 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.18)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' }}>
+                      <Award size={12} color="#C9A7FF" />
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 10.5, color: '#D8B4FE' }}>
+                        Cert: {reg.certificate?.verification_code || 'Issued'}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => handleResetCerts(reg)}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3, alignSelf: 'flex-start' }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 8.5, color: '#FCA5A5' }}>Reset & Re-issue</Text>
+                    </Pressable>
                   </View>
                 ) : (
                   <Pressable
-                    onPress={() => handleIssueCert(reg)}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' }}>
+                    onPress={() => handleIssue3Certs(reg)}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(167,139,250,0.14)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.35)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' }}>
                     <Award size={12} color="#A78BFA" />
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#A78BFA' }}>Issue Cert</Text>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#A78BFA' }}>Issue All 3 Certs</Text>
                   </Pressable>
                 )}
 
@@ -5396,7 +5738,8 @@ function LiveScanMonitorPanel() {
                 </Pressable>
                 <Pressable
                   onPress={async () => {
-                    if (!window.confirm('Resend tickets to ' + reg.email + '?')) return;
+                    const ok = await confirm({ title: 'Resend Tickets', message: `Resend tickets to ${reg.email}?`, confirmText: 'Resend' });
+                    if (!ok) return;
                     try {
                       await api.adminEchoResendTickets(reg.id);
                       flash('Tickets resent to ' + reg.email);
@@ -5549,6 +5892,66 @@ function LiveScanMonitorPanel() {
                   load();
                 } catch (e: any) { flash(e?.message || 'Failed', 'error'); }
               }}><Text style={{ color: SAC.text }}>Save</Text></GradientButton>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Upload Certificate & Dual-Sync Modal */}
+      <Modal transparent visible={uploadModalVisible} animationType="fade" onRequestClose={() => setUploadModalVisible(false)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 }} onPress={() => setUploadModalVisible(false)}>
+          <Pressable onPress={(e: any) => e?.stopPropagation?.()} style={{ width: '100%', maxWidth: 460, backgroundColor: SAC.panel, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(124,92,252,0.3)', padding: 22, gap: 14 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Upload size={18} color="#93C5FD" />
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>Upload Certificate & Dual-Sync</Text>
+              </View>
+              <Pressable onPress={() => setUploadModalVisible(false)}><X size={18} color={SAC.muted} /></Pressable>
+            </View>
+
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+              Uploaded certificates automatically sync across <Text style={{ color: '#93C5FD', fontFamily: FONTS.bold }}>ECHO Scan Monitor</Text>, the global <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold }}>Certificates Module (/super-admin/certificates)</Text>, and the student's <Text style={{ color: '#34D399', fontFamily: FONTS.bold }}>My Certificates</Text> view.
+            </Text>
+
+            <View style={{ gap: 4 }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>Attendee Email Address *</Text>
+              <TextInput
+                value={certRecipientEmail}
+                onChangeText={setCertRecipientEmail}
+                placeholder="e.g. attendee@gmail.com"
+                placeholderTextColor={SAC.muted}
+                style={{ backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 13, fontFamily: FONTS.regular }}
+                keyboardType="email-address"
+              />
+            </View>
+
+            <View style={{ gap: 4 }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>Certificate Title *</Text>
+              <TextInput
+                value={certTitle}
+                onChangeText={setCertTitle}
+                placeholder="e.g. Built by Sunset — Project Build Certificate"
+                placeholderTextColor={SAC.muted}
+                style={{ backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 13, fontFamily: FONTS.regular }}
+              />
+            </View>
+
+            <View style={{ gap: 4 }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>Issuer Organization</Text>
+              <TextInput
+                value={certIssuer}
+                onChangeText={setCertIssuer}
+                placeholder="e.g. StudentAlumni × Hackwave 3.0"
+                placeholderTextColor={SAC.muted}
+                style={{ backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 13, fontFamily: FONTS.regular }}
+              />
+            </View>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
+              <SecondaryButton onPress={() => setUploadModalVisible(false)}><Text style={{ color: SAC.text }}>Cancel</Text></SecondaryButton>
+              <GradientButton onPress={handleCustomUploadCert} disabled={uploadingCert}>
+                <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{uploadingCert ? 'Uploading & Syncing...' : '⬆️ Upload & Dual-Sync'}</Text>
+              </GradientButton>
             </View>
           </Pressable>
         </Pressable>
@@ -6331,7 +6734,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
   const T = useSAC();
   Object.assign(fi, resolveColors(fi, T));
 
-  const [pageTab, setPageTab] = useSubTab<PageTab>(['all', 'create', 'drafts', 'registrations', 'interns', 'volunteers', 'media', 'scan-monitor'], 'all', { sub, onSub });
+  const [pageTab, setPageTab] = useSubTab<PageTab>(['registrations', 'scan-monitor', 'all', 'create', 'drafts', 'interns', 'volunteers', 'media'], 'registrations', { sub, onSub });
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');

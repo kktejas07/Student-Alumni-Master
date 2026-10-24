@@ -9,7 +9,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, Platform, Pressable, Text } from 'react-native';
-import { LayoutDashboard, Sparkles, Users, Calendar, User } from 'lucide-react-native';
+import { LayoutDashboard, Sparkles, Users, Calendar, User } from './iconShims';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
@@ -37,6 +37,7 @@ import { ProfileSettingsView } from './views/ProfileSettingsView';
 import { MyBookingsView } from './views/MyBookingsView';
 import { MyWorkshopsView } from './views/MyWorkshopsView';
 import { MyTicketsView } from './views/MyTicketsView';
+import { MyCertificatesView } from './views/MyCertificatesView';
 import { EchoShowcaseView } from './views/EchoShowcaseView';
 import { RentalsView } from './views/RentalsView';
 
@@ -68,6 +69,7 @@ export function StudentPortalRN() {
 function StudentPortalInner() {
   const router = useRouter();
   const { tab, go } = usePortalUrl();
+  const { isDark } = useTheme();
   const [active, setActive] = useState<StudentNavId>(tab as StudentNavId);
   const [scrolled, setScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -108,10 +110,10 @@ function StudentPortalInner() {
   const padH = bp.isPhone ? SP.base : bp.atLeast('xl') ? SP.xxl : SP.lg;
 
   return (
-    <View style={[s.shell, { backgroundColor: '#08080F' }]}>
+    <View style={[s.shell, { backgroundColor: isDark ? '#08080F' : '#F4F5FA' }]}>
       <LinearGradient
         pointerEvents="none"
-        colors={['#08080F', '#0C0E1F', '#08080F']}
+        colors={isDark ? ['#08080F', '#0C0E1F', '#08080F'] : ['#F4F5FA', '#EDEBF8', '#F4F5FA']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject as any}
       />
@@ -138,11 +140,12 @@ function StudentPortalInner() {
                   {active === 'network'         && <NetworkView />}
                   {active === 'my-bookings'     && <MyBookingsView />}
                   {active === 'my-tickets'      && <MyTicketsView />}
+                  {active === 'my-certificates' && <MyCertificatesView />}
                   {(active === 'myevents' || active === 'events') && <EventsView />}
                   {active === 'my-workshops'    && <MyWorkshopsView />}
                   {(active === 'echo-showcase' || (![
                     'dashboard', 'career-ai', 'internships', 'network', 'my-bookings', 'myevents', 'events',
-                    'my-workshops', 'my-tickets', 'courses', 'financial', 'deals', 'wallet', 'higher-ed', 'rentals', 'profile'
+                    'my-workshops', 'my-tickets', 'my-certificates', 'courses', 'financial', 'deals', 'wallet', 'higher-ed', 'rentals', 'profile'
                   ].includes(active))) && (
                     <EchoShowcaseView slug={active === 'echo-showcase' ? undefined : active} onBack={() => handleNav('myevents')} />
                   )}

@@ -30,7 +30,7 @@ import { useBreakpoint } from '@/src/theme/breakpoints';
 import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
 import { GlassTopbar } from '@/src/motion/apple/components';
 import { FadeInView, PressScale, PulseDot } from './motion';
-import { PALETTE, TYPO } from './tokens';
+import { PALETTE, usePalette, TYPO } from './tokens';
 import { StudentPortalNavContext, useStudentPortalNav } from './StudentPortalNavContext';
 import { StudentNavId, NAV } from './Sidebar';
 
@@ -54,6 +54,7 @@ export function TopBar({
 } = {}) {
   const router = useRouter();
   const { theme, isDark, mode, setMode } = useTheme();
+  const PALETTE = usePalette();
   const bp = useBreakpoint();
   const user = useAuthStore((u) => u.user) as any;
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -98,10 +99,10 @@ export function TopBar({
     const fetchNotifs = () => {
       api.notifications()
         .then(res => setUnreadCount(res.unread || 0))
-        .catch(console.error);
+        .catch(() => {});
     };
     fetchNotifs();
-    const interval = setInterval(fetchNotifs, 5000);
+    const interval = setInterval(fetchNotifs, 15000);
     return () => clearInterval(interval);
   }, []);
 

@@ -43,7 +43,9 @@ from typing import Any, Dict, Optional, List
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
+
+from core.deps import get_current_user, require_role
 from pydantic import BaseModel
 
 load_dotenv(Path(__file__).parent / ".env")
@@ -225,7 +227,7 @@ async def create_booking(req: BookingCreate):
 
 
 @router.delete("/student/bookings/{booking_id}")
-async def cancel_booking(booking_id: str):
+async def cancel_booking(booking_id: str, current_user: dict = Depends(get_current_user)):
     # Try by short-id suffix or full ObjectId against both bookings and sessions
     q: Dict[str, Any] = {}
     matched_in_bookings = False
@@ -300,7 +302,7 @@ async def cancel_booking(booking_id: str):
 
 
 @router.post("/student/bookings/{booking_id}/complete")
-async def complete_booking(booking_id: str):
+async def complete_booking(booking_id: str, current_user: dict = Depends(get_current_user)):
     q: Dict[str, Any] = {}
     matched_in_bookings = False
     matched_in_sessions = False
@@ -511,8 +513,8 @@ async def apply_internship(internship_id: str, req: ApplyRequest, request: Reque
     except Exception:
         pass
     if not internship:
-        async for i in _db.internships.find({}, {"_id": 1, "title": 1, "company": 1}):
-            if str(i["_id"]).endswith(internship_id):
+        async for i in _db.internships.find({}, {"_id": 1, "id": 1, "title": 1, "company": 1}):
+            if str(i["_id"]).endswith(internship_id) or i.get("id") == internship_id:
                 internship = i; break
     if not internship:
         # Support external feed jobs stored in jobs_cache
@@ -537,6 +539,17 @@ async def apply_internship(internship_id: str, req: ApplyRequest, request: Reque
         ],
         "student_id": str(student["_id"]),
     })
+
+    # Sync with users.applied_jobs so the feed button is marked as applied
+    updates = {"applied_jobs": internship_id_str}
+    if internship.get("id"):
+        updates["applied_opportunities"] = internship.get("id")
+
+    await _db.users.update_one(
+        {"_id": student["_id"]},
+        {"$addToSet": updates}
+    )
+
     if existing:
         return {"ok": True, "already": True, "application_id": _short_id(existing["_id"])}
 
@@ -552,12 +565,6 @@ async def apply_internship(internship_id: str, req: ApplyRequest, request: Reque
         "applied_at": _now(),
     }
     res = await _db.internship_applications.insert_one(doc)
-
-    # Sync with users.applied_jobs so the feed button is marked as applied
-    await _db.users.update_one(
-        {"_id": student["_id"]},
-        {"$addToSet": {"applied_jobs": internship_id_str}}
-    )
 
     # Write to job_apply_audit for unified tracking metrics
     try:
@@ -581,6 +588,7 @@ async def my_applications(email: Optional[str] = None):
     async for a in _db.internship_applications.find({"student_id": str(student["_id"])}).sort("applied_at", -1).limit(50):
         out.append({
             "id": _short_id(a["_id"]),
+            "job_id": a.get("internship_id"),
             "internship_title": a.get("internship_title"),
             "company": a.get("company"),
             "status": a.get("status"),
@@ -707,7 +715,7 @@ async def progress_workshop(req: WorkshopProgressReq):
         # with a unique verification code + public verify URL, replacing the
         # old placeholder certificates.example.com link.
         cert = await _issue_workshop_certificate(
-            reg, student, req.student_email or student.get("email")
+            reg, student, req.student_email or student.get("email") or ""
         )
         if cert:
             update_doc["certificate_url"] = cert["verify_url"]
@@ -936,7 +944,7 @@ class UserInvite(BaseModel):
     full_name: Optional[str] = None
 
 
-@router.post("/admin/users/invite")
+@router.post("/admin/users/invite", dependencies=[Depends(require_role("admin", "super_admin", "superadmin"))])
 async def invite_user(req: UserInvite):
     if req.role not in ("student", "mentor", "college", "admin"):
         raise HTTPException(400, "Invalid role")
@@ -969,7 +977,7 @@ class EventCreate(BaseModel):
     price: int = 0
 
 
-@router.post("/college/events")
+@router.post("/college/events", dependencies=[Depends(require_role("college", "admin", "super_admin", "superadmin"))])
 async def create_college_event(req: EventCreate):
     try:
         sd = datetime.fromisoformat(req.start_date) if req.start_date else _now() + timedelta(days=14)
@@ -1008,14 +1016,14 @@ async def create_college_event(req: EventCreate):
             ]
             await _db.notifications.insert_many(notification_docs)
     except Exception as e:
-        logger.warning(f"Failed to notify students: {e}")
+        print(f"Failed to notify students: {e}")
 
     # 2. Clear portals events cache so the new event shows up immediately on frontend
     try:
         from portals import events_cache
         events_cache.clear()
     except Exception as e:
-        logger.warning(f"Failed to clear events_cache: {e}")
+        print(f"Failed to clear events_cache: {e}")
 
     return {"ok": True, "event_id": event_id_str}
 

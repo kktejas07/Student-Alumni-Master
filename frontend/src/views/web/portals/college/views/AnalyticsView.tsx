@@ -13,6 +13,16 @@ import { TrendingUp, Users, Trophy, BarChart3 } from 'lucide-react-native';
 import { usePortalData } from '@/src/lib/portalApi';
 import Svg, { Path, Circle, Line, Defs, LinearGradient as SvgLG, Stop, Text as SvgText, G } from 'react-native-svg';
 
+/**
+ * SVG primitives: raw DOM tags on web (react-native-web does not render
+ * react-native-svg well inside this layout), react-native-svg elsewhere.
+ * Both accept the same camelCase attribute names used below.
+ */
+const Sv: Record<'Svg' | 'Defs' | 'LinearGradient' | 'Stop' | 'Line' | 'Path' | 'Circle' | 'Text' | 'G', any> =
+  Platform.OS === 'web'
+    ? { Svg: 'svg', Defs: 'defs', LinearGradient: 'linearGradient', Stop: 'stop', Line: 'line', Path: 'path', Circle: 'circle', Text: 'text', G: 'g' }
+    : { Svg, Defs, LinearGradient: SvgLG, Stop, Line, Path, Circle, Text: SvgText, G };
+
 type Trend     = { year: number; rate: number; median_lpa: number };
 type Sector    = { name: string; count: number; pct: number; color: string };
 type Attrition = { label: string; pct: number; color: string };
@@ -111,197 +121,105 @@ export function AnalyticsView() {
               if (w && w !== chartWidth) setChartWidth(w);
             }}
           >
-            {Platform.OS === 'web' ? (
-              <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
-                <defs>
-                  <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="#3B82F6" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
+            <Sv.Svg
+              width={W} height={H} viewBox={`0 0 ${W} ${H}`}
+              style={Platform.OS === 'web'
+                ? { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }
+                : { position: 'absolute', top: 0, left: 0 }}
+            >
+              <Sv.Defs>
+                <Sv.LinearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
+                  <Sv.Stop offset={Platform.OS === 'web' ? '0%' : '0'} stopColor="#3B82F6" stopOpacity={0.25} />
+                  <Sv.Stop offset={Platform.OS === 'web' ? '100%' : '1'} stopColor="#3B82F6" stopOpacity={0.0} />
+                </Sv.LinearGradient>
+              </Sv.Defs>
 
-                {/* Horizontal gridlines at 25%, 50%, 75% */}
-                {gridLines.map((y, idx) => (
-                  <line
-                    key={idx}
-                    x1={padX}
-                    y1={y}
-                    x2={W - padX}
-                    y2={y}
-                    stroke="rgba(255, 255, 255, 0.08)"
-                    strokeWidth={1}
-                    strokeDasharray="4 4"
-                  />
-                ))}
+              {/* Horizontal gridlines at 25%, 50%, 75% */}
+              {gridLines.map((y, idx) => (
+                <Sv.Line
+                  key={idx}
+                  x1={padX}
+                  y1={y}
+                  x2={W - padX}
+                  y2={y}
+                  stroke="rgba(255, 255, 255, 0.08)"
+                  strokeWidth={1}
+                  strokeDasharray="4 4"
+                />
+              ))}
 
-                {/* Baseline */}
-                <line x1={padX} y1={H - padYBot} x2={W - padX} y2={H - padYBot}
-                      stroke="rgba(255, 255, 255, 0.15)" strokeWidth={1.5} />
+              {/* Baseline */}
+              <Sv.Line x1={padX} y1={H - padYBot} x2={W - padX} y2={H - padYBot}
+                    stroke="rgba(255, 255, 255, 0.15)" strokeWidth={1.5} />
 
-                {/* Filled area */}
-                {fillPath ? <path d={fillPath} fill="url(#trendGrad)" /> : null}
+              {/* Filled area */}
+              {fillPath ? <Sv.Path d={fillPath} fill="url(#trendGrad)" /> : null}
 
-                {/* Line */}
-                {path ? <path d={path} stroke="#3B82F6" strokeWidth={3} fill="none" strokeLinecap="round" /> : null}
+              {/* Line */}
+              {path ? <Sv.Path d={path} stroke="#3B82F6" strokeWidth={3} fill="none" strokeLinecap="round" /> : null}
 
-                {/* Data points */}
-                {points.map((p) => (
-                  <g key={p.year}>
-                    {/* Outer glow ring for latest year */}
-                    {p.year === 2026 && (
-                      <circle
-                        cx={p.x}
-                        cy={p.y}
-                        r={9}
-                        fill="#60A5FA"
-                        opacity={0.3}
-                      />
-                    )}
-                    <circle
+              {/* Data points */}
+              {points.map((p) => (
+                <Sv.G key={p.year}>
+                  {/* Outer glow ring for latest year */}
+                  {p.year === 2026 && (
+                    <Sv.Circle
                       cx={p.x}
                       cy={p.y}
-                      r={p.year === 2026 ? 5.5 : 4}
-                      fill={p.year === 2026 ? "#60A5FA" : "#3B82F6"}
-                      stroke={CC.card}
-                      strokeWidth={2}
+                      r={9}
+                      fill="#60A5FA"
+                      opacity={0.3}
                     />
-
-                    {/* Rate text above dot */}
-                    <text
-                      x={p.x}
-                      y={p.y - 12}
-                      fontSize="11.5"
-                      fill="#FFFFFF"
-                      textAnchor="middle"
-                      fontWeight="bold"
-                      fontFamily={FONTS.bold}
-                    >
-                      {p.rate}%
-                    </text>
-
-                    {/* Year text below baseline */}
-                    <text
-                      x={p.x}
-                      y={H - 24}
-                      fontSize="11.5"
-                      fill={CC.muted}
-                      textAnchor="middle"
-                      fontWeight="bold"
-                      fontFamily={FONTS.bold}
-                    >
-                      {p.year}
-                    </text>
-
-                    {/* Median LPA below Year */}
-                    <text
-                      x={p.x}
-                      y={H - 8}
-                      fontSize="10"
-                      fill={CC.dim}
-                      textAnchor="middle"
-                      fontFamily={FONTS.med}
-                    >
-                      ₹{p.median_lpa}L
-                    </text>
-                  </g>
-                ))}
-              </svg>
-            ) : (
-              <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ position: 'absolute', top: 0, left: 0 }}>
-                <Defs>
-                  <SvgLG id="trendGrad" x1="0" y1="0" x2="0" y2="1">
-                    <Stop offset="0" stopColor="#3B82F6" stopOpacity="0.25" />
-                    <Stop offset="1" stopColor="#3B82F6" stopOpacity="0.0" />
-                  </SvgLG>
-                </Defs>
-
-                {/* Horizontal gridlines at 25%, 50%, 75% */}
-                {gridLines.map((y, idx) => (
-                  <Line
-                    key={idx}
-                    x1={padX}
-                    y1={y}
-                    x2={W - padX}
-                    y2={y}
-                    stroke="rgba(255, 255, 255, 0.08)"
-                    strokeWidth="1"
-                    strokeDasharray="4 4"
+                  )}
+                  <Sv.Circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={p.year === 2026 ? 5.5 : 4}
+                    fill={p.year === 2026 ? "#60A5FA" : "#3B82F6"}
+                    stroke={CC.card}
+                    strokeWidth={2}
                   />
-                ))}
 
-                {/* Baseline */}
-                <Line x1={padX} y1={H - padYBot} x2={W - padX} y2={H - padYBot}
-                      stroke="rgba(255, 255, 255, 0.15)" strokeWidth="1.5" />
+                  {/* Rate text above dot */}
+                  <Sv.Text
+                    x={p.x}
+                    y={p.y - 12}
+                    fontSize="11.5"
+                    fill="#FFFFFF"
+                    textAnchor="middle"
+                    fontWeight="bold"
+                    fontFamily={FONTS.bold}
+                  >
+                    {p.rate}%
+                  </Sv.Text>
 
-                {/* Filled area */}
-                <Path d={fillPath} fill="url(#trendGrad)" />
+                  {/* Year text below baseline */}
+                  <Sv.Text
+                    x={p.x}
+                    y={H - 24}
+                    fontSize="11.5"
+                    fill={CC.muted}
+                    textAnchor="middle"
+                    fontWeight="bold"
+                    fontFamily={FONTS.bold}
+                  >
+                    {p.year}
+                  </Sv.Text>
 
-                {/* Line */}
-                <Path d={path} stroke="#3B82F6" strokeWidth="3" fill="none" strokeLinecap="round" />
-
-                {/* Data points */}
-                {points.map((p) => (
-                  <G key={p.year}>
-                    {/* Outer glow ring for latest year */}
-                    {p.year === 2026 && (
-                      <Circle
-                        cx={p.x}
-                        cy={p.y}
-                        r="9"
-                        fill="#60A5FA"
-                        opacity="0.3"
-                      />
-                    )}
-                    <Circle
-                      cx={p.x}
-                      cy={p.y}
-                      r={p.year === 2026 ? 5.5 : 4}
-                      fill={p.year === 2026 ? "#60A5FA" : "#3B82F6"}
-                      stroke={CC.card}
-                      strokeWidth={2}
-                    />
-
-                    {/* Rate text above dot */}
-                    <SvgText
-                      x={p.x}
-                      y={p.y - 12}
-                      fontSize="11.5"
-                      fill="#FFFFFF"
-                      textAnchor="middle"
-                      fontWeight="bold"
-                      fontFamily={FONTS.bold}
-                    >
-                      {p.rate}%
-                    </SvgText>
-
-                    {/* Year text below baseline */}
-                    <SvgText
-                      x={p.x}
-                      y={H - 24}
-                      fontSize="11.5"
-                      fill={CC.muted}
-                      textAnchor="middle"
-                      fontWeight="bold"
-                      fontFamily={FONTS.bold}
-                    >
-                      {p.year}
-                    </SvgText>
-
-                    {/* Median LPA below Year */}
-                    <SvgText
-                      x={p.x}
-                      y={H - 8}
-                      fontSize="10"
-                      fill={CC.dim}
-                      textAnchor="middle"
-                      fontFamily={FONTS.med}
-                    >
-                      ₹{p.median_lpa}L
-                    </SvgText>
-                  </G>
-                ))}
-              </Svg>
-            )}
+                  {/* Median LPA below Year */}
+                  <Sv.Text
+                    x={p.x}
+                    y={H - 8}
+                    fontSize="10"
+                    fill={CC.dim}
+                    textAnchor="middle"
+                    fontFamily={FONTS.med}
+                  >
+                    ₹{p.median_lpa}L
+                  </Sv.Text>
+                </Sv.G>
+              ))}
+            </Sv.Svg>
           </View>
         )}
       </View>
@@ -442,13 +360,13 @@ const s = StyleSheet.create({
     borderRadius: 6, overflow: 'hidden',
     backgroundColor: 'rgba(255,255,255,0.04)' },
   bar: { width: '100%', borderRadius: 6 },
-  barVal: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
+  barVal: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12 },
   barLabel: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 11 },
   barSub: { color: CC.dim, fontFamily: FONTS.med, fontSize: 10 },
 
   /* Funnel */
   funnelHead: { flexDirection: 'row', alignItems: 'center' },
-  funnelStage: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
+  funnelStage: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
   funnelCount: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
   funnelBarTrack: { height: 8, borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.05)', overflow: 'hidden' },
@@ -456,7 +374,7 @@ const s = StyleSheet.create({
 
   /* Salary */
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rowLabel: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 11.5, width: 110 },
+  rowLabel: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 11.5, width: 110 },
   salTrack: { flex: 1, height: 7, borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.05)', overflow: 'hidden' },
   salFill: { height: '100%', borderRadius: 999 },
@@ -471,7 +389,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(37,99,235,0.18)',
     alignItems: 'center', justifyContent: 'center' },
   recLogoText: { color: '#93C5FD', fontFamily: FONTS.xbold, fontSize: 14 },
-  recName: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5, flexShrink: 1 },
+  recName: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5, flexShrink: 1 },
   hirePill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
     backgroundColor: 'rgba(16,185,129,0.14)',
     borderColor: 'rgba(16,185,129,0.40)', borderWidth: 1 },
@@ -480,7 +398,7 @@ const s = StyleSheet.create({
   /* Dept */
   deptHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   deptDot: { width: 10, height: 10, borderRadius: 999 },
-  deptName: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
+  deptName: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 },
   deptStats: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 11 },
   deptTrack: { height: 7, borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.05)', overflow: 'hidden' },
@@ -496,6 +414,6 @@ const s = StyleSheet.create({
 
   /* Attrition */
   attDot: { width: 10, height: 10, borderRadius: 999 },
-  attLabel: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
+  attLabel: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 },
   attPct: { fontFamily: FONTS.xbold, fontSize: 13 },
 });

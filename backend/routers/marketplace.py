@@ -38,7 +38,7 @@ from core.db import db
 
 router = APIRouter(prefix="/api/echo", tags=["echo-marketplace"])
 
-JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
+from core.security import JWT_SECRET  # single source of truth; raises if unset
 JWT_ALGORITHM = "HS256"
 
 

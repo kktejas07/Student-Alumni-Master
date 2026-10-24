@@ -71,8 +71,8 @@ def _make_absolute_url(url: str) -> str:
 
 
 def _unsub_token(email: str) -> str:
-    secret = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
-    return hmac.new(secret.encode("utf-8"), email.strip().lower().encode("utf-8"), hashlib.sha256).hexdigest()[:16]
+    from core.security import JWT_SECRET
+    return hmac.new(JWT_SECRET.encode("utf-8"), email.strip().lower().encode("utf-8"), hashlib.sha256).hexdigest()[:16]
 
 
 async def _platform_tz(db=None):

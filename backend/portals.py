@@ -52,7 +52,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from bson import ObjectId
 from dotenv import load_dotenv
@@ -64,7 +64,7 @@ import re
 from cachetools import TTLCache, cached
 from pathlib import Path
 
-from core.deps import get_current_user, require_role
+from core.deps import get_current_user, require_role, require_admin_role
 from pydantic import BaseModel
 
 # Instantiate TTL Caches for high-traffic endpoints
@@ -335,7 +335,7 @@ async def mentor_dashboard(mentor_email: Optional[str] = None, user: dict = Depe
             "company": mi.get("organization") or "—",
             "rating": avg_rating,
             "sessions": confirmed,
-            "price": mentor.get("expected_rate_inr") or 999,
+            "price": (mentor or {}).get("expected_rate_inr") or 999,
             "college": si.get("institution_name") or "—",
             "batch": si.get("graduation_year") or 2010,
             "expertise": (mentor or {}).get("skills", []) or ["System Design", "Career Strategy"],
@@ -355,16 +355,62 @@ async def mentor_dashboard(mentor_email: Optional[str] = None, user: dict = Depe
 
 @router.get("/mentor/earnings")
 async def get_mentor_earnings(mentor_email: Optional[str] = None, user: dict = Depends(require_role('mentor'))):
-    """Get mentor earnings summary linked directly to mentor wallet."""
+    """Mentor earnings computed from completed bookings (amount_paid).
+
+    Previously returned a flat 500 for every field. Earnings = sum of
+    amount_paid on this mentor's bookings with status completed; the
+    available-to-withdraw figure subtracts recorded payouts in
+    mentor_payouts (none exist yet, so it equals total earned).
+    """
+    now = datetime.now(timezone.utc)
+    mentor_id = str(user["_id"])
+    email = (user.get("email") or "").lower()
+    base = {
+        "$or": [{"mentor_id": mentor_id}, {"mentor_email": email}],
+        "status": {"$in": ["completed", "done"]},
+    }
+
+    async def total_since(since: Optional[datetime]) -> float:
+        q = dict(base)
+        if since is not None:
+            q["$and"] = [{"$or": [{"completed_at": {"$gte": since}}, {"completed_at": {"$gte": since.isoformat()}},
+                                   {"scheduled_at": {"$gte": since}}, {"scheduled_at": {"$gte": since.isoformat()}}]}]
+        try:
+            cur = _db.bookings.aggregate([{"$match": q}, {"$group": {"_id": None, "s": {"$sum": {"$toDouble": {"$ifNull": ["$amount_paid", 0]}}}}}])
+            rows = await cur.to_list(1)
+            return float(rows[0]["s"]) if rows else 0.0
+        except Exception:
+            return 0.0
+
+    total = await total_since(None)
+    start_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_week = start_today - timedelta(days=start_today.weekday())
+    start_month = start_today.replace(day=1)
+    today_v, week_v, month_v = await total_since(start_today), await total_since(start_week), await total_since(start_month)
+
+    try:
+        cur = _db.mentor_payouts.aggregate([{"$match": {"mentor_id": mentor_id, "status": {"$in": ["paid", "completed"]}}},
+                                           {"$group": {"_id": None, "s": {"$sum": {"$toDouble": {"$ifNull": ["$amount", 0]}}}}}])
+        rows = await cur.to_list(1)
+        paid_out = float(rows[0]["s"]) if rows else 0.0
+    except Exception:
+        paid_out = 0.0
+    available = max(0.0, total - paid_out)
+
+    def fmt(v: float) -> str:
+        return f"₹{v:,.0f}"
+
     return {
-        "total_earned": 500,
-        "available_withdraw": 500,
-        "this_month": 500,
-        "this_week": 500,
-        "today": 500,
+        "total_earned": round(total, 2),
+        "available_withdraw": round(available, 2),
+        "paid_out": round(paid_out, 2),
+        "this_month": round(month_v, 2),
+        "this_week": round(week_v, 2),
+        "today": round(today_v, 2),
         "currency": "INR",
-        "formatted_total": "₹500",
-        "formatted_available": "₹500"
+        "formatted_total": fmt(total),
+        "formatted_available": fmt(available),
+        "basis": "sum of amount_paid on completed bookings",
     }
 
 
@@ -423,7 +469,7 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
             "role": it.get("title", "Intern"),
             "company": it.get("company", "—"),
             "location": it.get("location", "Remote"),
-            "match": 87,
+            "match": None,  # no matching model yet; do not invent a score
             "type": "Internship",
             "logo": (it.get("company") or "?")[0],
             "logoBg": _color_for(it.get("company", "")),
@@ -443,12 +489,12 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
             "initials": _initials(mname),
             "role": mi.get("job_title") or "Senior Mentor",
             "company": mi.get("organization") or "—",
-            "rating": m.get("rating") or 4.9,
+            "rating": m.get("rating"),
             "sessions": msess,
-            "price": m.get("expected_rate_inr") or 999,
+            "price": m.get("expected_rate_inr"),
             "color": _color_for(mname),
-            "bio": mi.get("bio") or "Experienced professional ready to share industry insights, career strategies, and guidance.",
-            "skills": m.get("skills") or ["System Design", "Career Strategy"],
+            "bio": mi.get("bio") or "",
+            "skills": m.get("skills") or [],
         })
 
     from services.profile_service import compute_profile_completion
@@ -475,21 +521,12 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
         real_events_count = user_reg_events
         events_subtext = "Registered"
     else:
-        real_events_count = platform_upcoming if platform_upcoming > 0 else 7
+        real_events_count = platform_upcoming
         events_subtext = "Upcoming"
 
-    # Test/demo account detection vs real user account
-    is_test_account = bool((student or {}).get("is_demo")) or (student_email or "").endswith("@studentalumni.in") or (student_email or "").startswith("test") or sid == ""
-    if is_test_account:
-        if profile_strength == 0:
-            profile_strength = 92
-        if real_apps_count == 0:
-            real_apps_count = 16
-        if real_net_count == 0:
-            real_net_count = 128
-        if real_events_count == 0:
-            real_events_count = 7
-            events_subtext = "Upcoming"
+    # Note: an earlier version inflated zeros for "test" accounts (92% profile,
+    # 16 applications, 128 connections, 7 events). Every account now sees its
+    # real numbers.
 
     upcoming = []
     completed_sessions = my_bookings
@@ -520,7 +557,7 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
             "initials": _initials(name),
             "year": "Final Year" if (si.get("graduation_year") or 2027) <= datetime.now().year + 1 else "Junior Year",
             "saId": student.get("sa_id") if student else None,
-            "career": {"goal": sti.get("career_goal") or "Software Engineer at a Top Tech Company", "progressPct": progress_pct},
+            "career": {"goal": sti.get("career_goal") or "", "progressPct": progress_pct},
             "career_score": profile_strength,
             "tier": tier,
         },
@@ -546,7 +583,7 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
 def format_time_ago(dt: datetime) -> str:
     if not isinstance(dt, datetime):
         return "Recently"
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     diff = now - dt
     seconds = diff.total_seconds()
     if seconds < 0:
@@ -604,7 +641,7 @@ async def student_intelligence(student_email: Optional[str] = None, user: dict =
         out, cur = [], float(start)
         for _ in range(12):
             cur += drift + rng.uniform(-jitter, jitter)
-            out.append(max(0, int(round(cur))))
+            out.append(max(0, round(cur)))
         return out
 
     spark_apps  = _trend(max(2, apps_total - 12), 1.4, 1)
@@ -654,7 +691,7 @@ async def student_intelligence(student_email: Optional[str] = None, user: dict =
                     "icon": "account-tie-voice-outline",
                     "tint": "#A855F7",
                     "bgTint": "rgba(168,85,247,0.15)",
-                    "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+                    "ts": ts if isinstance(ts, datetime) else datetime.now(timezone.utc)
                 })
         except Exception:
             pass
@@ -690,7 +727,7 @@ async def student_intelligence(student_email: Optional[str] = None, user: dict =
                         "icon": "account-tie-voice-outline",
                         "tint": "#A855F7",
                         "bgTint": "rgba(168,85,247,0.15)",
-                        "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+                        "ts": ts if isinstance(ts, datetime) else datetime.now(timezone.utc)
                     })
                 except Exception:
                     pass
@@ -710,7 +747,7 @@ async def student_intelligence(student_email: Optional[str] = None, user: dict =
                     "icon": "briefcase-check-outline",
                     "tint": "#3B82F6",
                     "bgTint": "rgba(59,130,246,0.15)",
-                    "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+                    "ts": ts if isinstance(ts, datetime) else datetime.now(timezone.utc)
                 })
         except Exception:
             pass
@@ -728,7 +765,7 @@ async def student_intelligence(student_email: Optional[str] = None, user: dict =
                     "icon": "calendar-check",
                     "tint": "#10B981",
                     "bgTint": "rgba(16,185,129,0.15)",
-                    "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+                    "ts": ts if isinstance(ts, datetime) else datetime.now(timezone.utc)
                 })
         except Exception:
             pass
@@ -773,7 +810,7 @@ async def student_intelligence(student_email: Optional[str] = None, user: dict =
                         "icon": icon,
                         "tint": "#06B6D4",
                         "bgTint": "rgba(6,182,212,0.15)",
-                        "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+                        "ts": ts if isinstance(ts, datetime) else datetime.now(timezone.utc)
                     })
                 except Exception:
                     pass
@@ -911,7 +948,7 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
             {"$sort": {"count": -1}},
             {"$limit": 1},
         ]).to_list(1)
-        college_name = agg[0]["_id"] if agg else "St. Xavier's College"
+        college_name = agg[0]["_id"] if agg else (user.get("institution") or (user.get("college_info") or {}).get("institution_name") or "Your college")
 
     college_query = {
         "$or": [
@@ -933,17 +970,21 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
     palette = ["#22D3EE", "#A78BFA", "#34D399", "#FBBF24", "#F472B6"]
     dept_placement = []
     for i, d in enumerate(dept_agg):
+        # Real per-department placement: alumni of this branch with a current employer.
+        branch_q = {"role": "alumni", "alumni_info.branch_or_stream": d["_id"], **college_query}
+        try:
+            branch_alumni = await _db.users.count_documents(branch_q)
+            branch_placed = await _db.users.count_documents({**branch_q, "alumni_info.current_employer": {"$nin": [None, "", "—", "-"]}})
+        except Exception:
+            branch_alumni, branch_placed = 0, 0
         dept_placement.append({
             "dept": d["_id"],
-            "pct": 88 + (i * 2 % 12),
-            "placed": d["count"],
+            "students": d["count"],
+            "placed": branch_placed,
+            "pct": int(branch_placed / branch_alumni * 100) if branch_alumni else 0,
             "color": palette[i % len(palette)],
         })
-    if not dept_placement:
-        dept_placement = [
-            {"dept": "Computer Science", "pct": 98, "placed": 235, "color": "#22D3EE"},
-            {"dept": "Design",           "pct": 96, "placed":  43, "color": "#A78BFA"},
-        ]
+    # No fabricated departments: an empty list means no department data yet.
 
     # Recent activity from new students + events
     recent = []
@@ -963,7 +1004,7 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
             "id": _short_id(u.get("_id")),
             "kind": "user",
             "text": f"New {role_label} joined — {u.get('full_name', 'Student')}",
-            "time": (u.get("created_at") or datetime.utcnow()).strftime("%b %d") if isinstance(u.get("created_at"), datetime) else "Recently",
+            "time": (u.get("created_at") or datetime.now(timezone.utc)).strftime("%b %d") if isinstance(u.get("created_at"), datetime) else "Recently",
             "icon": "UserPlus",
             "tint": "#34D399",
             "_sort_key": u.get("created_at") or datetime.min
@@ -975,7 +1016,7 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
             "id": _short_id(ev.get("_id")),
             "kind": "event",
             "text": f"Event created — {ev.get('title', 'Event')}",
-            "time": (ev.get("created_at") or datetime.utcnow()).strftime("%b %d") if isinstance(ev.get("created_at"), datetime) else "Recently",
+            "time": (ev.get("created_at") or datetime.now(timezone.utc)).strftime("%b %d") if isinstance(ev.get("created_at"), datetime) else "Recently",
             "icon": "Calendar",
             "tint": "#FBBF24",
             "_sort_key": ev.get("created_at") or datetime.min
@@ -1000,7 +1041,7 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
             "id": _short_id(ev.get("_id")),
             "title": ev.get("title", "Event"),
             "date": date_str,
-            "attending": regs or 240,
+            "attending": regs,
             "color": _color_for(ev.get("title", "")),
         })
 
@@ -1010,14 +1051,14 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
         {"$sort": {"offers": -1}},
         {"$limit": 5},
     ]).to_list(5)
-    ctcs = ["38 LPA", "32 LPA", "28 LPA", "22 LPA", "18 LPA"]
     top_recruiters = []
     for i, r in enumerate(rec_agg):
+        # CTC is not tracked on internship records; omit rather than invent a ladder.
         top_recruiters.append({
             "id": i + 1,
             "name": r["_id"] or "Unknown",
             "offers": r["offers"],
-            "ctc": ctcs[i] if i < len(ctcs) else "12 LPA",
+            "ctc": None,
             "color": _color_for(r["_id"] or ""),
         })
 
@@ -1052,8 +1093,8 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
             "tier": tier,
         },
         "kpis": [
-            {"id": "students",  "label": "Total Students",     "value": str(students_cnt),      "delta": "↑ this semester",        "color": "blue"},
-            {"id": "alumni",    "label": "Alumni Network",     "value": str(alumni_cnt),        "delta": "growing",                 "color": "purple"},
+            {"id": "students",  "label": "Total Students",     "value": str(students_cnt),      "delta": "registered on platform",  "color": "blue"},
+            {"id": "alumni",    "label": "Alumni Network",     "value": str(alumni_cnt),        "delta": "registered on platform",  "color": "purple"},
             {"id": "placement", "label": "Placement Rate",     "value": f"{placement_pct_num}%", "delta": f"from {alumni_cnt} alumni",  "color": "green"},
             {"id": "events",    "label": "Events This Month",  "value": str(events_this_month),  "delta": f"{len(upcoming)} upcoming","color": "amber"},
         ],
@@ -1432,7 +1473,7 @@ async def create_super_event(payload: EventPayload, user: dict = Depends(require
         "mode": payload.mode or "Online",
         "venue": payload.venue or "Online",
         "category": payload.category or "Workshop",
-        "capacity": int(payload.capacity or 200),
+        "capacity": payload.capacity or 200,
         "price": float(payload.price) if payload.price else None,
         "description": payload.description or "",
         "start_date": _parse_event_dt(payload.start_date) or (datetime.now(timezone.utc) + timedelta(days=14)),
@@ -1444,7 +1485,7 @@ async def create_super_event(payload: EventPayload, user: dict = Depends(require
     return {"ok": True, "event": _serialize_event(doc)}
 
 
-@router.patch("/admin/super/events/{event_id}")
+@router.patch("/admin/super/events/{event_id}", dependencies=[Depends(require_admin_role)])
 async def update_super_event(event_id: str, payload: EventPayload):
     """Update an existing event by Mongo `_id` or short `id`."""
     # try ObjectId first, then fall back to short-id match
@@ -1467,7 +1508,7 @@ async def update_super_event(event_id: str, payload: EventPayload):
     if payload.mode is not None:         updates["mode"]        = payload.mode
     if payload.venue is not None:        updates["venue"]       = payload.venue
     if payload.category is not None:     updates["category"]    = payload.category
-    if payload.capacity is not None:     updates["capacity"]    = int(payload.capacity)
+    if payload.capacity is not None:     updates["capacity"]    = payload.capacity
     if payload.description is not None:  updates["description"] = payload.description
     # price: explicit zero/null both mean "free"
     if payload.price is not None:
@@ -1496,7 +1537,7 @@ async def delete_super_event(event_id: str, user: dict = Depends(require_role('a
                 r = await _db.events.delete_one({"_id": cand["_id"]})
                 deleted = r.deleted_count
                 break
-    return {"ok": True, "deleted": int(deleted)}
+    return {"ok": True, "deleted": deleted}
 
 
 async def _fetch_razorpay_settlements(db) -> dict:
@@ -2035,7 +2076,7 @@ async def export_payments_csv(user: dict = Depends(require_role('admin'))):
                 pass
         rows.append({
             "ID": str(b["_id"]),
-            "Date": (b.get("created_at") or datetime.utcnow()).strftime("%Y-%m-%d %H:%M") if isinstance(b.get("created_at"), datetime) else "",
+            "Date": (b.get("created_at") or datetime.now(timezone.utc)).strftime("%Y-%m-%d %H:%M") if isinstance(b.get("created_at"), datetime) else "",
             "Description": b.get("topic", "Session"),
             "Type": "income",
             "Amount": float(b.get("amount") or 0),
@@ -2072,7 +2113,7 @@ async def export_payments_csv(user: dict = Depends(require_role('admin'))):
     return Response(
         content=csv_content,
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=payments_export_{datetime.utcnow().strftime('%Y%m%d')}.csv"},
+        headers={"Content-Disposition": f"attachment; filename=payments_export_{datetime.now(timezone.utc).strftime('%Y%m%d')}.csv"},
     )
 
 
@@ -2277,52 +2318,6 @@ async def college_alumni_list(college_name: Optional[str] = None, limit: int = 3
             "linkedin_url": a.get("linkedin_url") or "",
             "github_url": a.get("github_url") or "",
         })
-
-    if not out:
-        out = [
-            {
-                "id": "mock_alumni_1",
-                "name": "Ishaan Alumni",
-                "initials": "IA",
-                "batch": 2023,
-                "role": "SDE-2",
-                "company": "Amazon",
-                "city": "Bengaluru",
-                "donor": False,
-                "color": "#F59E0B",
-                "skills": ["AWS", "Node.js", "System Design"],
-                "linkedin_url": "https://linkedin.com",
-                "github_url": "https://github.com",
-            },
-            {
-                "id": "mock_alumni_2",
-                "name": "Riya Alumni",
-                "initials": "RA",
-                "batch": 2020,
-                "role": "Product Manager",
-                "company": "Google",
-                "city": "Hyderabad",
-                "donor": True,
-                "color": "#10B981",
-                "skills": ["Product Strategy", "Agile", "UX"],
-                "linkedin_url": "https://linkedin.com",
-                "github_url": "",
-            },
-            {
-                "id": "mock_alumni_3",
-                "name": "Aarav Test Alumni",
-                "initials": "AA",
-                "batch": 2022,
-                "role": "Data Scientist",
-                "company": "Microsoft",
-                "city": "Pune",
-                "donor": False,
-                "color": "#22D3EE",
-                "skills": ["Python", "Machine Learning", "SQL"],
-                "linkedin_url": "",
-                "github_url": "https://github.com",
-            }
-        ]
 
     return {"items": out, "college": college_name}
 
@@ -2529,7 +2524,7 @@ async def student_events_list(
         student = await _db.users.find_one({"role": "student"})
     sid = str((student or {}).get("_id", ""))
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     def _parse_date(val: Any) -> Optional[datetime]:
         if not val:
@@ -2753,7 +2748,7 @@ async def student_internships(query: Optional[str] = None, student_email: Option
     if not student:
         student = await _db.users.find_one({"role": "student", "onboarding_completed": True})
     tier_payload = await _student_tier_payload(student or {}) if student else {"tier": "Bronze", "visuals": _tier_visuals("Bronze"), "suggestions": student_suggestions_for_tier("Bronze")}
-    user_tier = tier_payload.get("tier", "Bronze")
+    user_tier = str(tier_payload.get("tier", "Bronze"))
     user_rank = TIER_RANK.get(user_tier, 0)
 
     match: Dict[str, Any] = {}
@@ -2844,7 +2839,7 @@ async def student_wallet(student_email: Optional[str] = None, user: dict = Depen
     async for t in tx_cur:
         tx.append({
             "id": t.get("tx_id", str(t.get("_id"))),
-            "date": (t.get("date") or datetime.utcnow()).strftime("%b %d, %Y") if isinstance(t.get("date"), datetime) else "—",
+            "date": (t.get("date") or datetime.now(timezone.utc)).strftime("%b %d, %Y") if isinstance(t.get("date"), datetime) else "—",
             "desc": t.get("desc", "Transaction"),
             "amount": t.get("amount", 0),
             "kind": t.get("kind", "credit"),
@@ -2859,15 +2854,15 @@ async def student_wallet(student_email: Optional[str] = None, user: dict = Depen
 @router.get("/student/network")
 async def student_network(student_email: Optional[str] = None, email: Optional[str] = None, page: int = 1, per_page: int = 24, limit: int = 60, q: Optional[str] = None, user: dict = Depends(require_role('student'))):
     """Mixed alumni + student + mentor network for the Network tab with search support."""
-    user = None
+    db_user = None
     u_email = email or student_email
     if u_email:
-        user = await _db.users.find_one({"email": u_email})
-    if not user:
-        user = await _db.users.find_one({"role": "student"})
+        db_user = await _db.users.find_one({"email": u_email})
+    if not db_user:
+        db_user = await _db.users.find_one({"role": "student"})
 
     rel_map = {}
-    if user:
+    if db_user:
         me_id = str(user["_id"])
         q_clean = (q or "").strip()
         cache_key = f"network_student_{me_id}_p{page}_l{limit}_pp{per_page}_q{q_clean}"
@@ -2907,7 +2902,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     # Fetch Alumni (ensuring connected ones are included first)
     connected_alumni = [u for u in connected_users if u.get("role") == "alumni"]
     seen_alumni = {str(u["_id"]) for u in connected_alumni}
-    alumni_query = {
+    alumni_query: dict[str, Any] = {
         "role": "alumni",
         "_id": {"$nin": [ObjectId(i) for i in seen_alumni]}
     }
@@ -2962,7 +2957,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     # Fetch Students (ensuring connected ones are included first)
     connected_students = [u for u in connected_users if u.get("role") == "student"]
     seen_students = {str(u["_id"]) for u in connected_students}
-    student_query = {
+    student_query: dict[str, Any] = {
         "role": "student",
         "_id": {"$nin": [ObjectId(i) for i in seen_students]}
     }
@@ -3021,7 +3016,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     # Fetch Mentors (ensuring connected ones are included first)
     connected_mentors = [u for u in connected_users if u.get("role") == "mentor"]
     seen_mentors = {str(u["_id"]) for u in connected_mentors}
-    mentor_query = {
+    mentor_query: dict[str, Any] = {
         "role": "mentor",
         "mentor_status": "approved",
         "_id": {"$nin": [ObjectId(i) for i in seen_mentors]}
@@ -3089,7 +3084,7 @@ async def approve_event(event_id: str, user: dict = Depends(require_role('admin'
         oid = ObjectId(event_id)
     except Exception:
         raise HTTPException(400, "Invalid event id")
-    res = await _db.events.update_one({"_id": oid}, {"$set": {"status": "live", "approved_at": datetime.utcnow()}})
+    res = await _db.events.update_one({"_id": oid}, {"$set": {"status": "live", "approved_at": datetime.now(timezone.utc)}})
     if res.matched_count == 0:
         raise HTTPException(404, "Event not found")
     return {"ok": True}
@@ -3139,13 +3134,13 @@ async def create_workflow(req: WorkflowCreateRequest, user: dict = Depends(requi
         "on": False,
         "color": "#F97316",
         "run_log": [],
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
     }
     result = await _db.workflows.insert_one(doc)
     return {"ok": True, "id": str(result.inserted_id)}
 
 
-@router.post("/admin/super/workflows/fire-event")
+@router.post("/admin/super/workflows/fire-event", dependencies=[Depends(require_admin_role)])
 async def fire_workflow_event_endpoint(event_type: str = Body(...), payload: Optional[Dict[str, Any]] = Body(None)):
     """Manually fire a workflow event. All workflows with matching event_triggers will run."""
     try:
@@ -3156,111 +3151,12 @@ async def fire_workflow_event_endpoint(event_type: str = Body(...), payload: Opt
         raise HTTPException(502, f"Automation engine error: {e}")
 
 
-# ── Step registry: maps step label → async function ──────────────
-# Each function receives (db, params) and returns (success: bool, message: str)
-async def _step_verify_email(db, params) -> tuple:
-    import re
-    email = params.get("email", "") if params else ""
-    if not email:
-        return True, "No email provided, skipping verification"
-    pattern = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
-    if re.match(pattern, email):
-        return True, f"Email {email} is valid"
-    return False, f"Email {email} is invalid"
-
-
-async def _step_linkedin_check(db, params) -> tuple:
-    return True, "LinkedIn check passed"
-
-
-async def _step_auto_approve(db, params) -> tuple:
-    return True, "Auto-approved"
-
-
-async def _step_daily_scan(db, params) -> tuple:
-    return True, "Daily scan completed"
-
-
-async def _step_notify_counsellor(db, params) -> tuple:
-    return True, "Counsellor notified"
-
-
-async def _step_schedule_call(db, params) -> tuple:
-    return True, "Call scheduled"
-
-
-async def _step_compute_payouts(db, params) -> tuple:
-    return True, "Payouts computed"
-
-
-async def _step_stripe_transfer(db, params) -> tuple:
-    return True, "Stripe transfer initiated"
-
-
-async def _step_email_receipt(db, params) -> tuple:
-    return True, "Receipt emailed"
-
-
-async def _step_day_welcome(db, params) -> tuple:
-    return True, "Welcome message sent"
-
-
-async def _step_mentor_pitch(db, params) -> tuple:
-    return True, "Mentor pitch sent"
-
-
-async def _step_hackathon(db, params) -> tuple:
-    return True, "Hackathon invite sent"
-
-
-async def _step_detect_no_show(db, params) -> tuple:
-    return True, "No-show detected"
-
-
-async def _step_auto_refund(db, params) -> tuple:
-    return True, "Refund processed"
-
-
-async def _step_notify_both(db, params) -> tuple:
-    return True, "Both parties notified"
-
-
-async def _step_find_donors(db, params) -> tuple:
-    return True, "High-value donors identified"
-
-
-async def _step_personalize_copy(db, params) -> tuple:
-    return True, "Personalized copy generated"
-
-
-async def _step_sendgrid(db, params) -> tuple:
-    return True, "SendGrid email sent"
-
-
-STEP_REGISTRY: Dict[str, callable] = {
-    "Verify email": _step_verify_email,
-    "LinkedIn check": _step_linkedin_check,
-    "Auto-approve if rank<200": _step_auto_approve,
-    "Daily scan": _step_daily_scan,
-    "Notify counsellor": _step_notify_counsellor,
-    "Schedule call": _step_schedule_call,
-    "Compute payouts": _step_compute_payouts,
-    "Stripe transfer": _step_stripe_transfer,
-    "Email receipt": _step_email_receipt,
-    "Day 0 welcome": _step_day_welcome,
-    "Day 3 mentor pitch": _step_mentor_pitch,
-    "Day 7 hackathon": _step_hackathon,
-    "Detect no-show": _step_detect_no_show,
-    "Auto-refund": _step_auto_refund,
-    "Notify both parties": _step_notify_both,
-    "Find big donors": _step_find_donors,
-    "Personalize copy": _step_personalize_copy,
-    "Send via SendGrid": _step_sendgrid,
-}
+# ── Step registry: single source of truth lives in workflow_automation ──
+from workflow_automation import STEP_REGISTRY  # noqa: E402
 
 
 @router.post("/admin/super/workflows/{wf_id}/run")
-async def run_workflow(wf_id: str, body: WorkflowRunRequest = None, user: dict = Depends(require_role('admin'))):
+async def run_workflow(wf_id: str, body: Optional[WorkflowRunRequest] = None, user: dict = Depends(require_role('admin'))):
     """Execute all steps of a workflow and record the result."""
     wf = await _get_workflow_or_404(wf_id)
     steps = wf.get("steps", [])
@@ -3290,7 +3186,7 @@ async def run_workflow(wf_id: str, body: WorkflowRunRequest = None, user: dict =
         {"_id": ObjectId(wf_id)},
         {
             "$inc": {"runs": 1, "success": 1 if all_ok else 0},
-            "$set": {"last_run_at": datetime.utcnow(), "last_run_success": all_ok},
+            "$set": {"last_run_at": datetime.now(timezone.utc), "last_run_success": all_ok},
             "$push": {"run_log": {"$each": [], "$slice": -20}},
         },
     )
@@ -3298,7 +3194,7 @@ async def run_workflow(wf_id: str, body: WorkflowRunRequest = None, user: dict =
     await _db.workflows.update_one(
         {"_id": ObjectId(wf_id)},
         {"$push": {"run_log": {
-            "at": datetime.utcnow(),
+            "at": datetime.now(timezone.utc),
             "success": all_ok,
             "steps": results,
             "params": params,
@@ -3323,7 +3219,7 @@ async def get_workflow_detail(wf_id: str, user: dict = Depends(require_role('adm
     return wf
 
 
-@router.patch("/admin/super/workflows/{wf_id}")
+@router.patch("/admin/super/workflows/{wf_id}", dependencies=[Depends(require_admin_role)])
 async def update_workflow(wf_id: str, req: WorkflowUpdateRequest):
     """Update workflow name, trigger, steps, or color."""
     await _get_workflow_or_404(wf_id)
@@ -3336,7 +3232,7 @@ async def update_workflow(wf_id: str, req: WorkflowUpdateRequest):
         updates["steps"] = req.steps
     if req.color is not None:
         updates["color"] = req.color
-    updates["updated_at"] = datetime.utcnow()
+    updates["updated_at"] = datetime.now(timezone.utc)
     await _db.workflows.update_one({"_id": ObjectId(wf_id)}, {"$set": updates})
     return {"ok": True}
 
@@ -3355,10 +3251,10 @@ async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))
     # Try MongoDB ObjectId
     try:
         oid = ObjectId(user_id)
-        res = await _db.users.update_one({"_id": oid, "role": "mentor"}, {"$set": {"mentor_status": "approved", "approved_at": datetime.utcnow()}})
+        res = await _db.users.update_one({"_id": oid, "role": "mentor"}, {"$set": {"mentor_status": "approved", "approved_at": datetime.now(timezone.utc)}})
         if res.matched_count > 0:
             return {"ok": True, "kind": "mentor"}
-        res2 = await _db.colleges_meta.update_one({"_id": oid}, {"$set": {"status": "active", "approved_at": datetime.utcnow()}})
+        res2 = await _db.colleges_meta.update_one({"_id": oid}, {"$set": {"status": "active", "approved_at": datetime.now(timezone.utc)}})
         if res2.matched_count > 0:
             return {"ok": True, "kind": "college"}
     except Exception:
@@ -3367,7 +3263,7 @@ async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))
     # Fallback: try colleges_meta by string name
     res = await _db.colleges_meta.update_one(
         {"name": user_id},
-        {"$set": {"status": "active", "approved_at": datetime.utcnow()}}
+        {"$set": {"status": "active", "approved_at": datetime.now(timezone.utc)}}
     )
     if res.matched_count > 0:
         return {"ok": True, "kind": "college"}
@@ -3375,7 +3271,7 @@ async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))
     # Try events by title
     res3 = await _db.events.update_one(
         {"title": user_id},
-        {"$set": {"status": "live", "approved_at": datetime.utcnow()}}
+        {"$set": {"status": "live", "approved_at": datetime.now(timezone.utc)}}
     )
     if res3.matched_count > 0:
         return {"ok": True, "kind": "event"}
@@ -3404,7 +3300,7 @@ async def reject_user(user_id: str, user: dict = Depends(require_role('admin')))
     # Try events by title
     res3 = await _db.events.update_one(
         {"title": user_id},
-        {"$set": {"status": "cancelled", "rejected_at": datetime.utcnow()}}
+        {"$set": {"status": "cancelled", "rejected_at": datetime.now(timezone.utc)}}
     )
     if res3.matched_count > 0:
         return {"ok": True, "kind": "event"}
@@ -3432,7 +3328,7 @@ async def dismiss_insight(insight_id: str, user: dict = Depends(require_role('ad
         oid = ObjectId(insight_id)
     except Exception:
         raise HTTPException(400, "Invalid id")
-    res = await _db.ai_insights.update_one({"_id": oid}, {"$set": {"dismissed": True, "dismissed_at": datetime.utcnow()}})
+    res = await _db.ai_insights.update_one({"_id": oid}, {"$set": {"dismissed": True, "dismissed_at": datetime.now(timezone.utc)}})
     if res.matched_count == 0:
         raise HTTPException(404, "Not found")
     return {"ok": True}
@@ -3458,7 +3354,7 @@ async def wallet_topup(req: TopupRequest, user: dict = Depends(require_role('stu
         "tx_id": f"TX-{seq}",
         "seq": seq,
         "student_id": str(student["_id"]),
-        "date": datetime.utcnow(),
+        "date": datetime.now(timezone.utc),
         "desc": "Wallet top-up via UPI",
         "amount": req.amount,
         "kind": "credit",
@@ -3484,7 +3380,7 @@ async def event_rsvp(event_id: str, student_email: Optional[str] = None, user: d
     await _db.event_registrations.insert_one({
         "event_id": event_id,
         "student_id": str(student["_id"]),
-        "registered_at": datetime.utcnow(),
+        "registered_at": datetime.now(timezone.utc),
         "status": "registered",
     })
     return {"ok": True, "registered": True}
@@ -3565,29 +3461,29 @@ async def my_tier(email: Optional[str] = None, role: Optional[str] = None, user:
     along with score breakdown, visuals, and tier-driven suggestions.
     Accepts ?email= for per-user lookup; falls back to first user of role.
     """
-    user = None
+    db_user = None
     q: Dict[str, Any] = {}
     if email:
         q["email"] = email
     if role:
         q["role"] = role
     if q:
-        user = await _db.users.find_one(q)
-    if not user:
-        user = await _db.users.find_one({"role": role or "student"})
-    if not user:
+        db_user = await _db.users.find_one(q)
+    if not db_user:
+        db_user = await _db.users.find_one({"role": role or "student"})
+    if not db_user:
         raise HTTPException(404, "User not found")
 
-    r = (user or {}).get("role")
+    r = (db_user or {}).get("role")
     if r == "mentor":
-        mentor_id = str(user["_id"])
+        mentor_id = str(db_user["_id"])
         confirmed = await _db.bookings.count_documents({"mentor_id": mentor_id, "status": {"$in": ["confirmed", "completed"]}})
         ratings = [rev.get("rating", 0) async for rev in _db.reviews.find({"mentor_id": mentor_id})]
         avg = round(sum(ratings) / len(ratings), 1) if ratings else 4.5
-        tier = await _mentor_tier_payload(user, confirmed, avg)
+        tier = await _mentor_tier_payload(db_user, confirmed, avg)
     elif r == "college":
-        si = (user or {}).get("school_info") or {}
-        cname = si.get("institution_name") or user.get("full_name", "—")
+        si = (db_user or {}).get("school_info") or {}
+        cname = si.get("institution_name") or db_user.get("full_name", "—")
         students_cnt = await _db.users.count_documents({"role": "student", "school_info.institution_name": cname})
         alumni_cnt = await _db.users.count_documents({"role": "alumni", "school_info.institution_name": cname})
         tier = await _college_tier_payload(cname, students_cnt, alumni_cnt, 90.0)

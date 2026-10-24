@@ -9,10 +9,12 @@
  * the protected child route flash or crash.
  */
 import React, { useEffect } from 'react';
+import { WebOnlyRoute } from '@/src/lib/nativeGuard';
+import { Platform } from 'react-native';
 import { Slot, useRouter, usePathname } from 'expo-router';
 import { useVendorAuthStore } from '@/src/viewmodels/stores/vendorAuthStore';
 
-export default function VendorPortalLayoutRoute() {
+function VendorPortalLayoutRoute() {
   const router = useRouter();
   const pathname = usePathname();
   const token = useVendorAuthStore((s) => s.token);
@@ -23,7 +25,7 @@ export default function VendorPortalLayoutRoute() {
   useEffect(() => {
     if (isLogin) return;
     if (!token || !vendor) {
-      router.replace('/vendor-portal/login');
+      router.replace('/vendor-portal/login' as any);
     }
   }, [token, vendor, isLogin, router]);
 
@@ -41,4 +43,13 @@ export default function VendorPortalLayoutRoute() {
   }
 
   return <Slot />;
+}
+
+/**
+ * Native guard — this route renders web-only UI. On iOS/Android show a
+ * placeholder that opens the page on studentalumni.ai instead of crashing.
+ */
+export default function VendorPortalLayoutRouteRoute() {
+  if (Platform.OS !== 'web') return <WebOnlyRoute path="/vendor-portal" />;
+  return <VendorPortalLayoutRoute />;
 }

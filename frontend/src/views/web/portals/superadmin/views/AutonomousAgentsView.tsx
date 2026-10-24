@@ -6,6 +6,7 @@ import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { Badge } from '../atoms';
 import { postPortal, getPortal, putPortal, deletePortal } from '@/src/lib/portalApi';
 import { useToast, Toast } from '../applekit';
+import { CICDEvaluatorView } from './CICDEvaluatorView';
 
 export function AutonomousAgentsView() {
   const T = useSAC();
@@ -46,10 +47,11 @@ export function AutonomousAgentsView() {
     }
   };
 
-  const [activeTab, setActiveTab] = useState<'custom_teams' | 'outreach_directory' | 'swarm' | 'autopilot' | 'qa' | 'specialized' | 'observability' | 'daily_audit'>('custom_teams');
+  const [activeTab, setActiveTab] = useState<'custom_teams' | 'outreach_directory' | 'swarm' | 'autopilot' | 'qa' | 'specialized' | 'observability' | 'daily_audit' | 'cicd'>('custom_teams');
 
   // Custom Teams State
   const [teamsLoading, setTeamsLoading] = useState(false);
+  const [teamsError, setTeamsError] = useState<string | null>(null);
   const [teamsList, setTeamsList] = useState<any[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<any>(null);
   const [teamTaskPrompt, setTeamTaskPrompt] = useState('Launch outreach scouting campaign across AI and Web3 student communities to gather free cloud vouchers');
@@ -97,7 +99,7 @@ export function AutonomousAgentsView() {
 
   // Broadcast Modal State
   const [broadcastModalVisible, setBroadcastModalVisible] = useState(false);
-  const [broadcastChannel, setBroadcastChannel] = useState<'telegram' | 'whatsapp' | 'discord'>('telegram');
+  const [broadcastChannel, setBroadcastChannel] = useState<'whatsapp' | 'email'>('whatsapp');
   const [broadcastTitle, setBroadcastTitle] = useState('ECHO 2026 Hackathon Registrations Open!');
   const [broadcastMsg, setBroadcastMsg] = useState('→ Registrations are officially open for Student Alumni Hackathon 2026! Over $15,000 in prizes & free cloud credits.');
   const [broadcastLoading, setBroadcastLoading] = useState(false);
@@ -144,50 +146,22 @@ export function AutonomousAgentsView() {
   const [dossierLoading, setDossierLoading] = useState(false);
   const [dailyDossier, setDailyDossier] = useState<any>(null);
 
-const FALLBACK_PRESET_TEAMS = [
-  {
-    id: 'team-outreach-goodies',
-    name: 'Outreach & Goodies Scouting Team',
-    category: 'outreach',
-    description: 'Scouts student communities across AI, Dev, Design & Web3 every 8 hours, gathering sponsorships, cloud credits, swag, and contacts.',
-    icon: 'Globe',
-    color: '#8B5CF6',
-    is_preset: true,
-    agents: [
-      { id: 'agent-outreach-1', name: 'Karan (Community Scout)', role: 'Community & Hackathon Lead', avatar: '🌐', system_prompt: 'Scout campus clubs, hackathons, and tech groups.' },
-      { id: 'agent-outreach-2', name: 'Zoe (Perks & Goodies Hunter)', role: 'Free Goodies & Sponsorship Hunter', avatar: '🎁', system_prompt: 'Aggregate cloud credits, free dev software licenses, swag.' },
-    ],
-  },
-  {
-    id: 'team-dev-fullstack',
-    name: 'Full-Stack Development Team',
-    category: 'development',
-    description: 'Architects, codes, and refactors scalable APIs, UI components, and DB schemas.',
-    icon: 'Code',
-    color: '#3B82F6',
-    is_preset: true,
-    agents: [
-      { id: 'agent-dev-1', name: 'Alex (Tech Lead)', role: 'System Architect', avatar: '👨‍💻', system_prompt: 'Design robust architecture patterns and API specs.' },
-      { id: 'agent-dev-2', name: 'Priya (Frontend Specialist)', role: 'UI & Component Engineer', avatar: '🎨', system_prompt: 'Build clean, accessible React components.' },
-    ],
-  },
-];
 
   // ─── Custom Teams Logic ──────────────────────────────────────────────
   const fetchTeams = async () => {
     setTeamsLoading(true);
     try {
-      const res = await getPortal('/admin/agents/teams');
-      const list = res?.teams && res.teams.length > 0 ? res.teams : FALLBACK_PRESET_TEAMS;
+      // The backend seeds its own preset teams (custom_teams_engine.PRESET_TEAMS),
+      // so an empty list here is a real empty list, not a reason to invent one.
+      const res: any = await getPortal('/admin/agents/teams');
+      const list = Array.isArray(res?.teams) ? res.teams : [];
       setTeamsList(list);
       if (list.length > 0 && !selectedTeam) {
         setSelectedTeam(list[0]);
       }
     } catch (e: any) {
-      setTeamsList(FALLBACK_PRESET_TEAMS);
-      if (!selectedTeam) {
-        setSelectedTeam(FALLBACK_PRESET_TEAMS[0]);
-      }
+      setTeamsList([]);
+      setTeamsError(e?.message || 'Could not load agent teams');
     } finally {
       setTeamsLoading(false);
     }
@@ -699,6 +673,11 @@ const FALLBACK_PRESET_TEAMS = [
           <CheckCircle size={14} color={activeTab === 'daily_audit' ? '#fff' : SAC.muted} />
           <Text style={[s.tabText, activeTab === 'daily_audit' && s.tabTextActive]}>24h Ops Swarm</Text>
         </Pressable>
+        <Pressable onPress={() => setActiveTab('cicd')} style={[s.tabBtn, activeTab === 'cicd' && s.tabActive]}>
+          <Code size={14} color={activeTab === 'cicd' ? '#fff' : SAC.muted} />
+          <Text style={[s.tabText, activeTab === 'cicd' && s.tabTextActive]}>CI/CD PR Evaluator</Text>
+          <Badge label="GIT SCOUT" color="indigo" />
+        </Pressable>
       </View>
 
       {/* TAB 0: CUSTOM AGENT TEAMS */}
@@ -719,6 +698,12 @@ const FALLBACK_PRESET_TEAMS = [
           {/* Teams Grid */}
           {teamsLoading ? (
             <ActivityIndicator size="medium" color={SAC.accent} style={{ marginVertical: 20 }} />
+          ) : teamsError ? (
+            <Pressable onPress={fetchTeams} style={{ padding: 14, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(248,113,113,0.4)', backgroundColor: 'rgba(248,113,113,0.08)' }}>
+              <Text style={{ color: '#FCA5A5', fontSize: 13 }}>{teamsError}. Tap to retry.</Text>
+            </Pressable>
+          ) : teamsList.length === 0 ? (
+            <Text style={{ color: SAC.muted, fontSize: 13, paddingVertical: 12 }}>No agent teams configured yet.</Text>
           ) : (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
               {teamsList.map((team) => {
@@ -1349,7 +1334,7 @@ const FALLBACK_PRESET_TEAMS = [
                 <View style={{ gap: 12 }}>
                   <Text style={s.label}>Target Channel</Text>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {['telegram', 'whatsapp', 'discord'].map((ch) => (
+                    {['whatsapp', 'email'].map((ch) => (
                       <Pressable
                         key={ch}
                         onPress={() => setBroadcastChannel(ch as any)}
@@ -1733,6 +1718,9 @@ const FALLBACK_PRESET_TEAMS = [
           )}
         </View>
       )}
+
+      {/* TAB 8: CI/CD EVALUATOR & GIT SCOUT */}
+      {activeTab === 'cicd' && <CICDEvaluatorView />}
 
       {/* Modal to Create / Edit Custom Agent Team */}
       <Modal visible={modalVisible} transparent animationType="fade">
