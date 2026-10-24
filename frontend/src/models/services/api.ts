@@ -66,17 +66,18 @@ async function refreshAccessToken(): Promise<string | null> {
   if (refreshInFlight) return refreshInFlight;
   refreshInFlight = (async () => {
     const refreshToken = await tokenStore.getRefresh();
-    if (!refreshToken) return null;
     try {
       const res = await fetch(`${BASE_URL}/api/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: refreshToken }),
+        credentials: 'include',
+        body: JSON.stringify(refreshToken ? { refresh_token: refreshToken } : {}),
       });
       if (!res.ok) return null;
       const data = await res.json();
       if (!data.access_token) return null;
-      await tokenStore.setTokens(data.access_token, refreshToken);
+      const newRefresh = data.refresh_token || refreshToken || '';
+      await tokenStore.setTokens(data.access_token, newRefresh);
       return data.access_token;
     } catch {
       return null;
@@ -125,6 +126,7 @@ export async function request<T>(
     const res = await fetch(fullUrl, {
       method,
       headers,
+      credentials: 'include',
       body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
     });
 
@@ -145,6 +147,7 @@ export async function request<T>(
         const r2 = await fetch(fullUrl, {
           method,
           headers: { ...headers, Authorization: `Bearer ${fresh}` },
+          credentials: 'include',
           body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
         });
         const t = await r2.text();
@@ -210,6 +213,21 @@ export const api = {
     request<any>('/auth/linkedin', { method: 'POST', body: payload, auth: false }),
 
   me: () => request<any>('/auth/me'),
+
+  logout: async () => {
+    try {
+      const refreshToken = await tokenStore.getRefresh();
+      await request<any>('/auth/logout', {
+        method: 'POST',
+        body: refreshToken ? { refresh_token: refreshToken } : {},
+        auth: true,
+      });
+    } catch {
+      // Ignore network errors on logout to allow local cleanup
+    } finally {
+      await tokenStore.clear();
+    }
+  },
 
   // 2FA — TOTP-based
   twoFASetup: () =>

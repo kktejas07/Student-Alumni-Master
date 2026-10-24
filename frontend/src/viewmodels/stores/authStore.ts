@@ -172,6 +172,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         extra: { reason: 'user_logout' },
       });
     } catch {}
+    try {
+      await api.logout();
+    } catch {}
     await tokenStore.clear();
     try {
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.localStorage.removeItem('sa.consent.v1');

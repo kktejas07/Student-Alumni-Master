@@ -26,10 +26,21 @@ logger = logging.getLogger("college_portal")
 router = APIRouter()
 
 
-# ─── Auth ────────────────────────────────────────────────────────────────
+# ─── Auth & Tenant RBAC ───────────────────────────────────────────────────
+from core.deps import get_current_user
+
+def _require_college_user(user: dict = Depends(get_current_user)) -> dict:
+    role = (user.get("role") or "").lower()
+    is_super = bool(user.get("is_super_admin") or user.get("is_admin"))
+    if role not in ("college", "college_admin", "admin", "super_admin") and not is_super:
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: College administrator access required"
+        )
+    return user
+
 def _auth():
-    from core.deps import get_current_user
-    return get_current_user
+    return _require_college_user
 
 
 # ─── Seed Roster ─────────────────────────────────────────────────────────

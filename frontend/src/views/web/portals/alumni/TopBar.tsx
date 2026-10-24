@@ -7,8 +7,8 @@ import { Bell, Search } from './iconShims';
 import { SC, FONTS } from './tokens';
 import { Av } from './atoms';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
-import { AlumniPortalNavContext } from './AlumniPortalRN';
 import { api } from '@/src/models/services/api';
+import { AlumniPortalNavContext } from './AlumniPortalNavContext';
 
 function greeting(): string {
   const h = new Date().getHours();

@@ -29,8 +29,11 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useToast } from '@/src/views/components';
 import { request, api } from '@/src/models/services/api';
 
-import { AlumniPortalNavContext as StudentPortalNavContext } from '../AlumniPortalRN';
-import { useNetworkViewState, type DiscoverSubTab, type FilterType } from '../../shared/useNetworkViewState';
+import { AlumniPortalNavContext as StudentPortalNavContext } from '../AlumniPortalNavContext';
+
+type CategoryTab = 'discover' | 'connections' | 'book' | 'requests';
+type FilterType = 'everyone' | 'students' | 'alumnis' | 'mentors' | 'industry';
+type DiscoverSubTab = 'interest' | 'path' | 'college' | 'recommended' | 'expand';
 
 function LinkedinGlyph({ size = 14, color = '#fff' }: { size?: number; color?: string }) {
   return (
