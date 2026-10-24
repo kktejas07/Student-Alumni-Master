@@ -315,7 +315,7 @@ const s = StyleSheet.create({
     height: 52, borderRadius: 12, borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.18)',
     backgroundColor: 'rgba(255,255,255,0.04)',
-    color: '#FFFFFF', fontFamily: 'JetBrainsMono_700Bold, DMSans_700Bold', fontSize: 16,
+    color: '#FFFFFF', fontFamily: 'SpaceMono, DMSans_700Bold', fontSize: 16,
     textAlign: 'center', letterSpacing: 2, paddingHorizontal: 14,
     marginBottom: 14, ...({ outlineStyle: 'none' } as any),
   },

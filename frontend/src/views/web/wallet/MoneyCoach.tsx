@@ -540,7 +540,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1 },
   brain: { width: 36, height: 36, borderRadius: 999,
     backgroundColor: '#2563EB', alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: 'DMSans_900Black', fontSize: 14 },
+  title: { fontFamily: 'DMSans_800ExtraBold', fontSize: 14 },
   subtitle: { fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
   closeBtn: { width: 30, height: 30, borderRadius: 999,
     alignItems: 'center', justifyContent: 'center',
@@ -552,7 +552,7 @@ const s = StyleSheet.create({
     fontSize: 12.5, lineHeight: 19 },
   cmdBadge: { alignSelf: 'flex-start', paddingHorizontal: 7, paddingVertical: 2,
     borderRadius: 6, backgroundColor: 'rgba(37,99,235,0.20)' },
-  cmdBadgeText: { color: '#2563EB', fontFamily: 'DMSans_900Black',
+  cmdBadgeText: { color: '#2563EB', fontFamily: 'DMSans_800ExtraBold',
     fontSize: 9, letterSpacing: 0.6 },
 
   /* Plan card */
@@ -563,7 +563,7 @@ const s = StyleSheet.create({
     fontSize: 11, flex: 1 },
   planGapPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
     backgroundColor: 'rgba(245,158,11,0.20)' },
-  planGapText: { color: '#F59E0B', fontFamily: 'DMSans_900Black', fontSize: 10 },
+  planGapText: { color: '#F59E0B', fontFamily: 'DMSans_800ExtraBold', fontSize: 10 },
   planAction: { flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 8, paddingVertical: 7, borderRadius: 8 },
   planCheck: { width: 18, height: 18, borderRadius: 999,

@@ -8,9 +8,9 @@ export const PALETTE_DARK = {
   violet: COLORS.primary,
   violetD: COLORS.primaryDark,
   violetL: COLORS.primaryLight,
-  blue:   '#3B82F6',
-  teal:   '#10B981',
-  amber:  '#F59E0B',
+  blue:   COLORS.blue,
+  teal:   COLORS.green,
+  amber:  COLORS.amber,
   rose:   '#f43f5e',
   text:   '#F4F4F8',
   muted:  '#A1A6B7',
@@ -125,28 +125,6 @@ export function useColors(): typeof SC {
   return (isDark ? SC : (SC_LIGHT as unknown as typeof SC));
 }
 
-export const TYPO = {
-  display400: 'Outfit_400Regular',
-  display500: 'Outfit_500Medium',
-  display600: 'Outfit_600SemiBold',
-  display700: 'Outfit_700Bold',
-  display800: 'Outfit_800ExtraBold',
-  body400:  'PlusJakartaSans_400Regular',
-  body500:  'PlusJakartaSans_500Medium',
-  body600:  'PlusJakartaSans_600SemiBold',
-  body700:  'PlusJakartaSans_700Bold',
-  mono400:  'JetBrainsMono_400Regular',
-  mono500:  'JetBrainsMono_500Medium',
-  mono600:  'JetBrainsMono_600SemiBold',
-  mono700:  'JetBrainsMono_700Bold',
-} as const;
+export { TYPO } from '@/src/theme/typography';
 
-export const FONTS = {
-  bold:  'PlusJakartaSans_700Bold',
-  semi:  'PlusJakartaSans_600SemiBold',
-  med:   'PlusJakartaSans_500Medium',
-  xbold: 'Outfit_800ExtraBold',
-  display: TYPO.display700,
-  body:    TYPO.body500,
-  mono:    TYPO.mono600,
-};
+export { FONTS } from '@/src/theme/typography';

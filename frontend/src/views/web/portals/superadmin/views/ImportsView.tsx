@@ -1996,7 +1996,7 @@ const s = StyleSheet.create({
 
   mapRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
   mapSrc: { color: SAC.text, fontFamily: FONTS.med, fontSize: 12, width: 220,
-    ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}) },
+    ...(Platform.OS === 'web' ? ({ fontFamily: 'SpaceMono, "SF Mono", monospace' } as any) : {}) },
   mapUnused: { backgroundColor: 'rgba(255,255,255,0.04)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, borderWidth: 1, borderColor: SAC.border },
   mapUnusedText: { color: SAC.dim, fontFamily: FONTS.bold, fontSize: 10.5 },
 
