@@ -944,8 +944,7 @@ async def rsvp_event(event_id: str, body: Optional[Dict[str, Any]] = None,
                 raise HTTPException(402, "Insufficient SA Credits to register for this paid event")
             paid_credits = amt
     elif doc.get("price_type") == "paid" and not use_credits:
-        # Allow registering paid event without paying — backend records as "pending_payment"
-        pass
+        raise HTTPException(402, "Payment is required to register for this paid event")
 
     confirmation_id = f"SA-EVT-{datetime.now(timezone.utc).strftime('%y%m%d')}-{hashlib.md5((event_id+uid+str(datetime.now(timezone.utc).timestamp())).encode()).hexdigest()[:6].upper()}"
 
