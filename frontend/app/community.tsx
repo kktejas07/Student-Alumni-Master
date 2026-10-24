@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, useWindowDimensions, Linking } from 'react-native';
+import { WebOnlyRoute } from '@/src/lib/nativeGuard';
+import { View, StyleSheet, ScrollView, useWindowDimensions, Linking, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
@@ -31,7 +32,7 @@ const UPCOMING_EVENTS = [
   { id: '3', date: 'SEP 18', title: 'Alumni AMA · Product', location: 'Online', tagColor: '#6FD6FF' },
 ];
 
-export default function CommunityPage() {
+function CommunityPage() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const [showCampusModal, setShowCampusModal] = useState(false);
@@ -537,3 +538,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 });
+
+/**
+ * Native guard — this route renders web-only UI. On iOS/Android show a
+ * placeholder that opens the page on studentalumni.ai instead of crashing.
+ */
+export default function CommunityPageRoute() {
+  if (Platform.OS !== 'web') return <WebOnlyRoute path="/community" />;
+  return <CommunityPage />;
+}

@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
+import { WebOnlyRoute } from '@/src/lib/nativeGuard';
 import {
   View,
   Text,
@@ -39,7 +40,7 @@ import { SAModernLoader } from '@/src/views/components/SAModernLoader';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://studentalumni.ai';
 
-export default function VerifyScreen() {
+function VerifyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [certResult, setCertResult] = useState<any>(null);
   const [data, setData] = useState<any>(null);
@@ -891,3 +892,12 @@ const styles = StyleSheet.create({
     height: '84%',
   },
 });
+
+/**
+ * Native guard — this route renders web-only UI. On iOS/Android show a
+ * placeholder that opens the page on studentalumni.ai instead of crashing.
+ */
+export default function VerifyScreenRoute() {
+  if (Platform.OS !== 'web') return <WebOnlyRoute />;
+  return <VerifyScreen />;
+}

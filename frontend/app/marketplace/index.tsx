@@ -3,6 +3,8 @@
  * Shows available events with marketplaces, or redirects if only one exists.
  */
 import React, { useEffect, useState } from 'react';
+import { WebOnlyRoute } from '@/src/lib/nativeGuard';
+import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { api } from '@/src/models/services/api';
 
@@ -18,7 +20,7 @@ const THEME_VARS = {
   '--violet-lt': '#A78BFA',
 } as React.CSSProperties;
 
-export default function MarketplaceIndexPage() {
+function MarketplaceIndexPage() {
   const router = useRouter();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,4 +121,13 @@ export default function MarketplaceIndexPage() {
       </div>
     </div>
   );
+}
+
+/**
+ * Native guard — this route renders web-only UI. On iOS/Android show a
+ * placeholder that opens the page on studentalumni.ai instead of crashing.
+ */
+export default function MarketplaceIndexPageRoute() {
+  if (Platform.OS !== 'web') return <WebOnlyRoute path="/marketplace" />;
+  return <MarketplaceIndexPage />;
 }

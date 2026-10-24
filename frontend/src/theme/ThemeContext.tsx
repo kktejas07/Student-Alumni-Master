@@ -13,7 +13,7 @@
  *   <View style={{ backgroundColor: theme.bg }}>...</View>
  */
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { Appearance } from 'react-native';
+import { Appearance, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LIGHT, DARK, type Theme } from './apple';
 
@@ -30,7 +30,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Load persisted mode + listen to system changes
   useEffect(() => {
     let mounted = true;
-    const local = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) || localStorage.getItem('theme') : null;
+    let local: string | null = null;
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      try {
+        local = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('theme');
+      } catch {}
+    }
     if (local === 'light' || local === 'dark' || local === 'system') {
       setModeState(local as Mode);
     } else {
@@ -53,7 +58,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setMode = (m: Mode) => {
     setModeState(m);
     AsyncStorage.setItem(STORAGE_KEY, m).catch(() => {});
-    if (typeof window !== 'undefined') {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
       try {
         localStorage.setItem(STORAGE_KEY, m);
       } catch {}
@@ -65,7 +70,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // Sync with document element for CSS override method
   useEffect(() => {
-    if (typeof document !== 'undefined') {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
       const root = document.documentElement;
       if (isDark) {
         root.classList.remove('light-mode');

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { WebOnlyRoute } from '@/src/lib/nativeGuard';
 import {
   View,
   Text,
@@ -33,7 +34,7 @@ import { useRouter } from 'expo-router';
 import LandingPage from '@/src/views/web/LandingPage';
 import { request } from '@/src/models/services/api';
 
-export default function ContactPage() {
+function ContactPage() {
   if (Platform.OS === 'web') {
     return <LandingPage initialTab="contact" />;
   }
@@ -1028,3 +1029,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+
+/**
+ * Native guard — this route renders web-only UI. On iOS/Android show a
+ * placeholder that opens the page on studentalumni.ai instead of crashing.
+ */
+export default function ContactPageRoute() {
+  if (Platform.OS !== 'web') return <WebOnlyRoute path="/contact" />;
+  return <ContactPage />;
+}
