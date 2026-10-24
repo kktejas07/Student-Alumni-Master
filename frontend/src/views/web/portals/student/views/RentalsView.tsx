@@ -119,7 +119,7 @@ export function RentalsView() {
   const isoDay = (d: Date) => d.toISOString().slice(0, 10);
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
   const plus30 = new Date(tomorrow); plus30.setDate(plus30.getDate() + 30);
-  const [checkIn, setCheckIn] = useState(isoDay(tomorrow));
+  const checkIn = isoDay(tomorrow);
   const [checkOut, setCheckOut] = useState(isoDay(plus30));
   const [guests, setGuests] = useState(1);
   const [bookingNotes, setBookingNotes] = useState('');
