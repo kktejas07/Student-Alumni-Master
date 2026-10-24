@@ -5,7 +5,7 @@
  * (ECHO / Hackwave 3.0, Built by Sunset, Cyber Conclave, Workshops, Courses).
  */
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Linking, Modal, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ActivityIndicator, Linking, Modal, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Award, Search, ArrowUpDown, Download, ExternalLink, CheckCircle2, ShieldCheck, Share2, Sparkles, Filter, Copy, Shield, Lock, X } from '../iconShims';
 import { SC, FONTS } from '../tokens';
