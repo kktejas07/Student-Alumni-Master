@@ -100,55 +100,58 @@ class CodeHealthAgent:
         findings_new = 0
         findings_resolved = 0
 
-        for f in findings:
-            current_fingerprints.add(f.fingerprint)
-            counts_by_severity[f.severity] = counts_by_severity.get(f.severity, 0) + 1
-            counts_by_family[f.family] = counts_by_family.get(f.family, 0) + 1
+        try:
+            for f in findings:
+                current_fingerprints.add(f.fingerprint)
+                counts_by_severity[f.severity] = counts_by_severity.get(f.severity, 0) + 1
+                counts_by_family[f.family] = counts_by_family.get(f.family, 0) + 1
 
-            doc = f.to_dict()
-            existing = await db.code_health_findings.find_one({"fingerprint": f.fingerprint})
-            if not existing:
-                doc["first_seen_at"] = start_iso
-                doc["last_seen_at"] = start_iso
-                doc["age_days"] = 0
-                await db.code_health_findings.insert_one(doc)
-                findings_new += 1
-            else:
-                first_seen = existing.get("first_seen_at") or start_iso
-                try:
-                    fs_dt = datetime.fromisoformat(first_seen.replace("Z", "+00:00"))
-                    age = (start_dt - fs_dt).days
-                except Exception:
-                    age = 0
+                doc = f.to_dict()
+                existing = await db.code_health_findings.find_one({"fingerprint": f.fingerprint})
+                if not existing:
+                    doc["first_seen_at"] = start_iso
+                    doc["last_seen_at"] = start_iso
+                    doc["age_days"] = 0
+                    await db.code_health_findings.insert_one(doc)
+                    findings_new += 1
+                else:
+                    first_seen = existing.get("first_seen_at") or start_iso
+                    try:
+                        fs_dt = datetime.fromisoformat(first_seen.replace("Z", "+00:00"))
+                        age = (start_dt - fs_dt).days
+                    except Exception:
+                        age = 0
 
-                await db.code_health_findings.update_one(
-                    {"fingerprint": f.fingerprint},
-                    {
-                        "$set": {
-                            "last_seen_at": start_iso,
-                            "line": f.line,
-                            "evidence": f.evidence,
-                            "age_days": age,
-                            "status": "open" if existing.get("status") in ("open", "fixed_manual", "fixed_auto") else existing.get("status"),
-                        }
-                    },
-                )
+                    await db.code_health_findings.update_one(
+                        {"fingerprint": f.fingerprint},
+                        {
+                            "$set": {
+                                "last_seen_at": start_iso,
+                                "line": f.line,
+                                "evidence": f.evidence,
+                                "age_days": age,
+                                "status": "open" if existing.get("status") in ("open", "fixed_manual", "fixed_auto") else existing.get("status"),
+                            }
+                        },
+                    )
 
-        # 3. Detect Resolved Findings (Absent from current run)
-        all_open_in_db = await db.code_health_findings.find({"status": "open"}).to_list(10000)
-        for db_f in all_open_in_db:
-            fp = db_f.get("fingerprint")
-            if fp and fp not in current_fingerprints:
-                await db.code_health_findings.update_one(
-                    {"fingerprint": fp},
-                    {
-                        "$set": {
-                            "status": "fixed_manual",
-                            "resolved_at": start_iso,
-                        }
-                    },
-                )
-                findings_resolved += 1
+            # 3. Detect Resolved Findings (Absent from current run)
+            all_open_in_db = await db.code_health_findings.find({"status": "open"}).to_list(10000)
+            for db_f in all_open_in_db:
+                fp = db_f.get("fingerprint")
+                if fp and fp not in current_fingerprints:
+                    await db.code_health_findings.update_one(
+                        {"fingerprint": fp},
+                        {
+                            "$set": {
+                                "status": "fixed_manual",
+                                "resolved_at": start_iso,
+                            }
+                        },
+                    )
+                    findings_resolved += 1
+        except Exception as e:
+            logger.warning(f"Could not persist code health findings to DB: {e}")
 
         # 4. Auto-Fix Pipeline (Enforced OFF by default & during Gate 2 / when CODE_HEALTH_AUTOFIX_ENABLED=false)
         autofix_enabled_env = os.environ.get("CODE_HEALTH_AUTOFIX_ENABLED", "false").lower() == "true"
@@ -179,7 +182,10 @@ class CodeHealthAgent:
             "autofix_prs": autofix_prs,
             "errors": [],
         }
-        await db.code_health_runs.insert_one(run_doc)
+        try:
+            await db.code_health_runs.insert_one(run_doc)
+        except Exception as e:
+            logger.warning(f"Could not persist code health run to DB: {e}")
 
         self._last_run_at = start_iso
         self._total_cycles += 1

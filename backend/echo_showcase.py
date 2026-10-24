@@ -4743,12 +4743,13 @@ async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query
             or user_email in allowed_emails
         )
         # Also allow access if email query param matches (guest registrations)
-        email_match = email and email.strip().lower() in allowed_emails
+        email_str = email.strip().lower() if isinstance(email, str) else ""
+        email_match = bool(email_str and email_str in allowed_emails)
         if not owner_match and not email_match:
             raise HTTPException(status_code=403, detail="You do not have access to this ticket")
     
     html_content = _build_ticket_html(reg_ser, showcase or {}, reg.get("ticket_template"))
-    if format == "json":
+    if isinstance(format, str) and format.lower() == "json":
         return {
             "reg_id": reg_id,
             "status": reg.get("status"),
@@ -6671,7 +6672,7 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
     db = _get_db(request)
     parsed = _parse_ticket(payload.ticket)
     if not parsed:
-        return {"ok": False, "status": "invalid", "message": "Invalid ticket code — could not parse"}
+        raise HTTPException(status_code=400, detail="Invalid ticket code — could not parse")
 
     query: Dict[str, Any] = {}
     if parsed.get("slug"):
@@ -6692,7 +6693,7 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
             **( {"slug": parsed["slug"]} if parsed.get("slug") else {} ),
         })
     if not reg:
-        return {"ok": False, "status": "invalid", "message": "Ticket not found in registrations"}
+        raise HTTPException(status_code=404, detail="Ticket not found in registrations")
 
     payment = reg.get("payment") or {}
     payment_status = payment.get("status") or reg.get("payment_status") or "pending"
@@ -6704,7 +6705,7 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
     verified = is_free or is_paid
 
     if not verified:
-        return {"ok": False, "status": "unconfirmed", "message": "Ticket not confirmed — attendee cannot be checked in. Payment may be pending."}
+        raise HTTPException(status_code=400, detail="Ticket not confirmed — attendee cannot be checked in. Payment may be pending.")
 
     now_iso = _now()
     first_checkin = not bool(reg.get("checked_in_at"))
