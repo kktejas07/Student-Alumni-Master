@@ -16,7 +16,7 @@ const CATEGORIES = ['Workshop', 'Hackathon', 'Career Fair', 'Talk', 'Networking'
 export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void }) {
   const toast = useToast();
   const user = useAuthStore((s) => s.user);
-  const email = user?.email || 'college-high1@persona.demo';
+  const email = user?.email || '';
   const initialCollegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || 'IIT Bombay';
 
   const [title, setTitle] = useState('AI/ML Workshop 2026');

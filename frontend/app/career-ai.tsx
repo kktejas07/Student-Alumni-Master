@@ -86,11 +86,14 @@ const FT = {
 };
 
 /* ────────── Skill metadata ────────── */
+/** Label a 0-100 category score; replaces the per-row labels that were hardcoded regardless of the score. */
+const skillStatus = (v: number) => (v >= 70 ? 'Strong' : v >= 40 ? 'Developing' : 'Needs Work');
+
 const SKILL_META = [
   { key: 'Technical Excellence',       label: 'Technical Excellence',       short: 'Technical Excellence',       color: '#38BDF8', Icon: Code, status: 'Strong' },
   { key: 'Professional Communication', label: 'Professional Communication', short: 'Professional Communication', color: '#60A5FA', Icon: MessageSquare, status: 'Developing' },
   { key: 'Leadership & Collaboration', label: 'Leadership & Collaboration', color: '#2DD4BF', Icon: Award, status: 'Needs Work' },
-  { key: 'Projects & Practical Skills',label: 'Projects & Practical Skills',color: '#818CF8', Icon: Folder, status: 'Strong' },
+  { key: 'Career Preparation',         label: 'Projects & Practical Skills',color: '#818CF8', Icon: Folder, status: 'Strong' },
   { key: 'Personal Brand',             label: 'Personal Brand',             short: 'Personal Brand',             color: '#F59E0B', Icon: Star, status: 'Developing' },
   { key: 'Industry Presence',          label: 'Industry Presence',          short: 'Industry Presence',          color: '#EC4899', Icon: UserIcon, status: 'Needs Work' },
 ];
@@ -141,13 +144,20 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   const [regenerating, setRegenerating] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [roadmap, setRoadmap] = useState<RoadmapResp>({});
-  const [profileStrength, setProfileStrength] = useState(35);
+  const [profileStrength, setProfileStrength] = useState(0);
   const [skillStreak, setSkillStreak] = useState(0);
   const [careerIntel, setCareerIntel] = useState<any>(null);
   const [showExplainModal, setShowExplainModal] = useState(false);
   const [explainTab, setExplainTab] = useState('readiness');
 
   /* ── Derived ── */
+  const getLevelForScore = (sc: number) => {
+    if (sc <= 20) return 'Explorer';
+    if (sc <= 40) return 'Builder';
+    if (sc <= 60) return 'Developing Professional';
+    if (sc <= 80) return 'Career Ready';
+    return 'Industry Ready';
+  };
   const allMilestones = useMemo(() => roadmap.milestones || [], [roadmap]);
   const pendingMilestones = useMemo(() => allMilestones.filter(m => !m.completed), [allMilestones]);
   const firstPendingIdx = useMemo(() => allMilestones.findIndex(m => !m.completed), [allMilestones]);
@@ -163,7 +173,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
         request<any>('/users/me/skill-intelligence').catch(() => null),
       ]);
       setRoadmap(rm || {});
-      setProfileStrength(Number(comp?.percentage || 35));
+      setProfileStrength(Number(comp?.percentage || 0));
       setSkillStreak(Number(stats?.skill_streak || 0));
       setCareerIntel(intel || null);
     } catch (e: any) {
@@ -176,62 +186,71 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
   useEffect(() => { fetch(); }, [fetch]);
 
-  /* ── Computed Metrics ── */
+  /* ── Computed Metrics ──
+     Everything below comes from /users/me/skill-intelligence (careerIntel) or
+     the roadmap. When a value has not been computed yet it reads 0 / "—";
+     this page used to fall back to invented numbers (33% readiness, 80/55/42
+     skill scores, a fixed "~18 weeks", a canned action list). */
   const targetRole = roadmap.target_role || 'top_opportunity';
   const targetCo = roadmap.target_company_type || 'Top Company in your field';
-  const progress = Math.min(100, Math.max(0, Number(roadmap.progress_pct || 10)));
-  const estimatedWeeks = '~18 Weeks';
+  const progress = Math.min(100, Math.max(0, Number(roadmap.progress_pct || 0)));
+  const pendingCount = pendingMilestones.length;
+  // Roadmap milestones are planned at roughly two weeks each.
+  const estimatedWeeks = pendingCount > 0 ? `~${pendingCount * 2} Weeks` : (allMilestones.length > 0 ? 'Complete' : '—');
 
   const { readinessScore, readinessLevel, nextGoal, bandProgress } = useMemo(() => {
-    let score = 33; let level = 'Builder'; let nextLevel = 'Industry Ready'; let nextScore = 100;
-    if (careerIntel?.readiness_score !== undefined) {
-      if (typeof careerIntel.readiness_score === 'object') {
-        score = careerIntel.readiness_score.score || 33;
-        level = careerIntel.readiness_score.level || 'Builder';
-      } else { score = Number(careerIntel.readiness_score) || 33; }
-    }
-    score = Math.round(score);
-    return { readinessScore: score, readinessLevel: level, nextGoal: `${nextLevel} (${nextScore}%)`, bandProgress: 60 };
-  }, [roadmap, careerIntel]);
-
-  const potentialScore = 100;
-
-  const getLevelForScore = (s: number) => {
-    if (s <= 20) return 'Explorer';
-    if (s <= 40) return 'Builder';
-    if (s <= 60) return 'Developing Professional';
-    if (s <= 80) return 'Career Ready';
-    return 'Industry Ready';
-  };
-
-  /* ── Skill scores (normalised to 0-100) ── */
-  const skillScores = useMemo<Record<string, number>>(() => {
-    const defaultScores: Record<string, number> = {
-      'Technical Excellence': 80,
-      'Professional Communication': 55,
-      'Leadership & Collaboration': 42,
-      'Projects & Practical Skills': 74,
-      'Personal Brand': 38,
-      'Industry Presence': 21,
+    const rs = careerIntel?.readiness_score;
+    const score = Math.round(typeof rs === 'object' && rs ? Number(rs.score || 0) : Number(rs || 0));
+    const level = (typeof rs === 'object' && rs?.level) || getLevelForScore(score);
+    const nextLevel = (typeof rs === 'object' && rs?.next_level) || null;
+    const nextScore = typeof rs === 'object' && rs?.next_threshold ? Number(rs.next_threshold) : null;
+    // Progress through the current 20-point band.
+    const band = score >= 100 ? 100 : Math.round(((score % 20) / 20) * 100);
+    return {
+      readinessScore: score,
+      readinessLevel: level,
+      nextGoal: nextLevel && nextScore ? `${nextLevel} (${nextScore}%)` : 'Industry Ready (100%)',
+      bandProgress: band,
     };
-    if (careerIntel?.skill_scores) {
-      const base = careerIntel.skill_scores;
-      return SKILL_META.reduce<Record<string, number>>((acc, s) => {
-        acc[s.key] = base[s.key] !== undefined ? Number(base[s.key]) : defaultScores[s.key];
-        return acc;
-      }, {});
-    }
-    return defaultScores;
+  }, [careerIntel]);
+
+  const potentialScore = Math.min(100, Math.max(readinessScore, Math.round(Number(careerIntel?.potential_score || readinessScore))));
+
+  /* ── Skill scores (0-100 per category; 0 until computed) ── */
+  const skillScores = useMemo<Record<string, number>>(() => {
+    const base = careerIntel?.skill_scores || roadmap.skill_scores || {};
+    return SKILL_META.reduce<Record<string, number>>((acc, sk) => {
+      acc[sk.key] = Math.round(Number(base[sk.key] ?? 0));
+      return acc;
+    }, {});
   }, [careerIntel, roadmap.skill_scores]);
 
-  /* ── Ranked actions ── */
+  /* ── Ranked actions — from the intelligence service, highest gain first ── */
   const rankedActions = useMemo(() => {
-    return [
-      { rank: 1, title: 'Complete Resume', desc: 'Create a professional resume highlighting your skills.', gain: 8, type: 'RESUME', Icon: FileText },
-      { rank: 2, title: 'Build Portfolio', desc: 'Create a portfolio website to showcase your work.', gain: 7, type: 'PORTFOLIO', Icon: Folder },
-      { rank: 3, title: 'Add 3 Projects', desc: 'Build and add 3 practical projects to your profile.', gain: 5, type: 'PROJECT', Icon: Briefcase },
-    ];
-  }, []);
+    const ICONS: Record<string, any> = {
+      RESUME: FileText, PORTFOLIO: Folder, PROJECT: Briefcase, SKILLS: Code, MOCK_INTERVIEW: Mic,
+      NETWORKING: Link2, CERTIFICATION: Award, PROFILE: UserIcon, SOCIALS: Link2, EDUCATION: Award, BIO: UserIcon, PHOTO: UserIcon,
+    };
+    const list: any[] = Array.isArray(careerIntel?.ranked_actions) ? careerIntel.ranked_actions : [];
+    return list.slice(0, 5).map((a: any, i: number) => {
+      const type = String(a.type || a.milestone_type || 'PROFILE').toUpperCase();
+      return {
+        rank: i + 1,
+        title: a.title || 'Improve your profile',
+        desc: a.description || a.reason || '',
+        gain: Math.round(Number(a.gain || 0)),
+        type,
+        Icon: ICONS[type] || Target,
+      };
+    });
+  }, [careerIntel]);
+
+  const aiInsights = useMemo<string[]>(() => {
+    const out: string[] = [];
+    if (careerIntel?.recommendation?.description) out.push(String(careerIntel.recommendation.description));
+    for (const a of rankedActions) if (a.desc && a.gain > 0) out.push(`${a.title}: ${a.desc} (+${a.gain}% readiness)`);
+    return out.slice(0, 4);
+  }, [careerIntel, rankedActions]);
 
   /* ── Generate PDF Career Report ── */
   const generateCareerReport = useCallback(async () => {
@@ -243,7 +262,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
     setGeneratingPdf(true);
     try {
       const reportData: CareerReportData = {
-        studentName: user?.full_name || user?.email || 'Krishna Ram',
+        studentName: user?.full_name || user?.email || 'Student',
         targetRole,
         targetCompany: targetCo,
         readinessScore,
@@ -259,12 +278,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
         skillScores,
         milestones: allMilestones,
         rankedActions,
-        aiInsights: [
-          'Your resume is the biggest growth opportunity. Completing it can increase your readiness by 8%.',
-          'Adding 3 quality projects will boost your readiness by 5% and showcase your practical skills.',
-          'LinkedIn optimization can improve your visibility and add 5% to your readiness score.',
-        ],
-        recruiterView: { overall: 31, resume: 42, portfolio: 20, communication: 65, technical: 74 },
+        aiInsights,
         generatedAt: new Date().toISOString(),
       };
       await generateCareerReportPdf(reportData);
@@ -274,7 +288,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
     } finally {
       setGeneratingPdf(false);
     }
-  }, [generatingPdf, user, targetRole, targetCo, readinessScore, readinessLevel, nextGoal, bandProgress, potentialScore, estimatedWeeks, profileStrength, skillStreak, skillScores, allMilestones, toast]);
+  }, [generatingPdf, user, targetRole, targetCo, readinessScore, readinessLevel, nextGoal, bandProgress, potentialScore, estimatedWeeks, profileStrength, skillStreak, skillScores, allMilestones, rankedActions, aiInsights, toast]);
 
   /* ── Shell Container ── */
   const Container: any = embedded ? View : ScrollView;
@@ -499,7 +513,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
                 score={skillScores[skill.key] || 0}
                 baseColor={skill.color}
                 icon={skill.Icon}
-                status={skill.status}
+                status={skillStatus(skillScores[skill.key] || 0)}
               />
             ))}
           </View>
@@ -518,6 +532,9 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
             <Text style={s.sectionTitle}>NEXT BEST ACTIONS</Text>
           </View>
           <View style={s.actionsList}>
+            {rankedActions.length === 0 && (
+              <Text style={s.actionDesc}>No actions yet — complete your profile and the intelligence service will rank what moves your readiness most.</Text>
+            )}
             {rankedActions.map((act) => (
               <View key={`action-${act.rank}`} style={s.actionRow}>
                 <View style={s.actionNumCircle}>

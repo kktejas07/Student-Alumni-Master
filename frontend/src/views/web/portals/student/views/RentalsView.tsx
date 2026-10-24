@@ -15,9 +15,62 @@
  */
 
 import React, { useState } from 'react';
+import { usePortalData } from '@/src/lib/portalApi';
+import { request } from '@/src/models/services/api';
 import { View, Text, Platform } from 'react-native';
 import { X } from 'lucide-react-native';
 import { useTheme } from '@/src/theme/ThemeContext';
+
+
+/* ── API shapes (backend/rentals_marketplace.py) and adapters to the card shape this view renders ── */
+type ApiListing = {
+  id: string; category: string; title: string; type: string; city?: string; location?: string;
+  rent_inr: number; rent_label?: string; orig_inr?: number; orig_label?: string; discount?: string;
+  amenities?: string[]; rating?: number | null; reviews?: number; available?: number; color?: string;
+  perk?: string; verified?: boolean; description?: string; tags?: string[];
+};
+type ApiBooking = {
+  booking_id: string; status: string; guests: number; check_in: string; check_out: string;
+  listing_snapshot?: ApiListing; cost_breakdown?: { total_inr: number };
+};
+const fmtDay = (iso?: string) => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+const toCard = (l: ApiListing) => {
+  const per = (l.rent_label || '').includes('/mo') ? '/mo' : '/day';
+  return {
+    id: l.id,
+    name: l.title,
+    loc: l.location || l.city || '',
+    city: l.city || '',
+    cat: l.type,
+    rate: l.rating != null ? String(l.rating) : null,
+    revs: l.reviews ? String(l.reviews) : null,
+    left: l.available != null ? String(l.available) : null,
+    perk: l.perk || '',
+    was: l.orig_label || '',
+    now: (l.rent_label || `₹${l.rent_inr}`).replace(/\/(mo|day|night).*$/, ''),
+    unitNum: l.rent_inr,
+    per,
+    off: l.discount ? `${l.discount} OFF` : '',
+    col: l.color || '#7C5CFC',
+    tags: l.amenities || l.tags || [],
+    desc: l.description || '',
+    verified: !!l.verified,
+  };
+};
+const toBookingRow = (b: ApiBooking) => ({
+  id: b.booking_id,
+  name: b.listing_snapshot?.title || 'Listing',
+  loc: b.listing_snapshot?.location || b.listing_snapshot?.city || '',
+  checkIn: fmtDay(b.check_in),
+  checkOut: fmtDay(b.check_out),
+  guests: `${b.guests || 1} guest${(b.guests || 1) > 1 ? 's' : ''}`,
+  amt: '₹' + Math.round(b.cost_breakdown?.total_inr || 0).toLocaleString('en-IN'),
+  status: (b.status || 'confirmed').toUpperCase(),
+});
 
 export function RentalsView() {
   const { isDark } = useTheme();
@@ -62,192 +115,39 @@ export function RentalsView() {
   const [confirmedBooking, setConfirmedBooking] = useState<any | null>(null);
   const [showMyBookings, setShowMyBookings] = useState(false);
 
-  // Booking form state
-  const [checkIn, setCheckIn] = useState('2026-08-22');
-  const [checkOut, setCheckOut] = useState('2026-09-21');
+  // Booking form state — defaults to a 30-day stay starting tomorrow.
+  const isoDay = (d: Date) => d.toISOString().slice(0, 10);
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  const plus30 = new Date(tomorrow); plus30.setDate(plus30.getDate() + 30);
+  const checkIn = isoDay(tomorrow);
+  const [checkOut, setCheckOut] = useState(isoDay(plus30));
   const [guests, setGuests] = useState(1);
   const [bookingNotes, setBookingNotes] = useState('');
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Active bookings list
-  const [activeBookings, setActiveBookings] = useState([
-    {
-      id: 'SA-RNT-491920',
-      name: '91springboard Day Pass',
-      loc: '9 cities · 30+ centres',
-      checkIn: '22 Aug 2026',
-      checkOut: '21 Sept 2026',
-      guests: '1 guest',
-      amt: '₹19,288',
-      status: 'CONFIRMED',
-    },
-  ]);
+  // ── Live data from /api/rentals/* ───────────────────────────────────────
+  // This view used to ship its own hardcoded listings and a pre-filled
+  // "CONFIRMED" booking, and "Confirm booking" never left the browser.
+  const { data: listingsRes, loading: listingsLoading, error: listingsError } =
+    usePortalData<{ listings: ApiListing[] }>('/rentals/listings', { listings: [] }, 0);
+  const { data: bookingsRes, refresh: refreshBookings } =
+    usePortalData<{ bookings: ApiBooking[] }>('/rentals/bookings', { bookings: [] }, 0);
 
-  const CITIES = [
-    'All Cities', 'Alleppey', 'Bengaluru', 'Chennai', 'Coorg', 'Delhi',
-    'Delhi NCR', 'Goa', 'Hyderabad', 'Jaipur', 'Kolkata', 'Lonavala',
-    'Lucknow', 'Manali', 'Mumbai', 'Pune'
-  ];
+  const LISTINGS = (listingsRes?.listings || []).map(toCard);
+  const activeBookings = (bookingsRes?.bookings || []).map(toBookingRow);
 
-  const CATEGORIES = [
-    { name: 'Flexi Desk', col: '#7C5CFC' },
-    { name: 'PG / Hostel', col: '#2FB8C6' },
-    { name: 'Car', col: '#F59E0B' },
-    { name: 'Two-Wheeler', col: '#DB2777' },
-    { name: 'Beach House', col: '#4C8DF6' },
-    { name: 'Apartment', col: '#34D399' },
-    { name: 'Hot Desk', col: '#A78BFA' },
-    { name: 'Weekend Getaway', col: '#F0616B' },
-  ];
+  const CITIES = ['All Cities', ...Array.from(new Set(LISTINGS.map((l) => l.city).filter(Boolean))).sort()];
 
-  const LISTINGS = [
-    {
-      id: 0,
-      name: 'Awfis Flexi Desk',
-      loc: 'Mumbai · Pune · Chennai',
-      cat: 'Flexi Desk',
-      rate: '4.5',
-      revs: '245',
-      left: '18',
-      perk: '1 free meeting room hour/day',
-      was: '₹6,500/mo',
-      now: '₹4,499',
-      unitNum: 4499,
-      per: '/mo',
-      off: '31% OFF',
-      col: '#7C5CFC',
-      tags: ['WiFi', 'Pantry', 'Lockers'],
-      desc: 'Verified flexi desk listing with guaranteed high-speed internet, power backup, pantry access, and student discounts.',
-    },
-    {
-      id: 1,
-      name: 'StayAbode Smart Hostel',
-      loc: 'Andheri West, Mumbai',
-      cat: 'PG / Hostel',
-      rate: '4.6',
-      revs: '198',
-      left: '8',
-      perk: '₹1,000 off first plan',
-      was: '₹9,800/mo',
-      now: '₹7,999',
-      unitNum: 7999,
-      per: '/mo',
-      off: '18% OFF',
-      col: '#2FB8C6',
-      tags: ['Co-working', 'Gym', 'Netflix lounge'],
-      desc: 'Premium student coliving hub with fully furnished rooms, dedicated study desks, gym, and complimentary breakfast.',
-    },
-    {
-      id: 2,
-      name: 'Colive Hostel — Hinjewadi',
-      loc: 'Hinjewadi, Pune',
-      cat: 'PG / Hostel',
-      rate: '4.4',
-      revs: '340',
-      left: '8',
-      perk: '10% extra off with SA-ID',
-      was: '₹11,000/mo',
-      now: '₹8,500',
-      unitNum: 8500,
-      per: '/mo',
-      off: '23% OFF',
-      col: '#34D399',
-      tags: ['Meals', 'Gym', 'Pool'],
-      desc: 'Modern tech-corridor student accommodation with 3 daily meals, swimming pool, shuttle service to campuses, and fast WiFi.',
-    },
-    {
-      id: 3,
-      name: 'Revv Self-Drive SUV',
-      loc: 'Delhi · Mumbai · Pune',
-      cat: 'Car',
-      rate: '4.4',
-      revs: '188',
-      left: '6',
-      perk: '₹300 off weekend booking',
-      was: '₹3,200/day',
-      now: '₹2,199',
-      unitNum: 2199,
-      per: '/day',
-      off: '31% OFF',
-      col: '#F59E0B',
-      tags: ['Unlimited km', 'Insurance', 'GPS'],
-      desc: 'Verified self-drive car rental with zero security deposit for verified SA students, door delivery, and comprehensive insurance.',
-    },
-    {
-      id: 4,
-      name: 'Goa Beachfront Villa',
-      loc: 'Anjuna Beach, Goa',
-      cat: 'Beach House',
-      rate: '4.9',
-      revs: '88',
-      left: '2',
-      perk: '₹1,000 off for SA groups',
-      was: '₹7,000/night',
-      now: '₹4,500',
-      unitNum: 4500,
-      per: '/night',
-      off: '36% OFF',
-      col: '#4C8DF6',
-      tags: ['Beach access', 'Jacuzzi', 'Housekeeping'],
-      desc: 'Exclusive private villa for student getaways with direct beach access, private pool, high-speed WiFi, and chef on demand.',
-    },
-    {
-      id: 5,
-      name: 'Self-Drive Mahindra Thar',
-      loc: 'Goa · Manali · Rishikesh',
-      cat: 'Car',
-      rate: '4.8',
-      revs: '92',
-      left: '3',
-      perk: 'Adventure pack — free',
-      was: '₹4,999/day',
-      now: '₹3,499',
-      unitNum: 3499,
-      per: '/day',
-      off: '30% OFF',
-      col: '#F59E0B',
-      tags: ['4x4', 'Off-road', 'Insurance'],
-      desc: 'Convertible 4x4 Thar with off-road tires, camp accessories included, and 24/7 roadside assistance.',
-    },
-    {
-      id: 6,
-      name: 'CampusPG — IIT Bombay Area',
-      loc: 'Powai, Mumbai',
-      cat: 'PG / Hostel',
-      rate: '4.6',
-      revs: '142',
-      left: '3',
-      perk: '10% off with SA-ID',
-      was: '₹9,000/mo',
-      now: '₹6,500',
-      unitNum: 6500,
-      per: '/mo',
-      off: '28% OFF',
-      col: '#2FB8C6',
-      tags: ['WiFi', 'Meals 2x/day', 'AC'],
-      desc: 'Walking distance to campus with quiet study zones, 2 meals daily, laundry service, and biometric entry.',
-    },
-    {
-      id: 7,
-      name: '91springboard Day Pass',
-      loc: '9 cities · 30+ centres',
-      cat: 'Day Pass',
-      rate: '4.4',
-      revs: '1100',
-      left: '999',
-      perk: '5 day-passes for ₹2,499',
-      was: '₹999/day',
-      now: '₹599',
-      unitNum: 599,
-      per: '/day',
-      off: '40% OFF',
-      col: '#A78BFA',
-      tags: ['WiFi', 'Coffee', 'Print quota'],
-      desc: 'Plug-and-play coworking pass across 30+ centers in India with unlimited artisanal coffee, high-speed WiFi, and printing.',
-    },
-  ];
+  const CATEGORY_COLORS: Record<string, string> = {
+    'Flexi Desk': '#7C5CFC', 'PG / Hostel': '#2FB8C6', 'Car': '#F59E0B', 'Two-Wheeler': '#DB2777',
+    'Beach House': '#4C8DF6', 'Apartment': '#34D399', 'Hot Desk': '#A78BFA', 'Weekend Getaway': '#F0616B',
+  };
+  const CATEGORIES = Array.from(new Set(LISTINGS.map((l) => l.cat).filter(Boolean)))
+    .map((name) => ({ name, col: CATEGORY_COLORS[name] || '#7C5CFC' }));
 
   const filteredListings = LISTINGS.filter((item) => {
-    const matchCity = selectedCity === 'All Cities' || item.loc.toLowerCase().includes(selectedCity.toLowerCase());
+    const matchCity = selectedCity === 'All Cities' || item.city === selectedCity || item.loc.toLowerCase().includes(selectedCity.toLowerCase());
     const matchCategory = !selectedCategory || item.cat === selectedCategory;
     const matchQuery = !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.loc.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCity && matchCategory && matchQuery;
@@ -260,35 +160,32 @@ export function RentalsView() {
     setBookingListing(item);
   };
 
-  const handleConfirmBooking = () => {
-    if (!bookingListing) return;
-    const unit = bookingListing.unitNum;
-    const multiplier = bookingListing.per === '/mo' ? 1 : 30;
-    const gross = unit * multiplier * guests;
-    const fee = Math.round(gross * 0.04);
-    const dep = Math.round(unit);
-    const total = gross + fee + dep;
-
-    const newBooking = {
-      id: `SA-RNT-${Math.floor(100000 + Math.random() * 899999)}`,
-      name: bookingListing.name,
-      loc: bookingListing.loc,
-      checkIn,
-      checkOut,
-      guests: `${guests} guest${guests > 1 ? 's' : ''}`,
-      amt: money(total),
-      status: 'CONFIRMED',
-    };
-
-    setActiveBookings([newBooking, ...activeBookings]);
-    setConfirmedBooking(newBooking);
-    setBookingListing(null);
+  const handleConfirmBooking = async () => {
+    if (!bookingListing || submitting) return;
+    setSubmitting(true);
+    setBookingError(null);
+    try {
+      const res = await request<{ ok: boolean; booking: ApiBooking }>('/rentals/book', {
+        method: 'POST',
+        body: { listing_id: bookingListing.id, check_in: checkIn, check_out: checkOut, guests, notes: bookingNotes },
+      });
+      setConfirmedBooking(toBookingRow(res.booking));
+      setBookingListing(null);
+      refreshBookings();
+    } catch (e: any) {
+      setBookingError(e?.message || 'Booking failed. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleCancelBooking = (id: string) => {
-    setActiveBookings((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, status: 'CANCELLED · Refunded' } : b))
-    );
+  const handleCancelBooking = async (id: string) => {
+    try {
+      await request(`/rentals/bookings/${encodeURIComponent(id)}/cancel`, { method: 'POST' });
+      refreshBookings();
+    } catch (e: any) {
+      setBookingError(e?.message || 'Could not cancel this booking.');
+    }
   };
 
   if (Platform.OS !== 'web') {
@@ -523,6 +420,9 @@ export function RentalsView() {
 
       {/* ── 8 Verified Rental Listing Cards ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px' }}>
+        {listingsLoading && <div style={{ color: colors.text2, padding: '24px 0' }}>Loading listings…</div>}
+        {!listingsLoading && listingsError && <div style={{ color: '#EF4444', padding: '24px 0' }}>Could not load listings: {listingsError}</div>}
+        {!listingsLoading && !listingsError && filteredListings.length === 0 && <div style={{ color: colors.text2, padding: '24px 0' }}>No listings match these filters.</div>}
         {filteredListings.map((item) => (
           <div
             key={item.id}
@@ -569,8 +469,8 @@ export function RentalsView() {
 
               {/* Rating & Availability */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12.5px', color: colors.text }}>
-                <span>★ <strong style={{ color: colors.text }}>{item.rate}</strong> <span style={{ color: colors.text2 }}>({item.revs})</span></span>
-                <span style={{ color: isDark ? '#34D399' : '#059669', fontWeight: 600 }}>{item.left} left</span>
+                <span>{item.rate ? <>★ <strong style={{ color: colors.text }}>{item.rate}</strong> <span style={{ color: colors.text2 }}>({item.revs || 0})</span></> : <span style={{ color: colors.text2 }}>No reviews yet</span>}</span>
+                <span style={{ color: isDark ? '#34D399' : '#059669', fontWeight: 600 }}>{item.left != null ? `${item.left} left` : ''}</span>
               </div>
 
               {/* Perk Box */}
@@ -686,12 +586,13 @@ export function RentalsView() {
               </div>
             </div>
 
+            {bookingError && <div style={{ color: '#EF4444', fontSize: '13px', marginBottom: '10px' }}>{bookingError}</div>}
             <div style={{ display: 'flex', gap: '12px' }}>
               <button onClick={() => setBookingListing(null)} style={{ flex: 1, padding: '14px', borderRadius: '10px', border: `1px solid ${colors.cardBorder}`, background: isDark ? 'transparent' : '#FFFFFF', color: colors.text2, fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
                 Cancel
               </button>
-              <button onClick={handleConfirmBooking} style={{ flex: 2, padding: '14px', borderRadius: '10px', border: 'none', background: '#F59E0B', color: '#1E293B', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>
-                Confirm Booking
+              <button onClick={handleConfirmBooking} disabled={submitting} style={{ flex: 2, padding: '14px', borderRadius: '10px', border: 'none', background: '#F59E0B', color: '#1E293B', fontSize: '14.5px', fontWeight: 700, cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.7 : 1 }}>
+                {submitting ? 'Booking…' : 'Confirm Booking'}
               </button>
             </div>
           </div>
