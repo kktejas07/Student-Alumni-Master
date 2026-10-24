@@ -5,7 +5,7 @@
  *   /alumni-portal/my-applications
  *   /alumni-portal/events
  */
-import { NAV } from '@/src/views/web/portals/alumni/Sidebar';
+import { NAV } from '@/src/views/web/portals/alumni/nav';
 import { PortalUrlProvider } from '@/src/views/web/portals/portalUrl';
 import { AlumniPortalRN } from '@/src/views/web/portals/alumni/AlumniPortalRN';
 

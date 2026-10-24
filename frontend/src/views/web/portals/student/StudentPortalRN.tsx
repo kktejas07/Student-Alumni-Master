@@ -1,33 +1,18 @@
 /**
- * Student Portal — outer shell.
- *
- * Slice 2A migration: Apple HIG primitives applied.
- * • Wrapped in <ThemeProvider> so every nested view can call useTheme()
- * • Shell background follows theme (light #F5F5F7 / dark brand-purple)
- * • TopBar receives `scrolled` state for glass blur (kicks in past 8px)
- * • All existing routing, state, props, API calls preserved 1:1
+ * Student Portal — view switch inside the shared <PortalShell>.
+ * Navigation, chrome and layout live in src/ui/shell; this file only maps
+ * the active tab to a view and owns student-specific nav context (search
+ * query, course detail hand-off).
  */
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, Platform, Pressable, Text } from 'react-native';
-import { LayoutDashboard, Sparkles, Users, Calendar, User } from './iconShims';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
-
-import { ThemeProvider, useTheme } from '@/src/theme/ThemeContext';
-import { useBreakpoint } from '@/src/theme/breakpoints';
-import { SP } from '@/src/theme/apple';
+import { PortalShell } from '@/src/ui/shell/PortalShell';
 import { ToastProvider } from '@/src/motion/apple/toast';
-import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 
-import { Sidebar, StudentNavId } from './Sidebar';
-import { TopBar } from './TopBar';
-import { AnimatedAurora, GridOverlay, RouteTransition, AiCopilotFab } from './glass';
+import { STUDENT_PORTAL, isEchoSlug, type StudentNavId } from './nav';
 import { StudentNotificationsPanel } from './views/NotificationsPanel';
-import { PALETTE } from './tokens';
-import { LinearGradient } from 'expo-linear-gradient';
-import { DashboardFooter } from '../../components/SponsorStrip';
-import { PromoBanner } from '../../components/PromoBanner';
 import { DashboardView } from './views/DashboardView';
 import { CareerAIView } from './views/CareerAIView';
 import { EventsView } from './views/EventsView';
@@ -40,209 +25,81 @@ import { MyTicketsView } from './views/MyTicketsView';
 import { MyCertificatesView } from './views/MyCertificatesView';
 import { EchoShowcaseView } from './views/EchoShowcaseView';
 import { RentalsView } from './views/RentalsView';
+import { StudentPortalNavContext } from './StudentPortalNavContext';
 
-import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
-
-import { StudentPortalNavContext, useStudentPortalNav } from './StudentPortalNavContext';
-import { StarryBackground } from '@/src/views/web/nexus-glow-landing/StarryBackground';
-
-// Feature pages imported as components for inline rendering
 import CoursesPage from '@/app/courses';
-import RentalsPage from '@/app/rentals';
 import FinancialPage from '@/app/financial';
 import HigherEducationPage from '@/app/higher-education';
 import DealsPage from '@/app/deals';
 import WalletPage from '@/app/wallet';
 
-import { SAWatermark } from '@/src/views/web/components/SAWatermark';
-
 export function StudentPortalRN() {
   return (
-    <ThemeProvider>
-      <ToastProvider>
-        <StudentPortalInner />
-      </ToastProvider>
-    </ThemeProvider>
+    <ToastProvider>
+      <StudentPortalInner />
+    </ToastProvider>
   );
 }
 
 function StudentPortalInner() {
   const router = useRouter();
   const { tab, go } = usePortalUrl();
-  const { isDark } = useTheme();
   const [active, setActive] = useState<StudentNavId>(tab as StudentNavId);
-  const [scrolled, setScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [detailCourse, setDetailCourse] = useState<any>(null);
-  const [showNotifs, setShowNotifs] = useState(false);
   const logout = useAuthStore((sx) => sx.logout);
-  const bp = useBreakpoint();
-  useAutoTour('student');
 
-  useEffect(() => {
-    if (tab) {
-      setActive(tab as StudentNavId);
-    }
-  }, [tab]);
+  useEffect(() => { if (tab) setActive(tab as StudentNavId); }, [tab]);
 
   const onLogout = async () => {
     router.replace('/welcome');
     try { await logout(); } catch {}
   };
   const handleNav = (id: StudentNavId, params?: { q?: string; detailCourse?: any }) => {
-    if (id === active) {
-      // Same tab — still allow param updates (search, detail) without a nav.
-    } else {
-      go(id);
-    }
-    if (params && typeof params.q === 'string') {
-      setSearchQuery(params.q);
-    }
-    if (params && params.detailCourse) {
-      setDetailCourse(params.detailCourse);
-    }
+    if (id !== active) go(id);
+    if (params && typeof params.q === 'string') setSearchQuery(params.q);
+    if (params?.detailCourse) setDetailCourse(params.detailCourse);
   };
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    setScrolled(e.nativeEvent.contentOffset.y > 8);
+  const [q, setQ] = useState('');
+  useEffect(() => setQ(searchQuery), [searchQuery]);
+  const submitSearch = () => {
+    if (!q.trim()) return;
+    setSearchQuery(q.trim());
+    if (active !== 'network' && active !== 'internships') handleNav('internships');
   };
-
-  // Responsive page padding (page padding clamp 16 → 32)
-  const padH = bp.isPhone ? SP.base : bp.atLeast('xl') ? SP.xxl : SP.lg;
 
   return (
-    <View style={[s.shell, { backgroundColor: isDark ? '#08080F' : '#F4F5FA' }]}>
-      <LinearGradient
-        pointerEvents="none"
-        colors={isDark ? ['#08080F', '#0C0E1F', '#08080F'] : ['#F4F5FA', '#EDEBF8', '#F4F5FA']}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject as any}
-      />
-      <SAWatermark size={850} top={30} right={-30} opacity={0.16} />
-      <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
-      <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <StudentPortalNavContext.Provider value={{ navigate: handleNav, searchQuery, setSearchQuery, detailCourse, setDetailCourse }}>
-            <TopBar scrolled={scrolled} activeView={active} onAvatarPress={() => handleNav('profile')} onBellPress={() => setShowNotifs(!showNotifs)} />
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={{ flexGrow: 1, paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: bp.isPhone ? 80 : 0 }}
-              showsVerticalScrollIndicator={false}
-              onScroll={onScroll}
-              scrollEventThrottle={16}
-            >
-              <View style={{ flex: 1 }}>
-                <EmbeddedShellContext.Provider value={true}>
-                {active !== 'internships' && <PromoBanner portal="student" />}
-                <RouteTransition deps={[active]}>
-                  {active === 'dashboard'       && <DashboardView />}
-                  {active === 'career-ai'       && <CareerAIView />}
-                  {active === 'internships'     && <InternshipsView />}
-                  {active === 'network'         && <NetworkView />}
-                  {active === 'my-bookings'     && <MyBookingsView />}
-                  {active === 'my-tickets'      && <MyTicketsView />}
-                  {active === 'my-certificates' && <MyCertificatesView />}
-                  {(active === 'myevents' || active === 'events') && <EventsView />}
-                  {active === 'my-workshops'    && <MyWorkshopsView />}
-                  {(active === 'echo-showcase' || (![
-                    'dashboard', 'career-ai', 'internships', 'network', 'my-bookings', 'myevents', 'events',
-                    'my-workshops', 'my-tickets', 'my-certificates', 'courses', 'financial', 'deals', 'wallet', 'higher-ed', 'rentals', 'profile'
-                  ].includes(active))) && (
-                    <EchoShowcaseView slug={active === 'echo-showcase' ? undefined : active} onBack={() => handleNav('myevents')} />
-                  )}
-                  {active === 'courses'         && <CoursesPage />}
-                  {active === 'financial'       && <FinancialPage />}
-                  {active === 'deals'           && <DealsPage />}
-                  {active === 'wallet'          && <WalletPage />}
-                  {active === 'higher-ed'       && <HigherEducationPage />}
-                  {active === 'rentals'         && <RentalsView />}
-                  {active === 'profile'         && <ProfileSettingsView />}
-                </RouteTransition>
-              </EmbeddedShellContext.Provider>
-              </View>
-              <DashboardFooter portal="student" />
-            </ScrollView>
-          </StudentPortalNavContext.Provider>
-
-          {/* Global AI Copilot FAB — visible on every Student screen */}
-          <AiCopilotFab onPress={() => router.push('/agent-k')} />
-        </View>
-
-        {/* Mobile bottom-tab bar (phone only) */}
-        {bp.isPhone && (
-          <View style={[s.mobileNav, { borderTopColor: 'rgba(167,139,250,0.15)' }]}>
-            {[
-              { id: 'dashboard', Icon: LayoutDashboard, label: 'Home' },
-              { id: 'career-ai', Icon: Sparkles, label: 'AI' },
-              { id: 'network', Icon: Users, label: 'Network' },
-              { id: 'events', Icon: Calendar, label: 'Events' },
-              { id: 'profile', Icon: User, label: 'Profile' },
-            ].map(({ id, Icon, label }) => (
-              <Pressable
-                key={id}
-                onPress={() => handleNav(id)}
-                style={[s.navItem, active === id && s.navItemActive]}
-              >
-                <Icon size={20} color={active === id ? '#A78BFA' : 'rgba(255,255,255,0.4)'} />
-                <Text style={[s.navLabel, active === id && s.navLabelActive]}>{label}</Text>
-              </Pressable>
-            ))}
-          </View>
+    <StudentPortalNavContext.Provider value={{ navigate: handleNav, searchQuery, setSearchQuery, detailCourse, setDetailCourse }}>
+      <PortalShell
+        config={STUDENT_PORTAL}
+        active={active}
+        onNav={handleNav}
+        onLogout={onLogout}
+        search={{ value: q, onChange: setQ, onSubmit: submitSearch }}
+        notifications={(close) => (
+          <StudentNotificationsPanel onClose={close} onOpenSettings={() => { handleNav('profile'); close(); }} />
         )}
-
-        {showNotifs && (
-          <StudentNotificationsPanel
-            onClose={() => setShowNotifs(false)}
-            onOpenSettings={() => {
-              handleNav('profile');
-              setShowNotifs(false);
-            }}
-          />
+      >
+        {active === 'dashboard'       && <DashboardView />}
+        {active === 'career-ai'       && <CareerAIView />}
+        {active === 'internships'     && <InternshipsView />}
+        {active === 'network'         && <NetworkView />}
+        {active === 'my-bookings'     && <MyBookingsView />}
+        {active === 'my-tickets'      && <MyTicketsView />}
+        {active === 'my-certificates' && <MyCertificatesView />}
+        {(active === 'myevents' || active === 'events') && <EventsView />}
+        {active === 'my-workshops'    && <MyWorkshopsView />}
+        {(active === 'echo-showcase' || isEchoSlug(active)) && (
+          <EchoShowcaseView slug={active === 'echo-showcase' ? undefined : active} onBack={() => handleNav('myevents')} />
         )}
-      </View>
-    </View>
+        {active === 'courses'         && <CoursesPage />}
+        {active === 'financial'       && <FinancialPage />}
+        {active === 'deals'           && <DealsPage />}
+        {active === 'wallet'          && <WalletPage />}
+        {active === 'higher-ed'       && <HigherEducationPage />}
+        {active === 'rentals'         && <RentalsView />}
+        {active === 'profile'         && <ProfileSettingsView />}
+      </PortalShell>
+    </StudentPortalNavContext.Provider>
   );
 }
-
-const s = StyleSheet.create({
-  shell: { flex: 1, flexDirection: 'row', height: '100%' as any },
-  mobileNav: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(167,139,250,0.15)',
-    backgroundColor: 'rgba(10,15,30,0.95)',
-    paddingBottom: 8,
-    paddingTop: 6,
-    paddingHorizontal: 2,
-    ...(Platform.OS === 'web' ? ({
-      position: 'fixed' as any,
-      bottom: 0,
-      left: 0,
-      right: 0,
-      zIndex: 100,
-      backdropFilter: 'blur(20px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-    } as any) : {}),
-  },
-  navItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-    paddingVertical: 4,
-    minWidth: 0,
-    cursor: Platform.OS === 'web' ? ('pointer' as any) : undefined,
-  },
-  navItemActive: {
-    opacity: 1,
-  },
-  navLabel: {
-    fontFamily: 'DMSans_500Medium',
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.4)',
-    textAlign: 'center',
-  },
-  navLabelActive: {
-    color: '#A78BFA',
-    fontFamily: 'DMSans_700Bold',
-  },
-});

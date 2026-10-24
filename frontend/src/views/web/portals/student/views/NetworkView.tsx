@@ -136,7 +136,7 @@ export function NetworkView() {
   } = useNetworkViewState({
     navContext: StudentPortalNavContext,
     defaultAccent: '#6366F1',
-    githubOf: (p) => p.github || 'github.com',
+    githubOf: (p) => p.github_url || p.github || '',
   });
 
   if (loading) {

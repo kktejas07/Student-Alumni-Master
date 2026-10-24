@@ -10,7 +10,7 @@
  * The student portal is "permissive" — unknown segments (ECHO showcase slugs)
  * are passed through to the shell which renders them inline.
  */
-import { NAV } from '@/src/views/web/portals/student/Sidebar';
+import { NAV } from '@/src/views/web/portals/student/nav';
 import { PortalUrlProvider } from '@/src/views/web/portals/portalUrl';
 import { StudentPortalRN } from '@/src/views/web/portals/student/StudentPortalRN';
 

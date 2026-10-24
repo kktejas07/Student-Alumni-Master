@@ -21,11 +21,19 @@ type Mode = 'light' | 'dark' | 'system';
 type Ctx = { theme: Theme; mode: Mode; setMode: (m: Mode) => void; isDark: boolean };
 
 const ThemeContext = createContext<Ctx | null>(null);
+/** Lets a subtree pin the *document* to dark (see ForceDarkTheme). */
+const PinContext = createContext<() => () => void>(() => () => {});
 const STORAGE_KEY = 'apple-theme';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<Mode>('dark');           // default dark theme
   const [systemDark, setSystemDark] = useState<boolean>(true);
+  // Number of mounted ForceDarkTheme subtrees; while > 0 the document stays dark.
+  const [darkPins, setDarkPins] = useState(0);
+  const pinDark = React.useCallback(() => {
+    setDarkPins((n) => n + 1);
+    return () => setDarkPins((n) => Math.max(0, n - 1));
+  }, []);
 
   // Load persisted mode + listen to system changes
   useEffect(() => {
@@ -69,10 +77,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = isDark ? DARK : (LIGHT as unknown as Theme);
 
   // Sync with document element for CSS override method
+  const documentDark = isDark || darkPins > 0;
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       const root = document.documentElement;
-      if (isDark) {
+      if (documentDark) {
         root.classList.remove('light-mode');
         root.classList.add('dark');
         root.style.colorScheme = 'dark';
@@ -85,9 +94,30 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('theme', isDark ? 'dark' : 'light');
       } catch {}
     }
-  }, [isDark, mode]);
+  }, [isDark, documentDark, mode]);
 
   const value = useMemo<Ctx>(() => ({ theme, mode, setMode, isDark }), [theme, mode, isDark]);
+  return (
+    <PinContext.Provider value={pinDark}>
+      <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+    </PinContext.Provider>
+  );
+}
+
+/**
+ * Pins a subtree to the dark theme regardless of the user's mode. Used by
+ * `PortalShell` for portals whose views still hardcode dark colours, so the
+ * shell and the content can never disagree. `setMode` still updates the
+ * global preference so the choice carries over to theme-aware portals.
+ */
+export function ForceDarkTheme({ children }: { children: React.ReactNode }) {
+  const parent = useTheme();
+  const pinDark = useContext(PinContext);
+  useEffect(() => pinDark(), [pinDark]);
+  const value = useMemo<Ctx>(
+    () => ({ theme: DARK, mode: 'dark', setMode: parent.setMode, isDark: true }),
+    [parent.setMode],
+  );
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 

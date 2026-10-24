@@ -4,10 +4,10 @@ import { NX, PORTAL_ACCENTS } from '@/src/theme/nexus';
 const A = PORTAL_ACCENTS.alumni;
 
 export const SC = {
-  // NexusOS deep surfaces (Light Mode by default for Alumni)
-  bg:        NX.bg,        // #F8F9FA
-  bg2:       NX.surface1,  // #FFFFFF
-  card:      NX.surface2,  // #FFFFFF
+  // NexusOS deep surfaces (dark; see src/theme/nexus.ts)
+  bg:        NX.bg,
+  bg2:       NX.surface1,
+  card:      NX.surface2,
   cardSolid: NX.surface3,
   cardH:     NX.surface3,
 
@@ -21,10 +21,10 @@ export const SC = {
   accent:    A.accent,
   accentBright: '#FED7AA',
 
-  // Text on light surface (Dark text)
-  text:  NX.textP, // #1C1C1E (Black)
-  muted: NX.textS, // #71717A (Gray)
-  dim:   NX.textT, // #A1A1AA
+  // Text on dark surface
+  text:  NX.textP,
+  muted: NX.textS,
+  dim:   NX.textT,
 
   // Status / utility
   green: NX.success,
@@ -58,23 +58,25 @@ export const PALETTE = {
   amber:  SC.amber,
   rose:   SC.red,
 
-  // Text (Maps to SC which is now Dark text for light mode)
-  text:   SC.text,   // Black
-  muted:  SC.muted,  // Gray
+  // Text
+  text:   SC.text,
+  muted:  SC.muted,
   dim:    SC.dim,
 
-  // Glass surfaces - Clean White with soft borders for high contrast
-  glass:        '#FFFFFF', 
-  glassStrong:  '#FFFFFF', 
-  glassSoft:    '#F8FAFC', 
-  glassHover:   '#F1F5F9',
-  glassBorder:  'rgba(226, 232, 240, 0.9)',
-  glassBorderHi:'rgba(37, 99, 235, 0.4)',
-  glassHighlight:'rgba(255, 255, 255, 1)',
+  // Glass surfaces — derived from the NX dark palette so they always match
+  // SC.text (white). These were briefly hardcoded white during a light-mode
+  // experiment, which left white text on white cards once NX went dark again.
+  glass:        NX.surface2,
+  glassStrong:  NX.surface3,
+  glassSoft:    NX.surface1,
+  glassHover:   NX.surface3,
+  glassBorder:  NX.border,
+  glassBorderHi:NX.borderHi,
+  glassHighlight:'rgba(255,255,255,0.06)',
 
   // Shadows / glows (web boxShadow strings)
-  glassShadow:  '0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04)',
-  violetGlow:   '0 4px 16px rgba(37,99,235,0.12)',
+  glassShadow:  '0 8px 24px rgba(0,0,0,0.28)',
+  violetGlow:   `0 4px 16px ${A.primary}33`,
 } as const;
 
 export { TYPO } from '@/src/theme/typography';
