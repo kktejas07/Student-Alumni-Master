@@ -351,37 +351,20 @@ export default function CommunityPage() {
               <div style={{ fontSize: 14, color: '#8A8A9E', marginBottom: 22 }}>Four rules. They are enforced, and enforcement is logged.</div>
               
               <div style={{ display: 'grid', gap: 16 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr)', gap: 14 }}>
-                  <span style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(124,92,252,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: '700', color: '#A78BFA' }}>1</span>
-                  <div>
-                    <div style={{ fontSize: 15, fontWeight: '600', color: '#FFFFFF', marginBottom: 5 }}>Be useful before you be right</div>
-                    <div style={{ fontSize: 13.5, lineHeight: 1.6, color: '#8A8A9E' }}>Answer the question that was asked. Corrections are welcome; point-scoring is not.</div>
+                {[
+                  { n: "1", title: "Be useful before you be right", body: "Answer the question that was asked. Corrections are welcome; point-scoring is not." },
+                  { n: "2", title: "No selling, no scraping, no spam", body: "Paid courses, referral-for-fee offers and bulk DMs get a permanent ban on first offence." },
+                  { n: "3", title: "Someone else's data is not yours to share", body: "No screenshots of private messages, resumes, offer letters or salary details without consent." },
+                  { n: "4", title: "Harassment ends the conversation", body: "Report it and we act within four hours. Reports are confidential from the person reported." },
+                ].map((rule) => (
+                  <div key={rule.n} style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr)', gap: 14 }}>
+                    <span style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(124,92,252,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: '700', color: '#A78BFA' }}>{rule.n}</span>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: '600', color: '#FFFFFF', marginBottom: 5 }}>{rule.title}</div>
+                      <div style={{ fontSize: 13.5, lineHeight: 1.6, color: '#8A8A9E' }}>{rule.body}</div>
+                    </div>
                   </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr)', gap: 14 }}>
-                  <span style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(124,92,252,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: '700', color: '#A78BFA' }}>2</span>
-                  <div>
-                    <div style={{ fontSize: 15, fontWeight: '600', color: '#FFFFFF', marginBottom: 5 }}>No selling, no scraping, no spam</div>
-                    <div style={{ fontSize: 13.5, lineHeight: 1.6, color: '#8A8A9E' }}>Paid courses, referral-for-fee offers and bulk DMs get a permanent ban on first offence.</div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr)', gap: 14 }}>
-                  <span style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(124,92,252,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: '700', color: '#A78BFA' }}>3</span>
-                  <div>
-                    <div style={{ fontSize: 15, fontWeight: '600', color: '#FFFFFF', marginBottom: 5 }}>Someone else's data is not yours to share</div>
-                    <div style={{ fontSize: 13.5, lineHeight: 1.6, color: '#8A8A9E' }}>No screenshots of private messages, resumes, offer letters or salary details without consent.</div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr)', gap: 14 }}>
-                  <span style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(124,92,252,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: '700', color: '#A78BFA' }}>4</span>
-                  <div>
-                    <div style={{ fontSize: 15, fontWeight: '600', color: '#FFFFFF', marginBottom: 5 }}>Harassment ends the conversation</div>
-                    <div style={{ fontSize: 13.5, lineHeight: 1.6, color: '#8A8A9E' }}>Report it and we act within four hours. Reports are confidential from the person reported.</div>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 

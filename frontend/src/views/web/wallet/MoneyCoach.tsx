@@ -141,6 +141,161 @@ export default function MoneyCoach({ initialCmd, onAction }: {
     }
   };
 
+  /* Buttons differ between the web portal (plain <div>) and native (Pressable);
+   * everything else about the message list is identical, so render it once. */
+  const PlanActionButton = ({ label, onPress }: { label: string; onPress: () => void }) =>
+    Platform.OS === 'web' ? (
+      <div
+        onClick={onPress}
+        style={{
+          padding: '5px 8px',
+          borderRadius: '999px',
+          backgroundColor: '#2563EB',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Text style={s.planActionBtnText}>{label}</Text>
+      </div>
+    ) : (
+      <Pressable onPress={onPress} style={s.planActionBtn}>
+        <Text style={s.planActionBtnText}>{label}</Text>
+      </Pressable>
+    );
+
+  const MessageActionButton = ({ label, onPress }: { label: string; onPress: () => void }) =>
+    Platform.OS === 'web' ? (
+      <div
+        onClick={onPress}
+        style={{
+          padding: '6px 10px',
+          borderRadius: '999px',
+          backgroundColor: isDark ? 'rgba(37,99,235,0.20)' : '#EFF6FF',
+          border: isDark ? '1px solid rgba(37,99,235,0.40)' : '1px solid #BFDBFE',
+          cursor: 'pointer',
+        }}
+      >
+        <Text style={[s.actBtnText, { color: isDark ? '#93C5FD' : '#2563EB' }]}>{label}</Text>
+      </div>
+    ) : (
+      <Pressable
+        onPress={onPress}
+        style={[s.actBtn, { backgroundColor: isDark ? 'rgba(37,99,235,0.20)' : '#EFF6FF', borderColor: isDark ? 'rgba(37,99,235,0.40)' : '#BFDBFE' }]}>
+        <Text style={[s.actBtnText, { color: isDark ? '#93C5FD' : '#2563EB' }]}>{label}</Text>
+      </Pressable>
+    );
+
+  const renderMessages = () => (
+    <>
+    {messages.map((m, i) => (
+      <View key={i} style={[s.msgRow,
+        m.role === 'user' && { alignSelf: 'flex-end' }]}>
+        <View style={[s.msgBubble,
+          m.role === 'user'
+            ? { backgroundColor: '#2563EB' }
+            : { backgroundColor: colors.assistantBubbleBg,
+                borderColor: colors.assistantBubbleBorder, borderWidth: 1 }]}>
+          {m.cmd && m.role === 'assistant' && m.cmd !== 'chat' && (
+            <View style={s.cmdBadge}>
+              <Text style={s.cmdBadgeText}>/{m.cmd}</Text>
+            </View>
+          )}
+          <Text style={[s.msgText,
+            { color: m.role === 'user' ? '#fff' : colors.text }]}>
+            {m.text}
+          </Text>
+
+          {/* Render structured cards */}
+          {m.cards?.map((card, ci) => {
+            if (card.type === 'credit_plan') {
+              return (
+                <View key={ci} style={[s.planCard, { backgroundColor: colors.planCardBg, borderColor: colors.planCardBorder }]}>
+                  <View style={s.planHeader}>
+                    <MaterialCommunityIcons name="rocket-launch" size={14} color="#F59E0B" />
+                    <Text style={[s.planEta, { color: colors.planEtaColor }]}>
+                      Fastest: {card.fastest_path_days} days · {card.target_tier}
+                    </Text>
+                    <View style={s.planGapPill}>
+                      <Text style={s.planGapText}>{card.credits_needed} cr</Text>
+                    </View>
+                  </View>
+                  <View style={{ gap: 6, marginTop: 6 }}>
+                    {(card.actions || []).map((a: any, ai: number) => (
+                      <View key={ai} style={[s.planAction, { backgroundColor: colors.planActionBg, borderColor: colors.planActionBorder, borderWidth: isDark ? 0 : 1 }]}>
+                        <View style={s.planCheck}>
+                          <MaterialCommunityIcons name="checkbox-blank-circle-outline"
+                            size={14} color="#2563EB" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[s.planActionTitle, { color: colors.text }]}>{a.title}</Text>
+                          <Text style={[s.planActionMeta, { color: colors.text3 }]}>
+                            +{a.gain} cr · {a.eta_days}d · {a.effort}
+                          </Text>
+                        </View>
+                        {a.action && (
+                          <PlanActionButton
+                            label={a.action.label || 'Go'}
+                            onPress={() => handleAction(a.action.type, a.action.url)}
+                          />
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              );
+            }
+            if (card.type === 'donut') {
+              const total = card.data.reduce((s: number, d: any) => s + d.value, 0) || 1;
+              return (
+                <View key={ci} style={[s.donutCard, { backgroundColor: colors.donutCardBg, borderColor: colors.donutCardBorder }]}>
+                  {card.data.slice(0, 6).map((d: any, di: number) => {
+                      const pct = Math.round((d.value / total) * 100);
+                      const tints = ['#2563EB', '#06B6D4', '#F59E0B', '#10B981', '#EC4899', '#3B82F6'];
+                      const tint = tints[di % tints.length];
+                    return (
+                      <View key={di} style={{ gap: 4 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                          <Text style={[s.donutLabel, { color: colors.text }]}>{d.label}</Text>
+                          <Text style={[s.donutValue, { color: tint }]}>
+                            {d.value} cr · {pct}%
+                          </Text>
+                        </View>
+                        <View style={[s.donutBarBg, { backgroundColor: colors.donutBarBg }]}>
+                          <View style={[s.donutBarFill,
+                            { width: `${pct}%`, backgroundColor: tint }]} />
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              );
+            }
+            return null;
+          })}
+
+          {/* Action buttons */}
+          {m.actions && m.actions.length > 0 && (
+            <View style={{ flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+              {m.actions.map((a, ai) => (
+                <MessageActionButton key={ai} label={a.label} onPress={() => handleAction(a.action, a.url)} />
+              ))}
+            </View>
+          )}
+        </View>
+      </View>
+    ))}
+    {busy && (
+      <View style={s.msgRow}>
+        <View style={[s.msgBubble, { backgroundColor: colors.assistantBubbleBg, borderColor: colors.assistantBubbleBorder, borderWidth: 1 }]}>
+          <ActivityIndicator color="#2563EB" size="small" />
+        </View>
+      </View>
+    )}
+    </>
+  );
+
   if (Platform.OS === 'web' && ReactDOM) {
     return ReactDOM.createPortal(
       <>
@@ -235,133 +390,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
                 {/* Messages scroll area */}
                 <ScrollView ref={scrollRef} style={{ flex: 1 }}
                   contentContainerStyle={{ padding: 14, gap: 10 }}>
-                  {messages.map((m, i) => (
-                    <View key={i} style={[s.msgRow,
-                      m.role === 'user' && { alignSelf: 'flex-end' }]}>
-                      <View style={[s.msgBubble,
-                        m.role === 'user'
-                          ? { backgroundColor: '#2563EB' }
-                          : { backgroundColor: colors.assistantBubbleBg,
-                              borderColor: colors.assistantBubbleBorder, borderWidth: 1 }]}>
-                        {m.cmd && m.role === 'assistant' && m.cmd !== 'chat' && (
-                          <View style={s.cmdBadge}>
-                            <Text style={s.cmdBadgeText}>/{m.cmd}</Text>
-                          </View>
-                        )}
-                        <Text style={[s.msgText,
-                          { color: m.role === 'user' ? '#fff' : colors.text }]}>
-                          {m.text}
-                        </Text>
-
-                        {/* Render structured cards */}
-                        {m.cards?.map((card, ci) => {
-                          if (card.type === 'credit_plan') {
-                            return (
-                              <View key={ci} style={[s.planCard, { backgroundColor: colors.planCardBg, borderColor: colors.planCardBorder }]}>
-                                <View style={s.planHeader}>
-                                  <MaterialCommunityIcons name="rocket-launch" size={14} color="#F59E0B" />
-                                  <Text style={[s.planEta, { color: colors.planEtaColor }]}>
-                                    Fastest: {card.fastest_path_days} days · {card.target_tier}
-                                  </Text>
-                                  <View style={s.planGapPill}>
-                                    <Text style={s.planGapText}>{card.credits_needed} cr</Text>
-                                  </View>
-                                </View>
-                                <View style={{ gap: 6, marginTop: 6 }}>
-                                  {(card.actions || []).map((a: any, ai: number) => (
-                                    <View key={ai} style={[s.planAction, { backgroundColor: colors.planActionBg, borderColor: colors.planActionBorder, borderWidth: isDark ? 0 : 1 }]}>
-                                      <View style={s.planCheck}>
-                                        <MaterialCommunityIcons name="checkbox-blank-circle-outline"
-                                          size={14} color="#2563EB" />
-                                      </View>
-                                      <View style={{ flex: 1 }}>
-                                        <Text style={[s.planActionTitle, { color: colors.text }]}>{a.title}</Text>
-                                        <Text style={[s.planActionMeta, { color: colors.text3 }]}>
-                                          +{a.gain} cr · {a.eta_days}d · {a.effort}
-                                        </Text>
-                                      </View>
-                                      {a.action && (
-                                        <div
-                                          onClick={() => handleAction(a.action.type, a.action.url)}
-                                          style={{
-                                            padding: '5px 8px',
-                                            borderRadius: '999px',
-                                            backgroundColor: '#2563EB',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                          }}
-                                        >
-                                          <Text style={s.planActionBtnText}>
-                                            {a.action.label || 'Go'}
-                                          </Text>
-                                        </div>
-                                      )}
-                                    </View>
-                                  ))}
-                                </View>
-                              </View>
-                            );
-                          }
-                          if (card.type === 'donut') {
-                            const total = card.data.reduce((s: number, d: any) => s + d.value, 0) || 1;
-                            return (
-                              <View key={ci} style={[s.donutCard, { backgroundColor: colors.donutCardBg, borderColor: colors.donutCardBorder }]}>
-                                {card.data.slice(0, 6).map((d: any, di: number) => {
-                                  const pct = Math.round((d.value / total) * 100);
-                                  const tints = ['#2563EB', '#06B6D4', '#F59E0B', '#10B981', '#EC4899', '#3B82F6'];
-                                  const tint = tints[di % tints.length];
-                                  return (
-                                    <View key={di} style={{ gap: 4 }}>
-                                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                                        <Text style={[s.donutLabel, { color: colors.text }]}>{d.label}</Text>
-                                        <Text style={[s.donutValue, { color: tint }]}>
-                                          {d.value} cr · {pct}%
-                                        </Text>
-                                      </View>
-                                      <View style={[s.donutBarBg, { backgroundColor: colors.donutBarBg }]}>
-                                        <View style={[s.donutBarFill,
-                                          { width: `${pct}%`, backgroundColor: tint }]} />
-                                      </View>
-                                    </View>
-                                  );
-                                })}
-                              </View>
-                            );
-                          }
-                          return null;
-                        })}
-
-                        {/* Action buttons */}
-                        {m.actions && m.actions.length > 0 && (
-                          <View style={{ flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                            {m.actions.map((a, ai) => (
-                              <div key={ai}
-                                onClick={() => handleAction(a.action, a.url)}
-                                style={{
-                                  padding: '6px 10px',
-                                  borderRadius: '999px',
-                                  backgroundColor: isDark ? 'rgba(37,99,235,0.20)' : '#EFF6FF',
-                                  border: isDark ? '1px solid rgba(37,99,235,0.40)' : '1px solid #BFDBFE',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                <Text style={[s.actBtnText, { color: isDark ? '#93C5FD' : '#2563EB' }]}>{a.label}</Text>
-                              </div>
-                            ))}
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                  ))}
-                  {busy && (
-                    <View style={s.msgRow}>
-                      <View style={[s.msgBubble, { backgroundColor: colors.assistantBubbleBg, borderColor: colors.assistantBubbleBorder, borderWidth: 1 }]}>
-                        <ActivityIndicator color="#2563EB" size="small" />
-                      </View>
-                    </View>
-                  )}
+                  {renderMessages()}
                 </ScrollView>
 
                 {/* Chips */}
@@ -453,117 +482,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
 
               <ScrollView ref={scrollRef} style={{ flex: 1 }}
                 contentContainerStyle={{ padding: 14, gap: 10 }}>
-                {messages.map((m, i) => (
-                  <View key={i} style={[s.msgRow,
-                    m.role === 'user' && { alignSelf: 'flex-end' }]}>
-                    <View style={[s.msgBubble,
-                      m.role === 'user'
-                        ? { backgroundColor: '#2563EB' }
-                        : { backgroundColor: colors.assistantBubbleBg,
-                            borderColor: colors.assistantBubbleBorder, borderWidth: 1 }]}>
-                      {m.cmd && m.role === 'assistant' && m.cmd !== 'chat' && (
-                        <View style={s.cmdBadge}>
-                          <Text style={s.cmdBadgeText}>/{m.cmd}</Text>
-                        </View>
-                      )}
-                      <Text style={[s.msgText,
-                        { color: m.role === 'user' ? '#fff' : colors.text }]}>
-                        {m.text}
-                      </Text>
-
-                      {/* Render structured cards */}
-                      {m.cards?.map((card, ci) => {
-                        if (card.type === 'credit_plan') {
-                          return (
-                            <View key={ci} style={[s.planCard, { backgroundColor: colors.planCardBg, borderColor: colors.planCardBorder }]}>
-                              <View style={s.planHeader}>
-                                <MaterialCommunityIcons name="rocket-launch" size={14} color="#F59E0B" />
-                                <Text style={[s.planEta, { color: colors.planEtaColor }]}>
-                                  Fastest: {card.fastest_path_days} days · {card.target_tier}
-                                </Text>
-                                <View style={s.planGapPill}>
-                                  <Text style={s.planGapText}>{card.credits_needed} cr</Text>
-                                </View>
-                              </View>
-                              <View style={{ gap: 6, marginTop: 6 }}>
-                                {(card.actions || []).map((a: any, ai: number) => (
-                                  <View key={ai} style={[s.planAction, { backgroundColor: colors.planActionBg, borderColor: colors.planActionBorder, borderWidth: isDark ? 0 : 1 }]}>
-                                    <View style={s.planCheck}>
-                                      <MaterialCommunityIcons name="checkbox-blank-circle-outline"
-                                        size={14} color="#2563EB" />
-                                    </View>
-                                    <View style={{ flex: 1 }}>
-                                      <Text style={[s.planActionTitle, { color: colors.text }]}>{a.title}</Text>
-                                      <Text style={[s.planActionMeta, { color: colors.text3 }]}>
-                                        +{a.gain} cr · {a.eta_days}d · {a.effort}
-                                      </Text>
-                                    </View>
-                                    {a.action && (
-                                      <Pressable
-                                        onPress={() => handleAction(a.action.type, a.action.url)}
-                                        style={s.planActionBtn}>
-                                        <Text style={s.planActionBtnText}>
-                                          {a.action.label || 'Go'}
-                                        </Text>
-                                      </Pressable>
-                                    )}
-                                  </View>
-                                ))}
-                              </View>
-                            </View>
-                          );
-                        }
-                        if (card.type === 'donut') {
-                          const total = card.data.reduce((s: number, d: any) => s + d.value, 0) || 1;
-                          return (
-                            <View key={ci} style={[s.donutCard, { backgroundColor: colors.donutCardBg, borderColor: colors.donutCardBorder }]}>
-                              {card.data.slice(0, 6).map((d: any, di: number) => {
-                                  const pct = Math.round((d.value / total) * 100);
-                                  const tints = ['#2563EB', '#06B6D4', '#F59E0B', '#10B981', '#EC4899', '#3B82F6'];
-                                  const tint = tints[di % tints.length];
-                                return (
-                                  <View key={di} style={{ gap: 4 }}>
-                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                                      <Text style={[s.donutLabel, { color: colors.text }]}>{d.label}</Text>
-                                      <Text style={[s.donutValue, { color: tint }]}>
-                                        {d.value} cr · {pct}%
-                                      </Text>
-                                    </View>
-                                    <View style={[s.donutBarBg, { backgroundColor: colors.donutBarBg }]}>
-                                      <View style={[s.donutBarFill,
-                                        { width: `${pct}%`, backgroundColor: tint }]} />
-                                    </View>
-                                  </View>
-                                );
-                              })}
-                            </View>
-                          );
-                        }
-                        return null;
-                      })}
-
-                      {/* Action buttons */}
-                      {m.actions && m.actions.length > 0 && (
-                        <View style={{ flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                          {m.actions.map((a, ai) => (
-                            <Pressable key={ai}
-                              onPress={() => handleAction(a.action, a.url)}
-                              style={[s.actBtn, { backgroundColor: isDark ? 'rgba(37,99,235,0.20)' : '#EFF6FF', borderColor: isDark ? 'rgba(37,99,235,0.40)' : '#BFDBFE' }]}>
-                              <Text style={[s.actBtnText, { color: isDark ? '#93C5FD' : '#2563EB' }]}>{a.label}</Text>
-                            </Pressable>
-                          ))}
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                ))}
-                {busy && (
-                  <View style={s.msgRow}>
-                    <View style={[s.msgBubble, { backgroundColor: colors.assistantBubbleBg, borderColor: colors.assistantBubbleBorder, borderWidth: 1 }]}>
-                      <ActivityIndicator color="#2563EB" size="small" />
-                    </View>
-                  </View>
-                )}
+                {renderMessages()}
               </ScrollView>
 
               <ScrollView horizontal showsHorizontalScrollIndicator={false}
