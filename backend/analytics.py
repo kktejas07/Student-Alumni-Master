@@ -42,6 +42,25 @@ def _last_n_days(n: int) -> List[str]:
     return [(today - timedelta(days=i)).isoformat() for i in range(n - 1, -1, -1)]
 
 
+async def _sum_since(collection, match: Dict[str, Any], field: str, date_fields: List[str], since: datetime) -> float:
+    """Sum a numeric field over documents whose first available date field is
+    >= `since`. Dates may be stored as datetimes or ISO strings, so both are
+    matched. Any error (missing collection, bad types) counts as 0."""
+    since_iso = since.isoformat()
+    date_match = {"$or": [
+        cond for f in date_fields for cond in ({f: {"$gte": since}}, {f: {"$gte": since_iso}})
+    ]}
+    pipeline = [
+        {"$match": {**match, **date_match}},
+        {"$group": {"_id": None, "s": {"$sum": {"$toDouble": {"$ifNull": [f"${field}", 0]}}}}},
+    ]
+    try:
+        rows = await collection.aggregate(pipeline).to_list(1)
+        return float(rows[0]["s"]) if rows else 0.0
+    except Exception:
+        return 0.0
+
+
 # ---------------------------------------------------------------------------
 # Super Admin / Admin Analytics
 # ---------------------------------------------------------------------------
@@ -173,41 +192,36 @@ async def super_admin_analytics(db, include_revenue: bool = True) -> Dict[str, A
             "value": count
         })
 
-    # === Revenue (real from payments if available, else computed from bookings) ===
-    revenue_mtd = 0
+    # === Revenue — month to date, from money actually recorded ===
+    # Sources: payments (generic), bookings.amount_paid (mentor sessions),
+    # echo_registrations.payment (ECHO event fees), echo_orders.final_amount
+    # (marketplace). Previously, with no payments rows, this returned
+    # `total_bookings * 500` split 50/30/20 — an invented figure that was
+    # shown on the super-admin dashboard as revenue.
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    sources = [
+        ("Mentor sessions", "bookings",
+         {"status": {"$in": ["completed", "confirmed", "paid", "done"]}}, "amount_paid", ["created_at", "completed_at"]),
+        ("Event registrations", "echo_registrations",
+         {"payment.status": "paid"}, "payment.amount", ["payment.paid_at", "created_at"]),
+        ("Marketplace", "echo_orders",
+         {"status": "paid", "payment_status": {"$ne": "free"}}, "final_amount", ["paid_at", "created_at"]),
+        ("Other payments", "payments", {}, "amount", ["created_at"]),
+    ]
     revenue_by_source = []
-    try:
-        # Try to get real revenue from payments collection
-        now = datetime.now(timezone.utc)
-        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        async for p in db.payments.find({"created_at": {"$gte": month_start}}):
-            revenue_mtd += p.get("amount", 0)
-        # Group by source
-        source_pipeline = [
-            {"$match": {"created_at": {"$gte": month_start}}},
-            {"$group": {"_id": "$source", "total": {"$sum": "$amount"}}},
-            {"$sort": {"total": -1}},
-        ]
-        async for r in db.payments.aggregate(source_pipeline):
-            if r["_id"]:
-                revenue_by_source.append({"label": r["_id"], "value": r["total"]})
-    except Exception:
-        pass  # No payments collection — use computed estimates
-
-    # If no real revenue, estimate from booking count
-    if revenue_mtd == 0 and total_bookings > 0:
-        revenue_mtd = total_bookings * 500  # Rough estimate
-        revenue_by_source = [
-            {"label": "Mentor sessions", "value": int(revenue_mtd * 0.5)},
-            {"label": "Event registrations", "value": int(revenue_mtd * 0.3)},
-            {"label": "Other", "value": int(revenue_mtd * 0.2)},
-        ]
+    for label, coll, match, field, date_fields in sources:
+        total = await _sum_since(db[coll], match, field, date_fields, month_start)
+        if total > 0:
+            revenue_by_source.append({"label": label, "value": round(total, 2)})
+    revenue_mtd = round(sum(r["value"] for r in revenue_by_source), 2)
 
     if include_revenue:
         payload["revenue"] = {
             "mtd": revenue_mtd,
             "currency": "INR",
             "by_source": revenue_by_source,
+            "basis": "sum of recorded payments this month (bookings, ECHO registrations, marketplace orders, payments)",
         }
 
     payload["monthly_enrollments"] = monthly_enrollments
@@ -602,7 +616,7 @@ async def super_admin_full_analytics(db) -> Dict[str, Any]:
 
     # === Top Colleges ===
     top_colleges_pipeline = [
-        {"$match": {"school_info.institution_name": {"$ne": None, "$ne": ""}}},
+        {"$match": {"school_info.institution_name": {"$nin": [None, ""]}}},
         {"$group": {
             "_id": "$school_info.institution_name",
             "students": {"$sum": {"$cond": [{"$eq": ["$role", "student"]}, 1, 0]}},

@@ -11,7 +11,7 @@ import { useCurrentUser } from '@/src/lib/useCurrentUser';
 type App = { id: string; internship_title: string; company: string; status: string; applied_at: string };
 
 export function MyApplicationsView() {
-  const { email } = useCurrentUser('booked1@persona.demo');
+  const { email } = useCurrentUser();
   const { data } = usePortalData<{ items: App[]; count: number }>(
     `/student/my-applications?email=${encodeURIComponent(email)}`,
     { items: [], count: 0 },

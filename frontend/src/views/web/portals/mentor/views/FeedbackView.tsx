@@ -152,7 +152,7 @@ export function FeedbackView({ demoMode = false, setDemoMode }: { demoMode?: boo
   const { width } = useWindowDimensions();
   const stack = width < 980;
   
-  const { id: mentorId } = useCurrentUser('mentor1@persona.demo');
+  const { id: mentorId } = useCurrentUser();
 
   // Local stateful list of reviews
   const [reviews, setReviews] = useState<Review[]>([]);

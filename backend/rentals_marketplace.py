@@ -362,13 +362,33 @@ def _seed_listings() -> List[Dict[str, Any]]:
     ]
 
 
-# Patch malformed CO2 entry from inline trick (cleanup)
-def _normalised_listings() -> List[Dict[str, Any]]:
-    items = []
+async def _normalised_listings() -> List[Dict[str, Any]]:
+    """Listings shown in the marketplace.
+
+    Admin-managed rows in `rental_listings` (status != "inactive") take
+    precedence. When that collection is empty the curated partner seed above
+    is served instead — but with `rating`/`reviews` cleared, because those
+    numbers were typed into the seed, not collected from users. Every item
+    carries `source` so the UI can say where it came from.
+    """
+    items: List[Dict[str, Any]] = []
+    try:
+        async for d in _db.rental_listings.find({"status": {"$ne": "inactive"}}, {"_id": 0}):
+            d.setdefault("source", "admin")
+            if 'available' not in d and 'available_count' in d:
+                d['available'] = d.pop('available_count')
+            items.append(d)
+    except Exception as e:  # pragma: no cover - db outage
+        logger.warning("rental_listings read failed: %s", e)
+    if items:
+        return items
     for raw in _seed_listings():
         d = dict(raw)
         if 'available' not in d and 'available_count' in d:
             d['available'] = d.pop('available_count')
+        d["rating"] = None
+        d["reviews"] = 0
+        d["source"] = "curated"
         items.append(d)
     return items
 
@@ -376,7 +396,7 @@ def _normalised_listings() -> List[Dict[str, Any]]:
 # ─── Endpoints ───────────────────────────────────────────────────────────
 @router.get("/rentals/categories")
 async def rentals_categories(user: dict = Depends(_auth())):
-    items = _normalised_listings()
+    items = await _normalised_listings()
     counts = {c['id']: 0 for c in CATEGORIES}
     for it in items:
         counts[it['category']] = counts.get(it['category'], 0) + 1
@@ -397,7 +417,7 @@ async def rentals_listings(
     q: str = Query(""),
     user: dict = Depends(_auth()),
 ):
-    items = _normalised_listings()
+    items = await _normalised_listings()
     if category and category != "all":
         items = [i for i in items if i['category'] == category]
     if city and city != "all":
@@ -412,14 +432,14 @@ async def rentals_listings(
                  or ql in i.get('location', '').lower()
                  or ql in i.get('type', '').lower()
                  or any(ql in (t or '').lower() for t in i.get('tags', []))]
-    items.sort(key=lambda x: (-1 if x.get('featured') else 0, -float(x.get('rating', 0))))
+    items.sort(key=lambda x: (-1 if x.get('featured') else 0, -float(x.get('rating') or 0)))
     return {"listings": items, "total": len(items),
             "fetched_at": datetime.now(timezone.utc).isoformat()}
 
 
 @router.get("/rentals/listings/{listing_id}")
 async def rentals_listing_detail(listing_id: str, user: dict = Depends(_auth())):
-    item = next((i for i in _normalised_listings() if i['id'] == listing_id), None)
+    item = next((i for i in await _normalised_listings() if i['id'] == listing_id), None)
     if not item:
         raise HTTPException(404, "Listing not found")
     # Pseudo gallery + house rules
@@ -540,7 +560,7 @@ async def rentals_book(body: Dict[str, Any], user: dict = Depends(_auth())):
     lid = (body or {}).get("listing_id")
     if not lid:
         raise HTTPException(400, "listing_id required")
-    listing = next((i for i in _normalised_listings() if i['id'] == lid), None)
+    listing = next((i for i in await _normalised_listings() if i['id'] == lid), None)
     if not listing:
         raise HTTPException(404, "Listing not found")
     booking = await _create_booking(user, listing, body or {})
@@ -579,7 +599,7 @@ async def rentals_booking_cancel(booking_id: str, user: dict = Depends(_auth()))
 @router.post("/rentals/ai/recommend")
 async def rentals_ai_recommend(body: Dict[str, Any], user: dict = Depends(_auth())):
     prefs = (body or {}).get("prefs") or {}
-    items = _normalised_listings()
+    items = await _normalised_listings()
     budget = int(prefs.get("budget") or 0)
     city = (prefs.get("city") or "").strip().lower()
     cat = (prefs.get("category") or "").strip().lower()
