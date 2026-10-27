@@ -15,8 +15,8 @@ botocore==1.42.86
 certifi==2026.2.25
 cffi==2.0.0
 charset-normalizer==3.4.7
-click==8.3.2
-cryptography==49.0.0
+click==8.5.0
+cryptography==50.0.1
 distro==1.9.0
 dnspython==2.8.0
 email-validator==2.3.0
@@ -90,11 +90,11 @@ PyJWT==2.13.0
 pymongo==4.6.3
 pyotp==2.9.0
 pyparsing==3.3.2
-pytest==9.0.3
+pytest==9.1.1
 pytz==2026.2
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.2
-python-multipart==0.0.30
+python-multipart==0.0.32
 pytokens==0.4.1
 PyYAML==6.0.3
 qrcode==8.2
@@ -121,10 +121,8 @@ typer==0.24.1
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 tzdata==2025.1
-# Pinned: qdrant-client >= 1.19 removed the fastembed mixin (QdrantClient.add/.query/.set_model)
-# that agent_k/rag and services/platform_rag depend on.
-qdrant-client>=1.14,<1.19
-fastembed>=0.6,<1.0
+qdrant-client
+fastembed
 pymupdf
 python-docx
 fpdf2
@@ -132,7 +130,7 @@ langchain-text-splitters
 tzlocal==5.3.1
 uritemplate==4.2.0
 urllib3==2.7.0
-uvicorn==0.25.0
+uvicorn==0.52.4
 watchfiles==1.1.1
 websockets==16.0
 yarl==1.23.0
