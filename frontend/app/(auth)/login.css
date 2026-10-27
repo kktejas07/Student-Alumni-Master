@@ -1,6 +1,6 @@
 /* Extracted from login.tsx */
 .au-st-1 {
-  font-family: 'Manrope', -apple-system, sans-serif;
+  font-family: 'DM Sans', -apple-system, sans-serif;
   color: var(--text);
   background: var(--bg);
   min-height: 100vh;
@@ -57,7 +57,7 @@
   gap: 11px;
 }
 .au-st-9 {
-  font-family: 'Manrope', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 122px;
   font-weight: 800;
   letter-spacing: -6px;
@@ -101,7 +101,7 @@
   transform-origin: 306px 16px;
 }
 .au-st-17 {
-  font-family: 'Manrope', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 13px;
   font-weight: 700;
   fill: #F4F5FB;
@@ -140,31 +140,31 @@
   stroke-width: 1.6px;
 }
 .au-st-23 {
-  font-family: 'Manrope', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 17px;
   font-weight: 800;
   fill: #8B84FF;
 }
 .au-st-24 {
-  font-family: 'Manrope', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 12px;
   font-weight: 700;
   fill: #C7C2FF;
 }
 .au-st-25 {
-  font-family: 'Manrope', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 12px;
   font-weight: 700;
   fill: #F6C9EE;
 }
 .au-st-26 {
-  font-family: 'Manrope', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 12px;
   font-weight: 700;
   fill: #8DE8C4;
 }
 .au-st-27 {
-  font-family: 'Manrope', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 12px;
   font-weight: 700;
   fill: #AECDF9;
@@ -202,13 +202,13 @@
   transform-origin: 250px 100px;
 }
 .au-st-33 {
-  font-family: 'Manrope', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 19px;
   font-weight: 800;
   fill: #8B84FF;
 }
 .au-st-34 {
-  font-family: 'Manrope', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 1.2px;
@@ -247,13 +247,13 @@
   transform-origin: 160px 96px;
 }
 .au-st-40 {
-  font-family: 'Manrope', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 22px;
   font-weight: 800;
   fill: #FFFFFF;
 }
 .au-st-41 {
-  font-family: 'Manrope', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 8.5px;
   font-weight: 700;
   letter-spacing: .8px;

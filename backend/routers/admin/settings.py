@@ -30,8 +30,7 @@ from core.db import db as _db
 
 router = APIRouter(tags=["admin-settings"])
 
-_JWT_SECRET = os.environ.get("JWT_SECRET", "")
-_JWT_ALG = os.environ.get("JWT_ALGORITHM", "HS256")
+from core.security import JWT_SECRET as _JWT_SECRET, JWT_ALGORITHM as _JWT_ALG
 
 
 async def _resolve_user(authorization: Optional[str]) -> Optional[dict]:
@@ -886,6 +885,7 @@ DEFAULT_PLATFORM_CONTROLS = {
         {"key": "new_signups",          "label": "Allow New Signups",    "description": "Open public registration for students",        "value": True},
         {"key": "ai_features",          "label": "AI Features",          "description": "Agent K and AI insights for all users",         "value": True},
         {"key": "marketplace_install",  "label": "Marketplace Install",  "description": "Allow admins to connect new integrations",      "value": True},
+        {"key": "show_marketplace",     "label": "Show Marketplace",     "description": "Display Marketplace tab in the landing page navigation bar", "value": False},
         {"key": "alumni_donations",     "label": "Alumni Donations",     "description": "Show donation widget on alumni dashboard",      "value": True},
         {"key": "beta_features",        "label": "Beta Features",        "description": "Enable experimental features for testers",      "value": False},
         {"key": "mentor_ratings",       "label": "Mentor Ratings",      "description": "Allow students to rate mentor sessions",      "value": True},
@@ -914,6 +914,20 @@ DEFAULT_PLATFORM_CONTROLS = {
         {"key": "ga4_service_account_json","label": "GA4 Service Account JSON","value": "", "type": "password", "help": "Optional — separate service account for GA4 analytics. If blank, falls back to Firebase Service Account JSON above."},
     ],
 }
+
+
+@router.get("/public/feature-flags")
+async def get_public_feature_flags():
+    """Public read-only feature flags dictionary for landing navbar and other public components."""
+    doc = await _db.platform_controls.find_one({"_id": "singleton"})
+    db_flags = (doc.get("feature_flags") if doc else None) or []
+    defaults_flags = DEFAULT_PLATFORM_CONTROLS["feature_flags"]
+    merged_flags = _merge_settings_with_defaults(db_flags, defaults_flags)
+    flags_dict = {}
+    for f in merged_flags:
+        if isinstance(f, dict) and "key" in f:
+            flags_dict[f["key"]] = bool(f.get("value"))
+    return {"feature_flags": flags_dict}
 
 
 @router.get("/admin/platform-controls")
@@ -976,28 +990,6 @@ async def patch_platform_controls(body: PlatformControlsPatch, authorization: Op
         upsert=True,
     )
     return {"ok": True}
-
-
-@router.get("/admin/platform-controls")
-async def get_platform_controls_full(authorization: Optional[str] = Header(None)):
-    """Returns controls + dropdown options for every system setting."""
-    await _require_admin(authorization)
-    doc = await _db.platform_controls.find_one({"_id": "singleton"})
-    if not doc:
-        await _db.platform_controls.insert_one({"_id": "singleton", **DEFAULT_PLATFORM_CONTROLS, "updated_at": datetime.now(timezone.utc)})
-        doc = DEFAULT_PLATFORM_CONTROLS
-    db_flags = doc.get("feature_flags") or []
-    db_settings = doc.get("system_settings") or []
-    defaults_flags = DEFAULT_PLATFORM_CONTROLS["feature_flags"]
-    defaults_settings = DEFAULT_PLATFORM_CONTROLS["system_settings"]
-    merged_flags = _merge_settings_with_defaults(db_flags, defaults_flags)
-    merged_settings = _merge_settings_with_defaults(db_settings, defaults_settings)
-    result = {
-        "feature_flags":   merged_flags,
-        "system_settings": merged_settings,
-        "system_settings_options": SYSTEM_SETTING_OPTIONS,
-    }
-    return result
 
 
 class SystemSettingPatch(BaseModel):

@@ -35,6 +35,7 @@ import CommonFooter from '@/src/views/components/CommonFooter';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import EchoEventsPage from '@/src/views/web/echo/EchoEventsPage';
+import { request } from '@/src/models/services/api';
 
 /* ── Brand Color Palette ── */
 const DARK_T = {
@@ -102,9 +103,9 @@ function injectGlobalStyles() {
   const s = document.createElement('style');
   s.id = STYLES_KEY;
   s.textContent = `
-    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; overflow-x: hidden; }
+    html, body { margin: 0; padding: 0; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; overflow-x: hidden; }
     
     @keyframes sa-twinkle {
       0%, 100% { opacity: 0.25; transform: scale(0.85); }
@@ -150,23 +151,23 @@ function injectGlobalStyles() {
     }
     @keyframes sa-marquee-l {
       0% { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
+      100% { transform: translateX(-25%); }
     }
     @keyframes sa-marquee-r {
-      0% { transform: translateX(-50%); }
+      0% { transform: translateX(-25%); }
       100% { transform: translateX(0); }
     }
     .sa-mq-wrap-l {
       display: flex !important;
       flex-direction: row !important;
       width: max-content !important;
-      animation: sa-marquee-l 26s linear infinite !important;
+      animation: sa-marquee-l 36s linear infinite !important;
     }
     .sa-mq-wrap-r {
       display: flex !important;
       flex-direction: row !important;
       width: max-content !important;
-      animation: sa-marquee-r 24s linear infinite !important;
+      animation: sa-marquee-r 32s linear infinite !important;
     }
     .sa-mq-wrap-l:hover, .sa-mq-wrap-r:hover {
       animation-play-state: paused !important;
@@ -195,23 +196,29 @@ function injectGlobalStyles() {
 }
 if (typeof document !== 'undefined') injectGlobalStyles();
 
-/* ── Sample Verifiable Credentials Database ── */
-const SAMPLE_CREDS: Record<string, [string, string, string]> = {
-  'SA-EXC-2026-0002': ['Certificate of Excellence', 'Sreenidhi Institute of Science & Technology', 'Feb 14, 2026'],
-  'SA-FAC-2026-0001': ['Faculty Award — Mentorship', 'StudentAlumni Academic Council', 'Jan 09, 2026'],
-  'SA-AMB-2026-0012': ['Campus Ambassador Badge', 'StudentAlumni Campus Relations', 'Mar 02, 2026'],
-  'ECHO26-P-0001': ['ECHO Specialization — Product', 'ECHO 2026 · VNR VJIET', 'Jul 31, 2026'],
-};
-
 const COLLEGES_MARQUEE = [
-  'MRIT', 'Malla Reddy College of Engineering', 'SR University',
-  'VJ Data Questers', 'VJ ARC', 'VNR VJIET', 'GITAM',
-  'IUCEE VNRVJIET', 'IEEE Computer Society', 'Garuda Vigilance',
+  '/logos/mlrit.png',
+  '/logos/malla-reddy.png',
+  '/logos/sr-university.png',
+  '/logos/vj-data-questers.png',
+  '/logos/vj-arc.png',
+  '/logos/vnrvjit.png',
+  '/logos/gitam.png',
+  '/logos/iucee.png',
+  '/logos/ieee.png',
+  '/logos/garuda-vigilance.png',
 ];
 
 const INDUSTRY_MARQUEE = [
-  'Deloitte', 'Featherless', 'Atlast', 'Bandiwala',
-  'EXtrive Innovations', 'Larsen & Toubro', 'LinkedIn', 'Google', 'McKinsey',
+  '/logos/google.png',
+  '/logos/mckinsey.png',
+  '/logos/deloitte.png',
+  '/logos/featherless.png',
+  '/logos/atlast.png',
+  '/logos/bandiwala.png',
+  '/logos/extrive.png',
+  '/logos/lt.png',
+  '/logos/linkedin.png',
 ];
 
 /* ── Subtle Right-Side SA Logo Background Watermark (Non-Landing Pages) ── */
@@ -263,7 +270,7 @@ function ScrollCounter({
 /* ── Pure Continuous Smooth Marquee Component ── */
 function Marquee({
   items,
-  duration = 26,
+  duration = 36,
   reverse = false,
 }: {
   items: string[];
@@ -271,9 +278,49 @@ function Marquee({
   reverse?: boolean;
 }) {
   const { isDark } = useTheme();
-  const mqCard = isDark ? '#0C0E1B' : '#FFFFFF';
-  const mqBorder = isDark ? '#1B1E33' : '#E5E5EA';
   const mqText = isDark ? '#F4F5FB' : '#1D1D1F';
+
+  const cardStyle: React.CSSProperties = {
+    backgroundColor: '#FFFFFF',
+    border: '1px solid #e5e7eb',
+    borderRadius: '14px',
+    padding: '8px 12px',
+    marginRight: '14px',
+    height: '72px',
+    width: '150px',
+    boxSizing: 'border-box',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    fontSize: '11.5px',
+    fontWeight: 700,
+    color: mqText,
+    letterSpacing: '0.2px',
+  };
+
+  const renderItem = (item: string, key: string) => (
+    <div key={key} style={cardStyle}>
+      {item.startsWith('/') ? (
+        <img
+          src={item}
+          alt={item}
+          style={{
+            width: '100px',
+            height: '60px',
+            maxWidth: '100%',
+            maxHeight: '100%',
+            objectFit: 'contain',
+            objectPosition: 'center',
+            display: 'block',
+          }}
+        />
+      ) : (
+        <span>{item}</span>
+      )}
+    </div>
+  );
+
   return (
     <View style={{ overflow: 'hidden', flex: 1 }}>
       <div
@@ -285,60 +332,24 @@ function Marquee({
           animationDuration: `${duration}s`,
         }}
       >
+        {/* 4 identical sets — animation translates -25% (= 1 set) for a seamless gapless loop */}
         <div style={{ display: 'flex', flexDirection: 'row' }}>
-          {items.map((item, idx) => (
-            <div
-              key={`set1-${idx}`}
-              style={{
-                backgroundColor: mqCard,
-                border: `1px solid ${mqBorder}`,
-                borderRadius: '12px',
-                padding: '12px 18px',
-                marginRight: '14px',
-                height: '58px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                fontSize: '11.5px',
-                fontWeight: 700,
-                color: mqText,
-                letterSpacing: '0.2px',
-              }}
-            >
-              <span>{item}</span>
-            </div>
-          ))}
+          {items.map((item, idx) => renderItem(item, `s1-${idx}`))}
         </div>
         <div style={{ display: 'flex', flexDirection: 'row' }}>
-          {items.map((item, idx) => (
-            <div
-              key={`set2-${idx}`}
-              style={{
-                backgroundColor: mqCard,
-                border: `1px solid ${mqBorder}`,
-                borderRadius: '12px',
-                padding: '12px 18px',
-                marginRight: '14px',
-                height: '58px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                fontSize: '11.5px',
-                fontWeight: 700,
-                color: mqText,
-                letterSpacing: '0.2px',
-              }}
-            >
-              <span>{item}</span>
-            </div>
-          ))}
+          {items.map((item, idx) => renderItem(item, `s2-${idx}`))}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'row' }}>
+          {items.map((item, idx) => renderItem(item, `s3-${idx}`))}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'row' }}>
+          {items.map((item, idx) => renderItem(item, `s4-${idx}`))}
         </div>
       </div>
     </View>
   );
 }
+
 
 /* ── Interactive 3D Card Component with 3D Tilt & Physics ── */
 function HoverLiftCard({
@@ -530,7 +541,10 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
     issuer: string;
     date: string;
     hash: string;
+    valid: boolean;
+    statusLabel: string;
   } | null>(null);
+  const [verifyBusy, setVerifyBusy] = useState(false);
 
   // BGV desk state
   const [bgvKind, setBgvKind] = useState('Single candidate');
@@ -605,13 +619,21 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
   }, []);
 
   // Smooth Tab Switch with Curtain Motion Effect & URL Sync
-  const handleTabSwitch = (newTab: 'home' | 'echo' | 'verify' | 'contact') => {
+  const handleTabSwitch = (newTab: 'home' | 'echo' | 'careers' | 'marketplace' | 'verify' | 'contact') => {
     if (newTab === 'home') {
       router.push('/');
       return;
     }
     if (newTab === 'echo') {
       router.push('/echo');
+      return;
+    }
+    if (newTab === 'careers') {
+      router.push('/careers' as any);
+      return;
+    }
+    if (newTab === 'marketplace') {
+      router.push('/marketplace' as any);
       return;
     }
     
@@ -772,21 +794,42 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
   const numbersTrigger = scrollY > 900 || activeTab !== 'home';
 
   // Verification Search Logic
-  const triggerVerification = (forceId?: string) => {
-    const q = (forceId || verifyInput).trim().toUpperCase();
+  // Verification runs against the public certificate registry; nothing is
+  // decided on the client.
+  const triggerVerification = async (forceId?: string) => {
+    const q = (forceId || verifyInput).trim();
     if (!q) return;
-    const hit = SAMPLE_CREDS[q];
-    let hashNum = 0;
-    for (let i = 0; i < q.length; i++) hashNum = (hashNum * 31 + q.charCodeAt(i)) & 0xffffffff;
-    const hash = (Math.abs(hashNum).toString(16) + 'a7f31c9e4b2058').slice(0, 18);
-
-    setVerifyResult({
-      id: q,
-      title: hit ? hit[0] : 'Verified Campus Credential',
-      issuer: hit ? hit[1] : 'StudentAlumni Academic Council',
-      date: hit ? hit[2] : 'Feb 2026',
-      hash,
-    });
+    setVerifyBusy(true);
+    try {
+      const data: any = await request(`/certificates/verify/${encodeURIComponent(q)}`, { auth: false });
+      const cert = data?.certificate || {};
+      const issued = data?.issued_at || cert.issued_at || cert.issued_on || '';
+      const date = issued
+        ? new Date(issued).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: '2-digit' })
+        : '—';
+      const user = data?.user || {};
+      setVerifyResult({
+        id: data?.identifier || data?.certificate_id || user.sa_id || q.toUpperCase(),
+        title: data?.title || (data?.type === 'id_card' || data?.type === 'user' ? `${user.full_name || 'Member'} · Digital ID` : 'Verified Credential'),
+        issuer: data?.issuer || user.institution || 'Student Alumni Network',
+        date,
+        hash: data?.verification_code || cert.verification_hash || cert.verification_code || '—',
+        valid: data?.valid !== false,
+        statusLabel: data?.status_label || 'Officially Verified',
+      });
+    } catch (e: any) {
+      setVerifyResult({
+        id: q.toUpperCase(),
+        title: 'No matching record',
+        issuer: '—',
+        date: '—',
+        hash: '—',
+        valid: false,
+        statusLabel: /404|not found/i.test(String(e?.message || '')) ? 'NOT FOUND' : 'VERIFICATION FAILED',
+      });
+    } finally {
+      setVerifyBusy(false);
+    }
   };
 
   return (
@@ -831,7 +874,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
             transform: curtainTransform,
             opacity: curtainOpacity,
             transition: 'transform 0.65s cubic-bezier(0.76, 0, 0.24, 1), opacity 0.45s ease',
-            fontFamily: "'Manrope', sans-serif",
+            fontFamily: "'DM Sans', sans-serif",
           }}
         >
           {/* Centered Brand Content with Logo Shine and Text Shimmer */}
@@ -866,7 +909,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   </linearGradient>
                 </defs>
                 <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#sa-curtain-badge)" />
-                <text x="150" y="212" textAnchor="middle" style={{ fontFamily: "'Manrope', sans-serif", fontSize: '122px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>
+                <text x="150" y="212" textAnchor="middle" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '122px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>
                   SA
                 </text>
               </svg>
@@ -1087,32 +1130,8 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   />
                 </View>
                 <GlowButton onPress={() => triggerVerification()} style={styles.verifySubmitBtn} textStyle={styles.verifySubmitBtnText}>
-                  Verify Credential →
+                  {verifyBusy ? 'Checking…' : 'Verify Credential →'}
                 </GlowButton>
-              </View>
-
-              {/* Sample Chips */}
-              <View style={styles.sampleChipsRow}>
-                <Text style={styles.sampleChipsLabel}>Try sample IDs:</Text>
-                {[
-                  { id: 'SA-EXC-2026-0002', tag: 'Excellence' },
-                  { id: 'SA-FAC-2026-0001', tag: 'Faculty' },
-                  { id: 'SA-AMB-2026-0012', tag: 'Ambassador' },
-                  { id: 'ECHO26-P-0001', tag: 'Specialization' },
-                ].map((item) => (
-                  <Pressable
-                    key={item.id}
-                    onPress={() => {
-                      setVerifyInput(item.id);
-                      triggerVerification(item.id);
-                    }}
-                    style={styles.sampleChip}
-                  >
-                    <Text style={styles.sampleChipText}>
-                      {item.id} <Text style={{ color: T.muted2, fontWeight: '500' }}>({item.tag})</Text>
-                    </Text>
-                  </Pressable>
-                ))}
               </View>
 
               {/* Verification Result Box */}
@@ -1120,9 +1139,13 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 <View style={styles.verifyResultBox}>
                   <View style={styles.verifyResultTop}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                      <View style={styles.validStatusIcon}>
+                      <View style={[styles.validStatusIcon, !verifyResult.valid && { borderColor: '#F87171' }]}>
                         <Svg width="18" height="18" viewBox="0 0 24 24">
-                          <Path d="M5 12.5l4 4 10-10.5" stroke="#34D399" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                          {verifyResult.valid ? (
+                            <Path d="M5 12.5l4 4 10-10.5" stroke="#34D399" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                          ) : (
+                            <Path d="M6 6l12 12M18 6L6 18" stroke="#F87171" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+                          )}
                         </Svg>
                       </View>
                       <View>
@@ -1130,8 +1153,10 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                         <Text style={styles.verifyResultId}>{verifyResult.id}</Text>
                       </View>
                     </View>
-                    <View style={styles.validStatusBadge}>
-                      <Text style={styles.validStatusText}>SIGNATURE VALID</Text>
+                    <View style={[styles.validStatusBadge, !verifyResult.valid && { backgroundColor: 'rgba(248,113,113,0.12)', borderColor: 'rgba(248,113,113,0.4)' }]}>
+                      <Text style={[styles.validStatusText, !verifyResult.valid && { color: '#F87171' }]}>
+                        {verifyResult.valid ? 'SIGNATURE VALID' : verifyResult.statusLabel}
+                      </Text>
                     </View>
                   </View>
                   <View style={styles.verifyResultGrid}>
@@ -1727,7 +1752,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                       fill="#FFFFFF"
                       fontSize="128"
                       fontWeight="800"
-                      fontFamily="'Manrope', sans-serif"
+                      fontFamily="'DM Sans', sans-serif"
                       letterSpacing="-4px"
                     >
                       SA
@@ -2320,7 +2345,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                           <circle cx="30" cy="230" r="3" fill="#4B4E65" />
                         </>
                       )}
-                      <text x="30" y="278" textAnchor="middle" fill={roadmapProgress >= 0.05 ? T.text : T.dim} fontSize="17" fontWeight="700" fontFamily="'Manrope', sans-serif">01 Foundations</text>
+                      <text x="30" y="278" textAnchor="middle" fill={roadmapProgress >= 0.05 ? T.text : T.dim} fontSize="17" fontWeight="700" fontFamily="'DM Sans', sans-serif">01 Foundations</text>
                     </g>
 
                     {/* Milestone 02: Skill plan */}
@@ -2337,7 +2362,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                           <circle cx="360" cy="70" r="3" fill="#4B4E65" />
                         </>
                       )}
-                      <text x="360" y="32" textAnchor="middle" fill={roadmapProgress >= 0.30 ? T.text : T.dim} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">02 Skill plan</text>
+                      <text x="360" y="32" textAnchor="middle" fill={roadmapProgress >= 0.30 ? T.text : T.dim} fontSize="18" fontWeight="700" fontFamily="'DM Sans', sans-serif">02 Skill plan</text>
                     </g>
 
                     {/* Milestone 03: Opportunities */}
@@ -2354,7 +2379,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                           <circle cx="700" cy="230" r="3" fill="#4B4E65" />
                         </>
                       )}
-                      <text x="700" y="278" textAnchor="middle" fill={roadmapProgress >= 0.56 ? T.text : T.dim} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">03 Opportunities</text>
+                      <text x="700" y="278" textAnchor="middle" fill={roadmapProgress >= 0.56 ? T.text : T.dim} fontSize="18" fontWeight="700" fontFamily="'DM Sans', sans-serif">03 Opportunities</text>
                     </g>
 
                     {/* Milestone 04: Full-time */}
@@ -2371,7 +2396,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                           <circle cx="1010" cy="60" r="3" fill="#4B4E65" />
                         </>
                       )}
-                      <text x="1010" y="22" textAnchor="middle" fill={roadmapProgress >= 0.82 ? T.text : T.dim} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">04 Full-time</text>
+                      <text x="1010" y="22" textAnchor="middle" fill={roadmapProgress >= 0.82 ? T.text : T.dim} fontSize="18" fontWeight="700" fontFamily="'DM Sans', sans-serif">04 Full-time</text>
                     </g>
                   </svg>
                 </View>
@@ -2556,8 +2581,8 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                     
                     {/* Center User Hub */}
                     <circle cx="310" cy="270" r="52" fill="#0C0E1B" stroke="#5B4FE9" strokeWidth="2.4" />
-                    <text x="310" y="266" textAnchor="middle" fill={T.text} fontSize="16" fontWeight="800" fontFamily="'Manrope', sans-serif">YOU</text>
-                    <text x="310" y="286" textAnchor="middle" fill={T.muted} fontSize="9.5" fontWeight="700" letterSpacing="1.4" fontFamily="'Manrope', sans-serif">YEAR 3</text>
+                    <text x="310" y="266" textAnchor="middle" fill={T.text} fontSize="16" fontWeight="800" fontFamily="'DM Sans', sans-serif">YOU</text>
+                    <text x="310" y="286" textAnchor="middle" fill={T.muted} fontSize="9.5" fontWeight="700" letterSpacing="1.4" fontFamily="'DM Sans', sans-serif">YEAR 3</text>
 
                     {[
                       { x: 310, y: 132, score: '98', name: 'Priya R. — Product, Bengaluru', why: 'Same course, four years ahead. Mentors three students each term.' },
@@ -2594,7 +2619,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                             fill={isSelected ? '#FFFFFF' : '#8B84FF'}
                             fontSize={isSelected ? '14' : '13'}
                             fontWeight="700"
-                            fontFamily="'Manrope', sans-serif"
+                            fontFamily="'DM Sans', sans-serif"
                           >
                             {node.score}
                           </text>
@@ -3642,7 +3667,7 @@ function themedStyles(T: typeof DARK_T) {
     right: 0,
     bottom: 0,
     zIndex: 150,
-    backgroundColor: 'rgba(5,6,15,0.9)',
+    backgroundColor: T.surface,
     borderTopWidth: 1,
     borderTopColor: T.line,
     backdropFilter: 'blur(16px)' as any,

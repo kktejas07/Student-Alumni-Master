@@ -19,8 +19,33 @@ from typing import Any, Dict, List, Optional
 from collections import defaultdict
 
 
-def _iso_day(dt: datetime) -> str:
-    return dt.date().isoformat()
+def _iso_day(dt: Any) -> str:
+    """Normalize a timestamp (datetime | str | None) to YYYY-MM-DD day string."""
+    if dt is None:
+        return ""
+    if isinstance(dt, datetime):
+        return dt.date().isoformat()
+    if isinstance(dt, str):
+        try:
+            return datetime.fromisoformat(dt.replace("Z", "+00:00")).date().isoformat()
+        except (ValueError, TypeError):
+            return dt[:10] if len(dt) >= 10 and dt[4:5] == "-" else ""
+    return ""
+
+
+def _to_aware_dt(dt: Any) -> Optional[datetime]:
+    """Coerce datetime | str | None to a timezone-aware UTC datetime."""
+    if dt is None:
+        return None
+    if isinstance(dt, datetime):
+        return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
+    if isinstance(dt, str):
+        try:
+            parsed = datetime.fromisoformat(dt.replace("Z", "+00:00"))
+            return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=timezone.utc)
+        except (ValueError, TypeError):
+            return None
+    return None
 
 
 def _iso(ts) -> str:
@@ -40,6 +65,25 @@ def _iso(ts) -> str:
 def _last_n_days(n: int) -> List[str]:
     today = datetime.now(timezone.utc).date()
     return [(today - timedelta(days=i)).isoformat() for i in range(n - 1, -1, -1)]
+
+
+async def _sum_since(collection, match: Dict[str, Any], field: str, date_fields: List[str], since: datetime) -> float:
+    """Sum a numeric field over documents whose first available date field is
+    >= `since`. Dates may be stored as datetimes or ISO strings, so both are
+    matched. Any error (missing collection, bad types) counts as 0."""
+    since_iso = since.isoformat()
+    date_match = {"$or": [
+        cond for f in date_fields for cond in ({f: {"$gte": since}}, {f: {"$gte": since_iso}})
+    ]}
+    pipeline = [
+        {"$match": {**match, **date_match}},
+        {"$group": {"_id": None, "s": {"$sum": {"$toDouble": {"$ifNull": [f"${field}", 0]}}}}},
+    ]
+    try:
+        rows = await collection.aggregate(pipeline).to_list(1)
+        return float(rows[0]["s"]) if rows else 0.0
+    except Exception:
+        return 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -66,8 +110,8 @@ async def super_admin_analytics(db, include_revenue: bool = True) -> Dict[str, A
     cutoff = datetime.now(timezone.utc) - timedelta(days=14)
     cursor = db.users.find({"created_at": {"$gte": cutoff}}, {"created_at": 1})
     async for u in cursor:
-        d = _iso_day(u["created_at"])
-        if d in growth:
+        d = _iso_day(u.get("created_at"))
+        if d and d in growth:
             growth[d] += 1
     growth_series = [{"date": d, "count": growth[d]} for d in days]
 
@@ -126,7 +170,7 @@ async def super_admin_analytics(db, include_revenue: bool = True) -> Dict[str, A
             "type": "booking",
             "topic": b.get("topic"),
             "status": b.get("status"),
-            "at": (b.get("created_at") or datetime.now(timezone.utc)).isoformat(),
+            "at": _iso(b.get("created_at") or datetime.now(timezone.utc)),
         })
     recent_users = []
     async for u in db.users.find({}, {"full_name": 1, "role": 1, "created_at": 1}).sort("created_at", -1).limit(5):
@@ -134,7 +178,7 @@ async def super_admin_analytics(db, include_revenue: bool = True) -> Dict[str, A
             "type": "signup",
             "name": u.get("full_name"),
             "role": u.get("role"),
-            "at": (u.get("created_at") or datetime.now(timezone.utc)).isoformat(),
+            "at": _iso(u.get("created_at") or datetime.now(timezone.utc)),
         })
 
     payload: Dict[str, Any] = {
@@ -173,41 +217,36 @@ async def super_admin_analytics(db, include_revenue: bool = True) -> Dict[str, A
             "value": count
         })
 
-    # === Revenue (real from payments if available, else computed from bookings) ===
-    revenue_mtd = 0
+    # === Revenue — month to date, from money actually recorded ===
+    # Sources: payments (generic), bookings.amount_paid (mentor sessions),
+    # echo_registrations.payment (ECHO event fees), echo_orders.final_amount
+    # (marketplace). Previously, with no payments rows, this returned
+    # `total_bookings * 500` split 50/30/20 — an invented figure that was
+    # shown on the super-admin dashboard as revenue.
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    sources = [
+        ("Mentor sessions", "bookings",
+         {"status": {"$in": ["completed", "confirmed", "paid", "done"]}}, "amount_paid", ["created_at", "completed_at"]),
+        ("Event registrations", "echo_registrations",
+         {"payment.status": "paid"}, "payment.amount", ["payment.paid_at", "created_at"]),
+        ("Marketplace", "echo_orders",
+         {"status": "paid", "payment_status": {"$ne": "free"}}, "final_amount", ["paid_at", "created_at"]),
+        ("Other payments", "payments", {}, "amount", ["created_at"]),
+    ]
     revenue_by_source = []
-    try:
-        # Try to get real revenue from payments collection
-        now = datetime.now(timezone.utc)
-        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        async for p in db.payments.find({"created_at": {"$gte": month_start}}):
-            revenue_mtd += p.get("amount", 0)
-        # Group by source
-        source_pipeline = [
-            {"$match": {"created_at": {"$gte": month_start}}},
-            {"$group": {"_id": "$source", "total": {"$sum": "$amount"}}},
-            {"$sort": {"total": -1}},
-        ]
-        async for r in db.payments.aggregate(source_pipeline):
-            if r["_id"]:
-                revenue_by_source.append({"label": r["_id"], "value": r["total"]})
-    except Exception:
-        pass  # No payments collection — use computed estimates
-
-    # If no real revenue, estimate from booking count
-    if revenue_mtd == 0 and total_bookings > 0:
-        revenue_mtd = total_bookings * 500  # Rough estimate
-        revenue_by_source = [
-            {"label": "Mentor sessions", "value": int(revenue_mtd * 0.5)},
-            {"label": "Event registrations", "value": int(revenue_mtd * 0.3)},
-            {"label": "Other", "value": int(revenue_mtd * 0.2)},
-        ]
+    for label, coll, match, field, date_fields in sources:
+        total = await _sum_since(db[coll], match, field, date_fields, month_start)
+        if total > 0:
+            revenue_by_source.append({"label": label, "value": round(total, 2)})
+    revenue_mtd = round(sum(r["value"] for r in revenue_by_source), 2)
 
     if include_revenue:
         payload["revenue"] = {
             "mtd": revenue_mtd,
             "currency": "INR",
             "by_source": revenue_by_source,
+            "basis": "sum of recorded payments this month (bookings, ECHO registrations, marketplace orders, payments)",
         }
 
     payload["monthly_enrollments"] = monthly_enrollments
@@ -264,8 +303,8 @@ async def college_analytics(db, institution_name: str) -> Dict[str, Any]:
     enroll = {d: 0 for d in days}
     cutoff = datetime.now(timezone.utc) - timedelta(days=14)
     async for u in db.users.find({**base_q, "created_at": {"$gte": cutoff}}, {"created_at": 1}):
-        d = _iso_day(u["created_at"])
-        if d in enroll:
+        d = _iso_day(u.get("created_at"))
+        if d and d in enroll:
             enroll[d] += 1
     enroll_series = [{"date": d, "count": enroll[d]} for d in days]
 
@@ -439,11 +478,11 @@ async def super_admin_full_analytics(db) -> Dict[str, Any]:
         if pid.startswith("ADMIN_PAY_"):
             continue
         fee = float(r.get("fee") or 0)
-        created = r.get("created_at")
-        if created and created >= current_month_start and pid not in seen_pids_mtd:
+        created_dt = _to_aware_dt(r.get("created_at"))
+        if created_dt and created_dt >= current_month_start and pid not in seen_pids_mtd:
             seen_pids_mtd.add(pid)
             revenue_mtd += int(fee)
-        if created and created >= ytd_start and pid not in seen_pids_ytd:
+        if created_dt and created_dt >= ytd_start and pid not in seen_pids_ytd:
             seen_pids_ytd.add(pid)
             revenue_ytd += int(fee)
 
@@ -602,7 +641,7 @@ async def super_admin_full_analytics(db) -> Dict[str, Any]:
 
     # === Top Colleges ===
     top_colleges_pipeline = [
-        {"$match": {"school_info.institution_name": {"$ne": None, "$ne": ""}}},
+        {"$match": {"school_info.institution_name": {"$nin": [None, ""]}}},
         {"$group": {
             "_id": "$school_info.institution_name",
             "students": {"$sum": {"$cond": [{"$eq": ["$role", "student"]}, 1, 0]}},
@@ -733,7 +772,7 @@ async def _get_error_data(db) -> Dict[str, Any]:
                 "type": e.get("event", "unknown"),
                 "message": e.get("reason", "Unknown error"),
                 "user": e.get("email", ""),
-                "timestamp": (e.get("timestamp") or now).isoformat(),
+                "timestamp": _iso(e.get("timestamp") or now),
             })
         return {
             "total_errors_30d": auth_errors + activity_errors,

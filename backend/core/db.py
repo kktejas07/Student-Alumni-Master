@@ -26,6 +26,12 @@ if not mongo_url:
     )
 
 # Inject short timeouts so topology discovery never hangs for 60 s.
+# Ensure '/' exists between host list and any query options for PyMongo compatibility
+if "://" in mongo_url:
+    _scheme, _rest = mongo_url.split("://", 1)
+    if "/" not in _rest:
+        mongo_url += "/"
+
 _qs = "?" if "?" not in mongo_url else "&"
 if "serverSelectionTimeoutMS" not in mongo_url:
     mongo_url += ("?" if "?" not in mongo_url else "&") + "serverSelectionTimeoutMS=10000"

@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
+import { WebOnlyRoute } from '@/src/lib/nativeGuard';
 import {
   View, Text, Pressable, StyleSheet, Platform, Linking, Image, ScrollView, TextInput, Modal, ActivityIndicator,
 } from 'react-native';
@@ -40,7 +41,7 @@ function absUrl(u?: string): string {
   return `${API_BASE}${u}`;
 }
 
-export default function CertificateVerifyResult() {
+function CertificateVerifyResult() {
   const { code } = useLocalSearchParams<{ code: string }>();
   const [data, setData] = useState<CertData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -425,7 +426,7 @@ const s = StyleSheet.create({
     color: '#8B84FF',
     fontSize: 13.5,
     fontWeight: '700',
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
   },
   imageWrapper: {
     backgroundColor: '#070A1A',
@@ -514,7 +515,7 @@ const s = StyleSheet.create({
     fontSize: 14.5,
     fontWeight: '700',
     marginTop: 2,
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
   },
   hashBox: {
     marginTop: 8,
@@ -554,7 +555,7 @@ const s = StyleSheet.create({
     color: '#10B981',
     fontSize: 13.5,
     fontWeight: '600',
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
     letterSpacing: 0.5,
   },
   externalCard: {
@@ -615,3 +616,12 @@ const s = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
+/**
+ * Native guard — this route renders web-only UI. On iOS/Android show a
+ * placeholder that opens the page on studentalumni.ai instead of crashing.
+ */
+export default function CertificateVerifyResultRoute() {
+  if (Platform.OS !== 'web') return <WebOnlyRoute />;
+  return <CertificateVerifyResult />;
+}

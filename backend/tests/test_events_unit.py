@@ -474,16 +474,33 @@ async def test_rsvp_free_no_credits(mock_db, sample_event):
 async def test_rsvp_paid_with_credits(mock_db, sample_event):
     from events_aggregator import rsvp_event
     with patch("events_aggregator._db", mock_db):
-        user = {"_id": MagicMock(), "email": "user@test.com", "role": "student"}
+        # Paid events now require either payment or an explicit credits spend
+        # (PR #942); the wallet lives on the user document and the deduction is
+        # an atomic conditional update (PR #973).
+        user = {"_id": MagicMock(), "email": "user@test.com", "role": "student",
+                "wallet": {"balance_credits": 100}}
         paid_event = {**sample_event, "price_type": "paid", "price_amount": 50}
         mock_db.events_v2.find_one = AsyncMock(return_value=paid_event)
         mock_db.event_registrations.find_one = AsyncMock(return_value=None)
         mock_db.event_registrations.count_documents = AsyncMock(return_value=0)
-        # Enough credits
-        mock_db.users.find_one = AsyncMock(return_value={"sa_credits": 100})
-        result = await rsvp_event("evt-001", user=user)
+        mock_db.users.update_one = AsyncMock(return_value=MagicMock(matched_count=1))
+        mock_db.wallet_transactions.insert_one = AsyncMock()
+        mock_db.events_v2.update_one = AsyncMock(return_value=MagicMock(matched_count=1))
+        result = await rsvp_event("evt-001", body={"use_credits": True}, user=user)
         assert result["ok"] is True
         assert result["status"] == "registered"
+
+
+@pytest.mark.asyncio
+async def test_credit_deduction_rejects_stale_balance(mock_db):
+    from events_aggregator import _try_deduct_credits
+
+    with patch("events_aggregator._db", mock_db):
+        mock_db.users.update_one = AsyncMock(return_value=MagicMock(matched_count=0))
+        user = {"_id": "user-1", "wallet": {"balance_credits": 100}}
+
+        assert await _try_deduct_credits(user, 50, "test") is False
+        mock_db.wallet_transactions.insert_one.assert_not_called()
 
 
 @pytest.mark.asyncio

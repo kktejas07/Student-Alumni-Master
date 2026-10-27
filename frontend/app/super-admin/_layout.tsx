@@ -5,14 +5,15 @@
  * and role check. Guards /super-admin, /super-admin/newsletter, etc.
  */
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { WebOnlyRoute } from '@/src/lib/nativeGuard';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Slot, useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { portalPathForRole } from '@/src/lib/portalHome';
 
 import { SAModernLoader } from '@/src/views/components/SAModernLoader';
 
-export default function SuperAdminLayoutRoute() {
+function SuperAdminLayoutRoute() {
   const router = useRouter();
   const user        = useAuthStore((s) => s.user);
   const loading     = useAuthStore((s) => s.loading);
@@ -51,3 +52,12 @@ const s = StyleSheet.create({
   gate: { flex: 1, backgroundColor: '#0F0A05', alignItems: 'center', justifyContent: 'center', gap: 10 },
   gateText: { color: '#C4A788', fontFamily: 'DMSans_500Medium', fontSize: 12.5 },
 });
+
+/**
+ * Native guard — this route renders web-only UI. On iOS/Android show a
+ * placeholder that opens the page on studentalumni.ai instead of crashing.
+ */
+export default function SuperAdminLayoutRouteRoute() {
+  if (Platform.OS !== 'web') return <WebOnlyRoute path="/super-admin" />;
+  return <SuperAdminLayoutRoute />;
+}

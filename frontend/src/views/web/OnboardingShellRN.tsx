@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { signInWithGoogle } from '@/src/lib/firebaseAuth';
 
 export function OnboardingShellRN() {
   const router = useRouter();
@@ -30,6 +31,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [userPassword, setUserPassword] = useState('');
+  const [userDob, setUserDob] = useState(''); // ISO YYYY-MM-DD — required by /auth/register
   const [showPwd, setShowPwd] = useState(false);
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [realtimeOtpCode, setRealtimeOtpCode] = useState<string | null>(null);
@@ -93,18 +95,19 @@ function WebOnboardingEngine({ router }: { router: any }) {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!userEmail || !userEmail.includes('@')) {
-      setOtpError('Please enter your email address above before continuing with Google.');
-      return;
-    }
     const startTime = Date.now();
     try {
-      const emailToUse = userEmail.trim().toLowerCase();
-      const rawName = userName || emailToUse.split('@')[0];
+      // SECURITY: obtain a real Google ID token via Firebase; the backend no
+      // longer accepts an unverified email as a Google identity.
+      const google = await signInWithGoogle();
+      if (!google) return; // popup closed by user
+      const emailToUse = (google.email || userEmail || '').trim().toLowerCase();
+      const rawName = google.name || userName || emailToUse.split('@')[0];
       const res = await api.oauthGoogle({
+        id_token: google.idToken,
         email: emailToUse,
         full_name: rawName,
-        picture: avatarUri || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        picture: google.picture || avatarUri || undefined,
         role: flow === 'alumnus' ? 'alumni' : flow,
       });
 
@@ -121,56 +124,62 @@ function WebOnboardingEngine({ router }: { router: any }) {
   };
 
   const handleFinishOnboarding = async () => {
+    // Validate DOB before attempting registration
+    if (!userDob) {
+      setOtpError('Please enter your date of birth to create your account.');
+      return;
+    }
+
+    let regRes = null;
     try {
       await AsyncStorage.removeItem('sa_onboarding_state');
-      const regRes = await api.register({
+      regRes = await api.register({
         email: userEmail,
         password: userPassword || 'SAOnboarded2026!',
         full_name: userName || userEmail.split('@')[0],
         role: flow === 'alumnus' ? 'alumni' : flow,
-      }).catch(() => null);
-
-      if (regRes && regRes.user) {
-        setUser(regRes.user);
-        setTokens(regRes.access_token, regRes.refresh_token);
-      } else {
-        // Fallback mock user if backend is unavailable or fails
-        setUser({
-          id: `mock-${Date.now()}`,
-          email: userEmail || 'user@example.com',
-          full_name: userName || (userEmail ? userEmail.split('@')[0] : (flow === 'alumnus' ? 'Alumnus' : 'Student')),
-          role: flow === 'alumnus' ? 'alumni' : flow,
-          institution: instName || 'Malla Reddy Institute of Technology',
-          graduation_year: parseInt(selectedYear) || 2027,
-        } as any);
-      }
-
-      await api.completeOnboarding({
-        flow,
-        email: userEmail,
-        name: userName,
-        full_name: capitalizeName(userName || userEmail.split('@')[0]),
-        course: selectedCourse,
-        year: selectedYear,
-        goal: selectedGoal,
-        skills: skillLevels,
-        avatar_uri: avatarUri,
-        interests,
-        institution: instName,
-        // Alumni-specific fields
-        company: alumCompany,
-        role: alumRole,
-        capacity: alumCap,
-        expertise: alumExpertise,
-        mentor_format: mentorFmt,
-        mentor_frequency: mentorFreq,
-        mentor_audience: mentorWho,
-        // Generated SA ID
-        sa_id: generatedSaId,
-      }).catch(() => null);
-    } catch (e) {
-      // Best effort completed
+        dob: userDob,
+      });
+    } catch (regErr: any) {
+      // Surface the real backend error — do NOT fall back to a mock user
+      const msg = regErr?.detail || regErr?.message || 'Registration failed. Please check your details and try again.';
+      setOtpError(msg);
+      return;
     }
+
+    if (!regRes || !regRes.user) {
+      setOtpError('Registration failed. Please try again.');
+      return;
+    }
+
+    // Registration succeeded — establish real auth session
+    setUser(regRes.user);
+    setTokens(regRes.access_token, regRes.refresh_token);
+
+    // Best-effort onboarding metadata (does not block navigation on failure)
+    await api.completeOnboarding({
+      flow,
+      email: userEmail,
+      name: userName,
+      full_name: capitalizeName(userName || userEmail.split('@')[0]),
+      course: selectedCourse,
+      year: selectedYear,
+      goal: selectedGoal,
+      skills: skillLevels,
+      avatar_uri: avatarUri,
+      interests,
+      institution: instName,
+      // Alumni-specific fields
+      company: alumCompany,
+      role: alumRole,
+      capacity: alumCap,
+      expertise: alumExpertise,
+      mentor_format: mentorFmt,
+      mentor_frequency: mentorFreq,
+      mentor_audience: mentorWho,
+      // Generated SA ID
+      sa_id: generatedSaId,
+    }).catch(() => null);
 
     if (flow === 'alumnus') router.replace('/alumni-portal');
     else if (flow === 'college') router.replace('/college-portal');
@@ -395,7 +404,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
     <div
       id="ob-root"
       style={{
-        fontFamily: "'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         color: 'var(--text)',
         backgroundColor: 'var(--bg)',
         minHeight: '100vh',
@@ -506,7 +515,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
         <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#obWatermarkGrad)" />
         <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#obWatermarkInner)" />
         <text
-          style={{ fontFamily: "'Manrope', sans-serif", fontSize: '128px', fontWeight: 800, letterSpacing: '-4px', fill: '#FFFFFF' }}
+          style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '128px', fontWeight: 800, letterSpacing: '-4px', fill: '#FFFFFF' }}
           textAnchor="middle"
           x="150"
           y="215"
@@ -540,7 +549,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
               </defs>
               <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#obBadge)" />
               <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="rgba(255,255,255,.16)" />
-              <text x="150" y="216" textAnchor="middle" style={{ fontFamily: "'Manrope', sans-serif", fontSize: '126px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>
+              <text x="150" y="216" textAnchor="middle" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '126px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>
                 SA
               </text>
             </svg>
@@ -694,6 +703,20 @@ function WebOnboardingEngine({ router }: { router: any }) {
                     </div>
                     <div style={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '8px' }}>
                       Strong password ready for account registration.
+                    </div>
+                  </div>
+                  {/* Date of Birth — required by platform age policy */}
+                  <div>
+                    <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Date of Birth</div>
+                    <input
+                      type="date"
+                      value={userDob}
+                      onChange={(e) => setUserDob(e.target.value)}
+                      max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
+                      style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: userDob ? 'var(--text)' : 'var(--muted)', width: '100%', outline: 'none' }}
+                    />
+                    <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '6px' }}>
+                      Required for age verification. Stored securely and encrypted.
                     </div>
                   </div>
                 </div>
@@ -2032,7 +2055,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <svg width="24" height="28" viewBox="0 0 300 350">
                               <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="rgba(255,255,255,.22)" stroke="#FFFFFF" strokeWidth="12" />
-                              <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Manrope', sans-serif", fontSize: '122px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>SA</text>
+                              <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '122px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>SA</text>
                             </svg>
                             <span style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '1.4px' }}>STUDENTALUMNI</span>
                           </div>

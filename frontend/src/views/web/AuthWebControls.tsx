@@ -6,7 +6,7 @@ import { ReactNode, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, TextInput as RNTextInput, Platform,
 } from 'react-native';
-import { Check } from 'lucide-react';
+import { Check } from 'lucide-react-native';
 import { Colors as C } from '@/src/theme';
 import { useRoleTheme } from '@/src/views/auth/RoleTheme';
 import { Trackable, ANALYTICS_IDS } from '@/src/analytics';

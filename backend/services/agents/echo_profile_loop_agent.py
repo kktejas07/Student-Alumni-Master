@@ -162,8 +162,9 @@ class EchoProfileLoopAgent:
                     per_cert_status[key] = {"email_sent": sent, "email_error": err, "code": code}
                     certs[key]["email_sent"] = sent
                 try:
+                    reg_filter = {"_id": reg["_id"]} if "_id" in reg else {"id": reg.get("id")}
                     await db.echo_registrations.update_one(
-                        {"_id": reg["_id"]},
+                        reg_filter,
                         {"$set": {"certificates_3_status": certs, "cert_email_status": per_cert_status,
                                   "cert_email_updated_at": now_iso_inner}},
                     )
@@ -234,8 +235,9 @@ class EchoProfileLoopAgent:
 
             # Mark reminder history
             now_iso = self._now_iso()
+            reg_filter = {"_id": reg["_id"]} if "_id" in reg else {"id": reg.get("id")}
             await db.echo_registrations.update_one(
-                {"_id": reg["_id"]},
+                reg_filter,
                 {
                     "$set": {"last_profile_reminder_at": now_iso},
                     "$inc": {"profile_reminder_count": 1},

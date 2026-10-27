@@ -49,7 +49,7 @@ export default function TabsLayout() {
         tabBarActiveTintColor: C.primary,
         tabBarInactiveTintColor: C.textMuted,
         tabBarLabelStyle: {
-          fontFamily: 'Manrope_600SemiBold',
+          fontFamily: 'DMSans_600SemiBold',
           fontSize: 11,
         },
       }}

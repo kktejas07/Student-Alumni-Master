@@ -21,7 +21,9 @@ from uuid import uuid4
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+
+from core.deps import get_current_user
 from pydantic import BaseModel
 
 from tier_logic import compute_student_tier, compute_mentor_tier, compute_college_tier
@@ -107,18 +109,16 @@ COLLEGE CONTEXT:
 
 
 @router.post("/ai/daily-brief")
-async def daily_brief(req: BriefRequest):
-    role = (req.role or "").lower()
+async def daily_brief(req: BriefRequest, current_user: dict = Depends(get_current_user)):
+    # SECURITY: the brief is always for the authenticated user; req.role/req.email
+    # are no longer trusted to select another account.
+    role = (current_user.get("role") or "").lower()
+    if role in ("admin", "super_admin", "superadmin"):
+        role = (req.role or "student").lower()
     if role not in ("student", "mentor", "college", "alumni"):
         raise HTTPException(400, "role must be student | mentor | college | alumni")
 
-    # Resolve user
-    q: Dict[str, Any] = {"role": role}
-    if req.email:
-        q["email"] = req.email
-    user = await _db.users.find_one(q)
-    if not user:
-        user = await _db.users.find_one({"role": role})
+    user = current_user
     if not user:
         raise HTTPException(404, f"No {role} user found")
 

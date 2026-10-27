@@ -221,6 +221,14 @@ async def _lifespan(application):
         _safe_create_index(db.echo_discount_coupons, "code", unique=True, sparse=True),
         _safe_create_index(db.echo_orders, [("user_id", 1), ("created_at", -1)]),
         _safe_create_index(db.echo_orders, [("status", 1)]),
+        # First-Party Careers & Opportunities indexes
+        _safe_create_index(db.career_openings, [("status", 1), ("published_at", -1)]),
+        _safe_create_index(db.career_openings, [("featured", -1), ("published_at", -1)]),
+        _safe_create_index(db.career_openings, [("created_at", -1)]),
+        _safe_create_index(db.career_applications, [("career_opening_id", 1), ("student_id", 1)], unique=True),
+        _safe_create_index(db.career_applications, [("student_id", 1), ("created_at", -1)]),
+        _safe_create_index(db.career_applications, [("career_opening_id", 1), ("status", 1)]),
+        _safe_create_index(db.career_application_history, [("application_id", 1), ("changed_at", -1)]),
     ]
     await asyncio.gather(*index_tasks, return_exceptions=True)
 
@@ -248,64 +256,87 @@ async def _lifespan(application):
     except Exception as _e:
         logger.warning("Could not init Agent K collection: %s", _e)
 
-    # Start the hourly content sync scheduler.
-    try:
-        from background_sync import start_sync_scheduler, check_dependencies
-        check_dependencies()
-        start_sync_scheduler()
-    except Exception as _e:
-        logger.warning("Could not start background sync scheduler: %s", _e)
-
-    # Start the workflow automation cron tick (60s polling).
-    try:
-        from workflow_automation import run_cron_workflows as _run_cron
-        from newsletter import process_scheduled_campaigns as _process_sched
-        from echo_showcase import sweep_expired_echo_payments as _sweep_echo_pay
-
-        async def _wf_cron_tick():
-            while True:
-                try:
-                    await _run_cron()
-                except Exception:
-                    pass
-                try:
-                    await _process_sched(db)
-                except Exception:
-                    pass
-                try:
-                    sweep_summary = await _sweep_echo_pay(db)
-                    if sweep_summary.get("failed") or sweep_summary.get("reminded"):
-                        logger.info("ECHO payment sweep: %s", sweep_summary)
-                except Exception:
-                    pass
-                await asyncio.sleep(60)
-        asyncio.create_task(_wf_cron_tick())
-    except Exception as _e:
-        logger.warning("Could not start Workflow cron: %s", _e)
-
     try:
         from core.email_quality import warmup as _email_warmup
         asyncio.create_task(_email_warmup())
     except Exception as _e:
         logger.warning("Could not warm email quality list: %s", _e)
 
-    # Start the 30-minute recurring multi-agent scheduler worker
-    try:
-        from services.agents.agent_scheduler import agent_scheduler
-        agent_scheduler.start(db=db)
-    except Exception as _e:
-        logger.warning("Could not start 30-minute Agent Scheduler: %s", _e)
+    # Background schedulers run in exactly ONE worker. With UVICORN_WORKERS>1
+    # every process used to start them, so crons, payment sweeps and
+    # newsletter sends ran N times. core.leader hands out a Mongo lease.
+    async def _start_background_jobs():
+        # Start the hourly content sync scheduler.
+        try:
+            from background_sync import start_sync_scheduler, check_dependencies
+            check_dependencies()
+            start_sync_scheduler()
+        except Exception as _e:
+            logger.warning("Could not start background sync scheduler: %s", _e)
 
-    # Start the 24-hour autonomous operations & audit swarm
+        # Start the workflow automation cron tick (60s polling).
+        try:
+            from workflow_automation import run_cron_workflows as _run_cron
+            from newsletter import process_scheduled_campaigns as _process_sched
+            from echo_showcase import sweep_expired_echo_payments as _sweep_echo_pay
+
+            async def _wf_cron_tick():
+                while True:
+                    try:
+                        await _run_cron()
+                    except Exception as _ce:
+                        logger.exception("workflow cron tick failed: %s", _ce)
+                    try:
+                        await _process_sched(db)
+                    except Exception as _ce:
+                        logger.exception("scheduled newsletter processing failed: %s", _ce)
+                    try:
+                        sweep_summary = await _sweep_echo_pay(db)
+                        if sweep_summary.get("failed") or sweep_summary.get("reminded"):
+                            logger.info("ECHO payment sweep: %s", sweep_summary)
+                    except Exception as _ce:
+                        logger.exception("ECHO payment sweep failed: %s", _ce)
+                    await asyncio.sleep(60)
+            asyncio.create_task(_wf_cron_tick())
+        except Exception as _e:
+            logger.warning("Could not start Workflow cron: %s", _e)
+
+        # Start the 30-minute recurring multi-agent scheduler worker
+        try:
+            from services.agents.agent_scheduler import agent_scheduler
+            agent_scheduler.start(db=db)
+        except Exception as _e:
+            logger.warning("Could not start 30-minute Agent Scheduler: %s", _e)
+
+        # Start the 24-hour autonomous operations & audit swarm
+        try:
+            from services.agents.daily_audit_agents import daily_audit_service
+            daily_audit_service.start(db=db)
+        except Exception as _e:
+            logger.warning("Could not start 24-hour Daily Audit Swarm: %s", _e)
+
+
     try:
-        from services.agents.daily_audit_agents import daily_audit_service
-        daily_audit_service.start(db=db)
+        from core.leader import run_as_leader
+        _leader_task = asyncio.create_task(run_as_leader(db, _start_background_jobs))
+        application.state.leader_task = _leader_task
     except Exception as _e:
-        logger.warning("Could not start 24-hour Daily Audit Swarm: %s", _e)
+        logger.warning("Could not start scheduler leader supervisor: %s", _e)
 
     yield  # ← application runs here
 
     # ── SHUTDOWN ─────────────────────────────────────────────────────────────
+
+    try:
+        _lt = getattr(application.state, "leader_task", None)
+        if _lt and not _lt.done():
+            _lt.cancel()
+            try:
+                await _lt
+            except (asyncio.CancelledError, Exception):
+                pass
+    except Exception:
+        pass
 
     try:
         from services.agents.daily_audit_agents import daily_audit_service
@@ -2696,22 +2727,6 @@ async def update_teams_meeting(meeting_id: str, payload: TeamsMeetingCreate, use
     return updated
 
 
-@api_router.post("/integrations/teams/meetings/{meeting_id}/register", include_in_schema=False)
-async def register_for_teams_meeting(meeting_id: str, payload: TeamsMeetingRegister):
-    """Public registration endpoint for non-logged-in users."""
-    result = await _register(
-        meeting_id=meeting_id,
-        db=db,
-        full_name=payload.full_name,
-        email=payload.email,
-        phone=payload.phone,
-        seat_limit=None,
-    )
-    if not result["success"]:
-        raise HTTPException(400, result["error"])
-    return result
-
-
 @api_router.get("/integrations/teams/meetings/{meeting_id}/attendance")
 async def get_teams_attendance(meeting_id: str, email: Optional[str] = None):
     """Get attendance for a Teams meeting."""
@@ -3275,6 +3290,14 @@ api_router.include_router(blog_router)
 
 from routers.community import router as community_router
 api_router.include_router(community_router)
+
+# First-Party Careers & Opportunities Router (Dedicated, isolated from jobs_feed)
+from routers.careers import router as careers_router
+api_router.include_router(careers_router)
+
+# Public website contact form (POST /api/contact)
+from routers.public_contact import router as public_contact_router
+api_router.include_router(public_contact_router)
 
 app.include_router(api_router)
 

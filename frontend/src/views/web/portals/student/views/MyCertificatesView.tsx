@@ -5,15 +5,17 @@
  * (ECHO / Hackwave 3.0, Built by Sunset, Cyber Conclave, Workshops, Courses).
  */
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Linking, Modal } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ActivityIndicator, Linking, Modal, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Award, Search, ArrowUpDown, Download, ExternalLink, CheckCircle2, ShieldCheck, Share2, Sparkles, Filter, Copy, Shield, Lock, X } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
+import { EmptyState } from '../EmptyState';
 import { fetchPortal } from '@/src/lib/portalApi';
 import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { StudentPortalNavContext } from '../StudentPortalNavContext';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 export interface CertificateItem {
   id: string;
@@ -33,6 +35,7 @@ export interface CertificateItem {
 }
 
 export function MyCertificatesView() {
+  const { isDark } = useTheme();
   const user = useAuthStore((s) => s.user);
   const nav = useContext(StudentPortalNavContext);
   const [loading, setLoading] = useState(true);
@@ -106,8 +109,10 @@ export function MyCertificatesView() {
   const openVerifyGated = (code: string) => {
     if (!requireUnlocked(code)) return;
     const url = `/certificates/verify/${code}`;
-    if (typeof window !== 'undefined') {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
       window.open(url, '_blank');
+    } else {
+      Linking.openURL(`https://studentalumni.ai${url}`).catch(() => {});
     }
   };
 
@@ -139,7 +144,7 @@ export function MyCertificatesView() {
     const ext = abs.toLowerCase().includes('.pdf') ? '.pdf' : '.png';
     try {
       setDownloading(cert.id);
-      if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof document !== 'undefined') {
         const a = document.createElement('a');
         a.href = abs;
         a.download = `certificate-${cert.code}${ext}`;
@@ -151,8 +156,8 @@ export function MyCertificatesView() {
         Linking.openURL(abs);
       }
     } catch {
-      if (typeof window !== 'undefined') window.open(abs, '_blank');
-      else Linking.openURL(abs);
+      if (Platform.OS === 'web' && typeof window !== 'undefined') window.open(abs, '_blank');
+      else Linking.openURL(abs).catch(() => {});
     } finally {
       setDownloading(null);
     }
@@ -179,14 +184,14 @@ export function MyCertificatesView() {
     <View style={s.container}>
       {/* Header Banner */}
       <LinearGradient
-        colors={['#1E1B4B', '#312E81']}
+        colors={isDark ? ['#1E1B4B', '#312E81'] : ['#2E1065', '#4338CA']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={s.headerBanner}
       >
         <View style={{ flex: 1, gap: 4 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Award size={24} color="#818CF8" />
+            <Award size={24} color="#A5B4FC" />
             <Text style={s.headerTitle}>My Issued Certificates</Text>
             <Badge label={`${certs.length} VERIFIED`} color="purple" />
           </View>
@@ -198,33 +203,33 @@ export function MyCertificatesView() {
 
       {/* Not logged in — create account / login wall */}
       {!user && (
-        <View style={s.lockBanner}>
-          <Lock size={20} color="#FBBF24" />
+        <View style={[s.lockBanner, { backgroundColor: isDark ? 'rgba(245,158,11,0.10)' : '#FFFBEB', borderColor: isDark ? 'rgba(245,158,11,0.35)' : '#FCD34D' }]}>
+          <Lock size={20} color={isDark ? '#FBBF24' : '#D97706'} />
           <View style={{ flex: 1, gap: 4 }}>
-            <Text style={s.lockTitle}>Login required to view certificates</Text>
-            <Text style={s.lockSub}>No SA account found. Create an account or login to access your issued certificates.</Text>
+            <Text style={[s.lockTitle, { color: isDark ? '#FDE68A' : '#92400E' }]}>Login required to view certificates</Text>
+            <Text style={[s.lockSub, { color: isDark ? '#E5E7EB' : '#78350F' }]}>No SA account found. Create an account or login to access your issued certificates.</Text>
           </View>
         </View>
       )}
 
       {/* 100% profile gate banner — masks certificates until complete */}
       {!!user && !compLoading && isLocked && (
-        <View style={s.lockBanner}>
-          <Lock size={20} color="#FBBF24" />
-          <View style={{ flex: 1, gap: 6 }}>
-            <Text style={s.lockTitle}>
+        <View style={[s.lockBanner, { backgroundColor: isDark ? 'rgba(245,158,11,0.10)' : '#FFFBEB', borderColor: isDark ? 'rgba(245,158,11,0.35)' : '#FCD34D' }]}>
+          <Lock size={20} color={isDark ? '#FBBF24' : '#D97706'} />
+          <View style={{ flex: 1, gap: 8 }}>
+            <Text style={[s.lockTitle, { color: isDark ? '#FDE68A' : '#92400E' }]}>
               {certs.length > 0
                 ? `${certs.length} certificate${certs.length === 1 ? '' : 's'} issued — profile is ${pct}%`
                 : `Complete your profile to 100% to unlock certificates (${pct}%)`}
             </Text>
-            <Text style={s.lockSub}>
+            <Text style={[s.lockSub, { color: isDark ? '#E5E7EB' : '#78350F' }]}>
               {certs.length > 0
                 ? `Your certificates are issued and verified but locked until your profile reaches 100%. Complete the missing items below to view codes, verify, and download. Missing: ${missingItems.join(', ')}`
                 : 'Your certificates are issued but masked. Finish the remaining items to view codes and verify links.'}
               {missingItems.length > 0 && certs.length === 0 ? ` Missing: ${missingItems.join(', ')}` : ''}
             </Text>
-            <View style={s.progressTrack}>
-              <View style={[s.progressFill, { width: `${pct}%` }]} />
+            <View style={[s.progressTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : '#FDE68A' }]}>
+              <View style={[s.progressFill, { width: `${pct}%`, backgroundColor: isDark ? '#F59E0B' : '#D97706' }]} />
             </View>
             <Pressable style={s.lockCta} onPress={goToProfile}>
               <Text style={s.lockCtaText}>Complete Profile Now →</Text>
@@ -234,14 +239,14 @@ export function MyCertificatesView() {
       )}
 
       {/* Controls Bar: Search, Category Chips & Sorting */}
-      <View style={s.controlsCard}>
+      <View style={[s.controlsCard, { backgroundColor: isDark ? SC.card : '#FFFFFF', borderColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
         {/* Search Bar */}
-        <View style={s.searchBox}>
-          <Search size={16} color={SC.muted} />
+        <View style={[s.searchBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F8FAFC', borderColor: isDark ? 'transparent' : '#E2E8F0', borderWidth: isDark ? 0 : 1 }]}>
+          <Search size={16} color={isDark ? SC.muted : '#64748B'} />
           <TextInput
-            style={s.searchInput}
+            style={[s.searchInput, { color: isDark ? '#FFFFFF' : '#0F172A' }]}
             placeholder="Search by title, issuer, or verification code..."
-            placeholderTextColor={SC.muted}
+            placeholderTextColor={isDark ? SC.muted : '#94A3B8'}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -250,7 +255,7 @@ export function MyCertificatesView() {
         {/* Filter Category Chips */}
         <View style={s.filterRow}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: 1 }}>
-            <Text style={s.filterLabel}>Category:</Text>
+            <Text style={[s.filterLabel, { color: isDark ? SC.muted : '#475569' }]}>Category:</Text>
             {[
               { id: 'all', label: 'All Certs' },
               { id: 'echo', label: 'Hackwave 3.0' },
@@ -258,36 +263,79 @@ export function MyCertificatesView() {
               { id: 'cyber', label: 'Cyber Conclave' },
               { id: 'workshop', label: 'Workshops' },
               { id: 'course', label: 'Courses' },
-            ].map((cat) => (
-              <Pressable
-                key={cat.id}
-                onPress={() => setFilterCategory(cat.id)}
-                style={[s.chip, filterCategory === cat.id && s.chipActive]}
-              >
-                <Text style={[s.chipText, filterCategory === cat.id && s.chipTextActive]}>{cat.label}</Text>
-              </Pressable>
-            ))}
+            ].map((cat) => {
+              const isActive = filterCategory === cat.id;
+              return (
+                <Pressable
+                  key={cat.id}
+                  onPress={() => setFilterCategory(cat.id)}
+                  style={[
+                    s.chip,
+                    {
+                      backgroundColor: isActive ? SC.primary : isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9',
+                      borderColor: isActive ? SC.primary : isDark ? SC.border : '#E2E8F0',
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      s.chipText,
+                      {
+                        color: isActive ? '#FFFFFF' : isDark ? SC.muted : '#475569',
+                        fontFamily: isActive ? FONTS.bold : FONTS.med,
+                      },
+                    ]}
+                  >
+                    {cat.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
 
           {/* Sort Dropdown Selector */}
           <View style={s.sortBox}>
-            <ArrowUpDown size={14} color={SC.muted} />
-            <Text style={s.sortLabel}>Sort:</Text>
+            <ArrowUpDown size={14} color={isDark ? SC.muted : '#64748B'} />
+            <Text style={[s.sortLabel, { color: isDark ? SC.muted : '#475569' }]}>Sort:</Text>
             {[
               { id: 'newest', label: 'Newest First' },
               { id: 'oldest', label: 'Oldest First' },
               { id: 'title', label: 'Title (A-Z)' },
-            ].map((sOption) => (
-              <Pressable
-                key={sOption.id}
-                onPress={() => setSortBy(sOption.id as any)}
-                style={[s.sortOption, sortBy === sOption.id && s.sortOptionActive]}
-              >
-                <Text style={[s.sortOptionText, sortBy === sOption.id && s.sortOptionTextActive]}>
-                  {sOption.label}
-                </Text>
-              </Pressable>
-            ))}
+            ].map((sOption) => {
+              const isActive = sortBy === sOption.id;
+              return (
+                <Pressable
+                  key={sOption.id}
+                  onPress={() => setSortBy(sOption.id as any)}
+                  style={[
+                    s.sortOption,
+                    {
+                      backgroundColor: isActive
+                        ? isDark
+                          ? 'rgba(99,102,241,0.20)'
+                          : '#EEF2FF'
+                        : isDark
+                        ? 'rgba(255,255,255,0.04)'
+                        : '#F8FAFC',
+                      borderColor: isActive ? (isDark ? 'rgba(99,102,241,0.5)' : '#C7D2FE') : isDark ? 'transparent' : '#E2E8F0',
+                      borderWidth: 1,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      s.sortOptionText,
+                      {
+                        color: isActive ? (isDark ? '#A5B4FC' : '#4F46E5') : isDark ? SC.muted : '#64748B',
+                        fontFamily: isActive ? FONTS.bold : FONTS.med,
+                      },
+                    ]}
+                  >
+                    {sOption.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
       </View>
@@ -296,15 +344,25 @@ export function MyCertificatesView() {
       {loading ? (
         <ActivityIndicator size="large" color={SC.primary} style={{ marginVertical: 40 }} />
       ) : sortedCerts.length === 0 ? (
-        <View style={s.emptyCard}>
-          <Award size={48} color={SC.muted} />
-          <Text style={s.emptyTitle}>No Certificates Found</Text>
-          <Text style={s.emptySub}>No certificates match your search query or filter criteria.</Text>
-        </View>
+        <EmptyState
+          variant="generic"
+          title="No Certificates Found"
+          body="No certificates match your search query or filter criteria."
+          compact
+        />
       ) : (
         <View style={s.grid}>
           {sortedCerts.map((cert) => (
-            <View key={cert.id} style={s.certCard}>
+            <View
+              key={cert.id}
+              style={[
+                s.certCard,
+                {
+                  backgroundColor: isDark ? SC.card : '#FFFFFF',
+                  borderColor: isDark ? SC.border : 'rgba(0,0,0,0.08)',
+                },
+              ]}
+            >
               {/* Top: category badge + verified + code */}
               <View style={s.cardHeader}>
                 <View style={s.certBadgeRow}>
@@ -320,19 +378,19 @@ export function MyCertificatesView() {
                         : 'green'
                     }
                   />
-                  <View style={s.verifiedTag}>
-                    <ShieldCheck size={12} color="#10B981" />
+                  <View style={[s.verifiedTag, { backgroundColor: isDark ? 'rgba(16,185,129,0.12)' : '#ECFDF5', borderColor: isDark ? 'transparent' : '#A7F3D0', borderWidth: isDark ? 0 : 1 }]}>
+                    <ShieldCheck size={12} color="#059669" />
                     <Text style={s.verifiedTagText}>SHA-256 Verified</Text>
                   </View>
                 </View>
-                <Text style={s.certCode}>{maskCode(cert.code)}</Text>
+                <Text style={[s.certCode, { color: isDark ? SC.muted : '#64748B' }]}>{maskCode(cert.code)}</Text>
               </View>
 
               {/* Split row: info left, verify & download right */}
               <View style={s.cardSplitRow}>
                 <View style={s.cardInfoCol}>
-                  <Text style={s.certTitle} numberOfLines={2}>{cert.title}</Text>
-                  <Text style={s.certIssuer} numberOfLines={1}>Issued by {cert.issuer} • {cert.issued_at}</Text>
+                  <Text style={[s.certTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]} numberOfLines={2}>{cert.title}</Text>
+                  <Text style={[s.certIssuer, { color: isDark ? SC.muted : '#64748B' }]} numberOfLines={1}>Issued by {cert.issuer} • {cert.issued_at}</Text>
                 </View>
 
                 <View style={s.cardActionCol}>
@@ -342,26 +400,44 @@ export function MyCertificatesView() {
                   </Pressable>
 
                   <View style={s.actionIconRow}>
-                    <Pressable style={s.actionIconBtn} onPress={() => copyLink(cert.code)}>
-                      <Copy size={13} color={SC.primary} />
-                      <Text style={s.actionIconText}>{copiedCode === cert.code ? 'Copied!' : 'Copy'}</Text>
+                    <Pressable
+                      style={[
+                        s.actionIconBtn,
+                        {
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+                          borderColor: isDark ? SC.border : '#E2E8F0',
+                        },
+                      ]}
+                      onPress={() => copyLink(cert.code)}
+                    >
+                      <Copy size={13} color={isDark ? SC.primary : '#6D28D9'} />
+                      <Text style={[s.actionIconText, { color: isDark ? SC.primary : '#6D28D9' }]}>{copiedCode === cert.code ? 'Copied!' : 'Copy'}</Text>
                     </Pressable>
-                    <Pressable style={s.actionIconBtn} onPress={() => handleDownload(cert)}>
+                    <Pressable
+                      style={[
+                        s.actionIconBtn,
+                        {
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+                          borderColor: isDark ? SC.border : '#E2E8F0',
+                        },
+                      ]}
+                      onPress={() => handleDownload(cert)}
+                    >
                       {downloading === cert.id ? (
-                        <ActivityIndicator size="small" color={SC.primary} />
+                        <ActivityIndicator size="small" color={isDark ? SC.primary : '#6D28D9'} />
                       ) : (
-                        <Download size={13} color={SC.primary} />
+                        <Download size={13} color={isDark ? SC.primary : '#6D28D9'} />
                       )}
-                      <Text style={s.actionIconText}>{downloading === cert.id ? 'Saving…' : 'Download'}</Text>
+                      <Text style={[s.actionIconText, { color: isDark ? SC.primary : '#6D28D9' }]}>{downloading === cert.id ? 'Saving…' : 'Download'}</Text>
                     </Pressable>
                   </View>
                 </View>
               </View>
 
               {/* Integrity fingerprint */}
-              <View style={s.hashBox}>
-                <Text style={s.hashLabel}>SHA-256 Integrity Fingerprint:</Text>
-                <Text style={s.hashVal} numberOfLines={1}>
+              <View style={[s.hashBox, { backgroundColor: isDark ? 'rgba(0,0,0,0.25)' : '#F8FAFC', borderColor: isDark ? 'transparent' : '#E2E8F0', borderWidth: isDark ? 0 : 1 }]}>
+                <Text style={[s.hashLabel, { color: isDark ? SC.muted : '#64748B' }]}>SHA-256 Integrity Fingerprint:</Text>
+                <Text style={[s.hashVal, { color: isDark ? '#A5B4FC' : '#4F46E5' }]} numberOfLines={1}>
                   {isLocked ? '••••••••••••••••••••••••••••••••' : cert.sha256_hash}
                 </Text>
               </View>
@@ -370,36 +446,71 @@ export function MyCertificatesView() {
         </View>
       )}
 
-      {/* 100% Profile Gate Modal (replaces Aadhaar/DigiLocker/PAN gate) */}
+      {/* 100% Profile Gate Modal */}
       <Modal transparent visible={gateModalVisible} animationType="fade" onRequestClose={() => setGateModalVisible(false)}>
         <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center', padding: 20 }} onPress={() => setGateModalVisible(false)}>
-          <Pressable onPress={(e: any) => e?.stopPropagation?.()} style={{ width: '100%', maxWidth: 440, backgroundColor: '#18182B', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(245,158,11,0.4)', padding: 22, gap: 14 }}>
+          <Pressable
+            onPress={(e: any) => e?.stopPropagation?.()}
+            style={{
+              width: '100%',
+              maxWidth: 460,
+              backgroundColor: isDark ? '#18182B' : '#FFFFFF',
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: isDark ? 'rgba(245,158,11,0.4)' : '#FCD34D',
+              padding: 24,
+              gap: 16,
+              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+            }}
+          >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Lock size={20} color="#FBBF24" />
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#FFFFFF' }}>Complete Profile to Unlock</Text>
+                <Lock size={20} color="#F59E0B" />
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: isDark ? '#FFFFFF' : '#0F172A' }}>Complete Profile to Unlock</Text>
               </View>
-              <Pressable onPress={() => setGateModalVisible(false)}><X size={18} color={SC.muted} /></Pressable>
+              <Pressable onPress={() => setGateModalVisible(false)}><X size={18} color={isDark ? SC.muted : '#64748B'} /></Pressable>
             </View>
 
-            <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: '#C7D2FE' }}>
-              <Text style={{ fontFamily: FONTS.bold, color: '#FFF' }}>{pendingCode || 'This certificate'}</Text> is masked until your SA profile reaches 100% (currently {pct}%).
+            <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: isDark ? '#C7D2FE' : '#334155', lineHeight: 19 }}>
+              <Text style={{ fontFamily: FONTS.bold, color: isDark ? '#FFF' : '#0F172A' }}>{pendingCode || 'This certificate'}</Text> is masked until your SA profile reaches 100% (currently {pct}%).
             </Text>
 
             {missingItems.length > 0 && (
-              <View style={{ backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: 10, gap: 4 }}>
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#FBBF24' }}>Remaining to reach 100%:</Text>
+              <View style={{ backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : '#FFFBEB', borderColor: isDark ? 'transparent' : '#FDE68A', borderWidth: isDark ? 0 : 1, borderRadius: 10, padding: 12, gap: 6 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: isDark ? '#FBBF24' : '#92400E' }}>Remaining to reach 100%:</Text>
                 {missingItems.slice(0, 6).map((m) => (
-                  <Text key={m} style={{ fontFamily: FONTS.med, fontSize: 11, color: '#E5E7EB' }}>• {m}</Text>
+                  <Text key={m} style={{ fontFamily: FONTS.med, fontSize: 12, color: isDark ? '#E5E7EB' : '#78350F' }}>• {m}</Text>
                 ))}
               </View>
             )}
 
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
-              <Pressable style={{ paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' }} onPress={() => setGateModalVisible(false)}>
-                <Text style={{ color: SC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Later</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 6 }}>
+              <Pressable
+                style={{
+                  paddingHorizontal: 14,
+                  height: 36,
+                  borderRadius: 8,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={() => setGateModalVisible(false)}
+              >
+                <Text style={{ color: isDark ? SC.muted : '#64748B', fontFamily: FONTS.bold, fontSize: 12 }}>Later</Text>
               </Pressable>
-              <Pressable style={{ paddingHorizontal: 16, height: 34, borderRadius: 8, backgroundColor: SC.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }} onPress={goToProfile}>
+              <Pressable
+                style={{
+                  paddingHorizontal: 16,
+                  height: 36,
+                  borderRadius: 8,
+                  backgroundColor: SC.primary,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+                onPress={goToProfile}
+              >
                 <Text style={{ color: '#FFF', fontFamily: FONTS.bold, fontSize: 12 }}>Complete Profile Now →</Text>
               </Pressable>
             </View>
@@ -410,109 +521,49 @@ export function MyCertificatesView() {
   );
 }
 
-// Sample fallback dataset for ECHO Hackwave 3.0 student certificates
-const DEFAULT_STUDENT_CERTS: CertificateItem[] = [
-  {
-    id: 'cert_hw3_sunset_001',
-    code: 'HW3-SUNSET-984A2C',
-    title: 'Built by Sunset — Project Build Certificate',
-    category: 'sunset',
-    issuer: 'ECHO Showcase & Hackwave 3.0',
-    issued_at: '2026-09-07',
-    recipient_name: 'Student Alumni User',
-    recipient_email: 'user@studentalumni.ai',
-    sha256_hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-    verified: true,
-  },
-  {
-    id: 'cert_hw3_part_002',
-    code: 'HW3-PART-771B89',
-    title: 'Certificate of Participation — Hackwave 3.0',
-    category: 'echo',
-    issuer: 'Student Alumni Federation',
-    issued_at: '2026-09-06',
-    recipient_name: 'Student Alumni User',
-    recipient_email: 'user@studentalumni.ai',
-    sha256_hash: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
-    verified: true,
-  },
-  {
-    id: 'cert_hw3_cyber_003',
-    code: 'HW3-CYBER-342D11',
-    title: 'Cyber Conclave Professional Certificate',
-    category: 'cyber',
-    issuer: 'Cyber Conclave & Student Alumni',
-    issued_at: '2026-09-05',
-    recipient_name: 'Student Alumni User',
-    recipient_email: 'user@studentalumni.ai',
-    sha256_hash: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
-    verified: true,
-  },
-  {
-    id: 'cert_ws_004',
-    code: 'WS-AI-AGENTS-109',
-    title: 'Autonomous Multi-Agent Architecture Workshop',
-    category: 'workshop',
-    issuer: 'Student Alumni AI Academy',
-    issued_at: '2026-08-20',
-    recipient_name: 'Student Alumni User',
-    recipient_email: 'user@studentalumni.ai',
-    sha256_hash: 'bc54fe1a3597401c107593c6f8f5e7c2f6d2f3478950d885a53820257e841249',
-    verified: true,
-  },
-];
-
 const s = StyleSheet.create({
   container: { flex: 1, gap: 16 },
   headerBanner: { padding: 20, borderRadius: 16, flexDirection: 'row', alignItems: 'center' },
   headerTitle: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 18 },
   headerSub: { color: '#C7D2FE', fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
-  controlsCard: { backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14, padding: 14, gap: 12 },
-  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, paddingHorizontal: 12, height: 40, gap: 8 },
-  searchInput: { flex: 1, color: SC.text, fontFamily: FONTS.med, fontSize: 13 },
+  controlsCard: { borderWidth: 1, borderRadius: 14, padding: 14, gap: 12 },
+  searchBox: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, paddingHorizontal: 12, height: 40, gap: 8 },
+  searchInput: { flex: 1, fontFamily: FONTS.med, fontSize: 13, outlineStyle: 'none' as any },
   filterRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
-  filterLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 11 },
-  chip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: SC.border },
-  chipActive: { backgroundColor: SC.primary, borderColor: SC.primary },
-  chipText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11 },
-  chipTextActive: { color: '#FFFFFF', fontFamily: FONTS.bold },
+  filterLabel: { fontFamily: FONTS.bold, fontSize: 11 },
+  chip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1 },
+  chipText: { fontSize: 11 },
   sortBox: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sortLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 11 },
-  sortOption: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.04)' },
-  sortOptionActive: { backgroundColor: 'rgba(99,102,241,0.15)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.4)' },
-  sortOptionText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11 },
-  sortOptionTextActive: { color: SC.primary, fontFamily: FONTS.bold },
+  sortLabel: { fontFamily: FONTS.bold, fontSize: 11 },
+  sortOption: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  sortOptionText: { fontSize: 11 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-  certCard: { width: '48%' as any, minWidth: 320, flexGrow: 1, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14, padding: 16, gap: 10 },
+  certCard: { width: '48%' as any, minWidth: 320, flexGrow: 1, borderWidth: 1, borderRadius: 14, padding: 16, gap: 10 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   certBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  verifiedTag: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(16,185,129,0.10)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  verifiedTagText: { color: '#10B981', fontFamily: FONTS.bold, fontSize: 10 },
-  certCode: { color: SC.muted, fontFamily: FONTS.mono || FONTS.bold, fontSize: 11 },
-  certTitle: { color: SC.text, fontFamily: FONTS.bold, fontSize: 15 },
-  certIssuer: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12 },
-  hashBox: { backgroundColor: 'rgba(0,0,0,0.2)', padding: 8, borderRadius: 8, gap: 2 },
-  hashLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 9.5 },
-  hashVal: { color: '#A5B4FC', fontFamily: FONTS.mono || FONTS.med, fontSize: 10 },
+  verifiedTag: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  verifiedTagText: { color: '#059669', fontFamily: FONTS.bold, fontSize: 10 },
+  certCode: { fontFamily: FONTS.mono || FONTS.bold, fontSize: 11 },
+  certTitle: { fontFamily: FONTS.bold, fontSize: 15 },
+  certIssuer: { fontFamily: FONTS.med, fontSize: 12 },
+  hashBox: { padding: 8, borderRadius: 8, gap: 2 },
+  hashLabel: { fontFamily: FONTS.bold, fontSize: 9.5 },
+  hashVal: { fontFamily: FONTS.mono || FONTS.med, fontSize: 10 },
   cardActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   cardSplitRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 2 },
   cardInfoCol: { flex: 1, minWidth: 0, gap: 4 },
   cardActionCol: { alignItems: 'flex-end', gap: 8, flexShrink: 0 },
   actionIconRow: { flexDirection: 'row', gap: 8 },
-  actionIconBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, height: 28, borderRadius: 7, borderWidth: 1, borderColor: SC.border, backgroundColor: 'rgba(255,255,255,0.04)', justifyContent: 'center' },
-  actionIconText: { color: SC.primary, fontFamily: FONTS.bold, fontSize: 10.5 },
-  actionBtnPrimary: { flex: 1, height: 34, borderRadius: 8, backgroundColor: SC.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  actionIconBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, height: 28, borderRadius: 7, borderWidth: 1, justifyContent: 'center' },
+  actionIconText: { fontFamily: FONTS.bold, fontSize: 10.5 },
+  actionBtnPrimary: { height: 34, paddingHorizontal: 14, borderRadius: 8, backgroundColor: SC.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   actionBtnPrimaryText: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12 },
-  actionBtnSecondary: { paddingHorizontal: 12, height: 34, borderRadius: 8, borderWidth: 1, borderColor: SC.border, backgroundColor: 'rgba(255,255,255,0.04)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  actionBtnSecondaryText: { color: SC.primary, fontFamily: FONTS.bold, fontSize: 11.5 },
-  emptyCard: { backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14, padding: 40, alignItems: 'center', gap: 10 },
-  emptyTitle: { color: SC.text, fontFamily: FONTS.bold, fontSize: 16 },
-  emptySub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center' },
-  lockBanner: { flexDirection: 'row', gap: 12, backgroundColor: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.35)', borderWidth: 1, borderRadius: 14, padding: 16, alignItems: 'flex-start' },
-  lockTitle: { color: '#FDE68A', fontFamily: FONTS.bold, fontSize: 14 },
-  lockSub: { color: '#E5E7EB', fontFamily: FONTS.med, fontSize: 12, lineHeight: 17 },
-  progressTrack: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginTop: 4 },
-  progressFill: { height: 8, borderRadius: 4, backgroundColor: '#F59E0B' },
-  lockCta: { alignSelf: 'flex-start', marginTop: 6, paddingHorizontal: 14, height: 32, borderRadius: 8, backgroundColor: SC.primary, alignItems: 'center', justifyContent: 'center' },
+  lockBanner: { flexDirection: 'row', gap: 12, borderWidth: 1, borderRadius: 14, padding: 16, alignItems: 'flex-start' },
+  lockTitle: { fontFamily: FONTS.bold, fontSize: 14 },
+  lockSub: { fontFamily: FONTS.med, fontSize: 12, lineHeight: 18 },
+  progressTrack: { height: 8, borderRadius: 4, overflow: 'hidden', marginTop: 4 },
+  progressFill: { height: 8, borderRadius: 4 },
+  lockCta: { alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 14, height: 32, borderRadius: 8, backgroundColor: SC.primary, alignItems: 'center', justifyContent: 'center' },
   lockCtaText: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12 },
 });
+

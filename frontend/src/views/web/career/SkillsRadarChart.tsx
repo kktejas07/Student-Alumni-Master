@@ -46,7 +46,7 @@ export const SkillsRadarChart = memo(function SkillsRadarChart({ skillScores }: 
 
   // Generate data polygon points
   const dataPoints = AXES.map((axis) => {
-    const raw = skillScores[axis.key] ?? 50;
+    const raw = skillScores[axis.key] ?? 0;
     const norm = Math.max(0.1, Math.min(1.0, raw / 100));
     const { x, y } = polarToCartesian(CX, CY, R * norm, axis.angle);
     return { x, y, score: raw };

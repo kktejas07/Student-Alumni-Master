@@ -446,7 +446,7 @@ async def wallet_topup_create_order(
         raise HTTPException(400, "Max top-up is ₹1,00,000 per txn")
 
     # Razorpay config
-    tool = await db.installed_tools.find_one({"tool_id": "razorpay", "status": "connected"})
+    tool = await _db.installed_tools.find_one({"tool_id": "razorpay", "status": "connected"})
     if not tool:
         raise HTTPException(503, "Payment gateway not configured")
     creds = tool.get("credentials") or {}
@@ -505,7 +505,7 @@ async def wallet_topup_verify(
         raise HTTPException(400, "Invalid amount")
 
     # Razorpay config
-    tool = await db.installed_tools.find_one({"tool_id": "razorpay", "status": "connected"})
+    tool = await _db.installed_tools.find_one({"tool_id": "razorpay", "status": "connected"})
     if not tool:
         raise HTTPException(503, "Payment gateway not configured")
     creds = tool.get("credentials") or {}

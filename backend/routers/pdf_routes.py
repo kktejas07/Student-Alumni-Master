@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from services.pdf_generator import PDFGeneratorService
 from core.rate_limiter import rate_limit_ai_requests
 
-router = APIRouter(prefix="/api/pdf", tags=["pdf-downloads"])
+router = APIRouter(prefix="/pdf", tags=["pdf-downloads"])  # mounted under /api
 
 
 class ResumePDFReq(BaseModel):

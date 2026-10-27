@@ -1,16 +1,16 @@
 import { useTheme } from '@/src/theme/ThemeContext';
 import { COLORS, PORTAL_ACCENTS } from '@/src/theme/tokens';
 
-export const PALETTE = {
+export const PALETTE_DARK = {
   bg0: '#0a0f1e',
   bg1: '#0d1326',
   bg2: '#131938',
   violet: COLORS.primary,
   violetD: COLORS.primaryDark,
   violetL: COLORS.primaryLight,
-  blue:   '#3B82F6',
-  teal:   '#10B981',
-  amber:  '#F59E0B',
+  blue:   COLORS.blue,
+  teal:   COLORS.green,
+  amber:  COLORS.amber,
   rose:   '#f43f5e',
   text:   '#F4F4F8',
   muted:  '#A1A6B7',
@@ -25,6 +25,38 @@ export const PALETTE = {
   glassShadow:  '0 16px 48px rgba(2,6,23,0.45), 0 1px 0 rgba(255,255,255,0.06) inset',
   violetGlow:   '0 10px 30px rgba(124,58,237,0.35), 0 0 0 1px rgba(124,58,237,0.20)',
 } as const;
+
+export const PALETTE_LIGHT = {
+  bg0: '#F5F5F7',
+  bg1: '#FFFFFF',
+  bg2: '#EDEBF8',
+  violet: COLORS.primary,
+  violetD: COLORS.primaryDark,
+  violetL: COLORS.primaryLight,
+  blue:   '#2563EB',
+  teal:   '#0ea876',
+  amber:  '#D97706',
+  rose:   '#DC2626',
+  text:   '#0f172a',
+  muted:  '#475569',
+  dim:    '#94A3B8',
+  glass:        'rgba(255, 255, 255, 0.75)',
+  glassStrong:  'rgba(255, 255, 255, 0.90)',
+  glassSoft:    'rgba(0, 0, 0, 0.04)',
+  glassHover:   'rgba(124, 58, 237, 0.08)',
+  glassBorder:  'rgba(0, 0, 0, 0.08)',
+  glassBorderHi:'rgba(124, 58, 237, 0.35)',
+  glassHighlight:'rgba(255, 255, 255, 0.8)',
+  glassShadow:  '0 12px 36px rgba(15, 23, 42, 0.08), 0 1px 0 rgba(255, 255, 255, 0.8) inset',
+  violetGlow:   '0 8px 24px rgba(124, 58, 237, 0.15)',
+} as const;
+
+export const PALETTE = PALETTE_DARK;
+
+export function usePalette(): typeof PALETTE_DARK {
+  const { isDark } = useTheme();
+  return (isDark ? PALETTE_DARK : (PALETTE_LIGHT as unknown as typeof PALETTE_DARK));
+}
 
 export const SC = {
   bg:        PALETTE.bg0,
@@ -93,28 +125,6 @@ export function useColors(): typeof SC {
   return (isDark ? SC : (SC_LIGHT as unknown as typeof SC));
 }
 
-export const TYPO = {
-  display400: 'Outfit_400Regular',
-  display500: 'Outfit_500Medium',
-  display600: 'Outfit_600SemiBold',
-  display700: 'Outfit_700Bold',
-  display800: 'Outfit_800ExtraBold',
-  body400:  'PlusJakartaSans_400Regular',
-  body500:  'PlusJakartaSans_500Medium',
-  body600:  'PlusJakartaSans_600SemiBold',
-  body700:  'PlusJakartaSans_700Bold',
-  mono400:  'JetBrainsMono_400Regular',
-  mono500:  'JetBrainsMono_500Medium',
-  mono600:  'JetBrainsMono_600SemiBold',
-  mono700:  'JetBrainsMono_700Bold',
-} as const;
+export { TYPO } from '@/src/theme/typography';
 
-export const FONTS = {
-  bold:  'PlusJakartaSans_700Bold',
-  semi:  'PlusJakartaSans_600SemiBold',
-  med:   'PlusJakartaSans_500Medium',
-  xbold: 'Outfit_800ExtraBold',
-  display: TYPO.display700,
-  body:    TYPO.body500,
-  mono:    TYPO.mono600,
-};
+export { FONTS } from '@/src/theme/typography';

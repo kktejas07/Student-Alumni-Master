@@ -133,13 +133,14 @@ export const STATUS = {
 } as const;
 
 export const FONT_FAMILIES = {
-  display: 'Manrope, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif',
-  body: 'Outfit, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif',
-  sans: 'Outfit, system-ui, sans-serif',
-  mono: 'JetBrains Mono, monospace',
-  bold: 'Outfit, system-ui, sans-serif',
-  med: 'Outfit, system-ui, sans-serif',
-  xbold: 'Manrope, system-ui, sans-serif',
+  // Web font stacks; see src/theme/typography.ts for the registered face names.
+  display: 'Outfit, "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+  body: '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+  sans: '"DM Sans", system-ui, sans-serif',
+  mono: 'SpaceMono, ui-monospace, "SFMono-Regular", Menlo, monospace',
+  bold: '"DM Sans", system-ui, sans-serif',
+  med: '"DM Sans", system-ui, sans-serif',
+  xbold: 'Outfit, "DM Sans", system-ui, sans-serif',
 };
 
 export const TYPE = {
@@ -233,9 +234,9 @@ export const DARK = {
 export type Theme = typeof LIGHT;
 
 export const FONT_FAMILY = Platform.select({
-  ios: 'Outfit',
-  android: 'sans-serif',
-  default: 'Manrope, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif',
+  ios: 'DMSans_400Regular',
+  android: 'DMSans_400Regular',
+  default: '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
 }) as string;
 
 export const NX = COLORS;
@@ -254,7 +255,7 @@ export const NX_TYPE = {
 export const NX_FONT = Platform.select({
   ios: 'Outfit',
   android: 'sans-serif',
-  default: '"Outfit", -apple-system, BlinkMacSystemFont, "Manrope", system-ui, sans-serif',
+  default: '"Outfit", -apple-system, BlinkMacSystemFont, "DM Sans", system-ui, sans-serif',
 }) as string;
 
 export const NX_SPACE = { xs: 4, s: 8, m: 12, l: 16, xl: 20, xxl: 24, xxxl: 32, mega: 40 } as const;

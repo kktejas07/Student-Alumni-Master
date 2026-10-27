@@ -41,10 +41,8 @@ async def _require_admin_token(request: Request):
     if not auth.startswith("Bearer "):
         raise HTTPException(401, "Missing token")
     token = auth.split(" ", 1)[1]
-    import os
-    secret = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
     try:
-        payload = jwt.decode(token, secret, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
     except Exception:
         raise HTTPException(401, "Invalid token")
     if (payload.get("role") or "").lower() not in ("admin", "super_admin", "superadmin"):
@@ -431,7 +429,6 @@ async def update_order_status(req: Request, vendor: dict = Depends(get_current_v
     if not order_id or new_status not in valid_statuses:
         raise HTTPException(400, f"Invalid request. Status must be one of: {', '.join(valid_statuses)}")
 
-    db = _get_db(req)
     order = await db.echo_orders.find_one({"id": order_id})
     if not order:
         raise HTTPException(404, "Order not found")
