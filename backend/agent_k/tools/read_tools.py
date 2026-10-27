@@ -25,7 +25,6 @@ async def search_jobs(args: dict, user: dict) -> dict:
             "location": loc,
             "stipend": it.get("stipend"),
             "deadline": (it.get("deadline").isoformat() if isinstance(it.get("deadline"), datetime) else None),
-            "match": 80 + (len(out) * 2),
         })
     return {"count": len(out), "results": out}
 
@@ -55,8 +54,8 @@ async def search_mentors(args: dict, user: dict) -> dict:
             "name": m.get("full_name"),
             "role": info.get("job_title"),
             "company": info.get("organization"),
-            "rating": m.get("rating") or 4.9,
-            "price": m.get("expected_rate_inr") or 999,
+            "rating": m.get("rating"),
+            "price": m.get("expected_rate_inr"),
         })
     return {"count": len(out), "results": out}
 
@@ -78,7 +77,7 @@ async def search_courses(args: dict, user: dict) -> dict:
             "title": title,
             "provider": c.get("provider"),
             "price": c.get("price", 0),
-            "rating": c.get("rating") or 4.5,
+            "rating": c.get("rating"),
         })
     return {"count": len(out), "results": out}
 

@@ -1467,7 +1467,7 @@ async def send_individual_notification(
         "in_app_ok": 1 if result.get("in_app") == "ok" else 0,
         "whatsapp_ok": 1 if result.get("whatsapp") == "sent" else 0,
         "whatsapp_fail": 1 if result.get("whatsapp") == "fail" else 0,
-        "attempts": [{"email": user_email, "user_id": user_id, "email": result.get("email", ""), "push": result.get("push", ""), "in_app": result.get("in_app", ""), "whatsapp": result.get("whatsapp", "")}],
+        "attempts": [{"recipient_email": user_email, "user_id": user_id, "email": result.get("email", ""), "push": result.get("push", ""), "in_app": result.get("in_app", ""), "whatsapp": result.get("whatsapp", "")}],
         "created_at": _now(),
         "completed_at": _now(),
         "created_by": (user or {}).get("email") or "admin",

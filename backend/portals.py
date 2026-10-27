@@ -227,7 +227,7 @@ async def mentor_dashboard(mentor_email: Optional[str] = None, user: dict = Depe
     # Reviews
     review_cur = _db.reviews.find({"mentor_id": mentor_id})
     ratings = [r.get("rating", 0) async for r in review_cur]
-    avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else 4.8
+    avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else None
 
     # Today's sessions (next 24h)
     now = datetime.now(timezone.utc)
@@ -306,21 +306,28 @@ async def mentor_dashboard(mentor_email: Optional[str] = None, user: dict = Depe
             "mentor_id": mentor_id,
             "scheduled_at": {"$gte": m_start, "$lt": m_end},
         })
-        rate = mentor.get("expected_rate_inr") if mentor else 999
-        rate = rate or 999
+        rate = (mentor or {}).get("expected_rate_inr")
         months.append({
             "month": m_start.strftime("%b"),
-            "amount": cnt * rate,
+            "amount": cnt * rate if rate else None,
             "sessions": cnt,
         })
 
     # KPIs
-    earnings = sum(m["amount"] for m in months[-1:])  # last month
-    if earnings == 0:
-        earnings = 500
+    earnings = months[-1]["amount"]
+    if earnings is None:
+        earnings = sum(m["amount"] for m in months if m["amount"] is not None) or 0
 
     # Tier (Bronze/Silver/Gold/Platinum)
-    tier = await _mentor_tier_payload(mentor or {}, confirmed, avg_rating)
+    tier = await _mentor_tier_payload(mentor or {}, confirmed, avg_rating or 0.0)
+
+    prev_sessions = months[-2]["sessions"]
+    cur_sessions = months[-1]["sessions"]
+    if prev_sessions:
+        delta_pct = round((cur_sessions - prev_sessions) / prev_sessions * 100)
+        sessions_delta = f"↑ {delta_pct}%" if delta_pct >= 0 else f"↓ {abs(delta_pct)}%"
+    else:
+        sessions_delta = f"{cur_sessions} this mo"
 
     return {
         "mentor": {
@@ -331,17 +338,17 @@ async def mentor_dashboard(mentor_email: Optional[str] = None, user: dict = Depe
             "company": mi.get("organization") or "—",
             "rating": avg_rating,
             "sessions": confirmed,
-            "price": (mentor or {}).get("expected_rate_inr") or 999,
+            "price": (mentor or {}).get("expected_rate_inr"),
             "college": si.get("institution_name") or "—",
             "batch": si.get("graduation_year") or 2010,
             "expertise": (mentor or {}).get("skills", []) or ["System Design", "Career Strategy"],
             "tier": tier,
         },
         "kpis": [
-            {"id": "earnings",  "label": "Earnings",        "value": _money(earnings),                "delta": "↑ 12%",                  "color": "amber"},
-            {"id": "sessions",  "label": "Sessions",        "value": str(confirmed),                  "delta": f"↑ {months[-1]['sessions']} this mo", "color": "teal"},
-            {"id": "students",  "label": "Active Students", "value": str(active_students),            "delta": f"↑ {pending} pending",   "color": "blue"},
-            {"id": "rating",    "label": "Avg Rating",      "value": str(avg_rating),                 "delta": f"{len(ratings)} reviews","color": "green"},
+            {"id": "earnings",  "label": "Earnings",        "value": _money(earnings),          "delta": None,                     "color": "amber"},
+            {"id": "sessions",  "label": "Sessions",        "value": str(confirmed),            "delta": sessions_delta,           "color": "teal"},
+            {"id": "students",  "label": "Active Students", "value": str(active_students),      "delta": f"{pending} pending",      "color": "blue"},
+            {"id": "rating",    "label": "Avg Rating",      "value": str(avg_rating) if avg_rating is not None else "—", "delta": f"{len(ratings)} reviews", "color": "green"},
         ],
         "todaySessions": today_sessions,
         "monthly": months,
@@ -1485,7 +1492,7 @@ async def super_payments(user: dict = Depends(require_role('admin'))):
 
 @router.post("/admin/super/payouts/initiate")
 async def initiate_payout(user: dict = Depends(require_role('admin'))):
-    """Initiate a real Stripe payout if credentials are installed, otherwise mock."""
+    """Initiate a real Stripe payout when credentials are installed; 503 otherwise."""
     stripe_installed = await _db.installed_tools.find_one({"tool_id": "stripe", "status": "connected"})
     if stripe_installed:
         sk = (stripe_installed.get("credentials") or {}).get("secret_key", "")
@@ -1514,13 +1521,7 @@ async def initiate_payout(user: dict = Depends(require_role('admin'))):
             except Exception as e:
                 return {"ok": False, "message": f"Stripe call failed: {str(e)[:200]}"}
 
-    # Fallback: mock
-    await _db.admin_audit_log.insert_one({
-        "action": "payout.initiated",
-        "target": "mock",
-        "at": datetime.now(timezone.utc),
-    })
-    return {"ok": True, "message": "Mock payout initiated (no Stripe key — connect Stripe in Integrations)"}
+    raise HTTPException(status_code=503, detail={"error": "payouts provider not configured"})
 
 
 @router.get("/admin/export/payments")
@@ -1826,7 +1827,7 @@ async def college_mentors_list(college_name: Optional[str] = None, limit: int = 
             "role": mi.get("job_title") or "Mentor",
             "company": mi.get("organization") or "—",
             "sessions": sessions,
-            "rating": m.get("rating") or 4.7,
+            "rating": m.get("rating"),
             "status": m.get("mentor_status") or "active",
             "color": _color_for(m.get("full_name", "")),
         })
@@ -1884,15 +1885,8 @@ async def college_announcements(college_name: Optional[str] = None, user: dict =
             "author": a.get("author", "Admin"),
         })
     if not items:
-        # Provide rich defaults if the collection is empty
-        items = [
-            {"id": "ann-1", "title": "Placement drive: Google CIS 2026",      "body": "Pre-screening on May 12. CGPA ≥ 7.5 for CSE/IT. Apply via Placement Cell by May 8.",       "audience": "students", "tag": "placement",   "posted_at": None, "pinned": True,  "author": "Placement Office"},
-            {"id": "ann-2", "title": "Annual Convocation — RSVP open",         "body": "Convocation 2026 on May 22 at College Auditorium. Alumni speakers confirmed: Aanya Mehta, Rishabh Kumar.", "audience": "alumni",  "tag": "event",        "posted_at": None, "pinned": True,  "author": "Director's Office"},
-            {"id": "ann-3", "title": "AI-Mock Interview series this week",     "body": "Free 30-min mock interviews with mentors. Wed–Fri, 6 PM. 80 slots available.",            "audience": "students", "tag": "career",       "posted_at": None, "pinned": False, "author": "Career Cell"},
-            {"id": "ann-4", "title": "Hostel mess fee revision approved",      "body": "Effective Jun 1, 2026. New rates and FAQs uploaded to student portal.",                  "audience": "students", "tag": "general",      "posted_at": None, "pinned": False, "author": "Hostel Office"},
-            {"id": "ann-5", "title": "Faculty Recruitment — Asst. Prof CSE",   "body": "3 positions open. Internal referrals welcome. Deadline May 15.",                         "audience": "faculty",  "tag": "hiring",       "posted_at": None, "pinned": False, "author": "HR"},
-        ]
-    return {"items": items}
+        return {"items": [], "configured": False, "basis": "announcements collection has no recorded entries"}
+    return {"items": items, "configured": True}
 
 
 @router.get("/college/analytics-legacy")
@@ -1907,86 +1901,97 @@ async def college_analytics(college_name: Optional[str] = None, user: dict = Dep
         college_name = agg[0]["_id"] if agg else None
 
     # Placement trend (last 5 years)
-    placement_trend = [
-        {"year": 2022, "rate": 86, "median_lpa": 8.2},
-        {"year": 2023, "rate": 89, "median_lpa": 9.5},
-        {"year": 2024, "rate": 92, "median_lpa": 10.8},
-        {"year": 2025, "rate": 93, "median_lpa": 11.6},
-        {"year": 2026, "rate": 94, "median_lpa": 12.4},
-    ]
+    placement_trend = None
+    # Historical year-over-year placement records are not stored, so the
+    # trend is null unless the collection gains year-level data.
+    college_query = {"school_info.institution_name": college_name} if college_name else {}
 
-    # Salary distribution
-    salary_dist = [
-        {"band": "<5 LPA",     "count": 12,  "pct":  3,  "color": "#94A3B8"},
-        {"band": "5-10 LPA",   "count": 96,  "pct": 24,  "color": "#22D3EE"},
-        {"band": "10-20 LPA",  "count": 184, "pct": 46,  "color": "#A78BFA"},
-        {"band": "20-40 LPA",  "count": 84,  "pct": 21,  "color": "#FBBF24"},
-        {"band": "40+ LPA",    "count": 24,  "pct":  6,  "color": "#22C55E"},
-    ]
+    # Salary distribution — computed from recorded package amounts when present
+    def _to_lpa(v):
+        if v in (None, ""):
+            return None
+        if isinstance(v, (int, float)):
+            return float(v)
+        m = re.search(r"([0-9]+(?:\.[0-9]+)?)", str(v))
+        return float(m.group(1)) if m else None
 
-    # Top hiring sectors
-    sectors = [
-        {"name": "Software/Tech",   "count": 184, "color": "#3B82F6"},
-        {"name": "Finance",         "count":  64, "color": "#22C55E"},
-        {"name": "Consulting",      "count":  48, "color": "#A78BFA"},
-        {"name": "Product",         "count":  42, "color": "#F59E0B"},
-        {"name": "Design",          "count":  28, "color": "#EC4899"},
-        {"name": "Research",        "count":  20, "color": "#22D3EE"},
+    placed_alumni = await _db.users.find(
+        {"role": "alumni", "alumni_info.current_employer": {"$nin": [None, "", "—", "-"]}, **college_query},
+        {"alumni_info": 1},
+    ).to_list(2000)
+    recorded_lpa = [l for l in (_to_lpa((d.get("alumni_info") or {}).get("package_lpa")) for d in placed_alumni) if l]
+    bands = [
+        {"band": "< ₹6 LPA",   "min": 0,  "max": 6},
+        {"band": "₹6-10 LPA",  "min": 6,  "max": 10},
+        {"band": "₹10-15 LPA", "min": 10, "max": 15},
+        {"band": "₹15-25 LPA", "min": 15, "max": 25},
+        {"band": "₹25+ LPA",   "min": 25, "max": 10**9},
     ]
+    if recorded_lpa:
+        salary_dist = []
+        for b in bands:
+            cnt = sum(1 for p in recorded_lpa if b["min"] <= p < b["max"])
+            salary_dist.append({"band": b["band"], "count": cnt, "pct": round(cnt / len(recorded_lpa) * 100, 1), "color": None})
+        salary_dist_basis = "sums of recorded alumni_info.package_lpa values"
+    else:
+        salary_dist = [{"band": b["band"], "count": 0, "pct": None, "color": None} for b in bands]
+        salary_dist_basis = "no recorded package amounts; counts are zero and pct null"
 
-    # Attendance attrition signals
-    attrition = [
-        {"label": "Attendance > 85%",    "pct": 68, "color": "#22C55E"},
-        {"label": "75–85%",              "pct": 22, "color": "#FBBF24"},
-        {"label": "60–75%",              "pct":  7, "color": "#F59E0B"},
-        {"label": "< 60% (at-risk)",     "pct":  3, "color": "#EF4444"},
-    ]
+    # Top hiring sectors — counts from recorded employer fields, if any
+    employer_counts: Dict[str, int] = {}
+    for d in placed_alumni:
+        em = ((d.get("alumni_info") or {}).get("current_employer") or "").strip()
+        if em:
+            employer_counts[em] = employer_counts.get(em, 0) + 1
+    sectors = [{"name": n, "count": c, "color": None} for n, c in sorted(employer_counts.items(), key=lambda x: -x[1])[:6]]
+    sectors_basis = "grouped alumni_info.current_employer values; empty when no employer recorded"
 
-    students_cnt = await _db.users.count_documents({"role": "student", "school_info.institution_name": college_name})
+    # Attendance attrition signals — attendance is not recorded on users
+    attrition = []
+    attrition_basis = "attendance records are not stored; no values shown rather than invented"
+
+    students_cnt = await _db.users.count_documents({"role": "student", "school_info.institution_name": college_name} if college_name else {"role": "student"})
+    alumni_cnt = await _db.users.count_documents({"role": "alumni", **college_query})
+    placed_cnt = len(placed_alumni)
+    placement_pct_num = int((placed_cnt / alumni_cnt) * 100) if alumni_cnt > 0 else None
+    sorted_lpa = sorted(recorded_lpa)
+    median_lpa = round(sorted_lpa[len(sorted_lpa) // 2], 1) if sorted_lpa else None
+    top_offer = round(max(sorted_lpa), 1) if sorted_lpa else None
+
     return {
         "kpi": {
             "students":     students_cnt,
-            "placement":   "94%",
-            "median_lpa":  "₹12.4 LPA",
-            "top_offer":   "₹68 LPA",
-            "median_yoy":  "↑ 7%",
+            "placement":   (f"{placement_pct_num}%" if placement_pct_num is not None else None),
+            "median_lpa":  (f"₹{median_lpa} LPA" if median_lpa is not None else None),
+            "top_offer":   (f"₹{top_offer} LPA" if top_offer is not None else None),
+            "median_yoy":  None,
         },
         "placement_trend": placement_trend,
         "salary_dist":     salary_dist,
         "sectors":         sectors,
         "attrition":       attrition,
+        "basis": {
+            "placement": "alumni with a recorded current employer / total alumni",
+            "median_lpa": "median of recorded package amounts; null when none recorded",
+            "salary_dist": salary_dist_basis,
+            "sectors": sectors_basis,
+            "attrition": attrition_basis,
+            "placement_trend": "no historical year-level placement records are stored; null",
+            "median_yoy": "no historical records to compute a YoY change; null",
+        },
     }
 
 
 @router.get("/college/career-intel")
 async def college_career_intel(college_name: Optional[str] = None, user: dict = Depends(require_role('college'))):
     """Career Intel: aggregate skill gaps + hiring intent + roles in demand."""
-    skill_gaps = [
-        {"skill": "Cloud (AWS / GCP)",     "demand": 92, "supply": 38, "gap": 54, "color": "#3B82F6"},
-        {"skill": "System Design",          "demand": 88, "supply": 42, "gap": 46, "color": "#A78BFA"},
-        {"skill": "ML Ops",                 "demand": 78, "supply": 24, "gap": 54, "color": "#22D3EE"},
-        {"skill": "Product Management",     "demand": 72, "supply": 36, "gap": 36, "color": "#F59E0B"},
-        {"skill": "DevOps & SRE",           "demand": 69, "supply": 32, "gap": 37, "color": "#EC4899"},
-    ]
-
-    hiring_intent = [
-        {"company": "Google",       "openings":  18, "tier": "Tier-1", "season": "Aug 2026", "color": "#3B82F6"},
-        {"company": "Microsoft",    "openings":  24, "tier": "Tier-1", "season": "Aug 2026", "color": "#A78BFA"},
-        {"company": "Razorpay",     "openings":  32, "tier": "Tier-1", "season": "Sep 2026", "color": "#22D3EE"},
-        {"company": "Flipkart",     "openings":  28, "tier": "Tier-1", "season": "Aug 2026", "color": "#FB923C"},
-        {"company": "Goldman Sachs", "openings": 12, "tier": "Tier-1", "season": "Sep 2026", "color": "#FBBF24"},
-        {"company": "Adobe",        "openings":  16, "tier": "Tier-1", "season": "Sep 2026", "color": "#EF4444"},
-    ]
-
-    roles_in_demand = [
-        {"role": "SDE - Backend",      "growth": "↑ 38% YoY", "openings": 142, "color": "#22C55E"},
-        {"role": "Data Engineer",      "growth": "↑ 29% YoY", "openings":  86, "color": "#A78BFA"},
-        {"role": "Product Manager",    "growth": "↑ 22% YoY", "openings":  62, "color": "#F59E0B"},
-        {"role": "ML Engineer",        "growth": "↑ 41% YoY", "openings":  74, "color": "#3B82F6"},
-        {"role": "UX Designer",        "growth": "↑ 14% YoY", "openings":  38, "color": "#EC4899"},
-    ]
-
-    return {"skill_gaps": skill_gaps, "hiring_intent": hiring_intent, "roles_in_demand": roles_in_demand}
+    return {
+        "skill_gaps": [],
+        "hiring_intent": [],
+        "roles_in_demand": [],
+        "configured": False,
+        "basis": "no recorded source for skill demand/supply, per-company hiring intent, or role growth; empty until real data is wired in",
+    }
 
 
 @router.get("/student/events")
@@ -2533,14 +2538,14 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "role": "Mentor",
             "subline": f"{mi.get('job_title', '—')} at {mi.get('organization', '—')}".strip(", ") or "Expert Mentor",
             "college": si.get("institution_name") or "—",
-            "batch": mi.get("graduation_year") or 2015,
+            "batch": mi.get("graduation_year"),
             "tags": ["Mentor"] + (m.get("skills", []) or [])[:2],
             "color": _color_for(m.get("full_name", "")),
             "kind": "mentor",
             "connection_state": rel_map.get(other_id, "none"),
             "company": mi.get("organization") or "—",
             "job_title": mi.get("job_title") or "Mentor",
-            "rating": mi.get("rating") or 5.0,
+            "rating": mi.get("rating"),
             "sessions": mi.get("sessions") or 0,
             "photo_data": m.get("face_image_base64") or m.get("photo_data"),
         })

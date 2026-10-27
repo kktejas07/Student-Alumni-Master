@@ -1827,47 +1827,119 @@ async def admin_event_create(payload: dict, user: dict = Depends(get_current_use
 
 @router.get("/admin/payments")
 async def admin_payments(user: dict = Depends(get_current_user)):
-    """Payments stats — mock revenue/payout time series + transactions list."""
+    """Payments stats — revenue/payout series and transaction list computed from
+    recorded payments. An empty database yields real zeros, never placeholders."""
     _require_admin(user)
-    # Mock 6-month revenue/payouts (placeholder until Stripe wires in)
-    months = []
-    base = 80000
     now = datetime.now(timezone.utc)
-    for i in range(5, -1, -1):
-        m = (now.replace(day=1) - timedelta(days=30 * i))
-        months.append({
-            "label": m.strftime("%b"),
-            "revenue": base + (5 - i) * 12000 + (i * 3500),
-            "payouts": int((base + (5 - i) * 12000) * 0.55),
-        })
-    transactions = []
-    sample_users = await db.users.find(
-        {"role": {"$in": ["student", "mentor"]}},
-        {"_id": 1, "full_name": 1, "email": 1, "role": 1},
-    ).limit(8).to_list(8)
-    import random as _rd
-    for i, u in enumerate(sample_users):
-        amount = _rd.choice([499, 999, 1499, 2499, 4999])
-        status = _rd.choice(["completed", "completed", "completed", "pending", "refunded"])
-        transactions.append({
-            "id": f"TXN-{1000 + i}",
-            "user": u.get("full_name") or u.get("email"),
-            "kind": "Mentor Session" if u.get("role") == "student" else "Mentor Payout",
-            "amount": amount,
-            "status": status,
-            "date": (now - timedelta(days=i)).isoformat(),
-        })
-    revenue_total = sum(m["revenue"] for m in months)
-    payouts_total = sum(m["payouts"] for m in months)
+
+    # 6 contiguous 30-day windows ending at the current month (same windows the
+    # previous mock series used), labels from each window's start.
+    first_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0) - timedelta(days=30 * 5)
+    month_starts = [first_start + timedelta(days=30 * i) for i in range(6)]
+    rev_by_window = [0.0] * 6
+    pay_by_window = [0.0] * 6
+    transactions: List[Dict[str, Any]] = []
+
+    def _ts(val: Any) -> Optional[datetime]:
+        if isinstance(val, datetime):
+            return val if val.tzinfo else val.replace(tzinfo=timezone.utc)
+        if isinstance(val, str):
+            try:
+                d = datetime.fromisoformat(val.replace("Z", "+00:00"))
+                return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+            except ValueError:
+                return None
+        return None
+
+    def _win_idx(ts: datetime) -> int:
+        i = min(int((ts - first_start).total_seconds() // 86400 // 30), 5)
+        return max(i, 0)
+
+    # (label, collection, match, amount field, date fields tried in order, status field)
+    revenue_sources = [
+        ("Mentor sessions", "bookings",
+         {"status": {"$in": ["completed", "confirmed", "paid", "done"]}}, "amount_paid",
+         ["created_at", "completed_at"], "status"),
+        ("Event registrations", "echo_registrations",
+         {"payment.status": "paid"}, "payment.amount", ["payment.paid_at", "created_at"], "payment.status"),
+        ("Marketplace", "echo_orders",
+         {"status": "paid", "payment_status": {"$ne": "free"}}, "final_amount",
+         ["paid_at", "created_at"], "status"),
+        ("Other payments", "payments", {}, "amount", ["created_at"], "status"),
+    ]
+    payout_sources = [
+        ("Mentor payouts", "mentor_payouts",
+         {"status": {"$in": ["paid", "completed"]}}, "amount",
+         ["created_at", "paid_at"], "status"),
+    ]
+
+    async def _record(coll: str, match: Dict[str, Any], amount_f: str,
+                      date_fields: List[str], status_f: str, label: str,
+                      buckets: List[float], is_payout: bool) -> None:
+        try:
+            cur = db[coll].find(match).sort("created_at", -1).limit(5000)
+            async for d in cur:
+                ts = next((t for f in date_fields for t in [_ts(d.get(f))] if t is not None), None)
+                if ts is None:
+                    continue
+                try:
+                    raw_amount = d.get(status_f.rsplit(".", 1)[0])
+                    if "." in status_f and isinstance(raw_amount, dict):
+                        raw_amount = raw_amount.get(status_f.rsplit(".", 1)[1])
+                    status_val = raw_amount
+                except Exception:
+                    status_val = None
+                amount = 0.0
+                try:
+                    if "." in amount_f:
+                        a = d.get(amount_f.split(".")[0])
+                        amount = float((a or {}).get(amount_f.split(".")[1]) or 0) if isinstance(a, dict) else 0.0
+                    else:
+                        amount = float(d.get(amount_f) or 0)
+                except (TypeError, ValueError):
+                    amount = 0.0
+                idx = _win_idx(ts)
+                if not is_payout:
+                    rev_by_window[idx] += amount
+                else:
+                    pay_by_window[idx] += amount
+                status_display = status_val if status_val else ("paid" if not is_payout else None)
+                transactions.append({
+                    "id": f"{coll}-{d.get('_id', '')}",
+                    "user": d.get("student_name") or d.get("email") or d.get("user_name"),
+                    "kind": label,
+                    "amount": amount,
+                    "status": status_display,
+                    "date": ts.isoformat(),
+                })
+        except Exception:
+            return
+
+    for label, coll, match, amount_f, date_fields, status_f in revenue_sources:
+        await _record(coll, match, amount_f, date_fields, status_f, label, rev_by_window, False)
+    for label, coll, match, amount_f, date_fields, status_f in payout_sources:
+        await _record(coll, match, amount_f, date_fields, status_f, label, pay_by_window, True)
+
+    transactions.sort(key=lambda t: t["date"], reverse=True)
+
+    months = [
+        {"label": s.strftime("%b"), "revenue": round(rev_by_window[i], 2), "payouts": round(pay_by_window[i], 2)}
+        for i, s in enumerate(month_starts)
+    ]
+    revenue_total = round(sum(rev_by_window), 2)
+    payouts_total = round(sum(pay_by_window), 2)
     return {
         "monthly": months,
-        "transactions": transactions,
+        "transactions": transactions[:50],
         "kpis": {
-            "revenue_total":  revenue_total,
-            "payouts_total":  payouts_total,
-            "net":            revenue_total - payouts_total,
-            "tx_count":       len(transactions),
+            "revenue_total": revenue_total,
+            "payouts_total": payouts_total,
+            "net": round(revenue_total - payouts_total, 2),
+            "tx_count": len(transactions),
         },
+        "basis": "sums of recorded payments last 6 months: bookings.amount_paid, "
+                 "echo_registrations.payment.amount, echo_orders.final_amount, payments.amount; "
+                 "payouts from mentor_payouts.amount",
     }
 
 
@@ -1897,13 +1969,47 @@ async def admin_analytics(user: dict = Depends(get_current_user)):
         {"$sort": {"count": -1}},
     ]
     mentor_cats = await db.users.aggregate(cat_pipeline).to_list(20)
-    # Engagement metrics (mock blend for now)
+    # Engagement metrics — computed from recorded data; fields with no real
+    # source are null with `configured: false` rather than invented values.
+    now = datetime.now(timezone.utc)
+    total_bookings = await db.bookings.count_documents({})
+    done_bookings = await db.bookings.count_documents(
+        {"status": {"$in": ["completed", "done", "cancelled_no_show", "no_show"]}}
+    )
+    completed_only = await db.bookings.count_documents({"status": {"$in": ["completed", "done"]}})
+    session_completion: Optional[float] = (
+        round(completed_only / done_bookings, 3) if done_bookings > 0 else None
+    )
+    placement_avg: Optional[float] = None
+    alumni_total = await db.users.count_documents({"role": "alumni"})
+    if alumni_total:
+        placed = await db.users.count_documents(
+            {"role": "alumni", "$or": [
+                {"alumni_info.job_status": {"$regex": "placed|employed|job", "options": "i"}},
+                {"placement.placed": True},
+            ]}
+        )
+        placement_avg = round(placed / alumni_total, 3)
+    day1 = now - timedelta(days=1)
+    month1 = now - timedelta(days=30)
+    active_dau: Optional[int] = None
+    active_mau: Optional[int] = None
+    for act_field in ("last_login", "last_active_at", "last_seen"):
+        if await db.users.count_documents({act_field: {"$type": "date"}}):
+            active_dau = await db.users.count_documents({act_field: {"$gte": day1}})
+            active_mau = await db.users.count_documents({act_field: {"$gte": month1}})
+            break
     engagement = {
-        "session_completion": 0.78,
-        "mentor_response_avg_hr": 6.4,
-        "placement_avg":         0.82,
-        "active_dau":            148,
-        "active_mau":            812,
+        "session_completion": session_completion,
+        "mentor_response_avg_hr": None,
+        "placement_avg": placement_avg,
+        "active_dau": active_dau,
+        "active_mau": active_mau,
+        "configured": False,
+        "basis": "computed where recorded (completed bookings / cancelled+completed; "
+                 "alumni with placement or employed status; last_login activity in the "
+                 "last day / 30 days). null = no recorded data. "
+                 "mentor_response_avg_hr has no recorded source and is always null.",
     }
     return {
         "career_paths":    cp_breakdown,
@@ -2780,17 +2886,11 @@ def _user_card(u: dict) -> dict:
         "photo_data": u.get("face_image_base64") or u.get("photo_data") or u.get("photo"),
         "wants_to_mentor": ai.get("wants_to_mentor") or ai.get("alumni_wants_to_mentor") or u.get("role") == "mentor",
         "is_online": is_online,
-        "mutual_connections": _fake_mutual(u),  # deterministic placeholder
+        "mutual_connections": None,
         "sa_id": u.get("sa_id"),
         "badges": top_badges,
         "badges_total": len(raw_badges),
     }
-
-
-def _fake_mutual(u: dict) -> int:
-    """Deterministic placeholder mutual-connections count until real graph is built."""
-    uid = str(u.get("_id") or u.get("id") or "")
-    return (sum(ord(c) for c in uid) % 22) + 1
 
 
 def _matches_count(a: list, b: list) -> int:
@@ -2799,6 +2899,31 @@ def _matches_count(a: list, b: list) -> int:
     sa = {str(x).lower() for x in a}
     sb = {str(x).lower() for x in b}
     return len(sa & sb)
+
+
+async def _mutual_connection_counts(me_id: str, candidate_ids: list) -> Dict[str, Optional[int]]:
+    """Real mutual-connection count: number of people in `me_id`'s accepted
+    connections who are also in the candidate's accepted connections.
+    Candidates not present in the result get None."""
+    if not candidate_ids:
+        return {}
+    accepted = await db.connections.find(
+        {"status": "accepted"}, {"_id": 0}
+    ).to_list(5000)
+    target_set = set(candidate_ids)
+    my_neighbors: set = set()
+    user_neighbors: Dict[str, set] = {cid: set() for cid in target_set}
+    for r in accepted:
+        a, b = str(r.get("a")), str(r.get("b"))
+        if a == me_id:
+            my_neighbors.add(b)
+        if b == me_id:
+            my_neighbors.add(a)
+        if a in target_set:
+            user_neighbors[a].add(b)
+        if b in target_set:
+            user_neighbors[b].add(a)
+    return {cid: len(nbrs & my_neighbors) for cid, nbrs in user_neighbors.items()}
 
 
 def _match_institution(inst_a: Optional[str], inst_b: Optional[str]) -> bool:
@@ -2924,6 +3049,12 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     mentor_cards = [_user_card(m) for m in approved_mentors if str(m.get("_id") or m.get("id")) != me_id]
     for m in mentor_cards:
         m["connection_state"] = state_by_user.get(m["id"], "none")
+    all_card_ids = [c["id"] for c in cards] + [m["id"] for m in mentor_cards]
+    mutual_counts = await _mutual_connection_counts(me_id, all_card_ids)
+    for c in cards:
+        c["mutual_connections"] = mutual_counts.get(c["id"])
+    for m in mentor_cards:
+        m["mutual_connections"] = mutual_counts.get(m["id"])
     # Boost mentors matching career path
     if my_cp:
         mentor_cards.sort(key=lambda m: (m.get("category") or "").lower().find(my_cp.lower()) == -1)
@@ -3021,6 +3152,9 @@ async def my_connections(user: dict = Depends(get_current_user)):
     cards = [_user_card(u) for u in users]
     for c in cards:
         c["connection_state"] = "connected"
+    mutual_counts = await _mutual_connection_counts(me_id, [c["id"] for c in cards])
+    for c in cards:
+        c["mutual_connections"] = mutual_counts.get(c["id"])
     return {"items": cards}
 
 
@@ -3045,6 +3179,7 @@ async def my_connection_requests(user: dict = Depends(get_current_user)):
                 logger.warning("my_connection_requests: invalid requester ObjectId %r: %s", rid, e)
         users = await db.users.find({"_id": {"$in": objs}}, {"password_hash": 0}).to_list(len(objs))
         by_id = {str(u["_id"]): u for u in users}
+        mutual_counts = await _mutual_connection_counts(me_id, list(by_id.keys()))
         for r in rels:
             u = by_id.get(r["a"])
             if not u:
@@ -3053,6 +3188,7 @@ async def my_connection_requests(user: dict = Depends(get_current_user)):
             c["connection_state"] = "incoming"
             c["requested_at"] = r.get("created_at")
             c["message"] = r.get("message")
+            c["mutual_connections"] = mutual_counts.get(str(u.get("_id")))
             out_incoming.append(c)
 
     # 2. Sent pending requests

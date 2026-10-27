@@ -691,7 +691,7 @@ async def admin_sync_linkedin_profiles(
     # Find profiles with linkedin_url that haven't been synced recently
     stale_threshold = datetime.now(timezone.utc) - timedelta(hours=24)
     cursor = _db.talent_pool.find({
-        "linkedin_url": {"$exists": True, "$ne": None, "$ne": ""},
+        "linkedin_url": {"$exists": True, "$nin": [None, ""]},
         "is_active": True,
         "$or": [
             {"last_synced_at": {"$exists": False}},

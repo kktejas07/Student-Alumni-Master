@@ -23,7 +23,7 @@ TOOL_REGISTRY: Dict[str, Dict[str, Any]] = {
         "requires_approval": False,
         "enabled": True,
         "description": "Search for internships/jobs matching criteria. "
-                       "Returns top matches with role, company, location, match%.",
+                       "Returns top matches with role, company, location, stipend, deadline.",
         "parameters": {
             "type": "object",
             "properties": {
