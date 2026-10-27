@@ -154,7 +154,9 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     full_name: str
-    role: str
+    # Typed allowlist (core.models.SelfServiceRole) plus the validator below,
+    # which normalises case/whitespace and answers 403 for privileged roles.
+    role: SelfServiceRole
     phone: Optional[str] = None
     # Per spec — Date of Birth is mandatory at registration. ISO 8601 (YYYY-MM-DD).
     # Backend enforces minimum age of 18 unless the role is 'student' (>=13).
