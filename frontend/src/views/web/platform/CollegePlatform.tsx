@@ -130,7 +130,7 @@ function Overview({ onNav }: { onNav: (id: string) => void }) {
   return (
     <>
       <PageHeader
-        title={`${tenantName} — Dashboard 🏛️`}
+        title={`${tenantName} — Dashboard `}
         subtitle="Academic Year 2024–25 · Batch data updated in real-time."
         rightSlot={
           <>
@@ -142,10 +142,10 @@ function Overview({ onNav }: { onNav: (id: string) => void }) {
       />
 
       <View style={[styles.kpiRow, !isWide && { flexDirection: 'column' }]}>
-        <KpiTile emoji="🎓" label="Total Students" value={totalStudents.toLocaleString('en-IN')} note="↑ 180 this year" />
-        <KpiTile emoji="🤝" label="Active Alumni" value={totalAlumni.toLocaleString('en-IN')} note="Across 48 countries" noteColor={SA.purplePale} />
-        <KpiTile emoji="💼" label="Placement Rate" value={`${placementRate}%`} note="↑ 3% vs last year" />
-        <KpiTile emoji="💰" label="Avg Package" value={`₹${avgPackage}L`} note="↑ ₹2.1L vs last year" noteColor={SA.warn} />
+        <KpiTile emoji="" label="Total Students" value={totalStudents.toLocaleString('en-IN')} note="↑ 180 this year" />
+        <KpiTile emoji="" label="Active Alumni" value={totalAlumni.toLocaleString('en-IN')} note="Across 48 countries" noteColor={SA.purplePale} />
+        <KpiTile emoji="" label="Placement Rate" value={`${placementRate}%`} note="↑ 3% vs last year" />
+        <KpiTile emoji="" label="Avg Package" value={`₹${avgPackage}L`} note="↑ ₹2.1L vs last year" noteColor={SA.warn} />
       </View>
 
       <View style={[styles.split, !isWide && { flexDirection: 'column' }]}>
@@ -172,7 +172,7 @@ function Overview({ onNav }: { onNav: (id: string) => void }) {
 
           {/* Top recruiters */}
           <GlassCard pad={22}>
-            <SectionLabel>🏆 TOP RECRUITERS THIS YEAR</SectionLabel>
+            <SectionLabel> TOP RECRUITERS THIS YEAR</SectionLabel>
             {[
               { co: 'Google', hires: 64, package: '₹42L' },
               { co: 'Microsoft', hires: 52, package: '₹38L' },
@@ -182,7 +182,7 @@ function Overview({ onNav }: { onNav: (id: string) => void }) {
             ].map((r, i) => (
               <View key={i} style={styles.recruiterRow}>
                 <View style={styles.recruiterIcon}>
-                  <Text style={{ fontSize: 18 }}>🏢</Text>
+                  <Text style={{ fontSize: 18 }}></Text>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: SA.white, fontFamily: SA.fontBold, fontSize: 14 }}>{r.co}</Text>
@@ -197,7 +197,7 @@ function Overview({ onNav }: { onNav: (id: string) => void }) {
         <View style={{ width: isWide ? 320 : '100%', gap: 16 }}>
           {/* Upcoming events */}
           <GlassCard pad={20}>
-            <SectionLabel>📅 UPCOMING EVENTS</SectionLabel>
+            <SectionLabel> UPCOMING EVENTS</SectionLabel>
             {[
               { title: 'Mood Indigo 2025', sub: 'Cultural fest · Feb 14–16', count: '12,000 RSVPs' },
               { title: 'Tech Fest 2025', sub: 'Tech showcase · Mar 8–10', count: '8,500 RSVPs' },
@@ -216,7 +216,7 @@ function Overview({ onNav }: { onNav: (id: string) => void }) {
 
           {/* Quick stats */}
           <GlassCard pad={20}>
-            <SectionLabel>📊 QUICK STATS</SectionLabel>
+            <SectionLabel> QUICK STATS</SectionLabel>
             <ProgressStrip label="Industry diversity" pct={78} gradient={SAGradients.purple} />
             <ProgressStrip label="Geographic spread" pct={64} gradient={SAGradients.blue} />
             <ProgressStrip label="Higher education" pct={42} gradient={SAGradients.green} />

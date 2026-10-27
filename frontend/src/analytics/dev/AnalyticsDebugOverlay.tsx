@@ -76,7 +76,7 @@ export const AnalyticsDebugOverlay: React.FC = () => {
     <div
       style={{
         position: 'fixed',
-        bottom: 16,
+        bottom: 80,
         right: 16,
         zIndex: 99999,
         fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace',
@@ -101,7 +101,7 @@ export const AnalyticsDebugOverlay: React.FC = () => {
           }}
         >
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e' }} />
-          ✨ Analytics ({events.length})
+          Analytics ({events.length})
         </button>
       ) : (
         <div
@@ -131,7 +131,7 @@ export const AnalyticsDebugOverlay: React.FC = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontWeight: 'bold', fontSize: 13, color: '#38bdf8' }}>
-                ✨ Analytics Debugger
+                Analytics Debugger
               </span>
               <span
                 style={{
@@ -160,7 +160,7 @@ export const AnalyticsDebugOverlay: React.FC = () => {
                   cursor: 'pointer',
                 }}
               >
-                {copied ? '✓ Copied' : 'Copy JSON'}
+                {copied ? 'Copied' : 'Copy JSON'}
               </button>
               <button
                 onClick={handleClear}

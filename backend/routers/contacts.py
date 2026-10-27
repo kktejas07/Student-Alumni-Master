@@ -134,6 +134,7 @@ async def list_contacts(
     request: Request,
     q: str = "",
     source: str = "",
+    role: str = "",
     list_id: str = "",
     subscribed: str = "",
     include_registered: str = "true",
@@ -141,7 +142,7 @@ async def list_contacts(
     per_page: int = Query(50, ge=1, le=200),
     user=Depends(_require_admin),
 ):
-    """List contacts with search, filters, and pagination.
+    """List contacts with search, role filters, source filters, and pagination.
     
     By default includes both imported contacts AND registered users.
     Set include_registered=false to only show imported contacts.
@@ -149,7 +150,6 @@ async def list_contacts(
     db = _get_db(request)
     
     items = []
-    total = 0
     
     # Fetch imported contacts
     contact_query: Dict[str, Any] = {}
@@ -158,6 +158,8 @@ async def list_contacts(
             {"name": {"$regex": q, "$options": "i"}},
             {"email": {"$regex": q, "$options": "i"}},
             {"phone": {"$regex": q, "$options": "i"}},
+            {"current_company": {"$regex": q, "$options": "i"}},
+            {"location": {"$regex": q, "$options": "i"}},
         ]
     if source:
         contact_query["source"] = source
@@ -165,72 +167,99 @@ async def list_contacts(
         contact_query["lists"] = list_id
     if subscribed:
         contact_query["subscribed"] = subscribed.lower() == "true"
+    if role and role.lower() not in ("all", "registered"):
+        r_lower = role.lower()
+        if r_lower in ("prospect", "prospects"):
+            contact_query["is_registered_user"] = {"$ne": True}
+        else:
+            contact_query["$or"] = [
+                {"tags": {"$regex": r_lower, "$options": "i"}},
+                {"role": {"$regex": r_lower, "$options": "i"}},
+            ]
     
-    imported_count = await db.contacts.count_documents(contact_query)
-    
+    imported_cursor = db.contacts.find(contact_query).sort("created_at", -1)
+    imported_items = []
+    async for doc in imported_cursor:
+        item = _ser(doc)
+        if item.get("phone"):
+            from routers.admin.imports import format_e164_phone
+            item["phone"] = format_e164_phone(item["phone"], item.get("location", ""))
+        imported_items.append(item)
+        
     # Also fetch registered users if requested
     registered_users = []
-    if include_registered.lower() == "true":
+    if include_registered.lower() == "true" and (not source or source in ("registered", "all")):
         user_query: Dict[str, Any] = {"email": {"$exists": True, "$ne": ""}}
         if q:
             user_query["$or"] = [
                 {"full_name": {"$regex": q, "$options": "i"}},
                 {"email": {"$regex": q, "$options": "i"}},
+                {"company": {"$regex": q, "$options": "i"}},
             ]
-        
+        if role and role.lower() not in ("all", "registered", "prospect", "prospects"):
+            user_query["role"] = {"$regex": role.lower(), "$options": "i"}
+        elif role and role.lower() in ("prospect", "prospects"):
+            user_query["email"] = "IMPOSSIBLE_USER_MATCH"
+            
         cursor_users = db.users.find(user_query).sort("created_at", -1).limit(500)
         async for doc in cursor_users:
-            # Convert user to contact format
             email = (doc.get("email") or "").strip().lower()
             if not email:
                 continue
+            loc = doc.get("location") or doc.get("city") or ""
+            raw_p = doc.get("phone") or ""
+            from routers.admin.imports import format_e164_phone
+            formatted_p = format_e164_phone(raw_p, loc)
             registered_users.append({
                 "_id": str(doc.get("_id", "")),
                 "name": doc.get("full_name") or email.split("@")[0].title(),
                 "email": email,
-                "phone": "",  # Phone is encrypted in users collection
+                "phone": formatted_p,
                 "source": "registered",
                 "tags": [doc.get("role", "student")],
+                "role": doc.get("role", "student"),
                 "lists": [],
                 "notes": "",
                 "subscribed": True,
                 "created_at": doc.get("created_at", ""),
                 "updated_at": doc.get("last_login") or doc.get("created_at", ""),
+                "current_company": doc.get("company") or doc.get("current_company") or "",
+                "current_title": doc.get("designation") or doc.get("title") or "",
+                "location": loc,
+                "education_institution": doc.get("college_name") or doc.get("college") or "",
                 "is_registered_user": True,
             })
     
-    total = imported_count + len(registered_users)
+    # Merge and deduplicate by email
+    merged_map = {}
+    for c in imported_items:
+        em = (c.get("email") or "").lower()
+        if em:
+            merged_map[em] = c
+            
+    for u in registered_users:
+        em = u["email"].lower()
+        if em in merged_map:
+            merged_map[em]["is_registered_user"] = True
+            if not merged_map[em].get("current_company"):
+                merged_map[em]["current_company"] = u.get("current_company", "")
+        else:
+            merged_map[em] = u
+
+    all_contacts = list(merged_map.values())
+    total = len(all_contacts)
     
-    # Combine and paginate
     skip = (page - 1) * per_page
-    
-    if source and source != "registered":
-        # Only show imported contacts
-        cursor = db.contacts.find(contact_query).sort("created_at", -1).skip(skip).limit(per_page)
-        async for doc in cursor:
-            items.append(_ser(doc))
-    elif source == "registered":
-        # Only show registered users
-        items = registered_users[skip:skip + per_page]
-    else:
-        # Show both - first imported, then registered
-        cursor = db.contacts.find(contact_query).sort("created_at", -1).skip(skip).limit(per_page)
-        async for doc in cursor:
-            items.append(_ser(doc))
-        
-        # If we need more items to fill the page, add registered users
-        if len(items) < per_page:
-            remaining = per_page - len(items)
-            items.extend(registered_users[skip:skip + remaining] if skip < len(registered_users) else [])
+    items = all_contacts[skip:skip + per_page]
     
     return {
         "items": items,
         "total": total,
-        "imported_count": imported_count,
+        "imported_count": len(imported_items),
         "registered_count": len(registered_users),
         "page": page,
         "per_page": per_page,
-        "total_pages": (total + per_page - 1) // per_page,
+        "total_pages": (total + per_page - 1) // per_page if total > 0 else 1,
     }
 
 
@@ -353,6 +382,8 @@ async def import_contacts(
         raise HTTPException(status_code=400, detail="File must be a CSV or XLSX file")
     
     content = await file.read()
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(content)
     rows = []
     
     if is_csv:
@@ -454,12 +485,15 @@ async def import_contacts(
         education_institution = get_field(row, "education_institution", "Education Institution", "school", "School", "university")
         profile_url = get_field(row, "profile_url", "Profile URL", "linkedin", "LinkedIn", "profile", "url")
         
-        # Check for existing contact OR user (skip duplicates)
+        # Check for existing contact OR user
         existing_contact = await db.contacts.find_one({"email": email})
         existing_user = await db.users.find_one({"email": email})
-        if existing_contact or existing_user:
-            skipped += 1
-            continue
+        
+        # Extract role / category column
+        role_col = get_field(row, "role", "Role", "category", "Category", "type", "Type", "user_type", "User Type").lower()
+        row_tags = list(tag_list)
+        if role_col and role_col not in row_tags:
+            row_tags.append(role_col)
         
         contact_data = {
             "name": name,
@@ -477,16 +511,21 @@ async def import_contacts(
             "education_institution": education_institution,
             "profile_url": profile_url,
             "source": source,
-            "tags": tag_list,
+            "tags": row_tags,
+            "is_registered_user": bool(existing_user),
             "updated_at": _now(),
         }
         
-        if existing:
-            # Update existing contact with new data (merge)
-            update_data = {k: v for k, v in contact_data.items() if v}  # Only update non-empty fields
+        if existing_contact:
+            # Update existing contact with new non-empty data (merge)
+            update_data = {k: v for k, v in contact_data.items() if v}
             update_data["updated_at"] = _now()
+            existing_tags = set(existing_contact.get("tags") or [])
+            existing_tags.update(row_tags)
+            update_data["tags"] = list(existing_tags)
+            
             await db.contacts.update_one(
-                {"_id": existing["_id"]},
+                {"_id": existing_contact["_id"]},
                 {"$set": update_data}
             )
             updated += 1
@@ -638,34 +677,99 @@ async def remove_contacts_from_list(list_id: str, payload: Dict[str, List[str]],
 
 # ── Stats ─────────────────────────────────────────────────────────────────────
 
+# ── Stats ─────────────────────────────────────────────────────────────────────
+
 @router.get("/contacts/stats")
 async def contact_stats(request: Request, user=Depends(_require_admin)):
-    """Get contact statistics."""
+    """Get comprehensive contact and registered user statistics."""
     db = _get_db(request)
     
-    total = await db.contacts.count_documents({})
-    subscribed = await db.contacts.count_documents({"subscribed": True})
-    unsubscribed = total - subscribed
+    total_contacts = await db.contacts.count_documents({})
+    total_users = await db.users.count_documents({})
     
+    subscribed = await db.contacts.count_documents({"subscribed": True})
+    unsubscribed = await db.contacts.count_documents({"subscribed": False})
+    
+    # Role breakdown across users & contacts
+    student_users = await db.users.count_documents({"role": "student"})
+    mentor_users = await db.users.count_documents({"role": "mentor"})
+    alumni_users = await db.users.count_documents({"role": "alumni"})
+    college_users = await db.users.count_documents({"role": {"$in": ["college", "admin", "superadmin"]}})
+    
+    student_contacts = await db.contacts.count_documents({"tags": {"$regex": "student", "$options": "i"}})
+    mentor_contacts = await db.contacts.count_documents({"tags": {"$regex": "mentor", "$options": "i"}})
+    alumni_contacts = await db.contacts.count_documents({"tags": {"$regex": "alumni", "$options": "i"}})
+    college_contacts = await db.contacts.count_documents({"tags": {"$regex": "college|admin", "$options": "i"}})
+
+    prospects_count = await db.contacts.count_documents({"is_registered_user": {"$ne": True}})
+
     # Source breakdown
     pipeline = [
         {"$group": {"_id": "$source", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}},
     ]
-    sources = {}
+    sources = {"registered": total_users}
     async for doc in db.contacts.aggregate(pipeline):
-        sources[doc["_id"] or "unknown"] = doc["count"]
+        if doc["_id"]:
+            sources[doc["_id"]] = doc["count"]
     
-    # List breakdown
     lists = await db.contact_lists.count_documents({})
     
     return {
-        "total": total,
+        "total": total_contacts + total_users,
+        "registered_count": total_users,
+        "imported_count": total_contacts,
+        "prospects_count": prospects_count,
+        "students_count": student_users + student_contacts,
+        "mentors_count": mentor_users + mentor_contacts,
+        "alumni_count": alumni_users + alumni_contacts,
+        "college_count": college_users + college_contacts,
         "subscribed": subscribed,
         "unsubscribed": unsubscribed,
         "sources": sources,
         "lists": lists,
     }
+
+
+# ── Export & Share Emails ─────────────────────────────────────────────────────
+
+@router.get("/contacts/export")
+async def export_contacts(
+    request: Request,
+    q: str = "",
+    source: str = "",
+    role: str = "",
+    format: str = "json",
+    user=Depends(_require_admin),
+):
+    """Export contacts or extract email address list for sending broadcasts/sharing."""
+    res = await list_contacts(request, q=q, source=source, role=role, page=1, per_page=10000, user=user)
+    items = res.get("items", [])
+    
+    emails = [item["email"] for item in items if item.get("email")]
+    email_string = ", ".join(emails)
+    
+    if format == "emails":
+        return {"count": len(emails), "email_string": email_string, "emails": emails}
+    elif format == "csv":
+        from fastapi.responses import Response
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=["name", "email", "phone", "role", "source", "current_company", "current_title", "location"])
+        writer.writeheader()
+        for item in items:
+            writer.writerow({
+                "name": item.get("name", ""),
+                "email": item.get("email", ""),
+                "phone": item.get("phone", ""),
+                "role": ", ".join(item.get("tags") or []) if item.get("tags") else item.get("role", ""),
+                "source": item.get("source", ""),
+                "current_company": item.get("current_company", ""),
+                "current_title": item.get("current_title", ""),
+                "location": item.get("location", ""),
+            })
+        return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=contacts_export.csv"})
+    
+    return {"items": items, "count": len(items), "emails": emails, "email_string": email_string}
 
 
 # ── Migration: Contacts → Users ───────────────────────────────────────────────

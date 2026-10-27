@@ -87,7 +87,7 @@ export function IntegrationsView() {
   const [oauthProvider, setOauthProvider] = useState<ProviderMeta | null>(null);
   const [digilockerModalVisible, setDigilockerModalVisible] = useState(false);
 
-  const handleDigiLockerSuccess = async (res: any) => {
+  const handleDigiLockerSuccess = async (_res: any) => {
     toast.success('DigiLocker Synced', 'Aadhaar e-KYC and 3 official documents linked.');
     await reload();
   };

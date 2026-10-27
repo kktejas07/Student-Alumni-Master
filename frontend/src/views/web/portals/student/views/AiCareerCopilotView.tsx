@@ -185,7 +185,7 @@ export function AiCareerCopilotView() {
               <View key={i} style={s.historyCard}>
                 <Text style={s.historyQ}>Q{i+1}: {h.question}</Text>
                 <Text style={s.historyA}>Your Answer: {h.answer}</Text>
-                {h.feedback && <Text style={s.historyF}>💡 Feedback ({h.score}/100): {h.feedback}</Text>}
+                {h.feedback && <Text style={s.historyF}> Feedback ({h.score}/100): {h.feedback}</Text>}
               </View>
             ))}
 

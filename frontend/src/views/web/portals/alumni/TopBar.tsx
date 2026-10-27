@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -8,6 +8,7 @@ import { SC, FONTS } from './tokens';
 import { Av } from './atoms';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { AlumniPortalNavContext } from './AlumniPortalRN';
+import { api } from '@/src/models/services/api';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -31,10 +32,22 @@ export function TopBar({
   const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
   const portalNav = React.useContext(AlumniPortalNavContext);
   const [q, setQ] = React.useState(portalNav?.searchQuery || '');
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     setQ(portalNav?.searchQuery || '');
   }, [portalNav?.searchQuery]);
+
+  useEffect(() => {
+    const fetchNotifs = () => {
+      api.notifications()
+        .then(res => setUnreadCount(res.unread || 0))
+        .catch(() => {});
+    };
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSearch = () => {
     if (q.trim() && portalNav) {
@@ -48,7 +61,7 @@ export function TopBar({
   return (
     <View style={s.bar}>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={s.greet}>{greeting()}, {firstName} 👋</Text>
+        <Text style={s.greet}>{greeting()}, {firstName} </Text>
         <Text style={s.sub}>Here’s your personalised dashboard for today</Text>
       </View>
 
@@ -75,7 +88,7 @@ export function TopBar({
         style={({ hovered }: any) => [s.bell, hovered && { backgroundColor: SC.cardH }]}
       >
         <Bell size={16} color={SC.accent} />
-        <View style={s.bellDot} />
+        {unreadCount > 0 && <View style={s.bellDot} />}
       </Pressable>
 
       <HelpMenu portal="alumni" />

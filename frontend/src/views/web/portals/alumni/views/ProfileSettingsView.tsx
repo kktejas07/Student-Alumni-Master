@@ -82,7 +82,7 @@ const ROLE_CFG: Record<RoleKey, {
       { Icon: CalendarCheck, label: 'Sessions Hosted',  value: s.sessions_completed ?? 0,                     tint: '#10B981' },
       { Icon: UsersRound,    label: 'Active Mentees',   value: s.connections_made ?? 0,                       tint: '#60A5FA' },
       { Icon: Eye,           label: 'Profile Views',    value: s.profile_views ?? 0,                          tint: '#60A5FA' },
-      { Icon: Star,          label: 'Avg Rating',       value: s.avg_rating ? `${s.avg_rating}★` : '—',       tint: '#F59E0B' },
+      { Icon: Star,          label: 'Avg Rating',       value: s.avg_rating ? `${s.avg_rating}` : '—',       tint: '#F59E0B' },
       { Icon: IndianRupee,   label: 'Earnings (Month)', value: s.earnings_this_month ? `₹${s.earnings_this_month}` : '₹0', tint: '#22C55E' },
     ],
   },
@@ -320,7 +320,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
                   <Pressable
                     key={t.key}
                     onPress={() => {
-                      if (t.key === 'digital-id') { router.push('/member-id' as any); return; }
+                      if (t.key === 'digital-id') { router.push('/id-card' as any); return; }
                       setTab(t.key);
                     }}
                     style={[st.tab, active && st.tabActive]}
@@ -426,7 +426,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
               {draft.is_verified ? 'Verified' : 'Active'} · since {new Date(user?.created_at || Date.now()).getFullYear()}
             </Text>
             <Pressable
-              onPress={() => router.push('/member-id' as any)}
+              onPress={() => router.push('/id-card' as any)}
               style={st.viewIdBtn}
               testID="pf-view-digital-id"
             >
@@ -576,7 +576,7 @@ const st = StyleSheet.create({
   footerBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 18, paddingVertical: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1C1C1E',
     borderColor: '#2563EB', borderWidth: 1.5,
     borderRadius: 12, gap: 12,
     ...(Platform.OS === 'web' ? { boxShadow: '0 4px 20px rgba(37,99,235,0.15)' } as any : { elevation: 4, shadowColor: '#2563EB', shadowOpacity: 0.2, shadowRadius: 8 }),
@@ -595,7 +595,7 @@ const st = StyleSheet.create({
     backgroundColor: '#2563EB',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', boxShadow: '0 4px 14px rgba(37,99,235,0.40)' } as any) : {}),
   },
-  btnPrimaryText: { color: '#ffffff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  btnPrimaryText: { color: '#1C1C1E', fontFamily: 'DMSans_700Bold', fontSize: 12 },
 });
 
 export default ProfileSettingsView;

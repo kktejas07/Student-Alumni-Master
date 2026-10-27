@@ -24,7 +24,7 @@ import { useSidebarStore } from '@/src/viewmodels/stores/sidebarStore';
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet,
   Tag, CreditCard, GraduationCap, Home, User, ExternalLink, LogOut,
-  CalendarCheck, FileText, BookOpen, ChevronDown, ChevronRight, Zap, Ticket,
+  CalendarCheck, FileText, BookOpen, ChevronDown, ChevronRight, Zap, Ticket, Award,
 } from './iconShims';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -44,7 +44,7 @@ import { api } from '@/src/models/services/api';
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'myevents' | 'events'
   | 'financial' | 'deals' | 'wallet' | 'higher-ed' | 'rentals' | 'courses' | 'profile'
-  | 'my-bookings' | 'my-workshops' | 'echo-showcase' | string;
+  | 'my-bookings' | 'my-workshops' | 'my-tickets' | 'my-certificates' | 'echo-showcase' | string;
 
 export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: boolean }> = [
   { id: 'dashboard',       label: 'Dashboard',          Icon: LayoutDashboard },
@@ -53,6 +53,7 @@ export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: bo
   { id: 'network',         label: 'Network',            Icon: Users },
   { id: 'my-bookings',     label: 'My Bookings',        Icon: CalendarCheck },
   { id: 'my-tickets',      label: 'My Tickets',         Icon: Ticket },
+  { id: 'my-certificates', label: 'My Certificates',    Icon: Award },
   { id: 'myevents',        label: 'My Events',          Icon: Calendar },
   { id: 'my-workshops',    label: 'My Workshops',       Icon: BookOpen },
   { id: 'courses',         label: 'Courses',            Icon: BookOpen },
@@ -75,28 +76,42 @@ function EchoNavGroup({
   onNav: (id: StudentNavId) => void;
   C: any;
 }) {
-  const [showcases, setShowcases] = React.useState<any[]>([]);
+  const [showcases, setShowcases] = React.useState<any[]>([
+    { slug: 'vnr-vjiet', title: 'VNR VJIET Hackathon' },
+    { slug: 'snist', title: 'SNIST Hackwave 3.0' },
+  ]);
 
   React.useEffect(() => {
     let mounted = true;
     api.listEchoShowcases()
       .then((res) => {
-        if (mounted && res?.items && res.items.length > 0) {
-          setShowcases(res.items);
+        if (mounted) {
+          const items = res?.items || (Array.isArray(res) ? res : []);
+          if (items.length > 0) {
+            setShowcases(items);
+          }
         }
       })
       .catch(() => {});
     return () => { mounted = false; };
   }, []);
 
-  const isChildActive = active === 'echo-showcase' || showcases.some((s) => s.slug === active || active === `echo-showcase:${s.slug}`);
-  const firstSlug = showcases[0]?.slug || 'echo-showcase';
+  const firstSlug = showcases[0]?.slug || 'vnr-vjiet';
+  const isChildActive = active === 'echo-showcase' || active?.startsWith('echo-showcase:') || showcases.some((s) => s.slug === active || active === `echo-showcase:${s.slug}`) || (
+    !['dashboard', 'career-ai', 'internships', 'network', 'my-bookings', 'myevents', 'events',
+      'my-workshops', 'my-tickets', 'my-certificates', 'courses', 'financial', 'deals', 'wallet', 'higher-ed', 'rentals', 'profile'].includes(active)
+  );
 
   return (
     <View style={{ marginBottom: 2 }}>
       {/* Group header row */}
       <Pressable
-        onPress={collapsed ? () => onNav(firstSlug) : onToggle}
+        onPress={() => {
+          onToggle();
+          if (collapsed || !isChildActive) {
+            onNav(firstSlug);
+          }
+        }}
         style={({ hovered }: any) => [
           {
             flexDirection: 'row', alignItems: 'center', gap: 11,
@@ -104,9 +119,9 @@ function EchoNavGroup({
             borderRadius: 8, minHeight: 40,
             justifyContent: collapsed ? 'center' : 'flex-start',
             backgroundColor: isChildActive && !isOpen
-              ? 'rgba(99,102,241,0.12)'
+              ? 'rgba(255,255,255,0.15)'
               : hovered && Platform.OS === 'web'
-              ? 'rgba(99,102,241,0.06)'
+              ? 'rgba(255,255,255,0.08)'
               : 'transparent',
           },
           Platform.OS === 'web' ? { cursor: 'pointer' } as any : {},
@@ -115,19 +130,19 @@ function EchoNavGroup({
         accessibilityRole="button"
         accessibilityLabel="ECHO Showcase group"
       >
-        <Zap size={16} color={isChildActive ? '#A5B4FC' : C.textSec} />
+        <Zap size={16} color={isChildActive ? '#FFFFFF' : C.textSec} />
         {!collapsed && (
           <>
-            <Text style={{ fontFamily: TYPO.body600, fontSize: 13, flex: 1, color: isChildActive ? '#A5B4FC' : C.textSec }} numberOfLines={1}>
+            <Text style={{ fontFamily: TYPO.body600, fontSize: 13, flex: 1, color: isChildActive ? '#FFFFFF' : C.textSec }} numberOfLines={1}>
               ECHO Showcase
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ backgroundColor: 'rgba(99,102,241,0.30)', borderRadius: 10, paddingHorizontal: 5, paddingVertical: 2 }}>
-                <Text style={{ fontFamily: TYPO.body700, fontSize: 9, color: '#A5B4FC', letterSpacing: 0.5 }}>CMS</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ backgroundColor: 'rgba(255,255,255,0.20)', borderRadius: 10, paddingHorizontal: 5, paddingVertical: 2 }}>
+                <Text style={{ fontFamily: TYPO.body700, fontSize: 9, color: '#FFFFFF', letterSpacing: 0.5 }}>CMS</Text>
               </View>
               {isOpen
-                ? <ChevronDown size={12} color={C.textSec} />
-                : <ChevronRight size={12} color={C.textSec} />
+                ? <ChevronDown size={14} color={C.textSec} />
+                : <ChevronRight size={14} color={C.textSec} />
               }
             </View>
           </>
@@ -135,9 +150,9 @@ function EchoNavGroup({
       </Pressable>
       {/* Child items */}
       {isOpen && !collapsed && (
-        <View style={{ gap: 2 }}>
+        <View style={{ gap: 2, marginTop: 2, marginBottom: 4 }}>
           {showcases.map((sc) => {
-            const isSelected = active === sc.slug || active === `echo-showcase:${sc.slug}`;
+            const isSelected = active === sc.slug || active === `echo-showcase:${sc.slug}` || (active === 'echo-showcase' && sc.slug === firstSlug);
             return (
               <Pressable
                 key={sc.slug}
@@ -145,8 +160,9 @@ function EchoNavGroup({
                 style={({ hovered }: any) => [
                   {
                     flexDirection: 'row', alignItems: 'center', gap: 8,
-                    paddingLeft: 32, paddingRight: 11, paddingVertical: 8,
-                    borderRadius: 8, minHeight: 36,
+                    paddingLeft: 28, paddingRight: 11, paddingVertical: 6,
+                    borderRadius: 8, minHeight: 34,
+                    backgroundColor: hovered && !isSelected && Platform.OS === 'web' ? 'rgba(255,255,255,0.06)' : 'transparent',
                   },
                   Platform.OS === 'web' ? { cursor: 'pointer' } as any : {},
                 ]}
@@ -161,20 +177,20 @@ function EchoNavGroup({
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                     style={{
                       flexDirection: 'row', alignItems: 'center', gap: 8,
-                      flex: 1, paddingHorizontal: 10, paddingVertical: 7,
+                      flex: 1, paddingHorizontal: 10, paddingVertical: 6,
                       borderRadius: 8,
                       ...(Platform.OS === 'web' ? { boxShadow: PALETTE.violetGlow } as any : {}),
                     }}
                   >
-                    <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#fff', opacity: 0.8 }} />
-                    <Text style={{ fontFamily: TYPO.body600, fontSize: 12.5, color: '#fff', flex: 1 }} numberOfLines={1}>
+                    <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#fff', opacity: 0.9 }} />
+                    <Text style={{ fontFamily: TYPO.body600, fontSize: 12, color: '#fff', flex: 1 }} numberOfLines={1}>
                       {sc.title}
                     </Text>
                   </LinearGradient>
                 ) : (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: C.dim }} />
-                    <Text style={{ fontFamily: TYPO.body500, fontSize: 12.5, color: C.textSec }} numberOfLines={1}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, paddingHorizontal: 10, paddingVertical: 6 }}>
+                    <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.4)' }} />
+                    <Text style={{ fontFamily: TYPO.body500, fontSize: 12, color: C.textSec, flex: 1 }} numberOfLines={1}>
                       {sc.title}
                     </Text>
                   </View>
@@ -195,12 +211,14 @@ export function Sidebar({
   const { theme, isDark } = useTheme();
   const bp = useBreakpoint();
   const user = useAuthStore((u) => u.user) as any;
-  const [echoOpen, setEchoOpen] = React.useState<boolean>(
-    active === 'echo-showcase' || active?.startsWith('echo-showcase:')
+  const isEchoActive = active === 'echo-showcase' || active?.startsWith('echo-showcase:') || (
+    !['dashboard', 'career-ai', 'internships', 'network', 'my-bookings', 'myevents', 'events',
+      'my-workshops', 'my-tickets', 'my-certificates', 'courses', 'financial', 'deals', 'wallet', 'higher-ed', 'rentals', 'profile'].includes(active)
   );
+  const [echoOpen, setEchoOpen] = React.useState<boolean>(isEchoActive);
   React.useEffect(() => {
-    if (active === 'echo-showcase' || active?.startsWith('echo-showcase:')) setEchoOpen(true);
-  }, [active]);
+    if (isEchoActive) setEchoOpen(true);
+  }, [isEchoActive]);
 
   const fullName: string = displayName(user);
   const initials: string = displayInitials(user);

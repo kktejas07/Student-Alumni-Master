@@ -142,7 +142,7 @@ export function DigiLockerOAuthModal({
                       <Text style={s.govBadgeText}>Govt of India</Text>
                     </View>
                   </View>
-                  <Text style={s.brandSub}>MeriPehchaan · National Single Sign-On (NSSO)</Text>
+                  <Text style={s.brandSub}>MeriPehchaan Ã‚Â· National Single Sign-On (NSSO)</Text>
                 </View>
               </View>
 
@@ -167,7 +167,7 @@ export function DigiLockerOAuthModal({
             </View>
             <View style={[s.stepLine, (step === 'syncing' || step === 'complete') && s.stepLineActive]} />
             <View style={[s.stepDot, step === 'complete' && s.stepDotActive]}>
-              <Text style={s.stepNum}>✓</Text>
+              <Check size={16} color="#fff" />
             </View>
           </View>
 
@@ -388,7 +388,7 @@ export function DigiLockerOAuthModal({
             {step === 'syncing' && (
               <View style={{ alignItems: 'center', paddingVertical: 24, gap: 14 }}>
                 <ActivityIndicator size="large" color="#38BDF8" />
-                <Text style={s.sheetTitle}>Pulling DigiLocker &amp; Aadhaar e-KYC Data…</Text>
+                <Text style={s.sheetTitle}>Pulling DigiLocker &amp; Aadhaar e-KYC DataÃ¢â‚¬Â¦</Text>
                 <Text style={s.sheetSub}>
                   Cryptographically verifying credentials with National Academic Depository &amp; UIDAI.
                 </Text>
@@ -414,7 +414,7 @@ export function DigiLockerOAuthModal({
                       <Award size={18} color="#38BDF8" />
                       <View style={{ flex: 1 }}>
                         <Text style={s.syncedDocName}>{doc.name}</Text>
-                        <Text style={s.syncedDocIssuer}>{doc.issuer} · {doc.status}</Text>
+                        <Text style={s.syncedDocIssuer}>{doc.issuer} Ã‚Â· {doc.status}</Text>
                       </View>
                       <View style={s.verifiedTag}>
                         <Text style={s.verifiedTagText}>VERIFIED</Text>
@@ -737,3 +737,5 @@ const s = StyleSheet.create({
     fontWeight: '800',
   },
 });
+
+

@@ -131,7 +131,7 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
               Demo Mode · Sample data is displayed for demonstration purposes.{' '}
               <Text 
                 onPress={() => setDemoMode?.(false)}
-                style={{ textDecorationLine: 'underline', color: '#1C1C1E', fontFamily: FONTS.bold }}
+                style={{ textDecorationLine: 'underline', color: '#FFFFFF', fontFamily: FONTS.bold }}
               >
                 Switch to Live Mode
               </Text>
@@ -205,11 +205,11 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
                 <View key={i} style={s.sessionRow}>
                   <Av initials={sess.avatar} size={40} color={sess.color} />
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13 }}>{sess.student}</Text>
+                    <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13 }}>{sess.student}</Text>
                     <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 11 }}>{sess.topic}</Text>
                   </View>
                   <View style={{ alignItems: 'flex-end', marginRight: 10 }}>
-                    <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13 }}>{sess.time}</Text>
+                    <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13 }}>{sess.time}</Text>
                     <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 11 }}>{sess.duration} min</Text>
                   </View>
                   <Pressable
@@ -242,7 +242,7 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                   <Av initials={stu.avatar} size={34} color={stu.color} />
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text numberOfLines={1} style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 }}>{stu.name}</Text>
+                    <Text numberOfLines={1} style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12 }}>{stu.name}</Text>
                     <Text numberOfLines={1} style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 10 }}>{stu.college}</Text>
                   </View>
                 </View>
@@ -281,7 +281,7 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
               style={{ height: '100%', width: '100%', borderRadius: 2 }} />
           </View>
           <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginBottom: 12 }}>
-            This month · <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold }}>0%</Text>
+            This month · <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold }}>0%</Text>
           </Text>
           <Pressable
             onPress={() => onNav('earnings')}
@@ -300,7 +300,7 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
         <View style={s.widgetCard}>
           <Text style={s.widgetKicker}>FEEDBACK SUMMARY</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 34 }}>{demoMode ? (liveMentor?.rating || '0.0') : '—'}</Text>
+            <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 34 }}>{demoMode ? (liveMentor?.rating || '0.0') : '—'}</Text>
             <View>
               <StarRow rating={demoMode ? Math.round(Number(liveMentor?.rating || 0)) : 0} size={14} />
               <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 3 }}>
@@ -310,7 +310,7 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
           </View>
           {RATING_DIST.slice(0, 3).map((d) => (
             <View key={d.stars} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-              <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 10, width: 18 }}>{d.stars}★</Text>
+              <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 10, width: 18 }}>{d.stars}</Text>
               <View style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
                 <LinearGradient colors={[MC.teal, MC.tealD] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                   style={{ height: '100%', width: `${d.pct}%`, borderRadius: 3 }} />
@@ -338,7 +338,7 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
             <View key={stu.id} style={[s.upcomingRow, i < upcoming.length - 1 && { borderBottomWidth: 1, borderBottomColor: MC.border }]}>
               <Av initials={stu.avatar} size={30} color={stu.color} />
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text numberOfLines={1} style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 11 }}>{stu.name}</Text>
+                <Text numberOfLines={1} style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 11 }}>{stu.name}</Text>
                 <Text numberOfLines={1} style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 10 }}>
                   {stu.nextSession!.date} · {stu.nextSession!.time}
                 </Text>
@@ -388,8 +388,8 @@ function AIDailyBriefing({ onNav, demoMode = false }: { onNav: (id: string) => v
           <Text style={{ color: '#FCD34D', fontFamily: FONTS.xbold, fontSize: 9 }}>POWERED BY CLAUDE</Text>
         </View>
       </View>
-      <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16, lineHeight: 22, marginBottom: 8 }}>
-        {briefText ? 'Today\'s briefing' : (demoMode ? `Good morning, ${firstName} ✨` : 'AI Morning Summary')}
+      <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 16, lineHeight: 22, marginBottom: 8 }}>
+        {briefText ? 'Today\'s briefing' : (demoMode ? `Good morning, ${firstName} ` : 'AI Morning Summary')}
       </Text>
       <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18, marginBottom: 12 }}>
         {demoMode ? (
@@ -498,7 +498,7 @@ const s = StyleSheet.create({
     borderColor: MC.border, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
-  statValue: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 26, letterSpacing: -0.5, marginBottom: 4 },
+  statValue: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 26, letterSpacing: -0.5, marginBottom: 4 },
 
   /* Card boxes */
   cardBox: {
@@ -542,8 +542,8 @@ const s = StyleSheet.create({
   },
   widgetKicker: { color: MC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 1, marginBottom: 10 },
   widgetKickerDark: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1 },
-  widgetBigDark: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 28, letterSpacing: -0.5, marginBottom: 8 },
-  widgetBigLight: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 34, letterSpacing: -1, marginVertical: 8 },
+  widgetBigDark: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 28, letterSpacing: -0.5, marginBottom: 8 },
+  widgetBigLight: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 34, letterSpacing: -1, marginVertical: 8 },
   miniTrack: { height: 3, borderRadius: 2, backgroundColor: 'rgba(20,184,166,0.20)', overflow: 'hidden', marginBottom: 8 },
   withdrawBtn: {
     paddingVertical: 11, alignItems: 'center', borderRadius: 10,

@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check, Search, AlertTriangle, Info, Loader, X } from 'lucide-react-native';
-import { SAC, FONTS } from './tokens';
+import { SAC, useSAC, FONTS, resolveColors } from './tokens';
 
 /* ─────────────────────────────────────────────────────────────────
  * Gradient palette (warm orange → amber, matches Settings spec)
@@ -35,23 +35,28 @@ export const GRAD = {
  * GradientButton — primary CTA used everywhere
  * ───────────────────────────────────────────────────────────────── */
 export function GradientButton({
-  onPress, loading, disabled, children, size = 'md', style,
+  onPress, loading, disabled, children, title, Icon, icon: iconProp, size = 'md', style,
 }: {
   onPress?: () => void; loading?: boolean; disabled?: boolean;
-  children: React.ReactNode; size?: 'sm' | 'md' | 'lg'; style?: any;
+  children?: React.ReactNode; title?: string; Icon?: any; icon?: any; size?: 'sm' | 'md' | 'lg'; style?: any;
 }) {
+  const T = useSAC();
+  Object.assign(k, resolveColors(k, T));
   const pad = size === 'sm'
     ? { paddingHorizontal: 11, paddingVertical: 7 }
     : size === 'lg'
     ? { paddingHorizontal: 18, paddingVertical: 11 }
     : { paddingHorizontal: 14, paddingVertical: 9 };
+
+  const TheIcon = Icon || iconProp;
+
   return (
     <Pressable
       onPress={onPress}
       disabled={loading || disabled}
       style={({ hovered }: any) => [
         { opacity: loading || disabled ? 0.6 : 1 },
-        hovered && Platform.OS === 'web' ? { transform: [{ translateY: -1 }] } : null,
+        hovered && Platform.OS === 'web' ? { transform: [{ translateY: -1 }], cursor: 'pointer' } : null,
         style,
       ]}
     >
@@ -60,19 +65,37 @@ export function GradientButton({
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={[k.btn, pad]}
       >
-        {loading ? <ActivityIndicator size="small" color="#fff" /> : children}
+        {loading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : children ? (
+          children
+        ) : (
+          <>
+            {TheIcon && <TheIcon size={size === 'sm' ? 13 : 15} color="#fff" />}
+            {title && (
+              <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: size === 'sm' ? 12 : 13, letterSpacing: 0.2 }}>
+                {title}
+              </Text>
+            )}
+          </>
+        )}
       </LinearGradient>
     </Pressable>
   );
 }
 
-export function SecondaryButton({ onPress, loading, disabled, children, size = 'md', danger, style }: {
+export function SecondaryButton({
+  onPress, loading, disabled, children, title, Icon, icon: iconProp, size = 'md', danger, style,
+}: {
   onPress?: () => void; loading?: boolean; disabled?: boolean;
-  children: React.ReactNode; size?: 'sm' | 'md' | 'lg'; danger?: boolean; style?: any;
+  children?: React.ReactNode; title?: string; Icon?: any; icon?: any; size?: 'sm' | 'md' | 'lg'; danger?: boolean; style?: any;
 }) {
   const pad = size === 'sm'
     ? { paddingHorizontal: 11, paddingVertical: 7 }
     : { paddingHorizontal: 14, paddingVertical: 9 };
+
+  const TheIcon = Icon || iconProp;
+
   return (
     <Pressable
       onPress={onPress}
@@ -81,11 +104,24 @@ export function SecondaryButton({ onPress, loading, disabled, children, size = '
         k.secBtn, pad,
         { opacity: loading || disabled ? 0.6 : 1 },
         danger && { borderColor: 'rgba(239,68,68,0.35)' },
-        hovered && Platform.OS === 'web' ? { backgroundColor: 'rgba(255,255,255,0.05)' } : null,
+        hovered && Platform.OS === 'web' ? { backgroundColor: 'rgba(255,255,255,0.05)', cursor: 'pointer' } : null,
         style,
       ]}
     >
-      {loading ? <ActivityIndicator size="small" color="#7C3AED" /> : children}
+      {loading ? (
+        <ActivityIndicator size="small" color="#7C3AED" />
+      ) : children ? (
+        children
+      ) : (
+        <>
+          {TheIcon && <TheIcon size={size === 'sm' ? 13 : 14} color={danger ? '#EF4444' : SAC.muted} />}
+          {title && (
+            <Text style={{ color: danger ? '#EF4444' : SAC.text, fontFamily: FONTS.bold, fontSize: size === 'sm' ? 12 : 13 }}>
+              {title}
+            </Text>
+          )}
+        </>
+      )}
     </Pressable>
   );
 }
@@ -488,14 +524,14 @@ const k = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, alignSelf: 'flex-start',
   },
-  pillGradText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.4 },
+  pillGradText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.4 },
 
   tabsOuter: { backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14 },
   tabActive: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 13, paddingVertical: 8, borderRadius: 10,
   },
-  tabActiveText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  tabActiveText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12.5 },
   tabInactive: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 13, paddingVertical: 8, borderRadius: 10,
@@ -511,7 +547,7 @@ const k = StyleSheet.create({
     paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.22)', minWidth: 20, alignItems: 'center',
   },
-  tabCountActiveText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 10 },
+  tabCountActiveText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 10 },
 
   searchBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -519,7 +555,7 @@ const k = StyleSheet.create({
     borderRadius: 10, backgroundColor: SAC.cardSolid, borderColor: SAC.border, borderWidth: 1,
   },
   searchInput: {
-    flex: 1, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12,
+    flex: 1, color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
 
@@ -574,7 +610,7 @@ const k = StyleSheet.create({
   },
   toastText: {
     flex: 1,
-    color: '#fff',
+    color: SAC.text,
     fontFamily: FONTS.semi,
     fontSize: 13,
     lineHeight: 18,
@@ -605,7 +641,7 @@ const k = StyleSheet.create({
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, gap: 10,
   },
   kpiLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 0.3 },
-  kpiValue: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 26, letterSpacing: -0.5 },
+  kpiValue: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 26, letterSpacing: -0.5 },
   kpiDelta: { fontFamily: FONTS.bold, fontSize: 11, marginTop: -4 },
 
   empty: {
@@ -617,6 +653,6 @@ const k = StyleSheet.create({
     backgroundColor: GRAD.ringSoft, borderWidth: 1, borderColor: GRAD.ring,
     alignItems: 'center', justifyContent: 'center',
   },
-  emptyTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
+  emptyTitle: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 13 },
   emptySub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center' },
 });

@@ -14,6 +14,8 @@ import { useToast } from '@/src/views/components';
 import { track, trackClick, trackScreen, logger as analyticsLogger } from '@/src/analytics';
 
 import { LiveDataLoader, SkeletonPulse } from '@/src/views/web/components/AppLoader';
+import { useTheme } from '@/src/theme/ThemeContext';
+import { EmptyState } from '../EmptyState';
 
 type Ev = {
   id: string;
@@ -92,13 +94,13 @@ const enrichEvent = (e: Ev) => {
   const catLower = (e.cat || e.type || e.event_type || 'workshop').toLowerCase();
   
   if (catLower.includes('hackathon')) {
-    if (!prizePool) prizePool = `🏆 ₹${(50000 + (hash % 10) * 50000).toLocaleString('en-IN')} Prize Pool`;
+    if (!prizePool) prizePool = ` ₹${(50000 + (hash % 10) * 50000).toLocaleString('en-IN')} Prize Pool`;
     if (!tags.length) tags = ['Hackathon', 'AI/ML', 'Global'];
   } else if (catLower.includes('quiz')) {
-    if (!prizePool) prizePool = `🥇 Certificate + Goodies`;
+    if (!prizePool) prizePool = ` Certificate + Goodies`;
     if (!tags.length) tags = ['Quiz', 'Knowledge', 'National'];
   } else if (catLower.includes('competition')) {
-    if (!prizePool) prizePool = `🏆 ₹${(25000 + (hash % 5) * 25000).toLocaleString('en-IN')} Awards`;
+    if (!prizePool) prizePool = ` ₹${(25000 + (hash % 5) * 25000).toLocaleString('en-IN')} Awards`;
     if (!tags.length) tags = ['Case Study', 'Competition'];
   } else if (catLower.includes('workshop')) {
     if (!tags.length) tags = ['Workshop', 'Hands-on', 'Live Learning'];
@@ -132,6 +134,7 @@ interface DropdownSelectProps {
 }
 
 export function DropdownSelect({ label, value, options, onSelect }: DropdownSelectProps) {
+  const { isDark } = useTheme();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<any>(null);
 
@@ -154,7 +157,14 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
 
   return (
     <View ref={wrapRef} style={{ position: 'relative', minWidth: 160, zIndex: open ? 9999 : 1 }}>
-      <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontFamily: FONTS.bold, textTransform: 'uppercase', marginBottom: 4, letterSpacing: 0.5 }}>
+      <Text style={{
+        color: isDark ? 'rgba(255,255,255,0.5)' : '#475569',
+        fontSize: 10.5,
+        fontFamily: FONTS.bold,
+        textTransform: 'uppercase',
+        marginBottom: 5,
+        letterSpacing: 0.5,
+      }}>
         {label}
       </Text>
       <Pressable
@@ -174,17 +184,17 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
           height: 38,
           paddingHorizontal: 12,
           borderRadius: 8,
-          backgroundColor: 'rgba(255,255,255,0.03)',
+          backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF',
           borderWidth: 1,
-          borderColor: open ? '#6366F1' : 'rgba(255,255,255,0.08)',
+          borderColor: open ? '#6366F1' : (isDark ? 'rgba(255,255,255,0.1)' : '#CBD5E1'),
           // @ts-ignore
           cursor: 'pointer',
         }}
       >
-        <Text style={{ color: '#fff', fontSize: 12, fontFamily: FONTS.med }}>
+        <Text style={{ color: isDark ? '#fff' : '#0F172A', fontSize: 12, fontFamily: FONTS.med }}>
           {selectedOption?.label}
         </Text>
-        <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={15} color="rgba(255,255,255,0.6)" />
+        <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={15} color={isDark ? 'rgba(255,255,255,0.6)' : '#64748B'} />
       </Pressable>
       
       {open && (
@@ -195,13 +205,13 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
             left: 0,
             right: 0,
             marginTop: 4,
-            backgroundColor: '#13091F',
-            borderColor: 'rgba(255,255,255,0.09)',
+            backgroundColor: isDark ? '#13091F' : '#FFFFFF',
+            borderColor: isDark ? 'rgba(255,255,255,0.09)' : '#E2E8F0',
             borderWidth: 1,
             borderRadius: 8,
             overflow: 'hidden',
             // @ts-ignore
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.5)' : '0 10px 25px rgba(0,0,0,0.12)',
           }}
         >
           <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
@@ -222,14 +232,20 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
                   style={{
                     paddingHorizontal: 12,
                     paddingVertical: 10,
-                    backgroundColor: isSel ? 'rgba(139, 92, 246, 0.12)' : 'transparent',
+                    backgroundColor: isSel
+                      ? (isDark ? 'rgba(139, 92, 246, 0.15)' : '#EEF2FF')
+                      : 'transparent',
                     borderBottomWidth: 1,
-                    borderBottomColor: 'rgba(255,255,255,0.04)',
+                    borderBottomColor: isDark ? 'rgba(255,255,255,0.04)' : '#F1F5F9',
                     // @ts-ignore
                     cursor: 'pointer',
                   }}
                 >
-                  <Text style={{ color: isSel ? '#A78BFA' : '#fff', fontSize: 12, fontFamily: isSel ? FONTS.bold : FONTS.med }}>
+                  <Text style={{
+                    color: isSel ? (isDark ? '#A78BFA' : '#4F46E5') : (isDark ? '#fff' : '#0F172A'),
+                    fontSize: 12,
+                    fontFamily: isSel ? FONTS.bold : FONTS.med,
+                  }}>
                     {opt.label}
                   </Text>
                 </Pressable>
@@ -243,6 +259,7 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
 }
 
 export function EventsView() {
+  const { isDark } = useTheme();
   const toast = useToast();
   const [eventsData, setEventsData] = useState<any>(null);
   const [eventsLoading, setEventsLoading] = useState(true);
@@ -357,8 +374,14 @@ export function EventsView() {
       </View>
 
       {/* Search Input */}
-      <View style={s.searchWrap}>
-        <MaterialCommunityIcons name="magnify" size={18} color="rgba(255,255,255,0.45)" style={{ marginRight: 8 }} />
+      <View style={[
+        s.searchWrap,
+        {
+          backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF',
+          borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#CBD5E1',
+        }
+      ]}>
+        <MaterialCommunityIcons name="magnify" size={18} color={isDark ? 'rgba(255,255,255,0.45)' : '#64748B'} style={{ marginRight: 8 }} />
         <TextInput
           value={searchQuery}
           onChangeText={(val) => {
@@ -369,8 +392,11 @@ export function EventsView() {
             trackClick('myevent_search_submit', { query: searchQuery });
           }}
           placeholder="Search global events by title, description, or mode..."
-          placeholderTextColor="rgba(255,255,255,0.35)"
-          style={s.searchInput}
+          placeholderTextColor={isDark ? 'rgba(255,255,255,0.35)' : '#94A3B8'}
+          style={[
+            s.searchInput,
+            { color: isDark ? '#FFFFFF' : '#0F172A' }
+          ]}
           accessibilityLabel="Search global open events"
           accessibilityHint="Type to filter hackathons, workshops, and quizzes by keyword"
           testID="myevent-search-input"
@@ -387,7 +413,7 @@ export function EventsView() {
             testID="myevent-search-clear-btn"
             style={{ padding: 4 }}
           >
-            <MaterialCommunityIcons name="close-circle" size={16} color="rgba(255,255,255,0.4)" />
+            <MaterialCommunityIcons name="close-circle" size={16} color={isDark ? 'rgba(255,255,255,0.4)' : '#94A3B8'} />
           </Pressable>
         )}
       </View>
@@ -412,8 +438,8 @@ export function EventsView() {
       </View>
 
       <View style={{ marginBottom: 18 }}>
-        <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 18 }}>Live Events Feed</Text>
-        <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 }}>
+        <Text style={{ color: isDark ? '#fff' : '#0F172A', fontFamily: FONTS.bold, fontSize: 18 }}>Live Events Feed</Text>
+        <Text style={{ color: isDark ? SC.muted : '#64748B', fontFamily: FONTS.med, fontSize: 12, marginTop: 2 }}>
           {processedList.length} open global events available
         </Text>
       </View>
@@ -427,15 +453,13 @@ export function EventsView() {
           </View>
         </LiveDataLoader>
       ) : processedList.length === 0 ? (
-        <View style={{ paddingVertical: 80, alignItems: 'center', justifyContent: 'center' }}>
-          <MaterialCommunityIcons name="calendar-search" size={48} color="rgba(255,255,255,0.15)" />
-          <Text style={{ color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.bold, fontSize: 14, marginTop: 12 }}>
-            No open events found
-          </Text>
-          <Text style={{ color: 'rgba(255,255,255,0.3)', fontFamily: FONTS.med, fontSize: 12, marginTop: 4 }}>
-            Try adjusting your search query or category filters
-          </Text>
-        </View>
+        <EmptyState
+          variant="bookings"
+          title="No open events found"
+          body="Try adjusting your search query or category filters"
+          cta={{ label: 'Reset filters', onPress: () => { setFilter('All'); setSearchQuery(''); } }}
+          compact
+        />
       ) : (
         <>
           <View style={s.grid}>
@@ -443,7 +467,7 @@ export function EventsView() {
               const isReg = e.registered || rsvpd.has(e.id);
               const spotsColor = e.spotsLeft <= 5 ? '#EF4444'
                                : e.spotsLeft <= 50 ? '#F59E0B'
-                               : '#10B981';
+                               : (isDark ? '#10B981' : '#059669');
 
               const shouldGlow = idx < 3 || e.title.includes('Hack') || e.title.includes('Code');
 
@@ -475,7 +499,7 @@ export function EventsView() {
                     {/* Top Row: Icon on left, Category/Featured badges, Price on right */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <View style={[s.iconBox, { backgroundColor: e.accentColor + '15', borderColor: e.accentColor + '30' }]}>
+                        <View style={[s.iconBox, { backgroundColor: e.accentColor + (isDark ? '15' : '20'), borderColor: e.accentColor + '40' }]}>
                           <CalIcon size={14} color={e.accentColor} />
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -487,43 +511,53 @@ export function EventsView() {
                     </View>
 
                     {/* Title */}
-                    <Text numberOfLines={2} style={s.cardTitle}>{e.title}</Text>
-                    <Text numberOfLines={1} style={s.orgSubtitle}>Organized by {e.orgName}</Text>
+                    <Text numberOfLines={2} style={[s.cardTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{e.title}</Text>
+                    <Text numberOfLines={1} style={[s.orgSubtitle, { color: isDark ? '#A5B4FC' : '#4F46E5' }]}>Organized by {e.orgName}</Text>
 
                     {/* Prize Pool Row (if applicable) */}
                     {!!e.prizePool && (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, marginBottom: 2 }}>
-                        <Award size={13} color="#FBBF24" />
-                        <Text style={s.prizeText}>{e.prizePool}</Text>
+                        <Award size={13} color={isDark ? '#FBBF24' : '#D97706'} />
+                        <Text style={[s.prizeText, { color: isDark ? '#FBBF24' : '#D97706' }]}>{e.prizePool}</Text>
                       </View>
                     )}
 
                     {/* Description */}
-                    <Text numberOfLines={3} style={s.description}>{e.description}</Text>
+                    <Text numberOfLines={3} style={[s.description, { color: isDark ? SC.muted : '#475569' }]}>{e.description}</Text>
 
                     {/* Meta details: Date, Mode, City */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 8, flexWrap: 'wrap' }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                        <CalIcon size={10} color={SC.muted} />
-                        <Text style={s.metaText}>{e.date}</Text>
+                        <CalIcon size={10} color={isDark ? SC.muted : '#64748B'} />
+                        <Text style={[s.metaText, { color: isDark ? SC.muted : '#475569' }]}>{e.date}</Text>
                       </View>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                        <Globe2 size={10} color={SC.muted} />
-                        <Text style={s.metaText}>{e.mode}</Text>
+                        <Globe2 size={10} color={isDark ? SC.muted : '#64748B'} />
+                        <Text style={[s.metaText, { color: isDark ? SC.muted : '#475569' }]}>{e.mode}</Text>
                       </View>
                     </View>
 
                     {/* Tags */}
                     <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap', marginBottom: 12 }}>
                       {e.tags.map((tag) => (
-                        <View key={tag} style={s.tagBox}>
-                          <Text style={s.tagText}>{tag}</Text>
+                        <View
+                          key={tag}
+                          style={[
+                            s.tagBox,
+                            {
+                              backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9',
+                              borderWidth: isDark ? 0 : 1,
+                              borderColor: '#E2E8F0',
+                            }
+                          ]}
+                        >
+                          <Text style={[s.tagText, { color: isDark ? SC.muted : '#475569' }]}>{tag}</Text>
                         </View>
                       ))}
                     </View>
 
                     {/* Divider */}
-                    <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginVertical: 4, marginTop: 'auto' }} />
+                    <View style={{ height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#E2E8F0', marginVertical: 4, marginTop: 'auto' }} />
 
                     {/* Card Footer: Spots left & Register Button */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
@@ -566,7 +600,14 @@ export function EventsView() {
           {eventsPages > 1 && (
             <View style={s.pagination}>
               <Pressable
-                style={[s.pageBtn, eventsPage <= 1 && { opacity: 0.4 }]}
+                style={[
+                  s.pageBtn,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
+                    borderColor: isDark ? 'rgba(255,255,255,0.10)' : '#CBD5E1',
+                  },
+                  eventsPage <= 1 && { opacity: 0.4 }
+                ]}
                 onPress={() => {
                   if (eventsPage > 1) {
                     trackClick('myevent_pagination_prev', { page: eventsPage - 1 });
@@ -577,11 +618,18 @@ export function EventsView() {
                 accessibilityRole="button"
                 testID="myevent-page-prev"
               >
-                <Text style={s.pageBtnText}>Prev</Text>
+                <Text style={[s.pageBtnText, { color: isDark ? '#fff' : '#0F172A' }]}>Prev</Text>
               </Pressable>
-              <Text style={s.pageInfo}>{eventsPage} / {eventsPages}</Text>
+              <Text style={[s.pageInfo, { color: isDark ? SC.muted : '#64748B' }]}>{eventsPage} / {eventsPages}</Text>
               <Pressable
-                style={[s.pageBtn, eventsPage >= eventsPages && { opacity: 0.4 }]}
+                style={[
+                  s.pageBtn,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
+                    borderColor: isDark ? 'rgba(255,255,255,0.10)' : '#CBD5E1',
+                  },
+                  eventsPage >= eventsPages && { opacity: 0.4 }
+                ]}
                 onPress={() => {
                   if (eventsPage < eventsPages) {
                     trackClick('myevent_pagination_next', { page: eventsPage + 1 });
@@ -592,7 +640,7 @@ export function EventsView() {
                 accessibilityRole="button"
                 testID="myevent-page-next"
               >
-                <Text style={s.pageBtnText}>Next</Text>
+                <Text style={[s.pageBtnText, { color: isDark ? '#fff' : '#0F172A' }]}>Next</Text>
               </Pressable>
             </View>
           )}
@@ -608,7 +656,16 @@ export function EventsView() {
           onRequestClose={() => setSelectedEvent(null)}
         >
           <View style={s.modalOverlay}>
-            <View style={s.modalContainer} testID="myevent-modal-container">
+            <View
+              style={[
+                s.modalContainer,
+                {
+                  backgroundColor: isDark ? '#0F1528' : '#FFFFFF',
+                  borderColor: isDark ? 'rgba(124,58,237,0.3)' : '#E2E8F0',
+                }
+              ]}
+              testID="myevent-modal-container"
+            >
               {/* Banner Image */}
               <View style={{ height: 180, position: 'relative', width: '100%' }}>
                 <Image
@@ -643,51 +700,79 @@ export function EventsView() {
 
               {/* Modal Body */}
               <ScrollView style={{ padding: 16, maxHeight: 380 }}>
-                <Text style={{ color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 }}>
+                <Text style={{ color: isDark ? '#A78BFA' : '#4F46E5', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 }}>
                   Organized by {selectedEvent.orgName}
                 </Text>
 
                 {/* Status & Date Pills */}
                 <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-                  <View style={s.modalMetaPill}>
-                    <CalIcon size={12} color="#A5B4FC" />
-                    <Text style={s.modalMetaText}>{selectedEvent.date}</Text>
+                  <View style={[
+                    s.modalMetaPill,
+                    {
+                      backgroundColor: isDark ? 'rgba(99,102,241,0.1)' : '#EEF2FF',
+                      borderColor: isDark ? 'rgba(99,102,241,0.25)' : '#C7D2FE',
+                    }
+                  ]}>
+                    <CalIcon size={12} color={isDark ? '#A5B4FC' : '#4F46E5'} />
+                    <Text style={[s.modalMetaText, { color: isDark ? '#A5B4FC' : '#4338CA' }]}>{selectedEvent.date}</Text>
                   </View>
-                  <View style={s.modalMetaPill}>
-                    <Globe2 size={12} color="#A5B4FC" />
-                    <Text style={s.modalMetaText}>{selectedEvent.mode}</Text>
+                  <View style={[
+                    s.modalMetaPill,
+                    {
+                      backgroundColor: isDark ? 'rgba(99,102,241,0.1)' : '#EEF2FF',
+                      borderColor: isDark ? 'rgba(99,102,241,0.25)' : '#C7D2FE',
+                    }
+                  ]}>
+                    <Globe2 size={12} color={isDark ? '#A5B4FC' : '#4F46E5'} />
+                    <Text style={[s.modalMetaText, { color: isDark ? '#A5B4FC' : '#4338CA' }]}>{selectedEvent.mode}</Text>
                   </View>
                   {!!selectedEvent.prizePool && (
-                    <View style={[s.modalMetaPill, { backgroundColor: 'rgba(245,158,11,0.15)', borderColor: 'rgba(245,158,11,0.3)' }]}>
-                      <Award size={12} color="#FBBF24" />
-                      <Text style={[s.modalMetaText, { color: '#FBBF24' }]}>{selectedEvent.prizePool}</Text>
+                    <View style={[s.modalMetaPill, { backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : '#FEF3C7', borderColor: isDark ? 'rgba(245,158,11,0.3)' : '#FDE68A' }]}>
+                      <Award size={12} color={isDark ? '#FBBF24' : '#D97706'} />
+                      <Text style={[s.modalMetaText, { color: isDark ? '#FBBF24' : '#B45309' }]}>{selectedEvent.prizePool}</Text>
                     </View>
                   )}
                 </View>
 
                 {/* Description */}
-                <Text style={{ color: '#E2E8F0', fontFamily: FONTS.med, fontSize: 13, lineHeight: 20, marginBottom: 16 }}>
+                <Text style={{ color: isDark ? '#E2E8F0' : '#334155', fontFamily: FONTS.med, fontSize: 13, lineHeight: 20, marginBottom: 16 }}>
                   {selectedEvent.description}
                 </Text>
 
                 {/* Tags */}
                 <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
                   {selectedEvent.tags.map((t: string) => (
-                    <View key={t} style={s.tagBox}>
-                      <Text style={s.tagText}>{t}</Text>
+                    <View
+                      key={t}
+                      style={[
+                        s.tagBox,
+                        {
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9',
+                          borderWidth: isDark ? 0 : 1,
+                          borderColor: '#E2E8F0',
+                        }
+                      ]}
+                    >
+                      <Text style={[s.tagText, { color: isDark ? SC.muted : '#475569' }]}>{t}</Text>
                     </View>
                   ))}
                 </View>
 
                 {/* Confirmation Box if Registered */}
                 {(selectedEvent.registered || rsvpd.has(selectedEvent.id)) && (
-                  <View style={s.confirmedBox}>
+                  <View style={[
+                    s.confirmedBox,
+                    {
+                      backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#ECFDF5',
+                      borderColor: isDark ? 'rgba(16, 185, 129, 0.3)' : '#A7F3D0',
+                    }
+                  ]}>
                     <ShieldCheck size={20} color="#10B981" />
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: '#10B981', fontFamily: FONTS.bold, fontSize: 13 }}>
+                      <Text style={{ color: isDark ? '#10B981' : '#059669', fontFamily: FONTS.bold, fontSize: 13 }}>
                         Registered on Student Alumni Portal
                       </Text>
-                      <Text style={{ color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 11, marginTop: 2 }}>
+                      <Text style={{ color: isDark ? 'rgba(255,255,255,0.7)' : '#334155', fontFamily: FONTS.med, fontSize: 11, marginTop: 2 }}>
                         Confirmation Code: {regDetails[selectedEvent.id] || 'REG-SA-CONFIRMED'}
                       </Text>
                     </View>
@@ -713,7 +798,7 @@ export function EventsView() {
                         flexDirection: 'row',
                         alignItems: 'center',
                         gap: 4,
-                        backgroundColor: 'rgba(16,185,129,0.2)',
+                        backgroundColor: isDark ? 'rgba(16,185,129,0.2)' : '#D1FAE5',
                         borderWidth: 1,
                         borderColor: '#10B981',
                         paddingHorizontal: 10,
@@ -722,25 +807,36 @@ export function EventsView() {
                       }}
                     >
                       <MaterialCommunityIcons name="file-pdf-box" size={16} color="#10B981" />
-                      <Text style={{ color: '#10B981', fontFamily: FONTS.bold, fontSize: 11 }}>Download PDF</Text>
+                      <Text style={{ color: isDark ? '#10B981' : '#047857', fontFamily: FONTS.bold, fontSize: 11 }}>Download PDF</Text>
                     </Pressable>
                   </View>
                 )}
               </ScrollView>
 
               {/* Modal Footer */}
-              <View style={s.modalFooter}>
+              <View style={[
+                s.modalFooter,
+                {
+                  borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0',
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
+                }
+              ]}>
                 <Pressable
                   onPress={() => {
                     trackClick('myevent_modal_close_footer');
                     setSelectedEvent(null);
                   }}
-                  style={s.secondaryBtn}
+                  style={[
+                    s.secondaryBtn,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#E2E8F0',
+                    }
+                  ]}
                   accessibilityLabel="Close event popup"
                   accessibilityRole="button"
                   testID="myevent-modal-close-footer-btn"
                 >
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
+                  <Text style={{ color: isDark ? '#fff' : '#0F172A', fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
                 </Pressable>
 
                 {selectedEvent.registered || rsvpd.has(selectedEvent.id) ? (
@@ -986,13 +1082,17 @@ const s = StyleSheet.create({
   },
 });
 
-function EventCardSkeleton() {
+function EventCardSkeleton({ isDark = true }: { isDark?: boolean }) {
   return (
     <View style={{
       flexGrow: 1, flexBasis: 300, maxWidth: 360,
       padding: 16, borderRadius: 14,
-      backgroundColor: 'rgba(255,255,255,0.025)',
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)'
+      backgroundColor: isDark ? 'rgba(255,255,255,0.025)' : '#FFFFFF',
+      borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#E2E8F0',
+      shadowColor: isDark ? 'transparent' : '#000',
+      shadowOpacity: isDark ? 0 : 0.05,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
     }}>
       {/* Top Row */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -1025,7 +1125,7 @@ function EventCardSkeleton() {
         <SkeletonBlock w={40} h={16} br={4} />
       </View>
       {/* Divider */}
-      <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginTop: 'auto', marginBottom: 10 }} />
+      <View style={{ height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#E2E8F0', marginTop: 'auto', marginBottom: 10 }} />
       {/* Footer */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <SkeletonBlock w={80} h={14} br={4} />

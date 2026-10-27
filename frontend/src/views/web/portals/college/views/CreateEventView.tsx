@@ -150,11 +150,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const s = StyleSheet.create({
-  h1: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
+  h1: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
   sub: { color: CC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
   card: { backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 14, padding: 18, gap: 14 },
   fieldLabel: { color: CC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.7, marginBottom: 6 },
-  input: { height: 38, borderRadius: 10, borderColor: CC.border, borderWidth: 1, paddingHorizontal: 12, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13, backgroundColor: CC.bg, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  input: { height: 38, borderRadius: 10, borderColor: CC.border, borderWidth: 1, paddingHorizontal: 12, color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 13, backgroundColor: CC.bg, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   chipRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   chip: { paddingHorizontal: 12, height: 30, borderRadius: 8, backgroundColor: CC.bg, borderColor: CC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   chipOn: { backgroundColor: CC.accentBright, borderColor: CC.accentBright },

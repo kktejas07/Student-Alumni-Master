@@ -26,7 +26,7 @@ export function ProfileView() {
               <Text style={s.name}>{STUDENT.name}</Text>
               <Text style={s.meta}>{STUDENT.year} · B.Tech CSE</Text>
               <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
-                <Badge label="Verified ✓" color="green" />
+                <Badge label="Verified" color="green" />
                 <Badge label={STUDENT.saId} color="purple" />
               </View>
             </View>
@@ -55,9 +55,9 @@ export function ProfileView() {
 
       <View style={{ width: stack ? '100%' : 320, gap: 12 }}>
         <LinearGradient colors={[SC.primary, SC.primaryD] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
-          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1 }}>STUDENT ALUMNI · DIGITAL ID</Text>
+          <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1 }}>STUDENT ALUMNI · DIGITAL ID</Text>
           <Av initials={STUDENT.initials} size={56} color={SC.primaryL} />
-          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 18, marginTop: 10 }}>{STUDENT.name}</Text>
+          <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 18, marginTop: 10 }}>{STUDENT.name}</Text>
           <Text style={{ color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 12, marginTop: 2 }}>{STUDENT.saId}</Text>
           <View style={s.qrBox}><QrCode size={88} color={SC.primaryD} /></View>
           <Text style={{ color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 10, textAlign: 'center', marginTop: 8 }}>Scan to view full profile</Text>
@@ -79,15 +79,15 @@ function Row({ Icon, label, value }: any) {
 
 const s = StyleSheet.create({
   card: { backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14, padding: 18 },
-  cardTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14 },
-  name: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 20 },
+  cardTitle: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 14 },
+  name: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 20 },
   meta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   editBtn: { paddingHorizontal: 14, height: 32, borderRadius: 8, borderWidth: 1, borderColor: SC.border2, backgroundColor: SC.card, alignItems: 'center', justifyContent: 'center' },
   rowIcon: { width: 26, height: 26, borderRadius: 8, backgroundColor: 'rgba(37,99,235,0.10)', alignItems: 'center', justifyContent: 'center' },
   rowLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 11, width: 80 },
-  rowValue: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
+  rowValue: { color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   badgeBox: { width: 100, alignItems: 'center', padding: 12, borderRadius: 12, borderWidth: 1, backgroundColor: SC.card, gap: 6 },
-  badgeLabel: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 10.5, textAlign: 'center' },
+  badgeLabel: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 10.5, textAlign: 'center' },
   idCard: { borderRadius: 18, padding: 22, alignItems: 'flex-start' },
   qrBox: { alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 14, marginTop: 14 },
 });

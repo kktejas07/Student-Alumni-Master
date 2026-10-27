@@ -21,7 +21,7 @@ export async function initFirebaseAuth(config: {
 
   try {
     const { initializeApp, getApps } = await import('firebase/app');
-    const { getAuth, GoogleAuthProvider, GithubAuthProvider, signInWithPopup, PhoneAuthProvider, signInWithPhoneNumber } = await import('firebase/auth');
+    const { getAuth, GoogleAuthProvider, GithubAuthProvider, signInWithPopup } = await import('firebase/auth');
 
     const existing = getApps();
     const app = existing.length > 0 ? existing[0] : initializeApp(config as any);
@@ -30,9 +30,7 @@ export async function initFirebaseAuth(config: {
       get auth() { return getAuth(app); },
       GoogleAuthProvider,
       GithubAuthProvider,
-      PhoneAuthProvider,
       signInWithPopup,
-      signInWithPhoneNumber,
     };
     return true;
   } catch {

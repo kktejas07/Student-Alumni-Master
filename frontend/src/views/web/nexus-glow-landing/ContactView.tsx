@@ -239,7 +239,7 @@ export function ContactView() {
                 required
                 placeholder="e.g. Rahul Sharma"
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                onChange={(e) => setForm({ ...form, name: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
                 className="w-full px-4 py-3.5 bg-[#12142B] border border-white/10 rounded-xl text-white text-sm outline-none focus:border-[#8B84FF]"
               />
             </div>
@@ -293,7 +293,7 @@ export function ContactView() {
             className="w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 bg-[#5B4FE9] hover:bg-[#4F43D6] text-white shadow-xl shadow-indigo-500/25 transition-all cursor-pointer"
           >
             <Send className="w-4 h-4" />
-            <span>{sent ? 'Message Sent ✓' : 'Transmit Message'}</span>
+            <span>{sent ? 'Message Sent' : 'Transmit Message'}</span>
           </button>
         </form>
       </div>
