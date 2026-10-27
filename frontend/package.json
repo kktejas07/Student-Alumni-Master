@@ -41,6 +41,7 @@
       "jsx"
     ],
     "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/$1",
       "^react-native$": "react-native-web",
       "^lucide-react-native$": "<rootDir>/__mocks__/lucide-react-native.tsx"
     }

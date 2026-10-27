@@ -1377,6 +1377,16 @@ async def auth_google(request: Request, req: OAuthCallback):
 
         # If standard Google OAuth verification is not configured or fails, try Firebase token verification
         if profile is None and req.id_token:
+            # Same pattern as /auth/firebase below: the service account may be
+            # stored in platform settings (DB) instead of the process env.
+            # Without this sync, _get_or_init_firebase() sees an empty env and
+            # returns None, so every legitimate Firebase ID token 401s with
+            # "Google sign-in requires a valid id_token." (production failure).
+            fb_service_account = creds.get("firebase_service_account", "")
+            if fb_service_account and not os.environ.get(
+                "FIREBASE_SERVICE_ACCOUNT_JSON"
+            ):
+                os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"] = fb_service_account
             profile = _verify_firebase_token(req.id_token)
 
         if profile is None:
