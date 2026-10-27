@@ -366,8 +366,17 @@ app.add_middleware(AppLoggingMiddleware)
 
 # SECURITY: CORSMiddleware is registered once at the bottom of this file,
 # configured from env vars (ALLOWED_ORIGINS). Do NOT add a second registration here.
+def _custom_rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> Response:
+    from fastapi.responses import JSONResponse
+    retry_after = getattr(exc, "retry_after", 60) or 60
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Too many requests. Please try again later.", "retry_after": int(retry_after)},
+        headers={"Retry-After": str(int(retry_after))}
+    )
+
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
+app.add_exception_handler(RateLimitExceeded, _custom_rate_limit_exceeded_handler)
 api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernetes ingress requirement)
 
 # ECHO Showcase sub-router

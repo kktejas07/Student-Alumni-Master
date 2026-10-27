@@ -7,6 +7,7 @@ import random
 import re
 import secrets
 import string
+import time
 from datetime import datetime, timedelta, timezone, date as _date
 from typing import Dict, List, Optional, Any
 
@@ -20,14 +21,14 @@ except ImportError:
     g_id = None
     g_req = None
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, Query
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, EmailStr, field_validator
-from slowapi import Limiter
 from bson import ObjectId
 
 from core.middleware import get_real_ip
 from core.db import db
+from core.config import limiter
 from core.security import (
     hash_password, verify_password, create_access_token, create_refresh_token,
     encrypt_value, decrypt_value, _audit_log, _audit_log_many,
@@ -47,8 +48,60 @@ except ImportError:
     fb_auth = None  # type: ignore
 
 router = APIRouter(tags=["auth"])
-limiter = Limiter(key_func=get_real_ip)
 logger = logging.getLogger("auth")
+
+# ── Roles Allowed & Forbidden for Public Self-Registration ─────────────
+ALLOWED_REGISTRATION_ROLES = {"student", "alumni", "mentor", "college"}
+FORBIDDEN_REGISTRATION_ROLES = {
+    "admin", "super_admin", "superadmin", "college_admin", "support",
+    "administrator", "system_admin", "root"
+}
+
+# ── HttpOnly Cookie Helpers for Session Storage Hardening ──────────────
+def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
+    is_prod = os.getenv("ENV") == "production"
+    response.set_cookie(
+        key="scd_refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=is_prod,
+        samesite="lax",
+        path="/api/auth",
+        max_age=30 * 24 * 3600,
+    )
+
+def _clear_refresh_cookie(response: Response) -> None:
+    is_prod = os.getenv("ENV") == "production"
+    response.delete_cookie(
+        key="scd_refresh_token",
+        path="/api/auth",
+        httponly=True,
+        secure=is_prod,
+        samesite="lax",
+    )
+
+# ── Login Rate Limiting & Failed Attempt Throttling ───────────────────
+_failed_login_attempts: Dict[str, List[float]] = {}
+_FAILED_LOGIN_WINDOW = 60.0  # 60-second sliding window
+_MAX_FAILED_LOGINS = 5       # Max 5 failed attempts before throttling
+
+def _record_failed_login(key: str) -> bool:
+    now = time.time()
+    cutoff = now - _FAILED_LOGIN_WINDOW
+    history = [t for t in _failed_login_attempts.get(key, []) if t > cutoff]
+    history.append(now)
+    _failed_login_attempts[key] = history
+    return len(history) >= _MAX_FAILED_LOGINS
+
+def _is_login_throttled(key: str) -> bool:
+    now = time.time()
+    cutoff = now - _FAILED_LOGIN_WINDOW
+    history = [t for t in _failed_login_attempts.get(key, []) if t > cutoff]
+    _failed_login_attempts[key] = history
+    return len(history) >= _MAX_FAILED_LOGINS
+
+def _clear_failed_logins(key: str) -> None:
+    _failed_login_attempts.pop(key, None)
 
 try:
     from activity_credits import _record_activity
@@ -101,6 +154,8 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     full_name: str
+    # Typed allowlist (core.models.SelfServiceRole) plus the validator below,
+    # which normalises case/whitespace and answers 403 for privileged roles.
     role: SelfServiceRole
     phone: Optional[str] = None
     # Per spec — Date of Birth is mandatory at registration. ISO 8601 (YYYY-MM-DD).
@@ -110,6 +165,24 @@ class RegisterRequest(BaseModel):
     country_code: Optional[str] = None
     # Postal / PIN code (validated per country at the frontend; stored verbatim).
     postal_code: Optional[str] = None
+
+    @field_validator("role", mode="before")
+    @classmethod
+    def _validate_role_field(cls, v):
+        if isinstance(v, str):
+            clean = v.strip().lower()
+            if clean in FORBIDDEN_REGISTRATION_ROLES or clean in ("admin", "super_admin", "superadmin", "college_admin", "system_admin"):
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Forbidden: Self-assignment of privileged role '{v}' is prohibited"
+                )
+            if clean not in ALLOWED_REGISTRATION_ROLES:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Forbidden: Role '{v}' is not permitted for self-registration"
+                )
+            return clean
+        return v
 
     @field_validator("password")
     @classmethod
@@ -218,9 +291,16 @@ class OAuthCallback(BaseModel):
 
 # ----- Auth Endpoints -----
 @router.post("/auth/register", response_model=AuthResponse)
-@limiter.limit("5/minute")
-async def register(request: Request, req: RegisterRequest):
-    """Register a new user. Role is captured upfront — onboarding collects role-specific fields."""
+@limiter.limit("60/minute")
+async def register(request: Request, response: Response, req: RegisterRequest):
+    """Register a new user. Public registration strictly enforces non-privileged roles."""
+    role_norm = str(req.role or "").strip().lower()
+    if role_norm in FORBIDDEN_REGISTRATION_ROLES or role_norm not in ALLOWED_REGISTRATION_ROLES:
+        raise HTTPException(
+            status_code=403,
+            detail="Administrative roles cannot be self-assigned during registration."
+        )
+
     email = req.email.lower().strip()
     blocked = await assess(email, mx=True)
     if blocked:
@@ -229,13 +309,14 @@ async def register(request: Request, req: RegisterRequest):
         raise HTTPException(400, "Email already registered")
 
     # Server-side age gate — role-aware (students 13+, everyone else 18+).
-    _assert_min_age(req.role, _compute_age(req.dob))
+    _assert_min_age(role_norm, _compute_age(req.dob))
 
     user_doc = {
         "email": email,
         "password_hash": hash_password(req.password),
         "full_name": req.full_name.strip(),
-        "role": req.role,
+        "role": role_norm,
+        "is_super_admin": False,
         # Sensitive PII — encrypted at rest with Fernet (decrypted on read).
         "phone": encrypt_value(req.phone),
         "dob": encrypt_value(req.dob),
@@ -249,7 +330,7 @@ async def register(request: Request, req: RegisterRequest):
         "alumni_info": None,
         "mentor_info": None,
         # Mentors are pending until admin approves (per spec).
-        "mentor_status": "pending" if req.role == "mentor" else None,
+        "mentor_status": "pending" if role_norm == "mentor" else None,
         "interests": [],
         "skills": [],
         "bio": None,
@@ -269,51 +350,54 @@ async def register(request: Request, req: RegisterRequest):
     user_id = str(result.inserted_id)
     user_doc["_id"] = result.inserted_id
 
-    # Audit log — capture the full registration payload for compliance.
-    # Sensitive PII (phone / dob / postal_code) are encrypted in audit_logs
-    # too — never store plaintext outside the in-flight request.
+    # Audit log — capture the registration payload for compliance.
     await _audit_log_many(user_id=user_id, source="register", entries=[
         ("email",        None, req.email),
         ("full_name",    None, req.full_name),
-        ("role",         None, req.role),
+        ("role",         None, role_norm),
         ("phone",        None, encrypt_value(req.phone or "")),
         ("dob",          None, encrypt_value(req.dob or "")),
         ("country_code", None, req.country_code or ""),
         ("postal_code",  None, encrypt_value(req.postal_code or "")),
     ])
 
+    access_token = create_access_token(user_id, email, role_norm)
+    refresh_token = create_refresh_token(user_id)
+    _set_refresh_cookie(response, refresh_token)
+
     return AuthResponse(
-        access_token=create_access_token(user_id, email, req.role),
-        refresh_token=create_refresh_token(user_id),
+        access_token=access_token,
+        refresh_token=refresh_token,
         user=UserResponse(**serialize_user(user_doc)),
     )
 
 
-@router.post("/auth/check-email")
-@limiter.limit("30/minute")
-async def check_email(request: Request, req: CheckEmailRequest):
-    """Smart Email Detect (per HTML spec) — checks whether an email already has
-    an account so the client can decide whether to route to Login (existing)
-    or Register (new). Also returns the user's role if we have one, so Login
-    can show the correct branding.
-
-    NOTE: This endpoint intentionally reveals account existence — it's the
-    explicit UX contract of the Smart Email Detect screen in the spec. Rate
-    limiting is the responsibility of the ingress layer.
-    """
-    email = req.email.lower().strip()
-    user = await db.users.find_one({"email": email}, {"role": 1, "full_name": 1, "onboarding_completed": 1})
+async def _check_email_core(request: Request, email_raw: str):
+    email = str(email_raw or "").lower().strip()
+    if not email or "@" not in email:
+        raise HTTPException(422, "Invalid email address")
+    user = await db.users.find_one({"email": email}, {"_id": 1})
     if not user:
         blocked = await assess(email, mx=False)
         if blocked:
             return {"exists": False, "blocked": True, "reason": blocked}
         return {"exists": False}
-    return {
-        "exists": True,
-        "role": user.get("role"),
-        "full_name": user.get("full_name"),
-        "onboarding_completed": user.get("onboarding_completed", False),
-    }
+    # Security hardening: Never disclose full_name, role, or user metadata to unauthenticated callers
+    return {"exists": True}
+
+
+@router.get("/auth/check-email")
+@limiter.limit("10/minute")
+async def check_email_get(request: Request, email: str = Query(...)):
+    """Smart Email Detect (GET) — minimal existence check without leaking PII or roles."""
+    return await _check_email_core(request, email)
+
+
+@router.post("/auth/check-email")
+@limiter.limit("10/minute")
+async def check_email_post(request: Request, req: CheckEmailRequest):
+    """Smart Email Detect (POST) — minimal existence check without leaking PII or roles."""
+    return await _check_email_core(request, req.email)
 
 
 @router.post("/auth/forgot-password")
@@ -456,41 +540,39 @@ async def reset_password(request: Request, req: ResetPasswordRequest):
 
 
 @router.post("/auth/login")
-@limiter.limit("10/minute")
-async def login(request: Request, req: LoginRequest):
-    """Email + password login. Returns JWT pair, OR a 2FA challenge if user has 2FA enabled."""
-    import time as _time
-    _t0 = _time.perf_counter()
-    print(f"\n[LOGIN TRACE] ---- New login attempt for: {req.email} ----", flush=True)
-    print(f"[LOGIN TRACE] REQUEST_RECEIVED | 1. Request received at t=0.000s", flush=True)
-
+@limiter.limit("120/minute")
+async def login(request: Request, response: Response, req: LoginRequest):
+    """Email + password login with abuse throttling and HttpOnly cookie issuance."""
+    client_ip = get_real_ip(request)
     email = req.email.lower().strip()
+    throttle_key = f"{client_ip}:{email}"
 
-    # ── Stage 2: DB lookup ──
-    _t_db0 = _time.perf_counter()
+    # Brute-force protection: throttle excessive failed login attempts per IP+account
+    if _is_login_throttled(throttle_key):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many failed login attempts. Please try again later.",
+            headers={"Retry-After": "60"}
+        )
+
     user = await db.users.find_one({"email": email}, {"resume_documents": 0})
-    _t_db1 = _time.perf_counter()
-    print(f"[LOGIN TRACE] DB_LOOKUP_COMPLETE | 2. DB user lookup done  | duration={(_t_db1-_t_db0)*1000:.1f}ms | found={user is not None}", flush=True)
-
     if not user:
-        print(f"[LOGIN TRACE] !! User not found — aborting at t={(_time.perf_counter()-_t0)*1000:.1f}ms", flush=True)
+        _record_failed_login(throttle_key)
         raise HTTPException(401, "Invalid email or password")
 
-    # ── Stage 3: Password verification (offloaded to thread) ──
-    _t_pw0 = _time.perf_counter()
     loop = asyncio.get_running_loop()
     pw_hash = user.get("password_hash") or user.get("hashed_password", "")
     is_valid = await loop.run_in_executor(None, verify_password, req.password, pw_hash) if pw_hash else False
-    _t_pw1 = _time.perf_counter()
-    print(f"[LOGIN TRACE] PASSWORD_VERIFIED | 3. Password verification | duration={(_t_pw1-_t_pw0)*1000:.1f}ms | valid={is_valid}", flush=True)
 
     if not is_valid:
-        print(f"[LOGIN TRACE] !! Wrong password — aborting at t={(_time.perf_counter()-_t0)*1000:.1f}ms", flush=True)
+        _record_failed_login(throttle_key)
         raise HTTPException(401, "Invalid email or password")
+
+    # Clear failed attempt counters upon successful credential validation
+    _clear_failed_logins(throttle_key)
 
     # ── 2FA branch ──
     if user.get("two_fa_enabled"):
-        _t_2fa0 = _time.perf_counter()
         challenge_id = secrets.token_urlsafe(24)
         await db.two_fa_challenges.insert_one({
             "_id": challenge_id,
@@ -499,7 +581,6 @@ async def login(request: Request, req: LoginRequest):
             "consumed": False,
             "created_at": datetime.now(timezone.utc),
         })
-        print(f"[LOGIN TRACE] 2FA challenge issued  | duration={(_time.perf_counter()-_t_2fa0)*1000:.1f}ms", flush=True)
         return TwoFAChallengeResponse(
             requires_2fa=True,
             challenge_id=challenge_id,
@@ -507,12 +588,9 @@ async def login(request: Request, req: LoginRequest):
             user_email=email,
         )
 
-    # ── Stage 4: Token generation ──
-    _t_tok0 = _time.perf_counter()
+    # ── Token generation ──
     access_token  = create_access_token(str(user["_id"]), email, user["role"])
     refresh_token = create_refresh_token(str(user["_id"]))
-    _t_tok1 = _time.perf_counter()
-    print(f"[LOGIN TRACE] JWT_CREATED | 4. Token generation      | duration={(_t_tok1-_t_tok0)*1000:.1f}ms", flush=True)
 
     try:
         await db.users.update_one(
@@ -523,17 +601,9 @@ async def login(request: Request, req: LoginRequest):
     except Exception as e:
         logger.warning(f"[LOGIN] Failed to update last_login: {e}")
 
-    # ── Stage 5: Serialize user profile ──
-    _t_ser0 = _time.perf_counter()
+    # Set hardened HttpOnly cookie for web browsers
+    _set_refresh_cookie(response, refresh_token)
     user_payload = UserResponse(**serialize_user(user))
-    _t_ser1 = _time.perf_counter()
-    print(f"[LOGIN TRACE] 5. Serialize user profile | duration={(_t_ser1-_t_ser0)*1000:.1f}ms", flush=True)
-
-    _t_total = (_time.perf_counter() - _t0) * 1000
-    print(f"[LOGIN TRACE] RESPONSE_SENT | 6. Returning response     | TOTAL login duration={_t_total:.1f}ms", flush=True)
-    if _t_total > 2000:
-        print(f"[LOGIN TRACE] [WARNING] SLOW LOGIN DETECTED: took {_t_total:.1f}ms (>2000ms threshold)", flush=True)
-    print(f"[LOGIN TRACE] -------------------------------------------\n", flush=True)
 
     return AuthResponse(
         access_token=access_token,
@@ -542,25 +612,138 @@ async def login(request: Request, req: LoginRequest):
     )
 
 
+class RefreshTokenPayload(BaseModel):
+    refresh_token: Optional[str] = None
+
+
 @router.post("/auth/refresh")
 @limiter.limit("30/minute")
-async def refresh_token(request: Request, payload: dict):
-    """Exchanges a valid refresh token for a fresh access token."""
-    token = payload.get("refresh_token")
+async def refresh_token(request: Request, response: Response, payload: Optional[RefreshTokenPayload] = None):
+    """Exchanges a valid refresh token for a fresh access token with server-side rotation."""
+    token = payload.refresh_token if payload else None
+    if not token:
+        token = request.cookies.get("scd_refresh_token")
+    if not token:
+        try:
+            req_body = await request.json()
+            token = req_body.get("refresh_token")
+        except Exception:
+            pass
     if not token:
         raise HTTPException(400, "Missing refresh_token")
+
     try:
         data = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         if data.get("type") != "refresh":
             raise HTTPException(401, "Invalid token type")
-        user = await db.users.find_one({"_id": ObjectId(data["sub"])})
+
+        # Reuse / Revocation check via blacklist
+        old_jti = data.get("jti")
+        if old_jti:
+            blacklisted = await db.token_blacklist.find_one({"jti": old_jti})
+            if blacklisted:
+                raise HTTPException(401, "Refresh token has been revoked")
+
+        try:
+            user_oid = ObjectId(data["sub"])
+        except Exception:
+            raise HTTPException(401, "Invalid token")
+
+        user = await db.users.find_one({"_id": user_oid})
         if not user:
             raise HTTPException(401, "User not found")
-        return {"access_token": create_access_token(str(user["_id"]), user["email"], user["role"])}
+
+        # Invalidate old refresh token (refresh token rotation)
+        if old_jti:
+            exp_ts = data.get("exp")
+            expires_at = datetime.fromtimestamp(exp_ts, tz=timezone.utc) if exp_ts else (
+                datetime.now(timezone.utc) + timedelta(days=30)
+            )
+            try:
+                await db.token_blacklist.insert_one({
+                    "jti": old_jti,
+                    "user_id": str(user["_id"]),
+                    "expires_at": expires_at,
+                    "revoked_at": datetime.now(timezone.utc),
+                    "reason": "rotation",
+                })
+            except Exception:
+                pass
+
+        new_access = create_access_token(str(user["_id"]), user["email"], user["role"])
+        new_refresh = create_refresh_token(str(user["_id"]))
+
+        _set_refresh_cookie(response, new_refresh)
+        return {
+            "access_token": new_access,
+            "refresh_token": new_refresh,
+        }
     except jwt.ExpiredSignatureError:
         raise HTTPException(401, "Refresh token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(401, "Invalid refresh token")
+
+
+@router.post("/auth/logout")
+async def logout(request: Request, response: Response, user: dict = Depends(get_current_user)):
+    """Revokes the current access token and refresh token, clearing session cookies."""
+    auth = request.headers.get("Authorization", "")
+    token_str = auth[7:].strip() if auth.startswith("Bearer ") else ""
+    if token_str:
+        try:
+            payload = jwt.decode(token_str, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            jti = payload.get("jti")
+            exp = payload.get("exp")
+            if jti:
+                expires_at = datetime.fromtimestamp(exp, tz=timezone.utc) if exp else (
+                    datetime.now(timezone.utc) + timedelta(minutes=15)
+                )
+                try:
+                    await db.token_blacklist.insert_one({
+                        "jti": jti,
+                        "user_id": str(user["_id"]),
+                        "expires_at": expires_at,
+                        "revoked_at": datetime.now(timezone.utc),
+                        "reason": "logout",
+                    })
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    # Revoke refresh token if provided in cookie or payload
+    cookie_refresh = request.cookies.get("scd_refresh_token")
+    body_refresh = None
+    try:
+        req_json = await request.json()
+        body_refresh = req_json.get("refresh_token")
+    except Exception:
+        pass
+    token_to_revoke = cookie_refresh or body_refresh
+    if token_to_revoke:
+        try:
+            rf_payload = jwt.decode(token_to_revoke, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            rf_jti = rf_payload.get("jti")
+            if rf_jti:
+                rf_exp = rf_payload.get("exp")
+                rf_expires_at = datetime.fromtimestamp(rf_exp, tz=timezone.utc) if rf_exp else (
+                    datetime.now(timezone.utc) + timedelta(days=30)
+                )
+                try:
+                    await db.token_blacklist.insert_one({
+                        "jti": rf_jti,
+                        "user_id": str(user["_id"]),
+                        "expires_at": rf_expires_at,
+                        "revoked_at": datetime.now(timezone.utc),
+                        "reason": "logout",
+                    })
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    _clear_refresh_cookie(response)
+    return {"status": "logged_out"}
 
 
 # ----------------------------------------------------------------------------
@@ -1004,7 +1187,7 @@ async def two_fa_enable(request: Request, req: TwoFAEnableRequest, user: dict = 
 
 @router.post("/auth/2fa/verify", response_model=AuthResponse)
 @limiter.limit("5/minute")
-async def two_fa_verify(request: Request, req: TwoFAVerifyRequest):
+async def two_fa_verify(request: Request, response: Response, req: TwoFAVerifyRequest):
     """User submits TOTP/backup code with the challenge_id from /auth/login.
     On success → returns full access + refresh JWT pair."""
     challenge = await db.two_fa_challenges.find_one({"_id": req.challenge_id})
@@ -1051,9 +1234,13 @@ async def two_fa_verify(request: Request, req: TwoFAVerifyRequest):
         update_fields["two_fa_backup_codes"] = backup_codes
     await db.users.update_one({"_id": user["_id"]}, {"$set": update_fields})
 
+    access_token = create_access_token(str(user["_id"]), user["email"], user["role"])
+    refresh_token = create_refresh_token(str(user["_id"]))
+    _set_refresh_cookie(response, refresh_token)
+
     return AuthResponse(
-        access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
-        refresh_token=create_refresh_token(str(user["_id"])),
+        access_token=access_token,
+        refresh_token=refresh_token,
         user=UserResponse(**serialize_user(user)),
     )
 
@@ -1129,8 +1316,12 @@ async def two_fa_regenerate_backup(request: Request, req: TwoFAEnableRequest, us
 # ----------------------------------------------------------------------------
 async def _upsert_oauth_user(provider: str, email: str, full_name: str,
                               picture: Optional[str], role: str = "student") -> dict:
-    """Find or create a user from an OAuth profile. Marks them with `oauth_provider`."""
+    """Find or create a user from an OAuth profile. Enforces non-privileged role assignment."""
     email = email.lower().strip()
+    role_norm = str(role or "student").strip().lower()
+    if role_norm in FORBIDDEN_REGISTRATION_ROLES or role_norm not in ALLOWED_REGISTRATION_ROLES:
+        role_norm = "student"
+
     user = await db.users.find_one({"email": email})
     if user:
         update = {"oauth_provider": provider, "oauth_picture": picture, "last_login": datetime.now(timezone.utc)}
@@ -1146,7 +1337,7 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
         return updated if updated is not None else user
 
     # New OAuth user — create with onboarding NOT yet completed so the client
-    uid = generate_unique_id(role or "student")
+    uid = generate_unique_id(role_norm)
     frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
     qr_code = generate_qr_code(
         f"{frontend_url}/verify/{uid.split('-')[-1]}"
@@ -1155,7 +1346,8 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
         "email": email,
         "password_hash": hash_password(secrets.token_urlsafe(16)),  # random unguessable password
         "full_name": full_name or email.split("@")[0].title(),
-        "role": role or "student",
+        "role": role_norm,
+        "is_super_admin": False,
         "phone": None,
         "unique_id": uid,
         "qr_code_base64": qr_code,
