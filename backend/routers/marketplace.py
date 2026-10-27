@@ -35,11 +35,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from pydantic import BaseModel, Field
 
 from core.db import db
+from core.deps import bearer_token, decode_payload, decode_payload_silent, ensure_admin
 
 router = APIRouter(prefix="/api/echo", tags=["echo-marketplace"])
-
-from core.security import JWT_SECRET  # single source of truth; raises if unset
-JWT_ALGORITHM = "HS256"
 
 
 # ── GST configuration ────────────────────────────────────────────────────────
@@ -77,33 +75,23 @@ def gst_split(total: float) -> dict:
 # ── Auth helpers ─────────────────────────────────────────────────────────────
 async def _require_admin(request: Request):
     auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
+    token = bearer_token(auth)
+    if not token:
         raise HTTPException(status_code=401, detail="Missing token")
-    token = auth.split(" ", 1)[1]
-    import jwt as _jwt
-    try:
-        payload = _jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    if (payload.get("role") or "").lower() not in ("admin", "super_admin", "superadmin"):
-        raise HTTPException(status_code=403, detail="Admin only")
+    payload = decode_payload(token)
+    ensure_admin(payload)
     return payload
 
 
 async def _resolve_user(request: Request):
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
+    payload = decode_payload_silent(bearer_token(request.headers.get("Authorization", "")))
+    if not payload:
         return None
-    import jwt as _jwt
+    uid = payload.get("sub")
+    if not uid:
+        return None
     try:
-        payload = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        uid = payload.get("sub")
-        if not uid:
-            return None
-        try:
-            return await db.users.find_one({"_id": ObjectId(uid)})
-        except Exception:
-            return None
+        return await db.users.find_one({"_id": ObjectId(uid)})
     except Exception:
         return None
 

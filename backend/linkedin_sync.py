@@ -11,19 +11,16 @@ Usage:
   - enrich_profiles_batch(docs)   → list of (doc, enriched_data)
 """
 
-import os
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
-from motor.motor_asyncio import AsyncIOMotorClient
 
 logger = logging.getLogger("linkedin_sync")
 
-_MONGO_URL = os.getenv("MONGO_URL") or "mongodb://localhost:27017"
-_DB_NAME   = os.getenv("DB_NAME") or "studentalumniadmin"
-_client    = AsyncIOMotorClient(_MONGO_URL)
-_db        = _client[_DB_NAME]
+# Shared app connection + DB name (core.db raises at import if MONGO_URL is
+# unset — no localhost fallback, so sync never silently hits the wrong DB).
+from core.db import db as _db
 
 
 async def _get_proxycurl_key() -> Optional[str]:

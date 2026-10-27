@@ -23,7 +23,7 @@ from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, HTTPException, Query, Body, Header, Depends
 
-from core.deps import require_admin_role
+from core.deps import require_admin_role, bearer_token, decode_payload_silent
 from pydantic import BaseModel
 from bson import ObjectId
 
@@ -1637,15 +1637,9 @@ async def verify_aadhaar_number(
     masked = f"•••• •••• {clean_digits[-4:]}"
     
     user_id = payload.user_id
-    if not user_id and authorization and authorization.startswith("Bearer "):
-        try:
-            import jwt
-            from core.security import JWT_SECRET, JWT_ALGORITHM
-            token = authorization.split(" ")[1]
-            data = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-            user_id = data.get("sub") or data.get("user_id")
-        except Exception:
-            pass
+    _bgv_payload = decode_payload_silent(bearer_token(authorization))
+    if not user_id and _bgv_payload:
+        user_id = _bgv_payload.get("sub") or _bgv_payload.get("user_id")
 
     if user_id:
         try:
@@ -1690,15 +1684,9 @@ async def link_digilocker_credentials(
     user_id = payload.user_id
     user_doc = None
     
-    if not user_id and authorization and authorization.startswith("Bearer "):
-        try:
-            import jwt
-            from core.security import JWT_SECRET, JWT_ALGORITHM
-            token = authorization.split(" ")[1]
-            data = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-            user_id = data.get("sub") or data.get("user_id")
-        except Exception:
-            pass
+    _bgv_payload = decode_payload_silent(bearer_token(authorization))
+    if not user_id and _bgv_payload:
+        user_id = _bgv_payload.get("sub") or _bgv_payload.get("user_id")
 
     if user_id:
         try:
@@ -1764,15 +1752,9 @@ async def digilocker_oauth_sync(
     user_id = payload.user_id
     user_doc = None
     
-    if not user_id and authorization and authorization.startswith("Bearer "):
-        try:
-            import jwt
-            from core.security import JWT_SECRET, JWT_ALGORITHM
-            token = authorization.split(" ")[1]
-            data = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-            user_id = data.get("sub") or data.get("user_id")
-        except Exception:
-            pass
+    _bgv_payload = decode_payload_silent(bearer_token(authorization))
+    if not user_id and _bgv_payload:
+        user_id = _bgv_payload.get("sub") or _bgv_payload.get("user_id")
 
     if user_id:
         try:

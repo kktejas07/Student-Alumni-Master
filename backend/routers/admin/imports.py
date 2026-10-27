@@ -46,29 +46,19 @@ except Exception:
         return None
 
 # ─── Mongo ─────────────────────────────────────────────────────────
-_MONGO_URL = os.getenv("MONGO_URL") or "mongodb://localhost:27017"
+# DB name is module-specific ("career_platform") on the shared app connection.
+# core.db raises at import if MONGO_URL is unset — no localhost fallback.
+from core.db import client as _client
 _DB_NAME   = os.getenv("DB_NAME") or "career_platform"
-from db import client as _client
 _db        = _client[_DB_NAME]
 
-# ─── Token / role helpers ──────────────────────────────────────────
-try:
-    import jwt  # PyJWT
-    from core.security import JWT_SECRET as _JWT_SECRET
-except Exception:
-    jwt = None  # type: ignore
-    _JWT_SECRET = ""
+# ─── Auth helpers ──────────────────────────────────────────────────
+from core.deps import bearer_token, decode_payload_silent
 
 
 async def _resolve_user(authorization: Optional[str]) -> Optional[dict]:
-    if not authorization or not authorization.lower().startswith("bearer "):
-        return None
-    token = authorization.split(" ", 1)[1].strip()
-    try:
-        if jwt is None:
-            return None
-        payload = jwt.decode(token, _JWT_SECRET, algorithms=["HS256"])
-    except Exception:
+    payload = decode_payload_silent(bearer_token(authorization))
+    if not payload:
         return None
     uid = payload.get("sub") or payload.get("user_id") or payload.get("id")
     if not uid:

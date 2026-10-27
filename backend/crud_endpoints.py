@@ -45,7 +45,7 @@ from bson import ObjectId
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Request, Depends
 
-from core.deps import get_current_user, require_role
+from core.deps import get_current_user, require_role, bearer_token, decode_payload_silent
 from pydantic import BaseModel
 
 load_dotenv(Path(__file__).parent / ".env")
@@ -492,16 +492,9 @@ class ApplyRequest(BaseModel):
 async def apply_internship(internship_id: str, req: ApplyRequest, request: Request):
     student = None
     # 1. Try to read token from Authorization header if present for secure auth
-    auth = request.headers.get("Authorization", "")
-    if auth.startswith("Bearer "):
-        try:
-            import jwt
-            from core.security import JWT_SECRET, JWT_ALGORITHM
-            payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
-            if payload.get("type") == "access":
-                student = await _db.users.find_one({"_id": ObjectId(payload["sub"])})
-        except Exception:
-            pass
+    access_payload = decode_payload_silent(bearer_token(request.headers.get("Authorization", "")), token_type="access")
+    if access_payload:
+        student = await _db.users.find_one({"_id": ObjectId(access_payload["sub"])})
 
     # 2. Fall back to request body if unauthenticated (demo switcher & automated tests compatibility)
     if not student:

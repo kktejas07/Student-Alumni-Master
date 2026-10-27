@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from bson import ObjectId
 
 from core.db import db
+from core.deps import bearer_token, decode_payload, ensure_admin
 from core.security import JWT_SECRET, JWT_ALGORITHM, decrypt_value
 from core.email import send_email, render_html_email
 
@@ -37,16 +38,11 @@ class VendorLoginRequest(BaseModel):
 
 # ── Admin vendor provisioning ────────────────────────────────────────────────
 async def _require_admin_token(request: Request):
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
+    token = bearer_token(request.headers.get("Authorization", ""))
+    if not token:
         raise HTTPException(401, "Missing token")
-    token = auth.split(" ", 1)[1]
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-    except Exception:
-        raise HTTPException(401, "Invalid token")
-    if (payload.get("role") or "").lower() not in ("admin", "super_admin", "superadmin"):
-        raise HTTPException(403, "Admin only")
+    payload = decode_payload(token)
+    ensure_admin(payload)
     return payload
 
 
@@ -240,19 +236,11 @@ async def get_current_vendor(request: Request) -> dict:
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
         raise HTTPException(401, "Not authenticated")
-    try:
-        payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        if payload.get("type") != "vendor_access":
-            raise HTTPException(401, "Invalid token type")
-            
-        vendor = await db.echo_vendors.find_one({"vendor_id": payload["sub"]})
-        if not vendor:
-            raise HTTPException(401, "Vendor not found")
-        return vendor
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(401, "Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(401, "Invalid token")
+    payload = decode_payload(auth[7:].strip(), token_type="vendor_access")
+    vendor = await db.echo_vendors.find_one({"vendor_id": payload["sub"]})
+    if not vendor:
+        raise HTTPException(401, "Vendor not found")
+    return vendor
 
 @router.post("/api/vendors/login")
 async def vendor_login(req: VendorLoginRequest):

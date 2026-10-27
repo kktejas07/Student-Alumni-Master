@@ -22,26 +22,18 @@ from uuid import uuid4
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Header, Body, Request
 from pydantic import BaseModel
-import jwt as _jwt
 
 from core.roles import Role, Perm, SYSTEM_ROLES, seed_admin_roles
 
 from core.db import db as _db
+from core.deps import bearer_token, decode_payload_silent
 
 router = APIRouter(tags=["admin-settings"])
 
-from core.security import JWT_SECRET as _JWT_SECRET, JWT_ALGORITHM as _JWT_ALG
-
 
 async def _resolve_user(authorization: Optional[str]) -> Optional[dict]:
-    if not authorization or not authorization.startswith("Bearer "):
-        return None
-    token = authorization.split(" ", 1)[1]
-    try:
-        payload = _jwt.decode(token, _JWT_SECRET, algorithms=[_JWT_ALG])
-        if payload.get("type") != "access":
-            return None
-    except Exception:
+    payload = decode_payload_silent(bearer_token(authorization), token_type="access")
+    if not payload:
         return None
     from bson import ObjectId
     try:

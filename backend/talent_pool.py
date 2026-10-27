@@ -22,7 +22,6 @@ from typing import Any, Dict, List, Optional
 from bson import ObjectId
 from dotenv import load_dotenv
 from fastapi import APIRouter, File, Header, HTTPException, Query, UploadFile
-from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
 
 load_dotenv()
@@ -31,29 +30,17 @@ router = APIRouter()
 logger = logging.getLogger("talent_pool")
 
 # ─── Mongo ─────────────────────────────────────────────────────────
-_MONGO_URL = os.getenv("MONGO_URL") or "mongodb://localhost:27017"
-_DB_NAME   = os.getenv("DB_NAME") or "studentalumniadmin"
-_client    = AsyncIOMotorClient(_MONGO_URL)
-_db        = _client[_DB_NAME]
-
-# ─── Token / auth helpers ──────────────────────────────────────────
-try:
-    import jwt
-    from core.security import JWT_SECRET as _JWT_SECRET
-except Exception:
-    jwt = None  # type: ignore
-    _JWT_SECRET = ""
+# Share the app's single Mongo connection pool + DB name (core.db raises at
+# import if MONGO_URL is unset, matching core.config's fail-fast behavior —
+# no localhost fallback, so the module can never silently hit the wrong DB).
+from core.db import db as _db
+from core.deps import bearer_token, decode_payload_silent
 
 
+# ─── Auth helpers ──────────────────────────────────────────────────
 async def _resolve_user(authorization: Optional[str]) -> Optional[dict]:
-    if not authorization or not authorization.lower().startswith("bearer "):
-        return None
-    token = authorization.split(" ", 1)[1].strip()
-    try:
-        if jwt is None:
-            return None
-        payload = jwt.decode(token, _JWT_SECRET, algorithms=["HS256"])
-    except Exception:
+    payload = decode_payload_silent(bearer_token(authorization))
+    if not payload:
         return None
     uid = payload.get("sub") or payload.get("user_id") or payload.get("id")
     if not uid:

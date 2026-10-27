@@ -19,7 +19,7 @@ from core.email_quality import reject_reason, require_ok
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://studentalumni.ai")
 
-from core.deps import get_current_user
+from core.deps import get_current_user, ensure_admin
 
 router = APIRouter(prefix="/certificates", tags=["Certificates"])
 
@@ -1897,9 +1897,7 @@ async def list_certificates_by_recipient(email: str):
 
 
 def _require_admin(user: dict):
-    role = (user.get("role") or "").lower()
-    if role not in {"super_admin", "admin", "superadmin"}:
-        raise HTTPException(status_code=403, detail="Admin role required")
+    ensure_admin(user)
 
 
 @router.delete("/{code}")

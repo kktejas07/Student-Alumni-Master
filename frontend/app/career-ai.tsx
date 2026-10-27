@@ -12,7 +12,7 @@
  *   5. Row 1: Skills Breakdown (6 Horizontal Bars) & Next Best Actions (Ranked 1-3)
  *   6. Row 2: AI Insights (Conversational Bubbles) & Goal Simulator (Sliders)
  *   7. Career Journey (Full-Width 5-Node Horizontal Stepper Roadmap)
- *   8. Row 3: This Week's Focus (Checklist + Improvement Card) & Recruiter View (4 Metric Cards)
+ *   8. Row 3: Goal Simulator (action toggles) & Recruiter View (derived bars)
  *   9. Footer (© 2026 StudentAlumni · Privacy / Terms / Cookies)
  */
 import React, {
@@ -20,16 +20,15 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator, Modal, Platform, Pressable, ScrollView,
-  StyleSheet, Text, useWindowDimensions, View,
+  StyleSheet, Text, TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LogBox } from 'react-native';
 LogBox.ignoreAllLogs();
 import { useRouter } from 'expo-router';
 import {
-  ArrowLeft, Award, Briefcase, ChevronRight, CircleCheck as CheckCircle2,
-  Code, Download, FileText, Flame, Folder, HelpCircle, Link2, MessageSquare,
-  Mic, Star, Target, TrendingUp, User as UserIcon, X, Sparkles, Shield,
+  Award, Briefcase, ChevronRight, Code, Download, FileText, Flame, Folder, Link2, MessageSquare,
+  Mic, Send, Star, Target, User as UserIcon, Sparkles, Shield,
 } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
@@ -38,22 +37,25 @@ import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import { CompletionRing } from '@/src/views/web/profile/CompletionRing';
 import { generateCareerReportPdf, type CareerReportData } from '@/src/lib/careerReportPdf';
 import {
-  GAINS,
-  ROADMAP_SKILL_KEY_MAP,
-  SKILL_CATEGORY_KEYS,
-  normalizeRoadmapSkillScores,
-  getImpactLabel,
-} from '@/src/lib/careerConstants';
+  getLevelForScore,
+  deriveReadiness,
+  derivePotentialScore,
+  deriveSkillScores,
+  deriveRankedActions,
+  deriveRecruiterView,
+  deriveTrend,
+} from '@/src/lib/careerDerivations';
 import { PredictionTimeline } from '@/src/views/web/PredictionTimeline';
-import { GoalSimulator } from '@/src/views/web/GoalSimulator';
 import {
+  CareerGoalSimulator,
+  ExplainModal,
   HeroIllustration,
   MetricCard,
   SkillBar,
   HorizontalRoadmap,
   AIInsightBubble,
 } from '@/src/views/web/career';
-import { COLORS as DT_COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
+import { FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
 
 /* ────────── Design tokens ────────── */
 const C = {
@@ -148,16 +150,33 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   const [skillStreak, setSkillStreak] = useState(0);
   const [careerIntel, setCareerIntel] = useState<any>(null);
   const [showExplainModal, setShowExplainModal] = useState(false);
-  const [explainTab, setExplainTab] = useState('readiness');
+  const [explainTab, setExplainTab] = useState<'readiness' | 'skills'>('readiness');
+
+  /* ── Agent K follow-up chat (max 3 turns kept in state) ── */
+  const [chatMsgs, setChatMsgs] = useState<Array<{ role: 'user' | 'agent'; text: string }>>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatPending, setChatPending] = useState(false);
+
+  const sendChat = useCallback(async () => {
+    const message = chatInput.trim();
+    if (!message || chatPending) return;
+    setChatInput('');
+    setChatMsgs((prev) => [...prev, { role: 'user' as const, text: message }].slice(-6));
+    setChatPending(true);
+    try {
+      const res = await request<{ response: string }>('/agent-k/chat', {
+        method: 'POST',
+        body: { message },
+      });
+      setChatMsgs((prev) => [...prev, { role: 'agent' as const, text: res?.response || '…' }].slice(-6));
+    } catch (e: any) {
+      toast.error('Agent K', e?.message || 'Could not reach Agent K. Please try again.');
+    } finally {
+      setChatPending(false);
+    }
+  }, [chatInput, chatPending, toast]);
 
   /* ── Derived ── */
-  const getLevelForScore = (sc: number) => {
-    if (sc <= 20) return 'Explorer';
-    if (sc <= 40) return 'Builder';
-    if (sc <= 60) return 'Developing Professional';
-    if (sc <= 80) return 'Career Ready';
-    return 'Industry Ready';
-  };
   const allMilestones = useMemo(() => roadmap.milestones || [], [roadmap]);
   const pendingMilestones = useMemo(() => allMilestones.filter(m => !m.completed), [allMilestones]);
   const firstPendingIdx = useMemo(() => allMilestones.findIndex(m => !m.completed), [allMilestones]);
@@ -190,7 +209,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
      Everything below comes from /users/me/skill-intelligence (careerIntel) or
      the roadmap. When a value has not been computed yet it reads 0 / "—";
      this page used to fall back to invented numbers (33% readiness, 80/55/42
-     skill scores, a fixed "~18 weeks", a canned action list). */
+     skill scores, a fixed week estimate, a canned action list). */
   const targetRole = roadmap.target_role || 'top_opportunity';
   const targetCo = roadmap.target_company_type || 'Top Company in your field';
   const progress = Math.min(100, Math.max(0, Number(roadmap.progress_pct || 0)));
@@ -198,32 +217,21 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   // Roadmap milestones are planned at roughly two weeks each.
   const estimatedWeeks = pendingCount > 0 ? `~${pendingCount * 2} Weeks` : (allMilestones.length > 0 ? 'Complete' : '—');
 
-  const { readinessScore, readinessLevel, nextGoal, bandProgress } = useMemo(() => {
-    const rs = careerIntel?.readiness_score;
-    const score = Math.round(typeof rs === 'object' && rs ? Number(rs.score || 0) : Number(rs || 0));
-    const level = (typeof rs === 'object' && rs?.level) || getLevelForScore(score);
-    const nextLevel = (typeof rs === 'object' && rs?.next_level) || null;
-    const nextScore = typeof rs === 'object' && rs?.next_threshold ? Number(rs.next_threshold) : null;
-    // Progress through the current 20-point band.
-    const band = score >= 100 ? 100 : Math.round(((score % 20) / 20) * 100);
-    return {
-      readinessScore: score,
-      readinessLevel: level,
-      nextGoal: nextLevel && nextScore ? `${nextLevel} (${nextScore}%)` : 'Industry Ready (100%)',
-      bandProgress: band,
-    };
-  }, [careerIntel]);
+  const { readinessScore, readinessLevel, nextGoal, bandProgress } = useMemo(
+    () => deriveReadiness(careerIntel),
+    [careerIntel],
+  );
 
-  const potentialScore = Math.min(100, Math.max(readinessScore, Math.round(Number(careerIntel?.potential_score || readinessScore))));
+  const potentialScore = useMemo(
+    () => derivePotentialScore(careerIntel, readinessScore),
+    [careerIntel, readinessScore],
+  );
 
   /* ── Skill scores (0-100 per category; 0 until computed) ── */
-  const skillScores = useMemo<Record<string, number>>(() => {
-    const base = careerIntel?.skill_scores || roadmap.skill_scores || {};
-    return SKILL_META.reduce<Record<string, number>>((acc, sk) => {
-      acc[sk.key] = Math.round(Number(base[sk.key] ?? 0));
-      return acc;
-    }, {});
-  }, [careerIntel, roadmap.skill_scores]);
+  const skillScores = useMemo(
+    () => deriveSkillScores(careerIntel?.skill_scores || roadmap.skill_scores || {}, SKILL_META.map((sk) => sk.key)),
+    [careerIntel, roadmap.skill_scores],
+  );
 
   /* ── Ranked actions — from the intelligence service, highest gain first ── */
   const rankedActions = useMemo(() => {
@@ -231,19 +239,14 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
       RESUME: FileText, PORTFOLIO: Folder, PROJECT: Briefcase, SKILLS: Code, MOCK_INTERVIEW: Mic,
       NETWORKING: Link2, CERTIFICATION: Award, PROFILE: UserIcon, SOCIALS: Link2, EDUCATION: Award, BIO: UserIcon, PHOTO: UserIcon,
     };
-    const list: any[] = Array.isArray(careerIntel?.ranked_actions) ? careerIntel.ranked_actions : [];
-    return list.slice(0, 5).map((a: any, i: number) => {
-      const type = String(a.type || a.milestone_type || 'PROFILE').toUpperCase();
-      return {
-        rank: i + 1,
-        title: a.title || 'Improve your profile',
-        desc: a.description || a.reason || '',
-        gain: Math.round(Number(a.gain || 0)),
-        type,
-        Icon: ICONS[type] || Target,
-      };
-    });
+    return deriveRankedActions(careerIntel).map((a) => ({ ...a, Icon: ICONS[a.type] || Target }));
   }, [careerIntel]);
+
+  const readinessTrend = useMemo(() => deriveTrend(careerIntel, readinessScore), [careerIntel, readinessScore]);
+  const recruiterView = useMemo(
+    () => deriveRecruiterView(careerIntel?.skill_scores, readinessScore),
+    [careerIntel, readinessScore],
+  );
 
   const aiInsights = useMemo<string[]>(() => {
     const out: string[] = [];
@@ -452,11 +455,10 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           label="READINESS SCORE"
           value={`${readinessScore}%`}
           color={C.purpleL}
-          trendText="+8% from last week"
-          trendPositive={true}
+          {...(readinessTrend ? { trendText: readinessTrend.text, trendPositive: readinessTrend.positive } : {})}
           subText={readinessLevel}
           iconElement={<CompletionRing pct={readinessScore} size={18} stroke={2.5} color={C.purpleL} trackColor="transparent" hideText={true} />}
-          onPress={() => setShowExplainModal(true)}
+          onPress={() => { setExplainTab('readiness'); setShowExplainModal(true); }}
           style={{ flex: 1 }}
         />
         <MetricCard
@@ -479,8 +481,6 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           label="PROFILE STRENGTH"
           value={`${profileStrength}%`}
           color={C.blue}
-          trendText="+8% from last week"
-          trendPositive={true}
           subText="Profile Score"
           iconElement={<Shield size={16} color={C.blue} />}
           style={{ flex: 1 }}
@@ -496,7 +496,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
       </View>
 
       {/* ══════════════ 4. CAREER GROWTH PREDICTION ══════════════ */}
-      <PredictionTimeline data={careerIntel?.predictions || { current: readinessScore }} />
+      <PredictionTimeline data={careerIntel?.predictions} />
 
       {/* ══════════════ 5. ROW 1: SKILLS BREAKDOWN & NEXT BEST ACTIONS ══════════════ */}
       <View style={s.twoColRow}>
@@ -518,7 +518,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
             ))}
           </View>
           <Pressable
-            onPress={() => setShowExplainModal(true)}
+            onPress={() => { setExplainTab('skills'); setShowExplainModal(true); }}
             style={s.cardBottomLinkRow}
           >
             <Text style={s.cardBottomLinkText}>View Detailed Skills Report</Text>
@@ -574,36 +574,55 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
             </View>
           </View>
           <View style={s.insightsList}>
-            <AIInsightBubble
-              text="Your resume is the biggest growth opportunity. Completing it can increase your readiness by 8%."
-            />
-            <AIInsightBubble
-              text="Adding 3 quality projects will boost your readiness by 5% and showcase your practical skills."
-            />
-            <AIInsightBubble
-              text="LinkedIn optimization can improve your visibility and add 5% to your readiness score."
-            />
-            {/* Prompt Suggestion Fill */}
-            <View style={{ marginTop: 'auto', backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <MessageSquare size={16} color={C.dim} />
-              <Text style={{ color: C.dim, fontFamily: FT.reg, fontSize: 13, flex: 1 }}>Ask a follow-up question...</Text>
-              <View style={{ backgroundColor: 'rgba(99, 102, 241, 0.15)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 }}>
-                <Text style={{ color: C.purpleL, fontFamily: FT.bold, fontSize: 11 }}>Send</Text>
+            {aiInsights.length === 0 ? (
+              <Text style={s.actionDesc}>
+                Insights appear once the intelligence service has ranked your actions.
+              </Text>
+            ) : (
+              aiInsights.map((line, i) => <AIInsightBubble key={i} text={line} />)
+            )}
+
+            {/* Agent K follow-up — 3-turn window kept in state */}
+            {chatMsgs.length > 0 && (
+              <View style={s.chatLog}>
+                {chatMsgs.map((m, i) => (
+                  <View key={i} style={m.role === 'user' ? s.chatUserRow : s.chatAgentRow}>
+                    <Text style={m.role === 'user' ? s.chatUserText : s.chatAgentText}>{m.text}</Text>
+                  </View>
+                ))}
               </View>
+            )}
+            <View style={s.chatBox}>
+              <TextInput
+                style={s.chatInput}
+                placeholder="Ask Agent K a question…"
+                placeholderTextColor={C.dim}
+                value={chatInput}
+                onChangeText={setChatInput}
+                onSubmitEditing={sendChat}
+                editable={!chatPending}
+                multiline={false}
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Send to Agent K"
+                disabled={chatPending || chatInput.trim().length === 0}
+                onPress={sendChat}
+                style={[s.chatSend, (chatPending || chatInput.trim().length === 0) && s.chatSendDisabled]}
+              >
+                {chatPending ? (
+                  <ActivityIndicator size="small" color={C.purpleL} />
+                ) : (
+                  <Send size={14} color={C.purpleL} />
+                )}
+              </Pressable>
             </View>
           </View>
-          <Pressable
-            onPress={() => toast.info('AI Advice', 'Personalized advice engine active.')}
-            style={s.cardBottomLinkRow}
-          >
-            <Text style={s.cardBottomLinkText}>Ask AI for Personalized Advice</Text>
-            <ChevronRight size={14} color={C.purpleL} />
-          </Pressable>
         </View>
 
         {/* Right (50%): Goal Simulator */}
         <View style={{ flex: 1 }}>
-          <GoalSimulator currentReadiness={readinessScore} />
+          <CareerGoalSimulator currentReadiness={readinessScore} />
         </View>
       </View>
 
@@ -616,35 +635,8 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
       {/* ══════════════ 8. ROW 3: THIS WEEK'S FOCUS & RECRUITER VIEW ══════════════ */}
       <View style={s.twoColRow}>
-        {/* Left (50%): This Week's Focus */}
-        <View style={s.colCard}>
-          <View style={s.cardHeader}>
-            <Text style={s.sectionTitle}>THIS WEEK'S FOCUS</Text>
-          </View>
-          <View style={s.weeklyFocusSplitRow}>
-            {/* Checklist Left 50% */}
-            <View style={s.weeklyChecklistCol}>
-              {[
-                'Complete your resume',
-                'Upload LinkedIn profile',
-                'Add at least 1 project',
-                'Practice mock interview',
-              ].map((task, idx) => (
-                <View key={`wf-check-${idx}`} style={s.checkRow}>
-                  <View style={s.circleCheckbox} />
-                  <Text style={s.checkText}>{task}</Text>
-                </View>
-              ))}
-            </View>
-
-            {/* Improvement Card Right 50% */}
-            <View style={s.improvementCard}>
-              <Text style={s.improvementTitle}>Estimated Readiness Improvement</Text>
-              <Text style={s.improvementValue}>+11%</Text>
-              <Text style={s.improvementSub}>If you complete all tasks this week</Text>
-            </View>
-          </View>
-        </View>
+        {/* Left (50%): Goal Simulator — toggle the ranked actions and preview the readiness gain */}
+        <CareerGoalSimulator currentReadiness={readinessScore} collapsible={false} />
 
         {/* Right (50%): Recruiter View (Beta) */}
         <View style={s.colCard}>
@@ -659,37 +651,25 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           <View style={{ flex: 1, gap: 16 }}>
             <Text style={s.recruiterSubhead}>How recruiters see your profile today</Text>
 
-            {/* 4 Compact Cards Inline */}
+            {/* 4 Compact Cards Inline — derived from skill_scores; "—" until computed */}
             <View style={s.recruiterGrid}>
-            <View style={s.recruiterCard}>
-              <Text style={s.recruiterLabel}>Resume</Text>
-              <Text style={s.recruiterVal}>42%</Text>
-              <View style={s.recruiterTrack}>
-                <View style={[s.recruiterFill, { width: '42%', backgroundColor: C.blue }]} />
-              </View>
+              {([
+                { label: 'Resume', value: recruiterView.resume, color: C.blue },
+                { label: 'Portfolio', value: recruiterView.portfolio, color: C.amber },
+                { label: 'Communication', value: recruiterView.communication, color: C.teal },
+                { label: 'Overall Score', value: recruiterView.overall, color: C.pink },
+              ] as Array<{ label: string; value: number | null; color: string }>).map((card) => (
+                <View key={card.label} style={s.recruiterCard}>
+                  <Text style={s.recruiterLabel}>{card.label}</Text>
+                  <Text style={s.recruiterVal}>{card.value != null ? `${card.value}%` : '—'}</Text>
+                  <View style={s.recruiterTrack}>
+                    <View
+                      style={[s.recruiterFill, { width: card.value != null ? `${card.value}%` : '0%', backgroundColor: card.color }]}
+                    />
+                  </View>
+                </View>
+              ))}
             </View>
-            <View style={s.recruiterCard}>
-              <Text style={s.recruiterLabel}>Portfolio</Text>
-              <Text style={s.recruiterVal}>20%</Text>
-              <View style={s.recruiterTrack}>
-                <View style={[s.recruiterFill, { width: '20%', backgroundColor: C.amber }]} />
-              </View>
-            </View>
-            <View style={s.recruiterCard}>
-              <Text style={s.recruiterLabel}>Communication</Text>
-              <Text style={s.recruiterVal}>65%</Text>
-              <View style={s.recruiterTrack}>
-                <View style={[s.recruiterFill, { width: '65%', backgroundColor: C.teal }]} />
-              </View>
-            </View>
-            <View style={s.recruiterCard}>
-              <Text style={s.recruiterLabel}>Overall Score</Text>
-              <Text style={s.recruiterVal}>31%</Text>
-              <View style={s.recruiterTrack}>
-                <View style={[s.recruiterFill, { width: '31%', backgroundColor: C.pink }]} />
-              </View>
-            </View>
-          </View>
           </View>
 
           <Pressable
@@ -705,6 +685,13 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
 
     </Container>
+
+    <ExplainModal
+      visible={showExplainModal}
+      onClose={() => setShowExplainModal(false)}
+      careerIntel={careerIntel}
+      initialTab={explainTab}
+    />
     </View>
   );
 }
@@ -1151,59 +1138,54 @@ const s = StyleSheet.create({
     flex: 1,
   },
 
-  /* Weekly Focus */
-  weeklyFocusSplitRow: {
-    flexDirection: 'row',
-    gap: SPACING.lg,
-    alignItems: 'stretch',
-    flex: 1,
+  /* Agent K follow-up chat */
+  chatLog: { gap: 6 },
+  chatUserRow: {
+    alignSelf: 'flex-end',
+    backgroundColor: 'rgba(99, 102, 241, 0.18)',
+    borderColor: 'rgba(129, 140, 248, 0.35)',
+    borderWidth: 1,
+    borderRadius: RADIUS.card,
+    padding: 10,
+    maxWidth: '90%',
   },
-  weeklyChecklistCol: {
-    flex: 1,
-    gap: 10,
+  chatAgentRow: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: C.border,
+    borderWidth: 1,
+    borderRadius: RADIUS.card,
+    padding: 10,
+    maxWidth: '90%',
   },
-  checkRow: {
+  chatUserText: { color: C.text2, fontFamily: FT.med, fontSize: 12 },
+  chatAgentText: { color: C.textSub, fontFamily: FT.reg, fontSize: 12, lineHeight: 17 },
+  chatBox: {
+    marginTop: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderColor: C.border,
+    borderWidth: 1,
+    borderRadius: RADIUS.btn,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  circleCheckbox: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: C.dim,
-  },
-  checkText: {
-    color: C.text2,
-    fontFamily: FT.med,
-    fontSize: 13,
-  },
-  improvementCard: {
+  chatInput: {
     flex: 1,
-    backgroundColor: 'rgba(55, 48, 163, 0.25)',
-    borderColor: 'rgba(129, 140, 248, 0.30)',
-    borderWidth: 1,
-    borderRadius: RADIUS.card,
-    padding: SPACING.lg,
-    gap: 6,
+    color: C.text2,
+    fontFamily: FT.reg,
+    fontSize: 13,
+    paddingVertical: 4,
+  },
+  chatSend: {
+    backgroundColor: 'rgba(99, 102, 241, 0.25)',
+    borderRadius: RADIUS.chip ?? 20,
+    padding: 8,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  improvementTitle: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-    fontSize: 12,
-  },
-  improvementValue: {
-    color: '#FFF',
-    fontFamily: FT.xbold,
-    fontSize: 28,
-  },
-  improvementSub: {
-    color: C.text2,
-    fontFamily: FT.med,
-    fontSize: 12,
-  },
+  chatSendDisabled: { opacity: 0.4 },
 
   /* Recruiter View */
   betaTag: {

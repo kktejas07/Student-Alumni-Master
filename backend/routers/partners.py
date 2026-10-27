@@ -24,7 +24,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field, field_validator
 
 from core.db import db
-from core.deps import get_current_user
+from core.deps import get_current_user, ensure_admin
 
 
 router = APIRouter(prefix="/api", tags=["partners"])
@@ -90,9 +90,7 @@ def _serialize(doc: dict) -> dict:
 
 
 def _require_admin(user: dict):
-    role = (user.get("role") or "").lower()
-    if role not in {"admin", "super_admin", "superadmin"}:
-        raise HTTPException(403, "Admin access required")
+    ensure_admin(user)
 
 
 # ────────────────────────── Public endpoint ─────────────────────────

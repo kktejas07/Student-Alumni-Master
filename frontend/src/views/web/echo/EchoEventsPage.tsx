@@ -543,7 +543,6 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
       try {
         orderRes = await api.createEchoPaymentOrder(targetSlug, payload);
       } catch (err: any) {
-        console.log('[EchoEventsPage] Payment order response notice:', err);
         // Fail-closed for paid events if order creation fails (e.g. 503 from backend)
         if (calculatedTotalFee > 0) {
           setIsPaying(false);
@@ -704,8 +703,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
             payment_id: '',
           },
         });
-      } catch (regErr) {
-        console.log('[EchoEventsPage] Direct registration notice:', regErr);
+      } catch {
       }
 
       const ticketId = regRes?.id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`;

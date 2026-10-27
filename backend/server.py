@@ -69,7 +69,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from core.middleware import get_real_ip, register_security_middleware
-from core.deps import get_current_user as _deps_get_current_user
+from core.deps import get_current_user as _deps_get_current_user, bearer_token, decode_payload, decode_payload_silent
 
 from core.config import limiter, JWT_SECRET, JWT_ALGORITHM
 
@@ -1140,106 +1140,100 @@ def serialize_user(user: dict) -> dict | None:
 
 
 async def get_current_user(request: Request) -> dict:
-    """JWT auth dependency. Reads `Authorization: Bearer <token>` header."""
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(401, "Not authenticated")
-    try:
-        payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        if payload.get("type") != "access":
-            raise HTTPException(401, "Invalid token type")
-        # Check token blacklist (logout revocation)
-        jti = payload.get("jti")
-        if jti:
-            blacklisted = await db.token_blacklist.find_one({"jti": jti})
-            if blacklisted:
-                raise HTTPException(401, "Token has been revoked")
-        user = await db.users.find_one(
-            {"_id": ObjectId(payload["sub"])}
-        )
-        if not user:
-            raise HTTPException(401, "User not found")
+    """JWT auth dependency. Reads `Authorization: Bearer <token>` header.
 
-        # ── Schema Unification Migration Helper ──
-        needs_migration = False
-        updates = {"$set": {}, "$unset": {}}
+    Shared decode + blacklist checks live in core.deps; the schema-migration
+    block below is kept here because it mutates the user document.
+    """
+    payload = decode_payload(bearer_token(request.headers.get("Authorization", "")), token_type="access")
+    # Check token blacklist (logout revocation)
+    jti = payload.get("jti")
+    if jti:
+        blacklisted = await db.token_blacklist.find_one({"jti": jti})
+        if blacklisted:
+            raise HTTPException(401, "Token has been revoked")
+    user = await db.users.find_one(
+        {"_id": ObjectId(payload["sub"])}
+    )
+    if not user:
+        raise HTTPException(401, "User not found")
 
-        # 1. Image Schema
-        if not user.get("photo_data") and (user.get("photo_data")):
-            user["photo_data"] = user.get("photo_data")
-            updates["$set"]["photo_data"] = user["photo_data"]
-            if "face_image_base64" in user: updates["$unset"]["face_image_base64"] = ""
-            if "photo" in user: updates["$unset"]["photo"] = ""
-            needs_migration = True
+    # ── Schema Unification Migration Helper ──
+    needs_migration = False
+    updates = {"$set": {}, "$unset": {}}
 
-        # 2. Career Goal
-        si = user.get("student_info") or {}
-        if not si.get("career_goal") and (user.get("career_goal") or user.get("career_path")):
-            si["career_goal"] = user.get("career_goal") or user.get("career_path")
-            user["student_info"] = si
-            updates["$set"]["student_info"] = si
-            if "career_goal" in user: updates["$unset"]["career_goal"] = ""
-            if "career_path" in user: updates["$unset"]["career_path"] = ""
-            needs_migration = True
+    # 1. Image Schema
+    if not user.get("photo_data") and (user.get("photo_data")):
+        user["photo_data"] = user.get("photo_data")
+        updates["$set"]["photo_data"] = user["photo_data"]
+        if "face_image_base64" in user: updates["$unset"]["face_image_base64"] = ""
+        if "photo" in user: updates["$unset"]["photo"] = ""
+        needs_migration = True
 
-        # 3. Education
-        s_info = user.get("school_info") or {}
-        has_edu_legacy = False
-        for legacy_key, target_key in [
-            ("branch", "branch_or_stream"),
-            ("cgpa", "cgpa"),
-            ("graduation_year", "graduation_year"),
-            ("class_or_year", "class_or_year"),
-            ("department", "branch_or_stream")
-        ]:
-            if legacy_key in user:
-                if target_key not in s_info or not s_info[target_key]:
-                    s_info[target_key] = user[legacy_key]
-                updates["$unset"][legacy_key] = ""
-                has_edu_legacy = True
-        if has_edu_legacy:
-            user["school_info"] = s_info
-            updates["$set"]["school_info"] = s_info
-            needs_migration = True
+    # 2. Career Goal
+    si = user.get("student_info") or {}
+    if not si.get("career_goal") and (user.get("career_goal") or user.get("career_path")):
+        si["career_goal"] = user.get("career_goal") or user.get("career_path")
+        user["student_info"] = si
+        updates["$set"]["student_info"] = si
+        if "career_goal" in user: updates["$unset"]["career_goal"] = ""
+        if "career_path" in user: updates["$unset"]["career_path"] = ""
+        needs_migration = True
 
-        # 4. Resume
-        if user.get("resume_url"):
-            legacy_url = user.get("resume_url")
-            new_doc = {
-                "id": "legacy_migrated",
-                "name": "Legacy_Resume.pdf",
-                "size": 0,
-                "data_url": legacy_url,
-                "uploaded_at": datetime.now(timezone.utc).isoformat(),
-                "active": True
-            }
-            updates["$push"] = {"resume_documents": new_doc}
-            if not user.get("resume_documents"):
-                user["resume_documents"] = []
-            user["resume_documents"].append(new_doc)
-            if "resume_url" in user: updates["$unset"]["resume_url"] = ""
-            if "resume_data" in user: updates["$unset"]["resume_data"] = ""
-            needs_migration = True
+    # 3. Education
+    s_info = user.get("school_info") or {}
+    has_edu_legacy = False
+    for legacy_key, target_key in [
+        ("branch", "branch_or_stream"),
+        ("cgpa", "cgpa"),
+        ("graduation_year", "graduation_year"),
+        ("class_or_year", "class_or_year"),
+        ("department", "branch_or_stream")
+    ]:
+        if legacy_key in user:
+            if target_key not in s_info or not s_info[target_key]:
+                s_info[target_key] = user[legacy_key]
+            updates["$unset"][legacy_key] = ""
+            has_edu_legacy = True
+    if has_edu_legacy:
+        user["school_info"] = s_info
+        updates["$set"]["school_info"] = s_info
+        needs_migration = True
 
-        if needs_migration:
-            try:
-                if not updates["$unset"]: del updates["$unset"]
-                if not updates["$set"]: del updates["$set"]
-                if not updates.get("$push"): updates.pop("$push", None)
-                if updates:
-                    await db.users.update_one({"_id": user["_id"]}, updates)
-            except Exception as e:
-                print(f"Migration error: {e}", flush=True)
-        
-        # Remove large binary fields from response to match legacy behavior
-        if "resume_documents" in user:
-            del user["resume_documents"]
-            
-        return user
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(401, "Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(401, "Invalid token")
+    # 4. Resume
+    if user.get("resume_url"):
+        legacy_url = user.get("resume_url")
+        new_doc = {
+            "id": "legacy_migrated",
+            "name": "Legacy_Resume.pdf",
+            "size": 0,
+            "data_url": legacy_url,
+            "uploaded_at": datetime.now(timezone.utc).isoformat(),
+            "active": True
+        }
+        updates["$push"] = {"resume_documents": new_doc}
+        if not user.get("resume_documents"):
+            user["resume_documents"] = []
+        user["resume_documents"].append(new_doc)
+        if "resume_url" in user: updates["$unset"]["resume_url"] = ""
+        if "resume_data" in user: updates["$unset"]["resume_data"] = ""
+        needs_migration = True
+
+    if needs_migration:
+        try:
+            if not updates["$unset"]: del updates["$unset"]
+            if not updates["$set"]: del updates["$set"]
+            if not updates.get("$push"): updates.pop("$push", None)
+            if updates:
+                await db.users.update_one({"_id": user["_id"]}, updates)
+        except Exception as e:
+            print(f"Migration error: {e}", flush=True)
+
+    # Remove large binary fields from response to match legacy behavior
+    if "resume_documents" in user:
+        del user["resume_documents"]
+
+    return user
 
 
 def validate_student_class(school_info: SchoolInfo, age: Optional[int] = None) -> None:
@@ -3143,9 +3137,9 @@ async def logout(request: Request, user: dict = Depends(get_current_user)):
     The blacklist entry auto-expires via MongoDB TTL index when the token
     itself would have expired, so the collection stays bounded.
     """
-    auth = request.headers.get("Authorization", "")
-    try:
-        payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    token = bearer_token(request.headers.get("Authorization", ""))
+    payload = decode_payload_silent(token) if token else None
+    if payload:
         jti = payload.get("jti")
         exp = payload.get("exp")
         if jti:
@@ -3161,8 +3155,6 @@ async def logout(request: Request, user: dict = Depends(get_current_user)):
                 })
             except Exception:
                 pass  # Duplicate JTI insert is fine — token already revoked
-    except Exception:
-        pass  # Token already invalid; logout is still successful
     return {"status": "logged_out"}
 
 

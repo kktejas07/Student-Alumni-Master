@@ -3,8 +3,8 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Header, Body, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-import jwt
-from core.config import limiter, JWT_SECRET, JWT_ALGORITHM
+from core.config import limiter
+from core.deps import bearer_token, decode_payload_silent
 from core.middleware import get_real_ip
 from bson import ObjectId
 
@@ -56,12 +56,9 @@ class FeedbackRequest(BaseModel):
 def get_user_key(request: Request) -> str:
     auth = request.headers.get("authorization")
     if auth and auth.startswith("Bearer "):
-        try:
-            payload = jwt.decode(auth.split(" ")[1], JWT_SECRET, algorithms=[JWT_ALGORITHM])
-            if payload.get("sub"):
-                return f"user:{payload['sub']}"
-        except Exception:
-            pass
+        payload = decode_payload_silent(auth.split(" ")[1])
+        if payload and payload.get("sub"):
+            return f"user:{payload['sub']}"
     return f"ip:{get_real_ip(request)}"
 
 @router.post("/agent-k/chat")

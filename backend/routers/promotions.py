@@ -36,7 +36,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, validator
 
 from core.db import db
-from core.deps import get_current_user
+from core.deps import get_current_user, ensure_admin
 
 
 router = APIRouter(prefix="/api", tags=["promotions"])
@@ -46,9 +46,7 @@ Tone = Literal["violet", "blue", "indigo", "teal", "amber", "rose", "emerald"]
 
 
 def _require_admin(user: dict):
-    role = (user.get("role") or "").lower()
-    if role not in {"super_admin", "admin", "superadmin"}:
-        raise HTTPException(status_code=403, detail="Admin role required")
+    ensure_admin(user)
 
 
 def _serialize(doc: dict) -> dict:

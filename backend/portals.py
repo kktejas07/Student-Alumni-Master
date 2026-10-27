@@ -60,7 +60,7 @@ import re
 from cachetools import TTLCache, cached
 from pathlib import Path
 
-from core.deps import get_current_user, require_role, require_admin_role
+from core.deps import get_current_user, require_role, require_admin_role, bearer_token, decode_payload_silent
 from pydantic import BaseModel
 
 # Instantiate TTL Caches for high-traffic endpoints
@@ -431,17 +431,12 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
     # ── Profile lookup ──────────────────────────────────────────────
     student = None
     if not student_email:
-        auth = request.headers.get("Authorization", "")
-        if auth.startswith("Bearer "):
+        payload = decode_payload_silent(bearer_token(request.headers.get("Authorization", "")))
+        if payload and "sub" in payload:
             try:
-                import jwt
-                from core.security import JWT_SECRET, JWT_ALGORITHM
-                from bson import ObjectId
-                payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
-                if "sub" in payload:
-                    me = await _db.users.find_one({"_id": ObjectId(payload["sub"])})
-                    if me:
-                        student_email = me.get("email")
+                me = await _db.users.find_one({"_id": ObjectId(payload["sub"])})
+                if me:
+                    student_email = me.get("email")
             except Exception:
                 pass
 

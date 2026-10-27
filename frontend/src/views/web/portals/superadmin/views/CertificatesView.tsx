@@ -693,7 +693,6 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       });
       if (prevResp.ok) {
         const prev = await prevResp.json();
-        console.log('[CSV PREVIEW]', prev);
         if (!prev.detected_columns?.email) {
           setCsvError(`CSV header mismatch! Found: ${prev.headers?.join(', ')}. No "email" column detected.`);
           return;
@@ -763,8 +762,6 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
               } else if (msg.type === 'done') {
               setCsvResult(msg);
               setCsvProgress({ row: null, live: false, phase: '' });
-            } else if (msg.type === 'debug') {
-              console.log('[CSV IMPORT DEBUG]', msg);
             }
             } catch {}
           }

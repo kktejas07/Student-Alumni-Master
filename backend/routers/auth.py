@@ -33,11 +33,10 @@ from core.security import (
     hash_password, verify_password, create_access_token, create_refresh_token,
     encrypt_value, decrypt_value, _audit_log, _audit_log_many,
     generate_unique_id, generate_qr_code,
-    JWT_SECRET, JWT_ALGORITHM
 )
 from core.models import SelfServiceRole, AuthResponse, UserResponse
 from core.security import serialize_user
-from core.deps import get_current_user
+from core.deps import get_current_user, decode_payload, decode_payload_silent, bearer_token
 from core.email import send_email
 from core.email_quality import assess
 try:
@@ -633,9 +632,7 @@ async def refresh_token(request: Request, response: Response, payload: Optional[
         raise HTTPException(400, "Missing refresh_token")
 
     try:
-        data = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        if data.get("type") != "refresh":
-            raise HTTPException(401, "Invalid token type")
+        data = decode_payload(token, token_type="refresh")
 
         # Reuse / Revocation check via blacklist
         old_jti = data.get("jti")
@@ -687,11 +684,10 @@ async def refresh_token(request: Request, response: Response, payload: Optional[
 @router.post("/auth/logout")
 async def logout(request: Request, response: Response, user: dict = Depends(get_current_user)):
     """Revokes the current access token and refresh token, clearing session cookies."""
-    auth = request.headers.get("Authorization", "")
-    token_str = auth[7:].strip() if auth.startswith("Bearer ") else ""
+    token_str = bearer_token(request.headers.get("Authorization", "")) or ""
     if token_str:
-        try:
-            payload = jwt.decode(token_str, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        payload = decode_payload_silent(token_str)
+        if payload:
             jti = payload.get("jti")
             exp = payload.get("exp")
             if jti:
@@ -708,8 +704,6 @@ async def logout(request: Request, response: Response, user: dict = Depends(get_
                     })
                 except Exception:
                     pass
-        except Exception:
-            pass
 
     # Revoke refresh token if provided in cookie or payload
     cookie_refresh = request.cookies.get("scd_refresh_token")
@@ -721,8 +715,8 @@ async def logout(request: Request, response: Response, user: dict = Depends(get_
         pass
     token_to_revoke = cookie_refresh or body_refresh
     if token_to_revoke:
-        try:
-            rf_payload = jwt.decode(token_to_revoke, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        rf_payload = decode_payload_silent(token_to_revoke)
+        if rf_payload:
             rf_jti = rf_payload.get("jti")
             if rf_jti:
                 rf_exp = rf_payload.get("exp")
@@ -739,8 +733,6 @@ async def logout(request: Request, response: Response, user: dict = Depends(get_
                     })
                 except Exception:
                     pass
-        except Exception:
-            pass
 
     _clear_refresh_cookie(response)
     return {"status": "logged_out"}

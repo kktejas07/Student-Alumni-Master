@@ -1,6 +1,5 @@
 from __future__ import annotations
 from core.deps import require_role
-from core.deps import require_role
 """
 Visitor Analytics & Telemetry Engine
 ===================================
@@ -35,12 +34,6 @@ from geo import resolve_ip
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["visitor-analytics"])
-
-
-# ─── Auth dependency helper ──────────────────────────────────────────
-def _require_admin():
-    from portals import require_role
-    return require_role("admin")
 
 
 # ─── Pydantic Models ────────────────────────────────────────────────

@@ -46,7 +46,7 @@ from core.security import (
 )
 from core.email import send_email, render_html_email, generate_pdf_from_html
 from core.whatsapp import send_wa_message, send_wa_documents
-from core.config import JWT_SECRET, JWT_ALGORITHM
+from core.deps import bearer_token, decode_payload, decode_payload_silent, ensure_admin
 
 router = APIRouter(prefix="/api/echo", tags=["echo-showcase"])
 
@@ -394,39 +394,26 @@ def _get_db(request: Request) -> AsyncIOMotorDatabase:
 
 # ── Auth helper ──────────────────────────────────────────────────────────────
 async def _require_admin(request: Request):
-    """Reuse the same JWT logic as the rest of server.py."""
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
+    """Reuse the shared strict JWT decode from core.deps."""
+    token = bearer_token(request.headers.get("Authorization", ""))
+    if not token:
         raise HTTPException(status_code=401, detail="Missing token")
-    token = auth.split(" ", 1)[1]
-    import jwt as _jwt
-    # Uses centralized JWT_SECRET from core.config
-    try:
-        payload = _jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    if payload.get("role") not in ("admin", "super_admin"):
-        raise HTTPException(status_code=403, detail="Admin only")
+    payload = decode_payload(token)
+    ensure_admin(payload, roles=("admin", "super_admin"))
     return payload
 
 
 async def _require_scan_access(request: Request):
     """Allow scan access to super_admins, admins, AND authorized volunteers."""
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
+    token = bearer_token(request.headers.get("Authorization", ""))
+    if not token:
         raise HTTPException(status_code=401, detail="Missing token")
-    token = auth.split(" ", 1)[1]
-    import jwt as _jwt
-    # Uses centralized JWT_SECRET from core.config
-    try:
-        payload = _jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
+    payload = decode_payload(token)
+
     role = (payload.get("role") or "").lower()
     if role in ("super_admin", "admin"):
         return payload
-        
+
     db = _get_db(request)
     email = (payload.get("email") or "").strip().lower()
     vol = await db.echo_volunteers.find_one({"email": email})
@@ -435,7 +422,7 @@ async def _require_scan_access(request: Request):
         payload["scanned_by"] = vol.get("name") or email
         payload["role"] = "volunteer"
         return payload
-        
+
     raise HTTPException(status_code=403, detail="Scanner access denied")
 
 
@@ -3865,12 +3852,9 @@ async def register_for_showcase(
     # Resolve caller: optional auth (public registration is allowed, but if a
     # token is present we bind the registration to that user).
     user = None
-    auth = request.headers.get("Authorization", "")
-    if auth.startswith("Bearer "):
+    payload_token = decode_payload_silent(bearer_token(request.headers.get("Authorization", "")))
+    if payload_token:
         try:
-            import jwt as _jwt
-            # Uses centralized JWT_SECRET from core.config
-            payload_token = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
             user = await db.users.find_one({"_id": ObjectId(payload_token.get("sub"))})
         except Exception:
             user = None
@@ -4088,12 +4072,9 @@ async def my_showcase_registration(slug: str, request: Request):
     db = _get_db(request)
     showcase = await db.echo_showcases.find_one(_slug_query(slug))
     canonical_slug = (showcase or {}).get("slug") or slug
-    auth = request.headers.get("Authorization", "")
-    if auth.startswith("Bearer "):
-        import jwt as _jwt
-        # Uses centralized JWT_SECRET from core.config
+    payload = decode_payload_silent(bearer_token(request.headers.get("Authorization", "")))
+    if payload:
         try:
-            payload = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
             user = await db.users.find_one({"_id": ObjectId(payload.get("sub"))})
             if user:
                 uid = str(user["_id"])
@@ -4198,16 +4179,13 @@ class VerifyPaymentSchema(PaymentOrderSchema):
 
 
 async def _resolve_user(request: Request, db) -> Optional[dict]:
-    auth = request.headers.get("Authorization", "")
-    if auth.startswith("Bearer "):
-        import jwt as _jwt
-        # Uses centralized JWT_SECRET from core.config
-        try:
-            p = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
-            return await db.users.find_one({"_id": ObjectId(p.get("sub"))})
-        except Exception:
-            return None
-    return None
+    payload = decode_payload_silent(bearer_token(request.headers.get("Authorization", "")))
+    if not payload:
+        return None
+    try:
+        return await db.users.find_one({"_id": ObjectId(payload.get("sub"))})
+    except Exception:
+        return None
 
 
 @router.post("/showcases/{slug}/payment-order")

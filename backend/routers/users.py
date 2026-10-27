@@ -23,7 +23,7 @@ from core.security import (
     serialize_user, validate_student_class, generate_unique_id, generate_qr_code,
     encrypt_value, decrypt_value, _ENC_PREFIX
 )
-from core.deps import get_current_user
+from core.deps import get_current_user, ensure_admin
 from core.models import UserRole, UserResponse, SchoolInfo, MentorInfo, AlumniInfo, StudentInfo, CareerPath, EducationLevel, CollegeInfo
 from personalization import build_personalized_dashboard, track_module_click
 from services.career_ai.skill_intelligence_service import compute_full_intelligence, invalidate_intel_cache
@@ -1604,8 +1604,7 @@ async def admin_mentor_detail(mentor_id: str, user: dict = Depends(get_current_u
 # Super Admin Dashboard endpoints (Phase 1)
 # ----------------------------------------------------------------------------
 def _require_admin(user: dict):
-    if user.get("role") not in ("admin", "super_admin"):
-        raise HTTPException(403, "Admin only")
+    ensure_admin(user)
 
 
 @router.get("/admin/overview")

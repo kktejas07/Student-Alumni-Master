@@ -13,6 +13,7 @@ export { MilestoneCard }       from './MilestoneCard';
 export { WeeklyTaskCard }      from './WeeklyTaskCard';
 export { ScoreComparison }     from './ScoreComparison';
 export { CareerGoalSimulator }  from './CareerGoalSimulator';
+export { ExplainModal }          from './ExplainModal';
 export { HeroIllustration }    from './HeroIllustration';
 export { SkillsRadarChart }    from './SkillsRadarChart';
 export { HorizontalRoadmap }   from './HorizontalRoadmap';

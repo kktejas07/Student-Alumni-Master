@@ -150,8 +150,7 @@ END:VCALENDAR`;
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    } catch (e) {
-      console.log('Calendar export notice:', e);
+    } catch {
     }
 
     setTimeout(() => setAddedCal(false), 3000);
@@ -228,8 +227,7 @@ END:VCALENDAR`;
           link.click();
           document.body.removeChild(link);
           URL.revokeObjectURL(url);
-        } catch (err) {
-          console.log('Invoice download notice:', err);
+        } catch {
         }
 
         setTimeout(() => setInvState('idle'), 3000);
