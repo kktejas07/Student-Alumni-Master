@@ -143,7 +143,7 @@ async def _sync_talent_pool_profiles():
 
         stale_threshold = datetime.now(timezone.utc) - timedelta(hours=24)
         cursor = tp_db.talent_pool.find({
-            "linkedin_url": {"$exists": True, "$ne": None, "$ne": ""},
+            "linkedin_url": {"$exists": True, "$nin": [None, ""]},
             "is_active": True,
             "$or": [
                 {"last_synced_at": {"$exists": False}},

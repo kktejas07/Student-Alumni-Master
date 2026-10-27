@@ -274,7 +274,8 @@ def apply_tags(p: Dict[str, Any], all_progs: List[Dict[str, Any]], profile: Opti
         tags.append('SAFE_BET')
     if p.get('match', 0) < 80 and (p.get('acceptance_rate') or 100) < 15:
         tags.append('STRETCH')
-    if p.get('country') == 'India' and (p.get('nirf_rank') or 999) <= 10:
+    nirf_rank = p.get('nirf_rank')
+    if p.get('country') == 'India' and nirf_rank is not None and nirf_rank <= 10:
         tags.append('INDIA_TOP')
     if p.get('qs_rank') and p['qs_rank'] <= 50:
         tags.append('GLOBAL_TOP_50')

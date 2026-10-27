@@ -248,7 +248,7 @@ async def mentor_availability(
     return {
         "mentor_id": str(mentor["_id"]),
         "mentor_name": mentor.get("full_name") or mentor.get("name"),
-        "rate_inr": mentor.get("expected_rate_inr") or 999,
+        "rate_inr": mentor.get("expected_rate_inr"),
         "timezone": mentor.get("timezone") or "Asia/Kolkata",
         "days": out,
         "fetched_at": datetime.now(timezone.utc).isoformat(),

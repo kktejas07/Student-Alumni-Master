@@ -339,9 +339,17 @@ async def mentor_analytics(db, mentor_id: str) -> Dict[str, Any]:
     total_minutes = sum(int(b.get("duration_minutes", 30)) for b in completed)
     total_hours = round(total_minutes / 60, 1)
 
-    # Per-session rate (mock — real impl reads from mentor's pricing)
-    rate_per_hour = 1500  # INR
-    earnings = round(total_hours * rate_per_hour)
+    # Earnings from money actually recorded on completed bookings. Falls back
+    # to 0 (not a per-hour mock rate) when no amounts are stored.
+    try:
+        rows = await db.bookings.aggregate([
+            {"$match": {"mentor_id": mid, "status": "completed"}},
+            {"$group": {"_id": None, "s": {"$sum": {"$toDouble": {"$ifNull": ["$amount_paid", 0]}}}}},
+        ]).to_list(1)
+        earnings = round(float(rows[0]["s"])) if rows else 0
+    except Exception:
+        earnings = 0
+    earnings_basis = "sum of amount_paid on completed bookings"
 
     # Bookings per week (last 8 weeks)
     today = datetime.now(timezone.utc).date()
@@ -389,6 +397,12 @@ async def mentor_analytics(db, mentor_id: str) -> Dict[str, Any]:
             "status": b.get("status"),
         })
 
+    # Real rating: mean of the mentor's stored reviews. null when none recorded.
+    ratings = [r.get("rating") for r in await db.reviews.find({"mentor_id": mid}, {"rating": 1}).to_list(1000)]
+    ratings = [float(x) for x in ratings if isinstance(x, (int, float))]
+    rating = round(sum(ratings) / len(ratings), 2) if ratings else None
+    total_reviews = len(ratings)
+
     return {
         "scope": "mentor",
         "kpis": {
@@ -403,8 +417,10 @@ async def mentor_analytics(db, mentor_id: str) -> Dict[str, Any]:
         "weekly_bookings": weekly_series,
         "top_topics": top_topics,
         "upcoming_sessions_list": upcoming_sessions,
-        "rating": 4.7,           # MOCKED — wire to mentor's actual rating from feedback collection
-        "total_reviews": len(completed),
+        "rating": rating,
+        "total_reviews": total_reviews,
+        "rating_basis": "mean of rating on stored mentor reviews (reviews collection); null when no reviews recorded",
+        "earnings_basis": earnings_basis,
     }
 
 

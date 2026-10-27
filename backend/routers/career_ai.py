@@ -73,7 +73,7 @@ async def get_claude_chat(session_id: str, system_message: str):
                     "suggestion": "Your trajectory is solid — focus this week on shipping one polished portfolio piece."
                 }"""
             if "daily" in self.sess_id.lower():
-                return '{"summary": "Mock daily brief summary", "focus_areas": ["Communication", "Technical prep"], "action_items": [{"id": "a1", "title": "Mock action", "description": "Mock description", "completed": false}], "industry_news": [{"id": "n1", "headline": "Mock news", "summary": "Mock", "url": "https://example.com"}]}'
+                return '{"summary": null, "configured": false, "reason": "LLM provider not configured; no daily brief available", "focus_areas": [], "action_items": [], "industry_news": []}'
             if "chat" in self.sess_id.lower() or "financial" in self.sess_id.lower() or "stay" in self.sess_id.lower() or "rentals" in self.sess_id.lower() or "You are speaking with" in self.sys_msg:
                 user_text = getattr(msg, "text", str(msg))
                 import re

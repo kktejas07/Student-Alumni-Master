@@ -79,7 +79,8 @@ async def get_mentor_rating_stats(db, mentor_id: str) -> Dict[str, Any]:
 async def refresh_mentor_rating(db, mentor_id: str) -> None:
     """Pushes the latest avg rating + total_reviews into the mentor's profile (sample_mentors + users)."""
     stats = await get_mentor_rating_stats(db, mentor_id)
-    update = {"rating": stats["average"] or 5.0, "total_reviews": stats["total"]}
+    rating = stats["average"] if stats["total"] else None
+    update = {"rating": rating, "total_reviews": stats["total"]}
     # Update both possible mentor sources
     await db.sample_mentors.update_one({"id": mentor_id}, {"$set": update})
     try:

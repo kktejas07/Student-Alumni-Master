@@ -693,7 +693,7 @@ async def get_hardware_analytics(days: int = Query(60, ge=1, le=180), user: dict
 
     # GPU Renderers
     gpu_pipeline = [
-        {"$match": {**match, "device.gpu_renderer": {"$exists": True, "$ne": None, "$ne": ""}}},
+        {"$match": {**match, "device.gpu_renderer": {"$exists": True, "$nin": [None, ""]}}},
         {"$group": {"_id": "$device.gpu_renderer", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}},
         {"$limit": 8},
@@ -825,18 +825,7 @@ async def get_visitor_click_heatmap(
     
     docs = await _db.visitor_events.aggregate(pipeline).to_list(30)
     total_clicks = sum(d.get("click_count", 0) for d in docs) or 1
-    
-    # Preset default mock heatmap hotspots if DB has fresh events
-    default_hotspots = [
-        {"element_id": "#wehive-spotlight", "element_text": "WeHive Sponsor Spotlight (2 Visas + ₹15L Germany)", "click_count": 482, "module": "echo", "path": "/echo/snist/register"},
-        {"element_id": "#ticket-599", "element_text": "One Ticket ₹599 Register Button", "click_count": 395, "module": "echo", "path": "/echo/snist/register"},
-        {"element_id": "#conclave-card", "element_text": "Virtual Cyber Security Conclave (ISC2)", "click_count": 278, "module": "echo", "path": "/echo/snist/register"},
-        {"element_id": "#perks-grid", "element_text": "Featherless AI & Meal Coupons List", "click_count": 214, "module": "echo", "path": "/echo/snist/register"},
-        {"element_id": "#speaker-card", "element_text": "Stan Mierzwa & Speakers LinkedIn Links", "click_count": 186, "module": "echo", "path": "/echo/snist/register"},
-        {"element_id": "#my-tickets-tab", "element_text": "Student Portal — My Tickets Pass View", "click_count": 162, "module": "tickets", "path": "/platform?role=student&tab=my-tickets"},
-        {"element_id": "#coupons-copy-btn", "element_text": "Copy Coupon Code MENTOR-100-FREE", "click_count": 149, "module": "coupons", "path": "/platform?role=student&tab=coupons"}
-    ]
-    
+
     elements = []
     if docs and len(docs) > 2:
         for idx, d in enumerate(docs):
@@ -850,27 +839,10 @@ async def get_visitor_click_heatmap(
                 "click_count": cnt,
                 "click_share_pct": share,
                 "intensity": intensity,
-                "path": d.get("sample_path") or "/echo/snist/register",
+                "path": d.get("sample_path") or "",
                 "last_clicked": d.get("last_clicked").isoformat() if isinstance(d.get("last_clicked"), datetime) else None
             })
-    else:
-        tot = sum(h["click_count"] for h in default_hotspots)
-        for idx, h in enumerate(default_hotspots):
-            if module and module != "all" and h["module"] != module:
-                continue
-            share = round((h["click_count"] / tot) * 100, 1)
-            intensity = "hot" if idx < 2 else ("warm" if idx < 5 else "cool")
-            elements.append({
-                "rank": idx + 1,
-                "element_id": h["element_id"],
-                "element_text": h["element_text"],
-                "click_count": h["click_count"],
-                "click_share_pct": share,
-                "intensity": intensity,
-                "path": h["path"],
-                "last_clicked": now.isoformat()
-            })
-            
+
     return {
         "module_filter": module,
         "timeframe_days": days,
