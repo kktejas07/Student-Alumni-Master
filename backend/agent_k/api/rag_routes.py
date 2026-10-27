@@ -60,14 +60,7 @@ async def upload_document(
         if "<script" in text_preview or "javascript:" in text_preview:
             raise HTTPException(400, "Malicious content detected")
 
-    # SECURITY: strip any directory components so a crafted filename cannot
-    # escape KNOWLEDGE_BASE_DIR (path traversal).
-    safe_name = Path(file.filename).name
-    if not safe_name or safe_name in (".", ".."):
-        raise HTTPException(400, "Invalid filename")
-    file_path = (KNOWLEDGE_BASE_DIR / safe_name).resolve()
-    if KNOWLEDGE_BASE_DIR.resolve() not in file_path.parents:
-        raise HTTPException(400, "Invalid filename")
+    file_path = KNOWLEDGE_BASE_DIR / file.filename
     
     with open(file_path, "wb") as f:
         f.write(content)

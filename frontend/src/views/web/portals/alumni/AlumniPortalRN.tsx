@@ -1,24 +1,15 @@
 /**
- * Alumni Portal — outer shell. Mirrors StudentPortalRN behaviour with the
- * orange theme tokens. All sidebar items render INSIDE this shell via the
- * EmbeddedShellContext (no router redirects).
+ * Alumni Portal — view switch inside the shared <PortalShell>.
  */
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet , Platform} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
+import { PortalShell } from '@/src/ui/shell/PortalShell';
+import { PortalNavContext } from '../shared/navContext';
 
-import { SC } from './tokens';
-import { Sidebar, StudentNavId } from './Sidebar';
-import { TopBar } from './TopBar';
-import { LinearGradient } from 'expo-linear-gradient';
-import { StarryBackground } from '@/src/views/web/nexus-glow-landing/StarryBackground';
-import { DashboardFooter } from '../../components/SponsorStrip';
-import { PromoBanner } from '../../components/PromoBanner';
+import { ALUMNI_PORTAL, type AlumniNavId } from './nav';
 import { DashboardView } from './views/DashboardView';
-import { StubView } from './views/StubView';
 import { EventsView } from './views/EventsView';
 import { InternshipsView } from './views/InternshipsView';
 import { NetworkView } from './views/NetworkView';
@@ -28,102 +19,79 @@ import { MyApplicationsView } from './views/MyApplicationsView';
 import { MyWorkshopsView } from './views/MyWorkshopsView';
 import { MyTicketsView } from '../student/views/MyTicketsView';
 import { CareerAIView } from '../student/views/CareerAIView';
-import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
-import { UniversalMotionTransition } from '@/src/views/web/components/UniversalMotionTransition';
-import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 
-// Feature pages imported as components for inline rendering
 import CoursesPage from '@/app/courses';
 import RentalsPage from '@/app/rentals';
 import FinancialPage from '@/app/financial';
 import HigherEducationPage from '@/app/higher-education';
 import DealsPage from '@/app/deals';
 import WalletPage from '@/app/wallet';
-import { AlumniPortalNavContext } from './AlumniPortalNavContext';
-export { AlumniPortalNavContext };
+
+/** @deprecated kept for AlumniNavId importers */
+export type StudentNavId = AlumniNavId;
+
+/** Alumni alias of the shared portal nav context (see ../shared/navContext). */
+export const AlumniPortalNavContext = PortalNavContext;
 
 export function AlumniPortalRN() {
   const router = useRouter();
   const { tab, go } = usePortalUrl();
   const logout = useAuthStore((sx) => sx.logout);
-  const [active, setActive] = useState<StudentNavId>(tab as StudentNavId);
+  const [active, setActive] = useState<AlumniNavId>(tab as AlumniNavId);
   const [searchQuery, setSearchQuery] = useState('');
-  useAutoTour('alumni');
+  const [q, setQ] = useState('');
 
-  React.useEffect(() => {
-    if (tab) {
-      setActive(tab as StudentNavId);
-    }
-  }, [tab]);
+  React.useEffect(() => { if (tab) setActive(tab as AlumniNavId); }, [tab]);
+  React.useEffect(() => setQ(searchQuery), [searchQuery]);
 
   const onLogout = async () => {
     router.replace('/welcome');
     try { await logout(); } catch {}
   };
-
-  const handleNav = (id: StudentNavId, params?: { q?: string }) => {
+  const handleNav = (id: AlumniNavId, params?: { q?: string }) => {
     if (id !== active) go(id);
-    if (params && typeof params.q === 'string') {
-      setSearchQuery(params.q);
-    }
+    if (params && typeof params.q === 'string') setSearchQuery(params.q);
+  };
+  const submitSearch = () => {
+    if (!q.trim()) return;
+    setSearchQuery(q.trim());
+    if (active !== 'network' && active !== 'internships') handleNav('internships');
   };
 
   return (
-    <View style={s.shell}>
-      <LinearGradient
-        pointerEvents="none"
-        colors={['#030614', '#040816']}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject as any}
-      />
-      <SAWatermark size={850} top={30} right={-30} opacity={0.16} />
-
-      <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <AlumniPortalNavContext.Provider value={{ navigate: handleNav, searchQuery, setSearchQuery }}>
-          <TopBar activeView={active} onAvatarPress={() => setActive('profile')} />
-          <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
-            showsVerticalScrollIndicator={false}
-          >
-            <EmbeddedShellContext.Provider value={true}>
-              <PromoBanner portal="alumni" />
-              <UniversalMotionTransition deps={[active]}>
-                {active === 'dashboard'       && (
-                  <DashboardView
-                    onOpenProfile={() => setActive('profile')}
-                    onOpenInternships={() => setActive('internships')}
-                    onOpenNetwork={() => setActive('network')}
-                    onOpenEvents={() => setActive('events')}
-                    onOpenCareerAi={() => setActive('career-ai')}
-                  />
-                )}
-                {active === 'career-ai'       && <CareerAIView />}
-                {active === 'internships'     && <InternshipsView />}
-                {active === 'my-applications' && <MyApplicationsView />}
-                {active === 'network'         && <NetworkView />}
-                {active === 'my-bookings'     && <MyBookingsView />}
-                {active === 'my-tickets'      && <MyTicketsView />}
-                {active === 'events'          && <EventsView />}
-                {active === 'my-workshops'    && <MyWorkshopsView />}
-                {active === 'courses'         && <CoursesPage />}
-                {active === 'financial'       && <FinancialPage />}
-                {active === 'deals'           && <DealsPage />}
-                {active === 'wallet'          && <WalletPage />}
-                {active === 'higher-ed'       && <HigherEducationPage />}
-                {active === 'rentals'         && <RentalsPage />}
-                {active === 'profile'         && <ProfileSettingsView />}
-              </UniversalMotionTransition>
-            </EmbeddedShellContext.Provider>
-          <DashboardFooter portal="alumni" />
-        </ScrollView>
-        </AlumniPortalNavContext.Provider>
-      </View>
-    </View>
+    <PortalNavContext.Provider value={{ navigate: (id, p) => handleNav(id as AlumniNavId, p), searchQuery, setSearchQuery }}>
+      <PortalShell
+        config={ALUMNI_PORTAL}
+        active={active}
+        onNav={(id) => handleNav(id as AlumniNavId)}
+        onLogout={onLogout}
+        search={{ value: q, onChange: setQ, onSubmit: submitSearch }}
+      >
+        {active === 'dashboard' && (
+          <DashboardView
+            onOpenProfile={() => handleNav('profile')}
+            onOpenInternships={() => handleNav('internships')}
+            onOpenNetwork={() => handleNav('network')}
+            onOpenEvents={() => handleNav('events')}
+            onOpenCareerAi={() => handleNav('career-ai')}
+          />
+        )}
+        {active === 'career-ai'       && <CareerAIView />}
+        {active === 'internships'     && <InternshipsView />}
+        {active === 'my-applications' && <MyApplicationsView />}
+        {active === 'network'         && <NetworkView />}
+        {active === 'my-bookings'     && <MyBookingsView />}
+        {active === 'my-tickets'      && <MyTicketsView />}
+        {active === 'events'          && <EventsView />}
+        {active === 'my-workshops'    && <MyWorkshopsView />}
+        {active === 'courses'         && <CoursesPage />}
+        {active === 'financial'       && <FinancialPage />}
+        {active === 'deals'           && <DealsPage />}
+        {active === 'wallet'          && <WalletPage />}
+        {active === 'higher-ed'       && <HigherEducationPage />}
+        {active === 'rentals'         && <RentalsPage />}
+        {active === 'profile'         && <ProfileSettingsView />}
+      </PortalShell>
+    </PortalNavContext.Provider>
   );
 }
-
-const s = StyleSheet.create({
-  shell: { flex: 1, flexDirection: 'row', backgroundColor: SC.bg, height: '100%' as any },
-});

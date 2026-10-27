@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { MC, FONTS } from '../tokens';
 import { useToast } from '@/src/views/components';
 import { request } from '@/src/models/services/api';
-import { NavId } from '../Sidebar';
+import { NavId } from '../nav';
 import {
   NotificationsPanelShell,
   type NotificationsPanelItem,

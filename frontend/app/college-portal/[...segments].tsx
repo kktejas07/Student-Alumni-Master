@@ -6,7 +6,7 @@
  *   /college-portal/create-event
  *   /college-portal/profile
  */
-import { NAV } from '@/src/views/web/portals/college/Sidebar';
+import { NAV } from '@/src/views/web/portals/college/nav';
 import { PortalUrlProvider } from '@/src/views/web/portals/portalUrl';
 import { CollegePortalRN } from '@/src/views/web/portals/college/CollegePortalRN';
 

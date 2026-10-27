@@ -22,7 +22,7 @@ import { TierBadge } from '@/src/views/web/TierBadge';
 
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
-import type { CollegeNavId } from '../Sidebar';
+import type { CollegeNavId } from '../nav';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
 import { CouponBanner } from '@/src/views/web/components/CouponBanner';
 
@@ -215,7 +215,7 @@ export function DashboardView({
 
       {/* AI Daily Briefing */}
       <LinearGradient
-        colors={['rgba(255, 241, 204, 0.9)', 'rgba(255, 250, 235, 0.6)']}
+        colors={['rgba(245,158,11,0.18)', 'rgba(245,158,11,0.06)']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.briefCard}
       >
@@ -421,7 +421,7 @@ const s = StyleSheet.create({
 
   briefCard: {
     flexDirection: 'row', gap: 14, alignItems: 'flex-start',
-    borderColor: 'rgba(255,255,255,0.7)', borderTopColor: '#fff', borderWidth: 1.5,
+    borderColor: 'rgba(245,158,11,0.30)', borderTopColor: 'rgba(245,158,11,0.45)', borderWidth: 1.5,
     borderRadius: 20, padding: 20,
     ...(Platform.OS === 'web' ? ({
       backdropFilter: 'blur(16px)',
@@ -429,8 +429,8 @@ const s = StyleSheet.create({
     } as any) : {}),
   },
   briefIcon: {
-    width: 40, height: 40, borderRadius: 12, backgroundColor: '#FFFBEB',
-    borderColor: '#FDE68A', borderWidth: 1, alignItems: 'center', justifyContent: 'center',
+    width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(245,158,11,0.18)',
+    borderColor: 'rgba(253,230,138,0.35)', borderWidth: 1, alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 2px 8px rgba(245,158,11,0.15)' } as any) : {}),
   },
   briefBtn: {

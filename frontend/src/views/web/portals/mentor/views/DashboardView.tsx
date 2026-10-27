@@ -60,6 +60,13 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
 
   // Fetch live data; falls back to empty if API unreachable.
   const { data, loading } = usePortalData<MentorDashboardData>(dashPath, MENTOR_EMPTY);
+  // Real earnings (sum of completed bookings) — see GET /api/mentor/earnings.
+  const { data: earnings } = usePortalData<{ this_month: number; available_withdraw: number; formatted_available: string; total_earned: number }>(
+    '/mentor/earnings', { this_month: 0, available_withdraw: 0, formatted_available: '₹0', total_earned: 0 }, 60_000,
+  );
+  const inr = (v: number) => `₹${Math.round(v || 0).toLocaleString('en-IN')}`;
+  const monthEarned = inr(earnings?.this_month || 0);
+  const available = earnings?.available_withdraw || 0;
   const liveMentor = data?.mentor as any;
   const tier = liveMentor?.tier;
   const [students, setStudents] = React.useState<any[]>([]);
@@ -115,7 +122,7 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
   const STATS = [
     { Icon: Calendar, label: 'Sessions Today', value: String(TODAY_SESSIONS.length), sub: TODAY_SESSIONS[0] ? 'Next at ' + TODAY_SESSIONS[0].time : 'No more today', subColor: TODAY_SESSIONS[0] ? MC.tealP : MC.muted },
     { Icon: Users,    label: 'Total Students', value: String(STUDENTS.length),       sub: demoMode ? '↑ 2 this week' : (STUDENTS.length > 0 ? `${STUDENTS.length} active connection${STUDENTS.length === 1 ? '' : 's'}` : 'No active students'), subColor: (demoMode || STUDENTS.length > 0) ? MC.green : MC.muted },
-    { Icon: Coins,    label: 'This Month',     value: demoMode ? (data?.kpis?.find((k: any) => k.id === 'earnings')?.value || '₹500') : '₹0', sub: demoMode ? '↑ 12% vs last' : 'Start mentoring to earn', subColor: demoMode ? MC.green : MC.muted },
+    { Icon: Coins,    label: 'This Month',     value: monthEarned, sub: (earnings?.this_month || 0) > 0 ? 'From completed sessions' : 'Start mentoring to earn', subColor: (earnings?.this_month || 0) > 0 ? MC.green : MC.muted },
     { Icon: StarIcon, label: 'Rating',         value: demoMode ? String(liveMentor?.rating || '4.9') : '—',                          sub: demoMode ? `${data?.kpis?.find((k: any) => k.id === 'rating')?.delta || '42 student reviews'}` : 'No student reviews yet',             subColor: demoMode ? MC.amber : MC.muted },
   ];
 
@@ -270,18 +277,18 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
       <View style={[s.rightCol, !isWide && { width: '100%', marginTop: 16 }]}>
         {/* Earnings widget */}
         <LinearGradient
-          colors={['#ECFDF5', '#D1FAE5'] as any}
+          colors={['rgba(16,185,129,0.22)', 'rgba(16,185,129,0.08)'] as any}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={[s.widget, { borderColor: '#6EE7B7', borderWidth: 1.5 }]}
+          style={[s.widget, { borderColor: 'rgba(110,231,183,0.45)', borderWidth: 1.5 }]}
         >
           <Text style={s.widgetKicker}>EARNINGS</Text>
-          <Text style={s.widgetBigLight}>{demoMode ? (data?.kpis?.find((k: any) => k.id === 'earnings')?.value || '₹500') : '₹500'}</Text>
+          <Text style={s.widgetBigLight}>{inr(available)}</Text>
           <View style={s.miniTrack}>
             <LinearGradient colors={['#22C55E', '#16A34A'] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              style={{ height: '100%', width: '100%', borderRadius: 2 }} />
+              style={{ height: '100%', width: `${(earnings?.total_earned || 0) > 0 ? Math.min(100, Math.round(((earnings?.this_month || 0) / (earnings?.total_earned || 1)) * 100)) : 0}%` as any, borderRadius: 2 }} />
           </View>
           <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginBottom: 12 }}>
-            This month · <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold }}>0%</Text>
+            This month · <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold }}>{monthEarned}</Text>
           </Text>
           <Pressable
             onPress={() => onNav('earnings')}
@@ -290,8 +297,8 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
               hovered && { backgroundColor: 'rgba(34,197,94,0.12)' }
             ]}
           >
-            <Text style={{ color: '#16A34A', fontFamily: FONTS.xbold, fontSize: 12 }}>
-              Withdraw ₹500 →
+            <Text style={{ color: '#4ADE80', fontFamily: FONTS.xbold, fontSize: 12 }}>
+              {available > 0 ? `Withdraw ${inr(available)} →` : 'No balance to withdraw'}
             </Text>
           </Pressable>
         </LinearGradient>
@@ -374,7 +381,7 @@ function AIDailyBriefing({ onNav, demoMode = false }: { onNav: (id: string) => v
 
   return (
     <LinearGradient
-      colors={['rgba(255, 241, 204, 0.9)', 'rgba(255, 250, 235, 0.6)']}
+      colors={['rgba(245,158,11,0.18)', 'rgba(245,158,11,0.06)']}
       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
       style={s.briefingCard}
     >
@@ -446,7 +453,7 @@ const s = StyleSheet.create({
     borderColor: '#F59E0B', borderWidth: 1.5, borderRadius: 18,
     padding: 20, marginBottom: 16,
     ...(Platform.OS === 'web' ? ({
-      boxShadow: '0 8px 32px -8px rgba(245,158,11,0.35), inset 0 1px 0 rgba(255,255,255,0.6)',
+      boxShadow: '0 8px 32px -8px rgba(245,158,11,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
     } as any) : {}),
   },
   tierKicker: { color: '#92400E', fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 1.2 },
@@ -456,8 +463,8 @@ const s = StyleSheet.create({
 
   /* AI Daily Briefing */
   briefingCard: {
-    borderColor: 'rgba(255,255,255,0.7)',
-    borderTopColor: 'rgba(255,255,255,1)',
+    borderColor: 'rgba(245,158,11,0.30)',
+    borderTopColor: 'rgba(245,158,11,0.45)',
     borderWidth: 1.5,
     borderRadius: 20,
     padding: 20,
@@ -469,8 +476,8 @@ const s = StyleSheet.create({
   },
   briefingIcon: {
     width: 32, height: 32, borderRadius: 10,
-    backgroundColor: '#FFFBEB',
-    borderColor: '#FDE68A', borderWidth: 1,
+    backgroundColor: 'rgba(245,158,11,0.18)',
+    borderColor: 'rgba(253,230,138,0.35)', borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 2px 8px rgba(245,158,11,0.15)' } as any) : {}),
   },
@@ -481,7 +488,7 @@ const s = StyleSheet.create({
   },
   briefingSecondary: {
     flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, height: 38, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.6)', borderWidth: 1, borderColor: '#A7F3D0',
+    backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(167,243,208,0.35)',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms', backdropFilter: 'blur(4px)' } as any) : {})
   },
 
@@ -489,7 +496,7 @@ const s = StyleSheet.create({
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
   statCard: {
     flex: 1, flexBasis: 180, minWidth: 180,
-    backgroundColor: '#F8FAFC', borderColor: MC.border, borderWidth: 1,
+    backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1,
     borderRadius: 14, padding: 16,
   },
   statIcon: {
@@ -502,7 +509,7 @@ const s = StyleSheet.create({
 
   /* Card boxes */
   cardBox: {
-    backgroundColor: '#F8FAFC', borderColor: MC.border, borderWidth: 1,
+    backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1,
     borderRadius: 14, padding: 18,
   },
   cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
@@ -538,7 +545,7 @@ const s = StyleSheet.create({
   widget: { borderRadius: 14, borderWidth: 1, borderColor: MC.border, padding: 16 },
   widgetCard: {
     borderRadius: 14, borderWidth: 1, borderColor: MC.border,
-    backgroundColor: '#F8FAFC', padding: 16,
+    backgroundColor: MC.card, padding: 16,
   },
   widgetKicker: { color: MC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 1, marginBottom: 10 },
   widgetKickerDark: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1 },

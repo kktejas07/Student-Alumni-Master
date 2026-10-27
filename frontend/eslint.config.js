@@ -16,7 +16,7 @@ module.exports = defineConfig([
     // Design-system guard: colour literals belong in src/theme (see src/theme/README.md).
     // Warning, not error, so the ~17k existing literals become a burn-down list.
     files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
-    ignores: ['src/theme/**', 'src/views/web/portals/*/tokens.ts', 'src/views/web/theme/**'],
+    ignores: ['src/theme/**', 'src/ui/theme.ts', 'src/views/web/portals/*/tokens.ts', 'src/views/web/theme/**'],
     rules: {
       'no-restricted-syntax': [
         'warn',

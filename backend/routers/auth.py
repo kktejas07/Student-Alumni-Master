@@ -40,7 +40,12 @@ from core.security import serialize_user
 from core.deps import get_current_user
 from core.email import send_email
 from core.email_quality import assess
-from firebase_admin import credentials, initialize_app, auth as fb_auth
+try:
+    from firebase_admin import credentials, initialize_app, auth as fb_auth
+except ImportError:
+    credentials = None  # type: ignore
+    initialize_app = None  # type: ignore
+    fb_auth = None  # type: ignore
 
 router = APIRouter(tags=["auth"])
 logger = logging.getLogger("auth")
@@ -1672,6 +1677,8 @@ _firebase_app = None
 def _get_or_init_firebase():
     """Initialize Firebase Admin SDK if not already initialized, using platform settings."""
     global _firebase_app
+    if not credentials or not initialize_app or not fb_auth:
+        return None
     if _firebase_app is not None:
         return _firebase_app
     try:

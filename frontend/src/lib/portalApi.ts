@@ -10,6 +10,7 @@
  * AsyncStorage / localStorage under `scd_access_token` (set during login).
  */
 import { useEffect, useState } from 'react';
+import { withDefaults } from './withDefaults';
 import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
@@ -38,6 +39,8 @@ export async function putPortal<T = any>(path: string, opts?: { body?: any }): P
 export async function deletePortal<T = any>(path: string): Promise<T> {
   return request<T>(path, { method: 'DELETE' });
 }
+
+export { withDefaults } from './withDefaults';
 
 export type FetchState<T> = {
   data: T | null;
@@ -68,7 +71,7 @@ export function usePortalData<T>(path: string, mock: T, refreshMs: number = 30_0
       fetchPortal<T>(path)
         .then((result) => {
           if (!cancelled) {
-            setData(result);
+            setData(withDefaults(mock, result));
             setError(null);
           }
         })
