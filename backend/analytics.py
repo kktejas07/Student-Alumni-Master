@@ -17,6 +17,7 @@ from __future__ import annotations
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 from collections import defaultdict
+from core.query_helpers import nonempty
 
 
 def _iso_day(dt: Any) -> str:
@@ -657,7 +658,7 @@ async def super_admin_full_analytics(db) -> Dict[str, Any]:
 
     # === Top Colleges ===
     top_colleges_pipeline = [
-        {"$match": {"school_info.institution_name": {"$nin": [None, ""]}}},
+        {"$match": {"school_info.institution_name": nonempty(exists=False)}},
         {"$group": {
             "_id": "$school_info.institution_name",
             "students": {"$sum": {"$cond": [{"$eq": ["$role", "student"]}, 1, 0]}},

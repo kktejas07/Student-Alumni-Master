@@ -35,6 +35,8 @@ logger = logging.getLogger("talent_pool")
 # no localhost fallback, so the module can never silently hit the wrong DB).
 from core.db import db as _db
 from core.deps import bearer_token, decode_payload_silent
+from core.query_helpers import nonempty
+from core.config import frontend_base_url
 
 
 # ─── Auth helpers ──────────────────────────────────────────────────
@@ -678,7 +680,7 @@ async def admin_sync_linkedin_profiles(
     # Find profiles with linkedin_url that haven't been synced recently
     stale_threshold = datetime.now(timezone.utc) - timedelta(hours=24)
     cursor = _db.talent_pool.find({
-        "linkedin_url": {"$exists": True, "$nin": [None, ""]},
+        "linkedin_url": nonempty(),
         "is_active": True,
         "$or": [
             {"last_synced_at": {"$exists": False}},
@@ -935,7 +937,7 @@ async def promote_talent_to_user(
     if body.send_invite and email:
         try:
             from core.email import send_email, render_html_email
-            portal_url = os.getenv("FRONTEND_URL") or "https://studentalumni.ai"
+            portal_url = frontend_base_url()
             claim_url = f"{portal_url}/auth?mode=claim&email={email}"
             content = f"""
             <h2 style="color: #1E293B; margin-top: 0; font-size: 20px;">Welcome to Student Alumni Platform, {first_name or full_name}!</h2>

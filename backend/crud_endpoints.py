@@ -46,6 +46,7 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Request, Depends
 
 from core.deps import get_current_user, require_role, bearer_token, decode_payload_silent
+from core.config import frontend_base_url
 from pydantic import BaseModel
 
 load_dotenv(Path(__file__).parent / ".env")
@@ -100,7 +101,7 @@ async def _issue_workshop_certificate(reg: Dict[str, Any], student: Dict[str, An
             "created_at": _now(),
         }
         await _db.certificates.insert_one(cert_doc)
-        verify_url = f"{os.environ.get('FRONTEND_URL', 'https://studentalumni.ai')}/certificates/verify/{code}"
+        verify_url = f"{frontend_base_url()}/certificates/verify/{code}"
         # Send certificate notification email
         try:
             cert_name = (email or "").split("@")[0].replace(".", " ").title()

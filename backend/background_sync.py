@@ -9,6 +9,7 @@ import pytz
 from jobs_feed import fetch_and_cache_all
 from events_aggregator import _aggregate_and_store
 from integrations_base import sync_courses_to_db, sync_internships_to_db
+from core.query_helpers import nonempty
 
 logger = logging.getLogger("background_sync")
 
@@ -143,7 +144,7 @@ async def _sync_talent_pool_profiles():
 
         stale_threshold = datetime.now(timezone.utc) - timedelta(hours=24)
         cursor = tp_db.talent_pool.find({
-            "linkedin_url": {"$exists": True, "$nin": [None, ""]},
+            "linkedin_url": nonempty(),
             "is_active": True,
             "$or": [
                 {"last_synced_at": {"$exists": False}},

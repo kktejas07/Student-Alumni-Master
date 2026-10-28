@@ -31,6 +31,7 @@ from pydantic import BaseModel
 
 from core.email import send_email, render_html_email
 from core.deps import require_role
+from core.config import frontend_base_url
 from notifications import send_push, _log_inbox, list_user_tokens
 
 router = APIRouter(prefix="/api/newsletter", tags=["newsletter"])
@@ -340,7 +341,7 @@ def _upcoming_events_html(events: list) -> str:
         when = ev.get("date") or ""
         venue = ev.get("venue") or ""
         slug = (ev.get("slug") or "").strip()
-        link = f"{os.environ.get('FRONTEND_URL', 'https://studentalumni.ai').rstrip('/')}/echo/{slug}" if slug else ""
+        link = f"{frontend_base_url()}/echo/{slug}" if slug else ""
         img = _make_absolute_url(ev.get("hero_image_url") or ev.get("poster_image") or "")
         img_html = f"<img src='{img}' alt='' style='width:100%;height:auto;max-height:220px;object-fit:cover;display:block;border-radius:12px 12px 0 0;' />" if img else ""
         fee_val = float((ev.get("registration") or {}).get("fee") or 0)

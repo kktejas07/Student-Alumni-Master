@@ -13,11 +13,12 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 from core.db import db
+from core.config import frontend_base_url
 from core.email import send_email, render_html_email
 from core.email_templates import render_view_email, render_claim_email
 from core.email_quality import reject_reason, require_ok
 
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://studentalumni.ai")
+FRONTEND_URL = frontend_base_url()
 
 from core.deps import get_current_user, ensure_admin
 

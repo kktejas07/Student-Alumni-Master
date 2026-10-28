@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from bson import ObjectId
 
 from core.db import db
+from core.config import frontend_base_url
 from core.security import (
     hash_password, verify_password, create_access_token, _audit_log, _audit_log_many,
     serialize_user, validate_student_class, generate_unique_id, generate_qr_code,
@@ -649,7 +650,7 @@ async def my_id_card(user: dict = Depends(get_current_user)):
             logger.warning("my_id_card: could not format years_experience %r: %s", years_exp, e)
             years_exp = str(years_exp)
 
-    raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    raw_url = frontend_base_url(default="")
     frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
     public_verify_url = f"{frontend_url}/verify/{sa_id}"
 
@@ -812,7 +813,7 @@ async def complete_onboarding(req: OnboardingRequest, user: dict = Depends(get_c
 
     # ---- Generate unique ID + QR code (idempotent — only on first onboarding) ----
     unique_id = user.get("unique_id") or generate_unique_id(role)
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    frontend_url = frontend_base_url()
     qr_payload = f"{frontend_url}/verify/{unique_id.split('-')[-1]}"
     qr_code = generate_qr_code(qr_payload)
 

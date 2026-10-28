@@ -76,6 +76,7 @@ from tier_logic import (
     student_suggestions_for_tier,
 )
 from core.db import db as _db
+from core.query_helpers import nonempty
 from db import fetch_users_with_mock_limit
 
 router = APIRouter()
@@ -612,7 +613,7 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
         branch_q = {"role": "alumni", "alumni_info.branch_or_stream": d["_id"], **college_query}
         try:
             branch_alumni = await _db.users.count_documents(branch_q)
-            branch_placed = await _db.users.count_documents({**branch_q, "alumni_info.current_employer": {"$nin": [None, "", "—", "-"]}})
+            branch_placed = await _db.users.count_documents({**branch_q, "alumni_info.current_employer": nonempty("—", "-")})
         except Exception:
             branch_alumni, branch_placed = 0, 0
         dept_placement.append({
@@ -703,7 +704,7 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
     # Calculate real placement rate (based on alumni with current employer)
     placed_alumni_cnt = await _db.users.count_documents({
         "role": "alumni",
-        "alumni_info.current_employer": {"$nin": [None, "", "—", "-"]},
+        "alumni_info.current_employer": nonempty("—", "-"),
         **college_query
     })
     placement_pct_num = int((placed_alumni_cnt / alumni_cnt) * 100) if alumni_cnt > 0 else 0
@@ -1911,7 +1912,7 @@ async def college_analytics(college_name: Optional[str] = None, user: dict = Dep
         return float(m.group(1)) if m else None
 
     placed_alumni = await _db.users.find(
-        {"role": "alumni", "alumni_info.current_employer": {"$nin": [None, "", "—", "-"]}, **college_query},
+        {"role": "alumni", "alumni_info.current_employer": nonempty("—", "-"), **college_query},
         {"alumni_info": 1},
     ).to_list(2000)
     recorded_lpa = [l for l in (_to_lpa((d.get("alumni_info") or {}).get("package_lpa")) for d in placed_alumni) if l]

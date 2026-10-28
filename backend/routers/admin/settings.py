@@ -26,6 +26,7 @@ from pydantic import BaseModel
 from core.roles import Role, Perm, SYSTEM_ROLES, seed_admin_roles
 
 from core.db import db as _db
+from core.config import frontend_base_url
 from core.deps import bearer_token, decode_payload_silent
 
 router = APIRouter(tags=["admin-settings"])
@@ -1734,7 +1735,7 @@ async def get_digital_id(authorization: Optional[str] = Header(None)):
     title = user.get("title") or f"Platform {role_label}"
     access = user.get("access_label") or "Full Access"
     colleges_count = await _db.colleges.count_documents({}) or 0
-    raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    raw_url = frontend_base_url(default="")
     frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
     verify_url = f"{frontend_url}/verify/{admin_id}"
     qr_data = verify_url
@@ -1799,7 +1800,7 @@ async def get_share_link(authorization: Optional[str] = Header(None)):
     """Return a shareable profile link for the admin."""
     user = await _require_admin(authorization)
     admin_id = user.get("admin_id") or "SA-2024-000001"
-    raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    raw_url = frontend_base_url(default="")
     frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
     return {
         "share_url": f"{frontend_url}/admin/profile/{admin_id}",

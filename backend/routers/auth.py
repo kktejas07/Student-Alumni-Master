@@ -28,7 +28,7 @@ from bson import ObjectId
 
 from core.middleware import get_real_ip
 from core.db import db
-from core.config import limiter
+from core.config import limiter, frontend_base_url
 from core.security import (
     hash_password, verify_password, create_access_token, create_refresh_token,
     encrypt_value, decrypt_value, _audit_log, _audit_log_many,
@@ -1330,7 +1330,7 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
 
     # New OAuth user — create with onboarding NOT yet completed so the client
     uid = generate_unique_id(role_norm)
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    frontend_url = frontend_base_url()
     qr_code = generate_qr_code(
         f"{frontend_url}/verify/{uid.split('-')[-1]}"
     )
@@ -1383,7 +1383,7 @@ async def oauth_config(response: Response):
     Only returns client IDs (safe), never secrets. If not configured, returns empty strings."""
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     creds = await _get_oauth_creds()
-    raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    raw_url = frontend_base_url(default="")
     frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
     
     # Fetch feature flags for login buttons
@@ -1450,7 +1450,7 @@ def _verify_google_token(id_token: Optional[str], client_id: str = "") -> Option
 
 def _frontend_redirect_uri() -> str:
     """Build the OAuth redirect URI that matches what oauth_config returns."""
-    raw = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    raw = frontend_base_url(default="")
     base = raw if (raw.startswith("http://") or raw.startswith("https://")) else "https://studentalumni.ai"
     return f"{base}/oauth.html"
 

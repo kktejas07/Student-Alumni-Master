@@ -71,7 +71,7 @@ from slowapi.errors import RateLimitExceeded
 from core.middleware import get_real_ip, register_security_middleware
 from core.deps import get_current_user as _deps_get_current_user, bearer_token, decode_payload, decode_payload_silent
 
-from core.config import limiter, JWT_SECRET, JWT_ALGORITHM
+from core.config import limiter, JWT_SECRET, JWT_ALGORITHM, frontend_base_url
 
 # Content prioritization engine — implements interest + edu-level + deadline + frequency scoring
 from personalization import (
@@ -1919,7 +1919,7 @@ async def send_verification_email(payload: dict):
         }},
         upsert=True,
     )
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    frontend_url = frontend_base_url()
     verify_link = f"{frontend_url}/verify-email?token={token}&email={email}"
     body = f"""
     <h2>Verify your email address</h2>
@@ -3098,7 +3098,7 @@ async def seed_admin():
 
     existing = await db.users.find_one({"email": admin_email})
     if not existing:
-        frontend_url_env = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        frontend_url_env = frontend_base_url()
         await db.users.insert_one({
             "email": admin_email,
             "password_hash": hash_password(admin_password),

@@ -49,6 +49,7 @@ except Exception:
 # DB name is module-specific ("career_platform") on the shared app connection.
 # core.db raises at import if MONGO_URL is unset — no localhost fallback.
 from core.db import client as _client
+from core.config import frontend_base_url
 _DB_NAME   = os.getenv("DB_NAME") or "career_platform"
 _db        = _client[_DB_NAME]
 
@@ -1228,7 +1229,7 @@ async def bulk_invite_users(body: BulkActionBody, authorization: Optional[str] =
             continue
         first_name = u.get("first_name") or u.get("name") or "there"
         cat = (u.get("category") or "member").capitalize()
-        portal_url = os.getenv("FRONTEND_URL") or "https://studentalumni.ai"
+        portal_url = frontend_base_url()
         claim_url = f"{portal_url}/auth?mode=claim&email={email}"
         
         email_content = f"""

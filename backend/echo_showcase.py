@@ -47,6 +47,7 @@ from core.security import (
 from core.email import send_email, render_html_email, generate_pdf_from_html
 from core.whatsapp import send_wa_message, send_wa_documents
 from core.deps import bearer_token, decode_payload, decode_payload_silent, ensure_admin
+from core.config import frontend_base_url
 
 router = APIRouter(prefix="/api/echo", tags=["echo-showcase"])
 
@@ -137,7 +138,7 @@ async def import_tickets_registrations(
     new_accounts = 0
     existing_accounts = 0
     errors: List[str] = []
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    frontend_url = frontend_base_url()
 
     for reg in registrations:
         try:
@@ -815,7 +816,7 @@ async def _finalize_paid_registration(db, reg: dict, showcase: Optional[dict], p
         "method": current.get("method") or "upi",
     }
     canonical_slug = reg.get("slug") or (showcase or {}).get("slug")
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    frontend_url = frontend_base_url()
 
     await db.echo_registrations.update_one(
         {"_id": reg["_id"]},
@@ -1088,7 +1089,7 @@ async def _send_wa_payment_reminder(db, reg: dict, showcase: Optional[dict]) -> 
         fee = float(reg.get("fee") or 0)
         currency = reg.get("currency") or "INR"
         slug = reg.get("slug") or (showcase or {}).get("slug") or ""
-        frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        frontend_url = frontend_base_url()
         resume_url = f"{frontend_url}/echo/{slug}/register"
         text = (
             f"⏳ *Payment pending — {title}*\n\n"
@@ -1190,7 +1191,7 @@ async def _send_wa_payment_failed(db, reg: dict, showcase: Optional[dict], reaso
             return
         title = reg.get("showcase_title") or (showcase or {}).get("title") or "Event"
         slug = reg.get("slug") or (showcase or {}).get("slug") or ""
-        frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        frontend_url = frontend_base_url()
         resume_url = f"{frontend_url}/echo/{slug}/register"
         text = (
             f"❌ *Payment not completed — {title}*\n\n"
@@ -1245,7 +1246,7 @@ async def _send_payment_reminder_email(db, reg: dict, showcase: Optional[dict]) 
         fee = float(reg.get("fee") or 0)
         currency = reg.get("currency") or "INR"
         slug = reg.get("slug") or (showcase or {}).get("slug") or ""
-        frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        frontend_url = frontend_base_url()
         resume_url = f"{frontend_url}/echo/{slug}/register"
         order_id = (reg.get("payment_order") or {}).get("order_id") or ""
         created_at = reg.get("created_at") or reg.get("registered_at") or ""
@@ -1307,7 +1308,7 @@ async def _send_payment_failed_email(db, reg: dict, showcase: Optional[dict], re
         fee = float(reg.get("fee") or 0)
         currency = reg.get("currency") or "INR"
         slug = reg.get("slug") or (showcase or {}).get("slug") or ""
-        frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        frontend_url = frontend_base_url()
         resume_url = f"{frontend_url}/echo/{slug}/register"
 
         subject = f"Payment not completed — {title}"
@@ -1798,7 +1799,7 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
 
     qr = reg.get("qr_code_base64")
     if not qr and reg.get("id"):
-        frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        frontend_url = frontend_base_url()
         qr = generate_qr_code(f"{frontend_url}/echo/scan/{reg.get('id')}")
     elif not qr:
         qr = ""
@@ -2125,7 +2126,7 @@ def _ticket_email_block(reg: dict, showcase: dict, ticket_url: str) -> str:
     """
     qr = reg.get("qr_code_base64")
     if not qr and reg.get("id"):
-        frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        frontend_url = frontend_base_url()
         qr = generate_qr_code(f"{frontend_url}/echo/scan/{reg.get('id')}")
     elif not qr:
         qr = ""
@@ -2307,7 +2308,7 @@ async def _provision_sa_account(db, reg: dict, showcase: Optional[dict]):
     password = _generate_temp_password()
     now = datetime.now(timezone.utc)
     uid = generate_unique_id("student")
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    frontend_url = frontend_base_url()
     qr_code = generate_qr_code(f"{frontend_url}/verify/{uid.split('-')[-1]}")
 
     user_doc: Dict[str, Any] = {
@@ -2421,7 +2422,7 @@ async def _fulfill_team_members(db, reg: dict, showcase: Optional[dict]) -> List
     
     canonical_slug = reg.get("slug") or (showcase or {}).get("slug") or ""
     parent_id = reg.get("id") or ""
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    frontend_url = frontend_base_url()
     sessions = (showcase or {}).get("sessions") or []
     fulfilled_members = []
 
@@ -3915,7 +3916,7 @@ async def register_for_showcase(
 
     reg_id = secrets.token_hex(6)
     now_iso = datetime.now(timezone.utc).isoformat()
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    frontend_url = frontend_base_url()
     qr_payload = f"{frontend_url}/echo/scan/{reg_id}"
     fee = float(reg_cfg.get("fee", 0) or 0)
     currency = reg_cfg.get("currency", "INR")
@@ -4868,7 +4869,7 @@ async def admin_echo_registrations(
 
     # Batch-fetch issued certificates from db.certificates
     cert_map: Dict[str, list] = {}  # reg_id/email → list of cert docs
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    frontend_url = frontend_base_url()
     if reg_ids or all_emails:
         c_or = []
         if reg_ids:
@@ -5055,7 +5056,7 @@ async def admin_echo_issue_certificate(
     cert_title = title or f"Certificate of Completion — {showcase_title}"
     
     code = f"ECHO26-CERT-{secrets.token_hex(4).upper()}"
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    frontend_url = frontend_base_url()
     verify_url = f"{frontend_url}/certificates/verify/{code}"
 
     cert_doc = {
@@ -5124,7 +5125,7 @@ async def issue_3_echo_certificates(db, reg: dict) -> dict:
       3. Cyber Conclave Certificate
     Upserts into db.certificates (enabling /certificates/verify/{code} & profile sync).
     """
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    frontend_url = frontend_base_url()
     email = (reg.get("email") or "").lower().strip()
     full_name = (reg.get("full_name") or "").strip() or "ECHO Participant"
     showcase_title = reg.get("showcase_title") or "Hackwave 3.0"
@@ -5465,7 +5466,7 @@ async def admin_echo_bulk_issue_certificates(
     if not regs:
         regs = await db.echo_registrations.find({"slug": slug, "status": "registered"}).to_list(10000)
 
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    frontend_url = frontend_base_url()
     issued_count = 0
     skipped_count = 0
 
@@ -5535,7 +5536,7 @@ async def get_echo_registration_certificate(
     email = reg.get("email", "").lower().strip()
     cert = await db.certificates.find_one({"$or": [{"reg_id": reg.get("id")}, {"recipient_email": email}]})
     
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    frontend_url = frontend_base_url()
     from urllib.parse import quote
 
     if not cert and reg.get("certificate_code"):
@@ -5962,7 +5963,7 @@ async def admin_resend_account_tickets(reg_id: str, request: Request, _=Depends(
             await _send_sa_welcome_email(reg_ser, showcase, temp_password)
     
     # Ensure QR code is generated
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    frontend_url = frontend_base_url()
     if not reg.get("qr_code_base64"):
         qr_b64 = generate_qr_code(f"{frontend_url}/echo/scan/{reg.get('id')}")
         await db.echo_registrations.update_one({"_id": reg["_id"]}, {"$set": {"qr_code_base64": qr_b64}})
@@ -6157,7 +6158,7 @@ async def admin_broadcast_send(
     title = showcase.get("title") or "SNIST HackWave 3.0"
     event_date = showcase.get("date") or "September 04, 2026"
     venue = showcase.get("venue") or "Campus Auditorium"
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    frontend_url = frontend_base_url()
     event_slug = showcase.get("slug") or "snist"
     reg_url = f"{frontend_url}/echo/{event_slug}/register"
 
@@ -7542,7 +7543,7 @@ async def echo_ics(slug: str, request: Request):
 
     uid = f"{slug}@studentalumni.in"
     now = _dt(datetime.now(timezone.utc))
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    frontend_url = frontend_base_url()
 
     ics = "\r\n".join([
         "BEGIN:VCALENDAR",

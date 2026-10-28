@@ -39,6 +39,7 @@ router = APIRouter()
 # DB name is module-specific ("career_platform") on the shared app connection.
 # core.db raises at import if MONGO_URL is unset — no localhost fallback.
 from core.db import client as _client
+from core.query_helpers import nonempty
 _DB_NAME   = os.getenv("DB_NAME") or "career_platform"
 _db        = _client[_DB_NAME]
 
@@ -645,7 +646,7 @@ async def list_colleges(
             name_to_id[nn] = str(c["_id"])
 
     counts_pipeline = [
-        {"$match": {"college": {"$exists": True, "$nin": [None, ""]}}},
+        {"$match": {"college": nonempty()}},
         {"$group": {"_id": {"$toLower": "$college"}, "n": {"$sum": 1}}},
     ]
     counts_map: Dict[str, int] = {}
@@ -823,7 +824,7 @@ async def backfill_colleges(authorization: Optional[str] = Header(None)):
 
     # 1) Collect distinct college names from users (case-insensitive)
     pipeline = [
-        {"$match": {"college": {"$exists": True, "$nin": [None, ""]}}},
+        {"$match": {"college": nonempty()}},
         {"$group": {"_id": {"$trim": {"input": "$college"}}}},
     ]
     distinct_names: List[str] = []

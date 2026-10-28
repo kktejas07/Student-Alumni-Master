@@ -26,6 +26,7 @@ from typing import Any, Dict, List, Optional
 from pathlib import Path
 
 from bson import ObjectId
+from core.query_helpers import nonempty
 from fastapi import APIRouter, Depends, HTTPException, Request, Query, Response
 from pydantic import BaseModel
 
@@ -686,7 +687,7 @@ async def get_hardware_analytics(days: int = Query(60, ge=1, le=180), user: dict
 
     # GPU Renderers
     gpu_pipeline = [
-        {"$match": {**match, "device.gpu_renderer": {"$exists": True, "$nin": [None, ""]}}},
+        {"$match": {**match, "device.gpu_renderer": nonempty()}},
         {"$group": {"_id": "$device.gpu_renderer", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}},
         {"$limit": 8},
