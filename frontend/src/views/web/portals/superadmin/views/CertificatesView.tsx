@@ -32,6 +32,7 @@ import * as Linking from 'expo-linking';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 import { EchoCertificateStudio } from './EchoCertificateStudio';
 import { request } from '@/src/models/services/api';
+import { getBaseUrl } from '@/src/lib/env';
 
 type TabId = 'templates' | 'issue' | 'bulk' | 'external' | 'verify' | 'files' | 'registry';
 
@@ -682,7 +683,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
     
     // First: preview CSV to debug column mapping
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL || 'https://studentalumni.ai').replace(/\/$/, '');
+      const base = getBaseUrl();
       const token = typeof window !== 'undefined' ? localStorage.getItem('scd_access_token') || '' : '';
       const fd2 = new FormData();
       fd2.append('csv_file', csvCsvFile);
@@ -712,7 +713,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       fd.append('send_emails', String(csvSendEmails));
       fd.append('dry_run', String(csvDryRun));
 
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL || 'https://studentalumni.ai').replace(/\/$/, '');
+      const base = getBaseUrl();
       const token = typeof window !== 'undefined' ? localStorage.getItem('scd_access_token') || '' : '';
       const resp = await fetch(`${base}/api/certificates/import-csv-zip`, {
         method: 'POST',

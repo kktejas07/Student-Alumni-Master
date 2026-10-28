@@ -11,6 +11,7 @@ import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { GRAD, Card, IconBox, KpiTile, StatusPill, GradientButton, SecondaryButton, SectionLabel, useToast, Toast } from '../applekit';
 import { usePortalData } from '@/src/lib/portalApi';
 import { request } from '@/src/models/services/api';
+import { getBaseUrl } from '@/src/lib/env';
 
 type Tx = { id: string; date: string; desc: string; type: string; amount: number; by: string; status: string };
 type Tier = { id?: string; tier: string; cut: string; count: number; color?: string };
@@ -178,7 +179,7 @@ export function PaymentsView() {
   const doExport = async () => {
     setExporting(true);
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const tokenStore = (await import('@/src/models/services/api')).tokenStore;
       const token = await tokenStore.getAccess();
       const resp = await fetch(base + '/api/admin/export/payments', {

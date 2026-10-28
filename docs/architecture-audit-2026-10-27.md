@@ -99,7 +99,7 @@ backend/
 
 ### B2. Data layer
 - **Three parallel API clients**: `src/models/services/api.ts` (903 lines, 133 importers), `src/lib/portalApi.ts` (used by only 24 files), plus 15+ inline `fetch(API_BASE…)` in `app/echo/*`, `app/verify`, `app/certificates/*`, `app/teams/register`, `app/events.tsx:382`; superadmin views repeat base-URL boilerplate (`EmailQualityView` 5×, `SettingsView` 7×).
-- **Hardcoded fallback `https://studentalumni.ai` in ~8 files**; `EXPO_PUBLIC_` read ad-hoc instead of via `src/lib/env.ts` (5-line file that exists for this).
+- ~~**Hardcoded fallback `https://studentalumni.ai` in ~8 files**; `EXPO_PUBLIC_` read ad-hoc instead of via `src/lib/env.ts` (5-line file that exists for this).~~ **Closed in Step 3** — every ad-hoc `EXPO_PUBLIC_BACKEND_URL` reader (8 `app/` files + 6 superadmin views, 21 sites) now routes through `getBaseUrl()` from `src/lib/env.ts`; the prod-domain fallback is gone. Remaining `studentalumni.ai` literals are share-text/QR canonical URLs, not API base URLs.
 - P2 miss: `app/profile/[id].tsx:54-56` still embeds fabricated mentor seed data.
 
 ### B3. Duplication

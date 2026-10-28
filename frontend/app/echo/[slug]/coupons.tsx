@@ -10,6 +10,7 @@ import { ArrowLeft, QrCode, Check, Clock, Ticket, Lock, CupSoda, UtensilsCrossed
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { api, resolveImageUrl } from '@/src/models/services/api';
+import { getBaseUrl } from '@/src/lib/env';
 import { SALogo } from '@/src/views/components';
 
 const SESSION_ICONS: Record<string, any> = {
@@ -44,7 +45,7 @@ export default function EchoCouponsPage() {
     let mounted = true;
     (async () => {
       try {
-        const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+        const base = getBaseUrl();
         const { tokenStore } = await import('@/src/models/services/api');
         const token = await tokenStore.getAccess();
         let userEmail = user?.email || '';

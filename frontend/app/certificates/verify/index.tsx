@@ -51,8 +51,9 @@ import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated'
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import { SAModernLoader } from '@/src/views/components/SAModernLoader';
+import { getBaseUrl } from '@/src/lib/env';
 
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://studentalumni.ai';
+const API_BASE = getBaseUrl();
 
 const SAMPLE_CERT_IDS = [
   { label: 'SA-EXC-2026-0002 (Excellence)', id: 'SA-EXC-2026-0002' },

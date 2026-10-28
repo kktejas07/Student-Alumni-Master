@@ -3009,7 +3009,7 @@ function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh
 
   const loadSessions = async (slug: string) => {
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const { tokenStore } = await import('@/src/models/services/api');
       const token = await tokenStore.getAccess();
       const resp = await fetch(`${base}/api/echo/admin/${slug}/sessions`, {
@@ -3025,7 +3025,7 @@ function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh
   const toggleLock = async (slug: string, sessionKey: string, currentLocked: boolean) => {
     setToggling(`${slug}:${sessionKey}`);
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const { tokenStore } = await import('@/src/models/services/api');
       const token = await tokenStore.getAccess();
       await fetch(`${base}/api/echo/admin/${slug}/sessions/${sessionKey}/lock`, {
@@ -4805,7 +4805,7 @@ function VolunteersPanel() {
   const [removing, setRemoving] = useState<string | null>(null);
   const { flash } = useToast();
 
-  const apiBase = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+  const apiBase = getBaseUrl();
 
   const authToken = async () => {
     const { tokenStore } = await import('@/src/models/services/api');

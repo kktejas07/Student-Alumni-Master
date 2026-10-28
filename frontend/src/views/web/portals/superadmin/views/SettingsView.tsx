@@ -46,6 +46,7 @@ import * as Linking from 'expo-linking';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { Card, Toast } from '../applekit';
 import { request } from '@/src/models/services/api';
+import { getBaseUrl } from '@/src/lib/env';
 import LexicalEditor from './LexicalEditor';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
@@ -2731,7 +2732,7 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
   useEffect(() => {
     (async () => {
       try {
-        const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+        const base = getBaseUrl();
         const { tokenStore } = await import('@/src/models/services/api');
         const token = await tokenStore.getAccess();
         const resp = await fetch(`${base}/api/echo/admin/branding`, {
@@ -2755,7 +2756,7 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const save = async () => {
     setSaving(true);
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const { tokenStore } = await import('@/src/models/services/api');
       const token = await tokenStore.getAccess();
       const resp = await fetch(`${base}/api/echo/admin/branding`, {
@@ -2897,7 +2898,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   useEffect(() => {
     (async () => {
       try {
-        const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+        const base = getBaseUrl();
         const { tokenStore } = await import('@/src/models/services/api');
         const token = await tokenStore.getAccess();
         const resp = await fetch(`${base}/api/echo/admin/settings`, {
@@ -2919,7 +2920,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const save = async () => {
     setSaving(true);
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const { tokenStore } = await import('@/src/models/services/api');
       const token = await tokenStore.getAccess();
       const resp = await fetch(`${base}/api/echo/admin/settings`, {
@@ -2944,7 +2945,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   };
 
   const fetchPreview = async (type: string, tplId: string) => {
-    const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+    const base = getBaseUrl();
     try {
       const { tokenStore } = await import('@/src/models/services/api');
       const token = await tokenStore.getAccess();
@@ -3156,7 +3157,7 @@ function EchoLandingHeroTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const loadSettings = useCallback(async () => {
     setLoadState('loading');
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const { tokenStore } = await import('@/src/models/services/api');
       const token = await tokenStore.getAccess();
       const resp = await fetch(`${base}/api/echo/admin/settings`, {
@@ -3201,7 +3202,7 @@ function EchoLandingHeroTab({ onSaved }: { onSaved: (s?: string) => void }) {
     }
     setSaving(true);
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const { tokenStore } = await import('@/src/models/services/api');
       const token = await tokenStore.getAccess();
       const heroConfig = {
