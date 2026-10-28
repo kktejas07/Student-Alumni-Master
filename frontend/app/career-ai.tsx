@@ -482,7 +482,13 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
       </View>
 
       {/* ══════════════ 4. CAREER GROWTH PREDICTION ══════════════ */}
-      <PredictionTimeline data={careerIntel?.predictions || { current: readinessScore }} />
+      <PredictionTimeline
+        data={careerIntel?.predictions || { current: readinessScore }}
+        onViewAnalysis={() => {
+          setExplainTab('readiness');
+          setShowExplainModal(true);
+        }}
+      />
 
       {/* ══════════════ 5. ROW 1: SKILLS BREAKDOWN & NEXT BEST ACTIONS ══════════════ */}
       <View style={s.twoColRow}>
@@ -688,6 +694,110 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
 
     </Container>
+    <Modal
+      visible={showExplainModal}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowExplainModal(false)}
+    >
+      <View style={s.analysisBackdrop}>
+        <View style={[s.analysisModal, { width: isTablet ? '80%' : '92%', maxHeight: winW < 680 ? '90%' : '80%' }]}>
+          <View style={s.analysisHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.analysisEyebrow}>CAREER AI REPORT</Text>
+              <Text style={s.analysisTitle}>Full readiness analysis</Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close career analysis"
+              onPress={() => setShowExplainModal(false)}
+              style={s.analysisClose}
+            >
+              <X size={18} color={C.text2} />
+            </Pressable>
+          </View>
+
+          <View style={s.analysisTabs}>
+            {[
+              { id: 'readiness', label: 'Readiness' },
+              { id: 'skills', label: 'Skills' },
+            ].map((tab) => (
+              <Pressable
+                key={tab.id}
+                accessibilityRole="button"
+                accessibilityState={{ selected: explainTab === tab.id }}
+                onPress={() => setExplainTab(tab.id)}
+                style={[s.analysisTab, explainTab === tab.id && s.analysisTabActive]}
+              >
+                <Text style={[s.analysisTabText, explainTab === tab.id && s.analysisTabTextActive]}>
+                  {tab.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <ScrollView style={s.analysisContent} showsVerticalScrollIndicator={false}>
+            {explainTab === 'readiness' ? (
+              <View style={{ gap: 16 }}>
+                <View style={s.analysisScoreCard}>
+                  <Text style={s.analysisScore}>{readinessScore}%</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.analysisCardTitle}>{readinessLevel}</Text>
+                    <Text style={s.analysisCardText}>
+                      Current readiness for {targetRole}. Your target is {getLevelForScore(potentialScore)}.
+                    </Text>
+                  </View>
+                </View>
+                <View style={s.analysisDetailCard}>
+                  <Text style={s.analysisCardTitle}>Recommended next steps</Text>
+                  {rankedActions.map((action) => (
+                    <View key={action.rank} style={s.analysisActionRow}>
+                      <View style={s.analysisRank}>
+                        <Text style={s.analysisRankText}>{action.rank}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.analysisCardTitle}>{action.title}</Text>
+                        <Text style={s.analysisCardText}>{action.desc}</Text>
+                      </View>
+                      <Text style={s.analysisGain}>+{action.gain}%</Text>
+                    </View>
+                  ))}
+                </View>
+                <View style={s.analysisDetailCard}>
+                  <Text style={s.analysisCardTitle}>Career journey</Text>
+                  <Text style={s.analysisCardText}>
+                    {allMilestones.filter((milestone) => milestone.completed).length} of {allMilestones.length} milestones completed.
+                    {allMilestones.length > 0 && pendingMilestones.length > 0
+                      ? ` Next: ${pendingMilestones[0].title}.`
+                      : ''}
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View style={s.analysisDetailCard}>
+                <Text style={s.analysisCardText}>
+                  Skill scores are based on the career intelligence profile and shown on a 0–100 scale.
+                </Text>
+                {SKILL_META.map((skill) => {
+                  const score = Math.max(0, Math.min(100, Number(skillScores[skill.key]) || 0));
+                  return (
+                    <View key={skill.key} style={s.analysisSkillRow}>
+                      <View style={s.analysisSkillLabelRow}>
+                        <Text style={s.analysisCardTitle}>{skill.label}</Text>
+                        <Text style={[s.analysisCardTitle, { color: skill.color }]}>{score}%</Text>
+                      </View>
+                      <View style={s.analysisTrack}>
+                        <View style={[s.analysisFill, { width: `${score}%`, backgroundColor: skill.color }]} />
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
     </View>
   );
 }
@@ -696,6 +806,156 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
    Styles matching Image 1 Reference
 ═══════════════════════════════════════════════════════════ */
 const s = StyleSheet.create({
+  analysisBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(3, 5, 15, 0.78)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.md,
+  },
+  analysisModal: {
+    backgroundColor: '#11121D',
+    borderColor: C.border2,
+    borderWidth: 1,
+    borderRadius: RADIUS.card,
+    padding: SPACING.xl,
+  },
+  analysisHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+    gap: SPACING.md,
+  },
+  analysisEyebrow: {
+    color: C.purpleL,
+    fontFamily: FT.bold,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    marginBottom: 4,
+  },
+  analysisTitle: {
+    color: C.text2,
+    fontFamily: FT.xbold,
+    fontSize: 20,
+  },
+  analysisClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.07)',
+  },
+  analysisTabs: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    marginBottom: SPACING.lg,
+  },
+  analysisTab: {
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  analysisTabActive: {
+    borderBottomColor: C.purpleL,
+  },
+  analysisTabText: {
+    color: C.dim,
+    fontFamily: FT.med,
+    fontSize: 13,
+  },
+  analysisTabTextActive: {
+    color: C.purpleXL,
+    fontFamily: FT.bold,
+  },
+  analysisContent: {
+    flexShrink: 1,
+  },
+  analysisScoreCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.lg,
+    padding: SPACING.lg,
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
+    borderColor: 'rgba(129, 140, 248, 0.25)',
+    backgroundColor: 'rgba(79, 70, 229, 0.14)',
+  },
+  analysisScore: {
+    color: C.purpleXL,
+    fontFamily: FT.xbold,
+    fontSize: 36,
+  },
+  analysisDetailCard: {
+    padding: SPACING.lg,
+    gap: SPACING.md,
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  analysisCardTitle: {
+    color: C.text2,
+    fontFamily: FT.bold,
+    fontSize: 13,
+  },
+  analysisCardText: {
+    color: C.dim,
+    fontFamily: FT.reg,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 3,
+  },
+  analysisActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+  },
+  analysisRank: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(129, 140, 248, 0.18)',
+  },
+  analysisRankText: {
+    color: C.purpleXL,
+    fontFamily: FT.bold,
+    fontSize: 12,
+  },
+  analysisGain: {
+    color: C.teal,
+    fontFamily: FT.bold,
+    fontSize: 12,
+  },
+  analysisSkillRow: {
+    gap: SPACING.sm,
+    paddingTop: SPACING.md,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+  },
+  analysisSkillLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: SPACING.md,
+  },
+  analysisTrack: {
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    overflow: 'hidden',
+  },
+  analysisFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
   shell: {
     flex: 1,
     backgroundColor: C.bg,
