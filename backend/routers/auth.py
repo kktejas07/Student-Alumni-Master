@@ -1385,6 +1385,52 @@ async def _get_oauth_creds() -> dict:
     return db_settings
 
 
+async def _is_google_login_enabled() -> bool:
+    doc = await db.platform_controls.find_one({"_id": "singleton"})
+    flags = {}
+    if doc and doc.get("feature_flags"):
+        raw_ff = doc["feature_flags"]
+        if isinstance(raw_ff, list):
+            for f in raw_ff:
+                if isinstance(f, dict) and f.get("key"):
+                    v = f.get("value")
+                    if v is None:
+                        flags[f["key"]] = True
+                    elif isinstance(v, bool):
+                        flags[f["key"]] = v
+                    elif isinstance(v, str):
+                        flags[f["key"]] = v.strip().lower() in ("true", "1", "yes")
+                    else:
+                        flags[f["key"]] = bool(v)
+        elif isinstance(raw_ff, dict):
+            for k, v in raw_ff.items():
+                if v is None:
+                    flags[k] = True
+                elif isinstance(v, bool):
+                    flags[k] = v
+                elif isinstance(v, str):
+                    flags[k] = v.strip().lower() in ("true", "1", "yes")
+                else:
+                    flags[k] = bool(v)
+    try:
+        from routers.admin.settings import DEFAULT_PLATFORM_CONTROLS
+        for f in DEFAULT_PLATFORM_CONTROLS.get("feature_flags") or []:
+            k = f.get("key") if isinstance(f, dict) else None
+            if k and k not in flags:
+                v = f.get("value")
+                if v is None:
+                    flags[k] = True
+                elif isinstance(v, bool):
+                    flags[k] = v
+                elif isinstance(v, str):
+                    flags[k] = v.strip().lower() in ("true", "1", "yes")
+                else:
+                    flags[k] = bool(v)
+    except Exception:
+        pass
+    return flags.get("enable_google_login", True)
+
+
 @router.get("/auth/oauth-config")
 async def oauth_config(response: Response):
     """Returns OAuth client IDs and redirect URI for frontend login buttons.
@@ -1565,10 +1611,24 @@ async def auth_google(request: Request, req: OAuthCallback):
     try:
         creds = await _get_oauth_creds()
         client_id = creds.get("google_oauth_client_id", "")
+
+        if not await _is_google_login_enabled():
+            raise HTTPException(status_code=503, detail="Google sign-in is temporarily unavailable.")
+
         profile = _verify_google_token(req.id_token, client_id) if req.id_token else None
 
         # If standard Google OAuth verification is not configured or fails, try Firebase token verification
         if profile is None and req.id_token:
+            # Same pattern as /auth/firebase below: the service account may be
+            # stored in platform settings (DB) instead of the process env.
+            # Without this sync, _get_or_init_firebase() sees an empty env and
+            # returns None, so every legitimate Firebase ID token 401s with
+            # "Google sign-in requires a valid id_token." (production failure).
+            fb_service_account = creds.get("firebase_service_account", "")
+            if fb_service_account and not os.environ.get(
+                "FIREBASE_SERVICE_ACCOUNT_JSON"
+            ):
+                os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"] = fb_service_account
             profile = _verify_firebase_token(req.id_token)
 
         if profile is None:

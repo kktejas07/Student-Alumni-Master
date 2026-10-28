@@ -148,14 +148,27 @@ function WebLoginScreen() {
   };
 
   const [googleClientId, setGoogleClientId] = useState('');
+  const [googleLoginEnabled, setGoogleLoginEnabled] = useState(false);
+  const [oauthConfigLoaded, setOauthConfigLoaded] = useState(false);
+
+  // Holds the oauth-config load so the Google button can await it. Without
+  // this, clicking Continue with Google before the config fetch resolves
+  // makes the lazy init fallback see an empty build-time config and report
+  // "not configured" even though configuration is on its way.
+  const configLoadRef = useRef<Promise<void> | null>(null);
 
   // Fetch OAuth Config on mount and initialize Firebase Auth
   useEffect(() => {
-    fetch(`${BASE}/api/auth/oauth-config`)
+    const load: Promise<void> = fetch(`${BASE}/api/auth/oauth-config`)
       .then((r) => r.json())
       .then(async (data) => {
         if (data?.google_client_id) {
           setGoogleClientId(data.google_client_id);
+        }
+        if (typeof data?.enable_google_login === 'boolean') {
+          setGoogleLoginEnabled(data.enable_google_login);
+        } else {
+          setGoogleLoginEnabled(false);
         }
         if (data?.firebase?.apiKey) {
           await initFirebaseAuth({
@@ -165,14 +178,23 @@ function WebLoginScreen() {
             appId: data.firebase.appId,
           });
         }
+        setOauthConfigLoaded(true);
       })
-      .catch(() => null);
+      .catch(() => {
+        setGoogleLoginEnabled(false);
+        setOauthConfigLoaded(true);
+      });
+    configLoadRef.current = load;
+    return () => { configLoadRef.current = null; };
   }, []);
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setErrorMsg('');
     try {
+      // Wait for the runtime OAuth/Firebase configuration to finish loading
+      // before the sign-in flow decides whether Firebase is configured.
+      await configLoadRef.current;
       const result = await signInWithGoogle();
       if (result) {
         await processGoogleAuth({
@@ -411,42 +433,46 @@ function WebLoginScreen() {
               <div style={{ fontSize: 32, fontWeight: '700', letterSpacing: '-1px', color: '#F4F4FA' }}>Sign in</div>
               <div style={{ fontSize: 14.5, color: '#8A8A9E', marginTop: 7 }}>Use your college address to unlock your cohort.</div>
 
-              {/* Google Button */}
-              <button
-                type="button"
-                onClick={() => handleGoogleSignIn()}
-                className="social-btn"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 11,
-                  border: '1px solid #262638',
-                  borderRadius: 12,
-                  background: '#14141F',
-                  color: '#F4F4FA',
-                  fontSize: 15,
-                  fontWeight: '600',
-                  padding: '14px',
-                  marginTop: 26,
-                  width: '100%',
-                  cursor: 'pointer'
-                }}
-              >
-                <svg width="18" height="18" viewBox="0 0 48 48" style={{ flex: 'none' }}>
-                  <path fill="#4285F4" d="M45 24c0-1.6-.14-3.13-.4-4.6H24v8.7h11.7c-.5 2.7-2.05 5-4.35 6.55v5.4h7c4.1-3.78 6.65-9.35 6.65-16.05Z"></path>
-                  <path fill="#34A853" d="M24 46c5.85 0 10.75-1.94 14.35-5.25l-7-5.4c-1.94 1.3-4.42 2.07-7.35 2.07-5.65 0-10.44-3.81-12.14-8.94h-7.2v5.6C7.3 41.2 14.98 46 24 46Z"></path>
-                  <path fill="#FBBC05" d="M11.86 28.48A13.4 13.4 0 0 1 11.15 24c0-1.56.27-3.07.71-4.48v-5.6h-7.2A21.9 21.9 0 0 0 2 24c0 3.55.85 6.9 2.66 10.08l7.2-5.6Z"></path>
-                  <path fill="#EA4335" d="M24 10.6c3.18 0 6.04 1.1 8.29 3.23l6.2-6.2C34.73 4.1 29.84 2 24 2 14.98 2 7.3 6.8 4.66 13.92l7.2 5.6C13.56 14.4 18.35 10.6 24 10.6Z"></path>
-                </svg>
-                Continue with Google
-              </button>
+              {oauthConfigLoaded && googleLoginEnabled && (
+                <>
+                  {/* Google Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleGoogleSignIn()}
+                    className="social-btn"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 11,
+                      border: '1px solid #262638',
+                      borderRadius: 12,
+                      background: '#14141F',
+                      color: '#F4F4FA',
+                      fontSize: 15,
+                      fontWeight: '600',
+                      padding: '14px',
+                      marginTop: 26,
+                      width: '100%',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 48 48" style={{ flex: 'none' }}>
+                      <path fill="#4285F4" d="M45 24c0-1.6-.14-3.13-.4-4.6H24v8.7h11.7c-.5 2.7-2.05 5-4.35 6.55v5.4h7c4.1-3.78 6.65-9.35 6.65-16.05Z"></path>
+                      <path fill="#34A853" d="M24 46c5.85 0 10.75-1.94 14.35-5.25l-7-5.4c-1.94 1.3-4.42 2.07-7.35 2.07-5.65 0-10.44-3.81-12.14-8.94h-7.2v5.6C7.3 41.2 14.98 46 24 46Z"></path>
+                      <path fill="#FBBC05" d="M11.86 28.48A13.4 13.4 0 0 1 11.15 24c0-1.56.27-3.07.71-4.48v-5.6h-7.2A21.9 21.9 0 0 0 2 24c0 3.55.85 6.9 2.66 10.08l7.2-5.6Z"></path>
+                      <path fill="#EA4335" d="M24 10.6c3.18 0 6.04 1.1 8.29 3.23l6.2-6.2C34.73 4.1 29.84 2 24 2 14.98 2 7.3 6.8 4.66 13.92l7.2 5.6C13.56 14.4 18.35 10.6 24 10.6Z"></path>
+                    </svg>
+                    Continue with Google
+                  </button>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '22px 0' }}>
-                <span style={{ flex: 1, height: 1, background: '#1F1F30' }} />
-                <span style={{ fontSize: 12, fontWeight: '600', letterSpacing: '1.4px', color: '#6A6A7E' }}>OR</span>
-                <span style={{ flex: 1, height: 1, background: '#1F1F30' }} />
-              </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '22px 0' }}>
+                    <span style={{ flex: 1, height: 1, background: '#1F1F30' }} />
+                    <span style={{ fontSize: 12, fontWeight: '600', letterSpacing: '1.4px', color: '#6A6A7E' }}>OR</span>
+                    <span style={{ flex: 1, height: 1, background: '#1F1F30' }} />
+                  </div>
+                </>
+              )}
 
               {/* Error Message Alert */}
               {errorMsg ? (
