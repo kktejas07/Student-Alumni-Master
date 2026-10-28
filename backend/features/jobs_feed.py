@@ -42,7 +42,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-load_dotenv(Path(__file__).parent / ".env")
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 from core.db import db as _db
 from services.recommendation_engine import calculate_match_score

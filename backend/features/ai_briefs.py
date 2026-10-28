@@ -28,7 +28,7 @@ from pydantic import BaseModel
 
 from tier_logic import compute_student_tier, compute_mentor_tier, compute_college_tier
 
-load_dotenv(Path(__file__).parent / ".env")
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 # Mongo
 from core.db import db as _db

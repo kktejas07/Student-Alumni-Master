@@ -2,14 +2,14 @@ import uuid
 import time
 import json
 from typing import Optional, AsyncGenerator
-from agent_k.providers.factory import LLMFactory
-from agent_k.memory.history import ChatMemory
-from agent_k.core.intent import classify_intent
-from agent_k.core.security import check_prompt_injection
-from agent_k.rag.retrieval import QdrantRetriever
+from features.agent_k.providers.factory import LLMFactory
+from features.agent_k.memory.history import ChatMemory
+from features.agent_k.core.intent import classify_intent
+from features.agent_k.core.security import check_prompt_injection
+from features.agent_k.rag.retrieval import QdrantRetriever
 from bson import ObjectId
 from core.db import db as _db
-from agent_k.prompts.templates import (
+from features.agent_k.prompts.templates import (
     APPLICATION_PROMPT,
     GENERAL_PROMPT,
     MIXED_PROMPT,

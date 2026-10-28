@@ -183,7 +183,7 @@ async def list_contacts(
     async for doc in imported_cursor:
         item = _ser(doc)
         if item.get("phone"):
-            from routers.admin.imports import format_e164_phone
+            from features.routers.admin.imports import format_e164_phone
             item["phone"] = format_e164_phone(item["phone"], item.get("location", ""))
         imported_items.append(item)
         
@@ -209,7 +209,7 @@ async def list_contacts(
                 continue
             loc = doc.get("location") or doc.get("city") or ""
             raw_p = doc.get("phone") or ""
-            from routers.admin.imports import format_e164_phone
+            from features.routers.admin.imports import format_e164_phone
             formatted_p = format_e164_phone(raw_p, loc)
             registered_users.append({
                 "_id": str(doc.get("_id", "")),

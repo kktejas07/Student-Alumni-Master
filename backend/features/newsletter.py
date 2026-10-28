@@ -32,7 +32,7 @@ from pydantic import BaseModel
 from core.email import send_email, render_html_email
 from core.deps import require_role
 from core.config import frontend_base_url
-from notifications import send_push, _log_inbox, list_user_tokens
+from features.notifications import send_push, _log_inbox, list_user_tokens
 
 router = APIRouter(prefix="/api/newsletter", tags=["newsletter"])
 

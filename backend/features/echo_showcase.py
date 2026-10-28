@@ -949,9 +949,9 @@ def _get_showcase_handbook_file(showcase: Optional[dict]) -> tuple[Optional[Path
     if url and not url.startswith("http://") and not url.startswith("https://"):
         fname = Path(url).name
         for cand in [
-            Path(__file__).parent / "static" / fname,
-            Path(__file__).parent.parent / "frontend" / "public" / fname,
-            Path(__file__).parent / fname,
+            Path(__file__).parent.parent / "static" / fname,
+            Path(__file__).parent.parent.parent / "frontend" / "public" / fname,
+            Path(__file__).parent.parent / fname,
         ]:
             if cand.exists():
                 return cand, fname
@@ -3507,10 +3507,10 @@ async def download_showcase_handbook(slug: str, request: Request):
     # If it's a local static path, resolve it
     filename = Path(handbook_url).name
     candidate_paths = [
-        Path(__file__).parent / "static" / filename,
-        Path(__file__).parent / "uploads" / filename,
-        Path(__file__).parent / "uploads" / "documents" / filename,
+        Path(__file__).parent.parent / "static" / filename,
         Path(__file__).parent.parent / "uploads" / filename,
+        Path(__file__).parent.parent / "uploads" / "documents" / filename,
+        Path(__file__).parent.parent.parent / "uploads" / filename,
     ]
     for p in candidate_paths:
         if p.is_file():
@@ -3885,7 +3885,7 @@ async def register_for_showcase(
     college_value = (payload.college or "").strip()
     if college_value:
         try:
-            from routers.admin.colleges import ensure_college
+            from features.routers.admin.colleges import ensure_college
             await ensure_college(college_value, created_by="echo-registration")
         except Exception:
             pass

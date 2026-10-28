@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from core.db import db as _db
 from core.security import encrypt_value
-from agent_k.api.auth import resolve_user
+from features.agent_k.api.auth import resolve_user
 
 router = APIRouter(tags=["agent-k-providers"])
 

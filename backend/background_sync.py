@@ -6,9 +6,9 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 import pytz
 
-from jobs_feed import fetch_and_cache_all
-from events_aggregator import _aggregate_and_store
-from integrations_base import sync_courses_to_db, sync_internships_to_db
+from features.jobs_feed import fetch_and_cache_all
+from features.events_aggregator import _aggregate_and_store
+from features.integrations_base import sync_courses_to_db, sync_internships_to_db
 from core.query_helpers import nonempty
 
 logger = logging.getLogger("background_sync")
@@ -130,7 +130,7 @@ async def run_unified_sync_task():
 async def _sync_talent_pool_profiles():
     """Periodically enrich talent pool profiles via LinkedIn/Proxycurl."""
     try:
-        from linkedin_sync import enrich_profiles_batch, _get_proxycurl_key, _get_linkedin_api_creds
+        from features.linkedin_sync import enrich_profiles_batch, _get_proxycurl_key, _get_linkedin_api_creds
 
         proxycurl_key = await _get_proxycurl_key()
         linkedin_creds = await _get_linkedin_api_creds()
@@ -139,7 +139,7 @@ async def _sync_talent_pool_profiles():
             logger.info("Talent pool sync skipped — no LinkedIn credentials configured")
             return
 
-        from talent_pool import _db as tp_db
+        from features.talent_pool import _db as tp_db
         from datetime import datetime, timezone, timedelta
 
         stale_threshold = datetime.now(timezone.utc) - timedelta(hours=24)

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from core.db import db as _db
-from agent_k.core.provider import generate_text
+from features.agent_k.core.provider import generate_text
 
 async def draft_application(args: dict, user: dict) -> dict:
     role = args.get("role") or "the role"

@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Optional
 from fastapi import HTTPException
 from core.db import db as _db
-from agent_k.memory.models import PrescriptionCard
+from features.agent_k.memory.models import PrescriptionCard
 
 _AI_PROVIDER_IDS = {
     "openai", "claude", "anthropic", "gemini", "google",

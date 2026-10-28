@@ -7,8 +7,8 @@ from core.deps import require_admin_role
 from typing import Optional, List
 from pydantic import BaseModel
 
-from agent_k.rag.ingestion import parse_document, chunk_text
-from agent_k.rag.store import upsert_chunks, delete_document
+from features.agent_k.rag.ingestion import parse_document, chunk_text
+from features.agent_k.rag.store import upsert_chunks, delete_document
 
 router = APIRouter(tags=["agent-k-rag"])
 
@@ -155,7 +155,7 @@ async def reindex_all():
     # can be cleared or we just recreate the IDs based on content hash. 
     # Here we just delete everything and re-add.
     try:
-        from agent_k.rag.store import client, COLLECTION_NAME, init_collection
+        from features.agent_k.rag.store import client, COLLECTION_NAME, init_collection
         if client.collection_exists(COLLECTION_NAME):
             client.delete_collection(COLLECTION_NAME)
         init_collection()

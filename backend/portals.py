@@ -1652,7 +1652,7 @@ async def super_approvals(user: dict = Depends(require_role('admin'))):
 @router.get("/admin/super/analytics")
 async def super_analytics(user: dict = Depends(require_role('admin'))):
     """Platform analytics — real data from MongoDB + Firebase + PostHog."""
-    from analytics import super_admin_full_analytics
+    from features.analytics import super_admin_full_analytics
     return await super_admin_full_analytics(_db)
 
 
@@ -2625,7 +2625,7 @@ async def create_workflow(req: WorkflowCreateRequest, user: dict = Depends(requi
 async def fire_workflow_event_endpoint(event_type: str = Body(...), payload: Optional[Dict[str, Any]] = Body(None)):
     """Manually fire a workflow event. All workflows with matching event_triggers will run."""
     try:
-        from workflow_automation import fire_workflow_event as _fire
+        from features.workflow_automation import fire_workflow_event as _fire
         results = await _fire(event_type, payload or {})
         return {"ok": True, "event_type": event_type, "workflows_triggered": len(results), "results": results}
     except Exception as e:
@@ -2633,7 +2633,7 @@ async def fire_workflow_event_endpoint(event_type: str = Body(...), payload: Opt
 
 
 # ── Step registry: single source of truth lives in workflow_automation ──
-from workflow_automation import STEP_REGISTRY  # noqa: E402
+from features.workflow_automation import STEP_REGISTRY  # noqa: E402
 
 
 @router.post("/admin/super/workflows/{wf_id}/run")

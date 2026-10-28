@@ -464,7 +464,7 @@ async def complete_roadmap_milestone(
     old_keys = {f"{b.get('id')}:{b.get('tier')}" for b in old_badges}
 
     try:
-        from badges import compute_badges
+        from features.badges import compute_badges
         u_full = await db.users.find_one({"_id": user["_id"]}) or user
         all_badges = await compute_badges(db, u_full)
         await db.users.update_one(

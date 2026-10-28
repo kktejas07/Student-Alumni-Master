@@ -985,7 +985,7 @@ async def deals_claim(
     # Credit user via wallet helper from activity_credits
     new_balance = None
     try:
-        from activity_credits import _credit_user, _resolve_user
+        from features.activity_credits import _credit_user, _resolve_user
         u = await _resolve_user(user["_id"])
         idem = f"deal-claim:{user['_id']}:{deal_id}:{today.isoformat()[:10]}"
         new_balance, dup = await _credit_user(

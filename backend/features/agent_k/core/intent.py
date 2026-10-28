@@ -1,6 +1,6 @@
 import string
-from agent_k.providers.base import BaseLLMProvider
-from agent_k.prompts.templates import CLASSIFIER_PROMPT
+from features.agent_k.providers.base import BaseLLMProvider
+from features.agent_k.prompts.templates import CLASSIFIER_PROMPT
 
 ALLOWED_INTENTS = {"application", "general", "mixed", "greeting", "feedback", "unknown"}
 

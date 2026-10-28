@@ -124,7 +124,7 @@ class EchoProfileLoopAgent:
             if has_account and pct >= 100:
                 # Auto-issue and deliver all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave)
                 # Per-certificate individual emails (1 email per cert — scales to 1..N).
-                from echo_showcase import issue_3_echo_certificates
+                from features.echo_showcase import issue_3_echo_certificates
                 certs = await issue_3_echo_certificates(db, reg)
 
                 ordered = [

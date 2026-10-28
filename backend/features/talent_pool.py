@@ -662,8 +662,8 @@ async def admin_sync_linkedin_profiles(
     await _require_admin(authorization)
 
     try:
-        from linkedin_sync import enrich_profile, enrich_profiles_batch
-        from linkedin_sync import _get_proxycurl_key, _get_linkedin_api_creds
+        from features.linkedin_sync import enrich_profile, enrich_profiles_batch
+        from features.linkedin_sync import _get_proxycurl_key, _get_linkedin_api_creds
 
         proxycurl_key = await _get_proxycurl_key()
         linkedin_creds = await _get_linkedin_api_creds()

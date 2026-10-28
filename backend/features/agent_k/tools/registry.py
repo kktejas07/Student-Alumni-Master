@@ -1,6 +1,6 @@
 from typing import Any, Dict
 
-from agent_k.tools.read_tools import (
+from features.agent_k.tools.read_tools import (
     search_jobs,
     get_wallet_balance,
     search_mentors,
@@ -9,7 +9,7 @@ from agent_k.tools.read_tools import (
     search_events,
     search_scholarships,
 )
-from agent_k.tools.write_tools import (
+from features.agent_k.tools.write_tools import (
     draft_application,
     tailor_cv_for_job,
     draft_sop,

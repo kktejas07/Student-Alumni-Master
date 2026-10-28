@@ -74,7 +74,7 @@ from core.deps import get_current_user as _deps_get_current_user, bearer_token, 
 from core.config import limiter, JWT_SECRET, JWT_ALGORITHM, frontend_base_url
 
 # Content prioritization engine — implements interest + edu-level + deadline + frequency scoring
-from personalization import (
+from features.personalization import (
     build_personalized_dashboard,
     track_module_click,
     transition_to_alumni,
@@ -82,23 +82,23 @@ from personalization import (
 )
 
 # Multi-role badge engine
-from badges import (
+from features.badges import (
     compute_badges, refresh_user_badges, compute_all_users_badges, get_tier_theme,
 )
 
 # Role-based analytics + external API integrations
-from analytics import get_analytics_for, super_admin_analytics, college_analytics, mentor_analytics
-from integrations_base import (
+from features.analytics import get_analytics_for, super_admin_analytics, college_analytics, mentor_analytics
+from features.integrations_base import (
     fetch_coursera_courses, fetch_udemy_courses, fetch_adzuna_internships,
     sync_courses_to_db, sync_internships_to_db, integrations_status,
 )
 
 # Mentor reviews/ratings + Push notifications
-from reviews import (
+from features.reviews import (
     create_review, list_mentor_reviews, get_mentor_rating_stats,
     seed_sample_reviews, refresh_mentor_rating,
 )
-from notifications import (
+from features.notifications import (
     register_push_token, deregister_push_token, send_push, list_inbox,
     mark_inbox_read, unread_count, notify_booking_created, notify_booking_confirmed,
     notify_event_registered, notify_mentor_approved, notify_review_received,
@@ -239,7 +239,7 @@ async def _lifespan(application):
     except Exception as e:
         logger.warning(f"Auto certificate seeding skipped: {e}")
     try:
-        from echo_showcase import seed_echo_showcase
+        from features.echo_showcase import seed_echo_showcase
         await seed_echo_showcase(db)
     except Exception as _e:
         logger.warning("Could not seed ECHO showcases: %s", _e)
@@ -251,7 +251,7 @@ async def _lifespan(application):
 
     # Start Agent K systems
     try:
-        from agent_k.rag.store import init_collection
+        from features.agent_k.rag.store import init_collection
         init_collection() # Ensure Qdrant collection is ready
     except Exception as _e:
         logger.warning("Could not init Agent K collection: %s", _e)
@@ -276,9 +276,9 @@ async def _lifespan(application):
 
         # Start the workflow automation cron tick (60s polling).
         try:
-            from workflow_automation import run_cron_workflows as _run_cron
-            from newsletter import process_scheduled_campaigns as _process_sched
-            from echo_showcase import sweep_expired_echo_payments as _sweep_echo_pay
+            from features.workflow_automation import run_cron_workflows as _run_cron
+            from features.newsletter import process_scheduled_campaigns as _process_sched
+            from features.echo_showcase import sweep_expired_echo_payments as _sweep_echo_pay
 
             async def _wf_cron_tick():
                 while True:
@@ -380,23 +380,23 @@ app.add_exception_handler(RateLimitExceeded, _custom_rate_limit_exceeded_handler
 api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernetes ingress requirement)
 
 # ECHO Showcase sub-router
-from echo_showcase import router as echo_router
-from routers.vendors import router as vendors_router
-from routers.marketplace import router as marketplace_router
+from features.echo_showcase import router as echo_router
+from features.routers.vendors import router as vendors_router
+from features.routers.marketplace import router as marketplace_router
 app.include_router(echo_router)
 app.include_router(vendors_router)
 app.include_router(marketplace_router)
 
 # Newsletter sub-router
-from newsletter import router as newsletter_router
+from features.newsletter import router as newsletter_router
 app.include_router(newsletter_router)
 
 # Contacts sub-router
-from routers.contacts import router as contacts_router
+from features.routers.contacts import router as contacts_router
 app.include_router(contacts_router)
 
 # Student Perks sub-router
-from routers.student_perks import router as student_perks_router
+from features.routers.student_perks import router as student_perks_router
 app.include_router(student_perks_router)
 
 from core.email_quality import router as email_quality_router
@@ -2916,7 +2916,7 @@ async def notifications_mark_read(payload: Optional[dict] = None,
 @api_router.post("/notifications/dismiss")
 async def notifications_dismiss(payload: Optional[dict] = None,
                                 user: dict = Depends(get_current_user)):
-    from notifications import dismiss_inbox
+    from features.notifications import dismiss_inbox
     ids = (payload or {}).get("ids") if payload else None
     n = await dismiss_inbox(db, str(user["_id"]), ids)
     return {"deleted": n}
@@ -3066,8 +3066,8 @@ async def seed_data():
         )
         await db.resources.insert_many(legacy)
 
-    from routers.blog import seed_blog_posts_if_empty
-    from routers.community import seed_community_data_if_empty
+    from features.routers.blog import seed_blog_posts_if_empty
+    from features.routers.community import seed_community_data_if_empty
     await seed_blog_posts_if_empty()
     await seed_community_data_if_empty()
 
@@ -3164,69 +3164,69 @@ async def logout(request: Request, user: dict = Depends(get_current_user)):
 from portals import router as portals_router
 api_router.include_router(portals_router)
 
-from jobs_feed import router as jobs_feed_router  # live job aggregator (7 free APIs + tier filter)
+from features.jobs_feed import router as jobs_feed_router  # live job aggregator (7 free APIs + tier filter)
 api_router.include_router(jobs_feed_router)
-from mentor_ai import router as mentor_ai_router  # mentor AI studio (mentee pulse, skill gaps, impact, session prep)
+from features.mentor_ai import router as mentor_ai_router  # mentor AI studio (mentee pulse, skill gaps, impact, session prep)
 api_router.include_router(mentor_ai_router)
-from wallet_and_availability import router as wallet_router  # SA Credits + mentor availability + demo seed
+from features.wallet_and_availability import router as wallet_router  # SA Credits + mentor availability + demo seed
 api_router.include_router(wallet_router)
-from activity_credits import router as activity_credits_router  # Activity-based earnings + Wallet summary/topup/withdraw
+from features.activity_credits import router as activity_credits_router  # Activity-based earnings + Wallet summary/topup/withdraw
 api_router.include_router(activity_credits_router)
-from deals_aggregator import router as deals_aggregator_router  # SA Member Deals + Tag Engine + AI generator
+from features.deals_aggregator import router as deals_aggregator_router  # SA Member Deals + Tag Engine + AI generator
 api_router.include_router(deals_aggregator_router)
-from higher_ed_platform import router as higher_ed_router  # SA Higher Education programmes/scholarships/tracker/AI tools
+from features.higher_ed_platform import router as higher_ed_router  # SA Higher Education programmes/scholarships/tracker/AI tools
 api_router.include_router(higher_ed_router)
-from events_aggregator import router as events_aggregator_router  # Events v2: aggregator + RSVP + waitlist + AI recs + host flow
+from features.events_aggregator import router as events_aggregator_router  # Events v2: aggregator + RSVP + waitlist + AI recs + host flow
 api_router.include_router(events_aggregator_router)
-from financial_services import router as financial_router  # Financial v2: scholarships, loans, startup_funding, insurance, venture_capital + match score + AI helper + EMI
+from features.financial_services import router as financial_router  # Financial v2: scholarships, loans, startup_funding, insurance, venture_capital + match score + AI helper + EMI
 api_router.include_router(financial_router)
-from rentals_marketplace import router as rentals_router  # SA Stay: housing, vehicles, hotels, coworking + bookings + AI recommend
+from features.rentals_marketplace import router as rentals_router  # SA Stay: housing, vehicles, hotels, coworking + bookings + AI recommend
 api_router.include_router(rentals_router)
-from courses_marketplace import router as courses_router  # SA Courses: catalog + tracks + enrollments + AI advisor
+from features.courses_marketplace import router as courses_router  # SA Courses: catalog + tracks + enrollments + AI advisor
 api_router.include_router(courses_router)
-from college_portal import router as college_router  # College admin Phase 3: roster + analytics
+from features.college_portal import router as college_router  # College admin Phase 3: roster + analytics
 api_router.include_router(college_router)
 
 # Auth analytics & session tracking
-from auth_analytics import router as auth_analytics_router
+from features.auth_analytics import router as auth_analytics_router
 api_router.include_router(auth_analytics_router)
 
 # Visitor analytics & telemetry engine (Unregistered + Registered visitors)
-from visitor_analytics import router as visitor_analytics_router
+from features.visitor_analytics import router as visitor_analytics_router
 api_router.include_router(visitor_analytics_router)
 
 # PostHog analytics proxy
-from posthog_proxy import router as posthog_proxy_router
+from features.posthog_proxy import router as posthog_proxy_router
 api_router.include_router(posthog_proxy_router)
 
 # AI Daily Brief (on-demand Claude integration)
-from ai_briefs import router as ai_briefs_router
+from features.ai_briefs import router as ai_briefs_router
 api_router.include_router(ai_briefs_router)
 
 # Agent K — automation operator (Claude tool-use loop)
-from agent_k.api.routes import router as agent_k_router
+from features.agent_k.api.routes import router as agent_k_router
 api_router.include_router(agent_k_router)
 
 # Agent K — provider configurations
-from agent_k.api.provider_routes import router as agent_k_provider_router
+from features.agent_k.api.provider_routes import router as agent_k_provider_router
 api_router.include_router(agent_k_provider_router)
 
 # Agent K — RAG routes
-from agent_k.api.rag_routes import router as agent_k_rag_router
+from features.agent_k.api.rag_routes import router as agent_k_rag_router
 api_router.include_router(agent_k_rag_router)
 
 # Admin settings — Roles & Permissions + Marketplace
-from routers.admin.settings import router as admin_settings_router
+from features.routers.admin.settings import router as admin_settings_router
 api_router.include_router(admin_settings_router)
 
 # Admin imports — bulk-upload + categorization (Students / Alumni / Mentors)
-from routers.admin.imports import router as admin_imports_router
+from features.routers.admin.imports import router as admin_imports_router
 api_router.include_router(admin_imports_router)
-from routers.admin.colleges import router as admin_colleges_router
+from features.routers.admin.colleges import router as admin_colleges_router
 api_router.include_router(admin_colleges_router)
 
 # Talent Pool — searchable candidate profiles (LinkedIn, CSV, platform opt-in)
-from talent_pool import router as talent_pool_router
+from features.talent_pool import router as talent_pool_router
 api_router.include_router(talent_pool_router)
 
 # CRUD endpoints — append-only mutations (book, RSVP, enroll, apply)
@@ -3234,70 +3234,70 @@ from crud_endpoints import router as crud_router
 api_router.include_router(crud_router)
 
 # Collaboration partners (Phase A) — public landing strip + admin CRUD
-from routers.partners import router as partners_router
+from features.routers.partners import router as partners_router
 app.include_router(partners_router)
 
 # Phase B — consent (privacy/cookies) + product tour status
-from routers.consent import router as consent_router
-from routers.tour import router as tour_router
+from features.routers.consent import router as consent_router
+from features.routers.tour import router as tour_router
 app.include_router(consent_router)
 app.include_router(tour_router)
 
 # Phase C — promotional banners (cross-portal)
-from routers.promotions import router as promotions_router
+from features.routers.promotions import router as promotions_router
 app.include_router(promotions_router)
 
-from routers.auth import router as auth_router
+from features.routers.auth import router as auth_router
 api_router.include_router(auth_router)
 
-from routers.users import router as users_router
+from features.routers.users import router as users_router
 api_router.include_router(users_router)
 
 # Career AI — skill intelligence, roadmaps, simulator, predictions, suggestions
-from routers.career_ai import router as career_ai_router
+from features.routers.career_ai import router as career_ai_router
 api_router.include_router(career_ai_router)
 
 # Certificates & SA ID Verification
-from routers.certificates import router as certificates_router
+from features.routers.certificates import router as certificates_router
 api_router.include_router(certificates_router)
 
 # AI Platform Services — Platform RAG Semantic Search & Automated AI Agents
-from routers.ai_platform_services import router as ai_platform_services_router
+from features.routers.ai_platform_services import router as ai_platform_services_router
 api_router.include_router(ai_platform_services_router)
 
 # Autonomous Agent Ecosystem (MetaGPT Swarm, AutoGPT Autopilot, QA & Security Agents)
-from routers.admin.agents import router as admin_agents_router
+from features.routers.admin.agents import router as admin_agents_router
 api_router.include_router(admin_agents_router)
 
 # CodeHealthAgent Autonomous Auditor & Auto-Fix Router
-from routers.code_health import router as code_health_router
+from features.routers.code_health import router as code_health_router
 api_router.include_router(code_health_router)
 
 # PDF Document Generation & Download Router
-from routers.pdf_routes import router as pdf_routes_router
+from features.routers.pdf_routes import router as pdf_routes_router
 api_router.include_router(pdf_routes_router)
 
 # SuperAdmin Account Verticals & Background Verification (BGV) Router
-from routers.bgv import router as bgv_router
+from features.routers.bgv import router as bgv_router
 api_router.include_router(bgv_router)
 
 # BGV Free & Semi-Paid API Integrations Register Router
-from routers.bgv_integrations import router as bgv_integrations_router
+from features.routers.bgv_integrations import router as bgv_integrations_router
 api_router.include_router(bgv_integrations_router)
 
 # Blog & Community Routers
-from routers.blog import router as blog_router
+from features.routers.blog import router as blog_router
 api_router.include_router(blog_router)
 
-from routers.community import router as community_router
+from features.routers.community import router as community_router
 api_router.include_router(community_router)
 
 # First-Party Careers & Opportunities Router (Dedicated, isolated from jobs_feed)
-from routers.careers import router as careers_router
+from features.routers.careers import router as careers_router
 api_router.include_router(careers_router)
 
 # Public website contact form (POST /api/contact)
-from routers.public_contact import router as public_contact_router
+from features.routers.public_contact import router as public_contact_router
 api_router.include_router(public_contact_router)
 
 app.include_router(api_router)

@@ -722,7 +722,7 @@ async def super_admin_full_analytics(db) -> Dict[str, Any]:
 async def _get_firebase_data(db) -> Dict[str, Any]:
     """Fetch all Firebase / GA4 Analytics data. Config resolved from env + settings."""
     try:
-        import firebase_analytics as fa
+        import features.firebase_analytics as fa
         import asyncio
         results = await asyncio.gather(
             fa.get_realtime_active_users(db=db),
@@ -757,7 +757,7 @@ async def _get_firebase_data(db) -> Dict[str, Any]:
 async def _get_posthog_data(db) -> Dict[str, Any]:
     """Fetch all PostHog Analytics data (HogQL Query API)."""
     try:
-        import posthog_analytics as ph
+        import features.posthog_analytics as ph
         return await ph.fetch_posthog(db)
     except Exception as e:
         return {"configured": False, "reason": f"PostHog fetch failed: {str(e)[:200]}"}

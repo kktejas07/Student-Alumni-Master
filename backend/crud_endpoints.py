@@ -215,7 +215,7 @@ async def create_booking(req: BookingCreate):
     }
     res = await _db.bookings.insert_one(doc)
     try:
-        from notifications import notify_booking_created
+        from features.notifications import notify_booking_created
         await notify_booking_created(
             _db, mentor_id=str(mentor["_id"]),
             student_name=student.get("full_name") or student.get("name") or "Student",

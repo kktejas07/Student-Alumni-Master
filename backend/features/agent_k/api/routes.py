@@ -9,28 +9,28 @@ from core.middleware import get_real_ip
 from bson import ObjectId
 
 from core.db import db as _db
-from agent_k.api.auth import resolve_user
-from agent_k.api.prescriptions import (
+from features.agent_k.api.auth import resolve_user
+from features.agent_k.api.prescriptions import (
     connected_ai_providers,
     is_admin,
     assert_ai_provider_or_412,
     PRESCRIPTION_FNS,
 )
-from agent_k.core.engine import process_message, stream_message
-from agent_k.memory.history import ChatMemory
-from agent_k.memory.models import RunRequest, StepApproveBody
-from agent_k.memory.repository import (
+from features.agent_k.core.engine import process_message, stream_message
+from features.agent_k.memory.history import ChatMemory
+from features.agent_k.memory.models import RunRequest, StepApproveBody
+from features.agent_k.memory.repository import (
     get_run_by_id, list_runs_for_user, get_user_prefs, update_user_prefs
 )
-from agent_k.tools.registry import TOOL_REGISTRY
-from agent_k.rag.retrieval import QdrantRetriever
+from features.agent_k.tools.registry import TOOL_REGISTRY
+from features.agent_k.rag.retrieval import QdrantRetriever
 
 router = APIRouter(tags=["agent-k"])
 
 @router.get("/agent-k/debug")
 async def debug_qdrant():
     try:
-        from agent_k.rag.store import client, COLLECTION_NAME
+        from features.agent_k.rag.store import client, COLLECTION_NAME
         exists = client.collection_exists(COLLECTION_NAME)
         count = client.count(collection_name=COLLECTION_NAME).count if exists else 0
         test_results = QdrantRetriever.query("give me the top 10 connections i had to make in this platform according to my role", top_k=1, user_role="student")

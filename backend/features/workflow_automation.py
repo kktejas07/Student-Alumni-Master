@@ -56,7 +56,7 @@ async def _push(db, user_id: str, title: str, body: str) -> tuple:
     if not user_id:
         return False, "no user_id in params"
     try:
-        from notifications import send_push
+        from features.notifications import send_push
         res = await send_push(db, user_id=user_id, title=title, body=body)
         sent = (res or {}).get("sent", (res or {}).get("delivered", 0)) if isinstance(res, dict) else 0
         return True, f"push queued for {user_id} ({sent} device(s))"

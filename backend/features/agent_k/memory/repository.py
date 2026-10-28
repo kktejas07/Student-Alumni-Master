@@ -3,7 +3,7 @@ from typing import Dict, Any, Optional, List
 from bson import ObjectId
 
 from core.db import db as _db
-from agent_k.memory.models import AgentRun
+from features.agent_k.memory.models import AgentRun
 
 async def get_run_by_id(run_id: str, user_id: str) -> Optional[Dict]:
     run = await _db.agent_runs.find_one({"_id": ObjectId(run_id), "user_id": user_id})

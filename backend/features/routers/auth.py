@@ -103,7 +103,7 @@ def _clear_failed_logins(key: str) -> None:
     _failed_login_attempts.pop(key, None)
 
 try:
-    from activity_credits import _record_activity
+    from features.activity_credits import _record_activity
 except ImportError:
     try:
         from backend.activity_credits import _record_activity
@@ -1368,7 +1368,7 @@ async def _get_oauth_creds() -> dict:
     db_settings = {s["key"]: s.get("value", "") for s in (doc.get("system_settings") or [])} if doc else {}
     # Merge with defaults so new fields (like firebase_*) are included even before admin sets them
     try:
-        from routers.admin.settings import DEFAULT_PLATFORM_CONTROLS
+        from features.routers.admin.settings import DEFAULT_PLATFORM_CONTROLS
         for s in DEFAULT_PLATFORM_CONTROLS.get("system_settings") or []:
             if s["key"] not in db_settings:
                 db_settings[s["key"]] = s.get("value", "")
@@ -1408,7 +1408,7 @@ async def oauth_config(response: Response):
                 flags[k] = _parse_b(v, True)
 
     try:
-        from routers.admin.settings import DEFAULT_PLATFORM_CONTROLS
+        from features.routers.admin.settings import DEFAULT_PLATFORM_CONTROLS
         for f in DEFAULT_PLATFORM_CONTROLS.get("feature_flags") or []:
             k = f.get("key") if isinstance(f, dict) else None
             if k and k not in flags:

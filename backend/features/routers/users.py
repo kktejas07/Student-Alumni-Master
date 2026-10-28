@@ -26,12 +26,12 @@ from core.security import (
 )
 from core.deps import get_current_user, ensure_admin
 from core.models import UserRole, UserResponse, SchoolInfo, MentorInfo, AlumniInfo, StudentInfo, CareerPath, EducationLevel, CollegeInfo
-from personalization import build_personalized_dashboard, track_module_click
+from features.personalization import build_personalized_dashboard, track_module_click
 from services.career_ai.skill_intelligence_service import compute_full_intelligence, invalidate_intel_cache
 from services.profile_service import compute_profile_completion
 
 try:
-    from badges import compute_badges, refresh_user_badges, get_tier_theme
+    from features.badges import compute_badges, refresh_user_badges, get_tier_theme
 except Exception as _e:
     logger.info("badges module unavailable, using stubs: %s", _e)
     async def compute_badges(db, user): return []
@@ -39,7 +39,7 @@ except Exception as _e:
     def get_tier_theme(tier=None): return {}
 
 try:
-    from notifications import notify_booking_created, notify_booking_confirmed
+    from features.notifications import notify_booking_created, notify_booking_confirmed
 except Exception as _e:
     logger.info("notifications module unavailable, using stubs: %s", _e)
     async def notify_booking_created(*args, **kwargs): pass
@@ -2381,7 +2381,7 @@ async def ai_chat(req: ChatRequest, request: Request):
         
     user_id = str(user["_id"])
     
-    from agent_k.core.engine import process_message
+    from features.agent_k.core.engine import process_message
     
     try:
         session_id = req.session_id or f"chat-{uuid.uuid4().hex[:12]}"
@@ -2397,14 +2397,14 @@ async def ai_chat(req: ChatRequest, request: Request):
 @router.get("/ai/chat/history")
 async def chat_history(session_id: Optional[str] = None, user: dict = Depends(get_current_user)):
     user_id = str(user["_id"])
-    from agent_k.memory.history import ChatMemory
+    from features.agent_k.memory.history import ChatMemory
     history = await ChatMemory().get_history(user_id, session_id=session_id or "")
     return {"messages": history}
 
 @router.get("/ai/chat/sessions")
 async def chat_sessions(user: dict = Depends(get_current_user)):
     user_id = str(user["_id"])
-    from agent_k.memory.history import ChatMemory
+    from features.agent_k.memory.history import ChatMemory
     sessions = await ChatMemory().get_sessions(user_id)
     return {"sessions": sessions}
 
