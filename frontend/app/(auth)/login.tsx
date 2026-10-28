@@ -186,11 +186,12 @@ function WebLoginScreen() {
       }
     } catch (err: any) {
       setLoading(false);
-      if (err?.message?.includes('Firebase') || !googleClientId) {
-        setShowGoogleModal(true);
-        return;
-      }
-      setErrorMsg(err?.message || 'Google Sign-In failed. Please try again.');
+      const firebaseUnavailable = err?.message?.includes('Firebase') || !googleClientId;
+      setErrorMsg(
+        firebaseUnavailable
+          ? 'Google Sign-In is not configured. Please use email and password, or try again later.'
+          : err?.message || 'Google Sign-In failed. Please try again.'
+      );
     }
   };
 

@@ -66,4 +66,4 @@ HEALTHCHECK --interval=30s --timeout=8s --start-period=20s --retries=3 \
 ENV UVICORN_WORKERS=2
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["sh", "-c", "uvicorn server:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS} --proxy-headers --forwarded-allow-ips '*' --limit-max-request-size 1073741824"]
+CMD ["sh", "-c", "uvicorn server:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS} --proxy-headers --forwarded-allow-ips '*' --limit-max-requests 1000000"]
