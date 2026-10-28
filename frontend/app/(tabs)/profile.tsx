@@ -5,15 +5,17 @@
  * so the native tab shows the essentials: identity card, a few native-safe
  * shortcuts (Digital ID, Preferences, Notifications) and Sign out.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { IdCard, Settings, Bell, LogOut, ChevronRight, ShieldCheck } from 'lucide-react-native';
+import { IdCard, Settings, Bell, LogOut, ChevronRight, ShieldCheck, Wrench, FileText, Pencil } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { displayName, displayInitials } from '@/src/lib/portalHome';
 import { Colors } from '@/src/theme';
+import { getMySkillsSummary, type SkillsSummary } from '@/src/models/services/skills';
+import { SkillsReviewModal } from '@/src/views/components';
 
 const ROLE_LABEL: Record<string, string> = {
   student: 'Student',
@@ -31,6 +33,16 @@ export default function ProfileTab() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const [signingOut, setSigningOut] = useState(false);
+  const [skills, setSkills] = useState<SkillsSummary | null>(null);
+  const [skillsModalOpen, setSkillsModalOpen] = useState(false);
+
+  useEffect(() => {
+    let cancel = false;
+    getMySkillsSummary()
+      .then((s) => { if (!cancel) setSkills(s); })
+      .catch(() => {});
+    return () => { cancel = true; };
+  }, []);
 
   const name = displayName(user, 'Your account');
   const initials = displayInitials(user);
@@ -56,7 +68,14 @@ export default function ProfileTab() {
     ]);
   };
 
+  const skillsCount = skills?.skills?.length || 0;
+  const resumeCount = (skills?.profile || []).filter((p) => p.source === 'resume').length;
+  const skillsHint = skillsCount
+    ? (resumeCount ? `${skillsCount} skills, ${resumeCount} from resume` : `${skillsCount} skills`)
+    : 'Review your resume skills';
+
   const rows: Row[] = [
+    { key: 'skills', label: 'Skills', hint: skillsHint, Icon: Wrench, onPress: () => setSkillsModalOpen(true) },
     { key: 'id-card', label: 'Digital ID', hint: 'Your verified SA student ID', Icon: IdCard, onPress: () => router.push('/id-card' as any) },
     { key: 'preferences', label: 'Preferences', hint: 'Theme, notifications, privacy', Icon: Settings, onPress: () => router.push('/preferences' as any) },
     { key: 'notifications', label: 'Notifications', Icon: Bell, onPress: () => router.push('/notifications' as any) },
@@ -82,6 +101,54 @@ export default function ProfileTab() {
               </View>
             </View>
           </View>
+
+          {skills && (
+            <View style={s.skillsCard} testID="profile-skills-section">
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <Wrench size={15} color="#C4B5FD" />
+                <Text style={s.skillsTitle}>My skills</Text>
+                {(skills.review?.status === 'pending' ? (skills.review.proposed_skills?.length || 0) : 0) > 0 && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 'auto', backgroundColor: 'rgba(250,204,21,0.14)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 }}>
+                    <FileText size={11} color="#FACC15" />
+                    <Text style={{ color: '#FACC15', fontSize: 10, fontFamily: 'Manrope_700Bold' }}>
+                      {skills.review!.proposed_skills!.length} to review
+                    </Text>
+                  </View>
+                )}
+              </View>
+              {skills.skills?.length ? (
+                <View style={s.skillsChips}>
+                  {skills.skills.slice(0, 8).map((name) => {
+                    const fromResume = (skills.profile || []).some(
+                      (p) => p.source === 'resume' && p.name.toLowerCase() === name.toLowerCase(),
+                    );
+                    return (
+                      <View key={name} style={s.skillChip}>
+                        {fromResume
+                          ? <FileText size={10} color="#C4B5FD" />
+                          : <Pencil size={10} color="#86EFAC" />}
+                        <Text style={s.skillChipText}>{name}</Text>
+                        <View style={[s.skillBadge, { backgroundColor: fromResume ? 'rgba(196,181,253,0.16)' : 'rgba(134,239,172,0.14)' }]}>
+                          <Text style={{ color: fromResume ? '#C4B5FD' : '#86EFAC', fontSize: 8, fontFamily: 'Manrope_700Bold', letterSpacing: 0.4 }}>
+                            {fromResume ? 'RESUME' : 'MANUAL'}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                  {skills.skills.length > 8 && (
+                    <View style={s.skillMore}>
+                      <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontFamily: 'Manrope_600SemiBold' }}>
+                        +{skills.skills.length - 8} more
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                <Text style={s.skillsEmpty}>No skills yet. Add some to get match scores on job cards.</Text>
+              )}
+            </View>
+          )}
 
           <View style={s.list}>
             {rows.map((r, i) => (
@@ -124,6 +191,16 @@ export default function ProfileTab() {
           <Text style={s.footnote}>Manage your full profile at studentalumni.ai</Text>
         </ScrollView>
       </SafeAreaView>
+      <SkillsReviewModal
+        visible={skillsModalOpen}
+        onClose={() => setSkillsModalOpen(false)}
+        onDone={() => {
+          setSkills(null);
+          getMySkillsSummary()
+            .then((s2) => setSkills(s2))
+            .catch(() => {});
+        }}
+      />
     </View>
   );
 }
@@ -162,5 +239,23 @@ const s = StyleSheet.create({
   },
   signOutText: { color: '#FCA5A5', fontSize: 15, fontFamily: 'Manrope_700Bold' },
   footnote: { color: 'rgba(255,255,255,0.45)', fontSize: 12, fontFamily: 'Manrope_500Medium', textAlign: 'center' },
+  skillsCard: {
+    backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', borderWidth: 1,
+    borderRadius: 18, padding: 16,
+  },
+  skillsTitle: { color: '#fff', fontSize: 15, fontFamily: 'Manrope_700Bold' },
+  skillsChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  skillChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  skillChipText: { color: '#fff', fontSize: 11.5, fontFamily: 'Manrope_600SemiBold' },
+  skillBadge: { borderRadius: 999, paddingHorizontal: 5, paddingVertical: 1 },
+  skillMore: {
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 9, paddingVertical: 5,
+    borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  skillsEmpty: { color: 'rgba(255,255,255,0.55)', fontSize: 13, fontFamily: 'Manrope_500Medium' },
   pressed: { opacity: 0.75 },
 });

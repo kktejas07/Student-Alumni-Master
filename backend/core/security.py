@@ -6,6 +6,8 @@ and routers/*. None of these functions take `db` directly — audit helpers
 import the global `db` from core.db at call time so this module stays
 import-cycle-free.
 """
+from __future__ import annotations
+
 import os
 import io
 import base64
@@ -252,6 +254,7 @@ def serialize_user(user: dict | None) -> dict | None:
         "portfolio_url":  user.get("portfolio_url"),
         "primary_skill":  user.get("primary_skill"),
         "profile_visibility": user.get("profile_visibility"),
+        "accepts_referrals": user.get("accepts_referrals"),
         "section_toggles": user.get("section_toggles"),
         "badges":         [b for b in user.get("badges", []) if isinstance(b, dict)],
         "projects":       user.get("projects"),

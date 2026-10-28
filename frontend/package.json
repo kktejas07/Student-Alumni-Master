@@ -42,7 +42,8 @@
     ],
     "moduleNameMapper": {
       "^react-native$": "react-native-web",
-      "^lucide-react-native$": "<rootDir>/__mocks__/lucide-react-native.tsx"
+      "^lucide-react-native$": "<rootDir>/__mocks__/lucide-react-native.tsx",
+      "^@/(.*)$": "<rootDir>/$1"
     }
   },
   "dependencies": {

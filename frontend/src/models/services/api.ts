@@ -886,6 +886,14 @@ export const api = {
 };
 
 
+// The API backend's ONLY static mount is /uploads (backend/server.py — ECHO
+// media, newsletters, coupons, certificates). Every other root-relative path
+// stored in the database refers to a frontend-bundled public asset
+// (frontend/public/, e.g. /images/hackwave/..., /logos/...,
+// /HackWave_3.0_Event_Handbook.pdf) that is served by the web host itself:
+// Expo's dev server locally, nginx (try_files) in production.
+const BACKEND_STATIC_PREFIX = '/uploads/';
+
 export function resolveImageUrl(url?: any): string {
   if (!url || typeof url !== 'string') return '';
   if (
@@ -897,7 +905,16 @@ export function resolveImageUrl(url?: any): string {
     return url;
   }
   const cleanUrl = url.startsWith('/') ? url : `/${url}`;
-  return `${BASE_URL}${cleanUrl}`;
+  if (cleanUrl.startsWith(BACKEND_STATIC_PREFIX)) {
+    // Backend-served upload — needs the absolute API origin (native apps have
+    // no page origin to resolve relative URLs against).
+    return `${BASE_URL}${cleanUrl}`;
+  }
+  // Frontend-bundled public asset — keep it relative to the web origin so it
+  // resolves against whichever host serves the app (Expo dev server locally,
+  // nginx in production). Sending it to the API origin 404s because the
+  // backend mounts only /uploads.
+  return cleanUrl;
 }
 
 export { BASE_URL };

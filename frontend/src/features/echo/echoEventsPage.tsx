@@ -11,12 +11,37 @@ import { useTheme } from '@/src/theme/ThemeContext';
 import { EchoTicketsConfirmationPage } from '@/src/views/web/echo/EchoTicketsConfirmationPage';
 import { prizePoolDisplayText } from '@/src/views/web/echo/prizePool';
 
-interface EchoEventsPageProps {
-  initialView?: 'list' | 'detail' | 'reg';
-  initialSlug?: string;
-}
-
 const SAMPLE_EVENTS: any[] = [];
+
+/**
+ * Event card banner with a deliberate, consistent image-failure fallback.
+ *
+ * - Poster present and loading → the poster image (unchanged design).
+ * - No poster stored → gradient panel with the event title (existing behavior).
+ * - Poster URL fails to load (missing asset / broken reference) → the SAME
+ *   gradient + title state as "no poster". Never swaps in an unrelated image
+ *   and never leaves a broken-image glyph; the failing URL remains visible in
+ *   the browser network log for diagnosis.
+ */
+function EventCardBanner({ poster, title, isDark }: { poster?: string; title: string; isDark: boolean }) {
+  const [failed, setFailed] = useState(false);
+  const hasImage = Boolean(poster) && !failed;
+  return (
+    <div style={{ position: 'relative', height: '188px', background: hasImage ? 'var(--panel2)' : (isDark ? 'linear-gradient(135deg, #2E2091, #14122E)' : 'linear-gradient(135deg, #E8E4FF, #D5E8F0)'), display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      {hasImage ? (
+        <img src={poster} alt={title} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#070913' }} />
+      ) : (
+        <div style={{ color: '#FFFFFF', fontSize: '22px', fontWeight: 800, letterSpacing: '-0.5px', textAlign: 'center', padding: '20px' }}>
+          {title}
+        </div>
+      )}
+      <div style={{ position: 'absolute', inset: 0, background: isDark ? 'linear-gradient(to top, rgba(17,17,28,0.85) 0%, transparent 60%)' : 'linear-gradient(to top, rgba(17,17,28,0.6) 0%, transparent 60%)' }} />
+      <div style={{ position: 'absolute', bottom: '14px', left: '18px', right: '18px', zIndex: 3 }}>
+        <div style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.4px', textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>{title}</div>
+      </div>
+    </div>
+  );
+}
 
 export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoEventsPageProps) {
   const router = useRouter();
@@ -531,6 +556,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
       try {
         orderRes = await api.createEchoPaymentOrder(targetSlug, payload);
       } catch (err: any) {
+        console.log('[EchoEventsPage] Payment order response notice:', err);
         // Fail-closed for paid events if order creation fails (e.g. 503 from backend)
         if (calculatedTotalFee > 0) {
           setIsPaying(false);
@@ -691,7 +717,8 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
             payment_id: '',
           },
         });
-      } catch {
+      } catch (regErr) {
+        console.log('[EchoEventsPage] Direct registration notice:', regErr);
       }
 
       const ticketId = regRes?.id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -1491,19 +1518,12 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
                 style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', overflow: 'hidden', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
               >
                 {/* Event Poster Card Banner */}
-                <div style={{ position: 'relative', height: '188px', background: ev.poster_banner ? 'var(--panel2)' : (isDark ? 'linear-gradient(135deg, #2E2091, #14122E)' : 'linear-gradient(135deg, #E8E4FF, #D5E8F0)'), display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                  {ev.poster_banner ? (
-                    <img src={resolveImageUrl(ev.poster_banner)} alt={ev.title} style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#070913' }} />
-                  ) : (
-                    <div style={{ color: '#FFFFFF', fontSize: '22px', fontWeight: 800, letterSpacing: '-0.5px', textAlign: 'center', padding: '20px' }}>
-                      {ev.title}
-                    </div>
-                  )}
-                  <div style={{ position: 'absolute', inset: 0, background: isDark ? 'linear-gradient(to top, rgba(17,17,28,0.85) 0%, transparent 60%)' : 'linear-gradient(to top, rgba(17,17,28,0.6) 0%, transparent 60%)' }} />
-                  <div style={{ position: 'absolute', bottom: '14px', left: '18px', right: '18px', zIndex: 3 }}>
-                    <div style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.4px', textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>{ev.title}</div>
-                  </div>
-                </div>
+                <EventCardBanner
+                  key={ev.poster_banner || 'no-poster'}
+                  poster={ev.poster_banner ? resolveImageUrl(ev.poster_banner) : ''}
+                  title={ev.title}
+                  isDark={isDark}
+                />
 
                 {/* Event Content Details */}
                 <div style={{ padding: '18px 20px 20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
@@ -3059,3 +3079,4 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
 }
 
 export default EchoEventsPage;
+

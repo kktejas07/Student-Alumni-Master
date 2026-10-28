@@ -119,6 +119,62 @@ export function DashboardView({
   const [briefText, setBriefText] = React.useState<string>('');
   const [briefLoading, setBriefLoading] = React.useState<boolean>(false);
 
+  // Referral requests inbox + open-to-referrals toggle (alumni/mentor)
+  const [referralRequests, setReferralRequests] = React.useState<any[]>([]);
+  const [referralLoading, setReferralLoading] = React.useState<boolean>(false);
+  const [openToReferrals, setOpenToReferrals] = React.useState<boolean>(true);
+  const [savingOpenFlag, setSavingOpenFlag] = React.useState<boolean>(false);
+  const [meRole, setMeRole] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const me: any = await request('/auth/me').catch(() => null);
+        if (me?.role) {
+          setMeRole(me.role);
+          if (me.role === 'alumni' || me.role === 'mentor') {
+            setOpenToReferrals(me.accepts_referrals !== false);
+          }
+        }
+        setReferralLoading(true);
+        const inbox: any = await request('/referrals/inbox').catch(() => ({ items: [] }));
+        if (!cancelled) setReferralRequests(inbox?.items || []);
+      } catch { }
+      finally { if (!cancelled) setReferralLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const isReferralCapable = meRole === 'alumni' || meRole === 'mentor';
+
+  const toggleOpenToReferrals = async () => {
+    const next = !openToReferrals;
+    setSavingOpenFlag(true);
+    try {
+      await request('/users/me/referral-settings', { method: 'PATCH', body: { accepts_referrals: next } });
+      setOpenToReferrals(next);
+    } catch (e: any) {
+      toast.error('Could not update settings', e?.message || 'Please try again.');
+    } finally {
+      setSavingOpenFlag(false);
+    }
+  };
+
+  const respondReferral = async (id: string, status: 'accepted' | 'declined' | 'referred') => {
+    try {
+      await request(`/referrals/${id}/respond`, { method: 'POST', body: { status } });
+      setReferralRequests((prev) => prev.map((x) => (x.id === id ? { ...x, status } : x)));
+      if (status === 'accepted' || status === 'referred') {
+        toast.success('Referral handled', 'You have notified the student.');
+      } else {
+        toast.info('Referral declined', 'The student has been notified.');
+      }
+    } catch (e: any) {
+      toast.error('Could not respond', e?.message || 'Please try again.');
+    }
+  };
+
   const { width } = useWindowDimensions();
   const stack = width < 1100;
   const matchW = stack ? '100%' : '64%';
@@ -274,6 +330,81 @@ export function DashboardView({
           return <KpiCard key={k.id} Icon={Icon} label={k.label} value={k.value} delta={k.delta} color={k.color} />;
         })}
       </View>
+
+      {/* Referral requests — alumni/mentors only */}
+      {isReferralCapable && (
+        <View style={s.referralCard}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 220 }}>
+              <View style={s.referralIcon}><Users size={16} color={SC.accentBright} /></View>
+              <View>
+                <Text style={s.referralTitle}>Referral requests</Text>
+                <Text style={s.referralSub}>
+                  Students at your college can ask you to refer them for open roles.
+                </Text>
+              </View>
+            </View>
+            <Pressable
+              onPress={toggleOpenToReferrals}
+              disabled={savingOpenFlag}
+              style={({ hovered }: any) => [s.referralToggle, openToReferrals && { backgroundColor: SC.primary }, hovered && { opacity: 0.9 }, savingOpenFlag && { opacity: 0.6 }]}
+            >
+              <View style={[s.referralToggleKnob, openToReferrals && { transform: [{ translateX: 22 }] }]} />
+              <Text style={[s.referralToggleLabel, openToReferrals && { color: '#fff' }]}>
+                {savingOpenFlag ? 'Saving…' : openToReferrals ? 'Open to referrals' : 'Not accepting referrals'}
+              </Text>
+            </Pressable>
+          </View>
+
+          <View style={{ marginTop: 14, gap: 10 }}>
+            {referralLoading ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <ActivityIndicator size="small" color={SC.primary} />
+                <Text style={s.emptyLine}>Loading referral requests</Text>
+              </View>
+            ) : referralRequests.length === 0 ? (
+              <EmptyLine text="No referral requests yet. Students will see your profile on matching job cards." />
+            ) : (
+              referralRequests.slice(0, 5).map((r: any) => (
+                <View key={r.id} style={s.referralRow}>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={s.referralStudent}>
+                      {r.student_name || r.student_id}
+                      <Text style={s.referralMeta}>  ·  {r.job_title || 'role'} @ {r.job_company || 'company'}</Text>
+                    </Text>
+                    {r.note ? <Text numberOfLines={2} style={s.referralNote}>{r.note}</Text> : null}
+                  </View>
+                  {r.status === 'requested' ? (
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <Pressable
+                        onPress={() => respondReferral(r.id, 'referred')}
+                        style={({ hovered }: any) => [s.referralAccept, hovered && { backgroundColor: '#0A66C2' }]}
+                      >
+                        <Check size={11} color="#fff" />
+                        <Text style={s.referralAcceptText}>Refer</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => respondReferral(r.id, 'accepted')}
+                        style={({ hovered }: any) => [s.referralDecline, hovered && { opacity: 0.85 }]}
+                      >
+                        <Text style={s.referralDeclineText}>Accept</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => respondReferral(r.id, 'declined')}
+                        style={({ hovered }: any) => [s.referralDecline, hovered && { opacity: 0.85 }]}
+                      >
+                        <Text style={s.referralDeclineText}>Decline</Text>
+                      </Pressable>
+                    </View>
+                  ) : (
+                    <Badge label={r.status.toUpperCase()} color={r.status === 'declined' ? 'red' : 'green'} />
+                  )}
+                </View>
+              ))
+            )}
+          </View>
+        </View>
+      )}
 
       {/* Top Matches + Recommended Mentors */}
       <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
@@ -528,4 +659,47 @@ const s = StyleSheet.create({
   missingText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5 },
   completeCta: { paddingHorizontal: 18, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   completeCtaText: { color: SC.primaryD, fontFamily: FONTS.xbold, fontSize: 12.5 },
+
+  /* Referral requests (alumni/mentors) */
+  referralCard: {
+    backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14,
+    padding: 18,
+  },
+  referralIcon: {
+    width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(34,197,94,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  referralTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
+  referralSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 1 },
+  referralToggle: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 10, height: 30, borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: SC.border,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
+  },
+  referralToggleKnob: {
+    width: 12, height: 12, borderRadius: 6, backgroundColor: '#fff',
+  },
+  referralToggleLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  referralRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: SC.border, borderWidth: 1, borderRadius: 10,
+    paddingVertical: 10, paddingHorizontal: 12,
+  },
+  referralStudent: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  referralMeta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
+  referralNote: { color: SC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 2, fontStyle: 'italic' },
+  referralAccept: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+    paddingHorizontal: 10, height: 28, borderRadius: 8, backgroundColor: SC.primary,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
+  },
+  referralAcceptText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 },
+  referralDecline: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 10, height: 28, borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: SC.border,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
+  },
+  referralDeclineText: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 11 },
 });

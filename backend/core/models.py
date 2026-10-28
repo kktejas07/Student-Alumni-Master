@@ -175,6 +175,7 @@ class UserResponse(BaseModel):
     portfolio_url: Optional[str] = None
     primary_skill: Optional[str] = None
     profile_visibility: Optional[str] = None
+    accepts_referrals: Optional[bool] = None
     section_toggles: Optional[Dict[str, Any]] = None
     projects: Optional[List[Dict[str, Any]]] = None
     preferences: Optional[Dict[str, Any]] = None

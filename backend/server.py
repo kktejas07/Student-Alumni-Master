@@ -2094,6 +2094,10 @@ api_router.include_router(careers_router)
 from features.routers.public_contact import router as public_contact_router
 api_router.include_router(public_contact_router)
 
+# Alumni Referrals (GET /api/jobs/{job_id}/alumni, /api/referrals, ...)
+from features.routers.referrals import router as referrals_router
+api_router.include_router(referrals_router)
+
 app.include_router(api_router)
 
 
