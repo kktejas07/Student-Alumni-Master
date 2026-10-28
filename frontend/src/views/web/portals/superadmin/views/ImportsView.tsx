@@ -29,6 +29,7 @@ import {
   LoadingBox,
 } from '../applekit';
 import { request, tokenStore } from '@/src/models/services/api';
+import { getBaseUrl } from '@/src/lib/env';
 import * as Linking from 'expo-linking';
 import { ProfileCard, ProfileCardSkeleton } from './ProfileCard';
 import type { ProfileCardCategory, ProfileCardStatus } from './ProfileCard';
@@ -206,7 +207,7 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
     try {
       const form = new FormData();
       form.append('file', file);
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const token = (await tokenStore.getAccess()) || '';
       const resp = await fetch(base + '/api/admin/imports/upload', {
         method: 'POST',
@@ -235,7 +236,7 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
       try {
         const form = new FormData();
         form.append('file', file);
-        const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+        const base = getBaseUrl();
         const token = (await tokenStore.getAccess()) || '';
         const resp = await fetch(base + '/api/admin/imports/upload', {
           method: 'POST',

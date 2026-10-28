@@ -46,25 +46,6 @@ export default function ProfileSocialView() {
   useEffect(() => {
     if (!id) return;
     setLoading(true); setError(null);
-    
-    // Intercept mock accounts from Alumni cards
-    if (id.startsWith('m') && !isNaN(Number(id.substring(1)))) {
-      const mockProfiles: Record<string, any> = {
-        'm1': { id: 'm1', full_name: 'Arjun Mehta', role: 'alumni', headline: 'Software Engineer II at Google', city: 'Bangalore', institution: 'Nexus University', graduation_year: 2018, skills: ['React', 'Node.js', 'System Design'], show_email: true, email: 'arjun@example.com', github_url: 'https://github.com', linkedin_url: 'https://linkedin.com' },
-        'm2': { id: 'm2', full_name: 'Priya Sharma', role: 'alumni', headline: 'Product Manager at Microsoft', city: 'Hyderabad', institution: 'Nexus University', graduation_year: 2015, skills: ['Agile', 'Product Strategy', 'UX'], show_email: false, linkedin_url: 'https://linkedin.com' },
-        'm3': { id: 'm3', full_name: 'Rahul Desai', role: 'alumni', headline: 'Data Scientist at Amazon', city: 'Seattle, WA', institution: 'Nexus University', graduation_year: 2021, skills: ['Python', 'Machine Learning', 'SQL'], show_email: true, email: 'rahul@example.com', github_url: 'https://github.com', linkedin_url: 'https://linkedin.com' },
-        'm4': { id: 'm4', full_name: 'Neha Gupta', role: 'alumni', headline: 'UX Designer at Airbnb', city: 'San Francisco, CA', institution: 'Nexus University', graduation_year: 2019, skills: ['Figma', 'User Research', 'Prototyping'], show_email: false, linkedin_url: 'https://linkedin.com' },
-        'm5': { id: 'm5', full_name: 'Vikram Singh', role: 'alumni', headline: 'Engineering Manager at Netflix', city: 'Los Gatos, CA', institution: 'Nexus University', graduation_year: 2012, skills: ['Leadership', 'Distributed Systems', 'Java'], show_email: true, email: 'vikram@example.com', github_url: 'https://github.com', linkedin_url: 'https://linkedin.com' },
-        'm6': { id: 'm6', full_name: 'Ananya Patel', role: 'alumni', headline: 'Frontend Developer at Stripe', city: 'Remote', institution: 'Nexus University', graduation_year: 2023, skills: ['Vue.js', 'TypeScript', 'CSS'], show_email: true, email: 'ananya@example.com', github_url: 'https://github.com', linkedin_url: 'https://linkedin.com' },
-      };
-      if (mockProfiles[id]) {
-        setTimeout(() => {
-          setProfile(mockProfiles[id]);
-          setLoading(false);
-        }, 500);
-        return;
-      }
-    }
 
     request<any>(`/users/${id}/public-profile`)
       .then((p) => setProfile(p))

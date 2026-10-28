@@ -14,7 +14,7 @@ from datetime import datetime, timezone, timedelta
 
 import pytest
 
-import echo_showcase as es
+import features.echo_showcase as es
 import server as srv
 
 

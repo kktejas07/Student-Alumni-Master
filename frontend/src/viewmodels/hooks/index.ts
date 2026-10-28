@@ -11,65 +11,6 @@ export function useAuth() {
 
 export { useCareerAI } from './useCareerAI';
 
-/** Hook to load dashboard data */
-export function useDashboard() {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const refetch = async () => {
-    setLoading(true);
-    try {
-      const result = await api.dashboard();
-      setData(result);
-      setError(null);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    refetch();
-  }, []);
-
-  return { data, loading, error, refetch };
-}
-
-/** Hook for AI career suggestions */
-export function useCareerSuggestions() {
-  const [suggestion, setSuggestion] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const generate = async (additional_context?: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await api.getCareerSuggestions(additional_context);
-      setSuggestion(result);
-      return result;
-    } catch (e: any) {
-      setError(e.message);
-      throw e;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadCached = async () => {
-    try {
-      const cached = await api.getCachedSuggestions();
-      if (cached && cached.summary) {
-        setSuggestion(cached);
-      }
-    } catch {}
-  };
-
-  return { suggestion, loading, error, generate, loadCached };
-}
-
 /** Hook for catalog (courses, mentors, internships, deals, resources) */
 export function useCatalog<T = any>(
   type: 'courses' | 'mentors' | 'internships' | 'deals' | 'resources' | 'events',

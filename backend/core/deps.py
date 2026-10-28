@@ -1,9 +1,15 @@
 """
-core.deps — FastAPI dependencies (currently: JWT auth `get_current_user`).
+core.deps — FastAPI dependencies: JWT auth (`get_current_user`), shared token
+helpers, and role checks.
+
+All hand-rolled `jwt.decode` / Bearer-header parsing in the app goes through
+`decode_payload` (strict) or `resolve_token_user` (permissive) so the
+algorithm + secret come from exactly one place.
 """
 import jwt
 from bson import ObjectId
 from fastapi import HTTPException, Request, Depends
+from typing import Optional
 
 from .db import db
 from .security import JWT_SECRET, JWT_ALGORITHM
@@ -58,4 +64,64 @@ def require_role(*allowed_roles: str):
 # in the codebase so routers can depend on one symbol.
 require_admin_role = require_role("admin", "super_admin", "superadmin")
 
-__all__ = ['get_current_user', 'require_role', 'require_admin_role']
+
+def bearer_token(authorization: Optional[str]) -> Optional[str]:
+    """Extract the raw token from an `Authorization: Bearer <token>` header, else None."""
+    if not authorization:
+        return None
+    prefix = "Bearer "
+    head = authorization.lstrip()
+    if head.lower().startswith(prefix.lower()):
+        return head[len(prefix):].strip()
+    return None
+
+
+def decode_payload(token: str, *, token_type: Optional[str] = None) -> dict:
+    """Strict JWT decode. Raises HTTPException(401) on missing/invalid/expired.
+
+    The algorithm and secret come from ``core.security`` (single source of truth;
+    raises at import if ``JWT_SECRET`` is unset). Modules that previously
+    hand-rolled ``jwt.decode`` with an empty-string secret fallback should call
+    this instead.
+    """
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(401, "Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(401, "Invalid token")
+    if token_type is not None and payload.get("type") != token_type:
+        raise HTTPException(401, "Invalid token type")
+    return payload
+
+
+def decode_payload_silent(token: str, *, token_type: Optional[str] = None) -> Optional[dict]:
+    """Permissive JWT decode: returns the payload dict, or None on any failure.
+
+    Use for optional-auth sites that fall back to another identity when the
+    header is absent or the token is bad (public endpoints that bind a caller
+    when one is present).
+    """
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except Exception:
+        return None
+    if token_type is not None and payload.get("type") != token_type:
+        return None
+    return payload
+
+
+def ensure_admin(payload: dict, *, roles=("admin", "super_admin", "superadmin")) -> dict:
+    """Raise 403 unless the decoded payload's role is one of ``roles``. Returns the payload."""
+    role = (payload.get("role") or "").lower()
+    if role not in roles:
+        raise HTTPException(403, "Admin role required")
+    return payload
+
+
+__all__ = [
+    'get_current_user', 'require_role', 'require_admin_role',
+    'bearer_token', 'decode_payload', 'decode_payload_silent', 'ensure_admin',
+]

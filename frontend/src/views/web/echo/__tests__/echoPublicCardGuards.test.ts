@@ -25,7 +25,7 @@ import path from 'path';
 const FRONTEND_ROOT = path.resolve(__dirname, '../../../..', '..'); // frontend/
 const read = (rel: string) => fs.readFileSync(path.join(FRONTEND_ROOT, rel), 'utf8');
 
-const ECHO_EVENTS = 'src/views/web/echo/EchoEventsPage.tsx';
+const ECHO_EVENTS = 'src/features/echo/echoEventsPage.tsx';
 const API = 'src/models/services/api.ts';
 
 describe('ECHO card status derivation (data-driven, no hardcoded states)', () => {

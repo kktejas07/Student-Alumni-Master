@@ -23,6 +23,7 @@ import {
   StatusPill, Toast, useToast, KpiTile, SearchField,
 } from '../applekit';
 import { api } from '@/src/models/services/api';
+import { getBaseUrl } from '@/src/lib/env';
 import { useConfirm } from '@/src/views/components';
 
 type Row = {
@@ -113,7 +114,7 @@ export function EmailQualityView() {
     setAuditing(true);
     setAuditResults(null);
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const token = await getToken();
       const res = await fetch(`${base}/api/admin/email-quality/audit`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -154,7 +155,7 @@ export function EmailQualityView() {
     });
     if (!ok) return;
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const token = await getToken();
       const params = new URLSearchParams();
       selectedSuppressions.forEach(email => params.append('emails', email));
@@ -179,7 +180,7 @@ export function EmailQualityView() {
     });
     if (!ok) return;
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const token = await getToken();
       await fetch(`${base}/api/admin/email-quality/suppressions/all`, {
         method: 'DELETE',
@@ -194,7 +195,7 @@ export function EmailQualityView() {
 
   const suppressEmails = async (emails: string[], reason: string) => {
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const token = await getToken();
       await fetch(`${base}/api/admin/email-quality/suppressions/bulk`, {
         method: 'POST',
@@ -241,7 +242,7 @@ export function EmailQualityView() {
   const syncPostal = async () => {
     setLoading(true);
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const token = await getToken();
       const res = await fetch(`${base}/api/admin/email-quality/postal-sync`, {
         method: 'POST',
