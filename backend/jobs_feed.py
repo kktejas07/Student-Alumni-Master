@@ -375,6 +375,9 @@ async def fetch_and_cache_all() -> Dict[str, Any]:
                 # Drop scalar source_url (list now in source_urls)
                 seen[h].pop("source_url", None)
 
+    for doc in seen.values():
+        _attach_skill_ids(doc)
+
     # Bulk upsert
     try:
         ops = []
@@ -392,6 +395,45 @@ async def fetch_and_cache_all() -> Dict[str, Any]:
         "total_unique": len(seen),
         "ttl_minutes": CACHE_TTL_MIN,
     }
+
+
+def _attach_skill_ids(doc: Dict[str, Any]) -> None:
+    """Run taxonomy.extract over the job text and store canonical skill ids."""
+    try:
+        from services.skills import taxonomy
+        text = " ".join([
+            str(doc.get("title") or ""),
+            " ".join(doc.get("tags") or []),
+            str(doc.get("description") or ""),
+        ])
+        skills = taxonomy.extract(text, limit=12, min_confidence=0.7)
+        if skills:
+            doc["skill_ids"] = [s["id"] for s in skills]
+            doc["skill_names"] = [s["name"] for s in skills]
+    except Exception as e:
+        logger.debug(f"[jobs_feed] skill enrichment skipped: {e}")
+
+
+async def enrich_all_skill_ids(batch: int = 500) -> int:
+    """Nightly: backfill skill_ids on cached jobs that lack them.
+
+    Returns the number of jobs enriched in this pass. Idempotent — jobs
+    already carrying skill_ids are skipped.
+    """
+    from services.skills import taxonomy
+    await taxonomy.load_taxonomy()
+    enriched = 0
+    async for doc in _db.jobs_cache.find(
+        {"$and": [{"skill_ids": {"$exists": False}}, {"expires_at": {"$gt": datetime.now(timezone.utc)}}]}
+    ).limit(batch):
+        _attach_skill_ids(doc)
+        if doc.get("skill_ids"):
+            await _db.jobs_cache.update_one(
+                {"_id": doc["_id"]},
+                {"$set": {"skill_ids": doc["skill_ids"], "skill_names": doc.get("skill_names", [])}},
+            )
+            enriched += 1
+    return enriched
 
 
 async def _has_fresh_cache() -> bool:
@@ -558,12 +600,15 @@ async def jobs_feed(
     for d in all_docs:
         it = _serialize(d)
         score = calculate_match_score(it, user)
-        it["match_score"] = score
-        it["is_recommended"] = score >= 65
+        it["match_score"] = score  # None when the user has no confirmed skills
+        it["is_recommended"] = (score is not None and score >= 65)
         all_items.append(it)
-        
-    # Sort by match score descending, then posted date
-    all_items.sort(key=lambda x: (x["match_score"], str(x.get("posted_date") or "")), reverse=True)
+
+    # Sort by match score descending (None sorts last), then posted date
+    all_items.sort(
+        key=lambda x: ((x["match_score"] if x["match_score"] is not None else -1), str(x.get("posted_date") or "")),
+        reverse=True,
+    )
     
     skip = (page - 1) * per_page
     items = all_items[skip : skip + per_page]
