@@ -102,7 +102,7 @@ export function GlobalAiSpotlight({ visible, onClose }: { visible: boolean; onCl
                 "How do I register for ECHO 2026 hackathons?",
               ].map((p, idx) => (
                 <Pressable key={idx} onPress={() => { setQuery(p); handleAsk(p); }} style={s.promptChip}>
-                  <Text style={s.promptText}> {p}</Text>
+                  <Text style={s.promptText}>⚡ {p}</Text>
                 </Pressable>
               ))}
             </View>

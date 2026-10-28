@@ -3,16 +3,20 @@
  * Shows status, cost breakdown, decision countdown, deadlines, timeline,
  * AI-generated next steps. Wired to /api/he/applications/{id}.
  */
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import FeaturePageShell from '@/src/views/web/FeaturePageShell';
 import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { useTheme } from '@/src/theme/ThemeContext';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+const C = {
+  text: '#fff', text2: 'rgba(255,255,255,0.72)', text3: 'rgba(255,255,255,0.46)',
+  border: 'rgba(255,255,255,0.10)', card: 'rgba(255,255,255,0.04)',
+};
 
 const STATUS_META: Record<string, { label: string; icon: IconName; color: string }> = {
   draft:               { label: 'Draft',                icon: 'pencil',           color: '#94A3B8' },
@@ -20,7 +24,7 @@ const STATUS_META: Record<string, { label: string; icon: IconName; color: string
   under_review:        { label: 'Under Review',         icon: 'magnify',          color: '#60A5FA' },
   interview_scheduled: { label: 'Interview Scheduled',  icon: 'calendar-clock',   color: '#F59E0B' },
   decision_pending:    { label: 'Decision Pending',     icon: 'clock-outline',    color: '#F59E0B' },
-  accepted:            { label: 'Accepted!',            icon: 'check-decagram',   color: '#10B981' },
+  accepted:            { label: 'Accepted!',            icon: 'check-decagram',   color: '#34D399' },
   rejected:            { label: 'Rejected',             icon: 'close-circle',     color: '#F87171' },
   waitlisted:          { label: 'Waitlisted',           icon: 'progress-clock',   color: '#FCD34D' },
   enrolled:            { label: 'Enrolled',             icon: 'school',           color: '#10B981' },
@@ -39,7 +43,6 @@ const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('en-IN',
 export default function ApplicationTrackerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { isDark } = useTheme();
   const user = useAuthStore((s) => s.user);
   const role = user?.role || 'student';
 
@@ -54,26 +57,6 @@ export default function ApplicationTrackerScreen() {
     role === 'mentor' ? '#14B8A6' :
     role === 'college' || role === 'admin' ? '#6366F1' :
     '#2563EB';
-
-  const colors = useMemo(() => ({
-    bg: isDark ? '#0A1628' : '#F8FAFC',
-    card: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
-    cardBorder: isDark ? 'rgba(255,255,255,0.10)' : '#E2E8F0',
-    cardShadow: isDark ? {} : {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
-      shadowRadius: 8,
-      elevation: 2,
-    },
-    text: isDark ? '#FFFFFF' : '#0F172A',
-    text2: isDark ? 'rgba(255,255,255,0.72)' : '#334155',
-    text3: isDark ? 'rgba(255,255,255,0.46)' : '#64748B',
-    border: isDark ? 'rgba(255,255,255,0.10)' : '#E2E8F0',
-    backBtnBg: isDark ? 'rgba(255,255,255,0.08)' : '#EFF6FF',
-    backBtnBorder: isDark ? 'rgba(255,255,255,0.10)' : '#BFDBFE',
-    backBtnText: isDark ? '#FFFFFF' : '#2563EB',
-  }), [isDark]);
 
   const handleBack = () => {
     if (role === 'alumni') {
@@ -121,9 +104,9 @@ export default function ApplicationTrackerScreen() {
   if (!app || error) {
     return (
       <FeaturePageShell title="Application Tracker" subtitle={error || 'Not found'} heroEmoji="📋" accent={themeColor}>
-        <Pressable style={[s.backBtn, { backgroundColor: colors.backBtnBg, borderColor: colors.backBtnBorder }]} onPress={handleBack}>
-          <MaterialCommunityIcons name="arrow-left" size={14} color={colors.backBtnText} />
-          <Text style={[s.backBtnText, { color: colors.backBtnText }]}>Back to programmes</Text>
+        <Pressable style={s.backBtn} onPress={handleBack}>
+          <MaterialCommunityIcons name="arrow-left" size={14} color="#fff" />
+          <Text style={s.backBtnText}>Back to programmes</Text>
         </Pressable>
       </FeaturePageShell>
     );
@@ -141,21 +124,21 @@ export default function ApplicationTrackerScreen() {
       heroEmoji="📋"
       accent={themeColor}
       rightSlot={
-        <Pressable style={[s.backBtn, { backgroundColor: colors.backBtnBg, borderColor: colors.backBtnBorder }]} onPress={handleBack}>
-          <MaterialCommunityIcons name="arrow-left" size={14} color={colors.backBtnText} />
-          <Text style={[s.backBtnText, { color: colors.backBtnText }]}>Programmes</Text>
+        <Pressable style={s.backBtn} onPress={handleBack}>
+          <MaterialCommunityIcons name="arrow-left" size={14} color="#fff" />
+          <Text style={s.backBtnText}>Programmes</Text>
         </Pressable>
       }
     >
       {/* Status card */}
-      <View style={[s.statusCard, { backgroundColor: colors.card, borderColor: isDark ? status.color + '66' : status.color + '40' }, colors.cardShadow]}>
+      <View style={[s.statusCard, { borderColor: status.color + '66' }]}>
         <View style={[s.statusIcon, { backgroundColor: status.color + '22' }]}>
           <MaterialCommunityIcons name={status.icon} size={24} color={status.color} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={[s.statusLabel, { color: colors.text3 }]}>STATUS</Text>
+          <Text style={s.statusLabel}>STATUS</Text>
           <Text style={[s.statusValue, { color: status.color }]}>{status.label}</Text>
-          <Text style={[s.statusSub, { color: colors.text2 }]}>
+          <Text style={s.statusSub}>
             Submitted on {fmtDate(app.submitted_at)} · Expected decision {fmtDate(app.expected_decision_at)}
           </Text>
         </View>
@@ -163,49 +146,49 @@ export default function ApplicationTrackerScreen() {
 
       {/* Two-up: cost + countdown */}
       <View style={s.twoUp}>
-        <View style={[s.card, { flex: 1.2, backgroundColor: colors.card, borderColor: colors.cardBorder }, colors.cardShadow]}>
+        <View style={[s.card, { flex: 1.2 }]}>
           <View style={s.cardHead}>
-            <MaterialCommunityIcons name="cash-multiple" size={16} color="#F59E0B" />
-            <Text style={[s.cardTitle, { color: colors.text }]}>Cost Breakdown</Text>
+            <MaterialCommunityIcons name="cash-multiple" size={16} color="#FCD34D" />
+            <Text style={s.cardTitle}>Cost Breakdown</Text>
           </View>
           {app.cost_breakdown && (
             <View style={{ gap: 8 }}>
-              <CostRow label="Tuition fee (per year)" value={fmtINR(app.cost_breakdown.tuition_per_year_inr)} colors={colors} />
-              <CostRow label="Living costs (per year)" value={fmtINR(app.cost_breakdown.living_per_year_inr)} colors={colors} />
-              <CostRow label="Application fee (paid)" value={fmtINR(app.cost_breakdown.app_fee_inr)} good colors={colors} />
-              <View style={[s.divider, { backgroundColor: colors.border }]} />
-              <CostRow label="Total Year 1" value={fmtINR(app.cost_breakdown.total_y1_inr)} bold colors={colors} />
-              <CostRow label="Total programme" value={fmtINR(app.cost_breakdown.total_programme_inr)} bold accent colors={colors} />
+              <CostRow label="Tuition fee (per year)" value={fmtINR(app.cost_breakdown.tuition_per_year_inr)} />
+              <CostRow label="Living costs (per year)" value={fmtINR(app.cost_breakdown.living_per_year_inr)} />
+              <CostRow label="Application fee (paid)" value={fmtINR(app.cost_breakdown.app_fee_inr)} good />
+              <View style={s.divider} />
+              <CostRow label="Total Year 1" value={fmtINR(app.cost_breakdown.total_y1_inr)} bold />
+              <CostRow label="Total programme" value={fmtINR(app.cost_breakdown.total_programme_inr)} bold accent />
             </View>
           )}
         </View>
 
-        <View style={[s.card, { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card, borderColor: colors.cardBorder }, colors.cardShadow]}>
+        <View style={[s.card, { flex: 1, alignItems: 'center', justifyContent: 'center' }]}>
           <Text style={[s.countdownNumber, { color: daysColor }]}>{days}</Text>
-          <Text style={[s.countdownLabel, { color: colors.text2 }]}>days remaining</Text>
-          <Text style={[s.countdownSub, { color: colors.text3 }]}>until {fmtDate(app.expected_decision_at)}</Text>
+          <Text style={s.countdownLabel}>days remaining</Text>
+          <Text style={s.countdownSub}>until {fmtDate(app.expected_decision_at)}</Text>
         </View>
       </View>
 
-      <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }, colors.cardShadow]}>
+      <View style={s.card}>
         <View style={s.cardHead}>
           <MaterialCommunityIcons name="calendar-check" size={16} color={themeColor} />
-          <Text style={[s.cardTitle, { color: colors.text }]}>Deadlines Checklist</Text>
+          <Text style={s.cardTitle}>Deadlines Checklist</Text>
         </View>
         <View style={{ gap: 8 }}>
           {(app.deadlines || []).map((d: any) => {
-            const dotColor = d.status === 'done' ? '#10B981'
+            const dotColor = d.status === 'done' ? '#34D399'
                           : d.status === 'pending' ? '#F59E0B'
                           : d.status === 'missed' ? '#F87171' : '#94A3B8';
             const dotIcon: IconName = d.status === 'done' ? 'check-circle'
                                     : d.status === 'pending' ? 'clock-outline'
                                     : d.status === 'missed' ? 'close-circle' : 'circle-outline';
             return (
-              <View key={d.id} style={[s.dlRow, { borderBottomColor: colors.border }]}>
+              <View key={d.id} style={s.dlRow}>
                 <MaterialCommunityIcons name={dotIcon} size={18} color={dotColor} />
                 <View style={{ flex: 1 }}>
-                  <Text style={[s.dlLabel, { color: colors.text }]}>{d.label}{d.progress ? ` (${d.progress})` : ''}</Text>
-                  <Text style={[s.dlDate, { color: colors.text3 }]}>{fmtDate(d.due_date)}</Text>
+                  <Text style={s.dlLabel}>{d.label}{d.progress ? ` (${d.progress})` : ''}</Text>
+                  <Text style={s.dlDate}>{fmtDate(d.due_date)}</Text>
                 </View>
                 <Text style={[s.dlStatus, { color: dotColor }]}>{d.status.toUpperCase()}</Text>
               </View>
@@ -215,15 +198,15 @@ export default function ApplicationTrackerScreen() {
       </View>
 
       {/* Timeline */}
-      <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }, colors.cardShadow]}>
+      <View style={s.card}>
         <View style={s.cardHead}>
           <MaterialCommunityIcons name="timeline-clock" size={16} color="#06B6D4" />
-          <Text style={[s.cardTitle, { color: colors.text }]}>Application Timeline</Text>
+          <Text style={s.cardTitle}>Application Timeline</Text>
         </View>
         <View style={{ gap: 12 }}>
           {(app.timeline || []).map((t: any, idx: number) => {
-            const dotColor = t.status === 'done' ? '#10B981'
-                          : t.status === 'current' ? themeColor : '#94A3B8';
+            const dotColor = t.status === 'done' ? '#34D399'
+                          : t.status === 'current' ? themeColor : '#475569';
             return (
               <View key={t.id} style={s.tlRow}>
                 <View style={[s.tlDot, { backgroundColor: dotColor + '22', borderColor: dotColor }]}>
@@ -233,11 +216,11 @@ export default function ApplicationTrackerScreen() {
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[s.tlLabel, { color: t.status === 'pending' ? colors.text3 : colors.text }]}>{t.label}</Text>
-                  <Text style={[s.tlDate, { color: colors.text3 }]}>{fmtDate(t.date)} · {t.status}</Text>
+                  <Text style={[s.tlLabel, { color: t.status === 'pending' ? C.text3 : '#fff' }]}>{t.label}</Text>
+                  <Text style={s.tlDate}>{fmtDate(t.date)} · {t.status}</Text>
                 </View>
                 {idx < (app.timeline || []).length - 1 && (
-                  <View style={[s.tlConnector, { backgroundColor: t.status === 'done' ? '#10B98155' : '#94A3B855' }]} />
+                  <View style={[s.tlConnector, { backgroundColor: t.status === 'done' ? '#34D39955' : '#47556955' }]} />
                 )}
               </View>
             );
@@ -245,28 +228,28 @@ export default function ApplicationTrackerScreen() {
         </View>
       </View>
 
-      <View style={[s.card, { backgroundColor: colors.card, borderColor: isDark ? themeColor + '73' : '#CBD5E1' }, colors.cardShadow]}>
+      <View style={[s.card, { borderColor: themeColor + '73' }]}>
         <View style={s.cardHead}>
           <MaterialCommunityIcons name="auto-fix" size={16} color={themeColor} />
-          <Text style={[s.cardTitle, { color: colors.text }]}>Next Steps</Text>
-          <Pressable style={[s.aiBtn, { backgroundColor: isDark ? themeColor + '26' : '#EFF6FF', borderColor: isDark ? themeColor + '73' : '#BFDBFE' }]} onPress={fetchSteps} disabled={stepsBusy}>
+          <Text style={s.cardTitle}>Next Steps</Text>
+          <Pressable style={[s.aiBtn, { backgroundColor: themeColor + '26', borderColor: themeColor + '73' }]} onPress={fetchSteps} disabled={stepsBusy}>
             {stepsBusy ? <ActivityIndicator color={themeColor} size="small" /> : <>
-              <MaterialCommunityIcons name="refresh" size={11} color={isDark ? themeColor : '#2563EB'} />
-              <Text style={[s.aiBtnText, { color: isDark ? themeColor : '#2563EB' }]}>Generate</Text>
+              <MaterialCommunityIcons name="refresh" size={11} color={themeColor} />
+              <Text style={[s.aiBtnText, { color: themeColor }]}>Generate</Text>
             </>}
           </Pressable>
         </View>
         {nextSteps.length === 0 && !stepsBusy && (
-          <Text style={[s.placeholder, { color: colors.text3 }]}>Click "Generate" for AI-curated next steps based on your application status.</Text>
+          <Text style={s.placeholder}>Click "Generate" for AI-curated next steps based on your application status.</Text>
         )}
         {nextSteps.map((step, i) => (
-          <View key={i} style={[s.stepRow, { borderBottomColor: colors.border }]}>
-            <View style={[s.stepBullet, { backgroundColor: isDark ? themeColor + '33' : '#EFF6FF' }]}>
-              <Text style={[s.stepBulletText, { color: isDark ? themeColor : '#2563EB' }]}>{i + 1}</Text>
+          <View key={i} style={s.stepRow}>
+            <View style={[s.stepBullet, { backgroundColor: themeColor + '33' }]}>
+              <Text style={[s.stepBulletText, { color: themeColor }]}>{i + 1}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[s.stepTitle, { color: colors.text }]}>{step.title}</Text>
-              {step.why && <Text style={[s.stepWhy, { color: colors.text3 }]}>{step.why}</Text>}
+              <Text style={s.stepTitle}>{step.title}</Text>
+              {step.why && <Text style={s.stepWhy}>{step.why}</Text>}
             </View>
             {step.action?.label && (
               <View style={[s.stepAction, { backgroundColor: activeTabColor }]}>
@@ -280,17 +263,14 @@ export default function ApplicationTrackerScreen() {
   );
 }
 
-function CostRow({ label, value, good, bold, accent, colors }: { label: string; value: string; good?: boolean; bold?: boolean; accent?: boolean; colors: any }) {
+function CostRow({ label, value, good, bold, accent }: { label: string; value: string; good?: boolean; bold?: boolean; accent?: boolean }) {
   return (
     <View style={s.costRow}>
-      <Text style={[s.costLabel, { color: bold ? colors.text : colors.text2 }, bold && { fontWeight: '700' }]}>{label}</Text>
-      <Text style={[
-        s.costValue,
-        { color: colors.text },
+      <Text style={[s.costLabel, bold && { fontWeight: '700', color: '#fff' }]}>{label}</Text>
+      <Text style={[s.costValue,
         bold && { fontWeight: '800' },
-        good && { color: '#10B981' },
-        accent && { color: '#D97706' },
-      ]}>{value}</Text>
+        good && { color: '#34D399' },
+        accent && { color: '#FCD34D' }]}>{value}</Text>
     </View>
   );
 }
@@ -299,45 +279,47 @@ const s = StyleSheet.create({
   backBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
-    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderColor: C.border, borderWidth: 1,
     ...({ cursor: 'pointer' } as any),
   },
-  backBtnText: { fontSize: 11, fontWeight: '700' },
+  backBtnText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 
   statusCard: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
     padding: 18, borderRadius: 16, borderWidth: 1,
+    backgroundColor: C.card,
   },
   statusIcon: { width: 50, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  statusLabel: { fontSize: 10.5, letterSpacing: 1 },
+  statusLabel: { color: C.text3, fontSize: 10.5, letterSpacing: 1 },
   statusValue: { fontSize: 18, fontWeight: '800', marginTop: 2 },
-  statusSub: { fontSize: 12, marginTop: 4 },
+  statusSub: { color: C.text2, fontSize: 12, marginTop: 4 },
 
   twoUp: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   card: {
     padding: 16, borderRadius: 14,
-    borderWidth: 1,
+    backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
     minWidth: 280, gap: 10,
   },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  cardTitle: { fontSize: 14, fontWeight: '800', flex: 1 },
+  cardTitle: { color: '#fff', fontSize: 14, fontWeight: '800', flex: 1 },
 
   costRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  costLabel: { fontSize: 12.5 },
-  costValue: { fontSize: 13, fontWeight: '600' },
-  divider: { height: 1, marginVertical: 4 },
+  costLabel: { color: C.text2, fontSize: 12.5 },
+  costValue: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  divider: { height: 1, backgroundColor: C.border, marginVertical: 4 },
 
   countdownNumber: { fontSize: 64, fontWeight: '900', letterSpacing: -2 },
-  countdownLabel: { fontSize: 13, fontWeight: '600' },
-  countdownSub: { fontSize: 11, marginTop: 4 },
+  countdownLabel: { color: C.text2, fontSize: 13, fontWeight: '600' },
+  countdownSub: { color: C.text3, fontSize: 11, marginTop: 4 },
 
   dlRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingVertical: 8,
-    borderBottomWidth: 1,
+    borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  dlLabel: { fontSize: 13, fontWeight: '600' },
-  dlDate: { fontSize: 11, marginTop: 2 },
+  dlLabel: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  dlDate: { color: C.text3, fontSize: 11, marginTop: 2 },
   dlStatus: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
 
   tlRow: { flexDirection: 'row', alignItems: 'center', gap: 12, position: 'relative' },
@@ -348,28 +330,30 @@ const s = StyleSheet.create({
   },
   tlConnector: { position: 'absolute', left: 17, top: 36, width: 2, height: 24, opacity: 0.5 },
   tlLabel: { fontSize: 13, fontWeight: '700' },
-  tlDate: { fontSize: 11, marginTop: 2 },
+  tlDate: { color: C.text3, fontSize: 11, marginTop: 2 },
 
   aiBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999,
-    borderWidth: 1,
+    backgroundColor: 'rgba(37,99,235,0.15)',
+    borderColor: 'rgba(37,99,235,0.45)', borderWidth: 1,
   },
-  aiBtnText: { fontSize: 10.5, fontWeight: '800' },
-  placeholder: { fontSize: 12, fontStyle: 'italic' },
+  aiBtnText: { color: '#60A5FA', fontSize: 10.5, fontWeight: '800' },
+  placeholder: { color: C.text3, fontSize: 12, fontStyle: 'italic' },
 
   stepRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingVertical: 8,
-    borderBottomWidth: 1,
+    borderBottomWidth: 1, borderBottomColor: C.border,
   },
   stepBullet: {
     width: 24, height: 24, borderRadius: 999,
+    backgroundColor: 'rgba(37,99,235,0.20)',
     alignItems: 'center', justifyContent: 'center',
   },
-  stepBulletText: { fontSize: 11, fontWeight: '800' },
-  stepTitle: { fontSize: 13, fontWeight: '600' },
-  stepWhy: { fontSize: 11, marginTop: 2 },
+  stepBulletText: { color: '#60A5FA', fontSize: 11, fontWeight: '800' },
+  stepTitle: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  stepWhy: { color: C.text3, fontSize: 11, marginTop: 2 },
   stepAction: {
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
     backgroundColor: '#2563EB',

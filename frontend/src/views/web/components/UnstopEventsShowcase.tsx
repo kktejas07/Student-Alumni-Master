@@ -7,7 +7,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { Trackable, TrackedCard } from '../../../analytics';
-import { api } from '@/src/models/services/api';
 
 export interface UnstopOpportunity {
   slug: string;
@@ -25,11 +24,11 @@ export interface UnstopOpportunity {
 }
 
 const CATEGORIES = [
-  { id: 'all', label: ' All Opportunities' },
-  { id: 'Hackathons & Coding', label: ' Hackathons' },
-  { id: 'Workshops & Webinars', label: ' Workshops' },
-  { id: 'Quizzes & Contests', label: ' Quizzes' },
-  { id: 'Competitions & Case Studies', label: ' Competitions' },
+  { id: 'all', label: '🌟 All Opportunities' },
+  { id: 'Hackathons & Coding', label: '💻 Hackathons' },
+  { id: 'Workshops & Webinars', label: '🛠️ Workshops' },
+  { id: 'Quizzes & Contests', label: '💡 Quizzes' },
+  { id: 'Competitions & Case Studies', label: '🏆 Competitions' },
 ];
 
 export const UnstopEventsShowcase: React.FC = () => {
@@ -42,12 +41,15 @@ export const UnstopEventsShowcase: React.FC = () => {
   const fetchOpportunities = async () => {
     try {
       setLoading(true);
-      const data = await api.listEchoShowcases();
-      // Filter unstop items
-      const unstopItems = (data?.showcases || data || []).filter(
-        (item: any) => item.source === 'unstop' || (item.slug && item.slug.startsWith('unstop-'))
-      );
-      setOpportunities(unstopItems);
+      const res = await fetch('http://localhost:8002/api/echo/showcases');
+      if (res.ok) {
+        const data = await res.json();
+        // Filter unstop items
+        const unstopItems = (data.showcases || data || []).filter(
+          (item: any) => item.source === 'unstop' || (item.slug && item.slug.startsWith('unstop-'))
+        );
+        setOpportunities(unstopItems);
+      }
     } catch (e) {
       // Fallback empty list
       setOpportunities([]);
@@ -59,8 +61,10 @@ export const UnstopEventsShowcase: React.FC = () => {
   const triggerSync = async () => {
     try {
       setSyncing(true);
-      await api.listEchoShowcases(); // Re-fetch after sync
-      await fetchOpportunities();
+      const res = await fetch('http://localhost:8002/api/echo/sync-unstop', { method: 'POST' });
+      if (res.ok) {
+        await fetchOpportunities();
+      }
     } catch (e) {
       /* swallow */
     } finally {
@@ -87,7 +91,7 @@ export const UnstopEventsShowcase: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
         <div>
           <h2 style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>
-             Explore Live Unstop Opportunities
+            🚀 Explore Live Unstop Opportunities
           </h2>
           <p style={{ color: '#64748b', margin: '4px 0 0 0', fontSize: 14 }}>
             Discover national hackathons, skill workshops, quizzes, and hiring challenges from top colleges & companies.
@@ -112,7 +116,7 @@ export const UnstopEventsShowcase: React.FC = () => {
               gap: 8,
             }}
           >
-            {syncing ? ' Syncing Unstop...' : ' Sync Live Opportunities'}
+            {syncing ? '🔄 Syncing Unstop...' : '⚡ Sync Live Opportunities'}
           </button>
         </Trackable>
       </div>
@@ -123,7 +127,7 @@ export const UnstopEventsShowcase: React.FC = () => {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder=" Search events, hackathons, partners..."
+          placeholder="🔍 Search events, hackathons, partners..."
           style={{
             padding: '8px 14px',
             borderRadius: 20,
@@ -164,7 +168,7 @@ export const UnstopEventsShowcase: React.FC = () => {
       {/* Events Grid */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: 60, color: '#64748b', fontSize: 15 }}>
-           Fetching live Unstop events...
+          ⏳ Fetching live Unstop events...
         </div>
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 60, background: '#f8fafc', borderRadius: 12, color: '#64748b' }}>
@@ -226,8 +230,8 @@ export const UnstopEventsShowcase: React.FC = () => {
                     {item.title}
                   </h3>
                   <div style={{ fontSize: 12, color: '#64748b', display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span> {item.date}</span>
-                    <span> Virtual</span>
+                    <span>📅 {item.date}</span>
+                    <span>📍 Virtual</span>
                   </div>
                 </div>
 

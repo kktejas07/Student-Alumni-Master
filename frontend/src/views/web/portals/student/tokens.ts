@@ -1,7 +1,7 @@
 import { useTheme } from '@/src/theme/ThemeContext';
 import { COLORS, PORTAL_ACCENTS } from '@/src/theme/tokens';
 
-export const PALETTE_DARK = {
+export const PALETTE = {
   bg0: '#0a0f1e',
   bg1: '#0d1326',
   bg2: '#131938',
@@ -25,38 +25,6 @@ export const PALETTE_DARK = {
   glassShadow:  '0 16px 48px rgba(2,6,23,0.45), 0 1px 0 rgba(255,255,255,0.06) inset',
   violetGlow:   '0 10px 30px rgba(124,58,237,0.35), 0 0 0 1px rgba(124,58,237,0.20)',
 } as const;
-
-export const PALETTE_LIGHT = {
-  bg0: '#F5F5F7',
-  bg1: '#FFFFFF',
-  bg2: '#EDEBF8',
-  violet: COLORS.primary,
-  violetD: COLORS.primaryDark,
-  violetL: COLORS.primaryLight,
-  blue:   '#2563EB',
-  teal:   '#0ea876',
-  amber:  '#D97706',
-  rose:   '#DC2626',
-  text:   '#0f172a',
-  muted:  '#475569',
-  dim:    '#94A3B8',
-  glass:        'rgba(255, 255, 255, 0.75)',
-  glassStrong:  'rgba(255, 255, 255, 0.90)',
-  glassSoft:    'rgba(0, 0, 0, 0.04)',
-  glassHover:   'rgba(124, 58, 237, 0.08)',
-  glassBorder:  'rgba(0, 0, 0, 0.08)',
-  glassBorderHi:'rgba(124, 58, 237, 0.35)',
-  glassHighlight:'rgba(255, 255, 255, 0.8)',
-  glassShadow:  '0 12px 36px rgba(15, 23, 42, 0.08), 0 1px 0 rgba(255, 255, 255, 0.8) inset',
-  violetGlow:   '0 8px 24px rgba(124, 58, 237, 0.15)',
-} as const;
-
-export const PALETTE = PALETTE_DARK;
-
-export function usePalette(): typeof PALETTE_DARK {
-  const { isDark } = useTheme();
-  return (isDark ? PALETTE_DARK : (PALETTE_LIGHT as unknown as typeof PALETTE_DARK));
-}
 
 export const SC = {
   bg:        PALETTE.bg0,

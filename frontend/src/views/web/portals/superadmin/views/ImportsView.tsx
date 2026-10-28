@@ -22,7 +22,7 @@ import {
   Pencil, Eye, EyeOff, RefreshCw, Filter, Download, FileText, Globe,
   Square, SquareCheck, CheckSquare, ShieldCheck, LayoutGrid, Send, Tag, FileDown,
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, FONTS } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   TopTabs, SearchField, StatusPill, GradientPill, Toast, useToast, EmptyState,
@@ -64,8 +64,6 @@ function CategoryBadge({ cat, small }: { cat: CatKey; small?: boolean }) {
 type TabId = 'upload' | 'manual' | 'history' | 'browse';
 
 export function ImportsView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
-  const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
   const [tab, setTab] = useSubTab<TabId>(['browse', 'upload', 'manual', 'history'], 'browse', { sub, onSub });
   const { toast, flash, hide } = useToast();
   const [refreshKey, setRefreshKey] = useState(0);
@@ -445,7 +443,7 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <ShieldCheck size={14} color="#22C55E" />
-                    <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.5 }}>PRE-FLIGHT INGESTION IMPACT</Text>
+                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.5 }}>PRE-FLIGHT INGESTION IMPACT</Text>
                   </View>
                   <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 5, backgroundColor: 'rgba(34,197,94,0.14)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.3)' }}>
                     <Text style={{ color: '#86EFAC', fontFamily: FONTS.bold, fontSize: 10 }}>Ready to Commit</Text>
@@ -1034,7 +1032,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
       {/* Metric Summary KPI Tiles */}
       <View style={s.summaryStats}>
         <View style={s.sumStat}>
-          <Text style={[s.sumVal, { color: SAC.text }]}>{totalDisplay.toLocaleString()}</Text>
+          <Text style={[s.sumVal, { color: '#fff' }]}>{totalDisplay.toLocaleString()}</Text>
           <Text style={s.sumLabel}>TOTAL CONTACTS</Text>
         </View>
         <View style={s.sumStat}>
@@ -1073,14 +1071,14 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                 style={[s.viewModeBtn, viewMode === 'spreadsheet' && { backgroundColor: GRAD.to }]}
               >
                 <FileSpreadsheet size={13} color={viewMode === 'spreadsheet' ? '#fff' : SAC.muted} />
-                <Text style={[s.viewModeBtnText, viewMode === 'spreadsheet' && { color: SAC.text }]}>Grid</Text>
+                <Text style={[s.viewModeBtnText, viewMode === 'spreadsheet' && { color: '#fff' }]}>Grid</Text>
               </Pressable>
               <Pressable
                 onPress={() => setViewMode('grid')}
                 style={[s.viewModeBtn, viewMode === 'grid' && { backgroundColor: GRAD.to }]}
               >
                 <LayoutGrid size={13} color={viewMode === 'grid' ? '#fff' : SAC.muted} />
-                <Text style={[s.viewModeBtnText, viewMode === 'grid' && { color: SAC.text }]}>Cards</Text>
+                <Text style={[s.viewModeBtnText, viewMode === 'grid' && { color: '#fff' }]}>Cards</Text>
               </Pressable>
             </View>
 
@@ -1090,7 +1088,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
               style={[s.toggleBtn, { backgroundColor: 'rgba(255,255,255,0.06)' }]}
             >
               <FileDown size={12} color="#fff" />
-              <Text style={[s.toggleBtnText, { color: SAC.text }]}>Export</Text>
+              <Text style={[s.toggleBtnText, { color: '#fff' }]}>Export</Text>
             </Pressable>
 
             <Pressable
@@ -1113,7 +1111,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
             onPress={() => setAccountFilter('all')}
             style={[s.toggleBtn, accountFilter === 'all' && { borderColor: '#fff', backgroundColor: 'rgba(255,255,255,0.12)' }]}
           >
-            <Text style={[s.toggleBtnText, accountFilter === 'all' && { color: SAC.text, fontFamily: FONTS.bold }]}>
+            <Text style={[s.toggleBtnText, accountFilter === 'all' && { color: '#fff', fontFamily: FONTS.bold }]}>
               All Contacts ({totalDisplay})
             </Text>
           </Pressable>
@@ -1277,12 +1275,12 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                         colors={[GRAD.from, GRAD.to]}
                         style={{ width: 26, height: 26, borderRadius: 6, alignItems: 'center', justifyContent: 'center' }}
                       >
-                        <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 10 }}>
+                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 10 }}>
                           {(u.first_name?.[0] || u.name?.[0] || 'U').toUpperCase()}
                         </Text>
                       </LinearGradient>
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text numberOfLines={1} style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 11.5 }}>
+                        <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 }}>
                           {u.name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || '—'}
                         </Text>
                         <Text numberOfLines={1} style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 10 }}>
@@ -1405,7 +1403,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
 
                     {/* College & Degree */}
                     <View style={{ width: 170 }}>
-                      <Text numberOfLines={1} style={[s.td, { width: 170, color: SAC.text, fontSize: 10.5 }]}>
+                      <Text numberOfLines={1} style={[s.td, { width: 170, color: '#fff', fontSize: 10.5 }]}>
                         {u.college || '—'}
                       </Text>
                       {u.degree && (
@@ -1431,7 +1429,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                         onPress={(e) => { e.stopPropagation(); onOpen(u.id); }}
                         style={{ paddingHorizontal: 5, paddingVertical: 2.5, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.06)' }}
                       >
-                        <Text style={{ color: SAC.text, fontSize: 10, fontFamily: FONTS.bold }}>View</Text>
+                        <Text style={{ color: '#fff', fontSize: 10, fontFamily: FONTS.bold }}>View</Text>
                       </Pressable>
                       {!u.approved ? (
                         <Pressable
@@ -1685,7 +1683,7 @@ function HistoryTab() {
                 <View style={s.resultTile}><Text style={s.miniLabel}>ADDED</Text><Text style={[s.kpiVal, { color: SAC.green }]}>{detail?.added}</Text></View>
                 <View style={s.resultTile}><Text style={s.miniLabel}>UPDATED</Text><Text style={[s.kpiVal, { color: '#93C5FD' }]}>{detail?.updated}</Text></View>
                 <View style={s.resultTile}><Text style={s.miniLabel}>SKIPPED</Text><Text style={[s.kpiVal, { color: '#FBBF24' }]}>{detail?.skipped}</Text></View>
-                <View style={s.resultTile}><Text style={s.miniLabel}>TOTAL</Text><Text style={[s.kpiVal, { color: '#F4F4FA' }]}>{detail?.total}</Text></View>
+                <View style={s.resultTile}><Text style={s.miniLabel}>TOTAL</Text><Text style={[s.kpiVal, { color: '#1C1C1E' }]}>{detail?.total}</Text></View>
               </View>
               {(detail?.skipped_rows || []).length > 0 && (
                 <View>
@@ -1945,7 +1943,7 @@ function EditRow({ label, value, onChange }: { label: string; value: string; onC
  * ────────────────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16 },
   sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   err: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 },
@@ -1962,7 +1960,7 @@ const s = StyleSheet.create({
   statIcon: {
     width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
   },
-  statValue: { fontFamily: FONTS.xbold, fontSize: 18, color: SAC.text },
+  statValue: { fontFamily: FONTS.xbold, fontSize: 18, color: '#fff' },
   statLabel: { fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginTop: 2 },
 
   catBadge: {
@@ -1978,11 +1976,11 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ transitionDuration: '150ms' } as any) : {}),
   },
   dropIcon: { width: 56, height: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  dropTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15, marginTop: 6 },
+  dropTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15, marginTop: 6 },
   dropSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 
   summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  fileName: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 14 },
+  fileName: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14 },
   summaryStats: {
     flexDirection: 'row', gap: 8, marginTop: 14, flexWrap: 'wrap',
   },
@@ -2010,10 +2008,10 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
   tableRowErr: { backgroundColor: 'rgba(239,68,68,0.04)' },
-  td: { color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 11.5, paddingRight: 10 },
+  td: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 11.5, paddingRight: 10 },
 
   commitRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
-  commitTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13 },
+  commitTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   checkBox: { width: 16, height: 16, borderRadius: 5, borderWidth: 1.4, borderColor: SAC.border2, alignItems: 'center', justifyContent: 'center' },
   checkLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5 },
@@ -2024,7 +2022,7 @@ const s = StyleSheet.create({
   formField: { flex: 1, minWidth: 180, gap: 6 },
   formLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
   formInput: {
-    color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
+    color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
     paddingHorizontal: 12, paddingVertical: 10,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
@@ -2033,7 +2031,7 @@ const s = StyleSheet.create({
   previewRule: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, borderRadius: 9, backgroundColor: 'rgba(245,158,11,0.08)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)' },
   previewRuleText: { color: GRAD.to, fontFamily: FONTS.xbold, fontSize: 11.5, flex: 1 },
   previewLbl: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
-  previewVal: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
+  previewVal: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 },
   warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(251,191,36,0.08)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.30)' },
 
   // Browse
@@ -2094,13 +2092,13 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   pageBtnDisabled: { opacity: 0.4 },
-  pageBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
+  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
 
   /* selection mode */
   selectBox: {
     position: 'absolute', top: 14, left: 14, width: 28, height: 28, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center', zIndex: 12,
-    backgroundColor: SAC.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)', borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   selectedHalo: {
@@ -2120,7 +2118,7 @@ const s = StyleSheet.create({
       position: 'sticky' as any, bottom: 18,
     } as any) : {}),
   },
-  bulkText:   { color: '#F4F4FA',  fontFamily: FONTS.xbold, fontSize: 13 },
+  bulkText:   { color: '#1C1C1E',  fontFamily: FONTS.xbold, fontSize: 13 },
   bulkLinkBtn:{ ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   bulkLink:   { color: GRAD.to, fontFamily: FONTS.bold,  fontSize: 12 },
   bulkClose: {
@@ -2137,7 +2135,7 @@ const s = StyleSheet.create({
   },
   avatar: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   avatarInit: { fontFamily: FONTS.xbold, fontSize: 12.5 },
-  userName: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13 },
+  userName: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
 
   // History
   runCard: {
@@ -2153,7 +2151,7 @@ const s = StyleSheet.create({
 
   // Modal
   modalBg: {
-    flex: 1, backgroundColor: SAC.panel2,
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
     alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
@@ -2167,7 +2165,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
-  modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
+  modalTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
   modalLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
 
   resultGrid: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
@@ -2175,27 +2173,27 @@ const s = StyleSheet.create({
   skipRow: { flexDirection: 'row', gap: 10, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: SAC.border },
 
   // Profile panel
-  avatarLg: { width: 56, height: 56, borderRadius: 14, borderWidth: 1.5, backgroundColor: SAC.panel2, alignItems: 'center', justifyContent: 'center' },
+  avatarLg: { width: 56, height: 56, borderRadius: 14, borderWidth: 1.5, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' },
   avatarLgText: { fontFamily: FONTS.xbold, fontSize: 18 },
 
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 130 },
-  detailValue: { color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
+  detailValue: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   catPick: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, marginRight: 6, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
   actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
   destructiveBtn: { backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
-  btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
+  btnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   inlineInput: {
-    backgroundColor: SAC.panel2,
+    backgroundColor: 'rgba(0,0,0,0.6)',
     borderColor: GRAD.to,
     borderWidth: 1,
     borderRadius: 5,
     paddingHorizontal: 6,
     paddingVertical: 3,
-    color: SAC.text,
+    color: '#fff',
     fontSize: 11,
     fontFamily: FONTS.med,
   },
@@ -2206,7 +2204,7 @@ const s = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    color: SAC.text,
+    color: '#fff',
     fontSize: 13,
     fontFamily: FONTS.med,
     marginTop: 6,

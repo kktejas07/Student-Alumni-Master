@@ -5,22 +5,20 @@
  * live status (valid / locked / used / invalid) on mobile.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Platform, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { XCircle, Ticket, ArrowLeft, CalendarDays, Clock } from '@/src/views/web/portals/student/iconShims';
+import { XCircle, Ticket, ArrowLeft, CalendarDays, Clock } from 'lucide-react-native';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://studentalumni.ai';
 
 export default function EchoScanPage() {
-  const { code: rawCode } = useLocalSearchParams<{ code: string }>();
+  const { code } = useLocalSearchParams<{ code: string }>();
   const router = useRouter();
   const [status, setStatus] = useState<'loading' | 'ok' | 'invalid' | 'error'>('loading');
   const [data, setData] = useState<any>(null);
   const [message, setMessage] = useState('');
-
-  const code = Array.isArray(rawCode) ? rawCode[0] : rawCode;
 
   useEffect(() => {
     if (!code) {
@@ -38,28 +36,46 @@ export default function EchoScanPage() {
         }
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const json = await resp.json();
-        if (json && typeof json === 'object') {
-          setData(json);
-          setStatus('ok');
-        } else {
-          throw new Error('Unexpected response format');
-        }
-      } catch (e: any) {
+        setData(json);
+        setStatus('ok');
+      } catch {
         setStatus('error');
-        setMessage(e?.message || 'Could not connect to the server. Please try again.');
+        setMessage('Could not connect to the server. Please try again.');
       }
     })();
   }, [code]);
 
-  // Defensive: ensure data is safe to access
-  const safeData = status === 'ok' && data ? data : null;
-  const used = safeData?.used;
-  const locked = safeData?.session_locked;
-  const isTicket = safeData?.type === 'ticket';
-  const ticketValid = isTicket && safeData?.verified;
-  const ticketCheckedIn = isTicket && safeData?.checked_in;
+  const used = data?.used;
+  const locked = data?.session_locked;
+  const isTicket = data?.type === 'ticket';
+  const ticketValid = isTicket && data?.verified;
+  const ticketCheckedIn = isTicket && data?.checked_in;
+  const invalid = isTicket ? !data?.verified : undefined;
 
-  const isInvalid = status !== 'ok' || !safeData || (isTicket && !ticketValid);
+  const goToEvent = () => {
+    if (data?.slug) {
+      router.push(`/echo/${data.slug}`);
+    } else {
+      router.push('/echo');
+    }
+  };
+
+  if (status === 'loading') {
+    return (
+      <View style={s.root}>
+        <EchoHeader />
+        <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
+          <View style={[s.content, { alignItems: 'center', paddingVertical: 80 }]}>
+            <ActivityIndicator size="large" color="#A78BFA" />
+            <Text style={s.centerText}>Verifying coupon…</Text>
+          </View>
+          <EchoFooter />
+        </ScrollView>
+      </View>
+    );
+  }
+
+  const isInvalid = status !== 'ok' || (isTicket && !ticketValid);
 
   const iconColor = isInvalid ? '#F87171' : (used || ticketCheckedIn) ? '#34D399' : '#34D399';
   const titleColor = isInvalid ? '#FCA5A5' : '#6EE7B7';
@@ -67,40 +83,14 @@ export default function EchoScanPage() {
     ? (status !== 'ok' ? 'Invalid code' : 'Ticket not confirmed')
     : (isTicket ? (ticketCheckedIn ? 'Already checked in' : 'Valid ticket') : used ? 'Already used' : 'Valid coupon');
   const titleLabel = isTicket
-    ? (safeData?.event_title || 'Event ticket')
-    : (safeData?.session_name || '');
-  const sessionDay = !isTicket && safeData?.session_day ? Number(safeData.session_day) : 0;
-
-  const goToEvent = () => {
-    const slug = safeData?.slug;
-    if (slug) {
-      router.push(`/echo/${slug}`);
-    } else {
-      router.push('/echo');
-    }
-  };
-
-
-
-  if (status === 'loading') {
-    return (
-      <SafeAreaView style={s.root}>
-        {Platform.OS === 'web' && <EchoHeader />}
-        <ScrollView contentContainerStyle={{ paddingTop: Platform.OS === 'web' ? ECHO_TOP_PADDING : 20 }}>
-          <View style={[s.content, { alignItems: 'center', paddingVertical: 80 }]}>
-            <ActivityIndicator size="large" color="#A78BFA" />
-            <Text style={s.centerText}>Verifying coupon…</Text>
-          </View>
-          {Platform.OS === 'web' && <EchoFooter />}
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
+    ? (data?.event_title || 'Event ticket')
+    : (data?.session_name || '');
+  const sessionDay = !isTicket && data?.session_day ? Number(data.session_day) : 0;
 
   return (
-    <SafeAreaView style={s.root}>
-      {Platform.OS === 'web' && <EchoHeader />}
-      <ScrollView contentContainerStyle={{ paddingTop: Platform.OS === 'web' ? ECHO_TOP_PADDING : 20 }}>
+    <View style={s.root}>
+      <EchoHeader />
+      <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
         <View style={s.content}>
           <Pressable onPress={goToEvent} style={s.backBtn} hitSlop={8}>
             <ArrowLeft size={16} color="#fff" />
@@ -124,7 +114,7 @@ export default function EchoScanPage() {
 
             <Text style={[s.title, { color: titleColor }]}>{statusTitle}</Text>
 
-            {status === 'ok' && safeData && (
+            {status === 'ok' && (
               <>
                 <Text style={s.sessionName}>{titleLabel}</Text>
                 {sessionDay > 0 && (
@@ -132,38 +122,37 @@ export default function EchoScanPage() {
                 )}
                 {!isTicket ? (
                   <View style={s.codePill}>
-                    <Text style={s.codeText}>{safeData.coupon_code || 'N/A'}</Text>
+                    <Text style={s.codeText}>{data.coupon_code}</Text>
                   </View>
-                ) : (
-                  <>
-                    {safeData.full_name && (
-                      <Text style={s.metaText} numberOfLines={1} ellipsizeMode="tail">{safeData.full_name}</Text>
+                ) : (                  <>
+                    {data.full_name && (
+                      <Text style={s.metaText} numberOfLines={1} ellipsizeMode="tail">{data.full_name}</Text>
                     )}
-                    {safeData.email && (
-                      <Text style={s.metaText} numberOfLines={1} ellipsizeMode="tail">{safeData.email}</Text>
+                    {data.email && (
+                      <Text style={s.metaText} numberOfLines={1} ellipsizeMode="tail">{data.email}</Text>
                     )}
                   </>
                 )}
                 <View style={s.metaRow}>
                   <CalendarDays size={14} color="rgba(255,255,255,0.5)" />
-                  <Text style={s.metaText}>{safeData.event_name || titleLabel || 'ECHO event'}</Text>
+                  <Text style={s.metaText}>{data.event_name || titleLabel || 'ECHO event'}</Text>
                 </View>
-                {!isTicket && used && safeData.used_at && (
+                {!isTicket && used && data.used_at && (
                   <View style={s.metaRow}>
                     <Clock size={14} color="rgba(255,255,255,0.5)" />
-                    <Text style={s.metaText}>Scanned {new Date(safeData.used_at).toLocaleString()}</Text>
+                    <Text style={s.metaText}>Scanned {new Date(data.used_at).toLocaleString()}</Text>
                   </View>
                 )}
-                {isTicket && ticketCheckedIn && safeData.checked_in_at && (
+                {isTicket && ticketCheckedIn && data.checked_in_at && (
                   <View style={s.metaRow}>
                     <Clock size={14} color="rgba(255,255,255,0.5)" />
-                    <Text style={s.metaText}>Checked in {new Date(safeData.checked_in_at).toLocaleString()}</Text>
+                    <Text style={s.metaText}>Checked in {new Date(data.checked_in_at).toLocaleString()}</Text>
                   </View>
                 )}
               </>
             )}
 
-            {isInvalid && <Text style={s.detailText}>{message || 'This code could not be verified.'}</Text>}
+            {isInvalid && <Text style={s.detailText}>{message}</Text>}
             {status === 'ok' && !isInvalid && (
               <Text style={s.detailText}>
                 {isTicket
@@ -179,9 +168,9 @@ export default function EchoScanPage() {
             <Text style={s.secondaryBtnText}>View event details</Text>
           </Pressable>
         </View>
-        {Platform.OS === 'web' && <EchoFooter />}
+        <EchoFooter />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

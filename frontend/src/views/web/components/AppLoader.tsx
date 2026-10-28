@@ -11,7 +11,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated, Easing, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Sparkles, RefreshCw } from 'lucide-react-native';
-import { useTheme } from '@/src/theme/ThemeContext';
 
 /**
  * Top progress bar that animates from 0% -> 90% -> 100% when active.
@@ -116,30 +115,22 @@ export function LiveDataLoader({
 
   if (!loading) return children ? <>{children}</> : null;
 
-  const { isDark } = useTheme();
-
   return (
     <View style={s.loaderContainer}>
       {children ? <View style={{ opacity: 0.35 }}>{children}</View> : null}
 
       <View style={s.overlayCenter}>
-        <View style={[s.glassCard, {
-          backgroundColor: isDark ? 'rgba(13, 19, 38, 0.88)' : 'rgba(255, 255, 255, 0.92)',
-          borderColor: isDark ? 'rgba(167, 139, 250, 0.35)' : 'rgba(106, 79, 224, 0.25)',
-          ...(Platform.OS === 'web' ? {
-            boxShadow: isDark ? '0 8px 32px rgba(124, 58, 237, 0.35)' : '0 8px 32px rgba(106, 79, 224, 0.15)',
-          } : {}),
-        }]}>
+        <View style={s.glassCard}>
           <Animated.View style={{ transform: [{ rotate: spin }] }}>
-            <RefreshCw size={22} color={isDark ? '#C4B5FD' : '#6A4FE0'} />
+            <RefreshCw size={22} color="#C4B5FD" />
           </Animated.View>
 
           <Animated.View style={{ opacity: pulseOpacity, alignItems: 'center', gap: 2 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Sparkles size={13} color="#34D399" />
-              <Text style={[s.loadingTitle, { color: isDark ? '#fff' : '#141726' }]}>{message}</Text>
+              <Text style={s.loadingTitle}>{message}</Text>
             </View>
-            <Text style={[s.loadingSub, { color: isDark ? '#94A3B8' : '#6B7280' }]}>Syncing live data from backend servers…</Text>
+            <Text style={s.loadingSub}>Syncing live data from backend servers…</Text>
           </Animated.View>
         </View>
       </View>
@@ -172,7 +163,6 @@ export function SkeletonPulse({
     ).start();
   }, [pulse]);
 
-  const { isDark } = useTheme();
   return (
     <Animated.View
       style={[
@@ -180,7 +170,7 @@ export function SkeletonPulse({
           width,
           height,
           borderRadius: radius,
-          backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+          backgroundColor: 'rgba(255, 255, 255, 0.08)',
           opacity: pulse,
         },
         style,

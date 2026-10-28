@@ -73,7 +73,7 @@ export function CollegeDashboardView({
         {/* Top bar */}
         <View style={styles.topBar}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.greeting}>Good morning, {firstName} </Text>
+            <Text style={styles.greeting}>Good morning, {firstName} 👋</Text>
             <Text style={[styles.name, isWide && { fontSize: 28 }]} numberOfLines={2}>{collegeName}</Text>
           </View>
           <Pressable onPress={onOpenNotifications} testID="college-notif-btn"

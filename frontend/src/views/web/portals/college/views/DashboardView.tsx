@@ -88,7 +88,7 @@ export function DashboardView({
       {/* Hero */}
       <View style={{ flexDirection: stack ? 'column' : 'row', alignItems: stack ? 'flex-start' : 'center', gap: 16 }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.heroTitle}>Good morning, {(user?.full_name || 'Admin').split(' ')[0]} </Text>
+          <Text style={s.heroTitle}>Good morning, {(user?.full_name || 'Admin').split(' ')[0]} 👋</Text>
           <Text style={s.heroSub}>{COLLEGE.placementRate}% placement rate · {COLLEGE.upcomingHighlight}</Text>
         </View>
         {/* TIER BANNER */}
@@ -134,7 +134,7 @@ export function DashboardView({
           <Text style={s.briefBody}>
             {briefText || (
               <>
-                <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold }}>Tap Generate AI Brief</Text> for a personalized summary on placement insights, alumni metrics and an action item for today.
+                <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold }}>Tap Generate AI Brief</Text> for a personalized summary on placement insights, alumni metrics and an action item for today.
               </>
             )}
           </Text>
@@ -155,7 +155,7 @@ export function DashboardView({
           style={({ hovered }: any) => [s.briefBtn, hovered && { backgroundColor: 'rgba(252,211,77,0.20)' }, briefLoading && { opacity: 0.6 }]}
         >
           <Sparkles size={14} color="#fff" />
-          <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 11.5 }}>
+          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 11.5 }}>
             {briefLoading ? 'Generating…' : (briefText ? 'Regenerate' : 'Generate AI Brief')}
           </Text>
         </Pressable>
@@ -300,7 +300,7 @@ export function DashboardView({
 }
 
 const s = StyleSheet.create({
-  heroTitle: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.5 },
+  heroTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.5 },
   heroSub:   { color: CC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
 
   tierBanner: {
@@ -310,7 +310,7 @@ const s = StyleSheet.create({
     padding: 14, minWidth: 280,
   },
   tierKicker: { color: '#FCD34D', fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 1 },
-  tierTitle: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: -0.4, marginTop: 2 },
+  tierTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: -0.4, marginTop: 2 },
   tierScore: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 13 },
 
   briefCard: {
@@ -333,7 +333,7 @@ const s = StyleSheet.create({
     backgroundColor: '#F59E0B',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms', boxShadow: '0 4px 12px rgba(245,158,11,0.35)' } as any) : {}),
   },
-  briefTitle: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 14 },
+  briefTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14 },
   briefBody:  { color: CC.muted, fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 19 },
 
   card: {
@@ -344,8 +344,8 @@ const s = StyleSheet.create({
   kicker:   { color: CC.dim, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1 },
   linkRight:{ color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 11.5 },
 
-  deptName: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 },
-  deptValue:{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 13 },
+  deptName: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
+  deptValue:{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
   deptCount:{ color: CC.muted, fontFamily: FONTS.med, fontSize: 11 },
   deptTrack:{ height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.04)', overflow: 'hidden' },
   deptFill: { height: '100%', borderRadius: 3 },
@@ -353,21 +353,21 @@ const s = StyleSheet.create({
   eventRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   eventDate:{ width: 36, height: 36, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   eventDateNum: { fontFamily: FONTS.xbold, fontSize: 14 },
-  eventTitle:{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 },
+  eventTitle:{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
   eventMeta: { color: CC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
 
   createBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, height: 38, borderRadius: 10, backgroundColor: CC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
-  createBtnText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  createBtnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12.5 },
 
   activityRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   activityIcon: { width: 32, height: 32, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  activityText: { color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 12.5 },
+  activityText: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5 },
   activityTime: { color: CC.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 2 },
 
   recruiterRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   recruiterLogo: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  recruiterLogoText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12 },
-  recruiterName: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 },
+  recruiterLogoText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
+  recruiterName: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
   recruiterMeta: { color: CC.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
 
   alumniCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, height: 36, borderRadius: 10, backgroundColor: CC.card, borderWidth: 1, borderColor: CC.border2, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}), },
@@ -380,7 +380,7 @@ const s = StyleSheet.create({
   completionLabel: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.xbold, fontSize: 11.5, letterSpacing: 0.5 },
   completionScorePill: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
   completionScoreText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 },
-  completionTitle: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 14, marginTop: 4 },
+  completionTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 14, marginTop: 4 },
   missingChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   missingText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5 },
   completeCta: { paddingHorizontal: 18, height: 40, borderRadius: 10, backgroundColor: '#6366F1', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },

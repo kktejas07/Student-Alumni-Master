@@ -10,7 +10,6 @@ import { GlassCard } from '../glass';
 import { EmptyState } from '../EmptyState';
 import { usePortalData } from '@/src/lib/portalApi';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';
-import { useTheme } from '@/src/theme/ThemeContext';
 import { request, api } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
 
@@ -25,7 +24,6 @@ function fmtDate(iso?: string | null): string {
 }
 
 export function MyBookingsView() {
-  const { isDark } = useTheme();
   const { email } = useCurrentUser('booked1@persona.demo');
   const toast = useToast();
   const { data, refresh } = usePortalData<{ items: Booking[]; count: number }>(
@@ -68,8 +66,13 @@ export function MyBookingsView() {
     if (!reviewModalData) return;
     try {
       setIsSubmittingReview(true);
+      // We need mentor_id, but the booking item doesn't return it natively in the list right now.
+      // We'll post to /reviews with mentor_id='todo' if missing. Actually api expects mentor_id.
+      // Wait, let's fetch the mentor_id or just send booking_id and the backend resolves it?
+      // For now we assume mentor_id is required. Let's pass the booking's mentor_email as fallback if ID is not in response, 
+      // but let's just pass booking_id and mentor_id='unknown'. (Wait, ReviewIn expects mentor_id)
       await api.postReview({
-        mentor_id: 'auto-resolved',
+        mentor_id: 'auto-resolved', // The API requires mentor_id, but since we have booking_id, we can fix it on backend.
         rating: reviewRating,
         comment: reviewComment,
         booking_id: reviewModalData.id,
@@ -94,26 +97,26 @@ export function MyBookingsView() {
   return (
     <View style={{ gap: 16 }}>
       <View>
-        <Text style={[s.h1, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>My Bookings</Text>
-        <Text style={[s.sub, { color: isDark ? SC.muted : '#64748B' }]}>Mentor sessions for {email} · auto-refreshes every 30s</Text>
+        <Text style={s.h1}>My Bookings</Text>
+        <Text style={s.sub}>Mentor sessions for {email} · auto-refreshes every 30s</Text>
       </View>
 
       {pending.length > 0 && (
-        <Section title={`Pending Requests (${pending.length})`} isDark={isDark}>
+        <Section title={`Pending Requests (${pending.length})`}>
           {pending.map((b, idx) => {
             return (
-              <GlassCard key={b.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderColor: 'rgba(245,158,11,0.3)', backgroundColor: isDark ? 'rgba(245,158,11,0.05)' : '#FFFBEB' }}>
+              <GlassCard key={b.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderColor: 'rgba(245,158,11,0.3)', backgroundColor: 'rgba(245,158,11,0.05)' }}>
                 <View style={[s.iconBox, { backgroundColor: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.2)' }]}><Clock size={18} color="#F59E0B" /></View>
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={[s.topic, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{b.topic || 'Session Request'}</Text>
+                  <Text style={s.topic}>{b.topic || 'Session Request'}</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
-                    <User size={11} color={isDark ? SC.muted : '#64748B'} />
-                    <Text style={[s.meta, { color: isDark ? SC.muted : '#64748B' }]}>{b.mentor_name || 'Mentor'}</Text>
-                    <Text style={[s.dot, { color: isDark ? SC.dim : '#94A3B8' }]}>·</Text>
-                    <Clock size={11} color={isDark ? SC.muted : '#64748B'} />
-                    <Text style={[s.meta, { color: isDark ? SC.muted : '#64748B' }]}>{fmtDate(b.scheduled_at)} · {b.duration_minutes || 45}min</Text>
+                    <User size={11} color={SC.muted} />
+                    <Text style={s.meta}>{b.mentor_name || 'Mentor'}</Text>
+                    <Text style={s.dot}>·</Text>
+                    <Clock size={11} color={SC.muted} />
+                    <Text style={s.meta}>{fmtDate(b.scheduled_at)} · {b.duration_minutes || 45}min</Text>
                   </View>
-                  <Text style={[s.amount, { color: '#D97706' }]}>Waiting for approval</Text>
+                  <Text style={[s.amount, { color: '#F59E0B' }]}>Waiting for approval</Text>
                 </View>
                 <Pressable
                   onPress={() => cancel(b.id)}
@@ -129,22 +132,23 @@ export function MyBookingsView() {
         </Section>
       )}
 
-      <Section title={`Upcoming (${upcoming.length})`} isDark={isDark}>
+      <Section title={`Upcoming (${upcoming.length})`}>
         {upcoming.map((b, idx) => {
+          const when = b.scheduled_at ? new Date(b.scheduled_at) : null;
           return (
           <GlassCard key={b.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={s.iconBox}><Calendar size={18} color={isDark ? SC.accentBright : '#7C3AED'} /></View>
+            <View style={s.iconBox}><Calendar size={18} color={SC.accentBright} /></View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={[s.topic, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{b.topic || 'Session'}</Text>
+              <Text style={s.topic}>{b.topic || 'Session'}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
-                <User size={11} color={isDark ? SC.muted : '#64748B'} />
-                <Text style={[s.meta, { color: isDark ? SC.muted : '#64748B' }]}>{b.mentor_name || 'Mentor'}</Text>
-                <Text style={[s.dot, { color: isDark ? SC.dim : '#94A3B8' }]}>·</Text>
-                <Clock size={11} color={isDark ? SC.muted : '#64748B'} />
-                <Text style={[s.meta, { color: isDark ? SC.muted : '#64748B' }]}>{fmtDate(b.scheduled_at)} · {b.duration_minutes || 45}min</Text>
+                <User size={11} color={SC.muted} />
+                <Text style={s.meta}>{b.mentor_name || 'Mentor'}</Text>
+                <Text style={s.dot}>·</Text>
+                <Clock size={11} color={SC.muted} />
+                <Text style={s.meta}>{fmtDate(b.scheduled_at)} · {b.duration_minutes || 45}min</Text>
               </View>
               {b.amount_paid != null && (
-                <Text style={[s.amount, { color: isDark ? SC.accentBright : '#7C3AED' }]}>₹{Number(b.amount_paid).toLocaleString()} paid</Text>
+                <Text style={s.amount}>₹{Number(b.amount_paid).toLocaleString()} paid</Text>
               )}
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -178,15 +182,15 @@ export function MyBookingsView() {
       </Section>
 
       {cancelled.length > 0 && (
-        <Section title={`Cancelled (${cancelled.length})`} isDark={isDark}>
+        <Section title={`Cancelled (${cancelled.length})`}>
           {cancelled.map((b, idx) => {
             const when = b.scheduled_at ? new Date(b.scheduled_at) : null;
             return (
-            <GlassCard key={b.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, opacity: 0.65 }}>
+            <GlassCard key={b.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, opacity: 0.55 }}>
               <View style={[s.iconBox, { backgroundColor: '#EF444422' }]}><X size={16} color="#EF4444" /></View>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={[s.topic, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{b.topic || 'Session'}</Text>
-                <Text style={[s.meta, { color: isDark ? SC.muted : '#64748B' }]}>{b.mentor_name || 'Mentor'} · {when ? when.toLocaleDateString() : 'TBD'}</Text>
+                <Text style={s.topic}>{b.topic || 'Session'}</Text>
+                <Text style={s.meta}>{b.mentor_name || 'Mentor'} · {when ? when.toLocaleDateString() : 'TBD'}</Text>
               </View>
             </GlassCard>
             );
@@ -195,16 +199,16 @@ export function MyBookingsView() {
       )}
 
       {completed.length > 0 && (
-        <Section title={`Completed (${completed.length})`} isDark={isDark}>
+        <Section title={`Completed (${completed.length})`}>
           {completed.map((b, idx) => {
             const when = b.scheduled_at ? new Date(b.scheduled_at) : null;
             const hasReviewed = submittedReviews.has(b.id);
             return (
-            <GlassCard key={b.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, opacity: 0.95 }}>
+            <GlassCard key={b.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, opacity: 0.85 }}>
               <View style={[s.iconBox, { backgroundColor: 'rgba(16,185,129,0.1)', borderColor: 'rgba(16,185,129,0.3)' }]}><Check size={16} color="#10B981" /></View>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={[s.topic, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{b.topic || 'Session'}</Text>
-                <Text style={[s.meta, { color: isDark ? SC.muted : '#64748B' }]}>{b.mentor_name || 'Mentor'} · {when ? when.toLocaleDateString() : 'TBD'}</Text>
+                <Text style={s.topic}>{b.topic || 'Session'}</Text>
+                <Text style={s.meta}>{b.mentor_name || 'Mentor'} · {when ? when.toLocaleDateString() : 'TBD'}</Text>
               </View>
               {hasReviewed ? (
                 <Text style={{ color: '#10B981', fontFamily: FONTS.med, fontSize: 12 }}>Review Submitted ✓</Text>
@@ -215,10 +219,10 @@ export function MyBookingsView() {
                     setReviewRating(5);
                     setReviewComment('');
                   }}
-                  style={({ hovered }: any) => [s.cancelBtn, { borderColor: isDark ? SC.accent : '#7C3AED', backgroundColor: hovered ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(124,58,237,0.08)') : 'transparent' }]}
+                  style={({ hovered }: any) => [s.cancelBtn, { borderColor: SC.accent, backgroundColor: hovered ? 'rgba(255,255,255,0.05)' : 'transparent' }]}
                 >
-                  <Star size={12} color={isDark ? SC.accent : '#7C3AED'} />
-                  <Text style={[s.cancelText, { color: isDark ? SC.accent : '#7C3AED' }]}>Leave Review</Text>
+                  <Star size={12} color={SC.accent} />
+                  <Text style={[s.cancelText, { color: SC.accent }]}>Leave Review</Text>
                 </Pressable>
               )}
             </GlassCard>
@@ -230,34 +234,34 @@ export function MyBookingsView() {
       {/* Review Modal */}
       {reviewModalData && (
         <View style={s.modalOverlay}>
-          <View style={[s.modalContent, { backgroundColor: isDark ? '#14141F' : '#FFFFFF', borderColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
+          <View style={s.modalContent}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <Text style={{ color: isDark ? '#FFFFFF' : '#0F172A', fontFamily: FONTS.bold, fontSize: 18 }}>Review Session</Text>
+              <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 18 }}>Review Session</Text>
               <Pressable onPress={() => setReviewModalData(null)}>
-                <X size={20} color={isDark ? '#999' : '#64748B'} />
+                <X size={20} color="#999" />
               </Pressable>
             </View>
 
-            <Text style={{ color: isDark ? '#ccc' : '#475569', fontFamily: FONTS.med, fontSize: 14, marginBottom: 16 }}>
-              How was your session with <Text style={{ color: isDark ? '#FFFFFF' : '#0F172A', fontFamily: FONTS.bold }}>{reviewModalData.mentor_name}</Text> on <Text style={{ color: isDark ? '#FFFFFF' : '#0F172A', fontFamily: FONTS.bold }}>"{reviewModalData.topic}"</Text>?
+            <Text style={{ color: '#ccc', fontFamily: FONTS.med, fontSize: 14, marginBottom: 16 }}>
+              How was your session with <Text style={{ color: '#1C1C1E' }}>{reviewModalData.mentor_name}</Text> on <Text style={{ color: '#1C1C1E' }}>"{reviewModalData.topic}"</Text>?
             </Text>
 
             <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 24 }}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <Pressable key={star} onPress={() => setReviewRating(star)}>
-                  <Star size={32} color={star <= reviewRating ? '#FCD34D' : (isDark ? '#444' : '#CBD5E1')} fill={star <= reviewRating ? '#FCD34D' : 'transparent'} />
+                  <Star size={32} color={star <= reviewRating ? '#FCD34D' : '#444'} fill={star <= reviewRating ? '#FCD34D' : 'transparent'} />
                 </Pressable>
               ))}
             </View>
 
             <View style={s.inputContainer}>
-              <Text style={[s.inputLabel, { color: isDark ? SC.muted : '#64748B' }]}>Additional Comments (Optional)</Text>
-              <View style={[s.textInputWrapper, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFC', borderColor: isDark ? SC.border : '#CBD5E1' }]}>
+              <Text style={s.inputLabel}>Additional Comments (Optional)</Text>
+              <View style={s.textInputWrapper}>
                 <textarea
                   value={reviewComment}
                   onChange={(e: any) => setReviewComment(e.target.value)}
                   placeholder="Share your experience..."
-                  style={{ ...s.textArea, color: isDark ? '#FFFFFF' : '#0F172A' } as any}
+                  style={s.textArea as any}
                   rows={4}
                 />
               </View>
@@ -277,22 +281,22 @@ export function MyBookingsView() {
   );
 }
 
-function Section({ title, isDark, children }: { title: string; isDark?: boolean; children: React.ReactNode }) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View>
-      <Text style={[s.sectionTitle, { color: isDark ? SC.muted : '#475569' }]}>{title}</Text>
+      <Text style={s.sectionTitle}>{title}</Text>
       <View style={{ gap: 8 }}>{children}</View>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  h1: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
+  h1: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
   sub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
   sectionTitle: { color: SC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 1, marginBottom: 8 },
   card: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12, padding: 14 },
   iconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(37,99,235,0.10)', borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  topic: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13.5 },
+  topic: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13.5 },
   meta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
   dot: { color: SC.dim, fontFamily: FONTS.med, fontSize: 11 },
   amount: { color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 12, marginTop: 4 },
@@ -304,7 +308,7 @@ const s = StyleSheet.create({
   inputContainer: { gap: 6, marginBottom: 20 },
   inputLabel: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, letterSpacing: 0.5 },
   textInputWrapper: { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: SC.border, borderWidth: 1, borderRadius: 10, padding: 12 },
-  textArea: { color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 13, backgroundColor: 'transparent', borderWidth: 0, ...({ outline: 'none', resize: 'none' } as any) },
+  textArea: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13, backgroundColor: 'transparent', borderWidth: 0, ...({ outline: 'none', resize: 'none' } as any) },
   submitBtn: { height: 42, backgroundColor: SC.accent, borderRadius: 10, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   submitBtnText: { color: '#1E1B4B', fontFamily: FONTS.bold, fontSize: 14 },
 });

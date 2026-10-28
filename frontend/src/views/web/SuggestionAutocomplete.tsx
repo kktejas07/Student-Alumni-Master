@@ -86,7 +86,7 @@ export function SuggestionAutocomplete({
       </View>
       {helper ? <Text style={styles.helper}>{helper}</Text> : null}
       {!focused && value && (isMatchedSuggestion || manualMode) ? (
-        <Text style={styles.statusHint}>{isMatchedSuggestion ? 'Selected from list' : 'Manual entry'}</Text>
+        <Text style={styles.statusHint}>{isMatchedSuggestion ? '✓ Selected from list' : '✎ Manual entry'}</Text>
       ) : null}
 
       {/* Inline dropdown — uses the same canonical card as <Dropdown/> */}

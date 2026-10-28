@@ -75,7 +75,7 @@ export function AnnouncementsView() {
       </View>
       <View style={{ flex: 1, minWidth: 280 }}>
         <View style={s.card}>
-          <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 14, marginBottom: 12 }}>New announcement</Text>
+          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14, marginBottom: 12 }}>New announcement</Text>
 
           {/* ── Success confirmation banner ── */}
           {sent && (
@@ -112,12 +112,12 @@ export function AnnouncementsView() {
 const s = StyleSheet.create({
   card: { backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 14, padding: 14 },
   icon: { width: 32, height: 32, borderRadius: 9, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13 },
+  title: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13 },
   meta: { color: CC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   body: { color: CC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 10, lineHeight: 18 },
-  input: { backgroundColor: CC.bg2, color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 12.5, borderColor: CC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  input: { backgroundColor: CC.bg2, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5, borderColor: CC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   send: { flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', marginTop: 12, height: 36, borderRadius: 10, backgroundColor: CC.primary },
-  sendText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12 },
+  sendText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
   successBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: 'rgba(52, 211, 153, 0.12)',

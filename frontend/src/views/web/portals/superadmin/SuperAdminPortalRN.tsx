@@ -2,13 +2,11 @@
  * Super Admin Portal — outer shell.
  */
 import React from 'react';
-import { View, ScrollView, StyleSheet, Platform } from 'react-native';
-import '@/src/styles/superadmin-effects.css';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
-import { SAC, useSAC, DARK_SAC, LIGHT_SAC, resolveColors } from './tokens';
-import { useTheme } from '@/src/theme/ThemeContext';
+import { SAC } from './tokens';
 import { Sidebar, SuperAdminNavId, NAV } from './Sidebar';
 import { TopBar } from './TopBar';
 import { AnimatedAurora, GridOverlay } from '../student/glass';
@@ -35,24 +33,15 @@ import { PromotionsView } from './views/PromotionsView';
 import { TalentPoolView } from './views/TalentPoolView';
 import { NewsletterView } from './views/NewsletterView';
 import { EchoShowcaseAdminView } from './views/EchoShowcaseAdminView';
-import { VendorsView } from './views/VendorsView';
-import { CouponsView } from './views/CouponsView';
 import { CertificatesView } from './views/CertificatesView';
-import { TeamsMeetingsView } from './views/TeamsMeetingsView';
 import { EmailQualityView } from './views/EmailQualityView';
 import { BGVAccountVerticalsView } from './views/BGVAccountVerticalsView';
 import { VisitorIntelligenceView } from './views/VisitorIntelligenceView';
-import { CICDEvaluatorView } from './views/CICDEvaluatorView';
-import { CodeHealthView } from './views/CodeHealthView';
-import { CareersAdminView } from './views/CareersAdminView';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 
 export function SuperAdminPortalRN() {
-  const T = useSAC();
-  const { isDark } = useTheme();
-  Object.assign(s, resolveColors(s, T));
   const router = useRouter();
   const logout = useAuthStore((sx) => sx.logout);
   const { tab, sub, go } = usePortalUrl();
@@ -75,53 +64,22 @@ export function SuperAdminPortalRN() {
     onSub: (s: string) => go(active, s),
   });
 
-  // ── Cursor glow tracking (web only) ────────────────────────────────
-  React.useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const el = document.getElementById('sa-cursor-glow');
-    if (!el) return;
-    let tx = 0, ty = 0, px = 0, py = 0;
-    let raf: number;
-    // Reference: clight.style.opacity = '1' on first mousemove
-    const onMove = (e: MouseEvent) => { tx = e.clientX; ty = e.clientY; el.style.opacity = '1'; };
-    // Reference: px += (tx - px) * 0.08; with translate3d
-    const glide = () => {
-      px += (tx - px) * 0.08;
-      py += (ty - py) * 0.08;
-      el.style.transform = 'translate3d(' + px + 'px,' + py + 'px,0)';
-      raf = requestAnimationFrame(glide);
-    };
-    window.addEventListener('mousemove', onMove);
-    raf = requestAnimationFrame(glide);
-    return () => { window.removeEventListener('mousemove', onMove); cancelAnimationFrame(raf); };
-  }, []);
-
   return (
     <View style={s.shell}>
-      {/* Theme-aware background */}
+      {/* FinTax360 Jewel-glass canvas */}
       <LinearGradient
         pointerEvents="none"
-        colors={isDark ? ['#0a0f1e', '#131938'] : ['#F4F5FA', '#E8E9F3']}
+        colors={['#0a0f1e', '#131938']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject as any}
       />
-      {/* Cursor-following violet glow — inside fixed backdrop container (matches reference) */}
-      {Platform.OS === 'web' && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-          <div id="sa-cursor-glow" />
-        </div>
-      )}
-      <SAWatermark size={850} top={30} right={-30} opacity={isDark ? 0.16 : 0.06} />
-      {isDark && (
-        <View pointerEvents="none" style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-          <AnimatedAurora intensity="normal" />
-          <GridOverlay />
-        </View>
-      )}
+      <SAWatermark size={850} top={30} right={-30} opacity={0.16} />
+      <AnimatedAurora intensity="normal" />
+      <GridOverlay />
 
       <Sidebar active={active} onNav={nav} onLogout={onLogout} />
-      <View style={{ flex: 1, minWidth: 0, position: 'relative', zIndex: 2 }}>
-        <TopBar title={titleFor(active)} onAvatarPress={() => nav('settings')} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <TopBar title={titleFor(active)} />
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ padding: 22, paddingBottom: 22 }}
@@ -131,8 +89,6 @@ export function SuperAdminPortalRN() {
           {active === 'overview'        && <OverviewView onNavigate={(id) => go(id as SuperAdminNavId)} />}
           {active === 'visitor-radar'   && <VisitorIntelligenceView />}
           {active === 'agents'          && <AutonomousAgentsView />}
-          {active === 'cicd-evaluator'  && <CICDEvaluatorView />}
-          {active === 'code-health'     && <CodeHealthView />}
           {active === 'bgv'             && <BGVAccountVerticalsView />}
           {active === 'colleges'    && <CollegesView {...subFor('colleges')} />}
           {active === 'students'    && <StudentsView />}
@@ -152,11 +108,7 @@ export function SuperAdminPortalRN() {
           {active === 'email-health' && <EmailQualityView />}
           {active === 'talent-pool' && <TalentPoolView />}
           {active === 'echo-showcase' && <EchoShowcaseAdminView {...subFor('echo-showcase')} />}
-          {active === 'vendors' && <VendorsView />}
-          {active === 'coupons' && <CouponsView />}
-          {active === 'careers' && <CareersAdminView />}
           {active === 'certificates' && <CertificatesView {...subFor('certificates')} />}
-          {active === 'teams'        && <TeamsMeetingsView />}
           <DashboardFooter portal="super_admin" />
         </ScrollView>
       </View>

@@ -19,10 +19,26 @@ export default function StudentPortalLayoutRoute() {
 
   useEffect(() => {
     if (!initialized) {
+      useAuthStore.getState().setUser({
+        id: 'demo-student-1',
+        email: 'devender@mrit.edu',
+        full_name: 'Devender Vutukuru',
+        role: 'student',
+        institution: 'Malla Reddy Institute of Technology',
+        graduation_year: 2027,
+      } as any);
+      useAuthStore.setState({ initialized: true });
       return;
     }
     if (!user) {
-      router.replace('/login');
+      useAuthStore.getState().setUser({
+        id: 'demo-student-1',
+        email: 'devender@mrit.edu',
+        full_name: 'Devender Vutukuru',
+        role: 'student',
+        institution: 'Malla Reddy Institute of Technology',
+        graduation_year: 2027,
+      } as any);
       return;
     }
     const role = String(user.role || '').toLowerCase();

@@ -159,58 +159,19 @@ async def super_admin_analytics(db, include_revenue: bool = True) -> Dict[str, A
         "recent_bookings": recent_bookings,
         "recent_signups": recent_users,
     }
-    # === Monthly enrollments (last 6 months) ===
-    monthly_enrollments = []
-    for i in range(5, -1, -1):
-        month_start = datetime.now(timezone.utc).replace(day=1) - timedelta(days=30 * i)
-        month_end = month_start + timedelta(days=30)
-        count = await db.users.count_documents({
-            "role": "student",
-            "created_at": {"$gte": month_start, "$lt": month_end}
-        })
-        monthly_enrollments.append({
-            "month": month_start.strftime("%b"),
-            "value": count
-        })
-
-    # === Revenue (real from payments if available, else computed from bookings) ===
-    revenue_mtd = 0
-    revenue_by_source = []
-    try:
-        # Try to get real revenue from payments collection
-        now = datetime.now(timezone.utc)
-        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        async for p in db.payments.find({"created_at": {"$gte": month_start}}):
-            revenue_mtd += p.get("amount", 0)
-        # Group by source
-        source_pipeline = [
-            {"$match": {"created_at": {"$gte": month_start}}},
-            {"$group": {"_id": "$source", "total": {"$sum": "$amount"}}},
-            {"$sort": {"total": -1}},
-        ]
-        async for r in db.payments.aggregate(source_pipeline):
-            if r["_id"]:
-                revenue_by_source.append({"label": r["_id"], "value": r["total"]})
-    except Exception:
-        pass  # No payments collection — use computed estimates
-
-    # If no real revenue, estimate from booking count
-    if revenue_mtd == 0 and total_bookings > 0:
-        revenue_mtd = total_bookings * 500  # Rough estimate
-        revenue_by_source = [
-            {"label": "Mentor sessions", "value": int(revenue_mtd * 0.5)},
-            {"label": "Event registrations", "value": int(revenue_mtd * 0.3)},
-            {"label": "Other", "value": int(revenue_mtd * 0.2)},
-        ]
-
     if include_revenue:
+        # MOCK revenue — real implementation would query a payments collection.
         payload["revenue"] = {
-            "mtd": revenue_mtd,
+            "mtd": 124_580,           # Month-to-date in INR (mocked)
+            "ytd": 1_847_200,
             "currency": "INR",
-            "by_source": revenue_by_source,
+            "by_source": [
+                {"label": "Mentor sessions", "value": 64_320},
+                {"label": "Premium memberships", "value": 38_400},
+                {"label": "Event tickets", "value": 21_860},
+            ],
+            "_note": "MOCKED — connect a payments collection to wire real numbers",
         }
-
-    payload["monthly_enrollments"] = monthly_enrollments
     return payload
 
 

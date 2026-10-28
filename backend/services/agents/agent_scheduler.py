@@ -62,11 +62,6 @@ class AgentSchedulerService:
                 name="Autonomous QA Persona Health Simulator Agent",
                 description="Runs simulated Student, Mentor, and College synthetic flows to guarantee 100% uptime."
             ),
-            "code_health": SchedulerAgentTask(
-                agent_id="code_health",
-                name="CodeHealthAgent — Codebase Auditor & Auto-Fix Loop Agent",
-                description="Continuously audits codebase against development standards and surfaces findings with Code Health Score."
-            ),
         }
 
     async def run_cycle(self, db=None) -> Dict[str, Any]:
@@ -145,23 +140,6 @@ class AgentSchedulerService:
             t4.status = "FAILED"
             t4.last_error = str(e)
             cycle_results["qa_synthetic"] = {"ok": False, "error": str(e)}
-
-        # 5. CodeHealthAgent Auditor
-        t5 = self._tasks["code_health"]
-        t5.status = "RUNNING"
-        try:
-            from services.agents.code_health_agent import code_health_agent
-            ch_res = await code_health_agent.execute_cycle(scope="repo", autofix=False)
-            t5.total_runs += 1
-            t5.status = "SUCCESS"
-            t5.last_run_at = now_iso
-            t5.next_run_at = self._next_cycle_at
-            t5.last_summary = f"CodeHealth check completed (Score: {ch_res.get('health_score')}/100, Open findings: {ch_res.get('total_findings')})."
-            cycle_results["code_health"] = {"ok": True, "health_score": ch_res.get("health_score")}
-        except Exception as e:
-            t5.status = "FAILED"
-            t5.last_error = str(e)
-            cycle_results["code_health"] = {"ok": False, "error": str(e)}
 
         return cycle_results
 

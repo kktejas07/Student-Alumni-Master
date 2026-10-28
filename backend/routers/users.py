@@ -26,7 +26,7 @@ from core.security import (
 from core.deps import get_current_user
 from core.models import UserRole, UserResponse, SchoolInfo, MentorInfo, AlumniInfo, StudentInfo, CareerPath, EducationLevel, CollegeInfo
 from personalization import build_personalized_dashboard, track_module_click
-from services.career_ai.skill_intelligence_service import compute_full_intelligence, invalidate_intel_cache
+from services.career_intelligence_service import compute_full_intelligence, invalidate_intel_cache
 from services.profile_service import compute_profile_completion
 
 try:
@@ -121,7 +121,7 @@ async def get_me(user: dict = Depends(get_current_user)):
     try:
         await db.users.update_one(
             {"_id": user["_id"]},
-            {"$set": {"last_login": datetime.now(timezone.utc)}}
+            {"$set": {"last_login": datetime.utcnow()}}
         )
     except Exception as e:
         print(f"[ME TRACE] Failed to update last_login: {e}", flush=True)
@@ -296,7 +296,7 @@ async def my_badges(user: dict = Depends(get_current_user)):
     try:
         await db.users.update_one(
             {"_id": user["_id"]},
-            {"$set": {"badges": badges, "badges_updated_at": datetime.now(timezone.utc)}},
+            {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
         )
     except Exception as e:
         logger.warning("badges cache write failed for user %s: %s", user.get("_id"), e)
@@ -320,7 +320,7 @@ async def user_badges(user_id: str):
     try:
         await db.users.update_one(
             {"_id": target["_id"]},
-            {"$set": {"badges": badges, "badges_updated_at": datetime.now(timezone.utc)}},
+            {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
         )
     except Exception as e:
         logger.warning("badges cache write failed for user_id=%s: %s", user_id, e)
@@ -379,7 +379,7 @@ async def get_public_profile(user_id: str):
         "last_name": target.get("last_name"),
         "headline": target.get("headline"),
         "bio": target.get("bio"),
-        "photo_data": target.get("face_image_base64") or target.get("photo_data"),
+        "photo_data": target.get("photo_data") or target.get("face_image_base64"),
         "is_online": target.get("is_online", True),
         "is_verified": target.get("is_verified", False),
         # Identity meta
@@ -453,7 +453,7 @@ async def refresh_my_badges(user: dict = Depends(get_current_user)):
     badges = await compute_badges(db, user)
     await db.users.update_one(
         {"_id": user["_id"]},
-        {"$set": {"badges": badges, "badges_updated_at": datetime.now(timezone.utc)}},
+        {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
     )
     return {"badges": badges, "theme": get_tier_theme()}
 
@@ -470,7 +470,7 @@ async def admin_recompute_all_badges(user: dict = Depends(get_current_user)):
             badges = await compute_badges(db, full)
             await db.users.update_one(
                 {"_id": full["_id"]},
-                {"$set": {"badges": badges, "badges_updated_at": datetime.now(timezone.utc)}},
+                {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
             )
             count += 1
     return {"processed": count}
@@ -502,11 +502,11 @@ async def add_my_certificate(payload: dict, user: dict = Depends(get_current_use
         "issuer": issuer,
         "year": year,
         "credential_url": (payload.get("credential_url") or "").strip() or None,
-        "added_at": datetime.now(timezone.utc).isoformat(),
+        "added_at": datetime.utcnow().isoformat(),
     }
     await db.users.update_one(
         {"_id": user["_id"]},
-        {"$push": {"certificates": cert}, "$set": {"updated_at": datetime.now(timezone.utc)}},
+        {"$push": {"certificates": cert}, "$set": {"updated_at": datetime.utcnow()}},
     )
     # Recompute badges (certificates count badge will refresh)
     fresh = await db.users.find_one({"_id": user["_id"]})
@@ -515,7 +515,7 @@ async def add_my_certificate(payload: dict, user: dict = Depends(get_current_use
             badges = await compute_badges(db, fresh)
             await db.users.update_one(
                 {"_id": user["_id"]},
-                {"$set": {"badges": badges, "badges_updated_at": datetime.now(timezone.utc)}},
+                {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
             )
         except Exception as e:
             logger.warning("add_my_certificate: badge refresh failed for user %s: %s", user.get("_id"), e)
@@ -538,7 +538,7 @@ async def delete_my_certificate(cert_id: str, user: dict = Depends(get_current_u
             badges = await compute_badges(db, fresh)
             await db.users.update_one(
                 {"_id": user["_id"]},
-                {"$set": {"badges": badges, "badges_updated_at": datetime.now(timezone.utc)}},
+                {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
             )
         except Exception as e:
             logger.warning("delete_my_certificate: badge refresh failed for user %s: %s", user.get("_id"), e)
@@ -549,7 +549,7 @@ async def delete_my_certificate(cert_id: str, user: dict = Depends(get_current_u
 # ─── Digital ID Card ────────────────────────────────────────────────────
 def _generate_sa_id() -> str:
     """Generate a fresh SA-{YY}-{6digit} identifier."""
-    yy = datetime.now(timezone.utc).year % 100
+    yy = datetime.utcnow().year % 100
     n = random.randint(100000, 999999)
     return f"SA-{yy:02d}-{n}"
 
@@ -568,7 +568,7 @@ def _student_status_label(user: dict) -> dict:
     si = user.get("school_info") or {}
     cls = (si.get("class_or_year") or si.get("current_course") or "").lower()
     gy = si.get("graduation_year")
-    now = datetime.now(timezone.utc).year
+    now = datetime.utcnow().year
     try:
         gy = int(gy) if gy else None
     except Exception as e:
@@ -611,7 +611,7 @@ async def my_id_card(user: dict = Depends(get_current_user)):
                 break
         await db.users.update_one(
             {"_id": user["_id"]},
-            {"$set": {"sa_id": sa_id, "sa_id_issued_at": datetime.now(timezone.utc)}},
+            {"$set": {"sa_id": sa_id, "sa_id_issued_at": datetime.utcnow()}},
         )
         user["sa_id"] = sa_id
 
@@ -666,8 +666,8 @@ async def my_id_card(user: dict = Depends(get_current_user)):
         "state": si.get("state") or cp.get("state"),
         "photo_data": user.get("face_image_base64"),
         "linkedin_url": user.get("linkedin_url"),
-        "issued_at": (user.get("sa_id_issued_at") or datetime.now(timezone.utc)).isoformat()
-            if isinstance(user.get("sa_id_issued_at"), datetime) else str(user.get("sa_id_issued_at") or datetime.now(timezone.utc).isoformat()),
+        "issued_at": (user.get("sa_id_issued_at") or datetime.utcnow()).isoformat()
+            if isinstance(user.get("sa_id_issued_at"), datetime) else str(user.get("sa_id_issued_at") or datetime.utcnow().isoformat()),
         "verify_url": public_verify_url,
         "qr_payload": public_verify_url,
         "company": company,
@@ -885,7 +885,7 @@ async def get_my_audit_logs(
     """
     uid = str(user["_id"])
     total = await db.audit_logs.count_documents({"user_id": uid})
-    cursor = db.audit_logs.find({"user_id": uid}).sort("ts", -1).skip(skip).limit(min(limit, 500))
+    cursor = db.audit_logs.find({"user_id": uid}).sort("ts", -1).skip(int(skip)).limit(min(int(limit), 500))
     items = []
     async for doc in cursor:
         items.append({
@@ -926,10 +926,16 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
         "section_toggles", "projects",
         # Preferences (settings page)
         "preferences",
+        # Identity & DigiLocker Verification
+        "aadhaar_number", "aadhaar_masked", "aadhaar_verified",
+        "digilocker_id", "digilocker_verified", "digilocker_doc_count", "digilocker_uri", "digilocker_linked_at",
     }
     safe = {k: v for k, v in updates.items() if k in allowed}
-    if "phone" in safe:
-        safe["phone"] = str(safe["phone"] or "").strip()
+    # Auto-generate masked Aadhaar if raw number is supplied
+    if "aadhaar_number" in safe and safe["aadhaar_number"]:
+        raw_num = re.sub(r"\D", "", str(safe["aadhaar_number"]))
+        if len(raw_num) >= 4:
+            safe["aadhaar_masked"] = f"•••• •••• {raw_num[-4:]}"
     # Synthesize full_name when first/last provided
     if ("first_name" in safe or "last_name" in safe) and "full_name" not in safe:
         u_now = user
@@ -1589,7 +1595,7 @@ async def admin_mentor_detail(mentor_id: str, user: dict = Depends(get_current_u
         "languages": mp.get("languages") or [],
         "availability": mp.get("availability"),
         "education": mp.get("education") or [],
-        "created_at": (m.get("created_at") or datetime.now(timezone.utc)).isoformat()
+        "created_at": (m.get("created_at") or datetime.utcnow()).isoformat()
             if isinstance(m.get("created_at"), datetime) else str(m.get("created_at", "")),
     }
 
@@ -1658,12 +1664,12 @@ async def admin_overview(user: dict = Depends(get_current_user)):
             "id": str(u["_id"]),
             "kind": "user_joined",
             "label": f"{u.get('full_name', u.get('email', 'New user'))} joined as {u.get('role', 'user')}",
-            "at": (u.get("created_at") or datetime.now(timezone.utc)).isoformat() if isinstance(u.get("created_at"), datetime) else str(u.get("created_at", "")),
+            "at": (u.get("created_at") or datetime.utcnow()).isoformat() if isinstance(u.get("created_at"), datetime) else str(u.get("created_at", "")),
         })
 
     # Monthly enrollments (last 6 months bucket)
     six_months: list = []
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     for i in range(5, -1, -1):
         month = (now.replace(day=1) - timedelta(days=30 * i))
         label = month.strftime("%b")
@@ -1722,7 +1728,7 @@ async def admin_approvals(
             "category": mp.get("category") or m.get("mentor_category"),
             "linkedin_url": mp.get("linkedin_url") or m.get("linkedin_url"),
             "years_of_experience": mp.get("years_of_experience"),
-            "submitted_at": (m.get("created_at") or datetime.now(timezone.utc)).isoformat()
+            "submitted_at": (m.get("created_at") or datetime.utcnow()).isoformat()
                 if isinstance(m.get("created_at"), datetime) else str(m.get("created_at", "")),
             "priority": "high" if (mp.get("years_of_experience") or 0) >= 10 else "normal",
         })
@@ -1788,7 +1794,7 @@ async def admin_users_list(
             "email_verified": u.get("email_verified"),
             "two_fa_enabled": u.get("two_fa_enabled"),
             "badges": u.get("badges") or [],
-            "created_at": (u.get("created_at") or datetime.now(timezone.utc)).isoformat()
+            "created_at": (u.get("created_at") or datetime.utcnow()).isoformat()
                 if isinstance(u.get("created_at"), datetime) else str(u.get("created_at", "")),
             "linkedin_url": u.get("linkedin_url") or mp.get("linkedin_url") or ai.get("alumni_linkedin_url"),
         })
@@ -1804,9 +1810,96 @@ async def admin_users_directory_list(
     limit: int = 24,
     user: dict = Depends(get_current_user),
 ):
-    """User directory list — unified reader from `imports.py` list_users."""
-    from routers.admin.imports import list_users
-    return await list_users(category=category, q=q, page=page, limit=limit)
+    """User directory list — supports 'all', 'student', 'masters', 'alumni', 'mentor' categories.
+    Also computes per-category counts for the directory KPIs."""
+    _require_admin(user)
+    # Map frontend category → backend role + filter
+    cat_map: Dict[str, Optional[str]] = {
+        "all":     None,        # all roles
+        "student": "student",
+        "masters": "student",
+        "alumni":  "alumni",
+        "mentor":  "mentor",
+    }
+    target_role = cat_map.get(category, None)
+    role_filter: dict = {}
+    if target_role:
+        role_filter["role"] = target_role
+        if target_role == "mentor":
+            role_filter["mentor_status"] = "approved"
+
+    # Counts for KPI strip
+    counts: Dict[str, int] = {}
+    role_keys = ["student", "alumni", "mentor"]
+    for k in role_keys:
+        f = {"role": k}
+        if k == "mentor":
+            f["mentor_status"] = "approved"
+        counts[k] = await db.users.count_documents(f)
+    counts["all"] = sum(counts.values())
+    counts["masters"] = counts.get("student", 0)  # masters shown as student subset
+    counts["pending_approval"] = await db.users.count_documents({
+        "role": "mentor", "mentor_status": {"$ne": "approved"}
+    }) + await db.users.count_documents({
+        "role": "college", "college_status": {"$ne": "approved"}
+    })
+
+    # Build query for items
+    query: dict = dict(role_filter)
+    if category == "masters":
+        query["school_info.current_degree"] = {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}
+    if q:
+        rx = {"$regex": re.escape(q), "$options": "i"}
+        query["$or"] = [
+            {"full_name": rx}, {"email": rx},
+            {"school_info.institution_name": rx},
+            {"mentor_profile.organization": rx},
+            {"alumni_info.alumni_employer": rx},
+        ]
+    skip = (page - 1) * limit
+    total = await db.users.count_documents(query)
+    items = await db.users.find(
+        query, {"password_hash": 0},
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    out = []
+    for u in items:
+        mp = u.get("mentor_profile") or {}
+        si = u.get("school_info") or {}
+        ai = u.get("alumni_info") or {}
+        cp = u.get("college_profile") or {}
+        approved = not (
+            (u.get("role") == "mentor" and u.get("mentor_status") != "approved") or
+            (u.get("role") == "college" and u.get("college_status") != "approved")
+        )
+        out.append({
+            "id": str(u["_id"]),
+            "name": u.get("full_name") or u.get("email"),
+            "email": u.get("email"),
+            "phone": u.get("phone"),
+            "role": u.get("role"),
+            "approved": approved,
+            "is_new": u.get("is_new") or False,
+            "disabled": u.get("disabled") or False,
+            "career_path": u.get("career_path"),
+            "institution": si.get("institution_name") or u.get("full_name"),
+            "city": si.get("city") or cp.get("city"),
+            "state": si.get("state") or cp.get("state"),
+            "stream": si.get("branch_or_stream"),
+            "course": si.get("current_course") or si.get("class_or_year"),
+            "graduation_year": si.get("graduation_year"),
+            "mentor_title": mp.get("job_title"),
+            "mentor_org": mp.get("organization"),
+            "mentor_category": mp.get("category") or u.get("mentor_category"),
+            "mentor_rating": mp.get("rating"),
+            "mentor_sessions": mp.get("sessions"),
+            "alumni_employer": ai.get("alumni_employer"),
+            "alumni_role": ai.get("alumni_role"),
+            "badges": u.get("badges") or [],
+            "created_at": (u.get("created_at") or datetime.utcnow()).isoformat()
+                if isinstance(u.get("created_at"), datetime) else str(u.get("created_at", "")),
+            "linkedin_url": u.get("linkedin_url") or mp.get("linkedin_url") or ai.get("alumni_linkedin_url"),
+        })
+    return {"items": out, "total": total, "page": page, "limit": limit, "pages": max(1, (total + limit - 1) // limit), "counts": counts}
 
 
 @router.post("/admin/users/profile/{user_id}/approve")
@@ -1835,7 +1928,7 @@ async def admin_disable_user(user_id: str, user: dict = Depends(get_current_user
     u = await db.users.find_one(_user_query(user_id))
     if not u:
         raise HTTPException(404, "User not found")
-    await db.users.update_one(_user_query(user_id), {"$set": {"disabled": True, "updated_at": datetime.now(timezone.utc)}})
+    await db.users.update_one(_user_query(user_id), {"$set": {"disabled": True, "updated_at": datetime.utcnow()}})
     return {"ok": True}
 
 
@@ -1846,7 +1939,7 @@ async def admin_restore_user(user_id: str, user: dict = Depends(get_current_user
     u = await db.users.find_one(_user_query(user_id))
     if not u:
         raise HTTPException(404, "User not found")
-    await db.users.update_one(_user_query(user_id), {"$set": {"disabled": False, "updated_at": datetime.now(timezone.utc)}})
+    await db.users.update_one(_user_query(user_id), {"$set": {"disabled": False, "updated_at": datetime.utcnow()}})
     return {"ok": True}
 
 
@@ -1880,7 +1973,7 @@ async def admin_event_create(payload: dict, user: dict = Depends(get_current_use
     """Create a new event."""
     _require_admin(user)
     payload["id"] = str(ObjectId())
-    payload["created_at"] = datetime.now(timezone.utc)
+    payload["created_at"] = datetime.utcnow()
     payload.setdefault("rsvp_count", 0)
     await db.events.insert_one(payload.copy())
     payload.pop("_id", None)
@@ -1894,7 +1987,7 @@ async def admin_payments(user: dict = Depends(get_current_user)):
     # Mock 6-month revenue/payouts (placeholder until Stripe wires in)
     months = []
     base = 80000
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     for i in range(5, -1, -1):
         m = (now.replace(day=1) - timedelta(days=30 * i))
         months.append({
@@ -1990,7 +2083,7 @@ async def admin_settings_list(user: dict = Depends(get_current_user)):
                 "email": u.get("email"),
                 "role": "Super Admin" if u.get("is_super_admin") else "Admin",
                 "two_fa_enabled": u.get("two_fa_enabled"),
-                "created_at": (u.get("created_at") or datetime.now(timezone.utc)).isoformat()
+                "created_at": (u.get("created_at") or datetime.utcnow()).isoformat()
                     if isinstance(u.get("created_at"), datetime) else str(u.get("created_at", "")),
             }
             for u in items
@@ -2047,7 +2140,7 @@ async def admin_user_update(user_id: str, payload: dict, user: dict = Depends(ge
                     update[f"{k}.{sub_k}"] = sub_v
     if not update:
         raise HTTPException(400, "No editable fields provided")
-    update["updated_at"] = datetime.now(timezone.utc)
+    update["updated_at"] = datetime.utcnow()
     res = await db.users.update_one(_user_query(user_id), {"$set": update})
     if res.matched_count == 0:
         raise HTTPException(404, "User not found")
@@ -2100,7 +2193,7 @@ async def admin_user_create(payload: dict, user: dict = Depends(get_current_user
         "password_hash": hash_password(pwd),
         "onboarding_completed": True,  # admin-created users skip onboarding
         "email_verified": True,
-        "created_at": datetime.now(timezone.utc),
+        "created_at": datetime.utcnow(),
     }
     if role == "college":
         doc["college_profile"] = {
@@ -2137,7 +2230,7 @@ async def admin_event_update(event_id: str, payload: dict, user: dict = Depends(
     update = {k: v for k, v in (payload or {}).items() if k in allowed}
     if not update:
         raise HTTPException(400, "No editable fields")
-    update["updated_at"] = datetime.now(timezone.utc)
+    update["updated_at"] = datetime.utcnow()
     res = await db.events.update_one({"id": event_id}, {"$set": update})
     if res.matched_count == 0:
         raise HTTPException(404, "Event not found")
@@ -2467,7 +2560,7 @@ async def ai_chat(req: ChatRequest, request: Request):
 async def chat_history(session_id: Optional[str] = None, user: dict = Depends(get_current_user)):
     user_id = str(user["_id"])
     from agent_k.memory.history import ChatMemory
-    history = await ChatMemory().get_history(user_id, session_id=session_id or "")
+    history = await ChatMemory().get_history(user_id, session_id=session_id)
     return {"messages": history}
 
 @router.get("/ai/chat/sessions")
@@ -2859,7 +2952,7 @@ async def toggle_save_opportunity(opp_id: str, user: dict = Depends(get_current_
         action = "saved"
     await db.users.update_one(
         {"_id": user["_id"]},
-        {"$set": {"saved_opportunities": saved, "updated_at": datetime.now(timezone.utc)}},
+        {"$set": {"saved_opportunities": saved, "updated_at": datetime.utcnow()}},
     )
     return {"action": action, "saved_count": len(saved)}
 
@@ -2879,7 +2972,7 @@ async def apply_opportunity(opp_id: str, user: dict = Depends(get_current_user))
     await db.opportunity_applications.insert_one({
         "user_id": user_id,
         "opportunity_id": opp_id,
-        "applied_at": datetime.now(timezone.utc),
+        "applied_at": datetime.utcnow(),
         "status": "applied",
     })
     applied = list(user.get("applied_opportunities") or [])
@@ -2887,12 +2980,12 @@ async def apply_opportunity(opp_id: str, user: dict = Depends(get_current_user))
         applied.append(opp_id)
     await db.users.update_one(
         {"_id": user["_id"]},
-        {"$set": {"applied_opportunities": applied, "updated_at": datetime.now(timezone.utc)}},
+        {"$set": {"applied_opportunities": applied, "updated_at": datetime.utcnow()}},
         upsert=False,
     )
     # Increment applicants_count on the opportunity
     await db.internships.update_one({"id": opp_id}, {"$inc": {"applicants_count": 1}})
-    return {"action": "applied", "url": opp.get("url"), "applied_at": datetime.now(timezone.utc).isoformat()}
+    return {"action": "applied", "url": opp.get("url"), "applied_at": datetime.utcnow().isoformat()}
 
 
 # ─── Phase 2 — Network ──────────────────────────────────────────────────
@@ -2904,7 +2997,7 @@ def _user_card(u: dict) -> dict:
     raw_badges = u.get("badges") or []
     tier_rank = {"special": 4, "high": 3, "verified": 2, "moderate": 1, "low": 0}
     valid_badges = [b for b in raw_badges if isinstance(b, dict)]
-    sorted_badges = sorted(valid_badges, key=lambda b: -tier_rank.get(b.get("tier") or "", 0))
+    sorted_badges = sorted(valid_badges, key=lambda b: -tier_rank.get(b.get("tier"), 0))
     top_badges = [
         {"id": b.get("id"), "label": b.get("label"), "tier": b.get("tier"),
          "icon": b.get("icon"), "kind": b.get("kind"), "category": b.get("category")}
@@ -2919,7 +3012,7 @@ def _user_card(u: dict) -> dict:
     is_online = False
     if last:
         try:
-            delta = (datetime.now(timezone.utc) - last).total_seconds() if isinstance(last, datetime) else 9999
+            delta = (datetime.utcnow() - last).total_seconds() if isinstance(last, datetime) else 9999
             is_online = delta < 5 * 60
         except Exception as e:
             logger.warning("_user_card: is_online computation failed: %s", e)
@@ -2952,7 +3045,7 @@ def _user_card(u: dict) -> dict:
         "expected_rate_inr": mp.get("expected_rate_inr"),
         "linkedin_url": u.get("linkedin_url") or mp.get("linkedin_url") or ai.get("alumni_linkedin_url"),
         "github_url": mp.get("github_url") or u.get("github_url"),
-        "photo_data": u.get("face_image_base64") or u.get("photo_data") or u.get("photo"),
+        "photo_data": u.get("face_image_base64"),
         "wants_to_mentor": ai.get("wants_to_mentor") or ai.get("alumni_wants_to_mentor") or u.get("role") == "mentor",
         "is_online": is_online,
         "mutual_connections": _fake_mutual(u),  # deterministic placeholder
@@ -3277,7 +3370,7 @@ async def send_connection_request(other_id: str, req: Optional[ConnectRequestIn]
             # The other user already requested — auto-accept
             await db.connections.update_one(
                 {"_id": existing["_id"]},
-                {"$set": {"status": "accepted", "accepted_at": datetime.now(timezone.utc)}},
+                {"$set": {"status": "accepted", "accepted_at": datetime.utcnow()}},
             )
             return {"action": "auto_accepted"}
         return {"action": "already_pending"}
@@ -3286,7 +3379,7 @@ async def send_connection_request(other_id: str, req: Optional[ConnectRequestIn]
         "a": me_id,
         "b": other_id,
         "status": "pending",
-        "created_at": datetime.now(timezone.utc),
+        "created_at": datetime.utcnow(),
     }
     if req and req.message:
         connection_doc["message"] = req.message
@@ -3305,7 +3398,7 @@ async def send_connection_request(other_id: str, req: Optional[ConnectRequestIn]
             "title": "New connection request",
             "body": notif_body,
             "read": False,
-            "created_at": datetime.now(timezone.utc),
+            "created_at": datetime.utcnow(),
         })
     except Exception as e:
         logger.warning("send_connection_request: notification failed for other_id=%s: %s", other_id, e)
@@ -3333,7 +3426,7 @@ async def accept_connection(other_id: str, user: dict = Depends(get_current_user
 
     res = await db.connections.update_one(
         {"_id": existing["_id"]},
-        {"$set": {"status": "accepted", "accepted_at": datetime.now(timezone.utc)}},
+        {"$set": {"status": "accepted", "accepted_at": datetime.utcnow()}},
     )
 
     try:
@@ -3344,7 +3437,7 @@ async def accept_connection(other_id: str, user: dict = Depends(get_current_user
             "title": "Connection accepted",
             "body": f"{user.get('full_name') or 'A user'} accepted your request.",
             "read": False,
-            "created_at": datetime.now(timezone.utc),
+            "created_at": datetime.utcnow(),
         })
     except Exception as e:
         logger.warning("accept_connection: notification failed for other_id=%s: %s", other_id, e)
@@ -3692,7 +3785,7 @@ async def _update_booking_status(booking_id: str, mentor_id: str, new_status: st
     booking = await db.bookings.find_one(query)
     if not booking:
         raise HTTPException(404, "Booking not found")
-    if str(booking.get("mentor_id")) != mentor_id:
+    if str(booking.get("mentor_id")) != str(mentor_id):
         raise HTTPException(403, "You can only modify your own bookings")
     update_filter = {"_id": booking["_id"]} if booking.get("_id") else {"id": booking_id}
     await db.bookings.update_one(update_filter, {"$set": {
@@ -3767,8 +3860,8 @@ async def create_mentor_session(payload: MentorSessionIn, user: dict = Depends(g
         "title": payload.title.strip(),
         "topic": payload.topic.strip(),
         "scheduled_at": payload.scheduled_at.strip(),
-        "duration_minutes": payload.duration_minutes or 30,
-        "max_attendees": payload.max_attendees or 1,
+        "duration_minutes": int(payload.duration_minutes or 30),
+        "max_attendees": int(payload.max_attendees or 1),
         "attendees": [],
         "status": "open",
         "created_at": datetime.now(timezone.utc).isoformat(),

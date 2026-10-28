@@ -6,7 +6,6 @@ import { ReactNode, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, TextInput as RNTextInput, Platform,
 } from 'react-native';
-import { Check } from 'lucide-react';
 import { Colors as C } from '@/src/theme';
 import { useRoleTheme } from '@/src/views/auth/RoleTheme';
 import { Trackable, ANALYTICS_IDS } from '@/src/analytics';
@@ -237,7 +236,7 @@ export function WebOptionRow({
           selected && { borderColor: '#2563EB', backgroundColor: '#2563EB' },
         ]}
       >
-        {selected && <Check size={14} color="#111827" />}
+        {selected && <Text style={{ color: '#111827', fontSize: 11 }}>✓</Text>}
       </View>
     </Pressable>
   );

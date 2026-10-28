@@ -44,9 +44,6 @@ services:
       - DB_NAME=studentalumniadmin
       - UVICORN_WORKERS=2
       - ENV=production
-      - CLAMAV_HOST=${CLAMAV_HOST:-65.21.196.49}
-      - CLAMAV_PORT=${CLAMAV_PORT:-3310}
-      - CLAMAV_TIMEOUT=${CLAMAV_TIMEOUT:-10}
     depends_on:
       mongodb:
         condition: service_healthy

@@ -88,7 +88,7 @@ function activeIdForPath(path: string): string {
 
 export default function FeaturePageShell({
   title, subtitle, accent = SA.purpleLight,
-  heroEmoji = '',
+  heroEmoji = '✨',
   heroIcon,
   children,
   rightSlot,

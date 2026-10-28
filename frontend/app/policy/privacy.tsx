@@ -44,7 +44,7 @@ export default function PrivacyPolicyPage() {
       setActiveSection(currentSection);
 
       const jumps = document.querySelectorAll('.rs-jump');
-      jumps.forEach((jElem) => { const j = jElem as HTMLElement;
+      jumps.forEach((j) => {
         if (j.getAttribute('data-target') === currentSection) {
           j.setAttribute('data-on', '1');
           j.style.color = '#F4F4FA';

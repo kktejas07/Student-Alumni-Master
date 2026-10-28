@@ -270,7 +270,7 @@ async def seed_admin_roles(db=None):
     """Ensure all system roles exist in admin_roles collection.
     Call on startup or via migration. Uses $setOnInsert for idempotency.
     If db is provided, uses it; otherwise creates its own connection."""
-    target_db = db if db is not None else _get_db()
+    target_db = db or _get_db()
     for role_def in SYSTEM_ROLES:
         await target_db.admin_roles.update_one(
             {"key": role_def["key"]},
@@ -284,4 +284,4 @@ async def seed_admin_roles(db=None):
             }},
             upsert=True,
         )
-    print(f"[Roles] Seeded {len(SYSTEM_ROLES)} system roles to admin_roles collection")
+    print(f"✅ Seeded {len(SYSTEM_ROLES)} system roles to admin_roles collection")

@@ -22,17 +22,17 @@ export default function Welcome() {
   const slide = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
-    if (Platform.OS === 'web') {
-      window.location.replace('/');
-      return;
-    }
+    if (Platform.OS === 'web') return;
     Animated.parallel([
       Animated.timing(fade, { toValue: 1, duration: 800, useNativeDriver: true }),
       Animated.timing(slide, { toValue: 0, duration: 800, useNativeDriver: true }),
     ]).start();
   }, []);
 
-  if (Platform.OS === 'web') return null;
+  // Web users see the 1:1 exact new marketing landing page from design spec.
+  if (Platform.OS === 'web') {
+    return <LandingPage />;
+  }
 
   return (
     <GradientBackground colors={Gradients.splash}>

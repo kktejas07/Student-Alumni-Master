@@ -38,11 +38,6 @@ services:
       EMERGENT_LLM_KEY: ${EMERGENT_LLM_KEY:-}
       FERNET_KEY:       ${FERNET_KEY:-}
       UVICORN_WORKERS:  ${UVICORN_WORKERS:-2}
-      # ── Virus scanning (shared ClamAV container on the host) ────────
-      # Leave CLAMAV_HOST empty to disable scanning.
-      CLAMAV_HOST:      ${CLAMAV_HOST:-65.21.196.49}
-      CLAMAV_PORT:      ${CLAMAV_PORT:-3310}
-      CLAMAV_TIMEOUT:   ${CLAMAV_TIMEOUT:-10}
       # ── Email delivery (Postal — postalserver.io) ───────────────
       # POSTAL_API_URL / POSTAL_SERVER_API_KEY are the primary sender;
       # SendGrid + Gmail (marketplace) remain as fallback providers.

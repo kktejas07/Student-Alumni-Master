@@ -1,4 +1,3 @@
-import '@/src/styles/superadmin-effects.css';
 /**
  * CouponBanner — cross-portal coupon display.
  *
@@ -519,7 +518,7 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
             decelerationRate="fast"
           >
             {coupons.map((c) => (
-              <Pressable key={c.id} onPress={() => !c.locked && setSelected(c)} style={[s.card, editable && !c.active && s.cardInactive, c.locked && { borderColor: 'rgba(245,158,11,0.4)' }, { position: 'relative', overflow: 'hidden' } as any]}>
+              <Pressable key={c.id} onPress={() => !c.locked && setSelected(c)} style={[s.card, editable && !c.active && s.cardInactive, c.locked && { borderColor: 'rgba(245,158,11,0.4)' }]}>
                 <View style={s.cardImgWrap}>
                   {c.locked ? (
                     <View style={[s.cardImg, s.cardImgFallback, { backgroundColor: 'rgba(245,158,11,0.08)' }]}>
@@ -569,10 +568,6 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
                     </>
                   )}
                 </View>
-                {/* Shimmer/shine sweep on locked coupons */}
-                {c.locked && Platform.OS === 'web' && (
-                  <span className="sa-shine" />
-                )}
               </Pressable>
             ))}
           </ScrollView>

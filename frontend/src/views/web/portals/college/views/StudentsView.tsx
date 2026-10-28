@@ -28,7 +28,7 @@ function SimpleSelect({ label, value, options, onChange }: {
         onPress={() => setOpen((o) => !o)}
         style={[mst.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
       >
-        <Text style={{ color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 12.5 }}>{value}</Text>
+        <Text style={{ color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5 }}>{value}</Text>
         <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={14} color="#aaa" />
       </Pressable>
       {open && (
@@ -39,7 +39,7 @@ function SimpleSelect({ label, value, options, onChange }: {
               onPress={() => { onChange(opt); setOpen(false); }}
               style={[ss.menuItem, value === opt && ss.menuItemActive]}
             >
-              <Text style={[ss.menuText, value === opt && { color: '#FFFFFF' }]}>{opt}</Text>
+              <Text style={[ss.menuText, value === opt && { color: '#1C1C1E' }]}>{opt}</Text>
             </Pressable>
           ))}
         </View>
@@ -426,7 +426,7 @@ export function StudentsView() {
               </View>
               <Text style={[s.cell, { flex: 1 }]}>{st.dept}</Text>
               <Text style={[s.cell, { flex: 1 }]}>{st.year}</Text>
-              <Text style={[s.cell, { flex: 1, color: '#FFFFFF',
+              <Text style={[s.cell, { flex: 1, color: '#1C1C1E',
                                        fontFamily: FONTS.bold }]}>
                 {st.cgpa}
               </Text>
@@ -572,7 +572,7 @@ export function StudentsView() {
                 <Text style={{ color: CC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
               </Pressable>
               <Pressable style={mst.submitBtn} onPress={handleSaveStudent} disabled={submitting}>
-                <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12 }}>
+                <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 }}>
                   {submitting ? 'Saving…' : editingStudent ? 'Save Changes' : 'Add Student'}
                 </Text>
               </Pressable>
@@ -597,10 +597,10 @@ export function StudentsView() {
               </Text>
               <View style={mst.actions}>
                 <Pressable onPress={() => setConfirmModal(null)} style={mst.cancelBtn}>
-                  <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 }}>Cancel</Text>
+                  <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 }}>Cancel</Text>
                 </Pressable>
                 <Pressable onPress={confirmModal.onConfirm} style={[mst.submitBtn, { backgroundColor: confirmModal.actionColor || CC.primary }]}>
-                  <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 }}>{confirmModal.actionText}</Text>
+                  <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 }}>{confirmModal.actionText}</Text>
                 </Pressable>
               </View>
             </View>
@@ -641,12 +641,12 @@ const s = StyleSheet.create({
   searchBox: { flexDirection: 'row', alignItems: 'center', gap: 8,
     width: 280, height: 36, paddingHorizontal: 11, borderRadius: 10,
     backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1 },
-  searchInput: { flex: 1, color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 12.5,
+  searchInput: { flex: 1, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   cta: { flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, height: 36, borderRadius: 10,
     backgroundColor: CC.primary },
-  ctaText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12 },
+  ctaText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
   exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, height: 36, borderRadius: 10,
     backgroundColor: 'rgba(255,255,255,0.04)',
@@ -660,7 +660,7 @@ const s = StyleSheet.create({
   uploadBtn: { flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, height: 36, borderRadius: 10,
     backgroundColor: '#3B82F6' },
-  uploadBtnText: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 11.5 },
+  uploadBtnText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 11.5 },
 
   filterRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 14 },
   filterLabel: { color: CC.muted, fontFamily: FONTS.xbold,
@@ -684,7 +684,7 @@ const s = StyleSheet.create({
     paddingVertical: 11, paddingHorizontal: 14,
     borderBottomWidth: 1, borderBottomColor: CC.border,
     backgroundColor: CC.card },
-  cellName: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 },
+  cellName: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
   cellSub: { color: CC.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
   cell: { color: CC.muted, fontFamily: FONTS.med, fontSize: 12 },
   placedBox: { flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -704,7 +704,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, height: 32, borderRadius: 8,
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderColor: CC.border, borderWidth: 1 },
-  pageBtnText: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 11.5 },
+  pageBtnText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 11.5 },
   pageInfo: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 12 },
 });
 
@@ -736,7 +736,7 @@ const mst = StyleSheet.create({
     } as any) : {}),
   },
   title: {
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 16,
   },
@@ -763,7 +763,7 @@ const mst = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     height: 38,
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     fontFamily: FONTS.med,
     fontSize: 12.5,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),

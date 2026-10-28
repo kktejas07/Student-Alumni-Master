@@ -438,25 +438,15 @@ export default function ContactPage() {
 
                 <View style={styles.rowTwoCols}>
                   <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Phone Number (10 Digits)</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#1A1D2B', borderWidth: 1, borderColor: '#292E42', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 12 }}>
-                        <Text style={{ fontSize: 13 }}>🇮🇳</Text>
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#A78BFA' }}>+91</Text>
-                      </View>
-                      <TextInput
-                        style={[styles.textInput, { flex: 1 }]}
-                        placeholder="10-digit mobile number"
-                        placeholderTextColor="#555A70"
-                        keyboardType="phone-pad"
-                        maxLength={10}
-                        value={(form.phone || '').replace(/^\+91\s*/, '').replace(/\D/g, '').slice(0, 10)}
-                        onChangeText={(t) => {
-                          const rawDigits = t.replace(/\D/g, '').slice(0, 10);
-                          setForm({ ...form, phone: rawDigits ? `+91 ${rawDigits}` : '' });
-                        }}
-                      />
-                    </View>
+                    <Text style={styles.inputLabel}>Phone Number</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="+91 7569665077"
+                      placeholderTextColor="#555A70"
+                      keyboardType="phone-pad"
+                      value={form.phone}
+                      onChangeText={(t) => setForm({ ...form, phone: t })}
+                    />
                   </View>
 
                   <View style={styles.inputGroup}>

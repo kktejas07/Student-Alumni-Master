@@ -170,11 +170,11 @@ export function RequestsView({ decisions, onSetDecision, demoMode = false }: Req
                 <Av initials={req.avatar} size={48} color={req.color} />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 14 }}>{req.studentName}</Text>
+                    <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 14 }}>{req.studentName}</Text>
                     <Badge label={req.type === 'paid' ? `Paid ₹${req.amount}` : 'Free'} color={req.type === 'paid' ? 'green' : 'teal'} />
                   </View>
                   <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 }}>{req.college} · {req.branch} · {req.year}</Text>
-                  <Text style={{ color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 13, marginTop: 6 }}>“{req.topic}”</Text>
+                  <Text style={{ color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13, marginTop: 6 }}>“{req.topic}”</Text>
                   <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 4 }}>{req.time}</Text>
                 </View>
                 <Countdown days={req.daysAway} />
@@ -202,9 +202,9 @@ export function RequestsView({ decisions, onSetDecision, demoMode = false }: Req
                   <Badge 
                     label={
                       req.status === 'confirmed' || req.status === 'accepted'
-                        ? 'Accepted'
+                        ? 'Accepted ✓'
                         : req.status === 'completed'
-                        ? 'Completed'
+                        ? 'Completed ✓'
                         : req.status === 'expired'
                         ? 'Expired'
                         : 'Declined'

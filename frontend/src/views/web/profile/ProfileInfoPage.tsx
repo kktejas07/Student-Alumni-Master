@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Modal } from 'react-native';
 import {
-  Mail, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X, Upload, Camera,
+  Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X, Upload, Camera,
   TrendingUp, AlertCircle, Plus, Trash2, Folder, Image as ImageIcon, ShieldCheck, Shield, Lock, Eye, EyeOff
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -17,7 +17,6 @@ import { useToast } from '@/src/views/components';
 import { SuggestionAutocomplete } from '@/src/views/web/SuggestionAutocomplete';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { DigiLockerOAuthModal } from './DigiLockerOAuthModal';
-import { useTheme } from '@/src/theme/ThemeContext';
 
 const CITY_LIST = [
   'Mumbai', 'Delhi', 'Bengaluru', 'Hyderabad', 'Chennai', 'Kolkata',
@@ -86,7 +85,6 @@ interface Props {
 }
 
 export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, onTakeSelfie }: Props) {
-  const { isDark } = useTheme();
   const isCollege = draft.role === 'college' || useAuthStore.getState().user?.role === 'college';
   const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
   const photo = pendingPhoto || (isCollege ? draft.college_logo_data : (draft.photo_data || draft.face_image_base64));
@@ -143,10 +141,12 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
   };
 
   const handleVerifyAadhaar = async () => {
+    // Launch the official MeriPehchaan DigiLocker / Aadhaar OTP gateway
     setDigilockerModalVisible(true);
   };
 
   const handleLinkDigiLocker = async () => {
+    // Launch the official MeriPehchaan DigiLocker / Aadhaar OTP gateway
     setDigilockerModalVisible(true);
   };
 
@@ -304,10 +304,10 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
         let msg = `+${res.skill.weight} ${catLabel} Points`;
         if (delta > 0) msg += `\nCareer Readiness: +${Math.round(delta)}%`;
         if (bLevel !== aLevel) {
-          msg += `\nLevel: ${bLevel} → ${aLevel} `;
+          msg += `\nLevel: ${bLevel} → ${aLevel} 🎉`;
         }
 
-        toast.success('Skill Analyzed', msg);
+        toast.success('✓ Skill Analyzed', msg);
       }
       
     } catch (e: any) {
@@ -340,58 +340,16 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
     <View style={{ gap: 16, zIndex: 10, position: 'relative' }}>
       {/* Completion Banner */}
       {!isCollege && (
-        <View style={[
-          st.banner,
-          {
-            backgroundColor: isDark ? 'rgba(37,99,235,0.12)' : '#EEF4FF',
-            borderColor: isDark ? 'rgba(59,130,246,0.35)' : '#C7D9FE',
-          },
-          completion.percentage >= 100 && {
-            backgroundColor: isDark ? 'rgba(16,185,129,0.12)' : '#ECFDF5',
-            borderColor: isDark ? 'rgba(16,185,129,0.40)' : '#A7F3D0',
-          }
-        ]}>
-          <CompletionRing
-            pct={completion.percentage}
-            size={92}
-            color={completion.percentage >= 100 ? '#10B981' : (isDark ? '#3B82F6' : '#1D4ED8')}
-            trackColor={isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'}
-          />
+        <View style={[st.banner, completion.percentage >= 100 && st.bannerComplete]}>
+          <CompletionRing pct={completion.percentage} size={92} color={completion.percentage >= 100 ? '#10B981' : '#60A5FA'} />
           <View style={{ flex: 1, minWidth: 0, gap: 10 }}>
-            <Text style={[st.bannerTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>
-              Profile Completion
-            </Text>
-            <Text style={[st.bannerSub, { color: isDark ? '#94A3B8' : '#334155' }]}>
-              Complete your profile to unlock personalized recommendations & higher trust signals.
-            </Text>
+            <Text style={st.bannerTitle}>Profile Completion</Text>
+            <Text style={st.bannerSub}>Complete your profile to unlock personalized recommendations & higher trust signals.</Text>
             <View style={st.itemsRow}>
               {completion.items.map((it) => (
-                <View
-                  key={it.key}
-                  style={[
-                    st.itemPill,
-                    {
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
-                      borderColor: isDark ? 'rgba(255,255,255,0.14)' : '#CBD5E1',
-                    },
-                    it.done && {
-                      backgroundColor: isDark ? 'rgba(16,185,129,0.15)' : '#ECFDF5',
-                      borderColor: isDark ? 'rgba(16,185,129,0.40)' : '#A7F3D0',
-                    }
-                  ]}
-                >
-                  {it.done ? (
-                    <Check size={12} color={isDark ? '#34D399' : '#059669'} strokeWidth={2.5} />
-                  ) : (
-                    <View style={[st.dot, { backgroundColor: isDark ? '#64748B' : '#94A3B8' }]} />
-                  )}
-                  <Text style={[
-                    st.itemPillText,
-                    { color: isDark ? '#94A3B8' : '#475569' },
-                    it.done && { color: isDark ? '#34D399' : '#047857', fontFamily: 'DMSans_700Bold' }
-                  ]}>
-                    {it.label}
-                  </Text>
+                <View key={it.key} style={[st.itemPill, it.done && st.itemPillDone]}>
+                  {it.done ? <Check size={11} color={C.green} /> : <View style={st.dot} />}
+                  <Text style={[st.itemPillText, it.done && { color: C.green }]}>{it.label}</Text>
                 </View>
               ))}
               {completion.percentage >= 100 && (
@@ -592,9 +550,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       <Card title="Contact Details" subtitle="How others can reach you (visible based on privacy settings).">
         <View style={[st.row, { zIndex: 19 }]}>
           <Field label="Email" half><TF value={draft.email || ''} onChangeText={() => {}} leftIcon={<Mail size={14} color={C.text2} />} testID="pf-email" /></Field>
-          <Field label="Phone" half>
-            <PhoneField value={draft.phone || ''} onChange={(v) => setField('phone', v)} placeholder="Phone number" testID="pf-phone" />
-          </Field>
+          <Field label="Phone" half><PhoneField value={draft.phone || ''} onChange={(v) => setField('phone', v)} placeholder="Phone number" testID="pf-phone" /></Field>
         </View>
         <View style={[st.row, { zIndex: 18 }]}>
           <View style={{ flex: 1 }}>
@@ -626,11 +582,12 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
         subtitle="Authenticate your National Identity (Aadhaar UIDAI) and link DigiLocker for instant academic credential verification."
       >
         <View style={{ gap: 14 }}>
-          <View style={{ backgroundColor: 'rgba(37,99,235,0.02)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: C.border, gap: 10 }}>
+          {/* Aadhaar Number Input & Verification */}
+          <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', gap: 10 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <ShieldCheck size={18} color="#10B981" />
-                <Text style={{ color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 14 }}>Aadhaar Number (UIDAI)</Text>
+                <Text style={{ color: '#F1F5F9', fontFamily: 'DMSans_700Bold', fontSize: 14 }}>Aadhaar Number (UIDAI)</Text>
               </View>
               {draft.aadhaar_verified ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(16,185,129,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)' }}>
@@ -643,36 +600,54 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
                 </View>
               )}
             </View>
-            <Text style={{ color: C.text2, fontSize: 12, lineHeight: 16 }}>
-              Enter your 12-digit Aadhaar number. In compliance with UIDAI security standards, your Aadhaar is stored encrypted and auto-masked as <Text style={{ color: C.text, fontFamily: 'DMSans_700Bold' }}>•••• •••• {String(draft.aadhaar_number || '').replace(/\D/g, '').slice(-4) || 'XXXX'}</Text>.
+
+            <Text style={{ color: '#94A3B8', fontSize: 12, lineHeight: 16 }}>
+              Enter your 12-digit Aadhaar number. In compliance with UIDAI security standards, your Aadhaar is stored encrypted and auto-masked as <Text style={{ color: '#CBD5E1', fontFamily: 'DMSans_700Bold' }}>•••• •••• {String(draft.aadhaar_number || '').replace(/\D/g, '').slice(-4) || 'XXXX'}</Text>.
             </Text>
+
             <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
               <View style={{ flex: 1, position: 'relative' }}>
                 <TF
-                  value={showAadhaar
-                    ? (draft.aadhaar_number || '')
-                    : (draft.aadhaar_masked || (draft.aadhaar_number ? `•••• •••• ${String(draft.aadhaar_number).replace(/\D/g, '').slice(-4)}` : ''))}
+                  value={
+                    showAadhaar
+                      ? (draft.aadhaar_number || '')
+                      : (draft.aadhaar_masked || (draft.aadhaar_number ? `•••• •••• ${String(draft.aadhaar_number).replace(/\D/g, '').slice(-4)}` : ''))
+                  }
                   onChangeText={(v) => {
                     const clean = v.replace(/\D/g, '').slice(0, 12);
                     setField('aadhaar_number', clean);
-                    if (clean.length >= 4) setField('aadhaar_masked', `•••• •••• ${clean.slice(-4)}`);
+                    if (clean.length >= 4) {
+                      setField('aadhaar_masked', `•••• •••• ${clean.slice(-4)}`);
+                    }
                   }}
                   leftIcon={<Lock size={14} color={C.text2} />}
                   placeholder="12-digit Aadhaar (e.g. 5489 2310 9874)"
                   testID="pf-aadhaar"
                 />
               </View>
+
               <Pressable
                 onPress={() => setShowAadhaar(!showAadhaar)}
-                style={{ height: 42, paddingHorizontal: 12, borderRadius: 10, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' }}
+                style={{ height: 42, paddingHorizontal: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}
                 testID="pf-toggle-aadhaar"
               >
-                {showAadhaar ? <EyeOff size={16} color={C.text2} /> : <Eye size={16} color={C.text2} />}
+                {showAadhaar ? <EyeOff size={16} color="#94A3B8" /> : <Eye size={16} color="#94A3B8" />}
               </Pressable>
+
               <Pressable
                 onPress={handleVerifyAadhaar}
                 disabled={aadhaarVerifying || !draft.aadhaar_number}
-                style={{ height: 42, paddingHorizontal: 14, borderRadius: 10, backgroundColor: draft.aadhaar_verified ? 'rgba(16,185,129,0.20)' : '#7C3AED', borderWidth: 1, borderColor: draft.aadhaar_verified ? '#10B981' : '#8B5CF6', alignItems: 'center', justifyContent: 'center', opacity: (aadhaarVerifying || !draft.aadhaar_number) ? 0.6 : 1 }}
+                style={{
+                  height: 42,
+                  paddingHorizontal: 14,
+                  borderRadius: 10,
+                  backgroundColor: draft.aadhaar_verified ? 'rgba(16,185,129,0.20)' : '#7C3AED',
+                  borderWidth: 1,
+                  borderColor: draft.aadhaar_verified ? '#10B981' : '#8B5CF6',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: (aadhaarVerifying || !draft.aadhaar_number) ? 0.6 : 1
+                }}
                 testID="pf-verify-aadhaar-btn"
               >
                 <Text style={{ color: '#FFF', fontFamily: 'DMSans_700Bold', fontSize: 12 }}>
@@ -681,11 +656,13 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
               </Pressable>
             </View>
           </View>
+
+          {/* DigiLocker Account Linking */}
           <View style={{ backgroundColor: 'rgba(124,58,237,0.04)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: 'rgba(124,58,237,0.22)', gap: 10 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Globe size={18} color="#8B5CF6" />
-                <Text style={{ color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 14 }}>DigiLocker & Academic Bank of Credits (ABC)</Text>
+                <Text style={{ color: '#F1F5F9', fontFamily: 'DMSans_700Bold', fontSize: 14 }}>DigiLocker & Academic Bank of Credits (ABC)</Text>
               </View>
               {draft.digilocker_verified ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(16,185,129,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)' }}>
@@ -693,26 +670,46 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
                   <Text style={{ color: '#10B981', fontFamily: 'DMSans_700Bold', fontSize: 11 }}>Linked ({draft.digilocker_doc_count || 3} Docs)</Text>
                 </View>
               ) : (
-                <View style={{ backgroundColor: 'rgba(0,0,0,0.04)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1, borderColor: C.border }}>
-                  <Text style={{ color: C.text3, fontFamily: 'DMSans_700Bold', fontSize: 11 }}>Not Connected</Text>
+                <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' }}>
+                  <Text style={{ color: '#94A3B8', fontFamily: 'DMSans_700Bold', fontSize: 11 }}>Not Connected</Text>
                 </View>
               )}
             </View>
-            <Text style={{ color: C.text2, fontSize: 12, lineHeight: 16 }}>
+
+            <Text style={{ color: '#94A3B8', fontSize: 12, lineHeight: 16 }}>
               Connect your Government DigiLocker account to automatically pull & verify your official degrees, marksheets, and Academic Bank of Credits (ABC) credentials.
             </Text>
+
             {draft.digilocker_verified && (
               <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-                <Text style={{ color: '#34D399', fontSize: 11, fontWeight: '600' }}>✓ NAD Degree Certificate</Text>
-                <Text style={{ color: '#34D399', fontSize: 11, fontWeight: '600' }}>✓ ABC ID (Ministry of Education)</Text>
-                <Text style={{ color: '#34D399', fontSize: 11, fontWeight: '600' }}>✓ 10th & 12th Board Marksheet</Text>
+                <View style={{ backgroundColor: 'rgba(16,185,129,0.10)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)' }}>
+                  <Text style={{ color: '#34D399', fontSize: 11, fontWeight: '600' }}>✓ NAD Degree Certificate</Text>
+                </View>
+                <View style={{ backgroundColor: 'rgba(16,185,129,0.10)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)' }}>
+                  <Text style={{ color: '#34D399', fontSize: 11, fontWeight: '600' }}>✓ ABC ID (Ministry of Education)</Text>
+                </View>
+                <View style={{ backgroundColor: 'rgba(16,185,129,0.10)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)' }}>
+                  <Text style={{ color: '#34D399', fontSize: 11, fontWeight: '600' }}>✓ 10th & 12th Board Marksheet</Text>
+                </View>
               </View>
             )}
+
             <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 2 }}>
               <Pressable
                 onPress={handleLinkDigiLocker}
                 disabled={digilockerSyncing}
-                style={{ paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10, backgroundColor: draft.digilocker_verified ? 'rgba(124,58,237,0.18)' : '#7C3AED', borderWidth: 1, borderColor: '#8B5CF6', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 9,
+                  borderRadius: 10,
+                  backgroundColor: draft.digilocker_verified ? 'rgba(124,58,237,0.18)' : '#7C3AED',
+                  borderWidth: 1,
+                  borderColor: '#8B5CF6',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'row',
+                  gap: 6
+                }}
                 testID="pf-digilocker-link-btn"
               >
                 <Globe size={14} color="#FFF" />
@@ -720,6 +717,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
                   {digilockerSyncing ? 'Connecting to DigiLocker…' : (draft.digilocker_verified ? 'Re-Sync DigiLocker Documents' : 'Connect DigiLocker (1-Click)')}
                 </Text>
               </Pressable>
+
               {draft.digilocker_verified && (
                 <Pressable
                   onPress={() => {
@@ -1053,53 +1051,53 @@ const st = StyleSheet.create({
   banner: {
     flexDirection: 'row', gap: 18, alignItems: 'center',
     padding: 20, borderRadius: 16,
-    backgroundColor: 'rgba(37,99,235,0.10)',
-    borderColor: 'rgba(59,130,246,0.30)', borderWidth: 1,
+    backgroundColor: 'rgba(37,99,235,0.07)',
+    borderColor: 'rgba(37,99,235,0.25)', borderWidth: 1,
   },
   bannerComplete: {
-    backgroundColor: 'rgba(16,185,129,0.12)',
-    borderColor: 'rgba(16,185,129,0.40)',
+    backgroundColor: 'rgba(16,185,129,0.07)',
+    borderColor: 'rgba(16,185,129,0.30)',
   },
-  bannerTitle: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 17, letterSpacing: -0.2 },
-  bannerSub:   { color: '#94A3B8', fontFamily: 'DMSans_400Regular', fontSize: 13, lineHeight: 18 },
-  completePill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#10B981', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
-  completePillText: { color: '#FFF', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
+  bannerTitle: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 17 },
+  bannerSub:   { color: 'rgba(0,0,0,0.65)', fontFamily: 'DMSans_400Regular', fontSize: 12.5 },
+  completePill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#fff', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
+  completePillText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
   itemsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   itemPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1,
+    backgroundColor: 'rgba(0,0,0,0.05)', borderColor: 'rgba(0,0,0,0.10)', borderWidth: 1,
   },
-  itemPillDone: { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: 'rgba(16,185,129,0.40)' },
-  itemPillText: { color: '#94A3B8', fontFamily: 'DMSans_600SemiBold', fontSize: 11.5 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#64748B' },
+  itemPillDone: { backgroundColor: 'rgba(16,185,129,0.10)', borderColor: 'rgba(16,185,129,0.35)' },
+  itemPillText: { color: 'rgba(0,0,0,0.65)', fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(0,0,0,0.30)' },
 
   // Profile Photo section (new layout matching spec)
   photoRow: { flexDirection: 'row', alignItems: 'center', gap: 18, marginBottom: 4 },
   avatarLg: {
     width: 92, height: 92, borderRadius: 46, overflow: 'hidden', position: 'relative',
-    backgroundColor: 'rgba(37,99,235,0.12)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(37,99,235,0.20)', alignItems: 'center', justifyContent: 'center',
     ...({ cursor: 'pointer' } as any),
   },
-  avatarLgText: { color: '#2563EB', fontFamily: 'DMSans_800ExtraBold', fontSize: 28 },
+  avatarLgText: { color: '#60A5FA', fontFamily: 'DMSans_800ExtraBold', fontSize: 28 },
   avatarCheck: {
     position: 'absolute', bottom: 2, right: 2,
     width: 22, height: 22, borderRadius: 11,
-    backgroundColor: '#10B981',
+    backgroundColor: '#fff',
     alignItems: 'center', justifyContent: 'center',
-    borderColor: '#FFFFFF', borderWidth: 2,
+    borderColor: '#0B0717', borderWidth: 2,
   },
   avatarBadge: {
     position: 'absolute', bottom: 2, right: 2,
     width: 22, height: 22, borderRadius: 11,
     backgroundColor: '#2563EB',
     alignItems: 'center', justifyContent: 'center',
-    borderColor: '#FFFFFF', borderWidth: 2,
+    borderColor: '#0B0717', borderWidth: 2,
   },
   modalBackdrop: {
     position: Platform.OS === 'web' ? 'fixed' : 'absolute' as any,
     top: 0, bottom: 0, left: 0, right: 0,
-    backgroundColor: 'rgba(0,0,0,0.60)',
+    backgroundColor: 'rgba(0,0,0,0.80)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
@@ -1110,13 +1108,14 @@ const st = StyleSheet.create({
     maxWidth: 320,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: C.border,
-    backgroundColor: '#FFFFFF',
+    borderColor: 'rgba(37,99,235,0.25)',
+    backgroundColor: '#fff',
     padding: 20,
     alignItems: 'center',
-    ...(Platform.OS === 'web' ? ({
-      boxShadow: '0px 16px 40px rgba(0,0,0,0.12)' as any,
-    } as any) : {}),
+    ...({
+      backgroundImage: 'linear-gradient(180deg, #1A0E2E 0%, #0A0512 100%)' as any,
+      boxShadow: '0px 16px 60px rgba(91,33,182,0.45)' as any,
+    } as any),
   },
   modalHeader: {
     width: '100%',
@@ -1126,7 +1125,7 @@ const st = StyleSheet.create({
     marginBottom: 16,
   },
   modalTitle: {
-    color: C.text,
+    color: '#000',
     fontFamily: 'DMSans_700Bold',
     fontSize: 16,
   },
@@ -1147,7 +1146,7 @@ const st = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   menuItemText: {
-    color: C.text,
+    color: 'rgba(0,0,0,0.90)',
     fontFamily: 'DMSans_600SemiBold',
     fontSize: 14,
   },
@@ -1171,36 +1170,36 @@ const st = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 0.2s ease' } as any) : {}),
   },
   actionClickBoxText: {
-    color: C.text,
+    color: 'rgba(0,0,0,0.90)',
     fontFamily: 'DMSans_700Bold',
     fontSize: 12,
     textAlign: 'center',
   },
-  photoTitle: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 14 },
-  photoHint: { color: C.text2, fontFamily: 'DMSans_400Regular', fontSize: 12 },
+  photoTitle: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  photoHint: { color: 'rgba(0,0,0,0.60)', fontFamily: 'DMSans_400Regular', fontSize: 12 },
 
-  btnPrimary: { flexDirection: 'row', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: '#2563EB', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ boxShadow: '0 4px 14px rgba(37,99,235,0.30)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
-  btnConfirm: { flexDirection: 'row', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: '#10B981', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ boxShadow: '0 4px 14px rgba(16,185,129,0.30)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
-  btnPrimaryText: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  btnGhost: { paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: 'rgba(37,99,235,0.08)', borderColor: 'rgba(37,99,235,0.25)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
-  btnGhostText: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  btnPrimary: { flexDirection: 'row', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: '#60A5FA', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #60A5FA 0%, #2563EB 55%, #1D4ED8 100%)', boxShadow: '0 6px 18px rgba(37,99,235,0.35)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
+  btnConfirm: { flexDirection: 'row', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #34D399 0%, #10B981 55%, #059669 100%)', boxShadow: '0 6px 18px rgba(16,185,129,0.35)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
+  btnPrimaryText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  btnGhost: { paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: 'rgba(37,99,235,0.10)', borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ boxShadow: '0 4px 14px rgba(37,99,235,0.20)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
+  btnGhostText: { color: 'rgba(0,0,0,0.85)', fontFamily: 'DMSans_700Bold', fontSize: 12 },
 
   // legacy (unused, kept to prevent runtime undef from any stray ref)
   avatar: {
     width: 84, height: 84, borderRadius: 42, overflow: 'hidden', position: 'relative',
-    backgroundColor: 'rgba(37,99,235,0.12)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(37,99,235,0.20)', alignItems: 'center', justifyContent: 'center',
     ...({ cursor: 'pointer' } as any),
   },
-  avatarText: { color: '#2563EB', fontFamily: 'DMSans_800ExtraBold', fontSize: 26 },
+  avatarText: { color: '#60A5FA', fontFamily: 'DMSans_800ExtraBold', fontSize: 26 },
   avatarOver: {
     position: 'absolute', bottom: 0, left: 0, right: 0, paddingVertical: 4,
     backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4,
   },
-  avatarOverText: { color: '#FFFFFF', fontFamily: 'DMSans_800ExtraBold', fontSize: 9, letterSpacing: 0.6 },
+  avatarOverText: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 9, letterSpacing: 0.6 },
 
-  btnSm: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.04)', borderColor: C.border, borderWidth: 1, ...({ cursor: 'pointer' } as any) },
+  btnSm: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.05)', borderColor: 'rgba(0,0,0,0.09)', borderWidth: 1, ...({ cursor: 'pointer' } as any) },
   btnSmDanger: { backgroundColor: 'rgba(244,63,94,0.10)', borderColor: 'rgba(244,63,94,0.40)' },
-  btnSmText: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  btnSmText: { color: 'rgba(0,0,0,0.85)', fontFamily: 'DMSans_700Bold', fontSize: 11 },
 
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
 
@@ -1214,17 +1213,17 @@ const st = StyleSheet.create({
     backgroundColor: '#2563EB',
     borderColor: '#2563EB',
     borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 4px 14px rgba(37,99,235,0.25)' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 10px 24px rgba(37,99,235,0.30)' } as any) : {}),
     ...({ cursor: 'pointer' } as any),
   },
-  skillAddBtnText: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  skillAddBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
   
   // Suggestions
   suggestionsBox: {
     position: 'absolute', top: 48, left: 0, right: 0,
-    backgroundColor: '#FFFFFF', borderColor: 'rgba(37,99,235,0.25)', borderWidth: 1, borderRadius: 10,
+    backgroundColor: '#fff', borderColor: 'rgba(37,99,235,0.25)', borderWidth: 1, borderRadius: 10,
     padding: 6, gap: 4, zIndex: 9999,
-    ...(Platform.OS === 'web' ? { boxShadow: '0 10px 25px rgba(0,0,0,0.12)' } : {}),
+    ...(Platform.OS === 'web' ? { boxShadow: '0 10px 25px rgba(0,0,0,0.5)' } : {}),
   },
   suggestionItem: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 6, backgroundColor: 'rgba(0,0,0,0.03)', ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) },
   suggestionText: { color: '#1E3A8A', fontFamily: 'DMSans_700Bold', fontSize: 13 },
@@ -1233,12 +1232,12 @@ const st = StyleSheet.create({
   chipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
   richChip: {
     width: 160, padding: 12, borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.02)', borderColor: C.border, borderWidth: 1,
+    backgroundColor: 'rgba(0,0,0,0.03)', borderColor: 'rgba(37,99,235,0.15)', borderWidth: 1,
     gap: 8,
     ...(Platform.OS === 'web' ? { cursor: 'pointer', transition: 'all 0.2s' } : {}),
   },
   richChipTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  richChipName: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  richChipName: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 14 },
   richChipDel: { padding: 4, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 6 },
   richChipBottom: { flexDirection: 'row', gap: 6 },
   richBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: 'rgba(37,99,235,0.08)' },
@@ -1247,25 +1246,25 @@ const st = StyleSheet.create({
   // Intel Panel
   intelPanel: {
     marginTop: 20, padding: 16, borderRadius: 14,
-    backgroundColor: 'rgba(0,0,0,0.02)', borderColor: C.border, borderWidth: 1,
+    backgroundColor: 'rgba(15,23,42,0.6)', borderColor: 'rgba(51,65,85,0.5)', borderWidth: 1,
   },
   intelHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  intelTitle: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  intelTitle: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 14 },
   intelGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   intelStat: { flex: 1, minWidth: 120, padding: 12, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.03)', borderColor: 'rgba(0,0,0,0.05)', borderWidth: 1 },
-  intelStatLabel: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 11, marginBottom: 4 },
-  intelStatValue: { color: '#059669', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
-  intelSubHeading: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12, marginTop: 8 },
-  intelEmpty: { color: C.text3, fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 6 },
+  intelStatLabel: { color: '#94A3B8', fontFamily: 'DMSans_500Medium', fontSize: 11, marginBottom: 4 },
+  intelStatValue: { color: '#34D399', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
+  intelSubHeading: { color: '#94A3B8', fontFamily: 'DMSans_700Bold', fontSize: 12, marginTop: 8 },
+  intelEmpty: { color: 'rgba(0,0,0,0.4)', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 6 },
   strengthBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(16,185,129,0.1)' },
-  strengthText: { color: '#059669', fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
+  strengthText: { color: '#34D399', fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
   gapBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(245,158,11,0.1)' },
-  gapText: { color: '#D97706', fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
+  gapText: { color: '#FCD34D', fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
 
   // Modal specifics
   modalDetailRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingVertical: 8, borderBottomColor: 'rgba(0,0,0,0.05)', borderBottomWidth: 1 },
-  modalDetailLabel: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 13 },
-  modalDetailValue: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 13 },
+  modalDetailLabel: { color: '#94A3B8', fontFamily: 'DMSans_500Medium', fontSize: 13 },
+  modalDetailValue: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 13 },
 
   // Projects section styles
   emptyProj: {

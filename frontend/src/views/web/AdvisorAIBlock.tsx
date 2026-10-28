@@ -1,13 +1,12 @@
 /**
  * AdvisorAIBlock — universal "Talk to Advisor" + "Ask the AI" CTA pair.
  * Drop into any page (Internships, Events, Network, Higher Ed, Financial, etc.).
- * Theme-aware (light/dark) for crystal-clear readability.
+ * Uses MaterialCommunityIcons + RN primitives — no web-only deps.
  */
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator, TextInput, Linking, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { request } from '@/src/models/services/api';
-import { useTheme } from '@/src/theme/ThemeContext';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -17,7 +16,7 @@ export default function AdvisorAIBlock({
   advisorDesc = 'Need personalised advice? Connect with our dedicated student advisors.',
   aiTitle = 'Ask the AI Assistant',
   aiDesc = 'Got a question? Chat with our AI assistant 24×7 — instant answers.',
-  advisorAccent = '#2563EB',
+  advisorAccent = '#60A5FA',
   aiAccent = '#10B981',
   advisorIcon = 'account-tie',
   aiIcon = 'robot-excited',
@@ -50,24 +49,6 @@ export default function AdvisorAIBlock({
   const [aiQuestion, setAiQuestion] = useState('');
   const [aiBusy, setAiBusy] = useState(false);
   const [aiAnswer, setAiAnswer] = useState<string | null>(null);
-
-  const { isDark } = useTheme();
-
-  const colors = {
-    cardBg: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
-    cardBorder: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0',
-    title: isDark ? '#FFFFFF' : '#0F172A',
-    desc: isDark ? '#CBD5E1' : '#475569',
-    note: isDark ? '#94A3B8' : '#64748B',
-    divider: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0',
-    inputBg: isDark ? 'rgba(255,255,255,0.06)' : '#F8FAFC',
-    inputBorder: isDark ? 'rgba(255,255,255,0.12)' : '#CBD5E1',
-    inputText: isDark ? '#FFFFFF' : '#0F172A',
-    inputPlaceholder: isDark ? '#94A3B8' : '#94A3B8',
-    answerBg: isDark ? 'rgba(16,185,129,0.12)' : '#ECFDF5',
-    answerBorder: isDark ? 'rgba(16,185,129,0.30)' : '#A7F3D0',
-    answerText: isDark ? '#E2E8F0' : '#065F46',
-  };
 
   // Manage delayed focus on open and cleanup focus timeout on close/unmount
   React.useEffect(() => {
@@ -107,20 +88,12 @@ export default function AdvisorAIBlock({
   return (
     <View style={s.row}>
       {/* Advisor card */}
-      <View
-        style={[
-          s.card,
-          {
-            backgroundColor: colors.cardBg,
-            borderColor: advisorOpen ? advisorAccent : colors.cardBorder,
-          },
-        ]}
-      >
-        <View style={[s.iconBox, { backgroundColor: advisorAccent + '1A', borderColor: advisorAccent + '40' }]}>
+      <View style={[s.card, { borderColor: advisorAccent + '55' }]}>
+        <View style={[s.iconBox, { backgroundColor: advisorAccent + '22', borderColor: advisorAccent + '66' }]}>
           <MaterialCommunityIcons name={advisorIcon} size={20} color={advisorAccent} />
         </View>
-        <Text style={[s.title, { color: colors.title }]}>{advisorTitle}</Text>
-        <Text style={[s.desc, { color: colors.desc }]}>{advisorDesc}</Text>
+        <Text style={s.title}>{advisorTitle}</Text>
+        <Text style={s.desc}>{advisorDesc}</Text>
         <Pressable
           style={[s.cta, { backgroundColor: advisorAccent }]}
           onPress={() => setAdvisorOpen(!advisorOpen)}
@@ -129,7 +102,7 @@ export default function AdvisorAIBlock({
           <Text style={s.ctaText}>Connect with Advisor</Text>
         </Pressable>
         {advisorOpen && (
-          <View style={[s.expanded, { borderTopColor: colors.divider }]}>
+          <View style={s.expanded}>
             <Pressable style={s.linkRow} onPress={onCallAdvisor}>
               <MaterialCommunityIcons name="phone" size={14} color={advisorAccent} />
               <Text style={[s.linkText, { color: advisorAccent }]}>{advisorTel}</Text>
@@ -138,26 +111,18 @@ export default function AdvisorAIBlock({
               <MaterialCommunityIcons name="email" size={14} color={advisorAccent} />
               <Text style={[s.linkText, { color: advisorAccent }]}>{advisorEmail}</Text>
             </Pressable>
-            <Text style={[s.note, { color: colors.note }]}>Mon–Fri · 9am – 7pm IST · response within 4 hours</Text>
+            <Text style={s.note}>Mon–Fri · 9am – 7pm IST · response within 4 hours</Text>
           </View>
         )}
       </View>
 
       {/* AI card */}
-      <View
-        style={[
-          s.card,
-          {
-            backgroundColor: colors.cardBg,
-            borderColor: aiOpen ? aiAccent : colors.cardBorder,
-          },
-        ]}
-      >
-        <View style={[s.iconBox, { backgroundColor: aiAccent + '1A', borderColor: aiAccent + '40' }]}>
+      <View style={[s.card, { borderColor: aiAccent + '55' }]}>
+        <View style={[s.iconBox, { backgroundColor: aiAccent + '22', borderColor: aiAccent + '66' }]}>
           <MaterialCommunityIcons name={aiIcon} size={20} color={aiAccent} />
         </View>
-        <Text style={[s.title, { color: colors.title }]}>{aiTitle}</Text>
-        <Text style={[s.desc, { color: colors.desc }]}>{aiDesc}</Text>
+        <Text style={s.title}>{aiTitle}</Text>
+        <Text style={s.desc}>{aiDesc}</Text>
         <Pressable
           style={[s.cta, { backgroundColor: aiAccent }]}
           onPress={() => setAiOpen(!aiOpen)}
@@ -166,22 +131,15 @@ export default function AdvisorAIBlock({
           <Text style={[s.ctaText, { color: '#fff' }]}>Chat with AI</Text>
         </Pressable>
         {aiOpen && (
-          <View style={[s.expanded, { borderTopColor: colors.divider }]}>
+          <View style={s.expanded}>
             <View style={s.inputRow}>
               <TextInput
                 ref={aiInputRef}
                 value={aiQuestion}
                 onChangeText={setAiQuestion}
                 placeholder={`Ask about ${context}…`}
-                placeholderTextColor={colors.inputPlaceholder}
-                style={[
-                  s.input,
-                  {
-                    backgroundColor: colors.inputBg,
-                    borderColor: colors.inputBorder,
-                    color: colors.inputText,
-                  },
-                ]}
+                placeholderTextColor="rgba(255,255,255,0.40)"
+                style={s.input}
                 onSubmitEditing={onAskAI}
               />
               <Pressable
@@ -194,14 +152,9 @@ export default function AdvisorAIBlock({
               </Pressable>
             </View>
             {aiAnswer && (
-              <View
-                style={[
-                  s.answerBox,
-                  { backgroundColor: colors.answerBg, borderColor: colors.answerBorder },
-                ]}
-              >
+              <View style={s.answerBox}>
                 <MaterialCommunityIcons name="auto-fix" size={14} color={aiAccent} />
-                <Text style={[s.answerText, { color: colors.answerText }]}>{aiAnswer}</Text>
+                <Text style={s.answerText}>{aiAnswer}</Text>
               </View>
             )}
           </View>
@@ -214,69 +167,53 @@ export default function AdvisorAIBlock({
 const s = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'flex-start' },
   card: {
-    flex: 1,
-    minWidth: 260,
-    padding: 18,
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 10,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.04)' as any,
+    flex: 1, minWidth: 260,
+    padding: 18, borderRadius: 16,
+    backgroundColor: '#ffffff',
+    borderColor: 'rgba(0,0,0,0.08)',
+    borderWidth: 1, gap: 10,
   },
   iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 40, height: 40, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
     borderWidth: 1,
   },
-  title: { fontSize: 15, fontWeight: '800', marginTop: 4 },
-  desc: { fontSize: 12.5, lineHeight: 18 },
+  title: { color: '#111827', fontSize: 15, fontWeight: '800', marginTop: 4 },
+  desc: { color: 'rgba(17,24,39,0.80)', fontSize: 12.5, lineHeight: 18 },
   cta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 11,
-    borderRadius: 8,
-    marginTop: 6,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 11, borderRadius: 8, marginTop: 6,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   ctaText: { color: '#fff', fontSize: 12.5, fontWeight: '800' },
 
   expanded: {
-    marginTop: 6,
-    paddingTop: 10,
-    borderTopWidth: 1,
+    marginTop: 6, paddingTop: 10,
+    borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.08)',
     gap: 8,
   },
   linkRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   linkText: { fontSize: 12.5, fontWeight: '600' },
-  note: { fontSize: 11, fontStyle: 'italic', marginTop: 4 },
+  note: { color: 'rgba(0,0,0,0.6)', fontSize: 11, fontStyle: 'italic', marginTop: 4 },
 
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   input: {
-    flex: 1,
-    fontSize: 13,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 10,
-    borderWidth: 1,
+    flex: 1, color: '#000', fontSize: 13,
+    paddingHorizontal: 12, paddingVertical: 9,
+    borderRadius: 10, borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.12)',
+    backgroundColor: 'rgba(0,0,0,0.05)',
     ...Platform.select({ web: { outlineWidth: 0 as any } as any, default: {} }),
   },
   sendBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 38, height: 38, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
   },
   answerBox: {
-    flexDirection: 'row',
-    gap: 8,
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 10,
+    flexDirection: 'row', gap: 8,
+    backgroundColor: 'rgba(16,185,129,0.08)',
+    borderColor: 'rgba(16,185,129,0.30)', borderWidth: 1,
+    borderRadius: 10, padding: 10,
   },
-  answerText: { fontSize: 12.5, lineHeight: 18, flex: 1 },
+  answerText: { color: '#000', fontSize: 12.5, lineHeight: 18, flex: 1 },
 });

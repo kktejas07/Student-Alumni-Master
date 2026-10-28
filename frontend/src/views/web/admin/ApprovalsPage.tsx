@@ -183,10 +183,10 @@ export default function AdminApprovalsPage() {
                   {m.priority === 'high' && <StatusChip label="High Priority" tone="warn" />}
                 </View>
                 <View style={styles.metaRow}>
-                  {!!m.title && <Text style={styles.meta}> {m.title}</Text>}
-                  {!!m.organization && <Text style={styles.meta}> {m.organization}</Text>}
-                  {!!m.category && <Text style={styles.meta}> {m.category.replace(/_/g, ' ')}</Text>}
-                  {m.years_of_experience != null && <Text style={styles.meta}> {m.years_of_experience} yrs exp</Text>}
+                  {!!m.title && <Text style={styles.meta}>💼 {m.title}</Text>}
+                  {!!m.organization && <Text style={styles.meta}>🏢 {m.organization}</Text>}
+                  {!!m.category && <Text style={styles.meta}>🏷️ {m.category.replace(/_/g, ' ')}</Text>}
+                  {m.years_of_experience != null && <Text style={styles.meta}>⏱ {m.years_of_experience} yrs exp</Text>}
                   {!!m.linkedin_url && (
                     <Pressable
                       onPress={(e: any) => { e.stopPropagation && e.stopPropagation(); Linking.openURL(m.linkedin_url); }}

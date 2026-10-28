@@ -56,11 +56,11 @@ export function MentorsView() {
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text numberOfLines={1} style={s.name}>{m.name}</Text>
               <Text numberOfLines={1} style={s.meta}>{m.role} at {m.company}</Text>
-              {tab === 'active' && <Text style={s.stats}>{m.sessions} sessions · {m.rating}</Text>}
+              {tab === 'active' && <Text style={s.stats}>{m.sessions} sessions · {m.rating}★</Text>}
             </View>
             {tab === 'pending' ? (
               <View style={{ flexDirection: 'row', gap: 6 }}>
-                <Pressable style={s.acceptBtn} onPress={() => onApprove(m.id)}><Check size={13} color="#fff" /><Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 11.5 }}>Approve</Text></Pressable>
+                <Pressable style={s.acceptBtn} onPress={() => onApprove(m.id)}><Check size={13} color="#fff" /><Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 11.5 }}>Approve</Text></Pressable>
                 <Pressable style={s.declineBtn} onPress={() => onReject(m.id)}><X size={13} color={CC.red} /><Text style={{ color: CC.red, fontFamily: FONTS.bold, fontSize: 11.5 }}>Reject</Text></Pressable>
               </View>
             ) : (
@@ -78,7 +78,7 @@ const s = StyleSheet.create({
   count: { backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 7, paddingVertical: 1, borderRadius: 6 },
   countText: { color: CC.muted, fontFamily: FONTS.xbold, fontSize: 10 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 12, padding: 14 },
-  name: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13.5 },
+  name: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13.5 },
   meta: { color: CC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   stats: { color: CC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 4 },
   acceptBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 12, height: 32, borderRadius: 8, backgroundColor: CC.green },

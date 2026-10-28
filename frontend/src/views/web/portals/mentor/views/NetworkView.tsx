@@ -537,7 +537,7 @@ export function NetworkView() {
   const handleAcceptRequest = async (id: string, name: string) => {
     try {
       await api.acceptConnection(id);
-      toast.success('Connection Accepted! ', `${name} is now connected with you.`);
+      toast.success('Connection Accepted! 🎉', `${name} is now connected with you.`);
       setDiscoverSections(prev => prev.map(section => ({
         ...section,
         items: (section.items || []).map((item: any) =>
@@ -1416,7 +1416,7 @@ export function NetworkView() {
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }}>
                       <Av initials={nameInitials} size={64} color={pickedPerson.color} />
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 18 }}>{pickedPerson.name}</Text>
+                        <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 18 }}>{pickedPerson.name}</Text>
                         <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 }}>
                           {titleLine}
                         </Text>
@@ -1462,15 +1462,15 @@ export function NetworkView() {
                       <Text style={{ color: '#F97316', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>MENTOR STATS</Text>
                       <View style={{ flexDirection: 'row', gap: 8 }}>
                         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderRadius: 10, padding: 12 }}>
-                          <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.rating || 5.0}</Text>
+                          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.rating || 5.0}★</Text>
                           <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Rating</Text>
                         </View>
                         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderRadius: 10, padding: 12 }}>
-                          <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.sessions || 0}</Text>
+                          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.sessions || 0}</Text>
                           <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Sessions</Text>
                         </View>
                         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderRadius: 10, padding: 12 }}>
-                          <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 13 }} numberOfLines={1}>{pickedPerson.price || 'Free'}</Text>
+                          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 }} numberOfLines={1}>{pickedPerson.price || 'Free'}</Text>
                           <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Price</Text>
                         </View>
                       </View>
@@ -1587,7 +1587,7 @@ const s = StyleSheet.create({
     justifyContent: 'center'
   },
   metricValue: {
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 18,
     letterSpacing: -0.4
@@ -1781,7 +1781,7 @@ const s = StyleSheet.create({
     ...({ cursor: 'pointer' } as any)
   },
   secTitle: {
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 15,
     letterSpacing: -0.2
@@ -1847,7 +1847,7 @@ const s = StyleSheet.create({
     alignItems: 'center'
   },
   nameBold: {
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 14.5
   },
@@ -2053,7 +2053,7 @@ const s = StyleSheet.create({
     minHeight: 64
   },
   requestName: {
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 14
   },
@@ -2136,7 +2136,7 @@ const s = StyleSheet.create({
     textAlign: 'center'
   },
   stubTitle: {
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 16
   },
@@ -2197,7 +2197,7 @@ const s = StyleSheet.create({
     paddingBottom: 10
   },
   draftModalTitle: {
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 16
   },
@@ -2217,7 +2217,7 @@ const s = StyleSheet.create({
     minHeight: 120
   },
   draftTextInput: {
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     fontFamily: FONTS.med,
     fontSize: 13,
     lineHeight: 18,
@@ -2293,7 +2293,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1
   },
   modalTitle: {
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 15
   },

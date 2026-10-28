@@ -1,10 +1,10 @@
 import asyncio
 from datetime import datetime, timezone
 
-from core.db import db
+from core.career_intelligence import db
 from core.skill_score_engine import calculate_skill_scores
 
-async def evaluate_roadmap_progress(user_id: str) -> dict | None:
+async def evaluate_roadmap_progress(user_id: str) -> dict:
     """
     Evaluates the roadmap milestones dynamically based on verified backend user state.
     """
@@ -25,7 +25,7 @@ async def evaluate_roadmap_progress(user_id: str) -> dict | None:
     if not user:
         return None
 
-    roadmap = await db.career_roadmaps.find_one({"user_id": user_id})
+    roadmap = await db.career_roadmaps.find_one({"user_id": str(user_id)})
     if not roadmap or not roadmap.get("weekly_plan"):
         return roadmap
 
@@ -65,7 +65,7 @@ async def evaluate_roadmap_progress(user_id: str) -> dict | None:
             is_completed = int(user.get("applications_count") or 0) >= 3
         elif m_type == "SKILLS":
             if skill_scores is None:
-                skill_scores = await calculate_skill_scores(user_id)
+                skill_scores = await calculate_skill_scores(str(user_id))
             is_completed = skill_scores.get("technical_skills", 0) >= 50
         elif m_type == "LINKEDIN":
             is_completed = bool(user.get("linkedin_url"))

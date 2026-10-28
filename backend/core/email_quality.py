@@ -307,15 +307,10 @@ async def postal_webhook(request: Request):
     email, status = _extract_bounce_email(body)
     hard = any(k in status for k in ("hard", "bounce", "failed", "error"))
     event = str(body.get("event") or "").lower()
-    
-    if "bounce" in event or "fail" in event or "held" in event:
+    if "bounce" in event or "fail" in event:
         hard = True
-        
     if email and "@" in email and hard:
         await suppress(email, status or event or "bounce", source="postal_webhook")
-        
-        # If it's a hard bounce or held, we might want to cancel pending in postal,
-        # but the webhook itself means it already failed.
     return {"ok": True}
 
 
@@ -401,7 +396,7 @@ async def unsuppress_email(
 
 @router.delete("/admin/email-quality/suppressions/bulk")
 async def bulk_unsuppress_emails(
-    emails: list[str] = Query(..., description="List of emails to restore"),
+    emails: List[str] = Query(..., description="List of emails to restore"),
     _user: dict = Depends(_admin_user),
 ):
     """Restore multiple suppressed emails at once."""
@@ -442,37 +437,6 @@ async def unsuppress_all_emails(
     }
 
 
-@router.post("/admin/email-quality/suppressions/bulk")
-async def bulk_suppress_emails(
-    request: Request,
-    _user: dict = Depends(_admin_user),
-):
-    """Suppress multiple emails at once (e.g. from audit results)."""
-    try:
-        body = await request.json()
-    except Exception:
-        body = {}
-        
-    emails = body.get("emails", [])
-    reason = body.get("reason", "bulk_suppress")
-    source = body.get("source", "audit")
-    
-    if not isinstance(emails, list):
-        raise HTTPException(400, "emails must be a list")
-        
-    suppressed_count = 0
-    for email in emails:
-        if email and isinstance(email, str):
-            await suppress(email, reason, source)
-            suppressed_count += 1
-            
-    return {
-        "ok": True,
-        "suppressed": suppressed_count,
-        "message": f"Suppressed {suppressed_count} emails"
-    }
-
-
 @router.get("/admin/email-quality/audit")
 async def audit_all_emails(
     _user: dict = Depends(_admin_user),
@@ -492,8 +456,8 @@ async def audit_all_emails(
     # Load disposable domains list
     disposable_domains = set(_FALLBACK)
     try:
-        if _domains:
-            disposable_domains = set(_domains)
+        if _disposable_cache:
+            disposable_domains = set(_disposable_cache)
     except:
         pass
     
@@ -510,8 +474,6 @@ async def audit_all_emails(
         "suppressed": 0,
         "duplicate": 0,
         "issues": [],
-        "health_score": 0.0,
-        "issue_count": 0,
     }
     
     seen_emails = set()
@@ -617,57 +579,3 @@ async def audit_all_emails(
     stats["issue_count"] = len(stats["issues"])
     
     return stats
-
-
-@router.post("/admin/email-quality/postal-sync")
-async def sync_postal(
-    _user: dict = Depends(_admin_user),
-):
-    """Sync held messages and bounces from Postal API."""
-    import httpx
-    from core.email import get_postal_config, _get_postal_from_db
-    
-    cfg = get_postal_config()
-    if not cfg:
-        cfg = await _get_postal_from_db()
-        
-    if not cfg or not cfg.get("api_url") or not cfg.get("server_api_key"):
-        return {"ok": False, "message": "Postal is not configured"}
-        
-    api_url = cfg["api_url"].rstrip("/")
-    api_key = cfg["server_api_key"]
-    
-    headers = {
-        "X-Server-API-Key": api_key,
-        "Content-Type": "application/json"
-    }
-    
-    synced = 0
-    try:
-        async with httpx.AsyncClient(timeout=10) as c:
-            # Postal API to search messages by status
-            r = await c.post(f"{api_url}/api/v1/messages", headers=headers, json={"status": "Held"})
-            if r.status_code == 200:
-                data = r.json()
-                if isinstance(data, dict) and "data" in data:
-                    messages = data["data"]
-                    if isinstance(messages, list):
-                        for msg in messages:
-                            msg_to = msg.get("to")
-                            msg_status = msg.get("status")
-                            msg_id = msg.get("id")
-                            if msg_to and msg_status == "Held":
-                                await suppress(msg_to, "held_by_postal", source="postal_sync")
-                                synced += 1
-                                # Attempt to cancel the held message in Postal
-                                if msg_id:
-                                    try:
-                                        # Postal cancellation endpoint might be /api/v1/messages/cancel
-                                        # Not checking response to allow graceful failure if unsupported
-                                        await c.post(f"{api_url}/api/v1/messages/cancel", headers=headers, json={"id": msg_id})
-                                    except Exception:
-                                        pass
-    except Exception as e:
-        return {"ok": False, "message": str(e)}
-        
-    return {"ok": True, "message": f"Postal sync completed. Synced {synced} held messages.", "synced": synced}

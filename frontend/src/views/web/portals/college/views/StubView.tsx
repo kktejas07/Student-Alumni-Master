@@ -19,6 +19,6 @@ export function StubView({ title, note }: { title: string; note: string }) {
 const s = StyleSheet.create({
   wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 60 },
   icon: { width: 60, height: 60, borderRadius: 16, backgroundColor: CC.card, borderColor: CC.border2, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  title: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, marginBottom: 8 },
+  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, marginBottom: 8 },
   note:  { color: CC.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center', maxWidth: 460, lineHeight: 20 },
 });

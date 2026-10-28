@@ -20,7 +20,7 @@ export function Av({ initials, size = 42, color, photo }: { initials: string; si
       {photo ? (
         <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
       ) : (
-        <Text style={{ fontFamily: FONTS.xbold, fontSize: size * 0.33, color: '#FFFFFF' }}>{initials}</Text>
+        <Text style={{ fontFamily: FONTS.xbold, fontSize: size * 0.33, color: '#1C1C1E' }}>{initials}</Text>
       )}
     </View>
   );

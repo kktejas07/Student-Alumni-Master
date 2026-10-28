@@ -21,7 +21,7 @@ import {
   Building2, MapPin, Globe, Briefcase, GraduationCap, ExternalLink,
   MoreVertical, Eye,
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, FONTS } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   StatusPill, Toast, useToast, KpiTile, SearchField,
@@ -89,8 +89,6 @@ const SOURCE_ICONS: Record<string, any> = {
 };
 
 export function ContactsView() {
-  const T = useSAC();
-  Object.assign(st, resolveColors(st, T));
   const { toast, flash, hide } = useToast();
   const { confirm } = useConfirm();
   const [loading, setLoading] = useState(true);
@@ -100,13 +98,11 @@ export function ContactsView() {
   const [totalPages, setTotalPages] = useState(1);
   const [q, setQ] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showImport, setShowImport] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState<Contact | null>(null);
   const [showDetail, setShowDetail] = useState<Contact | null>(null);
-  const [showShare, setShowShare] = useState(false);
   const [lists, setLists] = useState<ContactList[]>([]);
   const [stats, setStats] = useState<any>(null);
 
@@ -128,7 +124,6 @@ export function ContactsView() {
       });
       if (q) params.set('q', q);
       if (sourceFilter) params.set('source', sourceFilter);
-      if (roleFilter) params.set('role', roleFilter);
 
       const token = await authToken();
       const res = await fetch(`${apiBase}/api/admin/contacts?${params}`, {
@@ -143,7 +138,7 @@ export function ContactsView() {
     } finally {
       setLoading(false);
     }
-  }, [page, q, sourceFilter, roleFilter, flash]);
+  }, [page, q, sourceFilter, flash]);
 
   const loadLists = useCallback(async () => {
     try {
@@ -251,98 +246,53 @@ export function ContactsView() {
         <View style={st.headRow}>
           <IconBox size={38}><Users size={18} color={GRAD.to} /></IconBox>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={st.title}>Contacts Directory</Text>
-            <Text style={st.sub}>Manage contacts, import CSV/XLSX lists, filter by College, Student, Mentor & Alumni, and share email lists.</Text>
+            <Text style={st.title}>Contacts</Text>
+            <Text style={st.sub}>Manage contacts, import from CSV/XLSX, and send targeted newsletters.</Text>
           </View>
-          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-            <SecondaryButton onPress={() => setShowShare(true)}>
-              <Mail size={12} color={SAC.muted} />
-              <Text style={st.secText}>Export / Copy Emails</Text>
-            </SecondaryButton>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
             <SecondaryButton onPress={() => setShowImport(true)}>
               <Upload size={12} color={SAC.muted} />
               <Text style={st.secText}>Import</Text>
             </SecondaryButton>
             <GradientButton onPress={() => setShowAdd(true)} size="sm">
               <Plus size={14} color="#fff" />
-              <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Add</Text>
+              <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Add</Text>
             </GradientButton>
           </View>
         </View>
       </Card>
 
-      {/* KPI Stats */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingBottom: 4 }}>
-        <KpiTile Icon={Users} label="Total Directory" value={String(stats?.total || 0)} />
+      {/* Stats */}
+      <View style={st.kpiRow}>
+        <KpiTile Icon={Users} label="Total" value={String(stats?.total || 0)} />
         <KpiTile Icon={User} label="Registered" value={String(stats?.registered_count || 0)} />
-        <KpiTile Icon={FileText} label="Prospects (Imported)" value={String(stats?.prospects_count || stats?.imported_count || 0)} />
-        <KpiTile Icon={GraduationCap} label="Students" value={String(stats?.students_count || 0)} />
-        <KpiTile Icon={Briefcase} label="Mentors" value={String(stats?.mentors_count || 0)} />
-        <KpiTile Icon={Tag} label="Alumni" value={String(stats?.alumni_count || 0)} />
-        <KpiTile Icon={Building2} label="College & Admins" value={String(stats?.college_count || 0)} />
-      </ScrollView>
+        <KpiTile Icon={FileText} label="Imported" value={String(stats?.imported_count || 0)} />
+        <KpiTile Icon={List} label="Lists" value={String(stats?.lists || 0)} />
+      </View>
 
-      {/* Search & Role / Source Filters */}
-      <Card style={{ gap: 12 }}>
+      {/* Search & Filters */}
+      <Card>
         <View style={st.cardHead}>
-          <SectionLabel>FILTERS & SEARCH</SectionLabel>
+          <SectionLabel>SEARCH</SectionLabel>
           <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-            <SearchField value={q} onChange={setQ} placeholder="Search name, email, company, location…" width={280} />
+            <SearchField value={q} onChange={setQ} placeholder="Search name, email, company…" width={260} />
             <Pressable onPress={() => { setPage(1); loadContacts(); }} style={st.searchGo}>
               <Text style={st.secText}>Apply</Text>
             </Pressable>
           </View>
         </View>
-
-        {/* Role Pills */}
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Role & Category</Text>
-          <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-            {[
-              { id: '', label: 'All Roles' },
-              { id: 'student', label: '🎓 Students' },
-              { id: 'mentor', label: '💼 Mentors' },
-              { id: 'alumni', label: '🏆 Alumni' },
-              { id: 'college', label: '🏛️ College & Admins' },
-              { id: 'prospect', label: '📋 Prospects (Non-Users)' },
-              { id: 'registered', label: '⚡ Registered Users' },
-            ].map(r => (
-              <Pressable
-                key={r.id}
-                onPress={() => { setRoleFilter(r.id); setPage(1); }}
-                style={[st.filterPill, roleFilter === r.id && st.filterPillActive]}
-              >
-                <Text style={[st.filterPillText, roleFilter === r.id && st.filterPillTextActive]}>
-                  {r.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        {/* Source Pills */}
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Import Source</Text>
-          <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-            {[
-              { id: '', label: 'All Sources' },
-              { id: 'registered', label: 'Registered' },
-              { id: 'csv', label: 'CSV / Excel' },
-              { id: 'manual', label: 'Manual' },
-              { id: 'echo', label: 'ECHO' },
-              { id: 'newsletter', label: 'Newsletter' },
-            ].map(s => (
-              <Pressable
-                key={s.id}
-                onPress={() => { setSourceFilter(s.id); setPage(1); }}
-                style={[st.filterPill, sourceFilter === s.id && st.filterPillActive]}
-              >
-                <Text style={[st.filterPillText, sourceFilter === s.id && st.filterPillTextActive]}>
-                  {s.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+        <View style={{ flexDirection: 'row', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+          {['', 'registered', 'csv', 'manual', 'echo', 'newsletter', 'website'].map(s => (
+            <Pressable
+              key={s}
+              onPress={() => { setSourceFilter(s); setPage(1); }}
+              style={[st.filterPill, sourceFilter === s && st.filterPillActive]}
+            >
+              <Text style={[st.filterPillText, sourceFilter === s && st.filterPillTextActive]}>
+                {s || 'All'}
+              </Text>
+            </Pressable>
+          ))}
         </View>
       </Card>
 
@@ -513,170 +463,7 @@ export function ContactsView() {
       {showDetail && (
         <ContactDetailModal contact={showDetail} onClose={() => setShowDetail(null)} onEdit={(c) => { setShowDetail(null); setShowEdit(c); }} />
       )}
-      {showShare && (
-        <ExportShareModal visible={showShare} onClose={() => setShowShare(false)} roleFilter={roleFilter} sourceFilter={sourceFilter} q={q} flash={flash} />
-      )}
     </View>
-  );
-}
-
-// ── Export & Share Email List Modal ──────────────────────────────────────────
-
-function ExportShareModal({
-  visible,
-  onClose,
-  roleFilter,
-  sourceFilter,
-  q,
-  flash,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  roleFilter: string;
-  sourceFilter: string;
-  q: string;
-  flash: (m: string) => void;
-}) {
-  const [loading, setLoading] = useState(true);
-  const [emailString, setEmailString] = useState('');
-  const [emailCount, setEmailCount] = useState(0);
-  const [copied, setCopied] = useState(false);
-
-  const apiBase = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
-
-  useEffect(() => {
-    if (!visible) return;
-    setLoading(true);
-    (async () => {
-      try {
-        const { tokenStore } = await import('@/src/models/services/api');
-        const token = await tokenStore.getAccess();
-        const params = new URLSearchParams({ format: 'emails' });
-        if (q) params.set('q', q);
-        if (sourceFilter) params.set('source', sourceFilter);
-        if (roleFilter) params.set('role', roleFilter);
-
-        const res = await fetch(`${apiBase}/api/admin/contacts/export?${params}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        setEmailString(data.email_string || '');
-        setEmailCount(data.count || 0);
-      } catch (e: any) {
-        flash(e?.message || 'Failed to fetch email list');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [visible, roleFilter, sourceFilter, q]);
-
-  const copyToClipboard = () => {
-    if (!emailString) return;
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(emailString);
-      setCopied(true);
-      flash?.(`${emailCount} email addresses copied to clipboard!`);
-      setTimeout(() => setCopied(false), 3000);
-    }
-  };
-
-  const downloadCsv = async () => {
-    try {
-      const { tokenStore } = await import('@/src/models/services/api');
-      const token = await tokenStore.getAccess();
-      const params = new URLSearchParams({ format: 'csv' });
-      if (q) params.set('q', q);
-      if (sourceFilter) params.set('source', sourceFilter);
-      if (roleFilter) params.set('role', roleFilter);
-
-      const res = await fetch(`${apiBase}/api/admin/contacts/export?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `contacts_${roleFilter || 'all'}_export.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      flash?.('CSV Export downloaded!');
-    } catch (e: any) {
-      flash?.('Failed to download CSV');
-    }
-  };
-
-  if (!visible) return null;
-
-  return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
-      <View style={st.modalOverlay}>
-        <Pressable style={st.modalBackdrop} onPress={onClose} />
-        <View style={st.detailModal}>
-          <View style={st.importHeader}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.15)', alignItems: 'center', justifyContent: 'center' }}>
-                <Mail size={18} color="#C4B5FD" />
-              </View>
-              <View>
-                <Text style={st.importTitle}>Export & Share Email List</Text>
-                <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>
-                  {roleFilter ? `Segment: ${roleFilter.toUpperCase()}` : 'All Contacts & Users'}
-                </Text>
-              </View>
-            </View>
-            <Pressable onPress={onClose} style={st.closeBtn}><X size={18} color={SAC.muted} /></Pressable>
-          </View>
-
-          <ScrollView style={st.importContent}>
-            {loading ? (
-              <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color={GRAD.from} />
-              </View>
-            ) : (
-              <View style={{ gap: 16 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(124,58,237,0.1)', padding: 14, borderRadius: 12 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <Users size={20} color="#C4B5FD" />
-                    <View>
-                      <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: '#fff' }}>{emailCount} Email Addresses Found</Text>
-                      <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>Ready to copy or export</Text>
-                    </View>
-                  </View>
-                  <GradientButton onPress={copyToClipboard} size="sm">
-                    {copied ? <Check size={14} color="#fff" /> : <Mail size={14} color="#fff" />}
-                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12, marginLeft: 4 }}>
-                      {copied ? 'Copied!' : 'Copy All Emails'}
-                    </Text>
-                  </GradientButton>
-                </View>
-
-                <View style={{ gap: 6 }}>
-                  <Text style={st.fieldLabel}>Email List (Comma-separated)</Text>
-                  <TextInput
-                    multiline
-                    editable={false}
-                    value={emailString}
-                    style={[st.textInput, { height: 140, textAlignVertical: 'top', fontSize: 12, fontFamily: FONTS.mono || FONTS.med }]}
-                  />
-                </View>
-
-                <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'flex-end' }}>
-                  <SecondaryButton onPress={downloadCsv}>
-                    <Download size={14} color={SAC.text} />
-                    <Text style={st.secText}>Download CSV Export</Text>
-                  </SecondaryButton>
-                </View>
-              </View>
-            )}
-          </ScrollView>
-
-          <View style={st.importFooter}>
-            <SecondaryButton onPress={onClose}><Text style={st.secondaryBtnText}>Close</Text></SecondaryButton>
-          </View>
-        </View>
-      </View>
-    </Modal>
   );
 }
 
@@ -1064,7 +851,7 @@ function AddEditModal({ visible, contact, lists, onClose, onSave }: { visible: b
 
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
@@ -1082,7 +869,7 @@ const st = StyleSheet.create({
   tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
   tableRowSelected: { backgroundColor: 'rgba(124,58,237,0.08)' },
   cell: { fontFamily: FONTS.med, fontSize: 12, color: '#e5e7eb' },
-  cellBold: { fontFamily: FONTS.bold, fontSize: 12.5, color: SAC.text },
+  cellBold: { fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' },
   cellDim: { fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim },
   checkbox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1.5, borderColor: 'rgba(167,139,250,0.5)', alignItems: 'center', justifyContent: 'center' },
   checkboxChecked: { backgroundColor: GRAD.from, borderColor: GRAD.from },
@@ -1096,7 +883,7 @@ const st = StyleSheet.create({
   pageBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, backgroundColor: 'rgba(255,255,255,0.04)' },
   pageBtnDisabled: { opacity: 0.4 },
   pageBtnText: { fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted },
-  modalOverlay: { flex: 1, backgroundColor: SAC.panel2, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.72)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   modalBackdrop: { ...StyleSheet.absoluteFillObject },
   importModal: { width: '100%', maxWidth: 480, backgroundColor: '#141A2D', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)', maxHeight: '80vh' },
   detailModal: { width: '100%', maxWidth: 520, backgroundColor: '#141A2D', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)', maxHeight: '80vh' },
@@ -1118,7 +905,7 @@ const st = StyleSheet.create({
   textInput: { backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, color: SAC.text, fontFamily: FONTS.med, fontSize: 13 },
   importFooter: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, padding: 16, borderTopWidth: 1, borderTopColor: SAC.border },
   secondaryBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  primaryBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
+  primaryBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
   successIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(16,185,129,0.15)', alignItems: 'center', justifyContent: 'center' },
   successTitle: { fontFamily: FONTS.bold, fontSize: 16, color: SAC.text },
   statsRow: { flexDirection: 'row', gap: 12, width: '100%' },

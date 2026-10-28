@@ -6,7 +6,7 @@ import {
   Trash2, Pencil, Eye, Bot, Sparkles, Database, Layers, ArrowRight, ArrowDown,
   Settings, Sliders, Split, Send, Bell, Mail, ShieldCheck, RefreshCw, Move, Code, FileText, CheckCircle2
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { GradientButton, SecondaryButton, Toast, useToast, IconBox } from '../applekit';
 import { usePortalData, postPortal, patchPortal, deletePortal } from '@/src/lib/portalApi';
@@ -108,8 +108,6 @@ const TEMPLATE_PRESETS = [
 const FALLBACK = { items: [] as Wf[] };
 
 export function WorkflowsView() {
-  const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
   const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/workflows', FALLBACK);
   const [viewMode, setViewMode] = useState<'canvas' | 'list'>('canvas');
   const [nodes, setNodes] = useState<GraphNode[]>(DEFAULT_GRAPH_NODES);
@@ -269,14 +267,14 @@ export function WorkflowsView() {
               style={[s.modeBtn, viewMode === 'canvas' && s.modeBtnActive]}
             >
               <Layers size={13} color={viewMode === 'canvas' ? '#fff' : SAC.muted} />
-              <Text style={[s.modeText, viewMode === 'canvas' && { color: SAC.text }]}>Visual Canvas</Text>
+              <Text style={[s.modeText, viewMode === 'canvas' && { color: '#fff' }]}>Visual Canvas</Text>
             </Pressable>
             <Pressable
               onPress={() => setViewMode('list')}
               style={[s.modeBtn, viewMode === 'list' && s.modeBtnActive]}
             >
               <Sliders size={13} color={viewMode === 'list' ? '#fff' : SAC.muted} />
-              <Text style={[s.modeText, viewMode === 'list' && { color: SAC.text }]}>Workflows List</Text>
+              <Text style={[s.modeText, viewMode === 'list' && { color: '#fff' }]}>Workflows List</Text>
             </Pressable>
           </View>
           <Pressable onPress={() => setCreating(true)} style={s.cta}>
@@ -607,7 +605,7 @@ export function WorkflowsView() {
       <Modal visible={!!deleteWf} transparent animationType="fade" onRequestClose={() => setDeleteWf(null)}>
         <View style={s.modalBg}>
           <View style={[s.modalCard, { maxWidth: 400, padding: 20, gap: 14 }]}>
-            <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 16 }}>Delete Workflow?</Text>
+            <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 16 }}>Delete Workflow?</Text>
             <Text style={{ color: SAC.muted, fontSize: 13 }}>Are you sure you want to delete "{deleteWf?.name}"? This action cannot be undone.</Text>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
               <SecondaryButton onPress={() => setDeleteWf(null)}><Text style={s.secText}>Cancel</Text></SecondaryButton>
@@ -626,14 +624,14 @@ const s = StyleSheet.create({
   container: { gap: 16 },
   banner: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: 14, backgroundColor: 'rgba(99,102,241,0.08)', borderColor: SAC.border2, borderWidth: 1, alignItems: 'center' },
   bIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(99,102,241,0.18)', alignItems: 'center', justifyContent: 'center' },
-  bTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
+  bTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
   bSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 18 },
-  modeToggle: { flexDirection: 'row', backgroundColor: SAC.panel2, borderRadius: 10, padding: 3, borderWidth: 1, borderColor: SAC.border },
+  modeToggle: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 10, padding: 3, borderWidth: 1, borderColor: SAC.border },
   modeBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
   modeBtnActive: { backgroundColor: SAC.primary },
   modeText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
   cta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: SAC.primary },
-  ctaText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
+  ctaText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
 
   // Canvas Styles
   canvasControlBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12, padding: 12 },
@@ -641,62 +639,62 @@ const s = StyleSheet.create({
   presetPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: SAC.border, borderWidth: 1 },
   presetText: { color: '#eee', fontFamily: FONTS.med, fontSize: 11.5 },
   testRunBtn: { paddingHorizontal: 14, height: 32, borderRadius: 8, backgroundColor: '#10b981', justifyContent: 'center', alignItems: 'center' },
-  testRunText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
-  paletteBar: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: 10, borderRadius: 12, backgroundColor: SAC.panel2, borderWidth: 1, borderColor: SAC.border },
+  testRunText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  paletteBar: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: 10, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.2)', borderWidth: 1, borderColor: SAC.border },
   paletteTitle: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   paletteBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: SAC.card, borderWidth: 1 },
-  paletteBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5 },
+  paletteBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11.5 },
   canvasContainer: { minHeight: 380, maxHeight: 600, backgroundColor: 'rgba(10,15,30,0.7)', borderColor: SAC.border2, borderWidth: 1, borderRadius: 16 },
   nodeCard: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 16 },
   nodeExecutingGlow: { backgroundColor: 'rgba(16,185,129,0.12)', borderColor: '#10b981' },
   nodeIconBox: { width: 40, height: 40, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  nodeTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13.5 },
+  nodeTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
   nodeSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   nodeDeleteBtn: { padding: 8 },
   configRow: { flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' },
-  configChip: { flexDirection: 'row', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: SAC.panel2, borderWidth: 1, borderColor: SAC.border },
+  configChip: { flexDirection: 'row', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(0,0,0,0.35)', borderWidth: 1, borderColor: SAC.border },
   configChipKey: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
   configChipVal: { color: '#93c5fd', fontFamily: FONTS.bold, fontSize: 10.5 },
   arrowRow: { alignItems: 'center', justifyContent: 'center', marginVertical: -4 },
   arrowLine: { width: 2, height: 8, backgroundColor: SAC.border },
   arrowHead: { width: 26, height: 26, borderRadius: 13, backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', justifyContent: 'center' },
   inspectorCard: { backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 16 },
-  inspectorTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13.5 },
+  inspectorTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
   inspectorLabel: { color: '#ccc', fontFamily: FONTS.bold, fontSize: 11.5 },
-  logsCard: { backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 14, gap: 6 },
-  logsTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13, marginBottom: 4 },
+  logsCard: { backgroundColor: 'rgba(0,0,0,0.6)', borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 14, gap: 6 },
+  logsTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 4 },
   logLine: { color: '#a7f3d0', fontFamily: FONTS.med, fontSize: 11.5 },
 
   // List View Styles
   card: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 16 },
   dot: { width: 4, height: 36, borderRadius: 2 },
-  name: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 14 },
+  name: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14 },
   trigger: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
   dotSep: { color: SAC.dim },
   noSteps: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11.5 },
   step: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.04)' },
-  statRuns: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
+  statRuns: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
   statSuccess: { fontFamily: FONTS.bold, fontSize: 11 },
   iconBtn: { padding: 6, borderRadius: 6, borderWidth: 1, borderColor: SAC.border, backgroundColor: 'rgba(255,255,255,0.03)' },
   runBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: 'rgba(251,191,36,0.12)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)' },
   runText: { color: SAC.accent, fontFamily: FONTS.bold, fontSize: 11.5 },
   emptyState: { alignItems: 'center', padding: 40, gap: 10 },
-  emptyTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 15 },
+  emptyTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 15 },
   emptySub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center' },
 
   // Modal Common
-  modalBg: { flex: 1, backgroundColor: SAC.panel2, alignItems: 'center', justifyContent: 'center', padding: 16 },
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center', padding: 16 },
   modalCard: { width: '100%', backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 16, overflow: 'hidden' },
   modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
-  modalTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 15 },
+  modalTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 15 },
   muted: { color: SAC.muted, fontSize: 12 },
-  secText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
-  btnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
-  input: { backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1, borderRadius: 8, padding: 10, color: SAC.text, fontSize: 12.5 },
+  secText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  btnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  input: { backgroundColor: 'rgba(0,0,0,0.3)', borderColor: SAC.border, borderWidth: 1, borderRadius: 8, padding: 10, color: '#fff', fontSize: 12.5 },
   label: { color: '#ccc', fontFamily: FONTS.bold, fontSize: 12 },
   hint: { color: SAC.muted, fontSize: 11 },
   eventToggle: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.border },
   eventToggleActive: { backgroundColor: SAC.primary, borderColor: SAC.accent },
   eventToggleText: { color: SAC.muted, fontSize: 11 },
-  eventToggleTextActive: { color: SAC.text, fontFamily: FONTS.bold }
+  eventToggleTextActive: { color: '#fff', fontFamily: FONTS.bold }
 });

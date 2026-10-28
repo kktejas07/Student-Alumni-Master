@@ -6,7 +6,7 @@ export const COLLEGE = {
   shortName: "St. Xavier's",
   initials: 'SX',
   rank: 'NAAC A++',
-  emoji: '',
+  emoji: '🌅',
   placementRate: 94,
   upcomingHighlight: 'Google drive confirmed for May 10',
   tier: {

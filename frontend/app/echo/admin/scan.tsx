@@ -7,7 +7,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ScanLine, Check, X, Camera, Keyboard, Ticket } from '@/src/views/web/portals/student/iconShims';
+import { ArrowLeft, ScanLine, Check, X, Camera, Keyboard, Ticket } from 'lucide-react-native';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 
 // ── QR Camera Scanner (html5-qrcode) ────────────────────────────────────────
@@ -22,25 +22,7 @@ function QRScanner({ onScan, onClose }: { onScan: (code: string) => void; onClos
     const start = async () => {
       if (!containerRef.current || !mounted) return;
       try {
-        if (typeof window === 'undefined') return;
-        
-        const loadScript = () => {
-          return new Promise<void>((resolve, reject) => {
-            if ((window as any).Html5Qrcode) {
-              resolve();
-              return;
-            }
-            const script = document.createElement('script');
-            script.src = 'https://unpkg.com/html5-qrcode';
-            script.async = true;
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error("Failed to load html5-qrcode"));
-            document.body.appendChild(script);
-          });
-        };
-        
-        await loadScript();
-        const Html5Qrcode = (window as any).Html5Qrcode;
+        const { Html5Qrcode } = await import('html5-qrcode');
         scanner = new Html5Qrcode('qr-reader');
         scannerRef.current = scanner;
 
@@ -53,10 +35,8 @@ function QRScanner({ onScan, onClose }: { onScan: (code: string) => void; onClos
           },
           (decodedText: string) => {
             if (mounted) {
-              mounted = false; // Prevent multiple triggers
-              setTimeout(() => {
-                onScan(decodedText);
-              }, 10);
+              scanner.stop().catch(() => {});
+              onScan(decodedText);
             }
           },
           () => {} // ignore scan failures (no QR in frame)
@@ -72,9 +52,8 @@ function QRScanner({ onScan, onClose }: { onScan: (code: string) => void; onClos
     return () => {
       mounted = false;
       if (scannerRef.current) {
-        scannerRef.current.stop().then(() => {
-          scannerRef.current.clear().catch(() => {});
-        }).catch(() => {});
+        scannerRef.current.stop().catch(() => {});
+        scannerRef.current.clear().catch(() => {});
       }
     };
   }, []);
@@ -131,7 +110,6 @@ export default function EchoScanPage() {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [accessCheck, setAccessCheck] = useState<'loading' | 'ok' | 'denied'>('loading');
   const inputRef = useRef<any>(null);
-  const locationRef = useRef<{ lat: number; lng: number } | null>(null);
 
   // Access guard — check if user is super_admin or volunteer
   useEffect(() => {
@@ -159,26 +137,12 @@ export default function EchoScanPage() {
     return () => { mounted = false; };
   }, []);
 
-  // Request geolocation on mount
-  useEffect(() => {
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          locationRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        },
-        (err) => console.warn('Geolocation error:', err)
-      );
-    }
-  }, []);
-
   const submitCode = async (c: string) => {
     const original = (c || '').trim();
+    const isTicketPayload = original.startsWith('ECHO:') || original.includes('%3A');
     let raw = original;
-    const urlMatch = raw.match(/\/echo\/scan\/([^?#]+)/);
-    if (urlMatch) raw = decodeURIComponent(urlMatch[1]);
-    // A ticket/entry-pass id preserves the stored casing (ids like `dc08b4e9a27d`,
-    // `9a361543a98b_M1`, `Echo-A6F1...`). Coupon codes are stored uppercase.
-    // Detect format BEFORE uppercasing so we can send the raw id for tickets.
+    const urlMatch = raw.match(/\/echo\/scan\/([A-Za-z0-9-]+)/);
+    if (urlMatch) raw = urlMatch[1];
     const codeUpper = raw.toUpperCase();
     if (!codeUpper) return;
     setLoading(true);
@@ -188,48 +152,33 @@ export default function EchoScanPage() {
     const token = await tokenStore.getAccess();
     const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     try {
-      // Determine if this is a ticket/entry-pass: ECHO: payload, URL-encoded colon,
-      // `Echo-<hex>` id, bare 8/12/24-char hex reg_id, or a team-member id like
-      // `<12-hex>_M<num>` (e.g. `9a361543a98b_M1`). Anything else is a coupon code.
-      const ticketId = original.startsWith('ECHO:') || original.includes('%3A')
-        ? original
-        : raw;
-      const isTicket = original.startsWith('ECHO:') || original.includes('%3A')
-        || /^echo-[0-9a-f]{16}$/i.test(ticketId)
-        || /^[a-f0-9]{8}$/i.test(ticketId)
-        || /^[a-f0-9]{12}$/i.test(ticketId)
-        || /^[a-f0-9]{24}$/i.test(ticketId)
-        || /^[a-f0-9]{12}_m[0-9]+$/i.test(ticketId)
-        || /^echo-[0-9a-f]{16}(?:_m[0-9]+)?$/i.test(ticketId);
-      const loc = locationRef.current;
-
-      if (isTicket) {
-        // Entry-pass / ticket check-in — send the RAW (case-preserved) id so the
-        // case-sensitive lowercase ids in the DB resolve correctly.
-        const resp = await fetch(`${base}/api/echo/admin/registrations/check-in`, {
+      // Entry-pass / ticket payload (ECHO:... or URL-wrapped or bare reg id)
+      const isTicketPayload2 = isTicketPayload || raw.startsWith('ECHO:') || /^[a-f0-9]{12}$/i.test(raw);
+      if (isTicketPayload) {
+        const resp = await fetch(`${base}/api/echo/admin/registrations/verify`, {
           method: 'POST',
           headers,
-          body: JSON.stringify({ ticket: ticketId || codeUpper, ...(loc ? { lat: loc.lat, lng: loc.lng } : {}) }),
+          body: JSON.stringify({ ticket: original }),
         });
         const data = await resp.json();
         if (!resp.ok) {
           setResult({ ok: false, status: 'invalid', message: data?.detail || 'Invalid ticket' });
           setRecent((prev) => [{ ok: false, scannedCode: codeUpper, time: new Date().toLocaleTimeString() }, ...prev].slice(0, 50));
         } else {
-          const attendee = data.attendee || {};
+          const reg = data.registration || {};
           const result = {
             ok: true,
             type: 'ticket',
-            status: data.first_checkin ? 'valid' : 'checked_in',
-            message: data.first_checkin ? 'First check-in successful' : 'Already checked in',
+            status: data.valid ? (data.checked_in ? 'checked_in' : 'valid') : 'unconfirmed',
+            message: data.message || (data.valid ? 'Valid ticket' : 'Ticket not confirmed'),
             coupon: {
-              session_name: attendee.event_title || 'Event pass',
-              attendee_name: attendee.full_name || attendee.name || 'Attendee',
-              attendee_email: attendee.email || '',
-              code: attendee.id || codeUpper,
+              session_name: reg.event_title || 'Event pass',
+              attendee_name: reg.full_name || 'Unknown',
+              attendee_email: reg.email || '',
+              code: reg.id || codeUpper,
               used_at: data.checked_in_at || null,
-              verified: true,
-              checked_in: true,
+              verified: data.valid,
+              checked_in: data.checked_in,
             },
           };
           setResult(result);
@@ -238,11 +187,11 @@ export default function EchoScanPage() {
         return;
       }
 
-      // Coupon code → scan-coupon flow
+      // Coupon code → existing scan-coupon flow
       const resp = await fetch(`${base}/api/echo/admin/scan-coupon`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ code: codeUpper, ...(loc ? { lat: loc.lat, lng: loc.lng } : {}) }),
+        body: JSON.stringify({ code: codeUpper }),
       });
       const data = await resp.json();
       setResult(data);
@@ -313,15 +262,11 @@ export default function EchoScanPage() {
       <EchoHeader current="echo" />
       <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
         <View style={s.content}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, width: '100%', maxWidth: 600, alignSelf: 'center' }}>
-            <Pressable onPress={() => router.push('/echo')} style={[s.backBtn, { marginBottom: 0 }]}>
-              <ArrowLeft size={14} color="#fff" />
-              <Text style={s.backText}>Back to ECHO</Text>
-            </Pressable>
-            <Pressable onPress={() => router.push('/admin/echo')} style={[s.backBtn, { marginBottom: 0 }]}>
-              <Text style={s.backText}>Superadmin Dashboard</Text>
-            </Pressable>
-          </View>
+          <Pressable onPress={() => router.push('/echo')} style={s.backBtn}>
+            <ArrowLeft size={14} color="#fff" />
+            <Text style={s.backText}>Back to ECHO</Text>
+          </Pressable>
+
           <LinearGradient colors={['rgba(124,58,237,0.30)', 'rgba(30,10,80,0.5)']} style={s.header}>
             <View style={s.headerIcon}><ScanLine size={24} color="#C4B5FD" /></View>
             <Text style={s.headerTitle}>Coupon Scanner</Text>
@@ -374,18 +319,18 @@ export default function EchoScanPage() {
 
           {/* Result */}
           {result && (
-            <View style={[s.resultCard, { borderColor: (result.ok !== false) ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)' }]}>
-              <View style={[s.resultIcon, { backgroundColor: (result.ok !== false) ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)' }]}>
-                {(result.ok !== false) ? <Check size={28} color="#10B981" /> : <X size={28} color="#EF4444" />}
+            <View style={[s.resultCard, { borderColor: result.ok ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)' }]}>
+              <View style={[s.resultIcon, { backgroundColor: result.ok ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)' }]}>
+                {result.ok ? <Check size={28} color="#10B981" /> : <X size={28} color="#EF4444" />}
               </View>
-              <Text style={[s.resultTitle, { color: (result.ok !== false) ? '#34D399' : '#FCA5A5' }]}>
-                {(result.ok !== false)
+              <Text style={[s.resultTitle, { color: result.ok ? '#34D399' : '#FCA5A5' }]}>
+                {result.ok
                   ? result.type === 'ticket'
-                    ? result.status === 'checked_in' ? 'Already Checked In' : 'Valid Ticket'
+                    ? result.status === 'checked_in' ? 'Already Checked In' : result.status === 'valid' ? 'Valid Ticket' : 'Valid Ticket'
                     : 'Valid Coupon'
-                  : result.status === 'already_used' ? 'Already Used' : result.status === 'locked' ? 'Session Locked' : 'Invalid'}
+                  : result.status === 'already_used' ? 'Already Used' : 'Invalid'}
               </Text>
-              <Text style={s.resultMsg}>{result.message || 'No details available'}</Text>
+              <Text style={s.resultMsg}>{result.message}</Text>
               {result.coupon && (
                 <View style={s.resultDetails}>
                   <Text style={s.resultDetail}>

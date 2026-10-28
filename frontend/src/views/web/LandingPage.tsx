@@ -1,5 +1,3 @@
-import { useTheme } from "@/src/theme/ThemeContext";
-
 /**
  * LandingPage — StudentAlumni AI Career Platform
  * High-Performance Vector SVGs, Real-Time Radar Hover Scan, Scroll-Linked S-Curve & 3D Interactive Motion
@@ -18,7 +16,6 @@ import {
   Easing,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Calendar, Clock, MapPin, BookOpen, Users, Rocket } from 'lucide-react-native';
 import Svg, {
   Path,
   Circle,
@@ -34,10 +31,9 @@ import Svg, {
 import CommonFooter from '@/src/views/components/CommonFooter';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
-import EchoEventsPage from '@/src/views/web/echo/EchoEventsPage';
 
 /* ── Brand Color Palette ── */
-const DARK_T = {
+const T = {
   bg: '#05060F',
   bg2: '#05060D',
   surface: '#0A0C18',
@@ -65,35 +61,6 @@ const DARK_T = {
   tint2: 'rgba(91,79,233,0.18)',
   shadow: 'rgba(0,0,0,0.5)',
 };
-const LIGHT_T = {
-  bg: '#FFFFFF',
-  bg2: '#F5F5F7',
-  surface: '#F0F0F5',
-  card: '#FFFFFF',
-  card2: '#FFFFFF',
-  cardHi: '#F0F0F5',
-  well: '#F5F5F7',
-  line: '#E5E5EA',
-  line2: '#E8E8ED',
-  lineHi: '#D1D1D6',
-  dot: '#C7C7CC',
-  text: '#1D1D1F',
-  text2: '#3A3A3C',
-  muted: '#6E6E73',
-  muted2: '#8E8E93',
-  dim: '#AEAEB2',
-  ind: '#5B4FE9',
-  indLt: '#7C5CFC',
-  indGlow: '#5B4FE9',
-  cyan: '#3478F6',
-  pink: '#D63384',
-  green: '#30B650',
-  amber: '#E8A000',
-  tint: 'rgba(91,79,233,0.10)',
-  tint2: 'rgba(91,79,233,0.12)',
-  shadow: 'rgba(0,0,0,0.08)',
-};
-const T = DARK_T;
 
 /* ── Global Styles Injection for Web ── */
 const STYLES_KEY = 'sa-interactive-motion-css';
@@ -104,7 +71,7 @@ function injectGlobalStyles() {
   s.textContent = `
     @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; overflow-x: hidden; }
+    html, body { margin: 0; padding: 0; background: #05060F; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; color: #F4F5FB; overflow-x: hidden; }
     
     @keyframes sa-twinkle {
       0%, 100% { opacity: 0.25; transform: scale(0.85); }
@@ -150,23 +117,23 @@ function injectGlobalStyles() {
     }
     @keyframes sa-marquee-l {
       0% { transform: translateX(0); }
-      100% { transform: translateX(-25%); }
+      100% { transform: translateX(-50%); }
     }
     @keyframes sa-marquee-r {
-      0% { transform: translateX(-25%); }
+      0% { transform: translateX(-50%); }
       100% { transform: translateX(0); }
     }
     .sa-mq-wrap-l {
       display: flex !important;
       flex-direction: row !important;
       width: max-content !important;
-      animation: sa-marquee-l 36s linear infinite !important;
+      animation: sa-marquee-l 26s linear infinite !important;
     }
     .sa-mq-wrap-r {
       display: flex !important;
       flex-direction: row !important;
       width: max-content !important;
-      animation: sa-marquee-r 32s linear infinite !important;
+      animation: sa-marquee-r 24s linear infinite !important;
     }
     .sa-mq-wrap-l:hover, .sa-mq-wrap-r:hover {
       animation-play-state: paused !important;
@@ -204,28 +171,118 @@ const SAMPLE_CREDS: Record<string, [string, string, string]> = {
 };
 
 const COLLEGES_MARQUEE = [
-  '/logos/mlrit.png',
-  '/logos/malla-reddy.png',
-  '/logos/sr-university.png',
-  '/logos/vj-data-questers.png',
-  '/logos/vj-arc.png',
-  '/logos/vnrvjit.png',
-  '/logos/gitam.png',
-  '/logos/iucee.png',
-  '/logos/ieee.png',
-  '/logos/garuda-vigilance.png',
+  'MRIT', 'Malla Reddy College of Engineering', 'SR University',
+  'VJ Data Questers', 'VJ ARC', 'VNR VJIET', 'GITAM',
+  'IUCEE VNRVJIET', 'IEEE Computer Society', 'Garuda Vigilance',
 ];
 
 const INDUSTRY_MARQUEE = [
-  '/logos/google.png',
-  '/logos/mckinsey.png',
-  '/logos/deloitte.png',
-  '/logos/featherless.png',
-  '/logos/atlast.png',
-  '/logos/bandiwala.png',
-  '/logos/extrive.png',
-  '/logos/lt.png',
-  '/logos/linkedin.png',
+  'Deloitte', 'Featherless', 'Atlast', 'Bandiwala',
+  'EXtrive Innovations', 'Larsen & Toubro', 'LinkedIn', 'Google', 'McKinsey',
+];
+
+export interface EchoEventItem {
+  slug: string;
+  title: string;
+  college: string;
+  collegeFullName: string;
+  status: 'UPCOMING' | 'COMPLETED' | 'LIVE';
+  statusColor: string;
+  date: string;
+  time: string;
+  prize: string;
+  regDeadline: string;
+  venue: string;
+  subtitle: string;
+  partners: string[];
+  highlights: Array<{ title: string; desc: string }>;
+}
+
+const ECHO_EVENTS: EchoEventItem[] = [
+  {
+    slug: 'snist',
+    title: 'Hack Wave 3.0 – SNIST',
+    college: 'SNIST',
+    collegeFullName: 'Sreenidhi Institute of Science & Technology',
+    status: 'UPCOMING',
+    statusColor: '#F5B342',
+    date: 'September 04 – 05, 2026',
+    time: '09:00 AM',
+    prize: '₹50,000 prize pool',
+    regDeadline: '2026-09-01',
+    venue: 'SNIST Campus, Ghatkesar, Hyderabad',
+    subtitle: "Empowering Tomorrow's Leaders | Organized by CDC SNIST in collaboration with StudentAlumni.ai",
+    partners: ['CodeSpectra', 'Featherless', 'Stepupmark'],
+    highlights: [
+      { title: 'Inspiring Keynotes', desc: 'Industry leaders shared their journey and insights' },
+      { title: 'Panel Discussions', desc: 'Engaging conversations on career and tech trends' },
+      { title: 'Hands-on Workshops', desc: 'Practical learning and skill-building sessions' },
+      { title: 'Networking Sessions', desc: 'Students connected with experts and alumni' },
+    ],
+  },
+  {
+    slug: 'vnr',
+    title: 'VNR ECHO 2026',
+    college: 'VNR VJIET',
+    collegeFullName: 'VNR Vignana Jyothi Institute of Engineering and Technology',
+    status: 'COMPLETED',
+    statusColor: '#34D399',
+    date: 'July 31, 2026',
+    time: '10:00 AM',
+    prize: '₹40,000 prize pool',
+    regDeadline: '2026-07-28',
+    venue: 'Main Auditorium, VNR VJIET, Hyderabad',
+    subtitle: "Empowering Tomorrow's Leaders | Innovation, AI & Future Tech Systems",
+    partners: ['VNR Innovation Cell', 'StudentAlumni.ai'],
+    highlights: [
+      { title: 'AI Keynote', desc: 'Generative AI and Agentic systems in 2026' },
+      { title: 'Startup Pitch', desc: '14 campus startups pitched to angel alumni' },
+      { title: 'Design Sprint', desc: 'UI/UX rapid wireframing and prototyping sprint' },
+      { title: 'Alumni Mixer', desc: '1-on-1 career guidance with senior engineering leads' },
+    ],
+  },
+  {
+    slug: 'cbit',
+    title: 'CBIT Innovate 2026',
+    college: 'CBIT',
+    collegeFullName: 'Chaitanya Bharathi Institute of Technology',
+    status: 'COMPLETED',
+    statusColor: '#34D399',
+    date: 'May 18, 2026',
+    time: '09:30 AM',
+    prize: '₹75,000 prize pool',
+    regDeadline: '2026-05-15',
+    venue: 'CBIT Campus, Gandipet, Hyderabad',
+    subtitle: 'AI & Cloud Horizons Hackathon | Building Scalable Software Systems',
+    partners: ['AWS Student Community', 'CBIT EDC', 'StudentAlumni.ai'],
+    highlights: [
+      { title: 'Cloud Architecture', desc: 'Distributed microservices & high throughput APIs' },
+      { title: 'Overnight Hackathon', desc: '24-hour sprint with 60 engineering teams' },
+      { title: 'Tech Career Expo', desc: 'Direct interview rounds with hiring tech leaders' },
+      { title: 'Mentorship Circles', desc: 'Resume teardowns and mock whiteboard interviews' },
+    ],
+  },
+  {
+    slug: 'khammam',
+    title: 'Khammam BuildSprint 2026',
+    college: 'KITS',
+    collegeFullName: 'Khammam Institute of Technology & Science',
+    status: 'COMPLETED',
+    statusColor: '#34D399',
+    date: 'March 12, 2026',
+    time: '10:00 AM',
+    prize: '₹30,000 prize pool',
+    regDeadline: '2026-03-09',
+    venue: 'KITS Auditorium, Khammam, Telangana',
+    subtitle: 'Web3 & Distributed Systems Workshop | Hands-on Engineering Workshop',
+    partners: ['KITS Coding Club', 'StudentAlumni.ai'],
+    highlights: [
+      { title: 'Smart Contracts', desc: 'Building and auditing verifiable smart contracts' },
+      { title: 'Career Masterclass', desc: 'Off-campus placement preparation & portfolio building' },
+      { title: 'Live Coding Battle', desc: 'Competitive programming sprint on data structures' },
+      { title: 'Alumni Awards', desc: 'Honoring top alumni contributors and student innovators' },
+    ],
+  },
 ];
 
 /* ── Subtle Right-Side SA Logo Background Watermark (Non-Landing Pages) ── */
@@ -277,57 +334,13 @@ function ScrollCounter({
 /* ── Pure Continuous Smooth Marquee Component ── */
 function Marquee({
   items,
-  duration = 36,
+  duration = 26,
   reverse = false,
 }: {
   items: string[];
   duration?: number;
   reverse?: boolean;
 }) {
-  const { isDark } = useTheme();
-  const mqText = isDark ? '#F4F5FB' : '#1D1D1F';
-
-  const cardStyle: React.CSSProperties = {
-    backgroundColor: '#FFFFFF',
-    border: '1px solid #e5e7eb',
-    borderRadius: '14px',
-    padding: '8px 12px',
-    marginRight: '14px',
-    height: '72px',
-    width: '150px',
-    boxSizing: 'border-box',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    fontSize: '11.5px',
-    fontWeight: 700,
-    color: mqText,
-    letterSpacing: '0.2px',
-  };
-
-  const renderItem = (item: string, key: string) => (
-    <div key={key} style={cardStyle}>
-      {item.startsWith('/') ? (
-        <img
-          src={item}
-          alt={item}
-          style={{
-            width: '100px',
-            height: '60px',
-            maxWidth: '100%',
-            maxHeight: '100%',
-            objectFit: 'contain',
-            objectPosition: 'center',
-            display: 'block',
-          }}
-        />
-      ) : (
-        <span>{item}</span>
-      )}
-    </div>
-  );
-
   return (
     <View style={{ overflow: 'hidden', flex: 1 }}>
       <div
@@ -339,24 +352,60 @@ function Marquee({
           animationDuration: `${duration}s`,
         }}
       >
-        {/* 4 identical sets — animation translates -25% (= 1 set) for a seamless gapless loop */}
         <div style={{ display: 'flex', flexDirection: 'row' }}>
-          {items.map((item, idx) => renderItem(item, `s1-${idx}`))}
+          {items.map((item, idx) => (
+            <div
+              key={`set1-${idx}`}
+              style={{
+                backgroundColor: '#0C0E1B',
+                border: '1px solid #1B1E33',
+                borderRadius: '12px',
+                padding: '12px 18px',
+                marginRight: '14px',
+                height: '58px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                fontSize: '11.5px',
+                fontWeight: 700,
+                color: '#F4F5FB',
+                letterSpacing: '0.2px',
+              }}
+            >
+              <span>{item}</span>
+            </div>
+          ))}
         </div>
         <div style={{ display: 'flex', flexDirection: 'row' }}>
-          {items.map((item, idx) => renderItem(item, `s2-${idx}`))}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'row' }}>
-          {items.map((item, idx) => renderItem(item, `s3-${idx}`))}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'row' }}>
-          {items.map((item, idx) => renderItem(item, `s4-${idx}`))}
+          {items.map((item, idx) => (
+            <div
+              key={`set2-${idx}`}
+              style={{
+                backgroundColor: '#0C0E1B',
+                border: '1px solid #1B1E33',
+                borderRadius: '12px',
+                padding: '12px 18px',
+                marginRight: '14px',
+                height: '58px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                fontSize: '11.5px',
+                fontWeight: 700,
+                color: '#F4F5FB',
+                letterSpacing: '0.2px',
+              }}
+            >
+              <span>{item}</span>
+            </div>
+          ))}
         </div>
       </div>
     </View>
   );
 }
-
 
 /* ── Interactive 3D Card Component with 3D Tilt & Physics ── */
 function HoverLiftCard({
@@ -468,11 +517,8 @@ function GlowButton({
   );
 }
 
-export default function LandingPage({ initialTab, initialEchoSlug }: { initialTab?: 'home' | 'echo' | 'verify' | 'contact', initialEchoSlug?: string } = {}) {
+export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'echo' | 'verify' | 'contact' } = {}) {
   const router = useRouter();
-  const { isDark } = useTheme();
-  const T = isDark ? DARK_T : LIGHT_T;
-  const styles = themedStyles(T);
   const { width } = useWindowDimensions();
   const isNarrow = width < 960;
   const isMobile = width < 640;
@@ -497,9 +543,6 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
   });
 
   // Browser URL popstate sync (back/forward buttons)
-  useEffect(() => {
-    setActiveTab(initialTab || 'home');
-  }, [initialTab]);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const onPopState = () => {
@@ -528,17 +571,21 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  // Update body background on theme change
-  useEffect(() => {
-    if (typeof document !== 'undefined') {
-      document.body.style.background = T.bg;
-      document.body.style.color = T.text;
-    }
-  }, [isDark]);
-
   // Scroll position & sticky bar
   const [scrollY, setScrollY] = useState(0);
   const showStickyBar = scrollY > 600;
+
+  // ECHO Events view state
+  const [echoDetailSlug, setEchoDetailSlug] = useState<string | null>(null);
+  const [echoRegModal, setEchoRegModal] = useState(false);
+  const [echoPassType, setEchoPassType] = useState<'standard' | 'vip'>('standard');
+  const [echoName, setEchoName] = useState('');
+  const [echoEmail, setEchoEmail] = useState('');
+  const [echoPhone, setEchoPhone] = useState('');
+  const [echoWhatsapp, setEchoWhatsapp] = useState(true);
+  const [echoCoupon, setEchoCoupon] = useState('');
+  const [echoCouponApplied, setEchoCouponApplied] = useState(false);
+  const [echoRegistered, setEchoRegistered] = useState(false);
 
   // Verify view state
   const [verifyInput, setVerifyInput] = useState('');
@@ -623,27 +670,15 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
   }, []);
 
   // Smooth Tab Switch with Curtain Motion Effect & URL Sync
-  const handleTabSwitch = (newTab: 'home' | 'echo' | 'careers' | 'marketplace' | 'verify' | 'contact') => {
-    if (newTab === 'home') {
-      router.push('/');
-      return;
-    }
-    if (newTab === 'echo') {
-      router.push('/echo');
-      return;
-    }
-    if (newTab === 'careers') {
-      router.push('/careers' as any);
-      return;
-    }
-    if (newTab === 'marketplace') {
-      router.push('/marketplace' as any);
+  const handleTabSwitch = (newTab: 'home' | 'echo' | 'verify' | 'contact') => {
+    if (newTab === activeTab) {
+      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     
-    // Sync browser URL in address bar as /verify, /contact, / without full page reload
+    // Sync browser URL in address bar as /echo, /verify, /contact, / without full page reload
     if (typeof window !== 'undefined' && window.history) {
-      const newUrl = `/${newTab}`;
+      const newUrl = newTab === 'home' ? '/' : `/${newTab}`;
       window.history.pushState({ tab: newTab }, '', newUrl);
     }
     
@@ -689,8 +724,6 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
     };
     requestAnimationFrame(animateTransition);
   };
-    
-
 
   // Nav with transition
   const handleNavWithCurtain = (route: string, label: string) => {
@@ -848,7 +881,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
             position: 'fixed',
             inset: 0,
             zIndex: 99999,
-            backgroundColor: isDark ? '#07070E' : '#FFFFFF',
+            backgroundColor: '#07070E',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'flex-end',
@@ -935,10 +968,10 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 gap: '10px',
                 fontSize: '15px',
                 fontWeight: 600,
-                color: isDark ? 'rgba(244,245,251,0.9)' : 'rgba(20,23,38,0.9)',
+                color: 'rgba(244,245,251,0.9)',
                 marginTop: '14px',
                 whiteSpace: 'nowrap',
-                background: isDark ? 'linear-gradient(90deg, rgba(244,245,251,0.7) 0%, #FFFFFF 50%, rgba(244,245,251,0.7) 100%)' : 'linear-gradient(90deg, rgba(20,23,38,0.7) 0%, #141726 50%, rgba(20,23,38,0.7) 100%)',
+                background: 'linear-gradient(90deg, rgba(244,245,251,0.7) 0%, #FFFFFF 50%, rgba(244,245,251,0.7) 100%)',
                 backgroundSize: '200% auto',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
@@ -965,7 +998,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
               margin: '0 auto',
             }}
           >
-            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '3.4px', color: isDark ? 'rgba(244,245,251,0.62)' : 'rgba(20,23,38,0.55)' }}>
+            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '3.4px', color: 'rgba(244,245,251,0.62)' }}>
               {curtainLabel}
             </div>
             <div
@@ -975,13 +1008,13 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 letterSpacing: '-3.2px',
                 lineHeight: 0.85,
                 fontVariantNumeric: 'tabular-nums',
-                color: T.text,
+                color: '#F4F5FB',
               }}
             >
               {String(curtainCount).padStart(2, '0')}
             </div>
           </div>
-          <div style={{ maxWidth: '1360px', width: '100%', margin: '16px auto 0', height: '2px', background: isDark ? 'rgba(244,245,251,0.14)' : 'rgba(20,23,38,0.1)' }}>
+          <div style={{ maxWidth: '1360px', width: '100%', margin: '16px auto 0', height: '2px', background: 'rgba(244,245,251,0.14)' }}>
             <div
               style={{
                 height: '100%',
@@ -1009,16 +1042,485 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
       >
 
         {/* ══════════════════════════════════════════════════════════════════
-            TAB: ECHO EVENTS SHOWCASE (UNIFIED CANONICAL ECHO PORTAL)
+            TAB: ECHO EVENTS SHOWCASE
         ══════════════════════════════════════════════════════════════════ */}
         {activeTab === 'echo' && (
-          <View style={{ width: '100%', minHeight: 800 }}>
-            <EchoEventsPage initialView="list" />
+          <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
+            {/* Top Live Ticker */}
+            <View style={styles.echoTickerWrap}>
+              <View style={styles.echoTickerTrack}>
+                <Text style={styles.echoTickerText}>
+                  The network is a feed until it meets in person.  ·  86 ECHO events across 31 campuses.  ·  267 roles matched, 41 with a warm referral path.  ·  Verified by your college email — free forever for students.  ·  HackWave 3.0 · Sep 4–5 · Sreenidhi · ₹50,000 prize pool  ·  Built with love for students across all campus’s
+                </Text>
+              </View>
+            </View>
+
+            {echoDetailSlug === null ? (
+              /* ── 1. ECHO LIST VIEW ── */
+              <View style={{ width: '100%' }}>
+                {/* Hero Glass Banner: On the Ground */}
+                <View style={styles.echoHeroCard}>
+                  <View style={[styles.echoHeroGrid, isNarrow && { flexDirection: 'column' }]}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <View style={styles.echoTagPill}>
+                        <View style={styles.echoTagDot} />
+                        <Text style={styles.echoTagText}>ON THE GROUND</Text>
+                      </View>
+                      <Text style={styles.echoHeroTitle}>The network is a feed until it meets in person.</Text>
+                      <Text style={styles.echoHeroSub}>
+                        Eighty-six ECHO events across thirty-one campuses. Alumni in the room, recruiters at the table, and a build sprint that runs overnight.
+                      </Text>
+
+                      {/* 3 Metric Stats */}
+                      <View style={styles.echoStatsRow}>
+                        <View>
+                          <Text style={[styles.echoStatNum, { color: '#4B3FD6' }]}>86</Text>
+                          <Text style={styles.echoStatLabel}>events run</Text>
+                        </View>
+                        <View>
+                          <Text style={[styles.echoStatNum, { color: '#0E6E8C' }]}>31</Text>
+                          <Text style={styles.echoStatLabel}>cities</Text>
+                        </View>
+                        <View>
+                          <Text style={[styles.echoStatNum, { color: '#A21C63' }]}>4.8</Text>
+                          <Text style={styles.echoStatLabel}>average rating</Text>
+                        </View>
+                      </View>
+
+                      {/* Actions */}
+                      <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+                        <Pressable
+                          onPress={() => {
+                            if (typeof window !== 'undefined') window.scrollTo({ top: 580, behavior: 'smooth' });
+                          }}
+                          style={[styles.btnGlow, { paddingVertical: 14, paddingHorizontal: 26, borderRadius: 12 }]}
+                        >
+                          <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 14.5 }}>Browse all events</Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => handleTabSwitch('contact')}
+                          style={[styles.btnOutline, { paddingVertical: 14, paddingHorizontal: 26, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)' }]}
+                        >
+                          <Text style={{ color: '#2E2A55', fontWeight: '600', fontSize: 14.5 }}>Host on your campus</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+
+                    {/* Stage Mosaic Graphic */}
+                    <View style={[styles.echoMosaicWrap, isNarrow && { width: '100%', height: 180 }]}>
+                      <View style={styles.echoMosaicMain}>
+                        <Text style={styles.echoMosaicMainText}>Keynote — Main Stage</Text>
+                      </View>
+                      <View style={styles.echoMosaicSide}>
+                        <View style={styles.echoMosaicSub1}>
+                          <Text style={styles.echoMosaicSubText}>Crowd</Text>
+                        </View>
+                        <View style={styles.echoMosaicSub2}>
+                          <Text style={styles.echoMosaicSubText}>Workshop</Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Recent Hosts Strip */}
+                  <View style={styles.echoRecentHosts}>
+                    <Text style={styles.echoRecentLabel}>RECENT HOSTS</Text>
+                    <View style={styles.echoHostChipsWrap}>
+                      {['Sreenidhi Institute', 'VNR VJIET', 'Khammam Institute', 'CBIT Hyderabad'].map((h, i) => (
+                        <View key={i} style={styles.echoHostChip}>
+                          <Text style={styles.echoHostChipText}>{h}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+
+                {/* Section Header */}
+                <View style={styles.echoSectionBanner}>
+                  <View style={styles.echoSectionPill}>
+                    <Svg width="13" height="13" viewBox="0 0 24 24" style={{ marginRight: 6 }}>
+                      <Path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9Z" fill="#A78BFA" />
+                    </Svg>
+                    <Text style={styles.echoSectionPillText}>ECHO EVENTS</Text>
+                  </View>
+                  <Text style={styles.echoSectionTitle}>Explore ECHO Events by College</Text>
+                  <Text style={styles.echoSectionSubtitle}>
+                    Image galleries, partners, sponsors, speakers, testimonials and registration for every ECHO event we've conducted.
+                  </Text>
+                </View>
+
+                {/* Events 2-Column Grid */}
+                <View style={[styles.echoCardsGrid, isNarrow && { flexDirection: 'column' }]}>
+                  {ECHO_EVENTS.map((ev) => (
+                    <Pressable
+                      key={ev.slug}
+                      onPress={() => {
+                        setEchoDetailSlug(ev.slug);
+                        if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      style={styles.echoEventCard}
+                    >
+                      <View style={styles.echoCardImageHeader}>
+                        <Text style={styles.echoCardImageTitle}>{ev.title}</Text>
+                      </View>
+                      <View style={styles.echoCardBody}>
+                        <View style={styles.echoCardBadgeRow}>
+                          <View style={[styles.echoStatusBadge, { borderColor: ev.status === 'UPCOMING' ? '#4A3410' : '#1F4E5C', backgroundColor: ev.status === 'UPCOMING' ? 'rgba(245,179,66,0.14)' : 'rgba(52,211,153,0.14)' }]}>
+                            <Text style={[styles.echoStatusText, { color: ev.statusColor }]}>{ev.status}</Text>
+                          </View>
+                          <View style={styles.echoCollegeBadge}>
+                            <Text style={styles.echoCollegeBadgeText}>{ev.college}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.echoCardTitle}>{ev.title}</Text>
+                        <Text style={styles.echoCardSubtitle} numberOfLines={2}>{ev.subtitle}</Text>
+                        
+                        <View style={styles.echoCardMetaList}>
+                          <View style={styles.echoMetaItem}>
+                            <Svg width="14" height="14" viewBox="0 0 24 24" style={{ marginRight: 8 }}>
+                              <Rect x="3.5" y="5" width="17" height="15" rx="2.5" stroke="#8A8A9E" strokeWidth="1.8" fill="none" />
+                              <Path d="M3.5 10h17M8 5V2.5M16 5V2.5" stroke="#8A8A9E" strokeWidth="1.8" />
+                            </Svg>
+                            <Text style={styles.echoMetaText}>{ev.date}</Text>
+                          </View>
+                          <View style={styles.echoMetaItem}>
+                            <Svg width="14" height="14" viewBox="0 0 24 24" style={{ marginRight: 8 }}>
+                              <Path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11Z" stroke="#8A8A9E" strokeWidth="1.8" fill="none" />
+                              <Circle cx="12" cy="10" r="2.4" stroke="#8A8A9E" strokeWidth="1.8" fill="none" />
+                            </Svg>
+                            <Text style={styles.echoMetaText} numberOfLines={1}>{ev.venue}</Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.echoCardFooter}>
+                          <Text style={styles.echoViewEventText}>View event →</Text>
+                        </View>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ) : (
+              /* ── 2. ECHO DETAIL & REGISTRATION VIEW ── */
+              (() => {
+                const cur = ECHO_EVENTS.find((e) => e.slug === echoDetailSlug) || ECHO_EVENTS[0];
+                return (
+                  <View style={{ width: '100%' }}>
+                    {/* Back Button */}
+                    <Pressable
+                      onPress={() => setEchoDetailSlug(null)}
+                      style={styles.echoBackBtn}
+                    >
+                      <Svg width="15" height="15" viewBox="0 0 24 24" style={{ marginRight: 8 }}>
+                        <Path d="M20 12H5M11 6l-6 6 6 6" stroke="#FFFFFF" strokeWidth="2" fill="none" />
+                      </Svg>
+                      <Text style={styles.echoBackBtnText}>Back to all events</Text>
+                    </Pressable>
+
+                    {/* Main Event Showcase Banner */}
+                    <View style={styles.echoDetailHeroCard}>
+                      <View style={styles.echoDetailHeroBanner}>
+                        <Text style={styles.echoDetailHeroBannerText}>{cur.title} · Event Stage</Text>
+                      </View>
+                      <View style={styles.echoDetailHeroBody}>
+                        <View style={styles.echoCardBadgeRow}>
+                          <View style={[styles.echoStatusBadge, { borderColor: cur.status === 'UPCOMING' ? '#4A3410' : '#1F4E5C', backgroundColor: cur.status === 'UPCOMING' ? 'rgba(245,179,66,0.14)' : 'rgba(52,211,153,0.14)' }]}>
+                            <Text style={[styles.echoStatusText, { color: cur.statusColor }]}>{cur.status}</Text>
+                          </View>
+                          <Text style={styles.echoOrgByText}>CDC {cur.college} IN COLLABORATION WITH STUDENTALUMNI.AI</Text>
+                        </View>
+
+                        <Text style={styles.echoDetailTitle}>{cur.title}</Text>
+                        <Text style={styles.echoDetailSubtitle}>{cur.subtitle}</Text>
+
+                        {/* Pills info */}
+                        <View style={styles.echoPillsRow}>
+                          <View style={[styles.echoInfoPill, { borderColor: '#4A3410', backgroundColor: 'rgba(245,179,66,0.12)' }]}>
+                            <Text style={[styles.echoInfoPillText, { color: '#F5B342' }]}>{cur.date}</Text>
+                          </View>
+                          <View style={[styles.echoInfoPill, { borderColor: '#23407A', backgroundColor: 'rgba(76,141,246,0.12)' }]}>
+                            <Text style={[styles.echoInfoPillText, { color: '#7FB2F7' }]}>{cur.prize}</Text>
+                          </View>
+                          <View style={[styles.echoInfoPill, { borderColor: '#1F4E5C', backgroundColor: 'rgba(47,184,198,0.12)' }]}>
+                            <Text style={[styles.echoInfoPillText, { color: '#6FD6FF' }]}>{cur.venue}</Text>
+                          </View>
+                          <View style={[styles.echoInfoPill, { borderColor: '#4A3410', backgroundColor: 'rgba(245,179,66,0.08)' }]}>
+                            <Text style={[styles.echoInfoPillText, { color: '#F5B342' }]}>Registration closes: {cur.regDeadline}</Text>
+                          </View>
+                        </View>
+
+                        {/* Action Buttons */}
+                        <View style={styles.echoActionRow}>
+                          <View style={{ flexDirection: 'row', gap: 18, flexWrap: 'wrap' }}>
+                            <Text style={styles.echoMetaDetailItem}>📅 {cur.date}</Text>
+                            <Text style={styles.echoMetaDetailItem}>⏰ {cur.time}</Text>
+                            <Text style={styles.echoMetaDetailItem}>📍 {cur.venue}</Text>
+                          </View>
+                          <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+                            <Pressable
+                              onPress={() => setEchoRegModal(true)}
+                              style={styles.echoRegBtn}
+                            >
+                              <Text style={styles.echoRegBtnText}>Register Now</Text>
+                            </Pressable>
+                            <Pressable
+                              onPress={() => alert('Downloading official event handbook...')}
+                              style={styles.echoHandbookBtn}
+                            >
+                              <Text style={styles.echoHandbookBtnText}>Event Handbook (PDF)</Text>
+                            </Pressable>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* 2-Column Info Grid */}
+                    <View style={[styles.echoInfoGrid, isNarrow && { flexDirection: 'column' }]}>
+                      {/* Left: About the Event */}
+                      <View style={styles.echoAboutCard}>
+                        <Text style={styles.echoAboutTitle}>About the Event</Text>
+                        <Text style={styles.echoAboutSub}>A day of inspiration, learning, and networking</Text>
+                        <View style={styles.echoMiniGrid}>
+                          <View style={styles.echoMiniCard}>
+                            <Text style={styles.echoMiniIcon}>📖</Text>
+                            <Text style={styles.echoMiniTitle}>Learn</Text>
+                            <Text style={styles.echoMiniDesc}>Industry insights</Text>
+                          </View>
+                          <View style={styles.echoMiniCard}>
+                            <Text style={styles.echoMiniIcon}>🤝</Text>
+                            <Text style={styles.echoMiniTitle}>Connect</Text>
+                            <Text style={styles.echoMiniDesc}>Build your network</Text>
+                          </View>
+                          <View style={styles.echoMiniCard}>
+                            <Text style={styles.echoMiniIcon}>🚀</Text>
+                            <Text style={styles.echoMiniTitle}>Grow</Text>
+                            <Text style={styles.echoMiniDesc}>Shape your future</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Right: Organized By */}
+                      <View style={styles.echoAboutCard}>
+                        <Text style={styles.echoAboutTitle}>Event Organized By</Text>
+                        <View style={styles.echoOrgRow}>
+                          <Svg width="34" height="38" viewBox="0 0 300 350">
+                            <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#8B84FF" />
+                            <Path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="#5B4FE9" />
+                            <SvgText x="150" y="214" textAnchor="middle" fill="#FFFFFF" fontSize="118" fontWeight="800">SA</SvgText>
+                          </Svg>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.echoOrgName}>{cur.collegeFullName}</Text>
+                            <Text style={styles.echoOrgTag}>in collaboration with StudentAlumni.ai</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.echoInAssocHeader}>In Association With</Text>
+                        <View style={styles.echoPartnersWrap}>
+                          {cur.partners.map((p, i) => (
+                            <View key={i} style={styles.echoPartnerBadge}>
+                              <Text style={styles.echoPartnerBadgeText}>{p}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Moments from the Event */}
+                    <View style={styles.echoMomentsCard}>
+                      <Text style={styles.echoAboutTitle}>Moments from the Event</Text>
+                      <View style={styles.echoMomentsPlaceholder}>
+                        <Svg width="28" height="28" viewBox="0 0 24 24" style={{ marginBottom: 12 }}>
+                          <Circle cx="10.5" cy="10.5" r="6.5" stroke="#5C6273" strokeWidth="1.8" fill="none" />
+                          <Path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6" stroke="#5C6273" strokeWidth="1.8" />
+                        </Svg>
+                        <Text style={{ color: '#8A8A9E', fontSize: 14 }}>Official photo gallery &amp; keynote recordings streaming live.</Text>
+                      </View>
+                    </View>
+
+                    {/* Event Highlights (4-step milestones) */}
+                    <View style={styles.echoHighlightsCard}>
+                      <Text style={styles.echoAboutTitle}>Event Highlights</Text>
+                      <View style={[styles.echoHighlightsGrid, isNarrow && { flexDirection: 'column', gap: 20 }]}>
+                        {cur.highlights.map((hl, i) => (
+                          <View key={i} style={styles.echoHighlightItem}>
+                            <View style={styles.echoHlCircle}>
+                              <Text style={{ color: '#A78BFA', fontWeight: '800', fontSize: 15 }}>{i + 1}</Text>
+                            </View>
+                            <Text style={styles.echoHlTitle}>{hl.title}</Text>
+                            <Text style={styles.echoHlDesc}>{hl.desc}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+
+                    {/* Bottom CTA Banner */}
+                    <View style={styles.echoBottomCta}>
+                      <View style={{ flex: 1, minWidth: 260 }}>
+                        <Text style={styles.echoBottomCtaTitle}>Stay tuned for more events!</Text>
+                        <Text style={styles.echoBottomCtaSub}>Join our community and never miss an opportunity to learn, connect, and grow.</Text>
+                      </View>
+                      <Pressable
+                        onPress={() => setEchoDetailSlug(null)}
+                        style={styles.echoBottomCtaBtn}
+                      >
+                        <Text style={styles.echoBottomCtaBtnText}>View All Campus Events</Text>
+                      </Pressable>
+                    </View>
+
+                    {/* ── REGISTRATION MODAL / DRAWER ── */}
+                    {echoRegModal && (
+                      <View style={styles.echoModalOverlay}>
+                        <View style={styles.echoModalCard}>
+                          <View style={styles.echoModalHeader}>
+                            <View>
+                              <Text style={styles.echoModalTitle}>Register for {cur.title}</Text>
+                              <Text style={styles.echoModalSub}>{cur.collegeFullName} · {cur.date}</Text>
+                            </View>
+                            <Pressable onPress={() => { setEchoRegModal(false); setEchoRegistered(false); }} style={styles.echoModalClose}>
+                              <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>✕</Text>
+                            </Pressable>
+                          </View>
+
+                          {echoRegistered ? (
+                            <View style={styles.echoSuccessCard}>
+                              <Svg width="44" height="44" viewBox="0 0 24 24" style={{ marginBottom: 16 }}>
+                                <Circle cx="12" cy="12" r="10" stroke="#34D399" strokeWidth="2" fill="none" />
+                                <Path d="M7 12l3.5 3.5L17 8.5" stroke="#34D399" strokeWidth="2.5" fill="none" />
+                              </Svg>
+                              <Text style={styles.echoSuccessTitle}>Registration Confirmed!</Text>
+                              <Text style={styles.echoSuccessSub}>
+                                Your ticket has been issued and sent to <Text style={{ color: '#A78BFA', fontWeight: '700' }}>{echoEmail || 'your email'}</Text>.
+                              </Text>
+                              <View style={styles.echoTicketBox}>
+                                <Text style={styles.echoTicketCode}>PASS ID: ECHO-{cur.slug.toUpperCase()}-2026-90412</Text>
+                                <Text style={styles.echoTicketType}>{echoPassType === 'vip' ? 'VIP Builder Access' : 'Standard Student Pass'}</Text>
+                              </View>
+                              <Pressable
+                                onPress={() => { setEchoRegModal(false); setEchoRegistered(false); }}
+                                style={[styles.btnGlow, { width: '100%', paddingVertical: 14, borderRadius: 10, marginTop: 20 }]}
+                              >
+                                <Text style={{ color: '#FFFFFF', fontWeight: '700', textAlign: 'center' }}>Done</Text>
+                              </Pressable>
+                            </View>
+                          ) : (
+                            <View style={styles.echoModalForm}>
+                              {/* Pass Selector */}
+                              <Text style={styles.fieldLabel}>SELECT PASS TYPE</Text>
+                              <View style={styles.echoPassRow}>
+                                <Pressable
+                                  onPress={() => setEchoPassType('standard')}
+                                  style={[styles.echoPassOption, echoPassType === 'standard' && styles.echoPassOptionActive]}
+                                >
+                                  <Text style={[styles.echoPassName, echoPassType === 'standard' && { color: '#8B84FF' }]}>Standard Student</Text>
+                                  <Text style={styles.echoPassPrice}>Free</Text>
+                                </Pressable>
+                                <Pressable
+                                  onPress={() => setEchoPassType('vip')}
+                                  style={[styles.echoPassOption, echoPassType === 'vip' && styles.echoPassOptionActive]}
+                                >
+                                  <Text style={[styles.echoPassName, echoPassType === 'vip' && { color: '#8B84FF' }]}>VIP Builder Pass</Text>
+                                  <Text style={styles.echoPassPrice}>₹499</Text>
+                                </Pressable>
+                              </View>
+
+                              {/* Name */}
+                              <Text style={styles.fieldLabel}>FULL NAME *</Text>
+                              <TextInput
+                                value={echoName}
+                                onChangeText={setEchoName}
+                                placeholder="Your full name"
+                                placeholderTextColor="#6A6A7E"
+                                style={styles.inputField}
+                              />
+
+                              {/* Email */}
+                              <Text style={styles.fieldLabel}>COLLEGE EMAIL *</Text>
+                              <TextInput
+                                value={echoEmail}
+                                onChangeText={setEchoEmail}
+                                placeholder="yourname@college.edu.in"
+                                placeholderTextColor="#6A6A7E"
+                                keyboardType="email-address"
+                                style={styles.inputField}
+                              />
+
+                              {/* Phone */}
+                              <Text style={styles.fieldLabel}>WHATSAPP MOBILE NUMBER</Text>
+                              <TextInput
+                                value={echoPhone}
+                                onChangeText={setEchoPhone}
+                                placeholder="+91 98765 43210"
+                                placeholderTextColor="#6A6A7E"
+                                keyboardType="phone-pad"
+                                style={styles.inputField}
+                              />
+
+                              {/* WhatsApp toggle */}
+                              <Pressable
+                                onPress={() => setEchoWhatsapp(!echoWhatsapp)}
+                                style={styles.echoCheckRow}
+                              >
+                                <View style={[styles.consentBox, echoWhatsapp && styles.consentBoxChecked]}>
+                                  {echoWhatsapp && <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>✓</Text>}
+                                </View>
+                                <Text style={styles.consentLabel}>Receive event schedule, QR pass &amp; team updates on WhatsApp</Text>
+                              </Pressable>
+
+                              {/* Coupon code */}
+                              <View style={styles.echoCouponRow}>
+                                <TextInput
+                                  value={echoCoupon}
+                                  onChangeText={setEchoCoupon}
+                                  placeholder="Discount Coupon (e.g. SA2026)"
+                                  placeholderTextColor="#6A6A7E"
+                                  style={[styles.inputField, { flex: 1, marginBottom: 0 }]}
+                                />
+                                <Pressable
+                                  onPress={() => {
+                                    if (echoCoupon.trim().toUpperCase() === 'SA2026' || echoCoupon.trim().toUpperCase() === 'STUDENT100') {
+                                      setEchoCouponApplied(true);
+                                    } else {
+                                      alert('Invalid code. Try "SA2026" for 100% off VIP pass.');
+                                    }
+                                  }}
+                                  style={styles.echoCouponBtn}
+                                >
+                                  <Text style={styles.echoCouponBtnText}>{echoCouponApplied ? 'Applied ✓' : 'Apply'}</Text>
+                                </Pressable>
+                              </View>
+                              {echoCouponApplied && (
+                                <Text style={{ color: '#34D399', fontSize: 12, fontWeight: '600', marginTop: 4 }}>
+                                  Coupon applied: 100% waiver on registration fee!
+                                </Text>
+                              )}
+
+                              {/* Submit Button */}
+                              <Pressable
+                                onPress={() => {
+                                  if (!echoName || !echoEmail) {
+                                    alert('Please enter your full name and college email.');
+                                    return;
+                                  }
+                                  setEchoRegistered(true);
+                                }}
+                                style={[styles.btnGlow, { width: '100%', paddingVertical: 14, borderRadius: 10, marginTop: 18 }]}
+                              >
+                                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15, textAlign: 'center' }}>
+                                  Complete Event Registration
+                                </Text>
+                              </Pressable>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                );
+              })()
+            )}
           </View>
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-
             TAB: VERIFY CREDENTIALS & BGV DESK
         ══════════════════════════════════════════════════════════════════ */}
         {activeTab === 'verify' && (
@@ -1100,8 +1602,8 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
               <View style={styles.verifyInputRow}>
                 <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
                   <Svg width="18" height="18" viewBox="0 0 16 16" style={{ marginRight: 12 }}>
-                    <Circle cx="7" cy="7" r="4.6" stroke={T.dim} strokeWidth="1.8" fill="none" />
-                    <Path d="M10.5 10.5L14 14" stroke={T.dim} strokeWidth="1.8" />
+                    <Circle cx="7" cy="7" r="4.6" stroke="#5C6273" strokeWidth="1.8" fill="none" />
+                    <Path d="M10.5 10.5L14 14" stroke="#5C6273" strokeWidth="1.8" />
                   </Svg>
                   <TextInput
                     style={styles.verifySearchInput}
@@ -1295,25 +1797,14 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                       />
                     </View>
                     <View style={styles.formCol}>
-                      <Text style={styles.formFieldLabel}>Phone (10 Digits)</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#1A1D2B', borderWidth: 1, borderColor: '#292E42', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 12 }}>
-                          <Text style={{ fontSize: 13 }}>🇮🇳</Text>
-                          <Text style={{ fontSize: 13, fontWeight: '700', color: '#A78BFA' }}>+91</Text>
-                        </View>
-                        <TextInput
-                          style={[styles.formInput, { flex: 1 }]}
-                          placeholder="10-digit mobile number"
-                          placeholderTextColor="#5C6273"
-                          keyboardType="phone-pad"
-                          maxLength={10}
-                          value={(bgvPhone || '').replace(/^\+91\s*/, '').replace(/\D/g, '').slice(0, 10)}
-                          onChangeText={(t) => {
-                            const rawDigits = t.replace(/\D/g, '').slice(0, 10);
-                            setBgvPhone(rawDigits ? `+91 ${rawDigits}` : '');
-                          }}
-                        />
-                      </View>
+                      <Text style={styles.formFieldLabel}>Phone</Text>
+                      <TextInput
+                        style={styles.formInput}
+                        placeholder="+91 …"
+                        placeholderTextColor="#5C6273"
+                        value={bgvPhone}
+                        onChangeText={setBgvPhone}
+                      />
                     </View>
                   </View>
 
@@ -1463,7 +1954,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                     <Text style={styles.hubDetailVal}>+91 7569665077</Text>
                     <Pressable onPress={() => handleCopy('+91 7569665077', 'india-phone')} style={styles.copyChip}>
-                      <Text style={styles.copyChipText}>{copiedKey === 'india-phone' ? 'Copied' : 'Copy'}</Text>
+                      <Text style={styles.copyChipText}>{copiedKey === 'india-phone' ? 'Copied ✓' : 'Copy'}</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -1473,7 +1964,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                     <Text style={styles.hubDetailVal}>hr@studentalumni.ai</Text>
                     <Pressable onPress={() => handleCopy('hr@studentalumni.ai', 'india-email')} style={styles.copyChip}>
-                      <Text style={styles.copyChipText}>{copiedKey === 'india-email' ? 'Copied' : 'Copy'}</Text>
+                      <Text style={styles.copyChipText}>{copiedKey === 'india-email' ? 'Copied ✓' : 'Copy'}</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -1509,7 +2000,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                     <Text style={styles.hubDetailVal}>+91 7569665077</Text>
                     <Pressable onPress={() => handleCopy('+91 7569665077', 'usa-phone')} style={styles.copyChip}>
-                      <Text style={styles.copyChipText}>{copiedKey === 'usa-phone' ? 'Copied' : 'Copy'}</Text>
+                      <Text style={styles.copyChipText}>{copiedKey === 'usa-phone' ? 'Copied ✓' : 'Copy'}</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -1519,7 +2010,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                     <Text style={styles.hubDetailVal}>hr@studentalumni.ai</Text>
                     <Pressable onPress={() => handleCopy('hr@studentalumni.ai', 'usa-email')} style={styles.copyChip}>
-                      <Text style={styles.copyChipText}>{copiedKey === 'usa-email' ? 'Copied' : 'Copy'}</Text>
+                      <Text style={styles.copyChipText}>{copiedKey === 'usa-email' ? 'Copied ✓' : 'Copy'}</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -1576,25 +2067,14 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
 
               <View style={[styles.formGrid2, isNarrow && { flexDirection: 'column' }, { marginTop: 16 }]}>
                 <View style={styles.formCol}>
-                  <Text style={styles.formFieldLabel}>Phone Number (10 Digits)</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#1A1D2B', borderWidth: 1, borderColor: '#292E42', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 12 }}>
-                      <Text style={{ fontSize: 13 }}>🇮🇳</Text>
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#A78BFA' }}>+91</Text>
-                    </View>
-                    <TextInput
-                      style={[styles.formInput, { flex: 1 }]}
-                      placeholder="10-digit mobile number"
-                      placeholderTextColor="#5C6273"
-                      keyboardType="phone-pad"
-                      maxLength={10}
-                      value={(contactPhone || '').replace(/^\+91\s*/, '').replace(/\D/g, '').slice(0, 10)}
-                      onChangeText={(t) => {
-                        const rawDigits = t.replace(/\D/g, '').slice(0, 10);
-                        setContactPhone(rawDigits ? `+91 ${rawDigits}` : '');
-                      }}
-                    />
-                  </View>
+                  <Text style={styles.formFieldLabel}>Phone Number</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="+91 7569665077"
+                    placeholderTextColor="#5C6273"
+                    value={contactPhone}
+                    onChangeText={setContactPhone}
+                  />
                 </View>
                 <View style={styles.formCol}>
                   <Text style={styles.formFieldLabel}>College / University / Company</Text>
@@ -1628,7 +2108,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 style={styles.inquirySubmitBtn}
                 textStyle={styles.inquirySubmitBtnText}
               >
-                {contactSent ? 'Message Transmitted Successfully' : 'Transmit Message →'}
+                {contactSent ? 'Message Transmitted Successfully ✓' : 'Transmit Message →'}
               </GlowButton>
             </View>
 
@@ -1667,35 +2147,35 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
         {activeTab === 'home' && (
           <>
             {/* ── 01. HERO SECTION ── */}
-            <View style={[styles.heroSection, { paddingHorizontal: containerPadding, flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 24 : 50, paddingTop: isMobile ? 80 : 90 }]}>
-              <View style={[styles.heroLeftCol, { minWidth: isMobile ? 0 : 320, maxWidth: '100%' as any }]}>
+            <View style={[styles.heroSection, { paddingHorizontal: containerPadding }]}>
+              <View style={styles.heroLeftCol}>
                 <View style={[styles.heroChip, { className: 'sa-float-slow' } as any]}>
                   <Svg width="14" height="14" viewBox="0 0 16 16" style={{ marginRight: 6 }}>
                     <Path d="M8 0 l1.8 4.6 L14.5 6 l-3.6 3.1 1 4.9 L8 11.6 4.1 14 l1-4.9 L1.5 6 l4.7 -1.4 Z" fill="#8B84FF" />
                   </Svg>
                   <Text style={styles.heroChipText}>AI CAREER PLATFORM FOR STUDENTS</Text>
                 </View>
-                <Text style={[styles.heroHeadline, { fontSize: isMobile ? 34 : 58, lineHeight: isMobile ? 40 : 64, letterSpacing: isMobile ? -1.2 : -2, marginBottom: isMobile ? 18 : 26 }]}>Your Intelligent Companion for a Modern Career</Text>
-                <Text style={[styles.heroSubhead, { maxWidth: isMobile ? '100%' : 480, fontSize: isMobile ? 15 : 17, lineHeight: isMobile ? 24 : 28, marginBottom: isMobile ? 28 : 38 }]}>
+                <Text style={styles.heroHeadline}>Your Intelligent Companion for a Modern Career</Text>
+                <Text style={styles.heroSubhead}>
                   Meet Agent K your always-on career copilot. Connect with mentors, discover events and career opportunities, polish your resume, and follow a personalized roadmap built for the way students actually work today.
                 </Text>
 
                 <View style={styles.heroCtaRow}>
-                  <GlowButton onPress={() => router.push('/register')} style={[styles.heroBtnStudent, isMobile && { paddingVertical: 14, paddingHorizontal: 22 }]} textStyle={styles.heroBtnStudentText}>
+                  <GlowButton onPress={() => router.push('/register')} style={styles.heroBtnStudent} textStyle={styles.heroBtnStudentText}>
                     I'm a student  ↗
                   </GlowButton>
-                  <GlowButton onPress={() => setActiveTab('contact')} style={[styles.heroBtnCollege, isMobile && { paddingVertical: 14, paddingHorizontal: 22 }]} textStyle={styles.heroBtnCollegeText}>
+                  <GlowButton onPress={() => setActiveTab('contact')} style={styles.heroBtnCollege} textStyle={styles.heroBtnCollegeText}>
                     I'm a college
                   </GlowButton>
                 </View>
 
-                <Text style={[styles.heroTrustLine, { fontSize: isMobile ? 12 : 13 }]}>
+                <Text style={styles.heroTrustLine}>
                   Free for students · No credit card · Your profile stays private until you reach out
                 </Text>
               </View>
 
               {/* 3D Swaying SA Shield Emblem with Pure Shine Effect */}
-              {!isMobile && <View style={styles.heroRightCol}>
+              <View style={styles.heroRightCol}>
                 <div
                   className="sa-shield-glow"
                   style={{
@@ -1774,7 +2254,6 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   </svg>
                 </div>
               </View>
-              }
             </View>
 
             {/* ── DUAL-ROW CONTINUOUS PARTNER MARQUEES ── */}
@@ -1796,14 +2275,14 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
               <View style={styles.sectionPill}>
                 <Text style={styles.sectionPillText}>• EVERYTHING YOU NEED</Text>
               </View>
-              <Text style={[styles.sectionHeadingH2, { fontSize: isMobile ? 30 : 48, lineHeight: isMobile ? 36 : 52, letterSpacing: isMobile ? -1.2 : -1.8, marginBottom: isMobile ? 16 : 22 }]}>A complete career OS,<br /><Text style={{ color: T.indLt }}>built for students.</Text></Text>
+              <Text style={styles.sectionHeadingH2}>A complete career OS,<br /><Text style={{ color: T.indLt }}>built for students.</Text></Text>
               <Text style={styles.sectionDesc}>Everything from your first job match to your full-time offer in one intelligent platform.</Text>
 
               <View style={styles.bentoGridContainer}>
                 {/* ROW 1: 01 Agent K (Large) + 02 Mentors */}
                 <View style={[styles.bentoRow, isNarrow && { flexDirection: 'column' }]}>
                   {/* 01 Agent K */}
-                  <HoverLiftCard style={[styles.bentoCard, { flex: isMobile ? 'none' : 1.68, flexBasis: isMobile ? '100%' : undefined, minWidth: 0, padding: isMobile ? 20 : 30 }]}>
+                  <HoverLiftCard style={[styles.bentoCard, { flex: 1.68, minWidth: 320 }]}>
                     <Text style={styles.bentoNumber}>01</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -1818,7 +2297,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   </HoverLiftCard>
 
                   {/* 02 Mentors */}
-                  <HoverLiftCard style={[styles.bentoCard, { flex: isMobile ? 'none' : 1, flexBasis: isMobile ? '100%' : undefined, minWidth: 0, padding: isMobile ? 20 : 30 }]}>
+                  <HoverLiftCard style={[styles.bentoCard, { flex: 1, minWidth: 260 }]}>
                     <Text style={styles.bentoNumber}>02</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -1834,7 +2313,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 {/* ROW 2: 03 Events + 04 Student Perks + 05 Career Opportunities */}
                 <View style={[styles.bentoRow, isNarrow && { flexDirection: 'column' }]}>
                   {/* 03 Events */}
-                  <HoverLiftCard style={[styles.bentoCard, { flex: isMobile ? 'none' : 1, flexBasis: isMobile ? '100%' : undefined, minWidth: 0, padding: isMobile ? 20 : 30 }]}>
+                  <HoverLiftCard style={[styles.bentoCard, { flex: 1, minWidth: 220 }]}>
                     <Text style={styles.bentoNumber}>03</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -1847,7 +2326,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   </HoverLiftCard>
 
                   {/* 04 Student Perks */}
-                  <HoverLiftCard style={[styles.bentoCard, { flex: isMobile ? 'none' : 1, flexBasis: isMobile ? '100%' : undefined, minWidth: 0, padding: isMobile ? 20 : 30 }]}>
+                  <HoverLiftCard style={[styles.bentoCard, { flex: 1, minWidth: 220 }]}>
                     <Text style={styles.bentoNumber}>04</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -1860,7 +2339,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   </HoverLiftCard>
 
                   {/* 05 Career Opportunities */}
-                  <HoverLiftCard style={[styles.bentoCard, { flex: isMobile ? 'none' : 1.45, flexBasis: isMobile ? '100%' : undefined, minWidth: 0, padding: isMobile ? 20 : 30, borderColor: '#5B4FE9', backgroundColor: 'rgba(91,79,233,0.08)' }]} hoverBorderColor="#8B84FF">
+                  <HoverLiftCard style={[styles.bentoCard, { flex: 1.45, minWidth: 280, borderColor: '#5B4FE9', backgroundColor: 'rgba(91,79,233,0.08)' }]} hoverBorderColor="#8B84FF">
                     <Text style={[styles.bentoNumber, { color: '#8B84FF' }]}>05</Text>
                     <View style={[styles.bentoIconBadge, { backgroundColor: '#5B4FE9', borderColor: '#8B84FF' }]}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -1876,7 +2355,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 {/* ROW 3: 06 Resume Polish + 07 Career Roadmap */}
                 <View style={[styles.bentoRow, isNarrow && { flexDirection: 'column' }]}>
                   {/* 06 Resume Polish */}
-                  <HoverLiftCard style={[styles.bentoCard, { flex: isMobile ? 'none' : 1, flexBasis: isMobile ? '100%' : undefined, minWidth: 0, padding: isMobile ? 20 : 30 }]}>
+                  <HoverLiftCard style={[styles.bentoCard, { flex: 1, minWidth: 260 }]}>
                     <Text style={styles.bentoNumber}>06</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -1888,7 +2367,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   </HoverLiftCard>
 
                   {/* 07 Career Roadmap */}
-                  <HoverLiftCard style={[styles.bentoCard, { flex: isMobile ? 'none' : 1.68, flexBasis: isMobile ? '100%' : undefined, minWidth: 0, padding: isMobile ? 20 : 30 }]}>
+                  <HoverLiftCard style={[styles.bentoCard, { flex: 1.68, minWidth: 320 }]}>
                     <Text style={styles.bentoNumber}>07</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -1907,7 +2386,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
               <View style={styles.sectionPill}>
                 <Text style={styles.sectionPillText}>▲ YOUR COMMAND CENTER</Text>
               </View>
-              <Text style={[styles.sectionHeadingH2, { fontSize: isMobile ? 30 : 48, lineHeight: isMobile ? 36 : 52, letterSpacing: isMobile ? -1.2 : -1.8, marginBottom: isMobile ? 16 : 22 }]}>One dashboard,<br /><Text style={{ color: T.indLt }}>infinite momentum.</Text></Text>
+              <Text style={styles.sectionHeadingH2}>One dashboard,<br /><Text style={{ color: T.indLt }}>infinite momentum.</Text></Text>
               <Text style={styles.sectionDesc}>Track every application, mentor session, and milestone in a beautifully quiet, deeply intelligent interface.</Text>
 
               {/* Browser Shell Frame */}
@@ -2081,10 +2560,10 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 >
                   <HoverLiftCard
                     style={[
-                      styles.audienceCard, { flexDirection: isMobile ? 'column' : 'row', paddingVertical: isMobile ? 24 : 38, paddingHorizontal: isMobile ? 20 : 44, gap: isMobile ? 20 : 34, minHeight: isMobile ? "auto" : 230 },
+                      styles.audienceCard,
                       {
-                        backgroundColor: T.surface,
-                        borderColor: T.line,
+                        backgroundColor: '#0A0C18',
+                        borderColor: '#1B1E33',
                         boxShadow: '0 24px 60px rgba(0,0,0,0.65)',
                       },
                     ]}
@@ -2117,10 +2596,10 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 >
                   <HoverLiftCard
                     style={[
-                      styles.audienceCard, { flexDirection: isMobile ? 'column' : 'row', paddingVertical: isMobile ? 24 : 38, paddingHorizontal: isMobile ? 20 : 44, gap: isMobile ? 20 : 34, minHeight: isMobile ? "auto" : 230 },
+                      styles.audienceCard,
                       {
-                        backgroundColor: T.surface,
-                        borderColor: T.line,
+                        backgroundColor: '#0A0C18',
+                        borderColor: '#1B1E33',
                         boxShadow: '0 26px 65px rgba(0,0,0,0.7)',
                       },
                     ]}
@@ -2133,7 +2612,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                     </View>
                     <View style={styles.audienceSvgBox}>
                       <svg width="220" height="144" viewBox="0 0 300 190" style={{ width: '100%', height: 'auto', display: 'block' }}>
-                        <circle cx="150" cy="80" r="38" fill={T.dot} />
+                        <circle cx="150" cy="80" r="38" fill="#2A2E45" />
                         <circle cx="150" cy="80" r="24" fill="#5B4FE9" opacity="0.5" />
                         <path d="M124 128 l-14 44 26 -12 M176 128 l14 44 -26 -12" fill="#5B4FE9" />
                       </svg>
@@ -2151,10 +2630,10 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 >
                   <HoverLiftCard
                     style={[
-                      styles.audienceCard, { flexDirection: isMobile ? 'column' : 'row', paddingVertical: isMobile ? 24 : 38, paddingHorizontal: isMobile ? 20 : 44, gap: isMobile ? 20 : 34, minHeight: isMobile ? "auto" : 230 },
+                      styles.audienceCard,
                       {
-                        backgroundColor: T.surface,
-                        borderColor: T.line,
+                        backgroundColor: '#0A0C18',
+                        borderColor: '#1B1E33',
                         boxShadow: '0 28px 70px rgba(0,0,0,0.75)',
                       },
                     ]}
@@ -2184,10 +2663,10 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 >
                   <HoverLiftCard
                     style={[
-                      styles.audienceCard, { flexDirection: isMobile ? 'column' : 'row', paddingVertical: isMobile ? 24 : 38, paddingHorizontal: isMobile ? 20 : 44, gap: isMobile ? 20 : 34, minHeight: isMobile ? "auto" : 230 },
+                      styles.audienceCard,
                       {
-                        backgroundColor: T.surface,
-                        borderColor: T.line,
+                        backgroundColor: '#0A0C18',
+                        borderColor: '#1B1E33',
                         boxShadow: '0 30px 75px rgba(0,0,0,0.8)',
                       },
                     ]}
@@ -2346,7 +2825,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                           <circle cx="30" cy="230" r="3" fill="#4B4E65" />
                         </>
                       )}
-                      <text x="30" y="278" textAnchor="middle" fill={roadmapProgress >= 0.05 ? T.text : T.dim} fontSize="17" fontWeight="700" fontFamily="'Manrope', sans-serif">01 Foundations</text>
+                      <text x="30" y="278" textAnchor="middle" fill={roadmapProgress >= 0.05 ? '#F4F5FB' : '#5C6273'} fontSize="17" fontWeight="700" fontFamily="'Manrope', sans-serif">01 Foundations</text>
                     </g>
 
                     {/* Milestone 02: Skill plan */}
@@ -2363,7 +2842,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                           <circle cx="360" cy="70" r="3" fill="#4B4E65" />
                         </>
                       )}
-                      <text x="360" y="32" textAnchor="middle" fill={roadmapProgress >= 0.30 ? T.text : T.dim} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">02 Skill plan</text>
+                      <text x="360" y="32" textAnchor="middle" fill={roadmapProgress >= 0.30 ? '#F4F5FB' : '#5C6273'} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">02 Skill plan</text>
                     </g>
 
                     {/* Milestone 03: Opportunities */}
@@ -2380,7 +2859,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                           <circle cx="700" cy="230" r="3" fill="#4B4E65" />
                         </>
                       )}
-                      <text x="700" y="278" textAnchor="middle" fill={roadmapProgress >= 0.56 ? T.text : T.dim} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">03 Opportunities</text>
+                      <text x="700" y="278" textAnchor="middle" fill={roadmapProgress >= 0.56 ? '#F4F5FB' : '#5C6273'} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">03 Opportunities</text>
                     </g>
 
                     {/* Milestone 04: Full-time */}
@@ -2397,7 +2876,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                           <circle cx="1010" cy="60" r="3" fill="#4B4E65" />
                         </>
                       )}
-                      <text x="1010" y="22" textAnchor="middle" fill={roadmapProgress >= 0.82 ? T.text : T.dim} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">04 Full-time</text>
+                      <text x="1010" y="22" textAnchor="middle" fill={roadmapProgress >= 0.82 ? '#F4F5FB' : '#5C6273'} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">04 Full-time</text>
                     </g>
                   </svg>
                 </View>
@@ -2460,14 +2939,14 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                       {/* SVG 0: Alumni Career Fair */}
                       {deckIdx === 0 && (
                         <Svg width="100%" height="240" viewBox="0 0 320 260">
-                          <Circle cx="252" cy="60" r="46" fill={T.dot} />
+                          <Circle cx="252" cy="60" r="46" fill="#2A2E45" />
                           <Path d="M40 96 h240" stroke="#8B84FF" strokeWidth="3" />
                           <Path d="M56 96 v-22 h208 v22" fill="none" stroke="#5B4FE9" strokeWidth="3" />
                           <Rect x="92" y="46" width="136" height="30" rx="6" fill="#5B4FE9" />
-                          <Circle cx="96" cy="150" r="14" fill={T.text2} />
+                          <Circle cx="96" cy="150" r="14" fill="#D5D8E4" />
                           <Path d="M76 208 q0 -34 20 -34 q20 0 20 34 Z" fill="#5B4FE9" />
                           <Circle cx="160" cy="142" r="16" fill="#8B84FF" />
-                          <Path d="M137 209 q0 -39 23 -39 q23 0 23 39 Z" fill={T.dot} />
+                          <Path d="M137 209 q0 -39 23 -39 q23 0 23 39 Z" fill="#2A2E45" />
                           <Circle cx="226" cy="152" r="13" fill="#A78BFA" />
                           <Path d="M207 207 q0 -32 19 -32 q19 0 19 32 Z" fill="#5B4FE9" />
                         </Svg>
@@ -2475,11 +2954,11 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                       {/* SVG 1: One to One Mentoring */}
                       {deckIdx === 1 && (
                         <Svg width="100%" height="240" viewBox="0 0 320 260">
-                          <Circle cx="70" cy="66" r="40" fill={T.dot} />
-                          <Circle cx="96" cy="120" r="15" fill={T.text2} />
+                          <Circle cx="70" cy="66" r="40" fill="#2A2E45" />
+                          <Circle cx="96" cy="120" r="15" fill="#D5D8E4" />
                           <Path d="M74 184 q0 -37 22 -37 q22 0 22 37 Z" fill="#5B4FE9" />
                           <Circle cx="224" cy="120" r="15" fill="#8B84FF" />
-                          <Path d="M202 184 q0 -37 22 -37 q22 0 22 37 Z" fill={T.dot} />
+                          <Path d="M202 184 q0 -37 22 -37 q22 0 22 37 Z" fill="#2A2E45" />
                           <Rect x="52" y="186" width="216" height="12" rx="6" fill="#8B84FF" />
                           <Path d="M146 54 h74 q10 0 10 10 v30 q0 10 -10 10 h-46 l-18 16 v-16 q-10 0 -10 -10 v-30 q0 -10 10 -10 Z" fill="#5B4FE9" />
                         </Svg>
@@ -2489,7 +2968,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                         <Svg width="100%" height="240" viewBox="0 0 320 260">
                           <Circle cx="88" cy="74" r="12" fill="#8B84FF" />
                           <Circle cx="232" cy="74" r="12" fill="#A78BFA" />
-                          <Rect x="66" y="128" width="188" height="112" rx="8" fill={T.dot} />
+                          <Rect x="66" y="128" width="188" height="112" rx="8" fill="#2A2E45" />
                           <Rect x="80" y="142" width="160" height="82" rx="4" fill="#090B16" />
                           <Path d="M94 162 h48 M94 178 h72 M94 194 h36 M94 210 h60" stroke="#5B4FE9" strokeWidth="4" />
                         </Svg>
@@ -2497,8 +2976,8 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                       {/* SVG 3: Graduation */}
                       {deckIdx === 3 && (
                         <Svg width="100%" height="240" viewBox="0 0 320 260">
-                          <Circle cx="160" cy="130" r="86" fill={T.dot} />
-                          <Circle cx="160" cy="128" r="21" fill={T.text2} />
+                          <Circle cx="160" cy="130" r="86" fill="#2A2E45" />
+                          <Circle cx="160" cy="128" r="21" fill="#D5D8E4" />
                           <Path d="M130 214 q0 -51 30 -51 q30 0 30 51 Z" fill="#5B4FE9" />
                           <Path d="M112 92 L160 68 L208 92 L160 116 Z" fill="#8B84FF" />
                           <Path d="M208 92 v26" stroke="#8B84FF" strokeWidth="4" />
@@ -2508,9 +2987,9 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                       {deckIdx === 4 && (
                         <Svg width="100%" height="240" viewBox="0 0 320 260">
                           <Rect x="44" y="176" width="232" height="12" rx="6" fill="#8B84FF" />
-                          <Rect x="118" y="96" width="120" height="72" rx="6" fill={T.dot} />
+                          <Rect x="118" y="96" width="120" height="72" rx="6" fill="#2A2E45" />
                           <Rect x="130" y="108" width="96" height="48" rx="3" fill="#3B82F6" opacity="0.45" />
-                          <Circle cx="88" cy="118" r="14" fill={T.text2} />
+                          <Circle cx="88" cy="118" r="14" fill="#D5D8E4" />
                           <Path d="M68 176 q0 -34 20 -34 q20 0 20 34 Z" fill="#5B4FE9" />
                         </Svg>
                       )}
@@ -2582,8 +3061,8 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                     
                     {/* Center User Hub */}
                     <circle cx="310" cy="270" r="52" fill="#0C0E1B" stroke="#5B4FE9" strokeWidth="2.4" />
-                    <text x="310" y="266" textAnchor="middle" fill={T.text} fontSize="16" fontWeight="800" fontFamily="'Manrope', sans-serif">YOU</text>
-                    <text x="310" y="286" textAnchor="middle" fill={T.muted} fontSize="9.5" fontWeight="700" letterSpacing="1.4" fontFamily="'Manrope', sans-serif">YEAR 3</text>
+                    <text x="310" y="266" textAnchor="middle" fill="#F4F5FB" fontSize="16" fontWeight="800" fontFamily="'Manrope', sans-serif">YOU</text>
+                    <text x="310" y="286" textAnchor="middle" fill="#9AA0B4" fontSize="9.5" fontWeight="700" letterSpacing="1.4" fontFamily="'Manrope', sans-serif">YEAR 3</text>
 
                     {[
                       { x: 310, y: 132, score: '98', name: 'Priya R. — Product, Bengaluru', why: 'Same course, four years ahead. Mentors three students each term.' },
@@ -2632,6 +3111,34 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
               </View>
             </View>
 
+            {/* ── 10b. ON THE GROUND ECHO EVENTS ── */}
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
+              <HoverLiftCard style={styles.onTheGroundCard}>
+                <View style={styles.otgTag}><Text style={styles.otgTagText}>• ON THE GROUND</Text></View>
+                <Text style={styles.otgTitle}>The network is a feed until it meets in person.</Text>
+                <Text style={styles.otgDesc}>Eighty-six ECHO events across thirty-one campuses. Alumni in the room, recruiters at the table, and a build sprint that runs overnight.</Text>
+                <View style={styles.otgStatsRow}>
+                  <View><Text style={[styles.otgStatNum, { color: '#4B3FA8' }]}>86</Text><Text style={styles.otgStatLabel}>events run</Text></View>
+                  <View><Text style={[styles.otgStatNum, { color: '#0E6E8C' }]}>31</Text><Text style={styles.otgStatLabel}>cities</Text></View>
+                  <View><Text style={[styles.otgStatNum, { color: '#A21C63' }]}>4.8</Text><Text style={styles.otgStatLabel}>average rating</Text></View>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
+                  <GlowButton onPress={() => setActiveTab('contact')} style={[styles.verifySubmitBtn, { backgroundColor: '#4B3FD6' }]} textStyle={styles.verifySubmitBtnText}>
+                    Host on your campus
+                  </GlowButton>
+                  <GlowButton onPress={() => router.push('/register')} style={[styles.heroBtnCollege, { borderColor: '#CFC9F3' }]} textStyle={[styles.heroBtnCollegeText, { color: '#2E2A55' }]}>
+                    Join the network
+                  </GlowButton>
+                </View>
+                <View style={styles.otgHostsRow}>
+                  <Text style={styles.otgHostsHeader}>RECENT HOSTS: </Text>
+                  {['Sreenidhi Institute', 'VNR VJIET', 'Khammam Institute', 'CBIT Hyderabad'].map((h, idx) => (
+                    <Text key={idx} style={styles.otgHostPill}>{h}</Text>
+                  ))}
+                </View>
+              </HoverLiftCard>
+            </View>
+
             {/* ── 11. TESTIMONIALS (INTERACTIVE PROGRESS DECK) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>FROM THE NETWORK</Text></View>
@@ -2665,15 +3172,15 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
 
             {/* ── 12. FINAL CALL TO ACTION ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
-              <View style={[styles.ctaCardBanner, { padding: isMobile ? 32 : 80 }]}>
+              <View style={styles.ctaCardBanner}>
                 <View style={styles.sectionPill}>
                   <Svg width="12" height="12" viewBox="0 0 24 24" style={{ marginRight: 6 }}>
                     <Path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#8B84FF" strokeWidth="2" fill="#5B4FE9" />
                   </Svg>
                   <Text style={styles.sectionPillText}>START YOUR JOURNEY</Text>
                 </View>
-                <Text style={[styles.ctaTitleH2, { fontSize: isMobile ? 28 : 58, lineHeight: isMobile ? 34 : 64, letterSpacing: isMobile ? -1 : -2.2, marginVertical: isMobile ? 16 : 26 }]}>Your career, quietly<br /><Text style={{ color: T.indLt }}>upgraded.</Text></Text>
-                <Text style={[styles.ctaSubtitle, { fontSize: isMobile ? 14 : 16.5, marginBottom: isMobile ? 20 : 32 }]}>Join 50,000+ students already using StudentAlumni to land career opportunities, find mentors, and build their future. No credit card required.</Text>
+                <Text style={styles.ctaTitleH2}>Your career, quietly<br /><Text style={{ color: T.indLt }}>upgraded.</Text></Text>
+                <Text style={styles.ctaSubtitle}>Join 50,000+ students already using StudentAlumni to land career opportunities, find mentors, and build their future. No credit card required.</Text>
                 <GlowButton onPress={() => router.push('/register')} style={styles.ctaActionButton} textStyle={styles.ctaActionButtonText}>
                   Create your free account ↗
                 </GlowButton>
@@ -2724,8 +3231,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
 }
 
 /* ── StyleSheet Styles ── */
-function themedStyles(T: typeof DARK_T) {
-  return StyleSheet.create({
+const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: T.bg,
@@ -3028,12 +3534,12 @@ function themedStyles(T: typeof DARK_T) {
     letterSpacing: 1.6,
   },
   sectionHeadingH2: {
-    fontSize: 36,
+    fontSize: 48,
     fontWeight: '700',
     color: T.text,
-    letterSpacing: -1.4,
-    lineHeight: 42,
-    marginBottom: 18,
+    letterSpacing: -1.8,
+    lineHeight: 52,
+    marginBottom: 22,
   },
   sectionDesc: {
     fontSize: 16.5,
@@ -3314,8 +3820,6 @@ function themedStyles(T: typeof DARK_T) {
   },
   alumniPillarSub: {
     fontSize: 14,
-    color: '#94A3B8',
-    lineHeight: 20,
   },
 
   /* ── 07 Audiences ── */
@@ -3390,12 +3894,12 @@ function themedStyles(T: typeof DARK_T) {
   },
   numberItem: {
     flex: 1,
-    minWidth: 140,
+    minWidth: 200,
     backgroundColor: T.card,
     borderWidth: 1,
     borderColor: T.line2,
     borderRadius: 16,
-    padding: 22,
+    padding: 30,
     alignItems: 'center',
   },
   numberIconBox: {
@@ -3485,15 +3989,15 @@ function themedStyles(T: typeof DARK_T) {
     position: 'absolute',
     top: 0,
     opacity: 0.35,
-    backgroundColor: T.well,
-    borderColor: T.line2,
+    backgroundColor: '#090B16',
+    borderColor: '#171A2C',
     zIndex: 1,
   },
   stackedCardMid: {
     position: 'absolute',
     top: 0,
     opacity: 0.65,
-    backgroundColor: T.surface,
+    backgroundColor: '#0A0C18',
     borderColor: '#1E2238',
     zIndex: 2,
   },
@@ -3566,6 +4070,83 @@ function themedStyles(T: typeof DARK_T) {
     fontSize: 14.5,
     color: T.muted,
     marginTop: 5,
+  },
+
+  /* ── 10b On the Ground ── */
+  onTheGroundCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 26,
+    padding: 42,
+  },
+  otgTag: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(46,32,145,0.1)',
+    borderRadius: 100,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    marginBottom: 20,
+  },
+  otgTagText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2E2091',
+    letterSpacing: 1.6,
+  },
+  otgTitle: {
+    fontSize: 40,
+    fontWeight: '700',
+    color: '#141726',
+    letterSpacing: -1.8,
+    lineHeight: 46,
+    marginBottom: 14,
+  },
+  otgDesc: {
+    fontSize: 16.5,
+    lineHeight: 26,
+    color: '#4A4F63',
+    maxWidth: 500,
+    marginBottom: 28,
+  },
+  otgStatsRow: {
+    flexDirection: 'row',
+    gap: 36,
+    marginBottom: 28,
+  },
+  otgStatNum: {
+    fontSize: 30,
+    fontWeight: '700',
+    letterSpacing: -1.2,
+  },
+  otgStatLabel: {
+    fontSize: 12.5,
+    color: '#5F6474',
+    marginTop: 5,
+  },
+  otgHostsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(20,23,38,0.1)',
+    paddingTop: 24,
+    marginTop: 32,
+  },
+  otgHostsHeader: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#5F6474',
+    letterSpacing: 1.6,
+  },
+  otgHostPill: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#2E2A55',
+    backgroundColor: 'rgba(20,23,38,0.05)',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 100,
   },
 
   /* ── 11 Testimonials ── */
@@ -3668,7 +4249,7 @@ function themedStyles(T: typeof DARK_T) {
     right: 0,
     bottom: 0,
     zIndex: 150,
-    backgroundColor: T.surface,
+    backgroundColor: 'rgba(5,6,15,0.9)',
     borderTopWidth: 1,
     borderTopColor: T.line,
     backdropFilter: 'blur(16px)' as any,
@@ -4420,6 +5001,755 @@ function themedStyles(T: typeof DARK_T) {
     color: T.text2,
     fontWeight: '500',
   },
+
+  /* ── ECHO EVENTS STYLES ── */
+  echoTickerWrap: {
+    width: '100%',
+    backgroundColor: 'rgba(124,92,252,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(124,92,252,0.25)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    marginBottom: 26,
+    overflow: 'hidden',
+  },
+  echoTickerTrack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  echoTickerText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#D5D8E4',
+    letterSpacing: 0.2,
+  },
+  echoHeroCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 36,
+    marginBottom: 24,
+    shadowColor: '#101220',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.18,
+    shadowRadius: 40,
+  },
+  echoHeroGrid: {
+    flexDirection: 'row',
+    gap: 36,
+    alignItems: 'center',
+  },
+  echoTagPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(46,32,145,0.1)',
+    borderRadius: 100,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    alignSelf: 'flex-start',
+    marginBottom: 16,
+  },
+  echoTagDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#2E2091',
+  },
+  echoTagText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2E2091',
+    letterSpacing: 1.5,
+  },
+  echoHeroTitle: {
+    fontSize: 34,
+    fontWeight: '700',
+    color: '#141726',
+    letterSpacing: -1.4,
+    lineHeight: 40,
+    marginBottom: 12,
+  },
+  echoHeroSub: {
+    fontSize: 16,
+    lineHeight: 25,
+    color: '#4A4F63',
+    maxWidth: 540,
+    marginBottom: 24,
+  },
+  echoStatsRow: {
+    flexDirection: 'row',
+    gap: 32,
+    marginBottom: 24,
+  },
+  echoStatNum: {
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: -1,
+  },
+  echoStatLabel: {
+    fontSize: 12,
+    color: '#5F6474',
+    marginTop: 4,
+  },
+  echoMosaicWrap: {
+    width: 380,
+    height: 200,
+    flexDirection: 'row',
+    gap: 10,
+  },
+  echoMosaicMain: {
+    flex: 2,
+    backgroundColor: '#1E1848',
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+  },
+  echoMosaicMainText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  echoMosaicSide: {
+    flex: 1,
+    gap: 10,
+  },
+  echoMosaicSub1: {
+    flex: 1,
+    backgroundColor: '#2A1F63',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  echoMosaicSub2: {
+    flex: 1,
+    backgroundColor: '#162248',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  echoMosaicSubText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
+    fontSize: 11.5,
+  },
+  echoRecentHosts: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    flexWrap: 'wrap',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(20,23,38,0.1)',
+    marginTop: 26,
+    paddingTop: 20,
+  },
+  echoRecentLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    color: '#5F6474',
+  },
+  echoHostChipsWrap: {
+    flexDirection: 'row',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  echoHostChip: {
+    backgroundColor: 'rgba(20,23,38,0.06)',
+    borderRadius: 100,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+  },
+  echoHostChipText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#2E2A55',
+  },
+  echoSectionBanner: {
+    width: '100%',
+    backgroundColor: '#14122E',
+    borderWidth: 1,
+    borderColor: '#3A2E72',
+    borderRadius: 20,
+    padding: 30,
+    marginBottom: 22,
+  },
+  echoSectionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(124,92,252,0.18)',
+    borderRadius: 100,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    alignSelf: 'flex-start',
+    marginBottom: 14,
+  },
+  echoSectionPillText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+    color: '#C4B5FD',
+  },
+  echoSectionTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -1.2,
+    marginBottom: 10,
+  },
+  echoSectionSubtitle: {
+    fontSize: 15,
+    color: '#BEB6E8',
+    lineHeight: 24,
+    maxWidth: 620,
+  },
+  echoCardsGrid: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: 20,
+    flexWrap: 'wrap',
+  },
+  echoEventCard: {
+    flex: 1,
+    minWidth: 320,
+    backgroundColor: '#11111C',
+    borderWidth: 1,
+    borderColor: '#1F1F30',
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  echoCardImageHeader: {
+    height: 170,
+    backgroundColor: '#1E1848',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  echoCardImageTitle: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: -0.5,
+  },
+  echoCardBody: {
+    padding: 20,
+  },
+  echoCardBadgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  echoStatusBadge: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  echoStatusText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+  },
+  echoCollegeBadge: {
+    backgroundColor: 'rgba(124,92,252,0.14)',
+    borderWidth: 1,
+    borderColor: '#2E2A55',
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  echoCollegeBadgeText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#C4B5FD',
+  },
+  echoCardTitle: {
+    fontSize: 19,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.4,
+    marginBottom: 6,
+  },
+  echoCardSubtitle: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: '#8A8A9E',
+    marginBottom: 16,
+  },
+  echoCardMetaList: {
+    gap: 8,
+    marginBottom: 16,
+  },
+  echoMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  echoMetaText: {
+    fontSize: 13,
+    color: '#8A8A9E',
+  },
+  echoCardFooter: {
+    borderTopWidth: 1,
+    borderTopColor: '#1F1F30',
+    paddingTop: 14,
+  },
+  echoViewEventText: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: '#A78BFA',
+  },
+  echoBackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#11111C',
+    borderWidth: 1,
+    borderColor: '#292940',
+    borderRadius: 100,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    marginBottom: 20,
+  },
+  echoBackBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  echoDetailHeroCard: {
+    width: '100%',
+    backgroundColor: '#11111C',
+    borderWidth: 1,
+    borderColor: '#292940',
+    borderRadius: 22,
+    overflow: 'hidden',
+    marginBottom: 22,
+  },
+  echoDetailHeroBanner: {
+    height: 260,
+    backgroundColor: '#1A1448',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  echoDetailHeroBannerText: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    letterSpacing: -0.8,
+  },
+  echoDetailHeroBody: {
+    padding: 26,
+  },
+  echoOrgByText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.1,
+    color: '#8A8A9E',
+  },
+  echoDetailTitle: {
+    fontSize: 30,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -1,
+    marginTop: 6,
+    marginBottom: 8,
+  },
+  echoDetailSubtitle: {
+    fontSize: 15,
+    lineHeight: 23,
+    color: '#8A8A9E',
+    maxWidth: 680,
+    marginBottom: 18,
+  },
+  echoPillsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    flexWrap: 'wrap',
+    marginBottom: 22,
+  },
+  echoInfoPill: {
+    borderWidth: 1,
+    borderRadius: 100,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+  },
+  echoInfoPillText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+  },
+  echoActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#1F1F30',
+    paddingTop: 18,
+    flexWrap: 'wrap',
+  },
+  echoMetaDetailItem: {
+    fontSize: 13.5,
+    color: '#8A8A9E',
+  },
+  echoRegBtn: {
+    backgroundColor: '#0E9F6E',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+  },
+  echoRegBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  echoHandbookBtn: {
+    backgroundColor: '#5B4FE9',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+  },
+  echoHandbookBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  echoInfoGrid: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: 20,
+    marginBottom: 22,
+  },
+  echoAboutCard: {
+    flex: 1,
+    backgroundColor: '#11111C',
+    borderWidth: 1,
+    borderColor: '#1F1F30',
+    borderRadius: 18,
+    padding: 24,
+  },
+  echoAboutTitle: {
+    fontSize: 19,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.4,
+    marginBottom: 6,
+  },
+  echoAboutSub: {
+    fontSize: 14,
+    color: '#8A8A9E',
+    marginBottom: 18,
+  },
+  echoMiniGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  echoMiniCard: {
+    flex: 1,
+    backgroundColor: '#161622',
+    borderWidth: 1,
+    borderColor: '#292940',
+    borderRadius: 14,
+    padding: 16,
+    alignItems: 'center',
+  },
+  echoMiniIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  echoMiniTitle: {
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  echoMiniDesc: {
+    fontSize: 11.5,
+    color: '#8A8A9E',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  echoOrgRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginTop: 14,
+    marginBottom: 20,
+  },
+  echoOrgName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  echoOrgTag: {
+    fontSize: 12.5,
+    color: '#8A8A9E',
+    marginTop: 2,
+  },
+  echoInAssocHeader: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#D5D8E4',
+    marginBottom: 10,
+  },
+  echoPartnersWrap: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  echoPartnerBadge: {
+    backgroundColor: '#161622',
+    borderWidth: 1,
+    borderColor: '#292940',
+    borderRadius: 100,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+  },
+  echoPartnerBadgeText: {
+    fontSize: 12.5,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  echoMomentsCard: {
+    width: '100%',
+    backgroundColor: '#11111C',
+    borderWidth: 1,
+    borderColor: '#1F1F30',
+    borderRadius: 18,
+    padding: 24,
+    marginBottom: 22,
+  },
+  echoMomentsPlaceholder: {
+    backgroundColor: '#161622',
+    borderWidth: 1,
+    borderColor: '#292940',
+    borderRadius: 14,
+    padding: 40,
+    alignItems: 'center',
+    marginTop: 14,
+  },
+  echoHighlightsCard: {
+    width: '100%',
+    backgroundColor: '#11111C',
+    borderWidth: 1,
+    borderColor: '#1F1F30',
+    borderRadius: 18,
+    padding: 24,
+    marginBottom: 22,
+  },
+  echoHighlightsGrid: {
+    flexDirection: 'row',
+    gap: 14,
+    marginTop: 18,
+  },
+  echoHighlightItem: {
+    flex: 1,
+    alignItems: 'center',
+    textAlign: 'center',
+  },
+  echoHlCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(124,92,252,0.16)',
+    borderWidth: 1,
+    borderColor: '#3A2E72',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  echoHlTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  echoHlDesc: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#8A8A9E',
+    textAlign: 'center',
+  },
+  echoBottomCta: {
+    width: '100%',
+    backgroundColor: '#2A1F63',
+    borderWidth: 1,
+    borderColor: '#4B3FA8',
+    borderRadius: 18,
+    padding: 26,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 20,
+    flexWrap: 'wrap',
+    marginBottom: 20,
+  },
+  echoBottomCtaTitle: {
+    fontSize: 19,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  echoBottomCtaSub: {
+    fontSize: 13.5,
+    color: '#C9BFF2',
+  },
+  echoBottomCtaBtn: {
+    backgroundColor: '#8B5CF6',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+  },
+  echoBottomCtaBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+
+  /* Modal */
+  echoModalOverlay: {
+    position: 'fixed' as any,
+    inset: 0,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    zIndex: 9999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  echoModalCard: {
+    width: '100%',
+    maxWidth: 520,
+    backgroundColor: '#11111C',
+    borderWidth: 1,
+    borderColor: '#292940',
+    borderRadius: 20,
+    padding: 28,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 24 },
+    shadowOpacity: 0.6,
+    shadowRadius: 40,
+  },
+  echoModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  echoModalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.6,
+  },
+  echoModalSub: {
+    fontSize: 13,
+    color: '#8A8A9E',
+    marginTop: 3,
+  },
+  echoModalClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#1E1E2E',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  echoModalForm: {
+    width: '100%',
+  },
+  echoPassRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  echoPassOption: {
+    flex: 1,
+    backgroundColor: '#161622',
+    borderWidth: 1.5,
+    borderColor: '#292940',
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+  },
+  echoPassOptionActive: {
+    borderColor: '#8B84FF',
+    backgroundColor: 'rgba(139,132,255,0.1)',
+  },
+  echoPassName: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#D5D8E4',
+  },
+  echoPassPrice: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginTop: 4,
+  },
+  echoCheckRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  echoCouponRow: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+  },
+  echoCouponBtn: {
+    backgroundColor: '#5B4FE9',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+  },
+  echoCouponBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 13.5,
+  },
+  echoSuccessCard: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  echoSuccessTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#34D399',
+    marginBottom: 8,
+  },
+  echoSuccessSub: {
+    fontSize: 14,
+    color: '#D5D8E4',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  echoTicketBox: {
+    width: '100%',
+    backgroundColor: '#161622',
+    borderWidth: 1,
+    borderColor: '#3A2E72',
+    borderRadius: 12,
+    padding: 18,
+    alignItems: 'center',
+  },
+  echoTicketCode: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#A78BFA',
+    letterSpacing: 1,
+  },
+  echoTicketType: {
+    fontSize: 12.5,
+    color: '#8A8A9E',
+    marginTop: 4,
+  },
   btnOutline: {
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
@@ -4460,4 +5790,3 @@ function themedStyles(T: typeof DARK_T) {
     borderColor: '#5B4FE9',
   },
 });
-}

@@ -131,7 +131,7 @@ def generate_qr_code(data: str) -> str:
     qr.make(fit=True)
     img = qr.make_image(fill_color="#5F259F", back_color="#FFFFFF")
     buf = io.BytesIO()
-    img.save(buf)
+    img.save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
@@ -149,7 +149,7 @@ async def _audit_log(user_id: str, field: str, old_value, new_value, *,
             "new_value": new_value if new_value is not None else None,
             "source": source,
             "validation_status": validation_status,
-            "is_manual_entry": is_manual_entry,
+            "is_manual_entry": bool(is_manual_entry),
             "ts": datetime.now(timezone.utc),
         })
     except Exception:
@@ -191,7 +191,7 @@ def _safe_block(model_cls, value):
         return None
 
 
-def serialize_user(user: dict | None) -> dict | None:
+def serialize_user(user: dict) -> dict:
     """Strip internal fields and decrypt at-rest sensitive data for API responses."""
     if not user:
         return None
@@ -221,11 +221,11 @@ def serialize_user(user: dict | None) -> dict | None:
         "dob":          decrypt_value(user.get("dob")),
         "country_code": user.get("country_code"),
         "postal_code":  decrypt_value(user.get("postal_code")),
-        "created_at": user.get("created_at") or datetime.now(timezone.utc),
+        "created_at": user.get("created_at"),
         "first_name":     user.get("first_name"),
         "last_name":      user.get("last_name"),
         "headline":       user.get("headline"),
-        "photo_data":     user.get("face_image_base64") or user.get("photo_data") or user.get("oauth_picture"),
+        "photo_data":     user.get("photo_data") or user.get("face_image_base64") or user.get("oauth_picture"),
         "banner_data":    user.get("banner_data"),
         "college_logo_data": user.get("college_logo_data"),
         "institution":    user.get("institution") or (user.get("school_info") or {}).get("institution_name") or (user.get("alumni_info") or {}).get("institution_name") or (user.get("college_info") or {}).get("institution_name"),

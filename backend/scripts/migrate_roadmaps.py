@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent.parent / '.env')
 
-from core.db import db
+from core.career_intelligence import db
 from core.roadmap_evaluator import evaluate_roadmap_progress
 
 async def migrate_roadmaps():

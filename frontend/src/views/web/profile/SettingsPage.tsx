@@ -44,7 +44,7 @@ export function SettingsPage({ draft, setDraft, showToast, section = 'all' }: Pr
     setPwBusy(true);
     try {
       await request('/users/me/password', { method: 'POST', body: { current_password: pwOld, new_password: pwNew } } as any);
-      showToast('Password updated'); setPwOld(''); setPwNew('');
+      showToast('Password updated ✓'); setPwOld(''); setPwNew('');
     } catch (e: any) { showToast(e?.message || 'Failed to update password'); }
     setPwBusy(false);
   };

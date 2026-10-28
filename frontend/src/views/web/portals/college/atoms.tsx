@@ -13,7 +13,7 @@ export function Av({ initials, size = 40, color, photo }: { initials: string; si
       {photo ? (
         <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
       ) : (
-        <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: size * 0.36, letterSpacing: 0.3 }}>{initials}</Text>
+        <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: size * 0.36, letterSpacing: 0.3 }}>{initials}</Text>
       )}
     </View>
   );
@@ -59,7 +59,7 @@ export function KpiCard({
         {IconComp && <IconComp size={14} color={p.ic} />}
         <Text style={{ color: CC.muted, fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 0.4 }}>{label}</Text>
       </View>
-      <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.5 }}>{value}</Text>
+      <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.5 }}>{value}</Text>
       <Text style={{ color: p.ic, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 }}>{delta}</Text>
     </View>
   );

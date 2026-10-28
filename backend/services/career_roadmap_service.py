@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone
 
-from services.career_ai.skill_intelligence_service import _ALL_STANDARD_MILESTONES
+from services.career_intelligence_service import _ALL_STANDARD_MILESTONES
 
 logger = logging.getLogger(__name__)
 

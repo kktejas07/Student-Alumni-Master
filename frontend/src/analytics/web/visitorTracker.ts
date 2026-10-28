@@ -140,9 +140,9 @@ function getCanvasFingerprint(): string {
     ctx.fillStyle = '#f60';
     ctx.fillRect(125, 1, 62, 20);
     ctx.fillStyle = '#069';
-    ctx.fillText('StudentAlumni.ai 1234', 2, 15);
+    ctx.fillText('StudentAlumni.ai 🚀 1234', 2, 15);
     ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
-    ctx.fillText('StudentAlumni.ai 1234', 4, 17);
+    ctx.fillText('StudentAlumni.ai 🚀 1234', 4, 17);
 
     const dataUrl = canvas.toDataURL();
     // Fast hash
@@ -250,22 +250,7 @@ export function inferModuleFromPath(path: string): string {
   if (p.startsWith('/login') || p.startsWith('/register') || p.startsWith('/auth') || p.startsWith('/onboarding')) {
     return 'auth';
   }
-  if (p.startsWith('/tickets') || p.includes('/tickets')) {
-    return 'tickets';
-  }
-  if (p.startsWith('/workshops') || p.startsWith('/workshop')) {
-    return 'workshops';
-  }
-  if (p.startsWith('/coupons') || p.includes('/coupons')) {
-    return 'coupons';
-  }
-  if (p.startsWith('/teams')) {
-    return 'teams';
-  }
-  if (p.startsWith('/certificates') || p.startsWith('/verify')) {
-    return 'certificates';
-  }
-  if (p.startsWith('/courses') || p.startsWith('/skills')) {
+  if (p.startsWith('/courses') || p.startsWith('/skills') || p.startsWith('/cert')) {
     return 'courses';
   }
   if (p.startsWith('/events') || p.startsWith('/hackathon') || p.startsWith('/webinar')) {

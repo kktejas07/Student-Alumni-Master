@@ -38,7 +38,6 @@ import { SC, FONTS } from './tokens';
 import { GRADS } from './gradients';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PressScale } from './motion';
-import { useTheme } from '@/src/theme/ThemeContext';
 import {
   Bookmark, Calendar, FileText, GraduationCap, Users, Sparkles,
 } from './iconShims';
@@ -68,19 +67,10 @@ export function EmptyState({
   cta?: { label: string; onPress: () => void };
   compact?: boolean;
 }) {
-  const { isDark } = useTheme();
   const meta = VARIANT_META[variant];
   return (
     <View
-      style={[
-        s.wrap,
-        compact && { paddingVertical: 28 },
-        !isDark && {
-          backgroundColor: '#FFFFFF',
-          borderColor: 'rgba(0,0,0,0.08)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-        }
-      ]}
+      style={[s.wrap, compact && { paddingVertical: 28 }]}
       accessibilityRole="summary"
       accessibilityLabel={`${meta.label}. ${title}. ${body || ''}`}
     >
@@ -88,23 +78,13 @@ export function EmptyState({
         <Illustration variant={variant} />
       </View>
       <Text
-        style={[
-          s.title,
-          { color: isDark ? '#FFFFFF' : '#0F172A' }
-        ]}
+        style={s.title}
         // @ts-ignore web-only role helper
         accessibilityRole={Platform.OS === 'web' ? ('heading' as any) : ('header' as any)}
       >
         {title}
       </Text>
-      {!!body && (
-        <Text style={[
-          s.body,
-          { color: isDark ? SC.muted : '#64748B' }
-        ]}>
-          {body}
-        </Text>
-      )}
+      {!!body && <Text style={s.body}>{body}</Text>}
       {cta && (
         <PressScale onPress={cta.onPress}>
           <View
@@ -445,12 +425,12 @@ const s = StyleSheet.create({
   orbitDot: { position: 'absolute', width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: SC.bg2 },
   orbitText: { color: '#000', fontFamily: FONTS.xbold, fontSize: 9 },
 
-  title: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 16, letterSpacing: -0.2, textAlign: 'center' },
+  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16, letterSpacing: -0.2, textAlign: 'center' },
   body:  { color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center', maxWidth: 360, lineHeight: 18 },
 
   ctaBtn: { marginTop: 12, borderRadius: 10, overflow: 'hidden' },
   ctaGrad: { paddingHorizontal: 18, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  ctaText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  ctaText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12.5 },
 
   burstWrap: { position: 'absolute', top: 24, left: 0, right: 0, alignItems: 'center', zIndex: 9999 },
   burstCard: {
@@ -463,5 +443,5 @@ const s = StyleSheet.create({
     width: 32, height: 32, borderRadius: 16,
     backgroundColor: '#22C55E', alignItems: 'center', justifyContent: 'center',
   },
-  burstText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 13.5 },
+  burstText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13.5 },
 });

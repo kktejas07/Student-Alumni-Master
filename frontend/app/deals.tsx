@@ -9,7 +9,7 @@
  *   POST /api/deals/claim/{deal_id}    — +20 SA credits, max 3/day
  *   POST /api/deals/ai-generate        — Claude trending generator
  *
- * Theme-aware (light/dark) for crystal clear legibility.
+ * Adapts the user's web spec strictly to React Native primitives.
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
@@ -21,7 +21,6 @@ import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeatureP
 import { request, resolveImageUrl } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useRouter } from 'expo-router';
-import { useTheme } from '@/src/theme/ThemeContext';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -96,20 +95,28 @@ const TAG_META: Record<Tag, { label: string; icon: IconName; bg: string; fg: str
 };
 
 const CATEGORY_META: Record<string, { label: string; icon: IconName; color: string }> = {
-  all:           { label: 'All',           icon: 'view-grid',                color: '#7C3AED' },
-  tech:          { label: 'Tech & Tools',  icon: 'laptop',                   color: '#2563EB' },
-  food:          { label: 'Food',          icon: 'food',                     color: '#EA580C' },
-  learning:      { label: 'Learning',      icon: 'school',                   color: '#7C3AED' },
-  entertainment: { label: 'Entertainment', icon: 'play-circle',              color: '#16A34A' },
-  insurance:     { label: 'Insurance',     icon: 'shield-check',             color: '#DC2626' },
-  transport:     { label: 'Transport',     icon: 'bus',                      color: '#16A34A' },
-  travel:        { label: 'Travel',        icon: 'airplane',                 color: '#0284C7' },
-  fashion:       { label: 'Fashion',       icon: 'tshirt-crew',              color: '#DB2777' },
-  grocery:       { label: 'Grocery',       icon: 'basket',                   color: '#65A30D' },
+  all:           { label: 'All',           icon: 'view-grid',                color: '#A78BFA' },
+  tech:          { label: 'Tech & Tools',  icon: 'laptop',                   color: '#3B82F6' },
+  food:          { label: 'Food',          icon: 'food',                     color: '#FC8019' },
+  learning:      { label: 'Learning',      icon: 'school',                   color: '#8B5CF6' },
+  entertainment: { label: 'Entertainment', icon: 'play-circle',              color: '#1DB954' },
+  insurance:     { label: 'Insurance',     icon: 'shield-check',             color: '#EF4444' },
+  transport:     { label: 'Transport',     icon: 'bus',                      color: '#22C55E' },
+  travel:        { label: 'Travel',        icon: 'airplane',                 color: '#06B6D4' },
+  fashion:       { label: 'Fashion',       icon: 'tshirt-crew',              color: '#F472B6' },
+  grocery:       { label: 'Grocery',       icon: 'basket',                   color: '#84C225' },
 };
 
 const CATEGORY_ORDER = ['all', 'tech', 'food', 'learning', 'entertainment',
                         'insurance', 'transport', 'travel', 'fashion', 'grocery'];
+
+const C = {
+  text: '#fff',
+  text2: 'rgba(255,255,255,0.72)',
+  text3: 'rgba(255,255,255,0.46)',
+  border: 'rgba(255,255,255,0.10)',
+  card: 'rgba(255,255,255,0.04)',
+};
 
 // ─── Utils ───────────────────────────────────────────────────────────────
 function fmtINR(n: number): string {
@@ -133,34 +140,9 @@ function relTime(iso?: string | null): string {
 // ─── Component ───────────────────────────────────────────────────────────
 export default function DealsScreen() {
   const router = useRouter();
-  const { isDark } = useTheme();
   const user = useAuthStore((s) => s.user);
   const initialized = useAuthStore((s) => s.initialized);
   const isEmbedded = React.useContext(EmbeddedShellContext);
-
-  const colors = useMemo(() => ({
-    text: isDark ? '#FFFFFF' : '#0F172A',
-    text2: isDark ? 'rgba(255, 255, 255, 0.72)' : '#334155',
-    text3: isDark ? 'rgba(255, 255, 255, 0.46)' : '#64748B',
-    border: isDark ? 'rgba(255, 255, 255, 0.10)' : '#E2E8F0',
-    card: isDark ? 'rgba(255, 255, 255, 0.04)' : '#FFFFFF',
-    cardBorder: isDark ? 'rgba(255, 255, 255, 0.10)' : '#E2E8F0',
-    tabInactiveBg: isDark ? 'rgba(255, 255, 255, 0.04)' : '#FFFFFF',
-    tabInactiveBorder: isDark ? 'rgba(255, 255, 255, 0.10)' : '#CBD5E1',
-    tabInactiveText: isDark ? 'rgba(255, 255, 255, 0.75)' : '#475569',
-    tabInactiveIcon: isDark ? 'rgba(255, 255, 255, 0.65)' : '#64748B',
-    aiTrendBg: isDark ? 'rgba(167, 139, 250, 0.10)' : '#EDE9FE',
-    aiTrendBorder: isDark ? 'rgba(167, 139, 250, 0.45)' : '#C4B5FD',
-    aiTrendText: isDark ? '#A78BFA' : '#6D28D9',
-    priceFree: isDark ? '#86EFAC' : '#059669',
-    pricePaid: isDark ? '#FCD34D' : '#D97706',
-    priceOrig: isDark ? 'rgba(255, 255, 255, 0.46)' : '#94A3B8',
-    metricBg: isDark ? 'rgba(0, 0, 0, 0.20)' : '#F8FAFC',
-    metricBorder: isDark ? 'rgba(255, 255, 255, 0.08)' : '#E2E8F0',
-    modalBg: isDark ? '#1A1626' : '#FFFFFF',
-    modalBorder: isDark ? 'rgba(255, 255, 255, 0.10)' : '#E2E8F0',
-    modalSavingsBg: isDark ? 'rgba(0, 0, 0, 0.30)' : '#F8FAFC',
-  }), [isDark]);
 
   useEffect(() => {
     if (!isEmbedded && initialized && user) {
@@ -258,7 +240,7 @@ export default function DealsScreen() {
       rightSlot={
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <View style={s.savePill}>
-            <MaterialCommunityIcons name="star-four-points" size={12} color="#D97706" />
+            <MaterialCommunityIcons name="star-four-points" size={12} color="#FCD34D" />
             <Text style={s.savePillText}>SA Exclusive</Text>
           </View>
           <Pressable style={s.refreshBtn} onPress={onRefresh} disabled={refreshing}>
@@ -271,14 +253,14 @@ export default function DealsScreen() {
     >
       {/* Last updated */}
       {lastUpdated && (
-        <Text style={[s.lastUpdated, { color: colors.text3 }]}>
+        <Text style={s.lastUpdated}>
           Last updated {relTime(lastUpdated)} · Sources: {sources.length || 1}
         </Text>
       )}
 
       {error ? (
         <View style={s.errBox}>
-          <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#EF4444" />
+          <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#F87171" />
           <Text style={s.errText}>{error}</Text>
         </View>
       ) : null}
@@ -289,25 +271,25 @@ export default function DealsScreen() {
         onToggle={() => setAdvisorOpen(!advisorOpen)}
         title="AI Savings Advisor — How much can you save?"
         icon="auto-fix"
-        tint="#D97706"
-        bg={isDark ? 'rgba(245,158,11,0.10)' : '#FFFBEB'}
-        border={isDark ? 'rgba(245,158,11,0.40)' : '#FDE68A'}
+        tint="#F59E0B"
+        bg="rgba(245,158,11,0.10)"
+        border="rgba(245,158,11,0.40)"
       >
         {!stats ? (
-          <ActivityIndicator color="#D97706" />
+          <ActivityIndicator color="#F59E0B" />
         ) : (
           <View style={{ gap: 12 }}>
             <View style={s.advisorRow}>
-              <AdvisorMetric label="Estimated yearly savings" value={fmtINR(stats.yearly_savings_inr)} icon="cash-multiple" tint="#059669" isDark={isDark} colors={colors} />
-              <AdvisorMetric label="Top category" value={CATEGORY_META[stats.top_category.id]?.label || stats.top_category.id} icon="trophy" tint="#D97706" isDark={isDark} colors={colors} />
-              <AdvisorMetric label="Best ROI" value={stats.best_roi ? fmtINR(stats.best_roi.savings_inr) : '—'} icon="medal" tint="#7C3AED" isDark={isDark} colors={colors} />
+              <AdvisorMetric label="Estimated yearly savings" value={fmtINR(stats.yearly_savings_inr)} icon="cash-multiple" tint="#34D399" />
+              <AdvisorMetric label="Top category" value={CATEGORY_META[stats.top_category.id]?.label || stats.top_category.id} icon="trophy" tint="#FCD34D" />
+              <AdvisorMetric label="Best ROI" value={stats.best_roi ? fmtINR(stats.best_roi.savings_inr) : '—'} icon="medal" tint="#A78BFA" />
             </View>
             {stats.best_roi && (
-              <Text style={[s.advisorSummary, { color: colors.text2 }]}>
-                You can save up to <Text style={{ color: '#D97706', fontWeight: '700' }}>{fmtINR(stats.total_savings_inr)}</Text> across{' '}
-                <Text style={{ color: '#D97706', fontWeight: '700' }}>{stats.total_deals}</Text> active deals.
-                Your biggest single saving: <Text style={{ color: '#D97706', fontWeight: '700' }}>{stats.best_roi.brand}</Text> — {stats.best_roi.title} ({fmtINR(stats.best_roi.savings_inr)}).
-                Top category by savings: <Text style={{ color: '#D97706', fontWeight: '700' }}>{CATEGORY_META[stats.top_category.id]?.label || stats.top_category.id}</Text>.
+              <Text style={s.advisorSummary}>
+                You can save up to <Text style={{ color: '#FCD34D', fontWeight: '700' }}>{fmtINR(stats.total_savings_inr)}</Text> across{' '}
+                <Text style={{ color: '#FCD34D', fontWeight: '700' }}>{stats.total_deals}</Text> active deals.
+                Your biggest single saving: <Text style={{ color: '#FCD34D', fontWeight: '700' }}>{stats.best_roi.brand}</Text> — {stats.best_roi.title} ({fmtINR(stats.best_roi.savings_inr)}).
+                Top category by savings: <Text style={{ color: '#FCD34D', fontWeight: '700' }}>{CATEGORY_META[stats.top_category.id]?.label || stats.top_category.id}</Text>.
               </Text>
             )}
           </View>
@@ -320,30 +302,21 @@ export default function DealsScreen() {
         onToggle={() => setBundleOpen(!bundleOpen)}
         title="AI Smart Bundle — Best deals combo for me"
         icon="cube-outline"
-        tint="#DB2777"
-        bg={isDark ? 'rgba(236,72,153,0.10)' : '#FDF2F8'}
-        border={isDark ? 'rgba(236,72,153,0.40)' : '#FBCFE8'}
+        tint="#EC4899"
+        bg="rgba(236,72,153,0.10)"
+        border="rgba(236,72,153,0.40)"
       >
         {!stats ? (
-          <ActivityIndicator color="#DB2777" />
+          <ActivityIndicator color="#EC4899" />
         ) : (
           <View style={{ gap: 12 }}>
-            <Text style={[s.bundleSummary, { color: colors.text2 }]}>
+            <Text style={s.bundleSummary}>
               These 4 deals together save you{' '}
-              <Text style={{ color: isDark ? '#FBCFE8' : '#BE185D', fontWeight: '800' }}>{fmtINR(stats.smart_bundle_total_savings_inr)}</Text>.
+              <Text style={{ color: '#FBCFE8', fontWeight: '800' }}>{fmtINR(stats.smart_bundle_total_savings_inr)}</Text>.
             </Text>
             <View style={s.bundleGrid}>
               {stats.smart_bundle.map((b) => (
-                <View
-                  key={b.deal_id}
-                  style={[
-                    s.bundleItem,
-                    {
-                      backgroundColor: colors.metricBg,
-                      borderColor: isDark ? b.accent + '55' : '#E2E8F0',
-                    },
-                  ]}
-                >
+                <View key={b.deal_id} style={[s.bundleItem, { borderColor: b.accent + '55' }]}>
                   {b.logo_url ? (
                     <Image source={{ uri: resolveImageUrl(b.logo_url) }} style={s.bundleLogo} resizeMode="contain" />
                   ) : (
@@ -352,15 +325,15 @@ export default function DealsScreen() {
                     </View>
                   )}
                   <View style={{ flex: 1 }}>
-                    <Text style={[s.bundleBrand, { color: colors.text3 }]}>{b.brand}</Text>
-                    <Text style={[s.bundleTitle, { color: colors.text }]} numberOfLines={1}>{b.title}</Text>
-                    <Text style={[s.bundleSavings, { color: isDark ? '#FBCFE8' : '#DB2777' }]}>save {fmtINR(b.savings_inr)}</Text>
+                    <Text style={s.bundleBrand}>{b.brand}</Text>
+                    <Text style={s.bundleTitle} numberOfLines={1}>{b.title}</Text>
+                    <Text style={[s.bundleSavings, { color: '#FBCFE8' }]}>save {fmtINR(b.savings_inr)}</Text>
                   </View>
                 </View>
               ))}
             </View>
             <Pressable style={s.claimAllBtn}>
-              <MaterialCommunityIcons name="auto-fix" size={14} color="#FFFFFF" />
+              <MaterialCommunityIcons name="auto-fix" size={14} color="#3F0518" />
               <Text style={s.claimAllText}>Claim all 4</Text>
             </Pressable>
           </View>
@@ -368,17 +341,10 @@ export default function DealsScreen() {
       </Accordion>
 
       {/* AI Trending button */}
-      <Pressable
-        style={[
-          s.aiTrendBtn,
-          { backgroundColor: colors.aiTrendBg, borderColor: colors.aiTrendBorder },
-        ]}
-        onPress={onAiTrending}
-        disabled={aiBusy}
-      >
-        {aiBusy ? <ActivityIndicator color={colors.aiTrendText} /> :
-          <MaterialCommunityIcons name="auto-fix" size={14} color={colors.aiTrendText} />}
-        <Text style={[s.aiTrendText, { color: colors.aiTrendText }]}>
+      <Pressable style={s.aiTrendBtn} onPress={onAiTrending} disabled={aiBusy}>
+        {aiBusy ? <ActivityIndicator color="#A78BFA" /> :
+          <MaterialCommunityIcons name="auto-fix" size={14} color="#A78BFA" />}
+        <Text style={s.aiTrendText}>
           {aiBusy ? 'Generating…' : 'AI · Refresh trending hot deals (Claude)'}
         </Text>
       </Pressable>
@@ -392,27 +358,10 @@ export default function DealsScreen() {
             <Pressable
               key={id}
               onPress={() => setTab(id)}
-              style={[
-                s.tab,
-                {
-                  backgroundColor: active ? meta.color + (isDark ? '22' : '15') : colors.tabInactiveBg,
-                  borderColor: active ? meta.color + (isDark ? '66' : '55') : colors.tabInactiveBorder,
-                },
-              ]}
+              style={[s.tab, active && { backgroundColor: meta.color + '22', borderColor: meta.color + '66' }]}
             >
-              <MaterialCommunityIcons
-                name={meta.icon}
-                size={14}
-                color={active ? meta.color : colors.tabInactiveIcon}
-              />
-              <Text
-                style={[
-                  s.tabText,
-                  { color: active ? meta.color : colors.tabInactiveText },
-                ]}
-              >
-                {meta.label}
-              </Text>
+              <MaterialCommunityIcons name={meta.icon} size={14} color={active ? meta.color : 'rgba(255,255,255,0.65)'} />
+              <Text style={[s.tabText, active && { color: meta.color }]}>{meta.label}</Text>
             </Pressable>
           );
         })}
@@ -421,8 +370,8 @@ export default function DealsScreen() {
       {/* Loading */}
       {loading && !deals ? (
         <View style={{ paddingVertical: 60, alignItems: 'center' }}>
-          <ActivityIndicator color="#7C3AED" size="large" />
-          <Text style={{ color: colors.text2, marginTop: 8 }}>Loading deals…</Text>
+          <ActivityIndicator color="#FCD34D" size="large" />
+          <Text style={{ color: C.text2, marginTop: 8 }}>Loading deals…</Text>
         </View>
       ) : (
         <>
@@ -431,11 +380,11 @@ export default function DealsScreen() {
             <View style={s.section}>
               <View style={s.sectionHead}>
                 <MaterialCommunityIcons name="fire" size={18} color="#EF4444" />
-                <Text style={[s.sectionTitle, { color: colors.text }]}>Hot Deals</Text>
-                <Text style={[s.sectionSub, { color: colors.text3 }]}>Limited time — grab these before they expire!</Text>
+                <Text style={s.sectionTitle}>Hot Deals</Text>
+                <Text style={s.sectionSub}>Limited time — grab these before they expire!</Text>
               </View>
               <View style={s.grid}>
-                {hotDeals.map((d) => <DealCard key={d.deal_id} d={d} onClaim={openClaim} isDark={isDark} colors={colors} />)}
+                {hotDeals.map((d) => <DealCard key={d.deal_id} d={d} onClaim={openClaim} />)}
               </View>
             </View>
           )}
@@ -444,27 +393,27 @@ export default function DealsScreen() {
           {otherDeals.length > 0 && (
             <View style={s.section}>
               <View style={s.sectionHead}>
-                <MaterialCommunityIcons name="view-grid" size={18} color="#7C3AED" />
-                <Text style={[s.sectionTitle, { color: colors.text }]}>All Deals</Text>
-                <Text style={[s.sectionSub, { color: colors.text3 }]}>Curated for SA members across {CATEGORY_META[tab]?.label || 'all'} categories</Text>
+                <MaterialCommunityIcons name="view-grid" size={18} color="#A78BFA" />
+                <Text style={s.sectionTitle}>All Deals</Text>
+                <Text style={s.sectionSub}>Curated for SA members across {CATEGORY_META[tab]?.label || 'all'} categories</Text>
               </View>
               <View style={s.grid}>
-                {otherDeals.map((d) => <DealCard key={d.deal_id} d={d} onClaim={openClaim} isDark={isDark} colors={colors} />)}
+                {otherDeals.map((d) => <DealCard key={d.deal_id} d={d} onClaim={openClaim} />)}
               </View>
             </View>
           )}
 
           {(!hotDeals.length && !otherDeals.length) && (
             <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-              <MaterialCommunityIcons name="package-variant" size={32} color={colors.text3} />
-              <Text style={{ color: colors.text3, marginTop: 8 }}>No deals in this category yet.</Text>
+              <MaterialCommunityIcons name="package-variant" size={32} color={C.text3} />
+              <Text style={{ color: C.text3, marginTop: 8 }}>No deals in this category yet.</Text>
             </View>
           )}
 
           {/* Sources strip */}
-          <View style={[s.sourcesStrip, { borderTopColor: colors.border }]}>
-            <MaterialCommunityIcons name="api" size={12} color={colors.text3} />
-            <Text style={[s.sourcesText, { color: colors.text3 }]}>
+          <View style={s.sourcesStrip}>
+            <MaterialCommunityIcons name="api" size={12} color={C.text3} />
+            <Text style={s.sourcesText}>
               Sourced from: {sources.map(s => s.name).join(' · ') || 'curated'} · Cache 60 min
             </Text>
           </View>
@@ -474,7 +423,7 @@ export default function DealsScreen() {
       {/* Claim Modal */}
       <Modal visible={!!claimDeal} animationType="fade" transparent onRequestClose={closeClaim}>
         <View style={s.modalBackdrop}>
-          <View style={[s.modalCard, { backgroundColor: colors.modalBg, borderColor: colors.modalBorder }]}>
+          <View style={s.modalCard}>
             {claimDeal && (
               <>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -486,53 +435,53 @@ export default function DealsScreen() {
                     </View>
                   )}
                   <View style={{ flex: 1 }}>
-                    <Text style={[s.modalBrand, { color: colors.text3 }]}>{claimDeal.brand}</Text>
-                    <Text style={[s.modalTitle, { color: colors.text }]}>{claimDeal.title}</Text>
+                    <Text style={s.modalBrand}>{claimDeal.brand}</Text>
+                    <Text style={s.modalTitle}>{claimDeal.title}</Text>
                   </View>
                   <Pressable onPress={closeClaim} hitSlop={8}>
-                    <MaterialCommunityIcons name="close" size={20} color={colors.text2} />
+                    <MaterialCommunityIcons name="close" size={20} color={C.text2} />
                   </Pressable>
                 </View>
 
-                <View style={[s.modalSavingsBox, { backgroundColor: colors.modalSavingsBg, borderColor: colors.border }]}>
-                  <Text style={[s.modalSavingsLabel, { color: colors.text3 }]}>You save</Text>
+                <View style={s.modalSavingsBox}>
+                  <Text style={s.modalSavingsLabel}>You save</Text>
                   <Text style={[s.modalSavingsValue, { color: claimDeal.accent }]}>
                     {fmtINR(claimDeal.absolute_savings_inr)}
                   </Text>
-                  <Text style={[s.modalSavingsSub, { color: colors.text2 }]}>
+                  <Text style={s.modalSavingsSub}>
                     {claimDeal.original_label} → {claimDeal.price_label} ({claimDeal.discount_label})
                   </Text>
                 </View>
 
                 {claimDeal.code ? (
-                  <View style={[s.codeBox, { backgroundColor: isDark ? 'rgba(167,139,250,0.10)' : '#F5F3FF', borderColor: isDark ? 'rgba(167,139,250,0.45)' : '#C4B5FD' }]}>
-                    <Text style={[s.codeLabel, { color: colors.text3 }]}>Code</Text>
-                    <Text style={[s.codeValue, { color: isDark ? '#FFFFFF' : '#6D28D9' }]}>{claimDeal.code}</Text>
-                    <MaterialCommunityIcons name="content-copy" size={14} color="#7C3AED" />
+                  <View style={s.codeBox}>
+                    <Text style={s.codeLabel}>Code</Text>
+                    <Text style={s.codeValue}>{claimDeal.code}</Text>
+                    <MaterialCommunityIcons name="content-copy" size={14} color="#A78BFA" />
                   </View>
                 ) : (
-                  <Text style={[s.modalNote, { color: colors.text3 }]}>No code needed — discount applied automatically at checkout.</Text>
+                  <Text style={s.modalNote}>No code needed — discount applied automatically at checkout.</Text>
                 )}
 
                 {claimResult?.ok && (
-                  <View style={[s.claimSuccess, { backgroundColor: isDark ? 'rgba(52,211,153,0.10)' : '#ECFDF5', borderColor: isDark ? 'rgba(52,211,153,0.45)' : '#A7F3D0' }]}>
-                    <MaterialCommunityIcons name="check-decagram" size={16} color="#059669" />
+                  <View style={s.claimSuccess}>
+                    <MaterialCommunityIcons name="check-decagram" size={16} color="#34D399" />
                     <View style={{ flex: 1 }}>
-                      <Text style={[s.claimSuccessTitle, { color: colors.text }]}>
+                      <Text style={s.claimSuccessTitle}>
                         {claimResult.credits_awarded > 0
                           ? `+${claimResult.credits_awarded} SA points earned!`
                           : 'Daily quota reached — redirecting'}
                       </Text>
-                      <Text style={[s.claimSuccessSub, { color: colors.text2 }]}>
+                      <Text style={s.claimSuccessSub}>
                         Today {claimResult.todays_claims || 0}/{claimResult.max_per_day || 3} claims used
                       </Text>
                     </View>
                   </View>
                 )}
                 {claimResult && !claimResult.ok && (
-                  <View style={[s.claimSuccess, { backgroundColor: isDark ? 'rgba(248,113,113,0.10)' : '#FEF2F2', borderColor: isDark ? 'rgba(248,113,113,0.45)' : '#FECACA' }]}>
-                    <MaterialCommunityIcons name="alert-circle" size={16} color="#DC2626" />
-                    <Text style={[s.claimSuccessSub, { color: '#DC2626' }]}>{claimResult.error}</Text>
+                  <View style={[s.claimSuccess, { backgroundColor: 'rgba(248,113,113,0.10)', borderColor: 'rgba(248,113,113,0.45)' }]}>
+                    <MaterialCommunityIcons name="alert-circle" size={16} color="#F87171" />
+                    <Text style={[s.claimSuccessSub, { color: '#FCA5A5' }]}>{claimResult.error}</Text>
                   </View>
                 )}
 
@@ -548,7 +497,7 @@ export default function DealsScreen() {
                     </>
                   )}
                 </Pressable>
-                <Text style={[s.modalNote, { color: colors.text3 }]}>+20 SA points earned per claim · max 3 claims/day</Text>
+                <Text style={s.modalNote}>+20 SA points earned per claim · max 3 claims/day</Text>
               </>
             )}
           </View>
@@ -585,33 +534,31 @@ function Accordion({ open, onToggle, title, icon, tint, bg, border, children }: 
   );
 }
 
-function AdvisorMetric({ label, value, icon, tint, isDark, colors }: { label: string; value: string; icon: IconName; tint: string; isDark: boolean; colors: any }) {
+function AdvisorMetric({ label, value, icon, tint }: { label: string; value: string; icon: IconName; tint: string }) {
   return (
-    <View style={[s.advisorMetric, { backgroundColor: colors.metricBg, borderColor: colors.metricBorder }]}>
+    <View style={[s.advisorMetric, { borderColor: tint + '44' }]}>
       <MaterialCommunityIcons name={icon} size={14} color={tint} />
-      <Text style={[s.advisorMetricLabel, { color: colors.text3 }]}>{label}</Text>
+      <Text style={s.advisorMetricLabel}>{label}</Text>
       <Text style={[s.advisorMetricValue, { color: tint }]}>{value}</Text>
     </View>
   );
 }
 
-function DealCard({ d, onClaim, isDark, colors }: { d: Deal; onClaim: (d: Deal) => void; isDark: boolean; colors: any }) {
+function DealCard({ d, onClaim }: { d: Deal; onClaim: (d: Deal) => void }) {
   const visible = (d.tags || []).filter((t) => t !== 'HOT').slice(0, 3);
   const overflow = (d.tags || []).filter((t) => t !== 'HOT').length - visible.length;
-  const isFree = d.price_inr === 0 || d.price_label?.toUpperCase().includes('FREE');
-
   return (
-    <View style={[s.card, { backgroundColor: colors.card, borderColor: d.accent + (isDark ? '44' : '35') }]}>
+    <View style={[s.card, { borderColor: d.accent + '44' }]}>
       {/* Wrap top details in a flex: 1 view to push CTA to the bottom */}
       <View style={{ flex: 1, gap: 8 }}>
         {/* Top: Logo + title/brand + prices */}
         <View style={s.cardTop}>
           {/* Col 1: Logo */}
-          <View style={[s.cardLogoWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }]}>
+          <View style={s.cardLogoWrap}>
             {d.logo_url ? (
               <Image source={{ uri: resolveImageUrl(d.logo_url) }} style={s.cardLogo} resizeMode="contain" />
             ) : (
-              <View style={[s.cardLogoFallback, { backgroundColor: d.accent + '22' }]}>
+              <View style={[s.cardLogoFallback, { backgroundColor: d.accent + '33' }]}>
                 <Text style={{ color: d.accent, fontSize: 18, fontWeight: '800' }}>{d.brand[0]}</Text>
               </View>
             )}
@@ -619,25 +566,23 @@ function DealCard({ d, onClaim, isDark, colors }: { d: Deal; onClaim: (d: Deal) 
 
           {/* Col 2: Brand + Title */}
           <View style={{ flex: 1, marginLeft: 10, justifyContent: 'center' }}>
-            <Text style={[s.cardTitle, { color: colors.text }]} numberOfLines={1}>{d.title}</Text>
-            <Text style={[s.cardBrand, { color: colors.text3 }]}>{d.brand}</Text>
+            <Text style={s.cardTitle} numberOfLines={1}>{d.title}</Text>
+            <Text style={s.cardBrand}>{d.brand}</Text>
           </View>
 
           {/* Col 3: Prices */}
           <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
-            <Text style={[s.cardPrice, { color: isFree ? (isDark ? '#86EFAC' : '#059669') : (isDark ? '#FCD34D' : '#D97706') }]}>
-              {d.price_label}
-            </Text>
+            <Text style={[s.cardPrice, { color: '#86EFAC' }]}>{d.price_label}</Text>
             {d.original_inr > d.price_inr && (
-              <Text style={[s.cardOrig, { color: colors.text3 }]}>{d.original_label}</Text>
+              <Text style={s.cardOrig}>{d.original_label}</Text>
             )}
             {d.discount_pct > 0 && (
-              <Text style={[s.cardPct, { color: isDark ? '#FCD34D' : '#D97706' }]}>{d.discount_pct}% off</Text>
+              <Text style={[s.cardPct, { color: '#FCD34D' }]}>{d.discount_pct}% off</Text>
             )}
           </View>
         </View>
 
-        {/* HOT badge */}
+        {/* HOT badge (rendered completely inline right above the description) */}
         {d.tags?.includes('HOT') && (
           <View style={s.hotChip}>
             <MaterialCommunityIcons name="fire" size={10} color="#fff" />
@@ -646,20 +591,21 @@ function DealCard({ d, onClaim, isDark, colors }: { d: Deal; onClaim: (d: Deal) 
         )}
 
         {/* Description */}
-        <Text style={[s.cardDesc, { color: colors.text2 }]} numberOfLines={2}>{d.description}</Text>
+        <Text style={s.cardDesc} numberOfLines={2}>{d.description}</Text>
 
         {/* Tag pills */}
         {visible.length > 0 && (
           <View style={s.tagRow}>
-            {visible.map((t) => <TagPill key={t} tag={t} isDark={isDark} />)}
+            {visible.map((t) => <TagPill key={t} tag={t} />)}
             {overflow > 0 && (
-              <View style={[s.overflowPill, { backgroundColor: colors.tabInactiveBg, borderColor: colors.border }]}>
-                <Text style={[s.overflowText, { color: colors.text2 }]}>+{overflow}</Text>
+              <View style={s.overflowPill}>
+                <Text style={s.overflowText}>+{overflow}</Text>
               </View>
             )}
           </View>
         )}
       </View>
+
 
       {/* CTA */}
       <Pressable
@@ -672,7 +618,7 @@ function DealCard({ d, onClaim, isDark, colors }: { d: Deal; onClaim: (d: Deal) 
   );
 }
 
-function TagPill({ tag, isDark }: { tag: Tag; isDark: boolean }) {
+function TagPill({ tag }: { tag: Tag }) {
   const meta = TAG_META[tag];
   if (!meta) return null;
   const solid = meta.solid;
@@ -681,7 +627,7 @@ function TagPill({ tag, isDark }: { tag: Tag; isDark: boolean }) {
       s.tagPill,
       solid
         ? { backgroundColor: meta.bg, borderColor: meta.bg }
-        : { backgroundColor: meta.bg + (isDark ? '22' : '15'), borderColor: meta.bg + (isDark ? '66' : '35') },
+        : { backgroundColor: meta.bg + '22', borderColor: meta.bg + '66' },
     ]}>
       <MaterialCommunityIcons
         name={meta.icon}
@@ -698,21 +644,20 @@ const s = StyleSheet.create({
   savePill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(245,158,11,0.12)',
-    borderColor: 'rgba(245,158,11,0.35)', borderWidth: 1,
+    backgroundColor: 'rgba(252,211,77,0.12)',
+    borderColor: 'rgba(252,211,77,0.35)', borderWidth: 1,
   },
-  savePillText: { color: '#D97706', fontSize: 10.5, fontWeight: '800' },
+  savePillText: { color: '#FCD34D', fontSize: 10.5, fontWeight: '800' },
 
   refreshBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: '#7C3AED',
-    borderWidth: 1, borderColor: '#7C3AED',
-    ...({ cursor: 'pointer' } as any),
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(255,255,255,0.20)', borderWidth: 1,
   },
   refreshText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 
-  lastUpdated: { fontSize: 11, marginTop: -10 },
+  lastUpdated: { color: C.text3, fontSize: 11, marginTop: -10 },
 
   errBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -720,7 +665,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(248,113,113,0.10)',
     borderColor: 'rgba(248,113,113,0.40)', borderWidth: 1,
   },
-  errText: { color: '#EF4444', fontSize: 12.5, flex: 1 },
+  errText: { color: '#FCA5A5', fontSize: 12.5, flex: 1 },
 
   // Accordion
   accordion: {
@@ -731,12 +676,11 @@ const s = StyleSheet.create({
   accordionHead: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 16, paddingVertical: 14,
-    ...({ cursor: 'pointer' } as any),
   },
   accordionTitle: { fontSize: 13.5, fontWeight: '700', flex: 1 },
   accordionBody: {
     paddingHorizontal: 16, paddingBottom: 16,
-    borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.06)',
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
     paddingTop: 14,
   },
 
@@ -744,17 +688,19 @@ const s = StyleSheet.create({
   advisorMetric: {
     flex: 1, minWidth: 130,
     padding: 12, borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.20)',
     borderWidth: 1, gap: 4,
   },
-  advisorMetricLabel: { fontSize: 10.5, marginTop: 2 },
+  advisorMetricLabel: { color: C.text3, fontSize: 10.5, marginTop: 2 },
   advisorMetricValue: { fontSize: 16, fontWeight: '800', marginTop: 2 },
-  advisorSummary: { fontSize: 12.5, lineHeight: 18 },
+  advisorSummary: { color: C.text2, fontSize: 12.5, lineHeight: 18 },
 
-  bundleSummary: { fontSize: 13 },
+  bundleSummary: { color: C.text2, fontSize: 13 },
   bundleGrid: { gap: 8 },
   bundleItem: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     padding: 10, borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.20)',
     borderWidth: 1,
   },
   bundleLogo: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff' },
@@ -762,40 +708,39 @@ const s = StyleSheet.create({
     width: 36, height: 36, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
   },
-  bundleBrand: { fontSize: 10.5 },
-  bundleTitle: { fontSize: 13, fontWeight: '600' },
+  bundleBrand: { color: C.text3, fontSize: 10.5 },
+  bundleTitle: { color: '#fff', fontSize: 13, fontWeight: '600' },
   bundleSavings: { fontSize: 12, fontWeight: '700' },
   claimAllBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    backgroundColor: '#DB2777',
+    backgroundColor: '#EC4899',
     paddingVertical: 10, borderRadius: 10,
-    ...({ cursor: 'pointer' } as any),
   },
-  claimAllText: { color: '#FFFFFF', fontSize: 12.5, fontWeight: '800' },
+  claimAllText: { color: '#3F0518', fontSize: 12.5, fontWeight: '800' },
 
   // AI trending button
   aiTrendBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     paddingVertical: 11, borderRadius: 12,
-    borderWidth: 1,
-    ...({ cursor: 'pointer' } as any),
+    backgroundColor: 'rgba(167,139,250,0.10)',
+    borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1,
   },
-  aiTrendText: { fontSize: 12.5, fontWeight: '700' },
+  aiTrendText: { color: '#A78BFA', fontSize: 12.5, fontWeight: '700' },
 
   // Tabs
   tab: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999,
-    borderWidth: 1,
-    ...({ cursor: 'pointer' } as any),
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: C.border, borderWidth: 1,
   },
-  tabText: { fontSize: 12.5, fontWeight: '600' },
+  tabText: { color: C.text2, fontSize: 12.5, fontWeight: '600' },
 
   // Sections
   section: { gap: 12 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  sectionTitle: { fontSize: 18, fontWeight: '800' },
-  sectionSub: { fontSize: 12, marginLeft: 4 },
+  sectionTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  sectionSub: { color: C.text3, fontSize: 12, marginLeft: 4 },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
 
@@ -803,19 +748,19 @@ const s = StyleSheet.create({
   card: {
     flexGrow: 1, flexBasis: 260, maxWidth: 340,
     padding: 14, borderRadius: 16,
+    backgroundColor: C.card,
     borderWidth: 1,
     gap: 8,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.04)' as any,
   },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10, position: 'relative' },
-  cardLogoWrap: { width: 44, height: 44, borderRadius: 12, overflow: 'hidden' },
+  cardLogoWrap: { width: 44, height: 44, borderRadius: 12, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.06)' },
   cardLogo: { width: 44, height: 44, backgroundColor: '#fff' },
   cardLogoFallback: {
     width: 44, height: 44, borderRadius: 12,
     alignItems: 'center', justifyContent: 'center',
   },
   cardPrice: { fontSize: 18, fontWeight: '800', letterSpacing: -0.5 },
-  cardOrig: { fontSize: 11, textDecorationLine: 'line-through' },
+  cardOrig: { color: C.text3, fontSize: 11, textDecorationLine: 'line-through' },
   cardPct: { fontSize: 11, fontWeight: '700' },
   hotChip: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
@@ -825,9 +770,9 @@ const s = StyleSheet.create({
   },
   hotChipText: { color: '#fff', fontSize: 9, fontWeight: '900', letterSpacing: 0.4 },
 
-  cardTitle: { fontSize: 14.5, fontWeight: '800' },
-  cardBrand: { fontSize: 11.5 },
-  cardDesc: { fontSize: 12, lineHeight: 17 },
+  cardTitle: { color: '#fff', fontSize: 14.5, fontWeight: '800' },
+  cardBrand: { color: C.text3, fontSize: 11.5 },
+  cardDesc: { color: C.text2, fontSize: 12, lineHeight: 17 },
 
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
   tagPill: {
@@ -838,23 +783,23 @@ const s = StyleSheet.create({
   tagText: { fontSize: 10, fontWeight: '700' },
   overflowPill: {
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
-    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(255,255,255,0.15)', borderWidth: 1,
   },
-  overflowText: { fontSize: 10, fontWeight: '700' },
+  overflowText: { color: C.text2, fontSize: 10, fontWeight: '700' },
 
   cardCTA: {
     paddingVertical: 11, borderRadius: 10,
     alignItems: 'center', marginTop: 6,
-    ...({ cursor: 'pointer' } as any),
   },
   cardCTAText: { color: '#fff', fontSize: 13, fontWeight: '800' },
 
   sourcesStrip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingTop: 16, paddingBottom: 8,
-    borderTopWidth: 1,
+    borderTopWidth: 1, borderTopColor: C.border,
   },
-  sourcesText: { fontSize: 11 },
+  sourcesText: { color: C.text3, fontSize: 11 },
 
   // Modal
   modalBackdrop: {
@@ -864,45 +809,47 @@ const s = StyleSheet.create({
   modalCard: {
     width: '100%', maxWidth: 460,
     borderRadius: 18, padding: 20, gap: 14,
-    borderWidth: 1,
-    boxShadow: '0 24px 60px rgba(0,0,0,0.25)' as any,
+    backgroundColor: '#1A1626',
+    borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1,
   },
   modalLogo: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#fff' },
   modalLogoFallback: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  modalBrand: { fontSize: 11 },
-  modalTitle: { fontSize: 15, fontWeight: '700' },
+  modalBrand: { color: C.text3, fontSize: 11 },
+  modalTitle: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
   modalSavingsBox: {
+    backgroundColor: 'rgba(0,0,0,0.30)',
     padding: 14, borderRadius: 12,
     alignItems: 'center', gap: 4,
-    borderWidth: 1,
+    borderColor: C.border, borderWidth: 1,
   },
-  modalSavingsLabel: { fontSize: 11, letterSpacing: 0.5 },
+  modalSavingsLabel: { color: C.text3, fontSize: 11, letterSpacing: 0.5 },
   modalSavingsValue: { fontSize: 28, fontWeight: '800', letterSpacing: -1 },
-  modalSavingsSub: { fontSize: 12 },
+  modalSavingsSub: { color: C.text2, fontSize: 12 },
 
   codeBox: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     padding: 11, borderRadius: 10,
-    borderWidth: 1, borderStyle: 'dashed',
+    backgroundColor: 'rgba(167,139,250,0.10)',
+    borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1, borderStyle: 'dashed',
   },
-  codeLabel: { fontSize: 11 },
-  codeValue: { fontSize: 14, fontWeight: '800', letterSpacing: 1, flex: 1 },
+  codeLabel: { color: C.text3, fontSize: 11 },
+  codeValue: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 1, flex: 1 },
 
-  modalNote: { fontSize: 11, fontStyle: 'italic' },
+  modalNote: { color: C.text3, fontSize: 11, fontStyle: 'italic' },
 
   claimSuccess: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     padding: 12, borderRadius: 10,
-    borderWidth: 1,
+    backgroundColor: 'rgba(52,211,153,0.10)',
+    borderColor: 'rgba(52,211,153,0.45)', borderWidth: 1,
   },
-  claimSuccessTitle: { fontSize: 13, fontWeight: '700' },
-  claimSuccessSub: { fontSize: 11.5, marginTop: 2 },
+  claimSuccessTitle: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  claimSuccessSub: { color: C.text2, fontSize: 11.5, marginTop: 2 },
 
   modalCTA: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     paddingVertical: 13, borderRadius: 12,
-    ...({ cursor: 'pointer' } as any),
   },
   modalCTAText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 });

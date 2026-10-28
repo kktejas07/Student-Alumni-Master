@@ -23,22 +23,19 @@ import {
   Radar, Users, Globe, Monitor, Smartphone, Laptop, Cpu, HardDrive,
   Sparkles, Eye, Clock, Download, RefreshCw, Search, Filter, ShieldCheck,
   UserX, UserCheck, ExternalLink, ChevronRight, Activity, Zap, Compass,
-  Layers, MapPin, Hash, MousePointer, X, CheckCircle2, Server, HelpCircle,
-  Radio,
+  Layers, MapPin, Hash, MousePointer, X, CheckCircle2, Server, HelpCircle
 } from 'lucide-react-native';
 
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, FONTS } from '../tokens';
 import { Card, GRAD, SecondaryButton, GradientButton, StatusPill, TopTabs } from '../applekit';
 import { getBaseUrl } from '@/src/lib/env';
 import { request } from '@/src/models/services/api';
 
 const BASE_URL = getBaseUrl();
 
-type TabId = 'live' | 'heatmap' | 'modules' | 'hardware' | 'geo' | 'acquisition';
+type TabId = 'live' | 'modules' | 'hardware' | 'geo' | 'acquisition';
 
 export function VisitorIntelligenceView() {
-  const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const isTablet = width < 1100;
@@ -59,60 +56,14 @@ export function VisitorIntelligenceView() {
   const [moduleFilter, setModuleFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Modular Analytics & Heatmap Data
+  // Modular Analytics Data
   const [modularData, setModularData] = useState<any[]>([]);
   const [hardwareData, setHardwareData] = useState<any>(null);
-  const [heatmapData, setHeatmapData] = useState<any>(null);
-  const [heatmapModule, setHeatmapModule] = useState<string>('all');
-  const [heatmapLoading, setHeatmapLoading] = useState(false);
-
-  // Broadcast Center State
-  const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
-  const [bTitle, setBTitle] = useState('HackWave 3.0 Registration Announcement');
-  const [bMsg, setBMsg] = useState('₹17,50,000+ Total Prize Pool Live! WeHive 2 Business Visas & Germany Study Abroad Sponsorship active.');
-  const [bUrgency, setBUrgency] = useState<'info' | 'urgent' | 'winner'>('urgent');
-  const [bBusy, setBBusy] = useState(false);
-
-  const handlePushBroadcast = async () => {
-    if (!bTitle.trim() || !bMsg.trim()) return;
-    setBBusy(true);
-    try {
-      await request('/admin/broadcast/push', {
-        method: 'POST',
-        body: {
-          title: bTitle.trim(),
-          message: bMsg.trim(),
-          urgency: bUrgency,
-          target_module: moduleFilter || 'all'
-        }
-      });
-      setBroadcastModalOpen(false);
-    } catch (e: any) {
-      console.warn('Failed to push broadcast', e);
-    } finally {
-      setBBusy(false);
-    }
-  };
 
   // Selected Visitor for Dossier Modal
   const [selectedVisitorId, setSelectedVisitorId] = useState<string | null>(null);
   const [dossier, setDossier] = useState<any>(null);
   const [dossierLoading, setDossierLoading] = useState(false);
-
-  // ── Fetch Click Heatmap Analytics ─────────────────────────────────────────
-  const fetchHeatmapAnalytics = useCallback(async (moduleName = 'all') => {
-    setHeatmapLoading(true);
-    try {
-      const res = await request<any>(`/admin/analytics/heatmap?module=${moduleName}&days=30`);
-      if (res && res.hotspots) {
-        setHeatmapData(res);
-      }
-    } catch (e) {
-      console.warn('Failed to fetch click heatmap analytics', e);
-    } finally {
-      setHeatmapLoading(false);
-    }
-  }, []);
 
   // ── Fetch Live Radar Summary ───────────────────────────────────────────────
   const fetchLiveRadar = useCallback(async () => {
@@ -277,13 +228,6 @@ export function VisitorIntelligenceView() {
             </Text>
           </Pressable>
 
-          <SecondaryButton size="sm" onPress={() => setBroadcastModalOpen(true)}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Radio size={13} color="#F59E0B" />
-              <Text style={{ color: '#F59E0B', fontSize: 13, fontFamily: FONTS.bold }}>Push Broadcast</Text>
-            </View>
-          </SecondaryButton>
-
           <SecondaryButton
             size="sm"
             onPress={() => {
@@ -295,14 +239,14 @@ export function VisitorIntelligenceView() {
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <RefreshCw size={13} color="#C4B5FD" />
-              <Text style={{ color: SAC.text, fontSize: 13, fontFamily: FONTS.med }}>Refresh</Text>
+              <Text style={{ color: '#fff', fontSize: 13, fontFamily: FONTS.med }}>Refresh</Text>
             </View>
           </SecondaryButton>
 
           <GradientButton size="sm" onPress={handleExportCSV} loading={exporting}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Download size={14} color="#fff" />
-              <Text style={{ color: SAC.text, fontSize: 13, fontFamily: FONTS.bold }}>Export CSV</Text>
+              <Text style={{ color: '#fff', fontSize: 13, fontFamily: FONTS.bold }}>Export CSV</Text>
             </View>
           </GradientButton>
         </View>
@@ -371,13 +315,9 @@ export function VisitorIntelligenceView() {
       <View style={{ marginTop: 14, marginBottom: 14 }}>
         <TopTabs
           active={activeTab}
-          onChange={(id) => {
-            setActiveTab(id as TabId);
-            if (id === 'heatmap') fetchHeatmapAnalytics(heatmapModule);
-          }}
+          onChange={(id) => setActiveTab(id as TabId)}
           tabs={[
             { id: 'live', label: 'Live Visitors & Stream', icon: Radar, count: summary.total_live },
-            { id: 'heatmap', label: 'Click Heatmap Overlay', icon: MousePointer, tag: 'HOT' },
             { id: 'modules', label: 'Modular Platform Analytics', icon: Layers },
             { id: 'hardware', label: 'Hardware & Device Intelligence', icon: Monitor },
             { id: 'geo', label: 'Geographic Traffic Map', icon: Globe },
@@ -459,7 +399,7 @@ export function VisitorIntelligenceView() {
 
               {/* Module Filter */}
               <View style={s.selectPillGroup}>
-                {['all', 'echo', 'tickets', 'workshops', 'coupons', 'teams', 'events', 'courses', 'deals', 'bgv', 'auth'].map((m) => (
+                {['all', 'landing', 'courses', 'events', 'deals', 'auth'].map((m) => (
                   <Pressable
                     key={m}
                     onPress={() => { setModuleFilter(m); fetchVisitorsList(1); }}
@@ -574,7 +514,7 @@ export function VisitorIntelligenceView() {
                         <SecondaryButton size="sm" onPress={() => openDossier(v.session_id)}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                             <Eye size={13} color="#fff" />
-                            <Text style={{ color: SAC.text, fontSize: 12.5, fontFamily: FONTS.semi }}>Dossier</Text>
+                            <Text style={{ color: '#fff', fontSize: 12.5, fontFamily: FONTS.semi }}>Dossier</Text>
                             <ChevronRight size={13} color={SAC.muted} />
                           </View>
                         </SecondaryButton>
@@ -596,152 +536,18 @@ export function VisitorIntelligenceView() {
                       disabled={pagination.page <= 1}
                       onPress={() => fetchVisitorsList(pagination.page - 1)}
                     >
-                      <Text style={{ color: SAC.text, fontSize: 12 }}>← Previous</Text>
+                      <Text style={{ color: '#fff', fontSize: 12 }}>← Previous</Text>
                     </SecondaryButton>
                     <SecondaryButton
                       size="sm"
                       disabled={pagination.page >= pagination.total_pages}
                       onPress={() => fetchVisitorsList(pagination.page + 1)}
                     >
-                      <Text style={{ color: SAC.text, fontSize: 12 }}>Next →</Text>
+                      <Text style={{ color: '#fff', fontSize: 12 }}>Next →</Text>
                     </SecondaryButton>
                   </View>
                 </View>
               )}
-            </View>
-          )}
-        </Animated.View>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          TAB 2: VISUAL CLICK HEATMAP OVERLAY & ELEMENT RANKINGS
-         ═══════════════════════════════════════════════════════════════════════ */}
-      {activeTab === 'heatmap' && (
-        <Animated.View entering={FadeIn.duration(200)} style={{ gap: 16 }}>
-          <Card style={{ padding: 22, gap: 16 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-              <View style={{ gap: 4 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <MousePointer size={18} color="#F59E0B" />
-                  <Text style={{ color: SAC.text, fontSize: 18, fontFamily: FONTS.bold }}>Visual Click Heatmap & Element Density</Text>
-                </View>
-                <Text style={{ color: SAC.muted, fontSize: 13 }}>
-                  Real-time click volume, heat intensity rankings, and interaction share across cards, posters, and registration buttons.
-                </Text>
-              </View>
-
-              {/* Module Filter Pills */}
-              <View style={s.selectPillGroup}>
-                {['all', 'echo', 'tickets', 'workshops', 'coupons', 'teams', 'events', 'courses'].map((m) => (
-                  <Pressable
-                    key={m}
-                    onPress={() => {
-                      setHeatmapModule(m);
-                      fetchHeatmapAnalytics(m);
-                    }}
-                    style={[s.selectPill, heatmapModule === m && s.selectPillActive]}
-                  >
-                    <Text style={[s.selectPillText, heatmapModule === m && { color: '#F59E0B', fontFamily: FONTS.bold }]}>
-                      {m === 'all' ? 'All Heatmaps' : m.toUpperCase()}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-
-            {/* Heat Density Canvas Summary Header */}
-            <View style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 12, marginTop: 6 }}>
-              <View style={{ padding: 14, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 12 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1, color: '#FCA5A5' }}>🔥 TOP HOTSPOT</Text>
-                </View>
-                <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: '#FFFFFF' }}>
-                  {heatmapData?.hotspots?.[0]?.element_text || 'WeHive Sponsor Spotlight'}
-                </Text>
-                <Text style={{ fontSize: 12, color: '#F87171', marginTop: 2 }}>
-                  {heatmapData?.hotspots?.[0]?.click_count || 482} Clicks ({heatmapData?.hotspots?.[0]?.click_share_pct || 28.5}% share)
-                </Text>
-              </View>
-
-              <View style={{ padding: 14, background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: 12 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1, color: '#FDE68A' }}>⚡ WARM ELEMENT</Text>
-                </View>
-                <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: '#FFFFFF' }}>
-                  {heatmapData?.hotspots?.[1]?.element_text || 'One Ticket ₹599 Button'}
-                </Text>
-                <Text style={{ fontSize: 12, color: '#FBBF24', marginTop: 2 }}>
-                  {heatmapData?.hotspots?.[1]?.click_count || 395} Clicks ({heatmapData?.hotspots?.[1]?.click_share_pct || 23.2}% share)
-                </Text>
-              </View>
-
-              <View style={{ padding: 14, background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: 12 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1, color: '#C7D2FE' }}>📊 ANALYZED CLICKS</Text>
-                </View>
-                <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: '#FFFFFF' }}>
-                  {heatmapData?.total_clicks_analyzed || 1865} Interactions
-                </Text>
-                <Text style={{ fontSize: 12, color: '#818CF8', marginTop: 2 }}>
-                  Filter: {heatmapModule.toUpperCase()}
-                </Text>
-              </View>
-            </View>
-          </Card>
-
-          {/* Element Heat Rankings List */}
-          {heatmapLoading ? (
-            <Card style={{ padding: 36, alignItems: 'center', gap: 12 }}>
-              <ActivityIndicator size="large" color="#F59E0B" />
-              <Text style={{ color: SAC.muted, fontSize: 13 }}>Calculating visual click heat map & interaction share...</Text>
-            </Card>
-          ) : (
-            <View style={{ gap: 10 }}>
-              {(heatmapData?.hotspots || []).map((spot: any, sidx: number) => {
-                const isHot = spot.intensity === 'hot';
-                const isWarm = spot.intensity === 'warm';
-                const color = isHot ? '#EF4444' : (isWarm ? '#F59E0B' : '#3B82F6');
-                const bg = isHot ? 'rgba(239,68,68,0.12)' : (isWarm ? 'rgba(245,158,11,0.12)' : 'rgba(59,130,246,0.12)');
-                const border = isHot ? 'rgba(239,68,68,0.3)' : (isWarm ? 'rgba(245,158,11,0.3)' : 'rgba(59,130,246,0.3)');
-                
-                return (
-                  <Card key={sidx} style={{ padding: 16, borderLeftWidth: 4, borderLeftColor: color }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1, minWidth: 260 }}>
-                        <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: bg, borderColor: border, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }}>
-                          <Text style={{ fontSize: 13, fontFamily: FONTS.bold, color }}>#{spot.rank}</Text>
-                        </View>
-
-                        <View style={{ flex: 1 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            <Text style={{ fontSize: 15, fontFamily: FONTS.bold, color: SAC.text }}>{spot.element_text}</Text>
-                            <span style={{ fontSize: '11px', fontWeight: 800, padding: '2px 8px', borderRadius: '100px', background: bg, color, border: `1px solid ${border}` }}>
-                              {isHot ? '🔥 HOT' : (isWarm ? '⚡ WARM' : '❄️ COOL')}
-                            </span>
-                          </View>
-                          <Text style={{ fontSize: 12, color: SAC.muted, marginTop: 2 }}>
-                            Target ID: <Text style={{ fontFamily: 'monospace', color: '#C4B5FD' }}>{spot.element_id}</Text> · Route: <Text style={{ color: '#38BDF8' }}>{spot.path}</Text>
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Click Count & Progress Bar */}
-                      <View style={{ alignItems: 'flex-end', minWidth: 160 }}>
-                        <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: '#FFFFFF' }}>
-                          {spot.click_count} <Text style={{ fontSize: 12, color: SAC.muted, fontWeight: 'normal' }}>clicks</Text>
-                        </Text>
-
-                        <View style={{ width: 140, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 6, overflow: 'hidden' }}>
-                          <View style={{ width: `${Math.min(spot.click_share_pct * 2.5, 100)}%`, height: '100%', backgroundColor: color, borderRadius: 3 }} />
-                        </View>
-                        <Text style={{ fontSize: 11, color: SAC.muted, marginTop: 2 }}>
-                          {spot.click_share_pct}% total interaction share
-                        </Text>
-                      </View>
-                    </View>
-                  </Card>
-                );
-              })}
             </View>
           )}
         </Animated.View>
@@ -806,7 +612,7 @@ export function VisitorIntelligenceView() {
 
                   <View style={s.moduleFooter}>
                     <Text style={s.moduleDwellText}>
-                      ⏱️ Avg Dwell: <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{fmtDuration(m.avg_duration_sec)}</Text>
+                      ⏱️ Avg Dwell: <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>{fmtDuration(m.avg_duration_sec)}</Text>
                     </Text>
                     <Text style={s.moduleDwellText}>
                       📄 {m.total_pageviews || 0} page impressions
@@ -928,7 +734,7 @@ export function VisitorIntelligenceView() {
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                         <Text style={{ fontSize: 20 }}>{getCountryFlag(geo.country_code)}</Text>
                         <View>
-                          <Text style={{ color: SAC.text, fontSize: 13.5, fontFamily: FONTS.med }}>
+                          <Text style={{ color: '#fff', fontSize: 13.5, fontFamily: FONTS.med }}>
                             {geo.country || 'Global Visitor'}
                           </Text>
                           <Text style={{ color: SAC.muted, fontSize: 12 }}>
@@ -1148,7 +954,7 @@ export function VisitorIntelligenceView() {
                             </View>
 
                             <Text style={s.timelinePath}>
-                              Path: <Text style={{ color: SAC.text }}>{ev.path}</Text>
+                              Path: <Text style={{ color: '#fff' }}>{ev.path}</Text>
                               {ev.element_text ? ` • Element: "${ev.element_text}"` : ''}
                               {ev.element_id ? ` (#${ev.element_id})` : ''}
                             </Text>
@@ -1335,7 +1141,7 @@ const s = StyleSheet.create({
     color: SAC.muted,
   },
   selectPillTextActive: {
-    color: SAC.text,
+    color: '#fff',
     fontFamily: FONTS.bold,
   },
   visitorCard: {
@@ -1488,7 +1294,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   moduleMetricVal: {
-    color: SAC.text,
+    color: '#fff',
     fontSize: 16,
     fontFamily: FONTS.bold,
   },
@@ -1603,7 +1409,7 @@ const s = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: SAC.panel2,
+    backgroundColor: 'rgba(0,0,0,0.75)',
   },
   modalContent: {
     width: '100%',

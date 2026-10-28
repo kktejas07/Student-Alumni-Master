@@ -680,7 +680,7 @@ export function MentorProfileSettingsView({
   };
 
   const handleShareProfile = async () => {
-    const text = `Connect with me on Student Alumni! \nProfile: studentalumni.in/mentor/SM-8-687562`;
+    const text = `Connect with me on Student Alumni! 🎓\nProfile: studentalumni.in/mentor/SM-8-687562`;
     try {
       if (Platform.OS === 'web' && (navigator as any).share) {
         await (navigator as any).share({ title: 'My SA Mentor Profile', text });
@@ -1346,7 +1346,7 @@ export function MentorProfileSettingsView({
                   <View style={st.themeSelectorRow}>
                     {(['Dark', 'Light', 'System'] as const).map((t) => {
                       const isSelected = theme === t;
-                      const emoji = t === 'Dark' ? '' : t === 'Light' ? '' : '';
+                      const emoji = t === 'Dark' ? '🌙' : t === 'Light' ? '☀️' : '💻';
                       return (
                         <Pressable
                           key={t}
@@ -1827,7 +1827,7 @@ export function MentorProfileSettingsView({
                   <Text style={st.idDetailsValue}>SM-8-687562</Text>
                 </View>
                 <Pressable onPress={handleCopyId} style={st.idCopyBtn}>
-                  <MaterialCommunityIcons name="content-copy" size={14} color="#1C1C1E" />
+                  <MaterialCommunityIcons name="content-copy" size={14} color="#ffffff" />
                   <Text style={st.idCopyBtnText}>Copy ID</Text>
                 </Pressable>
               </View>
@@ -1840,12 +1840,12 @@ export function MentorProfileSettingsView({
                 </Pressable>
                 
                 <Pressable onPress={handleShareProfile} style={st.actionOutlineBtn}>
-                  <MaterialCommunityIcons name="share-variant-outline" size={14} color="#1C1C1E" />
+                  <MaterialCommunityIcons name="share-variant-outline" size={14} color="#ffffff" />
                   <Text style={st.actionOutlineBtnText}>Share Profile</Text>
                 </Pressable>
 
                 <Pressable onPress={handleFlipCard} style={st.actionOutlineBtn}>
-                  <MaterialCommunityIcons name="refresh" size={14} color="#1C1C1E" />
+                  <MaterialCommunityIcons name="refresh" size={14} color="#ffffff" />
                   <Text style={st.actionOutlineBtnText}>Flip Card</Text>
                 </Pressable>
               </View>
@@ -1856,7 +1856,7 @@ export function MentorProfileSettingsView({
                   <QRCode
                     value="https://studentalumni.in/mentor/SM-8-687562"
                     size={80}
-                    backgroundColor="#1C1C1E"
+                    backgroundColor="#ffffff"
                     color="#000000"
                   />
                 </View>
@@ -1963,7 +1963,7 @@ export function MentorProfileSettingsView({
               <SidebarStatRow Icon={CalendarCheck} label="Sessions Hosted" value="142 completed" color="#10B981" />
               <SidebarStatRow Icon={UsersRound} label="Active Mentees" value="18" color="#3B82F6" />
               <SidebarStatRow Icon={Eye} label="Profile Views" value="1,248" color={MC.tealP} />
-              <SidebarStatRow Icon={Star} label="Avg Rating" value="4.9" color="#F59E0B" />
+              <SidebarStatRow Icon={Star} label="Avg Rating" value="4.9★" color="#F59E0B" />
               <SidebarStatRow Icon={IndianRupee} label="Earnings (Month)" value="₹500" color="#22C55E" isLast />
             </View>
           </View>
@@ -1977,7 +1977,7 @@ export function MentorProfileSettingsView({
             <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: 0.5 }}>SA-08-438291</Text>
             <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 4 }}>Verified · since 2008</Text>
             <Pressable
-              onPress={() => router.push('/id-card' as any)}
+              onPress={() => router.push('/member-id')}
               style={st.viewIdBtn}
             >
               <IdCard size={14} color="#0F2922" />
@@ -2536,7 +2536,7 @@ const st = StyleSheet.create({
     fontSize: 14,
   },
   cardLogoTitle: {
-    color: '#1C1C1E',
+    color: '#ffffff',
     fontFamily: FONTS.bold,
     fontSize: 12.5,
   },
@@ -2588,7 +2588,7 @@ const st = StyleSheet.create({
     justifyContent: 'center',
   },
   cardAvatarText: {
-    color: '#1C1C1E',
+    color: '#ffffff',
     fontFamily: FONTS.xbold,
     fontSize: 20,
   },
@@ -2597,7 +2597,7 @@ const st = StyleSheet.create({
     gap: 2,
   },
   cardName: {
-    color: '#1C1C1E',
+    color: '#ffffff',
     fontFamily: FONTS.bold,
     fontSize: 17,
   },
@@ -2619,7 +2619,7 @@ const st = StyleSheet.create({
     letterSpacing: 0.8,
   },
   cardFooterId: {
-    color: '#1C1C1E',
+    color: '#ffffff',
     fontFamily: FONTS.xbold,
     fontSize: 16,
     letterSpacing: 0.5,
@@ -2649,7 +2649,7 @@ const st = StyleSheet.create({
     letterSpacing: 0.8,
   },
   cardBackId: {
-    color: '#1C1C1E',
+    color: '#ffffff',
     fontFamily: FONTS.xbold,
     fontSize: 20,
     letterSpacing: 0.8,
@@ -2699,7 +2699,7 @@ const st = StyleSheet.create({
     letterSpacing: 0.5,
   },
   idDetailsValue: {
-    color: '#1C1C1E',
+    color: '#ffffff',
     fontFamily: FONTS.xbold,
     fontSize: 16,
     letterSpacing: 0.5,
@@ -2718,7 +2718,7 @@ const st = StyleSheet.create({
     cursor: 'pointer',
   },
   idCopyBtnText: {
-    color: '#1C1C1E',
+    color: '#ffffff',
     fontFamily: FONTS.bold,
     fontSize: 12,
   },
@@ -2761,7 +2761,7 @@ const st = StyleSheet.create({
     cursor: 'pointer',
   },
   actionOutlineBtnText: {
-    color: '#1C1C1E',
+    color: '#ffffff',
     fontFamily: FONTS.bold,
     fontSize: 12,
   },
@@ -2782,13 +2782,13 @@ const st = StyleSheet.create({
   },
   qrCodeWrapper: {
     padding: 8,
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#ffffff',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   qrSectionTitle: {
-    color: '#1C1C1E',
+    color: '#ffffff',
     fontFamily: FONTS.bold,
     fontSize: 14,
   },
@@ -2845,7 +2845,7 @@ const st = StyleSheet.create({
     justifyContent: 'center',
   },
   gridItemTitle: {
-    color: '#1C1C1E',
+    color: '#ffffff',
     fontFamily: FONTS.bold,
     fontSize: 12,
   },

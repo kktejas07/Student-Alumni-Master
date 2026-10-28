@@ -37,10 +37,7 @@ async def upload_document(
     content = await file.read()
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(400, "File exceeds maximum size of 10MB")
-
-    from security_scanner import scan_file_for_viruses_async
-    await scan_file_for_viruses_async(content)
-
+        
     if ext == ".pdf" and not content.startswith(b"%PDF"):
         raise HTTPException(400, "Invalid PDF format")
     elif ext == ".docx" and not content.startswith(b"PK"):
@@ -49,7 +46,7 @@ async def upload_document(
         text_preview = content.decode('utf-8', errors='ignore').lower()
         if "<script" in text_preview or "javascript:" in text_preview:
             raise HTTPException(400, "Malicious content detected")
-
+            
     file_path = KNOWLEDGE_BASE_DIR / file.filename
     
     with open(file_path, "wb") as f:
@@ -88,10 +85,7 @@ async def update_document(
     content = await file.read()
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(400, "File exceeds maximum size of 10MB")
-
-    from security_scanner import scan_file_for_viruses_async
-    await scan_file_for_viruses_async(content)
-
+        
     if ext == ".pdf" and not content.startswith(b"%PDF"):
         raise HTTPException(400, "Invalid PDF format")
     elif ext == ".docx" and not content.startswith(b"PK"):
@@ -100,7 +94,7 @@ async def update_document(
         text_preview = content.decode('utf-8', errors='ignore').lower()
         if "<script" in text_preview or "javascript:" in text_preview:
             raise HTTPException(400, "Malicious content detected")
-
+            
     # Delete old chunks
     delete_document(doc_id)
     

@@ -68,10 +68,10 @@ export function RoleCards({ value, onChange }: { value: Role | null; onChange: (
 }
 
 export const ROLE_META: Record<Role, { label: string; emoji: string; gradient: [string, string]; Icon: LucideIcon }> = {
-  student: { label: ROLES[0].label, emoji: '', gradient: ROLES[0].gradient, Icon: ROLES[0].Icon },
-  mentor:  { label: ROLES[1].label, emoji: '', gradient: ROLES[1].gradient, Icon: ROLES[1].Icon },
-  alumni:  { label: ROLES[2].label, emoji: '', gradient: ROLES[2].gradient, Icon: ROLES[2].Icon },
-  college: { label: ROLES[3].label, emoji: '', gradient: ROLES[3].gradient, Icon: ROLES[3].Icon },
+  student: { label: ROLES[0].label, emoji: '🎓', gradient: ROLES[0].gradient, Icon: ROLES[0].Icon },
+  mentor:  { label: ROLES[1].label, emoji: '👨‍💼', gradient: ROLES[1].gradient, Icon: ROLES[1].Icon },
+  alumni:  { label: ROLES[2].label, emoji: '🏆', gradient: ROLES[2].gradient, Icon: ROLES[2].Icon },
+  college: { label: ROLES[3].label, emoji: '🏫', gradient: ROLES[3].gradient, Icon: ROLES[3].Icon },
 };
 
 const s = StyleSheet.create({

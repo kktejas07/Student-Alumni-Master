@@ -11,10 +11,10 @@ import httpx
 logger = logging.getLogger(__name__)
 
 # In-memory cache to avoid repeated lookups
-_geo_cache: Dict[str, Dict[str, Any]] = {}
+_geo_cache: Dict[str, Dict[str, str]] = {}
 
 
-async def resolve_ip(ip: str) -> Dict[str, Any]:
+async def resolve_ip(ip: str) -> Dict[str, str]:
     """Resolve a single IP to geo data. Cached in memory."""
     if ip in _geo_cache:
         return _geo_cache[ip]

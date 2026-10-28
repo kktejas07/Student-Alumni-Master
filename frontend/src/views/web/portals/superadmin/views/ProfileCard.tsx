@@ -17,9 +17,9 @@ import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Eye, ChevronRight, Calendar, Check, Play, Code, Sparkles,
-  ShieldCheck, Trash2, Mail, Building2,
+  ShieldCheck, Trash2,
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, FONTS } from '../tokens';
 import { GRAD } from '../applekit';
 
 /** LinkedIn 'in' glyph — `lucide-react-native` doesn't ship the Linkedin icon
@@ -69,8 +69,6 @@ export type ProfileCardProps = {
     id: string;
     firstName: string;
     lastName: string;
-    email?: string;
-    phone?: string;
     avatarUrl?: string;
     status: ProfileCardStatus;
     degree: string;
@@ -79,8 +77,6 @@ export type ProfileCardProps = {
     category: ProfileCardCategory;
     isNew?: boolean;          // newly imported, not yet approved
     approved?: boolean;
-    onboardingCompleted?: boolean;
-    careerPath?: string;
     aadhaarMasked?: string;
     aadhaarVerified?: boolean;
     digilockerVerified?: boolean;
@@ -92,7 +88,6 @@ export type ProfileCardProps = {
     sessionsCompleted: number;
     sessionsTotal: number;
     cgpa?: number;
-    label?: string;
   };
   tags?: string[];
   nextSession?: { dateISO: string; title: string };
@@ -123,56 +118,8 @@ function fmtNextSession(iso: string) {
   } catch { return iso; }
 }
 
-/* ────────────────────────────────────────────────────────────────────
- *  ActionTooltip — Instant Floating Tooltip for Web & Mobile
- * ────────────────────────────────────────────────────────────────── */
-function ActionTooltip({
-  text,
-  children,
-  position = 'top',
-  align = 'center',
-}: {
-  text: string;
-  children: React.ReactNode;
-  position?: 'top' | 'bottom';
-  align?: 'center' | 'right' | 'left';
-}) {
-  const [hovered, setHovered] = React.useState(false);
-
-  if (!text) return <>{children}</>;
-
-  return (
-    <View
-      style={{ position: 'relative', alignItems: 'center' }}
-      // @ts-ignore — web hover events
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      {children}
-      {hovered && Platform.OS === 'web' && (
-        <View
-          pointerEvents="none"
-          style={[
-            s.customTooltip,
-            position === 'top' ? s.tooltipTop : s.tooltipBottom,
-            align === 'right' ? { right: 0, alignItems: 'flex-end' } :
-            align === 'left' ? { left: 0, alignItems: 'flex-start' } :
-            { alignSelf: 'center' },
-          ]}
-        >
-          <Text style={s.customTooltipText} numberOfLines={1}>
-            {text}
-          </Text>
-        </View>
-      )}
-    </View>
-  );
-}
-
 /* ─── Component ──────────────────────────────────────────────────── */
 export function ProfileCard(props: ProfileCardProps) {
-  const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
   const { user, goals, progress, tags, nextSession, socials, onViewProfile, onApprove, onRemove } = props;
   const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown user';
   const cat = CAT_DOT[user.category] || CAT_DOT.student;
@@ -223,45 +170,12 @@ export function ProfileCard(props: ProfileCardProps) {
             <Text style={s.degree} numberOfLines={1}>
               {user.degree || '—'}{user.institution ? ` · ${user.institution}` : ''}
             </Text>
-            {user.email ? (
-              <ActionTooltip text={`Copy email: ${user.email}`} align="left">
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                  <Mail size={11} color={PC.textSecondary} />
-                  <Text style={{ color: PC.textSecondary, fontSize: 11, fontFamily: FONTS.med }} numberOfLines={1}>
-                    {user.email}
-                  </Text>
-                </View>
-              </ActionTooltip>
-            ) : null}
             {user.batchYear ? (
               <Text style={s.idLine} numberOfLines={1}>Batch {user.batchYear}</Text>
             ) : null}
           </View>
           <StatusPillCard status={user.status} />
         </View>
-
-        {/* ONBOARDING & CAREER BADGES */}
-        {(user.onboardingCompleted !== undefined || user.careerPath) ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
-            {user.onboardingCompleted !== undefined && (
-              <View style={[s.tag, {
-                backgroundColor: user.onboardingCompleted ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
-                borderColor: user.onboardingCompleted ? 'rgba(34,197,94,0.35)' : 'rgba(245,158,11,0.35)',
-              }]}>
-                <Text style={[s.tagText, { color: user.onboardingCompleted ? '#86EFAC' : '#FCD34D', fontSize: 10, fontWeight: '700' }]}>
-                  {user.onboardingCompleted ? '✓ Onboarded' : '⏳ Pending Onboarding'}
-                </Text>
-              </View>
-            )}
-            {user.careerPath ? (
-              <View style={[s.tag, { backgroundColor: 'rgba(251,146,60,0.12)', borderColor: 'rgba(251,146,60,0.30)' }]}>
-                <Text style={[s.tagText, { color: '#FDBA74', fontSize: 10, fontWeight: '700' }]} numberOfLines={1}>
-                  🎯 {user.careerPath}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        ) : null}
 
         {/* GOALS */}
         {visibleGoals.length > 0 ? (
@@ -350,71 +264,61 @@ export function ProfileCard(props: ProfileCardProps) {
         {/* APPROVE / REMOVE */}
         {showApprove ? (
           <View style={s.adminRow}>
-            <ActionTooltip text={`Approve student account: ${fullName}`}>
-              <Pressable
-                accessibilityLabel={`Approve profile of ${fullName}`}
-                onPress={(e: any) => { e?.stopPropagation?.(); onApprove?.(user.id); }}
-                style={s.approveBtn}
-              >
-                <ShieldCheck size={12} color={PC.statusActive} />
-                <Text style={[s.approveText, { color: PC.statusActive }]}>Approve</Text>
-              </Pressable>
-            </ActionTooltip>
+            <Pressable
+              accessibilityLabel={`Approve profile of ${fullName}`}
+              onPress={(e: any) => { e?.stopPropagation?.(); onApprove?.(user.id); }}
+              style={s.approveBtn}
+            >
+              <ShieldCheck size={12} color={PC.statusActive} />
+              <Text style={[s.approveText, { color: PC.statusActive }]}>Approve</Text>
+            </Pressable>
           </View>
         ) : null}
 
         {/* ACTION ROW */}
         <View style={s.actionRow}>
-          <ActionTooltip text={`View profile of ${fullName}`}>
-            <Pressable
-              accessibilityLabel={`View profile of ${fullName}`}
-              onPress={(e: any) => { e?.stopPropagation?.(); onViewProfile(user.id); }}
-              style={{ flex: 1 }}
+          <Pressable
+            accessibilityLabel={`View profile of ${fullName}`}
+            onPress={(e: any) => { e?.stopPropagation?.(); onViewProfile(user.id); }}
+            style={{ flex: 1 }}
+          >
+            <LinearGradient
+              colors={[PC.accentBright, PC.accent, PC.accentDeep]}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={s.viewBtn}
             >
-              <LinearGradient
-                colors={[PC.accentBright, PC.accent, PC.accentDeep]}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                style={s.viewBtn}
-              >
-                <Eye size={14} color="#fff" />
-                <Text style={s.viewBtnText}>View Profile</Text>
-              </LinearGradient>
-            </Pressable>
-          </ActionTooltip>
+              <Eye size={14} color="#fff" />
+              <Text style={s.viewBtnText}>View Profile</Text>
+            </LinearGradient>
+          </Pressable>
 
           {showRemove ? (
-            <ActionTooltip text={`Delete profile: ${fullName}`}>
-              <Pressable
-                accessibilityLabel={`Remove profile of ${fullName}`}
-                onPress={(e: any) => { e?.stopPropagation?.(); onRemove?.(user.id); }}
-                style={[s.socialBtn, { backgroundColor: PC.dangerBg, borderColor: 'rgba(239,68,68,0.30)', borderWidth: 1 }]}
-              >
-                <Trash2 size={16} color={'#FCA5A5'} />
-              </Pressable>
-            </ActionTooltip>
+            <Pressable
+              accessibilityLabel={`Remove profile of ${fullName}`}
+              onPress={(e: any) => { e?.stopPropagation?.(); onRemove?.(user.id); }}
+              style={[s.socialBtn, { backgroundColor: PC.dangerBg, borderColor: 'rgba(239,68,68,0.30)', borderWidth: 1 }]}
+            >
+              <Trash2 size={16} color={'#FCA5A5'} />
+            </Pressable>
           ) : null}
 
           {socials?.linkedinUrl ? (
-            <ActionTooltip text="Open LinkedIn profile">
-              <Pressable
-                accessibilityLabel={`Open LinkedIn of ${fullName}`}
-                onPress={(e: any) => { e?.stopPropagation?.(); openSocial(socials.linkedinUrl!); }}
-                style={[s.socialBtn, { backgroundColor: PC.linkedinBg }]}
-              >
-                <LinkedinGlyph size={16} color="#fff" />
-              </Pressable>
-            </ActionTooltip>
+            <Pressable
+              accessibilityLabel={`Open LinkedIn of ${fullName}`}
+              onPress={(e: any) => { e?.stopPropagation?.(); openSocial(socials.linkedinUrl!); }}
+              style={[s.socialBtn, { backgroundColor: PC.linkedinBg }]}
+            >
+              <LinkedinGlyph size={16} color="#fff" />
+            </Pressable>
           ) : null}
           {socials?.githubUrl ? (
-            <ActionTooltip text="Open GitHub profile">
-              <Pressable
-                accessibilityLabel={`Open GitHub of ${fullName}`}
-                onPress={(e: any) => { e?.stopPropagation?.(); openSocial(socials.githubUrl!); }}
-                style={[s.socialBtn, { backgroundColor: PC.githubBg, borderColor: PC.cardBorder, borderWidth: 1 }]}
-              >
-                <Code size={16} color="#fff" />
-              </Pressable>
-            </ActionTooltip>
+            <Pressable
+              accessibilityLabel={`Open GitHub of ${fullName}`}
+              onPress={(e: any) => { e?.stopPropagation?.(); openSocial(socials.githubUrl!); }}
+              style={[s.socialBtn, { backgroundColor: PC.githubBg, borderColor: PC.cardBorder, borderWidth: 1 }]}
+            >
+              <Code size={16} color="#fff" />
+            </Pressable>
           ) : null}
         </View>
       </View>
@@ -497,7 +401,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, zIndex: 5,
   },
-  newPillText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
+  newPillText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
 
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
   avatar: {
@@ -505,7 +409,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(249,115,22,0.18)',
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 19 },
+  avatarText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 19 },
   statusDot: {
     position: 'absolute', right: -2, bottom: -2,
     width: 14, height: 14, borderRadius: 999,
@@ -578,7 +482,7 @@ const s = StyleSheet.create({
       ? ({ boxShadow: '0 8px 24px rgba(249,115,22,0.35)', transitionDuration: '160ms' } as any)
       : { shadowColor: PC.accent, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } }),
   },
-  viewBtnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13.5, letterSpacing: 0.1 },
+  viewBtnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13.5, letterSpacing: 0.1 },
   socialBtn: {
     width: 44, height: 44, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
@@ -586,37 +490,4 @@ const s = StyleSheet.create({
   },
 
   skBox: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6 },
-
-  /* Action Tooltips */
-  customTooltip: {
-    position: 'absolute',
-    paddingHorizontal: 8,
-    paddingVertical: 4.5,
-    borderRadius: 6,
-    backgroundColor: '#1A0E04',
-    borderWidth: 1,
-    borderColor: 'rgba(251,146,60,0.40)',
-    zIndex: 99999,
-    minWidth: 40,
-    ...(Platform.OS === 'web' ? ({
-      boxShadow: '0 8px 22px rgba(0,0,0,0.85), 0 0 0 1px rgba(251,146,60,0.18)',
-      whiteSpace: 'nowrap',
-      pointerEvents: 'none',
-      userSelect: 'none',
-    } as any) : {}),
-  },
-  tooltipTop: {
-    bottom: '100%',
-    marginBottom: 7,
-  },
-  tooltipBottom: {
-    top: '100%',
-    marginTop: 7,
-  },
-  customTooltipText: {
-    color: '#FDBA74',
-    fontFamily: FONTS.bold,
-    fontSize: 11,
-    letterSpacing: 0.1,
-  },
 });

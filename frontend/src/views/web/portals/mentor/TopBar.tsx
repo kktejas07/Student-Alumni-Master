@@ -41,7 +41,7 @@ export function TopBar({
         <Bell size={16} color={MC.muted} />
         {notifCount > 0 && (
           <View style={s.badge}>
-            <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 9 }}>{notifCount}</Text>
+            <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 9 }}>{notifCount}</Text>
           </View>
         )}
       </Pressable>
@@ -63,14 +63,14 @@ const s = StyleSheet.create({
     backgroundColor: MC.bg,
     position: 'relative', zIndex: 50,
   },
-  title: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: -0.4 },
+  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: -0.4 },
   searchBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     width: 280, height: 36, paddingHorizontal: 11, borderRadius: 10,
     backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1,
   },
   searchInput: {
-    flex: 1, color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 12.5,
+    flex: 1, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   iconBtn: {
