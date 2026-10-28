@@ -1561,6 +1561,7 @@ async def auth_google(request: Request, req: OAuthCallback):
 
         # If standard Google OAuth verification is not configured or fails, try Firebase token verification
         if profile is None and req.id_token:
+            _load_firebase_service_account(creds)
             profile = _verify_firebase_token(req.id_token)
 
         if profile is None:
@@ -1668,6 +1669,19 @@ async def auth_github(request: Request, req: OAuthCallback):
 # ─── Firebase Auth ──────────────────────────────────────────────────
 _firebase_app = None
 
+
+def _load_firebase_service_account(creds: dict) -> None:
+    """Expose the platform firebase_service_account setting to the Admin SDK.
+
+    Only /auth/firebase used to do this, so Firebase ID tokens posted to
+    /auth/google were never verifiable unless the service account had been
+    exported into the process environment.
+    """
+    service_account = (creds or {}).get("firebase_service_account", "")
+    if service_account and not os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON"):
+        os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"] = service_account
+
+
 def _get_or_init_firebase():
     """Initialize Firebase Admin SDK if not already initialized, using platform settings."""
     global _firebase_app
@@ -1684,7 +1698,8 @@ def _get_or_init_firebase():
         cred = credentials.Certificate(cred_dict)
         _firebase_app = initialize_app(cred)
         return _firebase_app
-    except Exception:
+    except Exception as e:
+        logger.warning(f"[FIREBASE] Admin SDK init failed: {e}")
         return None
 
 
@@ -1703,7 +1718,8 @@ def _verify_firebase_token(id_token: str) -> Optional[dict]:
             "phone": decoded.get("phone_number"),
             "firebase_provider": decoded.get("firebase", {}).get("sign_in_provider", ""),
         }
-    except Exception:
+    except Exception as e:
+        logger.warning(f"[FIREBASE] ID token verification failed: {e}")
         return None
 
 
@@ -1716,8 +1732,7 @@ async def auth_firebase(request: Request, req: OAuthCallback):
         creds = await _get_oauth_creds()
         fb_service_account = creds.get("firebase_service_account", "")
 
-        if fb_service_account and not os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON"):
-            os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"] = fb_service_account
+        _load_firebase_service_account(creds)
 
         profile = _verify_firebase_token(req.id_token) if req.id_token else None
         if profile is None:
