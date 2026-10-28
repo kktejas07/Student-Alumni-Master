@@ -8,10 +8,11 @@
  * not been computed yet, the card shows an empty state instead of a
  * fabricated curve.
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import Svg, { Path, Circle, Defs, LinearGradient as SvgLinearGradient, Stop, Line } from 'react-native-svg';
 import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 interface Predictions {
   current?: number;
@@ -61,6 +62,9 @@ function smoothPath(pts: Array<{ x: number; y: number }>): string {
 }
 
 export function PredictionTimeline({ data }: { data?: Predictions }) {
+  const { isDark } = useTheme();
+  const s = useMemo(() => makeStyles(isDark), [isDark]);
+
   const current = num(data?.current);
 
   const slots = (
@@ -122,9 +126,9 @@ export function PredictionTimeline({ data }: { data?: Predictions }) {
                 </Defs>
 
                 {/* Grid Lines */}
-                <Line x1="20" y1="145" x2="460" y2="145" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
-                <Line x1="20" y1="90" x2="460" y2="90" stroke="rgba(255,255,255,0.04)" strokeWidth="1" strokeDasharray="4 4" />
-                <Line x1="20" y1="35" x2="460" y2="35" stroke="rgba(255,255,255,0.04)" strokeWidth="1" strokeDasharray="4 4" />
+                <Line x1="20" y1="145" x2="460" y2="145" stroke={isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.12)'} strokeWidth="1" />
+                <Line x1="20" y1="90" x2="460" y2="90" stroke={isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.08)'} strokeWidth="1" strokeDasharray="4 4" />
+                <Line x1="20" y1="35" x2="460" y2="35" stroke={isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.08)'} strokeWidth="1" strokeDasharray="4 4" />
 
                 {/* Area Fill */}
                 {areaD ? <Path d={areaD} fill="url(#areaGrad)" /> : null}
@@ -134,7 +138,7 @@ export function PredictionTimeline({ data }: { data?: Predictions }) {
 
                 {/* Dots */}
                 {points.map((p, i) => (
-                  <Circle key={i} cx={p.x} cy={p.y} r={5} fill="#A5B4FC" stroke="#18162A" strokeWidth="2" />
+                  <Circle key={i} cx={p.x} cy={p.y} r={5} fill="#A5B4FC" stroke={isDark ? '#18162A' : '#FFFFFF'} strokeWidth="2" />
                 ))}
               </Svg>
 
@@ -178,21 +182,23 @@ export function PredictionTimeline({ data }: { data?: Predictions }) {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (dark: boolean) => StyleSheet.create({
   card: {
-    backgroundColor: '#0A0A2A',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: dark ? '#0A0A2A' : '#FFFFFF',
+    borderColor: dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15,23,42,0.08)',
     borderWidth: 1,
     borderRadius: RADIUS.card,
     padding: SPACING.lg,
     gap: SPACING.lg,
-    ...(Platform.OS === 'web' ? { boxShadow: '0 4px 20px rgba(0,0,0,0.35)' } as any : {}),
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: dark ? '0 4px 20px rgba(0,0,0,0.35)' : '0 4px 20px rgba(15,23,42,0.08)' } as any)
+      : {}),
   },
   header: {
     marginBottom: 4,
   },
   title: {
-    color: 'rgba(238,240,255,0.45)',
+    color: dark ? 'rgba(238,240,255,0.45)' : 'rgba(15,23,42,0.45)',
     fontFamily: FONT_FAMILIES.bold,
     fontSize: FONT_SIZES.lg,
     letterSpacing: 1.2,
@@ -225,13 +231,13 @@ const s = StyleSheet.create({
     height: '100%' as any,
   },
   scoreText: {
-    color: '#FFF',
+    color: dark ? '#FFF' : '#0F172A',
     fontFamily: FONT_FAMILIES.bold,
     fontSize: 13,
     marginTop: 8,
   },
   labelText: {
-    color: COLORS.text2,
+    color: dark ? COLORS.text2 : 'rgba(15,23,42,0.7)',
     fontFamily: FONT_FAMILIES.med,
     fontSize: 12,
     position: 'absolute',
@@ -246,19 +252,19 @@ const s = StyleSheet.create({
     gap: SPACING.xs,
   },
   emptyTitle: {
-    color: '#FFF',
+    color: dark ? '#FFF' : '#0F172A',
     fontFamily: FONT_FAMILIES.bold,
     fontSize: FONT_SIZES.md,
   },
   emptyBody: {
-    color: COLORS.text2,
+    color: dark ? COLORS.text2 : 'rgba(15,23,42,0.7)',
     fontFamily: FONT_FAMILIES.med,
     fontSize: 13,
   },
   insightCard: {
     flex: 1,
-    backgroundColor: 'rgba(67, 56, 202, 0.12)',
-    borderColor: 'rgba(129, 140, 248, 0.25)',
+    backgroundColor: dark ? 'rgba(67, 56, 202, 0.12)' : 'rgba(99,102,241,0.08)',
+    borderColor: dark ? 'rgba(129, 140, 248, 0.25)' : 'rgba(99,102,241,0.25)',
     borderWidth: 1,
     borderRadius: RADIUS.card,
     padding: SPACING.md,
@@ -267,23 +273,23 @@ const s = StyleSheet.create({
     minWidth: 220,
   },
   insightTitle: {
-    color: '#FFF',
+    color: dark ? '#FFF' : '#0F172A',
     fontFamily: FONT_FAMILIES.bold,
     fontSize: FONT_SIZES.lg,
   },
   insightDesc: {
-    color: COLORS.text2,
+    color: dark ? COLORS.text2 : 'rgba(15,23,42,0.7)',
     fontFamily: FONT_FAMILIES.med,
     fontSize: 13,
     lineHeight: 19,
   },
   boldVal: {
-    color: COLORS.purpleL,
+    color: dark ? COLORS.purpleL : '#4338CA',
     fontFamily: FONT_FAMILIES.bold,
   },
   insightBtn: {
-    backgroundColor: 'rgba(129, 140, 248, 0.15)',
-    borderColor: 'rgba(129, 140, 248, 0.35)',
+    backgroundColor: dark ? 'rgba(129, 140, 248, 0.15)' : 'rgba(99, 102, 241, 0.12)',
+    borderColor: dark ? 'rgba(129, 140, 248, 0.35)' : 'rgba(99, 102, 241, 0.3)',
     borderWidth: 1,
     borderRadius: RADIUS.btn,
     paddingVertical: 10,
@@ -292,10 +298,10 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   insightBtnHover: {
-    backgroundColor: 'rgba(129, 140, 248, 0.25)',
+    backgroundColor: dark ? 'rgba(129, 140, 248, 0.25)' : 'rgba(99, 102, 241, 0.2)',
   },
   insightBtnText: {
-    color: COLORS.purpleL,
+    color: dark ? COLORS.purpleL : '#4338CA',
     fontFamily: FONT_FAMILIES.bold,
     fontSize: 13,
   },
