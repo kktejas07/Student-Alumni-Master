@@ -15,7 +15,7 @@ import time
 import logging
 import random
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, File
 from pydantic import BaseModel
@@ -26,10 +26,21 @@ logger = logging.getLogger("college_portal")
 router = APIRouter()
 
 
-# ─── Auth ────────────────────────────────────────────────────────────────
+# ─── Auth & Tenant RBAC ───────────────────────────────────────────────────
+from core.deps import get_current_user
+
+def _require_college_user(user: dict = Depends(get_current_user)) -> dict:
+    role = (user.get("role") or "").lower()
+    is_super = bool(user.get("is_super_admin") or user.get("is_admin"))
+    if role not in ("college", "college_admin", "admin", "super_admin") and not is_super:
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: College administrator access required"
+        )
+    return user
+
 def _auth():
-    from core.deps import get_current_user
-    return get_current_user
+    return _require_college_user
 
 
 # ─── Seed Roster ─────────────────────────────────────────────────────────
@@ -282,68 +293,13 @@ async def edit_college_student(student_id: str, payload: EditStudentPayload, use
         del updated_student["_id"]
     return {"ok": True, "student": updated_student}
 
-class EditStudentPayload(BaseModel):
-    name: str | None = None
-    email: str | None = None
-    dept: str | None = None
-    year: str | None = None
-    cgpa: float | None = None
-    attendance: int | None = None
-    placed: bool | None = None
-    company: str | None = None
-    package_lpa: float | None = None
-
-@router.put("/college/students/{student_id}")
-async def edit_college_student(student_id: str, payload: EditStudentPayload, user: dict = Depends(_auth())):
-    student = await _db.college_students.find_one({"college_id": str(user["_id"]), "id": student_id})
-    if not student:
-        raise HTTPException(404, "Student not found")
-        
-    update_data = {}
-    if payload.name is not None:
-        update_data["name"] = payload.name
-        initials = "".join([p[0] for p in payload.name.split() if p]).upper()[:2]
-        if initials:
-            update_data["initials"] = initials
-    if payload.email is not None: update_data["email"] = payload.email
-    if payload.dept is not None: 
-        update_data["dept"] = payload.dept
-        update_data["color"] = COLORS.get(payload.dept, "#3B82F6")
-    if payload.year is not None: update_data["year"] = payload.year
-    if payload.cgpa is not None: update_data["cgpa"] = payload.cgpa
-    if payload.attendance is not None: update_data["attendance"] = payload.attendance
-    if payload.placed is not None: update_data["placed"] = payload.placed
-    if payload.company is not None: update_data["company"] = payload.company
-    if payload.package_lpa is not None: update_data["package_lpa"] = payload.package_lpa
-
-    # Re-calculate status if cgpa or attendance changed
-    new_cgpa = update_data.get("cgpa", student.get("cgpa", 0))
-    new_att = update_data.get("attendance", student.get("attendance", 0))
-    
-    if new_cgpa >= 9.0:
-        update_data["status"] = "top"
-    elif new_cgpa < 7.0 or new_att < 75:
-        update_data["status"] = "at_risk"
-    else:
-        update_data["status"] = "good"
-
-    if update_data:
-        await _db.college_students.update_one(
-            {"college_id": str(user["_id"]), "id": student_id},
-            {"$set": update_data}
-        )
-        
-    updated_student = await _db.college_students.find_one({"college_id": str(user["_id"]), "id": student_id})
-    if updated_student and "_id" in updated_student:
-        del updated_student["_id"]
-    return {"ok": True, "student": updated_student}
-
 @router.get("/college/students/export")
 async def export_college_students_csv(
     q: str = Query(""),
     dept: str = Query("all"),
     year: str = Query("all"),
     status: str = Query("all"),
+    user: dict = Depends(_auth()),
 ):
     import csv
     import io
@@ -394,16 +350,15 @@ async def college_student_detail(student_id: str, user: dict = Depends(_auth()))
     s = next((x for x in items if x["id"] == student_id), None)
     if not s:
         raise HTTPException(404, "Student not found")
-    # Add mock activity feed
-    activity = [
-        {"date": "2026-04-12", "type": "course_completed",
-         "label": "Completed: Machine Learning Specialization (Coursera)"},
-        {"date": "2026-03-28", "type": "internship",
-         "label": "Started internship at Razorpay"},
-        {"date": "2026-02-15", "type": "event",
-         "label": "Attended SA Career Fair 2026"},
-    ]
-    return {"student": s, "activity": activity}
+    # Activity feed: only surface events recorded on the student document.
+    # No real per-student event log exists, so an empty list is honest.
+    activity = s.get("activity") if isinstance(s.get("activity"), list) else []
+    return {
+        "student": s,
+        "activity": activity,
+        "activity_configured": bool(activity),
+        "activity_basis": "events recorded on the student document; none recorded when empty",
+    }
 
 
 @router.get("/college/analytics")
@@ -417,15 +372,29 @@ async def college_analytics(user: dict = Depends(_auth())):
     median = round(sorted(pkgs)[len(pkgs) // 2], 1) if pkgs else 0
     top_offer = round(max(pkgs), 1) if pkgs else 0
 
-    # Placement trend (5-year mock)
-    placement_trend = [
-        {"year": 2022, "rate": 71.5, "median_lpa": 7.2},
-        {"year": 2023, "rate": 74.8, "median_lpa": 8.0},
-        {"year": 2024, "rate": 76.2, "median_lpa": 8.6},
-        {"year": 2025, "rate": 78.1, "median_lpa": 9.4},
-        {"year": 2026, "rate": rate, "median_lpa": median},
-    ]
-    yoy = round(rate - placement_trend[-2]["rate"], 1)
+    # Placement trend: real data only. The roster carries no historical
+    # year-over-year placement records, so the trend is null unless
+    # graduation_year + placed fields exist on the stored students.
+    placement_trend = None
+    yoy = None
+    by_year: Dict[str, list] = {}
+    for s in items:
+        gy = s.get("graduation_year") or s.get("year")
+        if not gy:
+            continue
+        by_year.setdefault(str(gy), []).append(s)
+    if len(by_year) >= 2:
+        series = []
+        for year in sorted(by_year):
+            yr_items = by_year[year]
+            yr_placed = sum(1 for x in yr_items if x.get("placed"))
+            yr_rate = round((yr_placed / len(yr_items)) * 100, 1) if yr_items else 0.0
+            yr_pkgs = [x["package_lpa"] for x in yr_items if x.get("package_lpa")]
+            yr_median = round(sorted(yr_pkgs)[len(yr_pkgs) // 2], 1) if yr_pkgs else 0
+            series.append({"year": int(year) if str(year).isdigit() else year, "rate": yr_rate, "median_lpa": yr_median})
+        if len(series) >= 2:
+            placement_trend = series
+            yoy = round(series[-1]["rate"] - series[-2]["rate"], 1)
 
     # Salary distribution
     bands = [
@@ -487,16 +456,18 @@ async def college_analytics(user: dict = Depends(_auth())):
             "color": COLORS[d],
         })
 
-    # Hiring funnel — counts must be monotonically non-increasing.
+    # Hiring funnel — only stages recorded on the roster are real.
+    # Applied / Offered come from the data; Interviewed and Shortlisted have
+    # no recorded source, so they are null rather than invented percentages.
     applied = total
     offered = placed
-    shortlisted = max(int(total * 0.34), offered + int(total * 0.05))
-    interviewed = max(int(total * 0.62), shortlisted + int(total * 0.05))
+    shortlisted = None
+    interviewed = None
     funnel = [
-        {"stage": "Applied",      "count": applied,     "pct": 100.0,                                                "color": "#94A3B8"},
-        {"stage": "Interviewed",  "count": interviewed, "pct": round(interviewed / max(1, applied) * 100, 1),       "color": "#3B82F6"},
-        {"stage": "Shortlisted",  "count": shortlisted, "pct": round(shortlisted / max(1, applied) * 100, 1),       "color": "#A78BFA"},
-        {"stage": "Offered",      "count": offered,     "pct": round(offered / max(1, applied) * 100, 1),           "color": "#10B981"},
+        {"stage": "Applied",     "count": applied,     "pct": 100.0, "color": "#94A3B8"},
+        {"stage": "Interviewed", "count": interviewed, "pct": None,  "color": "#3B82F6"},
+        {"stage": "Shortlisted", "count": shortlisted, "pct": None,  "color": "#A78BFA"},
+        {"stage": "Offered",     "count": offered,     "pct": round(offered / max(1, applied) * 100, 1), "color": "#10B981"},
     ]
 
     return {
@@ -505,7 +476,7 @@ async def college_analytics(user: dict = Depends(_auth())):
             "placement":    f"{rate}%",
             "median_lpa":   f"₹{median} LPA",
             "top_offer":    f"₹{top_offer} LPA",
-            "median_yoy":   ("↑ " if yoy >= 0 else "↓ ") + f"{abs(yoy)}%",
+            "median_yoy":   (None if yoy is None else ("↑ " if yoy >= 0 else "↓ ") + f"{abs(yoy)}%"),
         },
         "placement_trend": placement_trend,
         "salary_dist":     sal_dist,
@@ -590,6 +561,8 @@ async def upload_college_students(file: UploadFile = File(...), user: dict = Dep
         raise HTTPException(400, "Must be a CSV or XLSX file")
         
     contents = await file.read()
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(contents)
     if len(contents) > 5 * 1024 * 1024:  # 5MB limit
         raise HTTPException(400, "File too large. Maximum size is 5MB.")
 

@@ -6,6 +6,7 @@
  */
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Platform, ScrollView, Text } from 'react-native';
 import { dispatcher } from '../core/dispatcher';
 import { EVENTS } from '../constants/events';
 
@@ -44,28 +45,24 @@ export class AnalyticsErrorBoundary extends Component<Props, State> {
       if (this.props.fallback) {
         return this.props.fallback;
       }
+      // Rendered with React Native primitives so the fallback itself works on
+      // iOS/Android as well as web (an HTML fallback here turned every native
+      // crash into a second crash).
       return (
-        <div
-          style={{
-            padding: 24,
-            margin: 16,
-            borderRadius: 12,
-            background: '#1A0B0B',
-            border: '1px solid #7F1D1D',
-            color: '#FCA5A5',
-            fontFamily: 'sans-serif',
-          }}
+        <ScrollView
+          style={{ margin: 16, borderRadius: 12, backgroundColor: '#1A0B0B', borderWidth: 1, borderColor: '#7F1D1D' }}
+          contentContainerStyle={{ padding: 24 }}
         >
-          <h3 style={{ margin: '0 0 8px 0', fontSize: 16, color: '#EF4444' }}>Something went wrong</h3>
-          <p style={{ margin: '0 0 12px 0', fontSize: 13, color: '#FCA5A5' }}>
+          <Text style={{ marginBottom: 8, fontSize: 16, color: '#EF4444', fontWeight: '600' }}>Something went wrong</Text>
+          <Text style={{ marginBottom: 12, fontSize: 13, color: '#FCA5A5' }}>
             {this.state.error?.message || 'A user interface error occurred.'}
-          </p>
+          </Text>
           {this.state.error?.stack ? (
-            <pre style={{ fontSize: 11, color: '#9CA3AF', overflowX: 'auto', maxHeight: 200 }}>
+            <Text style={{ fontSize: 11, color: '#9CA3AF', fontFamily: Platform.OS === 'web' ? 'monospace' : undefined }} numberOfLines={30}>
               {this.state.error.stack}
-            </pre>
+            </Text>
           ) : null}
-        </div>
+        </ScrollView>
       );
     }
 

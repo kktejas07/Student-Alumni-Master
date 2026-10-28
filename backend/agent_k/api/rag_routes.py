@@ -1,7 +1,9 @@
 import os
 import shutil
 from pathlib import Path
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+
+from core.deps import require_admin_role
 from typing import Optional, List
 from pydantic import BaseModel
 
@@ -17,12 +19,20 @@ try:
 except Exception as e:
     print(f"[RAG] Warning: Could not create knowledge_base directory ({e})")
 
+def _safe_doc_id(doc_id: str) -> str:
+    """Reject doc ids that contain path separators or traversal."""
+    name = Path(doc_id).name
+    if not name or name != doc_id or name in (".", ".."):
+        raise HTTPException(400, "Invalid document id")
+    return name
+
+
 class ReindexResponse(BaseModel):
     status: str
     documents_indexed: int
     total_chunks: int
 
-@router.post("/agent-k/rag/documents")
+@router.post("/agent-k/rag/documents", dependencies=[Depends(require_admin_role)])
 async def upload_document(
     file: UploadFile = File(...),
     allowed_roles: Optional[str] = Form(None)
@@ -37,7 +47,10 @@ async def upload_document(
     content = await file.read()
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(400, "File exceeds maximum size of 10MB")
-        
+
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(content)
+
     if ext == ".pdf" and not content.startswith(b"%PDF"):
         raise HTTPException(400, "Invalid PDF format")
     elif ext == ".docx" and not content.startswith(b"PK"):
@@ -46,7 +59,7 @@ async def upload_document(
         text_preview = content.decode('utf-8', errors='ignore').lower()
         if "<script" in text_preview or "javascript:" in text_preview:
             raise HTTPException(400, "Malicious content detected")
-            
+
     file_path = KNOWLEDGE_BASE_DIR / file.filename
     
     with open(file_path, "wb") as f:
@@ -66,13 +79,14 @@ async def upload_document(
         
     return {"status": "success", "filename": file.filename, "chunks": len(chunks)}
 
-@router.put("/agent-k/rag/documents/{doc_id}")
+@router.put("/agent-k/rag/documents/{doc_id}", dependencies=[Depends(require_admin_role)])
 async def update_document(
     doc_id: str, 
     file: UploadFile = File(...),
     allowed_roles: Optional[str] = Form(None)
 ):
     """We use the original filename (doc_id) to replace the file."""
+    doc_id = _safe_doc_id(doc_id)
     file_path = KNOWLEDGE_BASE_DIR / doc_id
     
     if not file_path.exists():
@@ -85,7 +99,10 @@ async def update_document(
     content = await file.read()
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(400, "File exceeds maximum size of 10MB")
-        
+
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(content)
+
     if ext == ".pdf" and not content.startswith(b"%PDF"):
         raise HTTPException(400, "Invalid PDF format")
     elif ext == ".docx" and not content.startswith(b"PK"):
@@ -94,7 +111,7 @@ async def update_document(
         text_preview = content.decode('utf-8', errors='ignore').lower()
         if "<script" in text_preview or "javascript:" in text_preview:
             raise HTTPException(400, "Malicious content detected")
-            
+
     # Delete old chunks
     delete_document(doc_id)
     
@@ -113,8 +130,9 @@ async def update_document(
         
     return {"status": "success", "filename": doc_id, "chunks": len(chunks)}
 
-@router.delete("/agent-k/rag/documents/{doc_id}")
+@router.delete("/agent-k/rag/documents/{doc_id}", dependencies=[Depends(require_admin_role)])
 async def remove_document(doc_id: str):
+    doc_id = _safe_doc_id(doc_id)
     file_path = KNOWLEDGE_BASE_DIR / doc_id
     
     if not file_path.exists():
@@ -125,7 +143,7 @@ async def remove_document(doc_id: str):
     
     return {"status": "success", "message": f"Deleted {doc_id}"}
 
-@router.post("/agent-k/rag/reindex", response_model=ReindexResponse)
+@router.post("/agent-k/rag/reindex", response_model=ReindexResponse, dependencies=[Depends(require_admin_role)])
 async def reindex_all():
     """Reindexes all files currently in the knowledge_base directory."""
     documents_indexed = 0

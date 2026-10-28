@@ -27,6 +27,8 @@ import {
 } from 'react-native';
 import Svg, { Path, Rect, Circle, G, Text as SvgText, Defs, LinearGradient as SvgGradient, Stop, Ellipse } from 'react-native-svg';
 import { useRouter } from 'expo-router';
+import CommonFooter from '@/src/views/components/CommonFooter';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 export type StatusPageCode = '404' | '403' | '401' | '500' | '503' | '408' | 'offline' | 'empty' | 'browser';
 
@@ -36,9 +38,19 @@ export function StatusPageRN({
   initialCode?: StatusPageCode;
 }) {
   const router = useRouter();
+  const { isDark } = useTheme();
+  const s = themedS(isDark);
   const { width } = useWindowDimensions();
   const isNarrow = width < 1040;
   const isTight = width < 720;
+
+  // Update body background on theme change
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.body.style.background = isDark ? '#0B0722' : '#FFFFFF';
+      document.body.style.color = isDark ? '#F3F1FF' : '#1D1D1F';
+    }
+  }, [isDark]);
 
   const [activeCode, setActiveCode] = useState<StatusPageCode>(initialCode);
   const [copiedRef, setCopiedRef] = useState(false);
@@ -174,7 +186,7 @@ export function StatusPageRN({
                   {!isNaN(parseInt(st.code, 10)) && (
                     <Text style={[s.pickPillCode, isOn && { color: '#C9BCFF' }]}>{st.code} </Text>
                   )}
-                  <Text style={[s.pickPillText, isOn && { color: '#F3F1FF' }]}>{st.label}</Text>
+                  <Text style={[s.pickPillText, isOn && { color: s._text }]}>{st.label}</Text>
                 </Pressable>
               );
             })}
@@ -322,7 +334,7 @@ export function StatusPageRN({
               <View style={s.refBox}>
                 <Text style={s.refLabel}>REF</Text>
                 <Text style={s.refCode}>SA-ERR-7F31C9</Text>
-                <Pressable onPress={handleCopyRef}><Text style={s.copyBtn}>{copiedRef ? 'COPIED ✓' : 'COPY'}</Text></Pressable>
+                <Pressable onPress={handleCopyRef}><Text style={s.copyBtn}>{copiedRef ? 'COPIED' : 'COPY'}</Text></Pressable>
               </View>
               <View style={s.actRow}>
                 <Pressable onPress={handleRetry} style={s.btnPrimary}><Text style={s.btnTextPrimary}>{retrying ? 'Reconnecting…' : retryLabel}</Text></Pressable>
@@ -355,11 +367,11 @@ export function StatusPageRN({
               <Text style={s.subText}>We are moving the placement database ahead of HackWave. Bookings and tickets already issued are unaffected.</Text>
               <View style={s.progressBox}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <Text style={{ color: '#A9A2C8', fontSize: 12.5 }}>Migration progress</Text>
-                  <Text style={{ color: '#F3F1FF', fontWeight: '700', fontSize: 12.5 }}>72%</Text>
+                  <Text style={{ color: s._muted, fontSize: 12.5 }}>Migration progress</Text>
+                  <Text style={{ color: s._text, fontWeight: '700', fontSize: 12.5 }}>72%</Text>
                 </View>
                 <View style={s.barTrack}><View style={[s.barFill, { width: '72%' }]} /></View>
-                <Text style={{ color: '#857CAE', fontSize: 12, marginTop: 10 }}>Started 09:14 IST · ETA 09:56 IST</Text>
+                <Text style={{ color: s._dim, fontSize: 12, marginTop: 10 }}>Started 09:14 IST · ETA 09:56 IST</Text>
               </View>
               <View style={s.actRow}>
                 <Pressable onPress={() => router.push('/contact')} style={s.btnPrimary}><Text style={s.btnTextPrimary}>Notify me when it is back</Text></Pressable>
@@ -464,7 +476,7 @@ export function StatusPageRN({
                 )}
                 {!removedChips['c3'] && (
                   <Pressable onPress={() => setRemovedChips({ ...removedChips, c3: true })} style={s.filterChip}>
-                    <Text style={s.filterChipText}>Any city ✕</Text>
+                    <Text style={s.filterChipText}>Any city</Text>
                   </Pressable>
                 )}
               </View>
@@ -518,144 +530,85 @@ export function StatusPageRN({
           </Svg>
         </View>
 
-        {/* ── Full Footer with Compliance & Newsletter ────────────────────── */}
-        <View style={s.footer}>
-          <View style={s.footerMax}>
-            <View style={s.footerGrid}>
-              <View style={{ flex: 1.5, minWidth: 260 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 14 }}>
-                  <Svg width={30} height={35} viewBox="0 0 300 350">
-                    <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#stBadge)" />
-                    <SvgText x={150} y={214} textAnchor="middle" fontFamily="sans-serif" fontSize={118} fontWeight="800" fill="#FFFFFF">
-                      SA
-                    </SvgText>
-                  </Svg>
-                  <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>StudentAlumni</Text>
-                </View>
-                <Text style={{ fontSize: 14.5, lineHeight: 22, color: '#9AA0B4', maxWidth: 320 }}>
-                  The intelligent career companion built for the <Text style={{ color: '#F4F5FB', fontWeight: '700' }}>next generation</Text> of students.
-                </Text>
-              </View>
-
-              <View style={{ flex: 1, minWidth: 160 }}>
-                <Text style={s.colHeading}>RESOURCES</Text>
-                <View style={{ gap: 12 }}>
-                  <Pressable onPress={() => router.push('/certificates/verify')}><Text style={s.colLink}>Verify Certificate</Text></Pressable>
-                  <Pressable onPress={() => router.push('/contact')}><Text style={s.colLink}>Blog</Text></Pressable>
-                  <Pressable onPress={() => router.push('/contact')}><Text style={s.colLink}>Help center</Text></Pressable>
-                  <Pressable onPress={() => router.push('/network')}><Text style={s.colLink}>Community</Text></Pressable>
-                </View>
-              </View>
-
-              <View style={{ flex: 1, minWidth: 160 }}>
-                <Text style={s.colHeading}>LEGAL</Text>
-                <View style={{ gap: 12 }}>
-                  <Pressable onPress={() => router.push('/policy/privacy')}><Text style={s.colLink}>Privacy & Terms</Text></Pressable>
-                  <Pressable onPress={() => router.push('/policy/security')}><Text style={s.colLink}>Security & Cookies</Text></Pressable>
-                </View>
-              </View>
-
-              <View style={{ flex: 1, minWidth: 180 }}>
-                <Text style={s.colHeading}>COMPLIANCE</Text>
-                <View style={{ gap: 12 }}>
-                  <View>
-                    <Text style={{ fontSize: 14, color: '#F4F5FB', fontWeight: '600' }}>✓ DPDP Act 2023</Text>
-                    <Text style={{ fontSize: 11.5, color: '#7B8199', marginTop: 2 }}>India · data principal rights</Text>
-                  </View>
-                  <View>
-                    <Text style={{ fontSize: 14, color: '#F4F5FB', fontWeight: '600' }}>✓ GDPR</Text>
-                    <Text style={{ fontSize: 11.5, color: '#7B8199', marginTop: 2 }}>EU · lawful basis and DPAs</Text>
-                  </View>
-                  <View>
-                    <Text style={{ fontSize: 14, color: '#F4F5FB', fontWeight: '600' }}>✓ SOC 2 Type II</Text>
-                    <Text style={{ fontSize: 11.5, color: '#7B8199', marginTop: 2 }}>Audited controls, annual</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-
-            {/* Newsletter Subscription Row */}
-            <View style={s.subRow}>
-              <View style={{ minWidth: 260 }}>
-                <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>One email a month. Nothing else.</Text>
-                <Text style={{ fontSize: 14, color: '#9AA0B4', marginTop: 4 }}>New openings, mentor drops and campus events — no noise.</Text>
-              </View>
-              <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
-                <View style={s.emailMockBox}><Text style={{ color: '#7B8199', fontSize: 14 }}>you@college.edu</Text></View>
-                <Pressable onPress={() => setSubscribed(true)} style={s.subBtn}>
-                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>{subscribed ? 'Subscribed ✓' : 'Subscribe'}</Text>
-                </Pressable>
-              </View>
-            </View>
-
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 40, flexWrap: 'wrap', gap: 20 }}>
-              <View>
-                <Text style={s.hashLogo}>#studentalumni</Text>
-                <Text style={{ color: '#9AA0B4', fontSize: 14, marginTop: 6 }}>Built with love for students across all campus's</Text>
-              </View>
-              <Text style={{ color: '#9AA0B4', fontSize: 13 }}>All rights reserved @ Student Alumni 2026</Text>
-            </View>
-          </View>
-        </View>
+        {/* ── FOOTER (shared) ── */}
+        <CommonFooter />
       </ScrollView>
     </View>
   );
 }
 
 // ── Styles Matching Master Status Specification ────────────────────────────
-const s = {
-  root: { flex: 1, backgroundColor: '#0B0722' },
+const DARK_S: Record<string, any> = {
+  bg: '#0B0722', surface: 'rgba(11,7,34,0.6)', surfaceHi: 'rgba(11,7,34,0.86)',
+  text: '#F3F1FF', textSec: '#A9A2C8', dim: '#857CAE', line: '#2A1F5E',
+  lineHi: '#382A78', lineActive: '#4B3A9E', accent: '#A99BFF', accentGlow: '#C08BFF',
+  pillBg: 'rgba(169,155,255,0.18)', tagBg: '#17103A', quoteText: '#E4DEFF',
+};
+const LIGHT_S: Record<string, any> = {
+  bg: '#FFFFFF', surface: '#F5F5F7', surfaceHi: '#F0F0F5',
+  text: '#1D1D1F', textSec: '#6E6E73', dim: '#8E8E93', line: '#E5E5EA',
+  lineHi: '#D1D1D6', lineActive: '#5B4FE9', accent: '#5B4FE9', accentGlow: '#5B4FE9',
+  pillBg: 'rgba(91,79,233,0.10)', tagBg: '#F0F0F5', quoteText: '#3A3A3C',
+};
+function themedS(dark: boolean) {
+  const C = dark ? DARK_S : LIGHT_S;
+  return {
+  root: { flex: 1, backgroundColor: C.bg },
   bgWrap: { position: 'absolute' as any, inset: 0 },
-  radialBg: { position: 'absolute' as any, inset: 0, backgroundColor: '#0B0722' },
+  radialBg: { position: 'absolute' as any, inset: 0, backgroundColor: C.bg },
   horizonGlow: { position: 'absolute' as any, left: '50%', bottom: -400, width: 1400, height: 600, marginLeft: -700, borderRadius: 700, backgroundColor: 'rgba(75,50,184,0.3)', opacity: 0.8 },
-  header: { borderBottomWidth: 1, borderColor: '#2A1F5E', backgroundColor: 'rgba(11,7,34,0.9)', paddingHorizontal: 28 },
+  header: { borderBottomWidth: 1, borderColor: C.line, backgroundColor: C.surfaceHi, paddingHorizontal: 28 },
   headerRow: { maxWidth: 1360, marginHorizontal: 'auto', paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' },
-  headerBrandText: { fontSize: 19, fontWeight: '700', color: '#F3F1FF', letterSpacing: -0.4 },
-  headerLink: { fontSize: 15, fontWeight: '500', color: '#A9A2C8' },
-  signInLink: { fontSize: 15, fontWeight: '600', color: '#A9A2C8' },
+  headerBrandText: { fontSize: 19, fontWeight: '700', color: C.text, letterSpacing: -0.4 },
+  headerLink: { fontSize: 15, fontWeight: '500', color: C.textSec },
+  signInLink: { fontSize: 15, fontWeight: '600', color: C.textSec },
   getStartedBtn: { backgroundColor: '#5B4FE9', borderRadius: 100, paddingHorizontal: 22, paddingVertical: 10 },
   getStartedText: { color: '#FFFFFF', fontSize: 14.5, fontWeight: '700' },
-  pickerBar: { borderBottomWidth: 1, borderColor: '#2A1F5E', backgroundColor: 'rgba(11,7,34,0.86)', paddingVertical: 10, paddingHorizontal: 28 },
+  pickerBar: { borderBottomWidth: 1, borderColor: C.line, backgroundColor: C.surfaceHi, paddingVertical: 10, paddingHorizontal: 28 },
   pickerRow: { maxWidth: 1400, marginHorizontal: 'auto', flexDirection: 'row', alignItems: 'center', gap: 14, width: '100%' },
-  pickerLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: '#857CAE' },
-  pickPill: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#2A1F5E', borderRadius: 100, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'transparent' },
-  pickPillOn: { backgroundColor: 'rgba(169,155,255,0.18)', borderColor: '#4B3A9E' },
-  pickPillCode: { color: '#A99BFF', fontWeight: '700', fontSize: 12 },
-  pickPillText: { color: '#A9A2C8', fontSize: 12, fontWeight: '600' },
+  pickerLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: C.dim },
+  pickPill: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: C.line, borderRadius: 100, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'transparent' },
+  pickPillOn: { backgroundColor: C.pillBg, borderColor: C.lineActive },
+  pickPillCode: { color: C.accent, fontWeight: '700', fontSize: 12 },
+  pickPillText: { color: C.textSec, fontSize: 12, fontWeight: '600' },
   stage: { minHeight: 480, alignItems: 'center', justifyContent: 'center', paddingVertical: 40, paddingHorizontal: 20 },
   screenBox: { width: '100%', maxWidth: 840, alignItems: 'center', textAlign: 'center' },
-  quoteText: { fontSize: 14.5, letterSpacing: 4, color: '#E4DEFF', marginBottom: 14, fontWeight: '600' },
+  quoteText: { fontSize: 14.5, letterSpacing: 4, color: C.quoteText, marginBottom: 14, fontWeight: '600' },
   artHeightBox: { width: '100%', height: 320, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   bigNumber: { fontSize: 220, fontWeight: '800', letterSpacing: 16, color: 'rgba(139,108,246,0.15)', position: 'absolute' as any },
   artCenter: { alignItems: 'center', justifyContent: 'center' },
-  headingH1: { fontSize: 32, fontWeight: '700', letterSpacing: -1.3, color: '#F3F1FF', marginTop: 10, textAlign: 'center' },
-  subText: { fontSize: 15.5, lineHeight: 24, color: '#A9A2C8', maxWidth: 460, textAlign: 'center', marginVertical: 14 },
+  headingH1: { fontSize: 32, fontWeight: '700', letterSpacing: -1.3, color: C.text, marginTop: 10, textAlign: 'center' },
+  subText: { fontSize: 15.5, lineHeight: 24, color: C.textSec, maxWidth: 460, textAlign: 'center', marginVertical: 14 },
   actRow: { flexDirection: 'row', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginTop: 10 },
   btnPrimary: { backgroundColor: '#6B4FE9', borderRadius: 11, paddingHorizontal: 22, paddingVertical: 14 },
   btnTextPrimary: { color: '#FFFFFF', fontSize: 14.5, fontWeight: '700' },
-  btnSecondary: { borderWidth: 1, borderColor: '#382A78', borderRadius: 11, paddingHorizontal: 22, paddingVertical: 14 },
-  btnTextSec: { color: '#F3F1FF', fontSize: 14.5, fontWeight: '600' },
-  pillBadge: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#2A1F5E', borderRadius: 100, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 18 },
+  btnSecondary: { borderWidth: 1, borderColor: C.lineHi, borderRadius: 11, paddingHorizontal: 22, paddingVertical: 14 },
+  btnTextSec: { color: C.text, fontSize: 14.5, fontWeight: '600' },
+  pillBadge: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: C.line, borderRadius: 100, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 18 },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  pillBadgeText: { color: '#857CAE', fontSize: 12.5 },
-  refBox: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: '#2A1F5E', borderRadius: 11, backgroundColor: 'rgba(23,16,58,0.7)', paddingHorizontal: 16, paddingVertical: 10, marginBottom: 20 },
-  refLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1.4, color: '#857CAE' },
-  refCode: { fontSize: 13, fontWeight: '600', color: '#F3F1FF' },
-  copyBtn: { fontSize: 11.5, fontWeight: '700', color: '#A99BFF' },
+  pillBadgeText: { color: C.dim, fontSize: 12.5 },
+  refBox: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: C.line, borderRadius: 11, backgroundColor: C.surface, paddingHorizontal: 16, paddingVertical: 10, marginBottom: 20 },
+  refLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1.4, color: C.dim },
+  refCode: { fontSize: 13, fontWeight: '600', color: C.text },
+  copyBtn: { fontSize: 11.5, fontWeight: '700', color: C.accent },
   progressBox: { width: '100%', maxWidth: 360, marginVertical: 16 },
-  barTrack: { height: 6, borderRadius: 3, backgroundColor: '#2A1F5E', overflow: 'hidden' },
+  barTrack: { height: 6, borderRadius: 3, backgroundColor: C.line, overflow: 'hidden' },
   barFill: { height: '100%', backgroundColor: '#FBBF5C', borderRadius: 3 },
-  filterChip: { borderWidth: 1, borderColor: '#382A78', borderRadius: 100, paddingHorizontal: 14, paddingVertical: 8 },
-  filterChipText: { color: '#A9A2C8', fontSize: 12.5, fontWeight: '500' },
+  filterChip: { borderWidth: 1, borderColor: C.lineHi, borderRadius: 100, paddingHorizontal: 14, paddingVertical: 8 },
+  filterChipText: { color: C.textSec, fontSize: 12.5, fontWeight: '500' },
   taglineBox: { alignItems: 'center', paddingVertical: 40 },
-  rotQuoteText: { fontSize: 17, fontWeight: '600', color: '#E4DEFF', textAlign: 'center' },
-  footer: { borderTopWidth: 1, borderColor: '#2A1F5E', backgroundColor: 'rgba(11,7,34,0.6)', paddingVertical: 48, paddingHorizontal: 28 },
+  rotQuoteText: { fontSize: 17, fontWeight: '600', color: C.quoteText, textAlign: 'center' },
+  footer: { borderTopWidth: 1, borderColor: C.line, backgroundColor: C.surface, paddingVertical: 48, paddingHorizontal: 28 },
   footerMax: { maxWidth: 1360, marginHorizontal: 'auto', width: '100%' },
   footerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 32, justifyContent: 'space-between' },
-  colHeading: { fontSize: 11, fontWeight: '700', letterSpacing: 1.6, color: '#857CAE', marginBottom: 16 },
+  colHeading: { fontSize: 11, fontWeight: '700', letterSpacing: 1.6, color: C.dim, marginBottom: 16 },
   colLink: { fontSize: 14.5, color: '#9AA0B4' },
-  subRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20, borderWidth: 1, borderColor: '#2A1F5E', borderRadius: 18, backgroundColor: '#17103A', padding: 24, marginTop: 40 },
-  emailMockBox: { borderWidth: 1, borderColor: '#2A1F5E', borderRadius: 11, backgroundColor: 'rgba(11,7,34,0.6)', paddingHorizontal: 16, paddingVertical: 12, minWidth: 200 },
+  subRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20, borderWidth: 1, borderColor: C.line, borderRadius: 18, backgroundColor: C.tagBg, padding: 24, marginTop: 40 },
+  emailMockBox: { borderWidth: 1, borderColor: C.line, borderRadius: 11, backgroundColor: C.surface, paddingHorizontal: 16, paddingVertical: 12, minWidth: 200 },
   subBtn: { backgroundColor: '#6B4FE9', borderRadius: 11, paddingHorizontal: 24, paddingVertical: 12 },
   hashLogo: { fontSize: 32, fontWeight: '700', color: '#C08BFF', letterSpacing: -1.2 },
+  _text: C.text,
+  _muted: C.textSec,
+  _dim: C.dim,
 };
+}

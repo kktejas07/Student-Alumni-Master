@@ -28,8 +28,6 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend
-  BACKEND_IMAGE: ghcr.io/${{ github.repository }}/backend
 
 jobs:
   build-and-push:
@@ -43,6 +41,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Compute image repository (GHCR requires lowercase)
+        id: repo
+        run: |
+          REPO="${{ github.repository }}"
+          REPO_LOWER="${REPO,,}"
+          echo "repo=${REPO_LOWER}" >> "$GITHUB_OUTPUT"
+          echo "frontend_image=ghcr.io/${REPO_LOWER}/frontend" >> "$GITHUB_OUTPUT"
+          echo "backend_image=ghcr.io/${REPO_LOWER}/backend" >> "$GITHUB_OUTPUT"
+
       - name: Generate tags
         id: tags
         run: |
@@ -51,13 +58,13 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.tag }}" ]]; then
             CUSTOM_TAG="${{ inputs.tag }}"
             echo "tag=$CUSTOM_TAG" >> "$GITHUB_OUTPUT"
-            echo "extra_tags=$SHA_SHORT,$BRANCH_TAG" >> "$GITHUB_OUTPUT"
+            echo "sha_tag=$SHA_SHORT" >> "$GITHUB_OUTPUT"
           elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             echo "tag=latest" >> "$GITHUB_OUTPUT"
-            echo "extra_tags=$SHA_SHORT,$BRANCH_TAG" >> "$GITHUB_OUTPUT"
+            echo "sha_tag=$SHA_SHORT" >> "$GITHUB_OUTPUT"
           else
             echo "tag=$BRANCH_TAG" >> "$GITHUB_OUTPUT"
-            echo "extra_tags=$SHA_SHORT" >> "$GITHUB_OUTPUT"
+            echo "sha_tag=$SHA_SHORT" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Log in to GHCR
@@ -80,8 +87,8 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ${{ env.BACKEND_IMAGE }}:${{ steps.tags.outputs.tag }}
-            ${{ env.BACKEND_IMAGE }}:${{ steps.tags.outputs.extra_tags }}
+            ${{ steps.repo.outputs.backend_image }}:${{ steps.tags.outputs.tag }}
+            ${{ steps.repo.outputs.backend_image }}:${{ steps.tags.outputs.sha_tag }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,scope=backend,mode=max
           labels: |
@@ -97,8 +104,8 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: |
-            ${{ env.FRONTEND_IMAGE }}:${{ steps.tags.outputs.tag }}
-            ${{ env.FRONTEND_IMAGE }}:${{ steps.tags.outputs.extra_tags }}
+            ${{ steps.repo.outputs.frontend_image }}:${{ steps.tags.outputs.tag }}
+            ${{ steps.repo.outputs.frontend_image }}:${{ steps.tags.outputs.sha_tag }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,scope=frontend,mode=max
           labels: |
@@ -114,8 +121,8 @@ jobs:
             echo ""
             echo "| Image | Tags |"
             echo "|---|---|"
-            echo "| Backend  | \`${{ env.BACKEND_IMAGE }}:${{ steps.tags.outputs.tag }}\` |"
-            echo "| Backend  | \`${{ env.BACKEND_IMAGE }}:${{ steps.tags.outputs.extra_tags }}\` |"
-            echo "| Frontend | \`${{ env.FRONTEND_IMAGE }}:${{ steps.tags.outputs.tag }}\` |"
-            echo "| Frontend | \`${{ env.FRONTEND_IMAGE }}:${{ steps.tags.outputs.extra_tags }}\` |"
+            echo "| Backend  | \`${{ steps.repo.outputs.backend_image }}:${{ steps.tags.outputs.tag }}\` |"
+            echo "| Backend  | \`${{ steps.repo.outputs.backend_image }}:${{ steps.tags.outputs.sha_tag }}\` |"
+            echo "| Frontend | \`${{ steps.repo.outputs.frontend_image }}:${{ steps.tags.outputs.tag }}\` |"
+            echo "| Frontend | \`${{ steps.repo.outputs.frontend_image }}:${{ steps.tags.outputs.sha_tag }}\` |"
           } >> "$GITHUB_STEP_SUMMARY"

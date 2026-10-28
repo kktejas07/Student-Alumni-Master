@@ -30,8 +30,7 @@ from core.db import db as _db
 
 router = APIRouter(tags=["admin-settings"])
 
-_JWT_SECRET = os.environ.get("JWT_SECRET", "")
-_JWT_ALG = os.environ.get("JWT_ALGORITHM", "HS256")
+from core.security import JWT_SECRET as _JWT_SECRET, JWT_ALGORITHM as _JWT_ALG
 
 
 async def _resolve_user(authorization: Optional[str]) -> Optional[dict]:
@@ -274,10 +273,16 @@ MARKETPLACE = [
      "auth_fields": [_f("client_id","Client ID","text"),
                      _f("client_secret","Client Secret","password"),
                      _f("redirect_uri","Redirect URI","url","https://yourapp.com/oauth/linkedin/callback")]},
-    {"id": "twilio",          "name": "Twilio",          "category": "Comms",     "icon": "phone-outline",           "tint": "#F22F46", "description": "SMS OTP + voice call delivery.",                   "auth_type": "api_key",
-     "auth_fields": [_f("account_sid","Account SID","text","ACxxxxxxxx"),
-                     _f("auth_token","Auth Token","password"),
-                     _f("from_number","From Number","text","+1xxxxxxxxxx")]},
+     {"id": "twilio",          "name": "Twilio",          "category": "Comms",     "icon": "phone-outline",           "tint": "#F22F46", "description": "SMS OTP + voice call delivery.",                   "auth_type": "api_key",
+      "auth_fields": [_f("account_sid","Account SID","text","ACxxxxxxxx"),
+                      _f("auth_token","Auth Token","password"),
+                      _f("from_number","From Number","text","+1xxxxxxxxxx")]},
+     {"id": "ms-teams",        "name": "Microsoft Teams", "category": "Video",     "icon": "microsoft-teams",         "tint": "#6240B2", "description": "Create Teams meetings with attendee registration, seat limits, and attendance tracking.", "auth_type": "oauth", "popular": True,
+      "auth_fields": [_f("tenant_id","Tenant ID","text","xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx","From Azure Portal → Azure Active Directory → Properties"),
+                      _f("client_id","Client ID (App ID)","text","xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx","From Azure Portal → App Registrations"),
+                      _f("client_secret","Client Secret","password","","From Azure Portal → App Registrations → Certificates & secrets"),
+                      _f("redirect_uri","Redirect URI","url","https://studentalumni.ai/api/integrations/teams/callback","Must match the redirect URI configured in Azure")],
+      "webhook_url": "https://studentalumni.ai/api/integrations/teams/webhook"},
     {"id": "claude",          "name": "Anthropic Claude","category": "AI",        "icon": "robot-outline",           "tint": "#D4A373", "description": "Powers Agent K + AI Daily Brief.",                 "auth_type": "api_key", "popular": True,
      "auth_fields": [_f("api_key","Anthropic API Key","password","sk-ant-xxxxxxxx","From console.anthropic.com → API Keys")]},
     {"id": "openai",          "name": "OpenAI ChatGPT",  "category": "AI",        "icon": "creation",                "tint": "#10A37F", "description": "Alternative LLM backend for AI features.",         "auth_type": "api_key", "popular": True,
@@ -430,11 +435,14 @@ async def list_tools(authorization: Optional[str] = Header(None)):
         # mask any password-type fields
         pwd_keys = {f["key"] for f in t.get("auth_fields", []) if f.get("type") == "password"}
         masked = {k: ("••••" + str(v)[-4:] if v and k in pwd_keys else v) for k, v in creds.items()}
+        # expose full values for non-password fields so the UI can pre-fill the edit form
+        plain = {k: v for k, v in creds.items() if k not in pwd_keys}
         item = {
             **t,
             "installed":   bool(i),
             "status":      i.get("status") if i else None,
             "credentials_masked": masked,
+            "credentials_plain": plain,
             "installed_at": (i.get("installed_at").isoformat() if i and i.get("installed_at") else None),
         }
         if t["id"] == "postal" and i:
@@ -469,6 +477,13 @@ async def install_tool(body: InstallBody, authorization: Optional[str] = Header(
 
     # Validate required credential fields if auth_fields declared
     creds = dict(body.credentials or {})
+    existing_row = await _db.installed_tools.find_one({"user_id": str(user["_id"]), "tool_id": body.tool_id})
+    existing_creds = (existing_row or {}).get("credentials") or {}
+    # When a password-type field is left blank on an update, keep the previously
+    # saved secret so an "Edit" without re-entering the secret doesn't wipe it.
+    for f in tool.get("auth_fields", []):
+        if f.get("type") == "password" and f["key"] in existing_creds and not (creds.get(f["key"]) or "").strip():
+            creds[f["key"]] = existing_creds[f["key"]]
     if body.tool_id == "postal" and not (creds.get("webhook_secret") or "").strip():
         creds["webhook_secret"] = await ensure_postal_webhook_secret()
     elif body.tool_id == "postal":
@@ -870,6 +885,7 @@ DEFAULT_PLATFORM_CONTROLS = {
         {"key": "new_signups",          "label": "Allow New Signups",    "description": "Open public registration for students",        "value": True},
         {"key": "ai_features",          "label": "AI Features",          "description": "Agent K and AI insights for all users",         "value": True},
         {"key": "marketplace_install",  "label": "Marketplace Install",  "description": "Allow admins to connect new integrations",      "value": True},
+        {"key": "show_marketplace",     "label": "Show Marketplace",     "description": "Display Marketplace tab in the landing page navigation bar", "value": False},
         {"key": "alumni_donations",     "label": "Alumni Donations",     "description": "Show donation widget on alumni dashboard",      "value": True},
         {"key": "beta_features",        "label": "Beta Features",        "description": "Enable experimental features for testers",      "value": False},
         {"key": "mentor_ratings",       "label": "Mentor Ratings",      "description": "Allow students to rate mentor sessions",      "value": True},
@@ -898,6 +914,20 @@ DEFAULT_PLATFORM_CONTROLS = {
         {"key": "ga4_service_account_json","label": "GA4 Service Account JSON","value": "", "type": "password", "help": "Optional — separate service account for GA4 analytics. If blank, falls back to Firebase Service Account JSON above."},
     ],
 }
+
+
+@router.get("/public/feature-flags")
+async def get_public_feature_flags():
+    """Public read-only feature flags dictionary for landing navbar and other public components."""
+    doc = await _db.platform_controls.find_one({"_id": "singleton"})
+    db_flags = (doc.get("feature_flags") if doc else None) or []
+    defaults_flags = DEFAULT_PLATFORM_CONTROLS["feature_flags"]
+    merged_flags = _merge_settings_with_defaults(db_flags, defaults_flags)
+    flags_dict = {}
+    for f in merged_flags:
+        if isinstance(f, dict) and "key" in f:
+            flags_dict[f["key"]] = bool(f.get("value"))
+    return {"feature_flags": flags_dict}
 
 
 @router.get("/admin/platform-controls")
@@ -960,28 +990,6 @@ async def patch_platform_controls(body: PlatformControlsPatch, authorization: Op
         upsert=True,
     )
     return {"ok": True}
-
-
-@router.get("/admin/platform-controls")
-async def get_platform_controls_full(authorization: Optional[str] = Header(None)):
-    """Returns controls + dropdown options for every system setting."""
-    await _require_admin(authorization)
-    doc = await _db.platform_controls.find_one({"_id": "singleton"})
-    if not doc:
-        await _db.platform_controls.insert_one({"_id": "singleton", **DEFAULT_PLATFORM_CONTROLS, "updated_at": datetime.now(timezone.utc)})
-        doc = DEFAULT_PLATFORM_CONTROLS
-    db_flags = doc.get("feature_flags") or []
-    db_settings = doc.get("system_settings") or []
-    defaults_flags = DEFAULT_PLATFORM_CONTROLS["feature_flags"]
-    defaults_settings = DEFAULT_PLATFORM_CONTROLS["system_settings"]
-    merged_flags = _merge_settings_with_defaults(db_flags, defaults_flags)
-    merged_settings = _merge_settings_with_defaults(db_settings, defaults_settings)
-    result = {
-        "feature_flags":   merged_flags,
-        "system_settings": merged_settings,
-        "system_settings_options": SYSTEM_SETTING_OPTIONS,
-    }
-    return result
 
 
 class SystemSettingPatch(BaseModel):

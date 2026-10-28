@@ -12,15 +12,16 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, useWindowDimensions, Linking } from 'react-native';
+import { View, StyleSheet, ScrollView, useWindowDimensions, Platform } from 'react-native';
+import NativeLoginScreen from '@/src/views/auth/NativeLoginScreen';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
-import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import { Mail, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowRight, Sparkles, Heart } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { getBaseUrl } from '@/src/lib/env';
 import { api } from '@/src/models/services/api';
+import { initFirebaseAuth, signInWithGoogle } from '@/src/lib/firebaseAuth';
 
 const BASE = getBaseUrl();
 
@@ -29,7 +30,8 @@ const REGISTERED_EMAILS = [
   'aisha@iitb.ac.in',
   'arjun@vnrvjiet.in',
   'demo@studentalumni.ai',
-  'student@snist.ac.in'
+  'student@snist.ac.in',
+  'admin@careerpath.app',
 ];
 
 const SLIDES = [
@@ -68,6 +70,13 @@ const SLIDES = [
 ];
 
 export default function LoginScreen() {
+  // The web screen below renders raw DOM (<style>, <div>, className) which
+  // crashes on iOS/Android. Native gets a React Native form instead.
+  if (Platform.OS !== 'web') return <NativeLoginScreen />;
+  return <WebLoginScreen />;
+}
+
+function WebLoginScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string }>();
   const { width } = useWindowDimensions();
@@ -94,7 +103,9 @@ export default function LoginScreen() {
   }, []);
 
   // Real-time Email Validation & Account Check
-  const handleEmailChange = async (val: string) => {
+  const emailTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleEmailChange = (val: string) => {
     setEmail(val);
     setErrorMsg('');
     const clean = val.trim().toLowerCase();
@@ -106,72 +117,102 @@ export default function LoginScreen() {
 
     const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean);
     if (!isValid) {
-      setEmailStatus('invalid');
+      setEmailStatus('idle');
       return;
     }
 
-    try {
-      const data = await api.checkEmail(clean);
-      if (data && data.exists) {
-        setEmailStatus('registered');
-      } else if (REGISTERED_EMAILS.includes(clean)) {
-        setEmailStatus('registered');
-      } else {
-        setEmailStatus('new');
+    setEmailStatus('idle');
+
+    if (emailTimerRef.current) clearTimeout(emailTimerRef.current);
+    emailTimerRef.current = setTimeout(async () => {
+      try {
+        const data = await api.checkEmail(clean);
+        if (data && data.exists) {
+          setEmailStatus('registered');
+        } else if (REGISTERED_EMAILS.includes(clean)) {
+          setEmailStatus('registered');
+        } else {
+          setEmailStatus('new');
+        }
+      } catch {
+        if (REGISTERED_EMAILS.includes(clean)) {
+          setEmailStatus('registered');
+        } else {
+          // DO NOT assume it's a new account if the server request failed.
+          // It could be a network error or the backend is down.
+          setErrorMsg('Unable to reach the server. Please check your connection or try again later.');
+          setEmailStatus('idle');
+        }
       }
-    } catch {
-      if (REGISTERED_EMAILS.includes(clean)) {
-        setEmailStatus('registered');
-      } else {
-        setEmailStatus('new');
-      }
-    }
+    }, 400);
   };
 
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
-  const [googleEmailInput, setGoogleEmailInput] = useState('');
   const [googleClientId, setGoogleClientId] = useState('');
 
-  const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
-  // Fetch OAuth Config on mount
+  // Fetch OAuth Config on mount and initialize Firebase Auth
   useEffect(() => {
     fetch(`${BASE}/api/auth/oauth-config`)
       .then((r) => r.json())
-      .then((data) => {
+      .then(async (data) => {
         if (data?.google_client_id) {
           setGoogleClientId(data.google_client_id);
+        }
+        if (data?.firebase?.apiKey) {
+          await initFirebaseAuth({
+            apiKey: data.firebase.apiKey,
+            authDomain: data.firebase.authDomain,
+            projectId: data.firebase.projectId,
+            appId: data.firebase.appId,
+          });
         }
       })
       .catch(() => null);
   }, []);
 
-  const handleGoogleSignIn = async (overrideEmail?: string) => {
-    if (overrideEmail && overrideEmail.includes('@')) {
-      setShowGoogleModal(false);
-      await processGoogleAuth({ email: overrideEmail });
-      return;
-    }
-
-    setShowGoogleModal(true);
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
     setErrorMsg('');
+    try {
+      const result = await signInWithGoogle();
+      if (result) {
+        await processGoogleAuth({
+          id_token: result.idToken,
+          email: result.email,
+          full_name: result.name,
+          picture: result.picture,
+        });
+      } else {
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setLoading(false);
+      if (err?.message?.includes('Firebase') || !googleClientId) {
+        setShowGoogleModal(true);
+        return;
+      }
+      setErrorMsg(err?.message || 'Google Sign-In failed. Please try again.');
+    }
   };
 
-  const processGoogleAuth = async (payload: { id_token?: string; email?: string }) => {
-    const emailToUse = (payload.email || googleEmailInput).trim().toLowerCase();
+  const processGoogleAuth = async (payload: { id_token?: string; email?: string; full_name?: string; picture?: string }) => {
+    const emailToUse = (payload.email || '').trim().toLowerCase();
 
+    // SECURITY: the backend only accepts verified provider tokens. Never let a
+    // typed-in email stand in for a Google account.
+    if (!payload.id_token) {
+      setErrorMsg('Google Sign-In did not return a token. Please try again.');
+      return;
+    }
     if (!emailToUse || !emailToUse.includes('@')) {
-      setErrorMsg('Please enter a valid Google account email.');
-      setShowGoogleModal(true);
+      setErrorMsg('Google account did not provide an email address.');
       return;
     }
 
     setLoading(true);
     setErrorMsg('');
-    const startTime = Date.now();
     try {
-      const rawName = emailToUse.split('@')[0].replace(/[\._-]/g, ' ');
-      const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+      const rawName = payload.full_name || emailToUse.split('@')[0].replace(/[\._-]/g, ' ');
+      const formattedName = payload.full_name || (rawName.charAt(0).toUpperCase() + rawName.slice(1));
 
       const checkRes = await api.checkEmail(emailToUse).catch(() => null);
 
@@ -179,14 +220,9 @@ export default function LoginScreen() {
         id_token: payload.id_token,
         email: emailToUse,
         full_name: formattedName,
-        picture: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        picture: payload.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
         role: 'student'
       });
-
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) {
-        await delay(6000 - elapsed);
-      }
 
       if (res && res.user && res.access_token) {
         setUser(res.user);
@@ -208,10 +244,6 @@ export default function LoginScreen() {
         setLoading(false);
       }
     } catch (err: any) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) {
-        await delay(6000 - elapsed);
-      }
       setErrorMsg(err?.message || 'Google Sign-In failed. Please check connection.');
       setLoading(false);
     }
@@ -239,7 +271,6 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
-    const startTime = Date.now();
 
     try {
       const res = await fetch(`${BASE}/api/auth/login`, {
@@ -247,11 +278,6 @@ export default function LoginScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: cleanEmail, password: cleanPwd }),
       });
-
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) {
-        await delay(6000 - elapsed);
-      }
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -274,10 +300,6 @@ export default function LoginScreen() {
       else if (r === 'alumni') router.replace('/alumni-portal');
       else router.replace('/student-portal/dashboard');
     } catch (err: any) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) {
-        await delay(6000 - elapsed);
-      }
       setErrorMsg(err?.message || 'Network error — please check connection or credentials.');
       setLoading(false);
     }
@@ -323,24 +345,6 @@ export default function LoginScreen() {
           {!isTablet && (
             <div style={{ position: 'relative', borderRight: '1px solid #1F1F30', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '52px 48px' }}>
               
-              {/* Brand Crest Header */}
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <svg width="34" height="38" viewBox="0 0 300 350" style={{ flex: 'none' }}>
-                  <defs>
-                    <linearGradient id="db-login-badge" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0" stopColor="#9E7BFF" />
-                      <stop offset="1" stopColor="#5B3FD9" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#db-login-badge)" />
-                  <text x="150" y="212" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: 124, fontWeight: '700', letterSpacing: '-4px', fill: '#FFFFFF' }}>SA</text>
-                </svg>
-                <div>
-                  <span style={{ fontSize: 17, fontWeight: '700', color: '#F4F4FA', letterSpacing: '-0.3px' }}>Student Alumni</span>
-                  <div style={{ fontSize: 12, color: '#8A8A9E' }}>Higher Education & Career Network</div>
-                </div>
-              </div>
-
               {/* Carousel Content */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', margin: '40px 0' }}>
                 <div style={{ position: 'relative', minHeight: 340 }}>
@@ -446,7 +450,11 @@ export default function LoginScreen() {
 
               {/* Error Message Alert */}
               {errorMsg ? (
-                <div style={{ background: 'rgba(240,97,107,.12)', border: '1px solid rgba(240,97,107,.35)', borderRadius: 12, padding: '12px 14px', color: '#F0616B', fontSize: 13.5, marginBottom: 16 }}>
+                <div
+                  role="alert"
+                  data-testid="auth-error-message"
+                  style={{ background: 'rgba(240,97,107,.12)', border: '1px solid rgba(240,97,107,.35)', borderRadius: 12, padding: '12px 14px', color: '#F0616B', fontSize: 13.5, marginBottom: 16 }}
+                >
                   {errorMsg}
                 </div>
               ) : null}
@@ -457,6 +465,8 @@ export default function LoginScreen() {
                 <Mail size={16} color="#8A8A9E" />
                 <input
                   type="email"
+                  aria-label="College Email"
+                  data-testid="email-input"
                   value={email}
                   onChange={(e) => handleEmailChange(e.target.value)}
                   placeholder="devender@mrit.edu"
@@ -478,11 +488,6 @@ export default function LoginScreen() {
                   No account on this email yet — we'll help you create one.
                 </div>
               )}
-              {emailStatus === 'invalid' && (
-                <div style={{ fontSize: 13, color: '#F59E0B', marginTop: 8 }}>
-                  That doesn't look like a valid email address yet.
-                </div>
-              )}
 
               {/* Password Input Block */}
               {(emailStatus === 'registered' || password.length > 0) && (
@@ -500,6 +505,8 @@ export default function LoginScreen() {
                     <Lock size={16} color="#8A8A9E" />
                     <input
                       type={showPwd ? 'text' : 'password'}
+                      aria-label="Password"
+                      data-testid="password-input"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••••"
@@ -518,6 +525,8 @@ export default function LoginScreen() {
               {/* Submit Button */}
               <button
                 type="button"
+                data-testid="login-submit-button"
+                aria-label="Sign in"
                 onClick={() => submitForm()}
                 disabled={loading}
                 style={{
@@ -542,7 +551,7 @@ export default function LoginScreen() {
                 <span>
                   {loading
                     ? 'Signing in…'
-                    : emailStatus === 'new'
+                    : emailStatus === 'new' && password.length === 0
                     ? 'Create an account'
                     : 'Sign in'}
                 </span>
@@ -564,135 +573,8 @@ export default function LoginScreen() {
 
         </div>
 
-        <Footer />
       </ScrollView>
 
-      {/* Google Sign-In Account Selector Modal */}
-      {showGoogleModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(5, 6, 15, 0.88)',
-          backdropFilter: 'blur(10px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: 20
-        }}>
-          <div style={{
-            background: '#0D0E1A',
-            border: '1px solid #2A2D45',
-            borderRadius: 20,
-            padding: '32px 28px',
-            maxWidth: 440,
-            width: '100%',
-            boxShadow: '0 25px 50px rgba(0,0,0,0.7)',
-            animation: 'ob-in 0.3s ease'
-          }}>
-            <div style={{ textAlign: 'center', marginBottom: 24 }}>
-              <svg width="32" height="32" viewBox="0 0 48 48" style={{ marginBottom: 12 }}>
-                <path fill="#4285F4" d="M45 24c0-1.6-.14-3.13-.4-4.6H24v8.7h11.7c-.5 2.7-2.05 5-4.35 6.55v5.4h7c4.1-3.78 6.65-9.35 6.65-16.05Z"></path>
-                <path fill="#34A853" d="M24 46c5.85 0 10.75-1.94 14.35-5.25l-7-5.4c-1.94 1.3-4.42 2.07-7.35 2.07-5.65 0-10.44-3.81-12.14-8.94h-7.2v5.6C7.3 41.2 14.98 46 24 46Z"></path>
-                <path fill="#FBBC05" d="M11.86 28.48A13.4 13.4 0 0 1 11.15 24c0-1.56.27-3.07.71-4.48v-5.6h-7.2A21.9 21.9 0 0 0 2 24c0 3.55.85 6.9 2.66 10.08l7.2-5.6Z"></path>
-                <path fill="#EA4335" d="M24 10.6c3.18 0 6.04 1.1 8.29 3.23l6.2-6.2C34.73 4.1 29.84 2 24 2 14.98 2 7.3 6.8 4.66 13.92l7.2 5.6C13.56 14.4 18.35 10.6 24 10.6Z"></path>
-              </svg>
-              <h3 style={{ margin: '0 0 6px 0', fontSize: 20, color: '#FFFFFF', fontWeight: '700' }}>Choose an account</h3>
-              <p style={{ margin: 0, fontSize: 13.5, color: '#9AA0B4' }}>to continue to <strong style={{ color: '#FFF' }}>Student Alumni</strong></p>
-            </div>
-
-            {email && email.includes('@') ? (
-              <div
-                onClick={() => handleGoogleSignIn(email)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 14,
-                  padding: '14px 16px',
-                  background: 'rgba(139, 132, 255, 0.08)',
-                  border: '1px solid rgba(139, 132, 255, 0.25)',
-                  borderRadius: 12,
-                  marginBottom: 16,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#8B84FF', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: 16 }}>
-                  {email.charAt(0).toUpperCase()}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: '600', color: '#FFF' }}>{email.split('@')[0]}</div>
-                  <div style={{ fontSize: 12.5, color: '#9AA0B4' }}>{email}</div>
-                </div>
-                <span style={{ fontSize: 12, color: '#8B84FF', fontWeight: 600 }}>Sign in →</span>
-              </div>
-            ) : null}
-
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 12, fontWeight: '600', color: '#7B8199', marginBottom: 8, letterSpacing: '0.8px' }}>
-                {email && email.includes('@') ? 'OR USE ANOTHER GOOGLE ACCOUNT' : 'ENTER GOOGLE ACCOUNT EMAIL'}
-              </div>
-              <input
-                type="email"
-                placeholder="you@gmail.com or college@edu"
-                value={googleEmailInput}
-                onChange={(e) => setGoogleEmailInput(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '13px 15px',
-                  background: '#05060F',
-                  border: '1px solid #2A2D45',
-                  borderRadius: 12,
-                  color: '#FFF',
-                  fontSize: 14,
-                  outline: 'none'
-                }}
-              />
-            </div>
-
-            <p style={{ fontSize: 11.5, color: '#6C728F', lineHeight: 1.5, marginBottom: 22, textAlign: 'center' }}>
-              To continue, Google will share your name, email address, language preference, and profile picture with Student Alumni.
-            </p>
-
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                onClick={() => setShowGoogleModal(false)}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid #2A2D45',
-                  color: '#9AA0B4',
-                  padding: '10px 18px',
-                  borderRadius: 10,
-                  cursor: 'pointer',
-                  fontSize: 13.5
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => handleGoogleSignIn(googleEmailInput)}
-                style={{
-                  background: '#8B84FF',
-                  border: 'none',
-                  color: '#FFF',
-                  padding: '10px 22px',
-                  borderRadius: 10,
-                  cursor: 'pointer',
-                  fontSize: 13.5,
-                  fontWeight: 600
-                }}
-              >
-                Sign in with Google
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </View>
   );
 }

@@ -24,13 +24,15 @@ import {
   Trophy, PanelTop, CheckCircle2, ExternalLink,
 } from 'lucide-react-native';
 import { api, resolveImageUrl } from '@/src/models/services/api';
-import { PALETTE, SC, FONTS, TYPO } from '../tokens';
+import { PALETTE, usePalette, SC, FONTS, TYPO } from '../tokens';
 import { GlassCard } from '../glass';
 import { FadeInView, PressScale } from '../motion';
 import { GRAD } from '../portalkit';
 import { useRouter } from 'expo-router';
 import { EchoImg } from '@/src/views/web/components/EchoChrome';
 import { useToast } from '@/src/views/components';
+import { useTheme } from '@/src/theme/ThemeContext';
+import { getBaseUrl } from '@/src/lib/env';
 
 // ── Status badge colors ─────────────────────────────────────────────────────
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
@@ -197,21 +199,31 @@ function HeroBannerCarousel({ banners, data, isWide, onBack, canonicalSlug, show
             </LinearGradient>
           </Pressable>
         )}
-        <PressScale
-          onPress={() => {
-            const base = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8002';
-            if (Platform.OS === 'web') {
-              window.open(`${base}/api/echo/handbook/download`, '_blank');
-            } else {
-              Linking.openURL(`${base}/api/echo/handbook/download`);
-            }
-          }}
-        >
-          <View style={[bc.shareBtn, { backgroundColor: 'rgba(124,58,237,0.45)', borderColor: '#A78BFA' }]}>
-            <FileText size={13} color="#fff" />
-            <Text style={bc.btnText}>Event Handbook (PDF)</Text>
-          </View>
-        </PressScale>
+        {Boolean(
+          data?.handbook_url ||
+          (data?.downloads || []).some((d: any) => {
+            const cat = (d?.category || '').toLowerCase();
+            const title = (d?.title || '').toLowerCase();
+            return Boolean(d?.file_url && (cat.includes('handbook') || cat.includes('brochure') || cat.includes('guide') || title.includes('handbook') || title.includes('brochure') || title.includes('guide')));
+          })
+        ) && (
+          <PressScale
+            onPress={() => {
+              const base = getBaseUrl();
+              const url = `${base}/api/echo/showcases/${canonicalSlug}/handbook`;
+              if (Platform.OS === 'web') {
+                window.open(url, '_blank');
+              } else {
+                Linking.openURL(url);
+              }
+            }}
+          >
+            <View style={[bc.shareBtn, { backgroundColor: 'rgba(124,58,237,0.45)', borderColor: '#A78BFA' }]}>
+              <FileText size={13} color="#fff" />
+              <Text style={bc.btnText}>Event Handbook (PDF)</Text>
+            </View>
+          </PressScale>
+        )}
         <PressScale onPress={onShare}>
           <View style={bc.shareBtn}>
             <Share2 size={13} color="#fff" />
@@ -364,12 +376,20 @@ const bc = StyleSheet.create({
 
 // ── Stat Card ──────────────────────────────────────────────────────────────
 function StatCard({ stat }: { stat: any }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   const Icon = STAT_ICONS[stat.icon] || STAT_ICONS.default;
   return (
-    <View style={st.card}>
+    <View style={[
+      st.card,
+      {
+        backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
+        borderColor: isDark ? PALETTE.glassBorder : 'rgba(0,0,0,0.08)',
+      }
+    ]}>
       <View style={st.iconWrap}><Icon size={22} color={GRAD.from} /></View>
-      <Text style={st.value}>{stat.value}</Text>
-      <Text style={st.label}>{stat.label}</Text>
+      <Text style={[st.value, { color: isDark ? '#fff' : '#0F172A' }]}>{stat.value}</Text>
+      <Text style={[st.label, { color: isDark ? PALETTE.muted : '#64748B' }]}>{stat.label}</Text>
     </View>
   );
 }
@@ -391,19 +411,27 @@ const st = StyleSheet.create({
 
 // ── Highlight Card with Directional Step Flow ──────────────────────────────
 function HighlightCard({ h, index, isLast }: { h: any; index: number; isLast: boolean }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   const IconMap: Record<string, any> = { book: BookOpen, network: Network, trending: TrendingUp, star: Star, award: Award, mic: Mic2 };
   const Icon = IconMap[h.icon] || Zap;
   return (
     <View style={{ flex: 1, minWidth: 180, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <View style={hc.card}>
+      <View style={[
+        hc.card,
+        {
+          backgroundColor: isDark ? 'rgba(12, 14, 27, 0.75)' : '#FFFFFF',
+          borderColor: isDark ? 'rgba(139, 132, 255, 0.22)' : 'rgba(139, 132, 255, 0.35)',
+        }
+      ]}>
         <View style={hc.topRow}>
           <View style={hc.iconWrap}><Icon size={18} color="#8B84FF" /></View>
           <View style={hc.stepBadge}>
             <Text style={hc.stepText}>{String(index + 1).padStart(2, '0')}</Text>
           </View>
         </View>
-        <Text style={hc.title}>{h.title}</Text>
-        <Text style={hc.desc}>{h.description}</Text>
+        <Text style={[hc.title, { color: isDark ? '#fff' : '#0F172A' }]}>{h.title}</Text>
+        <Text style={[hc.desc, { color: isDark ? PALETTE.muted : '#64748B' }]}>{h.description}</Text>
       </View>
       {!isLast && (
         <View style={hc.connectorWrap}>
@@ -442,31 +470,31 @@ const hc = StyleSheet.create({
 
 // ── Testimonial Card ───────────────────────────────────────────────────────
 function TestimonialCard({ t }: { t: any }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   const photoUri = t.photo_url ? resolveImageUrl(t.photo_url) : null;
   return (
-    <View style={tc.card}>
-      <Text style={tc.quote}>"{t.quote}"</Text>
+    <View style={[
+      tc.card,
+      {
+        backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
+        borderColor: isDark ? PALETTE.glassBorder : 'rgba(0,0,0,0.08)',
+      }
+    ]}>
+      <Text style={[tc.quote, { color: isDark ? 'rgba(255,255,255,0.85)' : '#334155' }]}>"{t.quote}"</Text>
       <View style={tc.footer}>
         <View style={tc.avatar}>
           {photoUri ? (
-            <Image source={{ uri: photoUri }} style={{ width: 36, height: 36, borderRadius: 18 }} resizeMode="cover" />
+            <Image source={{ uri: photoUri }} style={{ width: 36, height: 36, borderRadius: 18 }} />
           ) : (
             <Text style={tc.avatarText}>{(t.name || 'U')[0]}</Text>
           )}
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={tc.name}>{t.name}</Text>
-          <Text style={tc.meta}>{[t.department || t.branch, t.year].filter(Boolean).join(', ')}</Text>
-          {t.linkedin_url ? (
-            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: GRAD.from, marginTop: 2 }} numberOfLines={1}>
-              {t.linkedin_url}
-            </Text>
-          ) : null}
-        </View>
-        <View style={{ flexDirection: 'row', gap: 2 }}>
-          {Array.from({ length: t.rating || 5 }).map((_, i) => (
-            <Star key={i} size={11} color="#F59E0B" fill="#F59E0B" />
-          ))}
+          <Text style={[tc.name, { color: isDark ? '#fff' : '#0F172A' }]}>{t.name}</Text>
+          <Text style={[tc.meta, { color: isDark ? PALETTE.muted : '#64748B' }]} numberOfLines={1}>
+            {[t.role, t.company || t.college].filter(Boolean).join(' · ')}
+          </Text>
         </View>
       </View>
     </View>
@@ -474,11 +502,11 @@ function TestimonialCard({ t }: { t: any }) {
 }
 const tc = StyleSheet.create({
   card: {
-    flex: 1, minWidth: 180, backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 14, borderWidth: 1, borderColor: PALETTE.glassBorder,
+    flex: 1, minWidth: 180,
+    borderRadius: 14, borderWidth: 1,
     padding: 16, gap: 14,
   },
-  quote: { fontFamily: TYPO.body400, fontSize: 13, color: PALETTE.text, lineHeight: 20 },
+  quote: { fontFamily: TYPO.body400, fontSize: 13, lineHeight: 20 },
   footer: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   avatar: {
     width: 36, height: 36, borderRadius: 18,
@@ -486,16 +514,24 @@ const tc = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   avatarText: { fontFamily: TYPO.display700, fontSize: 14, color: GRAD.from },
-  name: { fontFamily: TYPO.body700, fontSize: 12.5, color: '#fff' },
-  meta: { fontFamily: TYPO.body400, fontSize: 11, color: PALETTE.muted },
+  name: { fontFamily: TYPO.body700, fontSize: 12.5 },
+  meta: { fontFamily: TYPO.body400, fontSize: 11 },
 });
 
 // ── Speaker Card ────────────────────────────────────────────────────────────
 function SpeakerCard({ sp, panel = false }: { sp: any; panel?: boolean }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   const accent = panel ? '#F472B6' : GRAD.from;
   const photoUri = sp.photo_url ? resolveImageUrl(sp.photo_url) : null;
   return (
-    <View style={[spk.card, panel && { borderColor: 'rgba(236,72,153,0.28)' }]}>
+    <View style={[
+      spk.card,
+      {
+        backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
+        borderColor: panel ? (isDark ? 'rgba(236,72,153,0.28)' : 'rgba(236,72,153,0.35)') : (isDark ? PALETTE.glassBorder : 'rgba(0,0,0,0.08)'),
+      }
+    ]}>
       <View style={spk.top}>
         <View style={[spk.avatar, { backgroundColor: (accent + '22') }]}>
           {photoUri ? (
@@ -505,37 +541,37 @@ function SpeakerCard({ sp, panel = false }: { sp: any; panel?: boolean }) {
           )}
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={spk.name} numberOfLines={1}>{sp.name}</Text>
-          <Text style={spk.role} numberOfLines={1}>
+          <Text style={[spk.name, { color: isDark ? '#fff' : '#0F172A' }]} numberOfLines={1}>{sp.name}</Text>
+          <Text style={[spk.role, { color: isDark ? PALETTE.muted : '#64748B' }]} numberOfLines={1}>
             {[sp.position, sp.company].filter(Boolean).join(' · ')}
           </Text>
           {sp.session_title ? (
-            <Text style={spk.session} numberOfLines={1}>🎙 {sp.session_title}</Text>
+            <Text style={[spk.session, { color: isDark ? PALETTE.dim : '#94A3B8' }]} numberOfLines={1}> {sp.session_title}</Text>
           ) : null}
         </View>
       </View>
-      {sp.bio ? <Text style={spk.bio} numberOfLines={3}>{sp.bio}</Text> : null}
+      {sp.bio ? <Text style={[spk.bio, { color: isDark ? PALETTE.muted : '#475569' }]} numberOfLines={3}>{sp.bio}</Text> : null}
       {(sp.linkedin_url || sp.twitter_url || sp.website_url) && (
         <View style={spk.links}>
           {sp.linkedin_url ? (
-            <Pressable onPress={() => Platform.OS === 'web' && window.open(sp.linkedin_url, '_blank')} style={[spk.linkBtn, { borderColor: accent + '44' }]}>
+            <Pressable onPress={() => Platform.OS === 'web' && window.open(sp.linkedin_url, '_blank')} style={[spk.linkBtn, { borderColor: accent + '44', backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC' }]}>
               <Link2 size={12} color={accent} />
             </Pressable>
           ) : null}
           {sp.twitter_url ? (
-            <Pressable onPress={() => Platform.OS === 'web' && window.open(sp.twitter_url, '_blank')} style={[spk.linkBtn, { borderColor: accent + '44' }]}>
+            <Pressable onPress={() => Platform.OS === 'web' && window.open(sp.twitter_url, '_blank')} style={[spk.linkBtn, { borderColor: accent + '44', backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC' }]}>
               <Globe size={12} color={accent} />
             </Pressable>
           ) : null}
           {sp.website_url ? (
-            <Pressable onPress={() => Platform.OS === 'web' && window.open(sp.website_url, '_blank')} style={[spk.linkBtn, { borderColor: accent + '44' }]}>
+            <Pressable onPress={() => Platform.OS === 'web' && window.open(sp.website_url, '_blank')} style={[spk.linkBtn, { borderColor: accent + '44', backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC' }]}>
               <ExternalLink size={12} color={accent} />
             </Pressable>
           ) : null}
         </View>
       )}
       {panel && (
-        <View style={[spk.pill, { backgroundColor: 'rgba(236,72,153,0.12)', borderColor: 'rgba(236,72,153,0.35)' }]}>
+        <View style={[spk.pill, { backgroundColor: isDark ? 'rgba(236,72,153,0.12)' : 'rgba(236,72,153,0.08)', borderColor: 'rgba(236,72,153,0.35)' }]}>
           <PanelTop size={10} color="#F472B6" />
           <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#F472B6', letterSpacing: 0.4 }}>PANEL MEMBER</Text>
         </View>
@@ -545,22 +581,21 @@ function SpeakerCard({ sp, panel = false }: { sp: any; panel?: boolean }) {
 }
 const spk = StyleSheet.create({
   card: {
-    flex: 1, minWidth: 240, backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 14, borderWidth: 1, borderColor: PALETTE.glassBorder,
+    flex: 1, minWidth: 240,
+    borderRadius: 14, borderWidth: 1,
     padding: 16, gap: 10,
   },
   top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontFamily: TYPO.display800, fontSize: 20 },
-  name: { fontFamily: TYPO.display700, fontSize: 15, color: '#fff' },
-  role: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted, marginTop: 1 },
-  session: { fontFamily: TYPO.body500, fontSize: 10.5, color: PALETTE.dim, marginTop: 2 },
-  bio: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted, lineHeight: 18 },
+  name: { fontFamily: TYPO.display700, fontSize: 15 },
+  role: { fontFamily: TYPO.body400, fontSize: 12, marginTop: 1 },
+  session: { fontFamily: TYPO.body500, fontSize: 10.5, marginTop: 2 },
+  bio: { fontFamily: TYPO.body400, fontSize: 12, lineHeight: 18 },
   links: { flexDirection: 'row', gap: 6 },
   linkBtn: {
     width: 28, height: 28, borderRadius: 14, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
   },
   pill: {
     flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
@@ -570,6 +605,8 @@ const spk = StyleSheet.create({
 
 // ── Category Card ───────────────────────────────────────────────────────────
 function CategoryCard({ c }: { c: any }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   const color = c.color || GRAD.from;
   const IconMap: Record<string, any> = {
     brain: Zap, leaf: Target, landmark: Building2, bus: Users, heartpulse: Award,
@@ -577,13 +614,19 @@ function CategoryCard({ c }: { c: any }) {
   };
   const Icon = IconMap[c.icon] || IconMap.default;
   return (
-    <View style={[cat.card, { borderColor: (color + '33') }]}>
+    <View style={[
+      cat.card,
+      {
+        backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF',
+        borderColor: isDark ? (color + '33') : 'rgba(0,0,0,0.08)',
+      }
+    ]}>
       <View style={[cat.iconWrap, { backgroundColor: (color + '1A') }]}>
         <Icon size={18} color={color} />
       </View>
       <View style={{ flex: 1, gap: 3 }}>
-        <Text style={cat.name}>{c.name}</Text>
-        {c.description ? <Text style={cat.desc} numberOfLines={2}>{c.description}</Text> : null}
+        <Text style={[cat.name, { color: isDark ? '#fff' : '#0F172A' }]}>{c.name}</Text>
+        {c.description ? <Text style={[cat.desc, { color: isDark ? PALETTE.muted : '#64748B' }]} numberOfLines={2}>{c.description}</Text> : null}
       </View>
     </View>
   );
@@ -591,78 +634,94 @@ function CategoryCard({ c }: { c: any }) {
 const cat = StyleSheet.create({
   card: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12,
-    borderWidth: 1, padding: 14, minWidth: 240, flex: 1,
+    borderRadius: 12, borderWidth: 1, padding: 14, minWidth: 240, flex: 1,
   },
   iconWrap: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  name: { fontFamily: TYPO.display700, fontSize: 13.5, color: '#fff' },
-  desc: { fontFamily: TYPO.body400, fontSize: 11.5, color: PALETTE.muted, lineHeight: 16 },
+  name: { fontFamily: TYPO.display700, fontSize: 13.5 },
+  desc: { fontFamily: TYPO.body400, fontSize: 11.5, lineHeight: 16 },
 });
 
 // ── Schedule Row ───────────────────────────────────────────────────────────
 function ScheduleRow({ it }: { it: any }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   const type = it.session_type || 'session';
-  const badgeColMap: Record<string, any> = {
+  const badgeColMap: Record<string, any> = isDark ? {
     keynote: { bg: 'rgba(124,58,237,0.15)', text: '#A78BFA', label: 'KEYNOTE' },
     panel: { bg: 'rgba(236,72,153,0.14)', text: '#F472B6', label: 'PANEL' },
     workshop: { bg: 'rgba(16,185,129,0.13)', text: '#34D399', label: 'WORKSHOP' },
     activity: { bg: 'rgba(245,158,11,0.13)', text: '#FBBF24', label: 'ACTIVITY' },
     break: { bg: 'rgba(148,163,184,0.13)', text: '#94A3B8', label: 'BREAK' },
     session: { bg: 'rgba(99,102,241,0.13)', text: '#A5B4FC', label: 'SESSION' },
+  } : {
+    keynote: { bg: 'rgba(124,58,237,0.09)', text: '#6D28D9', label: 'KEYNOTE' },
+    panel: { bg: 'rgba(236,72,153,0.09)', text: '#BE185D', label: 'PANEL' },
+    workshop: { bg: 'rgba(16,185,129,0.09)', text: '#047857', label: 'WORKSHOP' },
+    activity: { bg: 'rgba(245,158,11,0.09)', text: '#B45309', label: 'ACTIVITY' },
+    break: { bg: 'rgba(100,116,139,0.09)', text: '#475569', label: 'BREAK' },
+    session: { bg: 'rgba(99,102,241,0.09)', text: '#4338CA', label: 'SESSION' },
   };
   const b = badgeColMap[type] || badgeColMap.session;
   return (
-    <View style={sch.row}>
+    <View style={[sch.row, !isDark && { borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)' }]}>
       <View style={sch.timeCol}>
-        <Text style={sch.time}>{it.time || '—'}</Text>
+        <Text style={[sch.time, { color: isDark ? '#A78BFA' : '#6D28D9' }]}>{it.time || '—'}</Text>
       </View>
       <View style={sch.dot} />
       <View style={sch.body}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <Text style={sch.title}>{it.title}</Text>
+          <Text style={[sch.title, { color: isDark ? '#fff' : '#0F172A' }]}>{it.title}</Text>
           <View style={[sch.badge, { backgroundColor: b.bg }]}>
             <Text style={[sch.badgeText, { color: b.text }]}>{b.label}</Text>
           </View>
         </View>
-        {it.description ? <Text style={sch.desc}>{it.description}</Text> : null}
+        {it.description ? <Text style={[sch.desc, { color: isDark ? PALETTE.muted : '#475569' }]}>{it.description}</Text> : null}
         {it.speaker_names && it.speaker_names.length > 0 ? (
-          <Text style={sch.speakers}>Speakers: {it.speaker_names.join(', ')}</Text>
+          <Text style={[sch.speakers, { color: isDark ? PALETTE.dim : '#64748B' }]}>Speakers: {it.speaker_names.join(', ')}</Text>
         ) : null}
       </View>
     </View>
   );
 }
 const sch = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12 },
   timeCol: { width: 84, alignItems: 'flex-end', paddingTop: 2 },
-  time: { fontFamily: FONTS.bold, fontSize: 12.5, color: '#A78BFA' },
+  time: { fontFamily: FONTS.bold, fontSize: 12.5 },
   dot: {
     width: 10, height: 10, borderRadius: 5, marginTop: 5,
     backgroundColor: GRAD.from, borderWidth: 2, borderColor: (GRAD.from + '44'),
   },
   body: { flex: 1, gap: 3 },
-  title: { fontFamily: TYPO.display700, fontSize: 13.5, color: '#fff' },
+  title: { fontFamily: TYPO.display700, fontSize: 13.5 },
   badge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
   badgeText: { fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 0.4 },
-  desc: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted, lineHeight: 17 },
-  speakers: { fontFamily: TYPO.body500, fontSize: 11, color: PALETTE.dim },
+  desc: { fontFamily: TYPO.body400, fontSize: 12, lineHeight: 17 },
+  speakers: { fontFamily: TYPO.body500, fontSize: 11 },
 });
 
 // ── Panel Card ─────────────────────────────────────────────────────────────
 function PanelCard({ p }: { p: any }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   return (
-    <View style={pn.card}>
+    <View style={[
+      pn.card,
+      {
+        backgroundColor: isDark ? 'rgba(236,72,153,0.05)' : '#FFFFFF',
+        borderColor: isDark ? 'rgba(236,72,153,0.22)' : 'rgba(236,72,153,0.25)',
+      }
+    ]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <PanelTop size={15} color="#F472B6" />
-        <Text style={pn.topic}>{p.topic}</Text>
+        <Text style={[pn.topic, { color: isDark ? '#fff' : '#0F172A' }]}>{p.topic}</Text>
       </View>
-      {p.description ? <Text style={pn.desc}>{p.description}</Text> : null}
+      {p.description ? <Text style={[pn.desc, { color: isDark ? PALETTE.muted : '#475569' }]}>{p.description}</Text> : null}
       {p.panelists && p.panelists.length > 0 && (
         <View style={{ gap: 4, marginTop: 4 }}>
           {p.panelists.filter(Boolean).map((name: string, i: number) => (
             <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <CheckCircle2 size={11} color="#F472B6" />
-              <Text style={pn.panelist}>{name}</Text>
+              <Text style={[pn.panelist, { color: isDark ? 'rgba(255,255,255,0.8)' : '#334155' }]}>{name}</Text>
             </View>
           ))}
         </View>
@@ -672,43 +731,51 @@ function PanelCard({ p }: { p: any }) {
 }
 const pn = StyleSheet.create({
   card: {
-    flex: 1, minWidth: 260, backgroundColor: 'rgba(236,72,153,0.05)',
-    borderRadius: 14, borderWidth: 1, borderColor: 'rgba(236,72,153,0.22)',
+    flex: 1, minWidth: 260,
+    borderRadius: 14, borderWidth: 1,
     padding: 16, gap: 4,
   },
-  topic: { fontFamily: TYPO.display700, fontSize: 14, color: '#fff', flex: 1 },
-  desc: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted, lineHeight: 18 },
-  panelist: { fontFamily: TYPO.body500, fontSize: 12, color: 'rgba(255,255,255,0.8)' },
+  topic: { fontFamily: TYPO.display700, fontSize: 14, flex: 1 },
+  desc: { fontFamily: TYPO.body400, fontSize: 12, lineHeight: 18 },
+  panelist: { fontFamily: TYPO.body500, fontSize: 12 },
 });
 
 // ── FAQ Item ───────────────────────────────────────────────────────────────
 function FaqItem({ f, open, onToggle }: { f: any; open: boolean; onToggle: () => void }) {
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
   return (
-    <View style={[fq.wrap, open && { borderColor: 'rgba(16,185,129,0.35)' }]}>
+    <View style={[
+      fq.wrap,
+      {
+        backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF',
+        borderColor: open ? 'rgba(16,185,129,0.4)' : (isDark ? PALETTE.glassBorder : 'rgba(0,0,0,0.08)'),
+      }
+    ]}>
       <Pressable onPress={onToggle} style={fq.head}>
         <HelpCircle size={15} color="#34D399" />
-        <Text style={fq.q}>{f.question}</Text>
-        <ChevronDown size={15} color={PALETTE.muted} style={[open && { transform: [{ rotate: '180deg' }] }]} />
+        <Text style={[fq.q, { color: isDark ? '#fff' : '#0F172A' }]}>{f.question}</Text>
+        <ChevronDown size={15} color={isDark ? PALETTE.muted : '#64748B'} style={[open && { transform: [{ rotate: '180deg' }] }]} />
       </Pressable>
-      {open && <Text style={fq.a}>{f.answer}</Text>}
+      {open && <Text style={[fq.a, { color: isDark ? PALETTE.muted : '#475569' }]}>{f.answer}</Text>}
     </View>
   );
 }
 const fq = StyleSheet.create({
   wrap: {
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12,
-    borderWidth: 1, borderColor: PALETTE.glassBorder, overflow: 'hidden',
+    borderRadius: 12, borderWidth: 1, overflow: 'hidden',
   },
   head: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 14, paddingVertical: 13,
   },
-  q: { flex: 1, fontFamily: TYPO.display700, fontSize: 13, color: '#fff' },
-  a: { fontFamily: TYPO.body400, fontSize: 12.5, color: PALETTE.muted, lineHeight: 19, paddingHorizontal: 14, paddingBottom: 14 },
+  q: { flex: 1, fontFamily: TYPO.display700, fontSize: 13 },
+  a: { fontFamily: TYPO.body400, fontSize: 12.5, lineHeight: 19, paddingHorizontal: 14, paddingBottom: 14 },
 });
 
 // ── Section Heading (icon chip + title, matching reference) ────────────────
 function SectionHeading({ icon, title, tint }: { icon: any; title: string; tint?: string }) {
+  const { isDark } = useTheme();
   const Icon = icon;
   const t = tint || GRAD.from;
   return (
@@ -716,7 +783,7 @@ function SectionHeading({ icon, title, tint }: { icon: any; title: string; tint?
       <View style={[sh.chip, { backgroundColor: (t + '1F') }]}>
         <Icon size={16} color={t} />
       </View>
-      <Text style={sh.title}>{title}</Text>
+      <Text style={[sh.title, { color: isDark ? '#fff' : '#0F172A' }]}>{title}</Text>
     </View>
   );
 }
@@ -748,7 +815,9 @@ const gc = StyleSheet.create({
 export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () => void }) {
   const { width } = useWindowDimensions();
   const isWide = width >= 860;
-  const [data, setData] = useState<any>(DEFAULT_SHOWCASE);
+  const { isDark } = useTheme();
+  const PALETTE = usePalette();
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [lbOpen, setLbOpen] = useState(false);
   const [lbIndex, setLbIndex] = useState(0);
@@ -770,38 +839,22 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
     setLoading(true);
     const resolve = async () => {
       try {
-        let targetSlug = slug;
-        if (targetSlug === 'vnrvjit' || targetSlug === 'vnr' || targetSlug === 'vnr-vjit') {
-          targetSlug = 'vnr-vjiet';
-        }
-        if (!targetSlug) {
-          const list: any = await api.listEchoShowcases();
-          const items: any[] = list?.items || list || [];
-          const first = items.find(
-            (s: any) => s?.status === 'published' || !s?.status
-          ) || items[0];
-          targetSlug = first?.slug;
-        }
+        const targetSlug = slug?.trim();
         if (!targetSlug) {
           if (mounted) setData(null);
           return;
         }
         const d = await api.getEchoShowcase(targetSlug);
-        if (mounted && d) {
-          console.log('[STUDENT GET RESPONSE]', {
-            targetSlug,
-            title: d.title,
-            hero_image_url: d.hero_image_url,
-            hero_cover_url: d.hero_cover_url,
-            resolved_hero_url: resolveImageUrl(d.hero_image_url),
-          });
+        if (mounted && d && (d.title || d._id || d.slug)) {
           setData(d);
           if (Platform.OS === 'web' && (d.seo_title || d.title)) {
             document.title = d.seo_title || `${d.title} | Student Alumni Platform`;
           }
+        } else {
+          if (mounted) setData(null);
         }
       } catch {
-        /* keep default (neutral) data */
+        if (mounted) setData(null);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -829,7 +882,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
           Showcase not found
         </Text>
         <Text style={{ color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center', maxWidth: 320 }}>
-          No event showcase is published yet. Check back soon.
+          The requested event showcase was not found or is no longer published.
         </Text>
       </View>
     );
@@ -837,13 +890,13 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
 
   const statusKey = data?.event_status_badge || 'Upcoming';
   const statusCol = STATUS_COLORS[statusKey] || STATUS_COLORS.default;
-  const stats: any[] = data?.stats || DEFAULT_SHOWCASE.stats;
-  const highlights: any[] = data?.highlights || DEFAULT_SHOWCASE.highlights;
-  const testimonials: any[] = (data?.testimonials || DEFAULT_SHOWCASE.testimonials).filter(
+  const stats: any[] = data?.stats || [];
+  const highlights: any[] = data?.highlights || [];
+  const testimonials: any[] = (data?.testimonials || []).filter(
     (t: any) => t.visible !== false
   );
-  const timeline: any[] = data?.timeline || DEFAULT_SHOWCASE.timeline;
-  const partners: any[] = data?.partners || DEFAULT_SHOWCASE.partners;
+  const timeline: any[] = data?.timeline || [];
+  const partners: any[] = data?.partners || [];
   const canonicalSlug: string = data?.slug || slug || '';
 
   return (
@@ -876,9 +929,9 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
         {/* Floating action bar over hero card */}
         <View style={s.heroActionBar}>
           <PressScale onPress={onBack || (() => {})}>
-            <View style={s.floatingBtn}>
-              <ArrowLeft size={14} color="#fff" />
-              <Text style={s.floatingBtnText}>Back</Text>
+            <View style={[s.floatingBtn, { backgroundColor: isDark ? 'rgba(0,0,0,0.6)' : '#FFFFFF', borderColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)' }]}>
+              <ArrowLeft size={14} color={isDark ? '#fff' : '#0F172A'} />
+              <Text style={[s.floatingBtnText, { color: isDark ? '#fff' : '#0F172A' }]}>Back</Text>
             </View>
           </PressScale>
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -900,9 +953,9 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
               </Pressable>
             )}
             <PressScale onPress={() => setShareModalOpen(true)}>
-              <View style={s.floatingBtn}>
-                <Share2 size={13} color="#fff" />
-                <Text style={s.floatingBtnText}>Share</Text>
+              <View style={[s.floatingBtn, { backgroundColor: isDark ? 'rgba(0,0,0,0.6)' : '#FFFFFF', borderColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)' }]}>
+                <Share2 size={13} color={isDark ? '#fff' : '#0F172A'} />
+                <Text style={[s.floatingBtnText, { color: isDark ? '#fff' : '#0F172A' }]}>Share</Text>
               </View>
             </PressScale>
           </View>
@@ -920,38 +973,38 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                   </Text>
                 </View>
                 {data?.organizer_name ? (
-                  <Text style={s.heroEyebrow}>{data.organizer_name.toUpperCase()}</Text>
+                  <Text style={[s.heroEyebrow, { color: isDark ? PALETTE.dim : '#64748B' }]}>{data.organizer_name.toUpperCase()}</Text>
                 ) : null}
               </View>
               {/* Title */}
-              <Text style={s.heroTitle} numberOfLines={3}>
+              <Text style={[s.heroTitle, { color: isDark ? '#fff' : '#0F172A' }]} numberOfLines={3}>
                 {data?.title?.split(' ').slice(0, -1).join(' ')}{' '}
                 <Text style={{ color: GRAD.from }}>{data?.title?.split(' ').slice(-1)[0]}</Text>
               </Text>
               {/* Subtitle */}
-              {data?.subtitle ? <Text style={s.heroSubtitle}>{data.subtitle}</Text> : null}
+              {data?.subtitle ? <Text style={[s.heroSubtitle, { color: isDark ? PALETTE.muted : '#475569' }]}>{data.subtitle}</Text> : null}
               {/* Description */}
-              {data?.description ? <Text style={s.heroDesc} numberOfLines={4}>{data.description}</Text> : null}
+              {data?.description ? <Text style={[s.heroDesc, { color: isDark ? PALETTE.muted : '#334155' }]} numberOfLines={4}>{data.description}</Text> : null}
               {/* Registration deadline pill */}
               {data?.registration?.deadline ? (
-                <View style={s.heroDeadlinePill}>
-                  <Clock size={11} color="#FBBF24" />
-                  <Text style={s.heroDeadlineText}>Registration closes: {data.registration.deadline}</Text>
+                <View style={[s.heroDeadlinePill, { backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.12)', borderColor: isDark ? 'rgba(245,158,11,0.35)' : 'rgba(245,158,11,0.45)' }]}>
+                  <Clock size={11} color={isDark ? '#FBBF24' : '#D97706'} />
+                  <Text style={[s.heroDeadlineText, { color: isDark ? '#FBBF24' : '#B45309' }]}>Registration closes: {data.registration.deadline}</Text>
                 </View>
               ) : null}
               {/* Meta rows */}
               <View style={s.metaGroup}>
                 {data?.date ? (
-                  <View style={s.metaRow}><Calendar size={13} color={PALETTE.muted} /><Text style={s.metaText}>{data.end_date && data.end_date !== data.date ? `${data.date} – ${data.end_date}` : data.date}</Text></View>
+                  <View style={s.metaRow}><Calendar size={13} color={isDark ? PALETTE.muted : '#64748B'} /><Text style={[s.metaText, { color: isDark ? PALETTE.muted : '#334155' }]}>{data.end_date && data.end_date !== data.date ? `${data.date} – ${data.end_date}` : data.date}</Text></View>
                 ) : null}
                 {data?.time ? (
-                  <View style={s.metaRow}><Clock size={13} color={PALETTE.muted} /><Text style={s.metaText}>{data.time}</Text></View>
+                  <View style={s.metaRow}><Clock size={13} color={isDark ? PALETTE.muted : '#64748B'} /><Text style={[s.metaText, { color: isDark ? PALETTE.muted : '#334155' }]}>{data.time}</Text></View>
                 ) : null}
                 {data?.venue ? (
-                  <View style={s.metaRow}><MapPin size={13} color={PALETTE.muted} /><Text style={s.metaText}>{data.venue}</Text></View>
+                  <View style={s.metaRow}><MapPin size={13} color={isDark ? PALETTE.muted : '#64748B'} /><Text style={[s.metaText, { color: isDark ? PALETTE.muted : '#334155' }]}>{data.venue}</Text></View>
                 ) : null}
                 {data?.prize_pool?.total ? (
-                  <View style={s.metaRow}><Trophy size={13} color="#F59E0B" /><Text style={s.metaText}>Prize Pool: {data.prize_pool.total}</Text></View>
+                  <View style={s.metaRow}><Trophy size={13} color="#F59E0B" /><Text style={[s.metaText, { color: isDark ? PALETTE.muted : '#334155' }]}>Prize Pool: {data.prize_pool.total}</Text></View>
                 ) : null}
               </View>
             </View>
@@ -962,12 +1015,12 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                   <EchoImg source={{ uri: resolveImageUrl(data.hero_image_url) }} style={s.heroImg} resizeMode="cover" fallbackLabel={data?.title || 'Event'} />
                 ) : (
                   <LinearGradient
-                    colors={['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.80)']}
+                    colors={isDark ? ['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.80)'] : ['#EDE9FE', '#DDD6FE', '#C4B5FD']}
                     style={s.heroImg}
                   >
-                    <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, gap: 12 }}>
-                      <Text style={{ fontFamily: TYPO.display800, fontSize: 28, color: '#fff', textAlign: 'center' }}>{data?.title}</Text>
-                      <Text style={{ fontFamily: TYPO.body500, fontSize: 13, color: 'rgba(255,255,255,0.7)', textAlign: 'center' }}>{data?.subtitle}</Text>
+                    <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, gap: 12, paddingHorizontal: 16 }}>
+                      <Text style={{ fontFamily: TYPO.display800, fontSize: 24, color: isDark ? '#fff' : '#4C1D95', textAlign: 'center' }}>{data?.title}</Text>
+                      {data?.subtitle ? <Text style={{ fontFamily: TYPO.body500, fontSize: 13, color: isDark ? 'rgba(255,255,255,0.7)' : '#6D28D9', textAlign: 'center' }}>{data?.subtitle}</Text> : null}
                     </View>
                   </LinearGradient>
                 )}
@@ -994,8 +1047,8 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
           {/* About */}
           {((data?.description) || highlights.length > 0) && (
           <GlassCard style={[s.aboutCard, !isWide && { width: '100%' }]} padding={22}>
-            <Text style={s.cardTitle}>About the Event</Text>
-            <Text style={s.aboutDesc}>{data?.description || ''}</Text>
+            <Text style={[s.cardTitle, { color: isDark ? '#fff' : '#0F172A' }]}>About the Event</Text>
+            <Text style={[s.aboutDesc, { color: isDark ? PALETTE.muted : '#334155' }]}>{data?.description || ''}</Text>
             {/* Highlights */}
             {highlights.length > 0 && (
             <View style={s.highlightRow}>
@@ -1007,9 +1060,9 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
           {/* Organizers */}
           {data?.organizer_name && (
           <GlassCard style={[s.orgCard, !isWide && { width: '100%' }]} padding={22}>
-            <Text style={s.cardTitle}>Event Organized By</Text>
+            <Text style={[s.cardTitle, { color: isDark ? '#fff' : '#0F172A' }]}>Event Organized By</Text>
             <View style={s.orgRow}>
-              <View style={s.orgAvatar}>
+              <View style={[s.orgAvatar, { backgroundColor: isDark ? 'rgba(123,61,191,0.20)' : 'rgba(123,61,191,0.12)' }]}>
                 {data?.organizer_logo_url ? (
                   <Image source={{ uri: resolveImageUrl(data.organizer_logo_url) }} style={{ width: 38, height: 38, borderRadius: 10 }} resizeMode="contain" />
                 ) : (
@@ -1019,20 +1072,20 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 )}
               </View>
               <View style={s.orgMeta}>
-                <Text style={s.orgName}>{data?.organizer_name || 'Event Organizers'}</Text>
-                <Text style={s.orgSub}>{data?.college || data?.venue || ''}</Text>
+                <Text style={[s.orgName, { color: isDark ? '#fff' : '#0F172A' }]}>{data?.organizer_name || 'Event Organizers'}</Text>
+                <Text style={[s.orgSub, { color: isDark ? PALETTE.muted : '#64748B' }]}>{data?.college || data?.venue || ''}</Text>
               </View>
             </View>
             {showSection('partners') && partners.length > 0 && (
               <>
-                <Text style={s.partnerLabel}>In Association With</Text>
+                <Text style={[s.partnerLabel, { color: isDark ? '#fff' : '#0F172A' }]}>In Association With</Text>
                 <View style={s.partnerRow}>
                   {partners.map((p, i) => (
-                    <View key={i} style={s.partnerChip}>
+                    <View key={i} style={[s.partnerChip, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9', borderColor: isDark ? PALETTE.glassBorder : 'rgba(0,0,0,0.08)' }]}>
                       {p.logo_url ? (
                         <Image source={{ uri: resolveImageUrl(p.logo_url) }} style={{ width: 28, height: 28 }} resizeMode="contain" />
                       ) : (
-                        <Text style={{ fontFamily: TYPO.body700, fontSize: 12, color: PALETTE.text }}>{p.name}</Text>
+                        <Text style={{ fontFamily: TYPO.body700, fontSize: 12, color: isDark ? PALETTE.text : '#0F172A' }}>{p.name}</Text>
                       )}
                     </View>
                   ))}
@@ -1049,7 +1102,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
       {showSection('gallery') && (
       <FadeInView delay={200}>
         <View style={s.sectionHeader}>
-          <Text style={s.sectionTitle}>Moments from the Event</Text>
+          <Text style={[s.sectionTitle, { color: isDark ? '#fff' : '#0F172A' }]}>Moments from the Event</Text>
           {gallery.length > 0 && (
             <Pressable onPress={() => { setLbIndex(0); setLbOpen(true); }}>
               <Text style={s.viewAll}>View all photos →</Text>
@@ -1058,8 +1111,8 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
         </View>
         {gallery.length === 0 ? (
           <GlassCard style={{ padding: 32, alignItems: 'center' }}>
-            <ZoomIn size={28} color={PALETTE.dim} />
-            <Text style={{ color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 10 }}>
+            <ZoomIn size={28} color={isDark ? PALETTE.dim : '#64748B'} />
+            <Text style={{ color: isDark ? PALETTE.muted : '#64748B', fontFamily: FONTS.med, fontSize: 13, marginTop: 10 }}>
               No photos yet. Upload gallery photos via Admin CMS.
             </Text>
           </GlassCard>
@@ -1075,9 +1128,9 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
             <GalleryCell img={gallery[4]} onPress={() => { setLbIndex(4); setLbOpen(true); }} style={{ height: 125 }} />
             {/* Counter card */}
             {gallery.length > 5 && (
-              <Pressable onPress={() => { setLbIndex(5); setLbOpen(true); }} style={s.galleryMore}>
-                <Text style={s.galleryMoreNum}>+{gallery.length - 5}</Text>
-                <Text style={s.galleryMoreLabel}>More Photos</Text>
+              <Pressable onPress={() => { setLbIndex(5); setLbOpen(true); }} style={[s.galleryMore, { backgroundColor: isDark ? 'rgba(123,61,191,0.18)' : '#EDE9FE', borderColor: isDark ? 'rgba(123,61,191,0.30)' : '#C4B5FD' }]}>
+                <Text style={[s.galleryMoreNum, { color: isDark ? '#fff' : '#6D28D9' }]}>+{gallery.length - 5}</Text>
+                <Text style={[s.galleryMoreLabel, { color: isDark ? PALETTE.muted : '#7C3AED' }]}>More Photos</Text>
               </Pressable>
             )}
           </View>
@@ -1094,7 +1147,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
       {showSection('testimonials') && testimonials.length > 0 && (
         <FadeInView delay={240}>
           <View style={s.sectionHeader}>
-            <Text style={s.sectionTitle}>What People Are Saying</Text>
+            <Text style={[s.sectionTitle, { color: isDark ? '#fff' : '#0F172A' }]}>What People Are Saying</Text>
             <Text style={s.viewAll}>View all testimonials →</Text>
           </View>
           <View style={[s.testimonialsRow, !isWide && { flexDirection: 'column' }]}>
@@ -1106,20 +1159,22 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
       {/* ── TIMELINE ────────────────────────────────────────────────────── */}
       {showSection('timeline') && timeline.length > 0 && (
         <FadeInView delay={280}>
-          <Text style={[s.sectionTitle, { marginBottom: 18 }]}>Event Highlights</Text>
+          <Text style={[s.sectionTitle, { color: isDark ? '#fff' : '#0F172A', marginBottom: 18 }]}>Event Highlights</Text>
           <View style={[s.timelineRow, !isWide && { flexDirection: 'column', gap: 0 }]}>
             {timeline.map((item, i) => {
               const IconMap: Record<string, any> = { star: Star, users: Users, code: Zap, network: Network, default: Zap };
               const Icon = IconMap[item.icon] || IconMap.default;
               return (
                 <View key={i} style={[s.tlItem, !isWide && { flexDirection: 'row', gap: 12, paddingVertical: 10 }]}>
-                  <View style={s.tlIconWrap}><Icon size={18} color={GRAD.from} /></View>
+                  <View style={[s.tlIconWrap, { backgroundColor: isDark ? 'rgba(123,61,191,0.18)' : '#EDE9FE', borderColor: isDark ? 'rgba(123,61,191,0.35)' : 'rgba(124,58,237,0.3)' }]}>
+                    <Icon size={18} color={GRAD.from} />
+                  </View>
                   <View style={s.tlContent}>
-                    <Text style={s.tlTitle}>{item.title}</Text>
-                    <Text style={s.tlDesc}>{item.description}</Text>
+                    <Text style={[s.tlTitle, { color: isDark ? '#fff' : '#0F172A' }]}>{item.title}</Text>
+                    <Text style={[s.tlDesc, { color: isDark ? PALETTE.muted : '#64748B' }]}>{item.description}</Text>
                   </View>
                   {isWide && i < timeline.length - 1 && (
-                    <View style={s.tlConnector} />
+                    <View style={[s.tlConnector, { backgroundColor: isDark ? 'rgba(123,61,191,0.30)' : 'rgba(124,58,237,0.20)' }]} />
                   )}
                 </View>
               );
@@ -1202,34 +1257,34 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
               <GlassCard style={[s.infoCard, !isWide && { width: '100%' }]} padding={18}>
                 <View style={s.infoHead}>
                   <Users size={15} color={GRAD.from} />
-                  <Text style={s.infoTitle}>Who can participate</Text>
+                  <Text style={[s.infoTitle, { color: isDark ? '#fff' : '#0F172A' }]}>Who can participate</Text>
                 </View>
-                <Text style={s.infoText}>{data.eligibility}</Text>
+                <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#334155' }]}>{data.eligibility}</Text>
               </GlassCard>
             )}
             {data?.team_composition && (
               <GlassCard style={[s.infoCard, !isWide && { width: '100%' }]} padding={18}>
                 <View style={s.infoHead}>
                   <Users size={15} color={GRAD.from} />
-                  <Text style={s.infoTitle}>Team composition</Text>
+                  <Text style={[s.infoTitle, { color: isDark ? '#fff' : '#0F172A' }]}>Team composition</Text>
                 </View>
-                <Text style={s.infoText}>{data.team_composition}</Text>
+                <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#334155' }]}>{data.team_composition}</Text>
               </GlassCard>
             )}
             {data?.prize_pool && (data.prize_pool.total || data.prize_pool.first) && (
               <GlassCard style={[s.infoCard, !isWide && { width: '100%' }]} padding={18}>
                 <View style={s.infoHead}>
                   <Trophy size={15} color="#F59E0B" />
-                  <Text style={s.infoTitle}>Prize pool</Text>
+                  <Text style={[s.infoTitle, { color: isDark ? '#fff' : '#0F172A' }]}>Prize pool</Text>
                 </View>
-                {data.prize_pool.total ? <Text style={[s.infoTitle, { color: '#FBBF24', marginBottom: 6 }]}>{data.prize_pool.total}</Text> : null}
+                {data.prize_pool.total ? <Text style={[s.infoTitle, { color: '#F59E0B', marginBottom: 6 }]}>{data.prize_pool.total}</Text> : null}
                 <View style={{ gap: 3 }}>
-                  {data.prize_pool.first ? <Text style={s.infoText}>🥇 {data.prize_pool.first}</Text> : null}
-                  {data.prize_pool.second ? <Text style={s.infoText}>🥈 {data.prize_pool.second}</Text> : null}
-                  {data.prize_pool.third ? <Text style={s.infoText}>🥉 {data.prize_pool.third}</Text> : null}
+                  {data.prize_pool.first ? <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#334155' }]}>🥇 {data.prize_pool.first}</Text> : null}
+                  {data.prize_pool.second ? <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#334155' }]}>🥈 {data.prize_pool.second}</Text> : null}
+                  {data.prize_pool.third ? <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#334155' }]}>🥉 {data.prize_pool.third}</Text> : null}
                 </View>
                 {(data.prize_pool.other_prizes || []).filter(Boolean).length > 0 && (
-                  <Text style={[s.infoText, { marginTop: 6 }]}>+ {data.prize_pool.other_prizes.join(', ')}</Text>
+                  <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#475569', marginTop: 6 }]}>+ {data.prize_pool.other_prizes.join(', ')}</Text>
                 )}
               </GlassCard>
             )}
@@ -1257,32 +1312,28 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
       )}
 
       {/* ── SPONSORS ────────────────────────────────────────────────────── */}
-      {showSection('sponsors') && (
+      {/* Only the event's own sponsors — no hardcoded fallback branding.    */}
+      {showSection('sponsors') && data?.sponsors && data.sponsors.length > 0 && (
         <FadeInView delay={300}>
           <View style={{ marginBottom: 18 }}>
             <SectionHeading icon={Building2} title="Event Sponsors & Industry Partners" tint="#A855F7" />
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 26 }}>
-            {(data?.sponsors && data.sponsors.length > 0 ? data.sponsors : [
-              { name: 'Deloitte', tier: 'TITLE SPONSOR', description: 'Global Leader in Strategy & Tech Innovation' },
-              { name: 'Featherless AI', tier: 'PLATINUM PARTNER', description: 'Decentralized Serverless LLM Inference' },
-              { name: 'VNR VJIET Alumni Assoc.', tier: 'HOST CHAPTER', description: 'Campus Chapter & Ecosystem Host' },
-              { name: 'Garuda Vigilance', tier: 'CYBERSECURITY PARTNER', description: 'Advanced Cloud Defense & Forensics' },
-            ]).map((sp: any, i: number) => (
+            {data.sponsors.map((sp: any, i: number) => (
               <GlassCard key={i} style={{ flex: 1, minWidth: 220, padding: 22, alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 150 }}>
                 {sp.logo_url ? (
                   <Image source={{ uri: resolveImageUrl(sp.logo_url) }} style={{ width: 140, height: 48 }} resizeMode="contain" />
                 ) : (
-                  <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(168,85,247,0.18)', borderWidth: 1, borderColor: 'rgba(192,132,252,0.3)', alignItems: 'center', justifyContent: 'center', marginBottom: 2 }}>
-                    <Building2 size={24} color="#C084FC" />
+                  <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: isDark ? 'rgba(168,85,247,0.18)' : 'rgba(168,85,247,0.10)', borderWidth: 1, borderColor: isDark ? 'rgba(192,132,252,0.3)' : 'rgba(168,85,247,0.25)', alignItems: 'center', justifyContent: 'center', marginBottom: 2 }}>
+                    <Building2 size={24} color={isDark ? '#C084FC' : '#9333EA'} />
                   </View>
                 )}
-                <Text style={{ fontFamily: TYPO.display800, fontSize: 15, color: '#fff', textAlign: 'center', letterSpacing: -0.3 }}>{sp.name}</Text>
+                <Text style={{ fontFamily: TYPO.display800, fontSize: 15, color: isDark ? '#fff' : '#0F172A', textAlign: 'center', letterSpacing: -0.3 }}>{sp.name}</Text>
                 {sp.description ? (
-                  <Text style={{ fontFamily: TYPO.body400, fontSize: 11, color: PALETTE.muted, textAlign: 'center', lineHeight: 16 }} numberOfLines={2}>{sp.description}</Text>
+                  <Text style={{ fontFamily: TYPO.body400, fontSize: 11.5, color: isDark ? PALETTE.muted : '#475569', textAlign: 'center', lineHeight: 16 }} numberOfLines={2}>{sp.description}</Text>
                 ) : null}
-                <View style={{ backgroundColor: 'rgba(123,61,191,0.25)', borderWidth: 1, borderColor: 'rgba(192,132,252,0.4)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 100, marginTop: 4 }}>
-                  <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 10, color: '#D8B4FE', letterSpacing: 0.6 }}>{sp.tier || 'ECOSYSTEM PARTNER'}</Text>
+                <View style={{ backgroundColor: isDark ? 'rgba(123,61,191,0.25)' : 'rgba(123,61,191,0.08)', borderWidth: 1, borderColor: isDark ? 'rgba(192,132,252,0.4)' : 'rgba(124,58,237,0.25)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 100, marginTop: 4 }}>
+                  <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 10, color: isDark ? '#D8B4FE' : '#6D28D9', letterSpacing: 0.6 }}>{sp.tier || 'ECOSYSTEM PARTNER'}</Text>
                 </View>
               </GlassCard>
             ))}
@@ -1291,40 +1342,33 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
       )}
 
       {/* ── DOWNLOADS & RESOURCES ────────────────────────────────────────── */}
-      {showSection('downloads') && (
+      {/* Only the event's own configured resources — no fake '#' rows.      */}
+      {showSection('downloads') && data?.downloads && data.downloads.length > 0 && (
         <FadeInView delay={310}>
           <View style={{ marginBottom: 18 }}>
             <SectionHeading icon={FileText} title="Official Resources & Downloads" tint="#38BDF8" />
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 26 }}>
-            {(data?.downloads && data.downloads.length > 0 ? data.downloads : [
-              { title: 'Event Handbook & Schedule', description: 'Minute-by-minute itinerary, venue floor maps, lab allocations & helpline numbers', file_size: '4.2 MB · PDF', file_url: '#' },
-              { title: 'Hackathon Rulebook & Guidelines', description: 'Judging criteria, submission formats, tech stack policies and academic integrity rules', file_size: '1.8 MB · PDF', file_url: '#' },
-              { title: 'Problem Statements & Track Briefs', description: 'Comprehensive challenge briefs for AI Copilots, FinTech, Web3 and Smart Campus tracks', file_size: '2.4 MB · PDF', file_url: '#' },
-              { title: 'Starter Kits & Sample Datasets', description: 'GitHub starter templates, pre-configured sandbox APIs, sample CSV datasets and SDK docs', file_size: '12.5 MB · ZIP', file_url: '#' },
-              { title: 'Pitch Deck & Presentation Template', description: 'Official 5-minute final round slide deck template (.pptx) formatted for jury review', file_size: '3.1 MB · PPTX', file_url: '#' },
-            ]).map((dl: any, i: number) => (
+            {data.downloads.map((dl: any, i: number) => (
               <GlassCard key={i} style={{ flex: 1, minWidth: 260, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(56,189,248,0.15)', borderWidth: 1, borderColor: 'rgba(56,189,248,0.3)', alignItems: 'center', justifyContent: 'center' }}>
-                  <FileText size={22} color="#38BDF8" />
+                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: isDark ? 'rgba(56,189,248,0.15)' : 'rgba(2,132,199,0.10)', borderWidth: 1, borderColor: isDark ? 'rgba(56,189,248,0.3)' : 'rgba(2,132,199,0.25)', alignItems: 'center', justifyContent: 'center' }}>
+                  <FileText size={22} color={isDark ? '#38BDF8' : '#0284C7'} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: TYPO.display700, fontSize: 14, color: '#fff', letterSpacing: -0.2 }}>{dl.title}</Text>
-                  {dl.description ? <Text style={{ fontFamily: TYPO.body400, fontSize: 11.5, color: PALETTE.muted, lineHeight: 16, marginTop: 2 }}>{dl.description}</Text> : null}
-                  {dl.file_size ? <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 10.5, color: '#38BDF8', marginTop: 4 }}>{dl.file_size}</Text> : null}
+                  <Text style={{ fontFamily: TYPO.display700, fontSize: 14, color: isDark ? '#fff' : '#0F172A', letterSpacing: -0.2 }}>{dl.title}</Text>
+                  {dl.description ? <Text style={{ fontFamily: TYPO.body400, fontSize: 11.5, color: isDark ? PALETTE.muted : '#475569', lineHeight: 16, marginTop: 2 }}>{dl.description}</Text> : null}
+                  {dl.file_size ? <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 10.5, color: isDark ? '#38BDF8' : '#0284C7', marginTop: 4 }}>{dl.file_size}</Text> : null}
                 </View>
-                <Pressable
-                  onPress={() => {
-                    if (dl.file_url && dl.file_url !== '#') {
+                {(dl.file_url && dl.file_url !== '#') ? (
+                  <Pressable
+                    onPress={() => {
                       if (Platform.OS === 'web') window.open(dl.file_url, '_blank');
-                    } else {
-                      toast.show({ title: 'Resource Access', message: `Opening ${dl.title}`, type: 'info' });
-                    }
-                  }}
-                  style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <Download size={16} color="#38BDF8" />
-                </Pressable>
+                    }}
+                    style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(2,132,199,0.08)', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(2,132,199,0.22)', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <Download size={16} color={isDark ? '#38BDF8' : '#0284C7'} />
+                  </Pressable>
+                ) : null}
               </GlassCard>
             ))}
           </View>
@@ -1335,17 +1379,17 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
       {showSection('cta') && (data?.cta_title || data?.cta_subtitle || data?.cta_button_text) && (
       <FadeInView delay={320}>
         <LinearGradient
-          colors={['rgba(123,61,191,0.25)', 'rgba(95,37,159,0.40)']}
+          colors={isDark ? ['rgba(123,61,191,0.25)', 'rgba(95,37,159,0.40)'] : ['#F5F3FF', '#EDE9FE']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={[s.ctaBanner, !isWide && s.ctaBannerStack]}
+          style={[s.ctaBanner, { borderColor: isDark ? 'rgba(123,61,191,0.25)' : 'rgba(124,58,237,0.2)' }, !isWide && s.ctaBannerStack]}
         >
           <View style={[s.ctaInner, !isWide && s.ctaInnerStack]}>
-            <View style={s.ctaIconWrap}>
+            <View style={[s.ctaIconWrap, { backgroundColor: isDark ? 'rgba(123,61,191,0.20)' : 'rgba(124,58,237,0.12)' }]}>
               <Calendar size={22} color={GRAD.from} />
             </View>
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={s.ctaTitle}>{data?.cta_title || ''}</Text>
-              <Text style={s.ctaSubtitle}>{data?.cta_subtitle || ''}</Text>
+              <Text style={[s.ctaTitle, { color: isDark ? '#fff' : '#0F172A' }]}>{data?.cta_title || ''}</Text>
+              <Text style={[s.ctaSubtitle, { color: isDark ? PALETTE.muted : '#475569' }]}>{data?.cta_subtitle || ''}</Text>
             </View>
             <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.ctaBtn, !isWide && s.ctaBtnFull]}>
               <Text style={s.ctaBtnText}>{data?.cta_button_text || 'Learn More'}</Text>
@@ -1368,15 +1412,16 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
               </View>
 
               <Text style={s.shareModalSub}>
-                Share <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>{data?.title || 'SNIST Hackwave 3.0'}</Text> with your friends & teammates:
+                Share <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>{data?.title || 'ECHO Event'}</Text> with your friends & teammates:
               </Text>
 
               <View style={{ gap: 10, marginTop: 8 }}>
                 {/* WhatsApp */}
                 <Pressable
                   onPress={() => {
-                    const url = typeof window !== 'undefined' ? window.location.href : 'http://localhost:8081/echo/snist';
-                    const text = encodeURIComponent(`🚀 Join ${data?.title || 'SNIST Hackwave 3.0'} — National Level AI Hackathon!\n\nRegister now: ${url}`);
+                    const fallbackUrl = (data?.slug || slug) ? `https://studentalumni.ai/echo/${data?.slug || slug}` : 'https://studentalumni.ai';
+                    const url = typeof window !== 'undefined' ? window.location.href : fallbackUrl;
+                    const text = encodeURIComponent(` Join ${data?.title || 'ECHO Event'}!\n\nRegister now: ${url}`);
                     const waUrl = `https://api.whatsapp.com/send?text=${text}`;
                     if (Platform.OS === 'web' && typeof window !== 'undefined') window.open(waUrl, '_blank');
                     else Linking.openURL(waUrl);
@@ -1384,15 +1429,16 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                   }}
                   style={[s.shareOptionBtn, { backgroundColor: 'rgba(37,211,102,0.15)', borderColor: 'rgba(37,211,102,0.4)' }]}
                 >
-                  <Text style={{ fontSize: 18 }}>🟢</Text>
+                  <Text style={{ fontSize: 18 }}></Text>
                   <Text style={[s.shareOptionText, { color: '#25D366' }]}>Share on WhatsApp</Text>
                 </Pressable>
 
                 {/* Telegram */}
                 <Pressable
                   onPress={() => {
-                    const url = typeof window !== 'undefined' ? window.location.href : 'http://localhost:8081/echo/snist';
-                    const text = encodeURIComponent(`🚀 Join ${data?.title || 'SNIST Hackwave 3.0'} — National Level AI Hackathon!`);
+                    const fallbackUrl = (data?.slug || slug) ? `https://studentalumni.ai/echo/${data?.slug || slug}` : 'https://studentalumni.ai';
+                    const url = typeof window !== 'undefined' ? window.location.href : fallbackUrl;
+                    const text = encodeURIComponent(` Join ${data?.title || 'ECHO Event'}!`);
                     const tgUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${text}`;
                     if (Platform.OS === 'web' && typeof window !== 'undefined') window.open(tgUrl, '_blank');
                     else Linking.openURL(tgUrl);
@@ -1400,14 +1446,15 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                   }}
                   style={[s.shareOptionBtn, { backgroundColor: 'rgba(0,136,204,0.15)', borderColor: 'rgba(0,136,204,0.4)' }]}
                 >
-                  <Text style={{ fontSize: 18 }}>✈️</Text>
+                  <Text style={{ fontSize: 18 }}></Text>
                   <Text style={[s.shareOptionText, { color: '#38BDF8' }]}>Share on Telegram</Text>
                 </Pressable>
 
                 {/* Copy Link */}
                 <Pressable
                   onPress={() => {
-                    const url = typeof window !== 'undefined' ? window.location.href : 'http://localhost:8081/echo/snist';
+                    const fallbackUrl = (data?.slug || slug) ? `https://studentalumni.ai/echo/${data?.slug || slug}` : 'https://studentalumni.ai';
+                    const url = typeof window !== 'undefined' ? window.location.href : fallbackUrl;
                     if (typeof window !== 'undefined' && navigator.clipboard) {
                       navigator.clipboard.writeText(url);
                       toast.success('Event link copied to clipboard!');

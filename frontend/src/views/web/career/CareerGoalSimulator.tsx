@@ -175,6 +175,9 @@ export const CareerGoalSimulator = memo(function CareerGoalSimulator({
           {loading && (
             <ActivityIndicator size="small" color={COLORS.purpleL} style={{ marginTop: SPACING.xxs }} />
           )}
+          {!simResult && !loading && enabled.size === 0 && (
+            <Text style={s.hint}>Add profile items to simulate</Text>
+          )}
           <Text style={s.disclaimer}>Simulation only — no data is saved</Text>
         </View>
       )}
@@ -211,5 +214,6 @@ const s = StyleSheet.create({
   },
   actionLabel:   { flex: 1, color: '#FFFFFF', fontFamily: FONT_FAMILIES.bold,  fontSize: FONT_SIZES.sm },
   breakdownGain: { color: COLORS.green,           fontFamily: FONT_FAMILIES.bold, fontSize: FONT_SIZES.sm },
+  hint:          { color: COLORS.dim, fontFamily: FONT_FAMILIES.med, fontSize: FONT_SIZES.sm, textAlign: 'center' },
   disclaimer:    { color: COLORS.dim, fontFamily: FONT_FAMILIES.med, fontSize: FONT_SIZES.sm, textAlign: 'center', marginTop: SPACING.xs },
 });

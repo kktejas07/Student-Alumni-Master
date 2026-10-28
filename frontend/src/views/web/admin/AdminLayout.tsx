@@ -7,7 +7,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView, Platform } from 'react-n
 import { useRouter, usePathname } from 'expo-router';
 import {
   LayoutGrid, Building2, GraduationCap, Users, Briefcase, CalendarDays,
-  Wallet, BarChart3, ShieldCheck, Settings, Bell, Search, LogOut,
+  Wallet, BarChart3, ShieldCheck, Settings, Bell, Search, LogOut, FileSpreadsheet,
 } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { ADMIN_THEME as T } from './theme';
@@ -23,6 +23,7 @@ const NAV: NavItem[] = [
   { key: 'mentors',   label: 'Mentors',    route: '/admin/mentors',   icon: Users },
   { key: 'alumni',    label: 'Alumni',     route: '/admin/alumni',    icon: Briefcase },
   { key: 'events',    label: 'Events',     route: '/admin/events',    icon: CalendarDays },
+  { key: 'echo-import', label: 'Import Tickets', route: '/admin/echo-import', icon: FileSpreadsheet },
   { key: 'payments',  label: 'Payments',   route: '/admin/payments',  icon: Wallet },
   { key: 'analytics', label: 'Analytics',  route: '/admin/analytics', icon: BarChart3 },
   { key: 'approvals', label: 'Approvals',  route: '/admin/approvals', icon: ShieldCheck },
@@ -44,7 +45,7 @@ export function AdminLayout({ title, subtitle, pendingCount = 0, children, right
 
   // Gate — non-admins redirected to platform
   useEffect(() => {
-    if (user.role !== 'admin') router.replace('/welcome' as any);
+    if (!user || user.role !== 'admin') router.replace('/welcome' as any);
   }, [user]);
 
   const isActive = (route: string) =>

@@ -22,13 +22,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft, Search, Bookmark, BookmarkCheck, Clock, MapPin,
-  Briefcase, Filter, Users, Sparkles, Check, ExternalLink,
+  Briefcase, Filter, Users, Sparkles, Check, ExternalLink, FileText,
 } from 'lucide-react-native';
 import { Colors as C } from '@/src/theme';
 import { useAuth } from '@/src/viewmodels/hooks';
 import { request } from '@/src/models/services/api';
+import { getMySkillsSummary, type SkillReview } from '@/src/models/services/skills';
 import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 import { HoverGlowCard } from '@/src/views/web/HoverGlowCard';
+import { SkillsReviewModal } from '@/src/views/components';
 
 interface Opp {
   id: string;
@@ -51,18 +53,31 @@ interface Opp {
   applied?: boolean;
 }
 
-type TabKey = 'recommended' | 'saved' | 'applied';
+type TabKey = 'recommended' | 'saved' | 'applied' | 'careers';
 
 export default function JobsInternshipsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const [tab, setTab] = useState<TabKey>('recommended');
   const [items, setItems] = useState<Opp[]>([]);
+  const [careerItems, setCareerItems] = useState<any[]>([]);
+  const [careerCount, setCareerCount] = useState(0);
   const [domains, setDomains] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [savedCount, setSavedCount] = useState(0);
   const [appliedCount, setAppliedCount] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
+  const [skillsReview, setSkillsReview] = useState<SkillReview | null>(null);
+  const [skillsModalOpen, setSkillsModalOpen] = useState(false);
+
+  const refreshSkillsReview = useCallback(async () => {
+    try {
+      const s = await getMySkillsSummary();
+      setSkillsReview(s.review && s.review.status === 'pending' ? s.review : null);
+    } catch {}
+  }, []);
+
+  useEffect(() => { refreshSkillsReview(); }, [refreshSkillsReview]);
 
   // Filters
   const [filterType, setFilterType] = useState<'' | 'internship' | 'job'>('');
@@ -84,6 +99,11 @@ export default function JobsInternshipsScreen() {
       const a = await request<{ items: Opp[] }>('/opportunities/me/applied');
       setAppliedCount(a.items.length);
     } catch {}
+    try {
+      const c = await request<{ total: number; openings: any[] }>('/careers?limit=50', { auth: false });
+      setCareerCount(c.total || c.openings?.length || 0);
+      setCareerItems(c.openings || []);
+    } catch {}
   }, []);
 
   const load = useCallback(async () => {
@@ -95,6 +115,10 @@ export default function JobsInternshipsScreen() {
       } else if (tab === 'applied') {
         const r = await request<{ items: Opp[] }>('/opportunities/me/applied');
         setItems(r.items || []);
+      } else if (tab === 'careers') {
+        const c = await request<{ total: number; openings: any[] }>('/careers?limit=50', { auth: false });
+        setCareerItems(c.openings || []);
+        setCareerCount(c.total || c.openings?.length || 0);
       } else {
         const params = new URLSearchParams();
         if (filterType) params.set('type', filterType);
@@ -192,6 +216,7 @@ export default function JobsInternshipsScreen() {
           { key: 'recommended', label: 'Recommended', count: null },
           { key: 'saved',       label: 'Saved',       count: savedCount },
           { key: 'applied',     label: 'Applied',     count: appliedCount },
+          { key: 'careers',     label: 'Direct Careers', count: careerCount },
         ] as { key: TabKey; label: string; count: number | null }[]).map((t) => {
           const active = tab === t.key;
           return (
@@ -246,7 +271,75 @@ export default function JobsInternshipsScreen() {
       )}
 
       {/* List */}
-      {loading ? (
+      {tab === 'careers' ? (
+        loading ? (
+          <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+            <ActivityIndicator color="#A78BFA" size="large" />
+          </View>
+        ) : careerItems.length === 0 ? (
+          <View style={styles.empty}>
+            <Briefcase size={36} color="rgba(255,255,255,0.30)" />
+            <Text style={styles.emptyTitle}>No direct career openings published</Text>
+            <Text style={styles.emptyText}>Check back soon or visit the full careers page.</Text>
+          </View>
+        ) : (
+          <ScrollView contentContainerStyle={styles.list}>
+            {careerItems.map((c) => (
+              <HoverGlowCard key={c.id || c._id} tint="#7C5CFC" radius={14} intensity="medium" style={{ marginBottom: 12 }}>
+                <View style={styles.cardInner}>
+                  <View style={styles.cardHeader}>
+                    <View style={[styles.cardImg, { backgroundColor: 'rgba(124,92,252,0.20)', alignItems: 'center', justifyContent: 'center' }]}>
+                      <Briefcase size={20} color="#A78BFA" />
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                        <Text style={styles.cardCompany} numberOfLines={1}>{c.company_name}</Text>
+                        <View style={[styles.typeChip, { backgroundColor: 'rgba(124,92,252,0.20)' }]}>
+                          <Text style={[styles.typeChipText, { color: '#A78BFA' }]}>
+                            {c.employment_type?.replace('_', ' ') || 'FULL TIME'}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.cardTitle} numberOfLines={2}>{c.title}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.metaRow}>
+                    <View style={styles.metaChip}>
+                      <MapPin size={11} color="rgba(255,255,255,0.55)" />
+                      <Text style={styles.metaChipText}>{c.location || 'Remote'}</Text>
+                    </View>
+                    <View style={styles.metaChip}>
+                      <Clock size={11} color="rgba(255,255,255,0.55)" />
+                      <Text style={styles.metaChipText}>{c.work_mode}</Text>
+                    </View>
+                    {c.salary_range && (
+                      <View style={[styles.metaChip, { borderColor: 'rgba(16,185,129,0.35)', backgroundColor: 'rgba(16,185,129,0.12)' }]}>
+                        <Text style={[styles.metaChipText, { color: '#10B981', fontWeight: '700' }]}>{c.salary_range}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {c.description && (
+                    <Text style={styles.desc} numberOfLines={2}>{c.description}</Text>
+                  )}
+
+                  <View style={styles.actionRow}>
+                    <Pressable
+                      onPress={() => router.push(`/careers?openingId=${c.id || c._id}` as any)}
+                      style={[styles.applyBtn, { backgroundColor: '#7C5CFC', flex: 1 }]}
+                    >
+                      <Text style={styles.applyBtnText}>Apply on Careers Portal</Text>
+                      <ExternalLink size={12} color="#fff" />
+                    </Pressable>
+                  </View>
+                </View>
+              </HoverGlowCard>
+            ))}
+            <View style={{ height: 24 }} />
+          </ScrollView>
+        )
+      ) : loading ? (
         <View style={{ alignItems: 'center', paddingVertical: 60 }}>
           <ActivityIndicator color="#60A5FA" size="large" />
         </View>
@@ -266,8 +359,77 @@ export default function JobsInternshipsScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.list}>
+          {tab === 'recommended' && skillsReview && skillsReview.proposed_skills?.length ? (
+            <Pressable
+              onPress={() => setSkillsModalOpen(true)}
+              style={{
+                backgroundColor: 'rgba(96, 165, 250, 0.12)',
+                borderColor: 'rgba(96, 165, 250, 0.45)',
+                borderWidth: 1,
+                borderRadius: 12,
+                padding: 14,
+                marginBottom: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+              testID="skills-review-banner"
+            >
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <FileText size={14} color="#60A5FA" />
+                  <Text style={{ color: '#60A5FA', fontSize: 11, fontWeight: '700' }}>
+                    FROM YOUR RESUME
+                  </Text>
+                </View>
+                <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+                  We found {skillsReview.proposed_skills.length} skills in your resume — review
+                </Text>
+              </View>
+              <View style={{ backgroundColor: '#60A5FA', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 }}>
+                <Text style={{ color: '#0C0818', fontSize: 12, fontWeight: '700' }}>Review</Text>
+              </View>
+            </Pressable>
+          ) : null}
+          {careerCount > 0 && tab === 'recommended' && (
+            <Pressable
+              onPress={() => setTab('careers')}
+              style={{
+                backgroundColor: 'rgba(124, 92, 252, 0.14)',
+                borderColor: 'rgba(124, 92, 252, 0.45)',
+                borderWidth: 1,
+                borderRadius: 12,
+                padding: 14,
+                marginBottom: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <Sparkles size={14} color="#A78BFA" />
+                  <Text style={{ color: '#A78BFA', fontSize: 11, fontWeight: '700' }}>
+                    DIRECT CAREERS
+                  </Text>
+                </View>
+                <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+                  {careerCount} Official StudentAlumni Openings Available
+                </Text>
+              </View>
+              <View style={{ backgroundColor: '#7C5CFC', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 }}>
+                <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '700' }}>View ({careerCount})</Text>
+              </View>
+            </Pressable>
+          )}
           {items.map((o) => (
-            <OppCard key={o.id} opp={o} onSave={() => handleSave(o)} onApply={() => handleApply(o)} />
+            <OppCard
+              key={o.id}
+              opp={o}
+              onSave={() => handleSave(o)}
+              onApply={() => handleApply(o)}
+              onReview={o.match_score == null ? () => setSkillsModalOpen(true) : undefined}
+            />
           ))}
           <View style={{ height: 24 }} />
         </ScrollView>
@@ -280,12 +442,20 @@ export default function JobsInternshipsScreen() {
           <Text style={styles.toastText}>{toast}</Text>
         </View>
       )}
+
+      <SkillsReviewModal
+        visible={skillsModalOpen}
+        onClose={() => setSkillsModalOpen(false)}
+        onDone={() => { refreshSkillsReview(); load(); }}
+      />
     </SafeAreaView>
   );
 }
 
 // ── OppCard ──────────────────────────────────────────────────────────────
-function OppCard({ opp, onSave, onApply }: { opp: Opp; onSave: () => void; onApply: () => void }) {
+function OppCard({ opp, onSave, onApply, onReview }: {
+  opp: Opp; onSave: () => void; onApply: () => void; onReview?: () => void;
+}) {
   const matchColor =
     (opp.match_score || 0) >= 80 ? '#10B981'
   : (opp.match_score || 0) >= 60 ? '#F59E0B' : '#60A5FA';
@@ -315,12 +485,21 @@ function OppCard({ opp, onSave, onApply }: { opp: Opp; onSave: () => void; onApp
           <Text style={styles.cardTitle} numberOfLines={2}>{opp.title}</Text>
         </View>
         {/* Match pill */}
-        {opp.match_score != null && (
+        {opp.match_score != null ? (
           <View style={[styles.matchPill, { backgroundColor: matchColor + '24', borderColor: matchColor + '70' }]}>
             <Sparkles size={10} color={matchColor} />
             <Text style={[styles.matchText, { color: matchColor }]}>{opp.match_score}%</Text>
           </View>
-        )}
+        ) : onReview ? (
+          <Pressable
+            onPress={onReview}
+            style={[styles.matchPill, { backgroundColor: 'rgba(96,165,250,0.16)', borderColor: 'rgba(96,165,250,0.6)' }]}
+            testID={`opp-review-${opp.id}`}
+          >
+            <Sparkles size={10} color="#60A5FA" />
+            <Text style={[styles.matchText, { color: '#60A5FA' }]}>Confirm skills</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       {/* Meta row */}

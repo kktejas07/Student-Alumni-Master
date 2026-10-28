@@ -614,58 +614,13 @@ async def events_search(
         else:
             intl.append(item)
 
-    if not results and page == 1:
-        mock1 = {
-            "event_id": "mock-v2-1",
-            "title": "Hackathon: NextGen AI Solutions",
-            "event_type": "hackathon",
-            "location_country": "India",
-            "location_city": "Bangalore",
-            "event_date_start": (datetime.now() + timedelta(days=5)).isoformat(),
-            "event_date_end": (datetime.now() + timedelta(days=7)).isoformat(),
-            "price_type": "free",
-            "price_amount": 0,
-            "currency": "INR",
-            "attendee_count": 120,
-            "capacity": 500,
-            "spots_left": 380,
-            "image_url": "https://images.unsplash.com/photo-1540575467063-178a50c2df87",
-            "is_featured": True,
-            "event_mode": "in_person",
-            "institution_tier": "tier_one",
-            "topic_keywords": ["ai", "machine learning"],
-        }
-        mock2 = {
-            "event_id": "mock-v2-2",
-            "title": "Tech Talk: Scaling Systems",
-            "event_type": "tech_talk",
-            "location_country": "Global",
-            "location_city": "Online",
-            "event_date_start": (datetime.now() + timedelta(days=2)).isoformat(),
-            "event_date_end": (datetime.now() + timedelta(days=2, hours=2)).isoformat(),
-            "price_type": "free",
-            "price_amount": 0,
-            "currency": "USD",
-            "attendee_count": 45,
-            "capacity": 100,
-            "spots_left": 55,
-            "image_url": "https://images.unsplash.com/photo-1515169067868-5387ec356754",
-            "is_featured": False,
-            "event_mode": "virtual",
-            "institution_tier": "regional",
-            "topic_keywords": ["engineering"],
-        }
-        results = [mock1, mock2]
-        indian = [mock1]
-        intl = [mock2]
-
     return {
         "results": results,
         "india_results": indian,
         "international_results": intl,
         "page": page,
         "limit": limit,
-        "total_count": total if total > 0 else 2,
+        "total_count": total,
         "has_more": (page * limit) < total,
     }
 
@@ -715,50 +670,7 @@ async def event_detail(event_id: str, user: dict = Depends(_get_current_user_dep
         except Exception:
             pass
     if not doc:
-        if event_id in ["mock-v2-1", "mock-1"]:
-            doc = {
-                "event_id": event_id,
-                "title": "Hackathon: NextGen AI Solutions",
-                "event_type": "hackathon",
-                "location_country": "India",
-                "location_city": "Bangalore",
-                "event_date_start": (datetime.now() + timedelta(days=5)).isoformat(),
-                "event_date_end": (datetime.now() + timedelta(days=7)).isoformat(),
-                "price_type": "free",
-                "price_amount": 0,
-                "currency": "INR",
-                "attendee_count": 120,
-                "capacity": 500,
-                "image_url": "https://images.unsplash.com/photo-1540575467063-178a50c2df87",
-                "is_featured": True,
-                "event_mode": "in_person",
-                "institution_tier": "tier_one",
-                "topic_keywords": ["ai", "machine learning"],
-                "description": "Join the NextGen AI Hackathon to build the future of AI.",
-            }
-        elif event_id == "mock-v2-2":
-            doc = {
-                "event_id": "mock-v2-2",
-                "title": "Tech Talk: Scaling Systems",
-                "event_type": "tech_talk",
-                "location_country": "Global",
-                "location_city": "Online",
-                "event_date_start": (datetime.now() + timedelta(days=2)).isoformat(),
-                "event_date_end": (datetime.now() + timedelta(days=2, hours=2)).isoformat(),
-                "price_type": "free",
-                "price_amount": 0,
-                "currency": "USD",
-                "attendee_count": 45,
-                "capacity": 100,
-                "image_url": "https://images.unsplash.com/photo-1515169067868-5387ec356754",
-                "is_featured": False,
-                "event_mode": "virtual",
-                "institution_tier": "regional",
-                "topic_keywords": ["engineering"],
-                "description": "Learn how to scale massive distributed systems.",
-            }
-        else:
-            raise HTTPException(404, "Event not found")
+        raise HTTPException(404, "Event not found")
 
     user_id = str(user["_id"])
     prefs = await _db.user_event_preferences.find_one({"user_id": user_id}) or {}
@@ -896,12 +808,14 @@ async def _try_deduct_credits(user_doc: dict, amount: int, reason: str) -> bool:
     if bal < amount:
         return False
     new_bal = bal - amount
-    await _db.users.update_one(
-        {"_id": user_doc["_id"]},
+    result = await _db.users.update_one(
+        {"_id": user_doc["_id"], "wallet.balance_credits": {"$gte": amount}},
         {"$set": {"wallet.balance_credits": new_bal,
                   "wallet.last_used_at": datetime.now(timezone.utc)},
          "$inc": {"wallet.lifetime_spent": amount}},
     )
+    if getattr(result, "matched_count", 0) != 1:
+        return False
     await _db.wallet_transactions.insert_one({
         "user_id": str(user_doc["_id"]),
         "type": "debit", "amount": amount, "reason": reason,
@@ -949,6 +863,14 @@ async def rsvp_event(event_id: str, body: Optional[Dict[str, Any]] = None,
 
     confirmation_id = f"SA-EVT-{datetime.now(timezone.utc).strftime('%y%m%d')}-{hashlib.md5((event_id+uid+str(datetime.now(timezone.utc).timestamp())).encode()).hexdigest()[:6].upper()}"
 
+    if not is_full and capacity > 0:
+        seat = await _db.events_v2.update_one(
+            {"event_id": event_id, "attendee_count": {"$lt": capacity}},
+            {"$inc": {"attendee_count": 1}},
+        )
+        if getattr(seat, "matched_count", 0) != 1:
+            is_full = True
+
     if is_full:
         # Waitlist
         wl_count = await _db.event_registrations.count_documents({"event_id": event_id, "status": "waitlisted"})
@@ -974,7 +896,7 @@ async def rsvp_event(event_id: str, body: Optional[Dict[str, Any]] = None,
         {"user_id": uid, "event_id": event_id},
         {"$set": reg_doc}, upsert=True,
     )
-    if reg_doc["status"] == "registered":
+    if reg_doc["status"] == "registered" and capacity <= 0:
         await _db.events_v2.update_one(
             {"event_id": event_id}, {"$inc": {"attendee_count": 1}},
         )

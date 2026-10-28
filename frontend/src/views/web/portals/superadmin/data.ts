@@ -6,6 +6,10 @@ export const ADMIN = {
   email: 'admin@studentalumni.in',
   initials: 'SA',
   role: 'Platform Admin · Full Access',
+  engagement: '36',
+  engagementDelta: 8,
+  matches: 267,
+  sessions: 1,
 };
 
 export const KPIS = [

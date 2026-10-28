@@ -1192,10 +1192,15 @@ async def track_detail(slug: str, user: dict = Depends(_auth())):
         m2["courses"] = course_refs
         hyd_modules.append(m2)
     track["modules"] = hyd_modules
-    # Determine current week (mock: based on enrollment date if exists)
-    track["current_week"] = 1
+    # Current week from the user's real enrollment, if any
     enr = await _db.track_enrollments.find_one(
-        {"user_id": str({}.get("_id", "")), "slug": slug})  # placeholder
+        {"user_id": str(user["_id"]), "slug": slug})
+    if enr:
+        track["current_week"] = enr.get("current_week") or 1
+        track["progress_percent"] = enr.get("progress_percent")
+    else:
+        track["current_week"] = None
+        track["progress_percent"] = None
     return {"track": track}
 
 

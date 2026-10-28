@@ -43,7 +43,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { Card, Toast } from '../applekit';
 import { request } from '@/src/models/services/api';
 import LexicalEditor from './LexicalEditor';
@@ -133,7 +133,7 @@ const GRAD_BG   = ['rgba(251,146,60,0.20)', 'rgba(245,158,11,0.10)'] as const;
  * ───────────────────────────────────────────────────────────────── */
 type TabId =
   | 'profile' | 'platform' | 'integrations' | 'roles'
-  | 'notifications' | 'security' | 'digital-id' | 'pages' | 'templates' | 'branding';
+  | 'notifications' | 'security' | 'digital-id' | 'pages' | 'templates' | 'branding' | 'echo-hero';
 
 type Tool = {
   id: string; name: string; category: string; icon: string; tint: string;
@@ -141,6 +141,7 @@ type Tool = {
   installed: boolean; status?: string | null; installed_at?: string | null;
   auth_fields?: Array<{ key: string; label: string; type: string; placeholder?: string; help?: string }>;
   credentials_masked?: Record<string, string>;
+  credentials_plain?: Record<string, string>;
   webhook_url?: string;
 };
 type Role = {
@@ -157,6 +158,7 @@ const TABS: { id: TabId; label: string; icon: any }[] = [
   { id: 'roles',         label: 'Roles & Permissions', icon: Shield },
   { id: 'notifications', label: 'Notifications',       icon: Bell },
   { id: 'templates',     label: 'Templates',           icon: FileText },
+  { id: 'echo-hero',     label: 'ECHO Landing Hero',   icon: Sparkles },
   { id: 'branding',      label: 'Branding',            icon: FileText },
   { id: 'security',      label: 'Security',            icon: Lock },
   { id: 'digital-id',    label: 'Digital ID',          icon: IdCard },
@@ -221,8 +223,10 @@ const DEFAULT_SYSTEM_OPTIONS: Record<string, { value: string; label: string }[]>
  * Main view
  * ───────────────────────────────────────────────────────────────── */
 export function SettingsView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   const [tab, setTab] = useSubTab<TabId>(
-    ['profile', 'platform', 'integrations', 'roles', 'notifications', 'security', 'digital-id', 'pages', 'templates', 'branding'],
+    ['profile', 'platform', 'integrations', 'roles', 'notifications', 'security', 'digital-id', 'pages', 'templates', 'echo-hero', 'branding'],
     'profile',
     { sub, onSub },
   );
@@ -256,6 +260,7 @@ export function SettingsView({ sub, onSub }: { sub?: string; onSub?: (s: string)
         {tab === 'digital-id'    && <DigitalIdTab onSaved={flashToast} />}
         {tab === 'pages'         && <PagesTab onSaved={flashToast} />}
         {tab === 'templates'     && <TemplatesTab onSaved={flashToast} />}
+        {tab === 'echo-hero'     && <EchoLandingHeroTab onSaved={flashToast} />}
         {tab === 'branding'      && <BrandingTab onSaved={flashToast} />}
       </View>
       <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hideToast} />
@@ -866,6 +871,7 @@ function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [filter, setFilter] = useState('All');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [connectTool, setConnectTool] = useState<Tool | null>(null);
+  const [connectPrefill, setConnectPrefill] = useState<Record<string, string> | null>(null);
   const [stats, setStats] = useState({ installed: 0, available: 0 });
   const [query, setQuery] = useState('');
   const [popularOnly, setPopularOnly] = useState(false);
@@ -890,6 +896,7 @@ function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
   const onConnected = async () => {
     setConnectTool(null);
+    setConnectPrefill(null);
     onSaved('Connected');
     await load();
   };
@@ -1002,7 +1009,8 @@ function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
                     <ToolCard
                       key={t.id} tool={t}
                       busy={busyId === t.id}
-                      onConnect={() => setConnectTool(t)}
+                      onConnect={() => { setConnectPrefill(null); setConnectTool(t); }}
+                      onEdit={() => { setConnectPrefill(t.credentials_plain || null); setConnectTool(t); }}
                       onDisconnect={() => disconnect(t.id)}
                     />
                   ))}
@@ -1013,13 +1021,18 @@ function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
         )}
       </View>
 
-      <ConnectModal tool={connectTool} onClose={() => setConnectTool(null)} onConnected={onConnected} />
+      <ConnectModal
+        tool={connectTool}
+        prefill={connectPrefill}
+        onClose={() => { setConnectTool(null); setConnectPrefill(null); }}
+        onConnected={onConnected}
+      />
     </Animated.View>
   );
 }
 
-function ToolCard({ tool, busy, onConnect, onDisconnect }: {
-  tool: Tool; busy: boolean; onConnect: () => void; onDisconnect: () => void;
+function ToolCard({ tool, busy, onConnect, onEdit, onDisconnect }: {
+  tool: Tool; busy: boolean; onConnect: () => void; onEdit: () => void; onDisconnect: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const [showCreds, setShowCreds] = useState(false);
@@ -1089,11 +1102,17 @@ function ToolCard({ tool, busy, onConnect, onDisconnect }: {
       )}
       <View style={{ flex: 1 }} />
       {tool.installed ? (
-        <Pressable onPress={onDisconnect} disabled={busy} style={[s.toolBtnSec, busy && { opacity: 0.5 }]}>
-          {busy ? <ActivityIndicator size="small" color={SAC.muted} /> : (
-            <Text style={s.toolBtnSecText}>Disconnect</Text>
-          )}
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+          <Pressable onPress={onEdit} disabled={busy} style={[s.toolBtnSec, { flex: 1 }, busy && { opacity: 0.5 }]}>
+            <Pencil size={12} color={SAC.muted} />
+            <Text style={s.toolBtnSecText}>Edit</Text>
+          </Pressable>
+          <Pressable onPress={onDisconnect} disabled={busy} style={[s.toolBtnSec, { flex: 1 }, busy && { opacity: 0.5 }]}>
+            {busy ? <ActivityIndicator size="small" color={SAC.muted} /> : (
+              <Text style={s.toolBtnSecText}>Disconnect</Text>
+            )}
+          </Pressable>
+        </View>
       ) : (
         <Pressable onPress={onConnect} disabled={busy} style={[{ marginTop: 10 }, busy && { opacity: 0.5 }]}>
           <LinearGradient colors={[GRAD_FROM, GRAD_TO]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.toolBtnGrad}>
@@ -1115,8 +1134,8 @@ function ToolCard({ tool, busy, onConnect, onDisconnect }: {
   );
 }
 
-function ConnectModal({ tool, onClose, onConnected }: {
-  tool: Tool | null; onClose: () => void; onConnected: () => void;
+function ConnectModal({ tool, prefill, onClose, onConnected }: {
+  tool: Tool | null; prefill: Record<string, string> | null; onClose: () => void; onConnected: () => void;
 }) {
   const [creds, setCreds] = useState<Record<string, string>>({});
   const [showSecret, setShowSecret] = useState<Record<string, boolean>>({});
@@ -1127,10 +1146,17 @@ function ConnectModal({ tool, onClose, onConnected }: {
 
   useEffect(() => {
     if (tool) {
+      // Pre-fill the form with previously saved (non-password) credential values
+      // when editing an already-connected tool, so the admin can see/review them.
       const next: Record<string, string> = {};
+      if (prefill) {
+        for (const [k, v] of Object.entries(prefill)) {
+          if (v) next[k] = v;
+        }
+      }
       setCreds(next); setError(null); setShowSecret({}); setTest(null);
     }
-  }, [tool]);
+  }, [tool, prefill]);
 
   if (!tool) return null;
 
@@ -1171,7 +1197,7 @@ function ConnectModal({ tool, onClose, onConnected }: {
               <MaterialCommunityIcons name={tool.icon as any} size={24} color={tool.tint} />
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.modalTitle}>Connect {tool.name}</Text>
+              <Text style={s.modalTitle}>{prefill ? `Edit ${tool.name}` : `Connect ${tool.name}`}</Text>
               <Text style={s.modalSub}>{tool.description}</Text>
             </View>
             <Pressable onPress={onClose} style={s.modalClose}><X size={16} color={SAC.muted} /></Pressable>
@@ -1193,12 +1219,21 @@ function ConnectModal({ tool, onClose, onConnected }: {
                 </Text>
               </View>
             ) : null}
+            {prefill ? (
+              <View style={s.helpBox}>
+                <Text style={s.helpText}>
+                  Reviewing the saved {tool.name} credentials. Password/secret fields are hidden —
+                  leave one blank to keep the saved value, or type a new one to replace it.
+                </Text>
+              </View>
+            ) : null}
 
             {fields.length === 0 ? (
               <Text style={s.muted}>No credentials required — click Connect to enable.</Text>
             ) : fields.map((f) => {
               const isPwd = f.type === 'password';
               const show = !!showSecret[f.key];
+              const isSavedPwd = isPwd && prefill && !creds[f.key];
               return (
                 <View key={f.key} style={{ gap: 6 }}>
                   <Text style={s.modalLabel}>{f.label}</Text>
@@ -1206,7 +1241,7 @@ function ConnectModal({ tool, onClose, onConnected }: {
                     <TextInput
                       value={creds[f.key] || ''}
                       onChangeText={(v) => setCreds({ ...creds, [f.key]: v })}
-                      placeholder={f.placeholder || ''}
+                      placeholder={isSavedPwd ? 'Saved (leave blank to keep)' : (f.placeholder || '')}
                       placeholderTextColor={SAC.dim}
                       secureTextEntry={isPwd && !show}
                       autoCapitalize="none"
@@ -1219,7 +1254,8 @@ function ConnectModal({ tool, onClose, onConnected }: {
                       </Pressable>
                     )}
                   </View>
-                  {f.help && <Text style={s.helpInline}>{f.help}</Text>}
+                  {isSavedPwd && <Text style={s.helpInline}>Currently saved — blank keeps it, or enter a new value to change.</Text>}
+                  {!isSavedPwd && f.help && <Text style={s.helpInline}>{f.help}</Text>}
                 </View>
               );
             })}
@@ -1255,7 +1291,7 @@ function ConnectModal({ tool, onClose, onConnected }: {
             </Pressable>
             <GradientButton onPress={submit} loading={busy}>
               <Plug size={13} color="#fff" />
-              <Text style={s.primaryBtnText}>Connect {tool.name}</Text>
+              <Text style={s.primaryBtnText}>{prefill ? 'Save changes' : `Connect ${tool.name}`}</Text>
             </GradientButton>
           </View>
         </Animated.View>
@@ -1673,7 +1709,7 @@ function DeleteRoleModal({ role, onClose, onDeleted }: {
           </View>
           <View style={{ padding: 20, gap: 10 }}>
             <Text style={s.modalLabel}>
-              You're about to delete <Text style={{ color: '#fff', fontFamily: FONTS.xbold }}>{role.name}</Text>.
+              You're about to delete <Text style={{ color: SAC.text, fontFamily: FONTS.xbold }}>{role.name}</Text>.
             </Text>
             <Text style={s.muted}>
               {role.user_count > 0
@@ -2248,7 +2284,7 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   {analysis.locations.slice(0, 4).map((loc: any, i: number) => (
                     <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }}>
                       <Globe size={11} color={SAC.muted} />
-                      <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 12 }}>{[loc.city, loc.country].filter(Boolean).join(', ') || 'Unknown'}</Text>
+                      <Text style={{ color: SAC.text, fontFamily: FONTS.med, fontSize: 12 }}>{[loc.city, loc.country].filter(Boolean).join(', ') || 'Unknown'}</Text>
                       <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 }}>{loc.count} session{loc.count === 1 ? '' : 's'}</Text>
                     </View>
                   ))}
@@ -2268,7 +2304,7 @@ function MiniStat({ icon: Icon, label, value }: { icon: any; label: string; valu
       <Icon size={12} color={GRAD_TO} />
       <View>
         <Text style={{ color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.6 }}>{label.toUpperCase()}</Text>
-        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 }}>{value}</Text>
+        <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13 }}>{value}</Text>
       </View>
     </View>
   );
@@ -2551,7 +2587,7 @@ function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
             <ArrowLeft size={16} color="#fff" />
             <Text style={s.linkBtnText}>Back</Text>
           </Pressable>
-          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 }}>{editing.title}</Text>
+          <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 18 }}>{editing.title}</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Text style={{ color: '#94a3b8', fontFamily: FONTS.med, fontSize: 12 }}>Route: {editing.route}</Text>
@@ -2620,7 +2656,7 @@ function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
         {pages.map((p) => (
           <View key={p.key} style={s.toolCard}>
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 }}>{p.title}</Text>
+              <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 14 }}>{p.title}</Text>
               <Text style={{ color: '#64748b', fontFamily: FONTS.med, fontSize: 11 }}>{p.route}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: p.active ? '#22c55e' : '#ef4444' }} />
@@ -2839,7 +2875,7 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
         <Pressable onPress={save} disabled={saving} style={{
           backgroundColor: '#2563EB', borderRadius: 10, paddingVertical: 14, alignItems: 'center', cursor: 'pointer', opacity: saving ? 0.6 : 1,
         }}>
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#fff' }}>{saving ? 'Saving...' : 'Save Branding'}</Text>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>{saving ? 'Saving...' : 'Save Branding'}</Text>
         </Pressable>
       </Card>
     </View>
@@ -3058,7 +3094,274 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       <Pressable onPress={save} disabled={saving} style={{
         backgroundColor: '#2563EB', borderRadius: 10, paddingVertical: 14, alignItems: 'center', cursor: 'pointer', opacity: saving ? 0.6 : 1,
       }}>
-        <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#fff' }}>{saving ? 'Saving...' : 'Save All Settings'}</Text>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>{saving ? 'Saving...' : 'Save All Settings'}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * ECHO Landing Hero — global hero_config for the public /echo landing.
+ * API contract (echo_showcase.py):
+ *   GET  /api/echo/admin/settings → hero_config (server merges its own
+ *        defaults for keys never saved; read needs no auth)
+ *   PUT  /api/echo/admin/settings → per-key merge; only keys sent are
+ *        replaced, so this editor sends ONLY hero_config. Template,
+ *        invoice, email and branding settings are never overwritten.
+ * The existing CTA behaviour (label + fixed targets) is preserved: the
+ * hero_config schema stores labels only, so no target fields are added.
+ * ───────────────────────────────────────────────────────────────── */
+type HeroStatRow = { value: string; label: string; color: string };
+
+function HeroField({ label, value, onChange, placeholder, multiline }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; multiline?: boolean;
+}) {
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChange}
+        placeholder={placeholder}
+        placeholderTextColor="#475569"
+        multiline={multiline}
+        scrollEnabled={multiline}
+        numberOfLines={multiline ? 3 : undefined}
+        style={{
+          backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+          padding: 12, color: '#e2e8f0', fontFamily: FONTS.medium, fontSize: 13,
+          minHeight: multiline ? 72 : undefined, textAlignVertical: multiline ? 'top' : undefined,
+        }}
+      />
+    </View>
+  );
+}
+
+function EchoLandingHeroTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [saving, setSaving] = useState(false);
+
+  // Controlled form state — populated ONLY from the saved settings response.
+  const [badge, setBadge] = useState('');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [stats, setStats] = useState<HeroStatRow[]>([]);
+  const [hostsText, setHostsText] = useState('');
+  const [ctaPrimary, setCtaPrimary] = useState('');
+  const [ctaSecondary, setCtaSecondary] = useState('');
+  const [sectionBadge, setSectionBadge] = useState('');
+  const [sectionTitle, setSectionTitle] = useState('');
+  const [sectionDescription, setSectionDescription] = useState('');
+
+  const loadSettings = useCallback(async () => {
+    setLoadState('loading');
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(`${base}/api/echo/admin/settings`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!resp.ok) throw new Error('Could not load ECHO settings');
+      const d = await resp.json();
+      const hero = (d && d.hero_config) || {};
+      // Initialise from the saved settings (server-side defaults included).
+      // If loading fails the state stays empty and saving stays blocked,
+      // so saved values are never overwritten with empty defaults.
+      setBadge(hero.badge != null ? String(hero.badge) : '');
+      setTitle(hero.title != null ? String(hero.title) : '');
+      setDescription(hero.description != null ? String(hero.description) : '');
+      setStats(Array.isArray(hero.stats) ? hero.stats.map((st: any) => ({
+        value: st?.value != null ? String(st.value) : '',
+        label: st?.label != null ? String(st.label) : '',
+        color: st?.color != null ? String(st.color) : '',
+      })) : []);
+      setHostsText(Array.isArray(hero.recent_hosts) ? hero.recent_hosts.map(String).join('\n') : '');
+      setCtaPrimary(hero.cta_primary != null ? String(hero.cta_primary) : '');
+      setCtaSecondary(hero.cta_secondary != null ? String(hero.cta_secondary) : '');
+      setSectionBadge(hero.section_badge != null ? String(hero.section_badge) : '');
+      setSectionTitle(hero.section_title != null ? String(hero.section_title) : '');
+      setSectionDescription(hero.section_description != null ? String(hero.section_description) : '');
+      setLoadState('ready');
+    } catch {
+      setLoadState('error');
+    }
+  }, []);
+
+  useEffect(() => { loadSettings(); }, [loadSettings]);
+
+  const statsValid = stats.every((st) =>
+    (!st.value.trim() && !st.label.trim()) || (st.value.trim() && st.label.trim()));
+
+  const save = async () => {
+    if (loadState !== 'ready') { onSaved('Error: settings not loaded — reload before saving.'); return; }
+    if (!statsValid) {
+      onSaved('Invalid statistic: value and label are both required.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const heroConfig = {
+        badge: badge.trim(),
+        title: title.trim(),
+        description: description.trim(),
+        stats: stats
+          .filter((st) => st.value.trim() || st.label.trim())
+          .map((st) => ({
+            value: st.value.trim(),
+            label: st.label.trim(),
+            color: st.color.trim() || undefined,
+          })),
+        recent_hosts: hostsText.split('\n').map((h) => h.trim()).filter(Boolean),
+        cta_primary: ctaPrimary.trim(),
+        cta_secondary: ctaSecondary.trim(),
+        section_badge: sectionBadge.trim(),
+        section_title: sectionTitle.trim(),
+        section_description: sectionDescription.trim(),
+      };
+      // Only `hero_config` — unrelated global settings are untouched.
+      const resp = await fetch(`${base}/api/echo/admin/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ hero_config: heroConfig }),
+      });
+      if (!resp.ok) throw new Error('Failed to save');
+      onSaved('ECHO landing hero saved');
+    } catch (err: any) {
+      onSaved(err?.message || 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cardStyle = {
+    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)', padding: 20, gap: 14,
+  } as const;
+
+  if (loadState === 'loading') return <Loading />;
+  if (loadState === 'error') {
+    return (
+      <View style={[cardStyle, { alignItems: 'center', gap: 10 }]}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#fca5a5' }}>Could not load ECHO settings</Text>
+        <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8', textAlign: 'center' }}>
+          Loading failed — the form stays empty and saving is disabled so no saved value can be overwritten with defaults.
+        </Text>
+        <Pressable onPress={loadSettings} style={{
+          backgroundColor: '#2563EB', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 22, cursor: 'pointer',
+        }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Retry</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ gap: 16 }}>
+      <View style={{
+        padding: 16, borderRadius: 12, backgroundColor: 'rgba(124,92,252,0.10)',
+        borderWidth: 1, borderColor: 'rgba(124,92,252,0.28)',
+      }}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#c4b5fd' }}>Public landing hero — /echo</Text>
+        <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+          Global content shown above the events list on the public ECHO page. CTA buttons keep their
+          current destinations (events section / contact page) — only the labels are configurable here.
+          Per-event banners, images and downloads are managed in the ECHO Showcase CMS.
+        </Text>
+      </View>
+
+      <View style={cardStyle}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>Hero Content</Text>
+        <HeroField label="Badge" value={badge} onChange={setBadge} placeholder="ON THE GROUND" />
+        <HeroField label="Title" value={title} onChange={setTitle} placeholder="The network is a feed until it meets in person." />
+        <HeroField label="Description" value={description} onChange={setDescription} placeholder="ECHO events turn feeds into handshakes." multiline />
+      </View>
+
+      <View style={cardStyle}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>Statistics</Text>
+        <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8' }}>
+          The "86 events run · 31 cities · 4.8 rating" style strip under the hero title.
+        </Text>
+        {stats.map((st, i) => (
+          <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+            <View style={{ width: 110, gap: 6 }}>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>Value</Text>
+              <TextInput
+                value={st.value}
+                onChangeText={(v) => setStats((prev) => prev.map((p, j) => (j === i ? { ...p, value: v } : p)))}
+                placeholder="86"
+                placeholderTextColor="#475569"
+                style={{ backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 10, color: '#e2e8f0', fontFamily: FONTS.medium, fontSize: 12.5 }}
+              />
+            </View>
+            <View style={{ flex: 1, gap: 6 }}>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>Label</Text>
+              <TextInput
+                value={st.label}
+                onChangeText={(v) => setStats((prev) => prev.map((p, j) => (j === i ? { ...p, label: v } : p)))}
+                placeholder="ECHO events across India"
+                placeholderTextColor="#475569"
+                style={{ backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 10, color: '#e2e8f0', fontFamily: FONTS.medium, fontSize: 12.5 }}
+              />
+            </View>
+            <View style={{ width: 92, gap: 6 }}>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>Color</Text>
+              <TextInput
+                value={st.color}
+                onChangeText={(v) => setStats((prev) => prev.map((p, j) => (j === i ? { ...p, color: v } : p)))}
+                placeholder="#4B3FD6"
+                placeholderTextColor="#475569"
+                style={{ backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 10, color: '#e2e8f0', fontFamily: FONTS.medium, fontSize: 12.5 }}
+              />
+            </View>
+            <Pressable onPress={() => setStats((prev) => prev.filter((_, j) => j !== i))} style={{
+              width: 34, height: 34, borderRadius: 8, marginBottom: 2, alignItems: 'center', justifyContent: 'center',
+              backgroundColor: 'rgba(239,68,68,0.10)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)', cursor: 'pointer',
+            }}>
+              <Trash2 size={14} color="#f87171" />
+            </Pressable>
+          </View>
+        ))}
+        <Pressable onPress={() => setStats((prev) => [...prev, { value: '', label: '', color: '' }])} style={{
+          alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6,
+          borderRadius: 8, paddingVertical: 8, paddingHorizontal: 14, cursor: 'pointer',
+          backgroundColor: 'rgba(37,99,235,0.12)', borderWidth: 1, borderColor: '#2563EB',
+        }}>
+          <Plus size={13} color="#93C5FD" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#93C5FD' }}>Add statistic</Text>
+        </Pressable>
+      </View>
+
+      <View style={cardStyle}>
+        <HeroField
+          label="Recent host names — one per line"
+          value={hostsText}
+          onChange={setHostsText}
+          placeholder={'Sreenidhi Institute\nVNR VJIET\nCBIT Hyderabad'}
+          multiline
+        />
+      </View>
+
+      <View style={cardStyle}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>CTA Button Labels</Text>
+        <HeroField label="Primary button" value={ctaPrimary} onChange={setCtaPrimary} placeholder="Browse all events" />
+        <HeroField label="Secondary button" value={ctaSecondary} onChange={setCtaSecondary} placeholder="Contact us" />
+      </View>
+
+      <View style={cardStyle}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>ECHO Events Section Header</Text>
+        <HeroField label="Section badge" value={sectionBadge} onChange={setSectionBadge} placeholder="UPCOMING ECHO EVENTS" />
+        <HeroField label="Section title" value={sectionTitle} onChange={setSectionTitle} placeholder="Meet them in person." />
+        <HeroField label="Section description" value={sectionDescription} onChange={setSectionDescription} placeholder="Image galleries, partners, speakers…" multiline />
+      </View>
+
+      <Pressable onPress={save} disabled={saving} style={{
+        backgroundColor: '#2563EB', borderRadius: 10, paddingVertical: 14, alignItems: 'center', cursor: 'pointer', opacity: saving ? 0.6 : 1,
+      }}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>{saving ? 'Saving...' : 'Save ECHO Landing Hero'}</Text>
       </Pressable>
     </View>
   );
@@ -3115,7 +3418,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10,
   },
-  tabActiveText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  tabActiveText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12.5 },
   tabInactive: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10,
@@ -3130,7 +3433,7 @@ const s = StyleSheet.create({
   cardHeadRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
   },
-  cardTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  cardTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
   cardSub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   sectionLabel: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.8 },
 
@@ -3148,28 +3451,28 @@ const s = StyleSheet.create({
     width: 72, height: 72, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 24 },
-  h1: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 },
+  avatarText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 24 },
+  h1: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 18 },
   subtle: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5 },
   pillGrad: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
-  pillGradText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.4 },
+  pillGradText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.4 },
   pillGreen: { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: 'rgba(16,185,129,0.30)', borderWidth: 1, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
   pillGreenText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 10.5 },
   pillNeutral: { backgroundColor: SAC.cardSolid, borderColor: SAC.border, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
   pillNeutralText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5,
-    ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({ fontFamily: 'SpaceMono, "SF Mono", monospace' } as any) : {}),
   },
   label: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
-  valueText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  valueText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13 },
   valueGrad: { color: GRAD_TO, fontFamily: FONTS.xbold, fontSize: 12.5 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   dotGreen: { width: 8, height: 8, borderRadius: 4, backgroundColor: SAC.green },
 
   fieldRow: { flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: 'space-between' },
   fieldLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12, width: 130 },
-  fieldValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 13, flex: 1, textAlign: 'right' },
+  fieldValue: { color: SAC.text, fontFamily: FONTS.med, fontSize: 13, flex: 1, textAlign: 'right' },
   input: {
-    color: '#fff', fontFamily: FONTS.med, fontSize: 13,
+    color: SAC.text, fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
     paddingHorizontal: 12, paddingVertical: 10, flex: 1,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
@@ -3185,7 +3488,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 11, paddingHorizontal: 4,
   },
-  toggleTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13, flex: 1, marginRight: 8 },
+  toggleTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13, flex: 1, marginRight: 8 },
   toggleDesc: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   systemRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -3211,7 +3514,7 @@ const s = StyleSheet.create({
   // Picker Modal
   pickerBackdrop: {
     position: 'fixed', inset: 0, zIndex: 1000,
-    backgroundColor: 'rgba(0,0,0,0.60)',
+    backgroundColor: SAC.panel2,
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
@@ -3231,7 +3534,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.30)',
     alignItems: 'center', justifyContent: 'center',
   },
-  pickerTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  pickerTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
   pickerSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   credentialBody: {
     padding: 16,
@@ -3269,7 +3572,7 @@ const s = StyleSheet.create({
   credentialInput: {
     flex: 1,
     minWidth: 0,
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 14,
     fontFamily: FONTS.med,
     paddingVertical: 10,
@@ -3341,7 +3644,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 8,
   },
   searchInput: {
-    flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 13,
+    flex: 1, color: SAC.text, fontFamily: FONTS.med, fontSize: 13,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   popularToggle: {
@@ -3361,7 +3664,7 @@ const s = StyleSheet.create({
     borderRadius: 14, borderWidth: 1, borderColor: SAC.border,
     backgroundColor: SAC.cardSolid,
   },
-  emptyTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
+  emptyTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 14 },
   emptySub: {
     color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center',
     maxWidth: 360, lineHeight: 17,
@@ -3389,7 +3692,7 @@ const s = StyleSheet.create({
   },
   catPillActive: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, marginRight: 6 },
   catPillText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
-  catPillActiveText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 },
+  catPillActiveText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 11.5 },
   catLabel: { color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.6, marginBottom: 10 },
   toolGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   toolCard: {
@@ -3399,13 +3702,13 @@ const s = StyleSheet.create({
   toolIcon: {
     width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1,
   },
-  toolName: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  toolName: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13 },
   toolDesc: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 10, lineHeight: 15.5, minHeight: 30 },
   toolBtnGrad: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     paddingVertical: 8, borderRadius: 8,
   },
-  toolBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  toolBtnText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12 },
   toolBtnSec: {
     marginTop: 10, alignItems: 'center', justifyContent: 'center',
     paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: SAC.border,
@@ -3428,7 +3731,7 @@ const s = StyleSheet.create({
     position: 'absolute', top: 10, right: 10,
     paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5,
   },
-  popPillText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 8.5, letterSpacing: 0.6 },
+  popPillText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 8.5, letterSpacing: 0.6 },
 
   // Roles
   roleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 16 },
@@ -3442,7 +3745,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   roleBadgeText: { fontFamily: FONTS.xbold, fontSize: 13.5 },
-  roleName: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5 },
+  roleName: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13.5 },
   permLine: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, flex: 1 },
   sysPill: { backgroundColor: 'rgba(251,146,60,0.16)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(251,146,60,0.40)' },
   sysPillText: { color: '#FB923C', fontFamily: FONTS.xbold, fontSize: 8.5, letterSpacing: 0.8 },
@@ -3484,7 +3787,7 @@ const s = StyleSheet.create({
   revokeBtnText: { color: SAC.red, fontFamily: FONTS.xbold, fontSize: 11 },
   logRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 4 },
   logDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: GRAD_TO, marginTop: 5 },
-  logAction: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  logAction: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
 
   trustBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -3514,13 +3817,13 @@ const s = StyleSheet.create({
   idTitle: { color: 'rgba(31,17,7,0.75)', fontFamily: FONTS.bold, fontSize: 13, marginTop: 4 },
   idAdminLabel: { color: 'rgba(31,17,7,0.55)', fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 1.4 },
   idAdminVal: { color: '#1f1107', fontFamily: FONTS.xbold, fontSize: 19,
-    ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({ fontFamily: 'SpaceMono, "SF Mono", monospace' } as any) : {}),
   },
   qrBox: { width: 106, height: 106, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' },
   idFlipHint: { color: 'rgba(31,17,7,0.7)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.3 },
   idFlipHintDark: { color: 'rgba(251,191,36,0.7)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.3 },
   flipOrg: { color: 'rgba(251,191,36,0.9)', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 2, textAlign: 'center' },
-  flipTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, textAlign: 'center' },
+  flipTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, textAlign: 'center' },
   flipSub: { color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 2 },
   flipDataLabel: { color: 'rgba(251,191,36,0.7)', fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 1.4 },
   flipQrData: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.5, textAlign: 'center' },
@@ -3530,21 +3833,21 @@ const s = StyleSheet.create({
     backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
-  idActionText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  idActionText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12 },
   featGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
   featCard: {
     flex: 1, minWidth: 220, padding: 16, borderRadius: 12,
     backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.border, gap: 8,
   },
   featIcon: { width: 34, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  featTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  featTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13 },
 
   // Primary buttons
   primaryBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9,
   },
-  primaryBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  primaryBtnText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12 },
   secondaryBtn: {
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9,
     borderWidth: 1, borderColor: SAC.border, backgroundColor: 'transparent',
@@ -3559,7 +3862,7 @@ const s = StyleSheet.create({
 
   // Modals
   modalBackdrop: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
+    flex: 1, backgroundColor: SAC.panel2,
     alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
@@ -3577,7 +3880,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  modalTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
   modalSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   modalClose: { width: 28, height: 28, borderRadius: 7, alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
@@ -3607,7 +3910,7 @@ const s = StyleSheet.create({
   checkbox: { width: 17, height: 17, borderRadius: 5, borderWidth: 1.4, borderColor: SAC.border2, alignItems: 'center', justifyContent: 'center' },
   permLabel: { color: SAC.text, fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   permId: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10,
-    ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({ fontFamily: 'SpaceMono, "SF Mono", monospace' } as any) : {}),
   },
   errorText: { color: SAC.red, fontFamily: FONTS.bold, fontSize: 12 },
 
@@ -3617,7 +3920,7 @@ const s = StyleSheet.create({
     padding: 14, marginTop: 14, gap: 2,
   },
   sigPreviewLine:      { color: SAC.text,  fontFamily: FONTS.med,   fontSize: 12.5, lineHeight: 17 },
-  sigPreviewLineFirst: { color: '#fff',    fontFamily: FONTS.xbold, fontSize: 13 },
+  sigPreviewLineFirst: { color: SAC.text,    fontFamily: FONTS.xbold, fontSize: 13 },
   sigEditor: {
     minHeight: 130, paddingHorizontal: 12, paddingTop: 10,
     color: SAC.text, fontFamily: FONTS.med, fontSize: 13,
@@ -3644,7 +3947,7 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   roleDetailBackText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
-  roleDetailTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 },
+  roleDetailTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 18 },
   roleDetailSub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   roleStatRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 14 },
   roleStat: {
@@ -3653,7 +3956,7 @@ const s = StyleSheet.create({
     paddingVertical: 12, paddingHorizontal: 14,
   },
   roleStatLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.4 },
-  roleStatValue: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, marginTop: 4 },
+  roleStatValue: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 22, marginTop: 4 },
   roleUserRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     padding: 11, borderRadius: 10, backgroundColor: SAC.cardSolid,
@@ -3677,7 +3980,7 @@ const previewStyles = StyleSheet.create({
     overflow: 'hidden',
   },
   title: {
-    color: '#fff',
+    color: SAC.text,
     fontFamily: 'DMSans_700Bold, DMSansBold, sans-serif',
     fontSize: 26,
     paddingHorizontal: 24,

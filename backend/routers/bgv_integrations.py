@@ -21,6 +21,7 @@ import re
 import json
 import hashlib
 import difflib
+import secrets
 import urllib.request
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
@@ -488,9 +489,20 @@ def screen_yente_watchlist(name: str, dob: Optional[str] = None, country: Option
         }
 
 
+def _tier1_provider_configured() -> bool:
+    """Tier 1 aggregator wallet (Surepass/Setu) covers PAN + EPFO UAN passbook."""
+    return bool(os.environ.get("SUREPASS_API_TOKEN", "") or os.environ.get("SETU_API_KEY", ""))
+
+
+def _ecourts_provider_configured() -> bool:
+    return bool(os.environ.get("ECCOURTS_API_KEY", ""))
+
+
 def verify_pan_format_and_status(pan: str, name_to_match: str = "") -> Dict[str, Any]:
     """
-    Performs Tier 0 structural validation + Tier 1 aggregator simulation for PAN.
+    Tier 0 structural validation of the PAN. Status queries against NSDL/ITD
+    require a configured Tier 1 aggregator; without one the check reports
+    "unavailable" instead of simulating a result.
     PAN structure: 5 letters, 4 digits, 1 letter. 4th char denotes entity (P = Person, C = Company, etc.)
     """
     clean_pan = pan.strip().upper()
@@ -514,29 +526,43 @@ def verify_pan_format_and_status(pan: str, name_to_match: str = "") -> Dict[str,
         "F": "Firm / LLP",
     }.get(clean_pan[3], "Other Entity")
 
-    # Name similarity check if provided
-    name_matched = True
-    name_score = 1.0
+    # Local deterministic heuristic: surname initial vs 5th char of the PAN.
+    name_score: Optional[float] = None
     if name_to_match:
-        # Check initials against 5th char of PAN (Surname initial)
         surname_char = clean_pan[4]
-        name_matched = surname_char in name_to_match.upper()
-        name_score = 0.95 if name_matched else 0.70
+        name_score = 0.95 if surname_char in name_to_match.upper() else 0.70
 
-    return {
+    base: Dict[str, Any] = {
         "valid": True,
         "pan_masked": f"{clean_pan[:2]}XXXXX{clean_pan[-2:]}",
         "pan_type": pan_type,
-        "pan_status": "OPERATIVE / ACTIVE",
         "name_match_score": name_score,
-        "source": "NSDL/ITD Verifier via Aggregator Gateway",
+    }
+
+    if not _tier1_provider_configured():
+        return {
+            **base,
+            "status": "unavailable",
+            "reason": "provider not configured",
+            "pan_status": None,
+            "source": None,
+        }
+
+    # Live NSDL/ITD query is not wired yet; never fabricate a status.
+    return {
+        **base,
+        "status": "PENDING_PROVIDER",
+        "reason": "aggregator credentials present but live NSDL/ITD verifier not yet wired",
+        "pan_status": None,
+        "source": None,
     }
 
 
 def verify_epfo_uan_history(uan: str, candidate_name: str = "") -> Dict[str, Any]:
     """
-    Tier 1 / Tier 2 EPFO UAN Employment History Verifier.
-    Validates 12-digit UAN and extracts historical employment passbook records.
+    EPFO UAN Employment History Verifier. Validates the 12-digit UAN locally;
+    employment history retrieval requires a configured EPFO/aggregator
+    provider and reports "unavailable" otherwise.
     """
     clean_uan = re.sub(r"\D", "", uan)
     if len(clean_uan) != 12:
@@ -546,34 +572,24 @@ def verify_epfo_uan_history(uan: str, candidate_name: str = "") -> Dict[str, Any
             "reason": "UAN must be exactly 12 digits",
         }
 
-    # Generate verified mock history timeline for standard demo
-    demo_records = [
-        {
-            "member_id": f"MH/BAN/00{clean_uan[:4]}/000/0001234",
-            "establishment_name": "TCS (Tata Consultancy Services Ltd)",
-            "doj_epf": "2021-07-15",
-            "doe_epf": "2023-11-30",
-            "exit_reason": "Resignation / Relieved in normal course",
-            "verification_status": "AUTHENTICATED_BY_EPFO_PORTAL",
-        },
-        {
-            "member_id": f"TS/HYD/00{clean_uan[4:8]}/000/0005678",
-            "establishment_name": "Microsoft India (R&D) Pvt Ltd",
-            "doj_epf": "2023-12-04",
-            "doe_epf": None,
-            "exit_reason": "Currently Active",
-            "verification_status": "AUTHENTICATED_BY_EPFO_PORTAL",
-        },
-    ]
+    base: Dict[str, Any] = {"valid": True, "uan_masked": f"XXXX-XXXX-{clean_uan[-4:]}"}
 
+    if not _tier1_provider_configured():
+        return {
+            **base,
+            "status": "unavailable",
+            "reason": "provider not configured",
+            "employment_timeline": [],
+            "source": None,
+        }
+
+    # Live EPFO passbook fetch is not wired yet; never fabricate a timeline.
     return {
-        "valid": True,
-        "uan_masked": f"XXXX-XXXX-{clean_uan[-4:]}",
-        "total_establishments": len(demo_records),
-        "service_overlap_detected": False,
-        "current_active_employer": "Microsoft India (R&D) Pvt Ltd",
-        "employment_timeline": demo_records,
-        "source": "EPFO Unified Portal Gateway (Candidate-Authenticated Passbook)",
+        **base,
+        "status": "PENDING_PROVIDER",
+        "reason": "aggregator credentials present but live EPFO verifier not yet wired",
+        "employment_timeline": [],
+        "source": None,
     }
 
 
@@ -584,38 +600,27 @@ def evaluate_court_records_with_discriminators(
     district: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    eCourts / NJDG litigation check with mandatory multi-factor discriminators.
-    Prevents false positives on common Indian names by requiring DOB, father's name or address.
-    Routes ambiguous hits to Human Review Queue.
+    eCourts / NJDG litigation check. The live registry query requires the
+    ECCOURTS provider; without it the result is "unavailable" — a simulated
+    CLEAR is never returned. Discriminator inputs are carried through for
+    when the provider is wired.
     """
-    clean_name = _normalize_text(name)
     has_discriminators = bool(dob or father_name or district)
 
-    # Simulated public case registry check
-    common_names = {"rahul sharma", "amit kumar", "priya sharma", "mohammed ali", "suresh kumar"}
-    if clean_name in common_names:
-        if not has_discriminators:
-            return {
-                "status": "FLAGGED_FOR_HUMAN_REVIEW",
-                "risk_rating": "AMBIGUOUS",
-                "reason": (
-                    "Potential name match found on eCourts registry, but missing crucial discriminators "
-                    "(DOB, father's name, or residential district). Routed to Human Review Queue to prevent false-positive rejection."
-                ),
-                "requires_manual_ops": True,
-            }
-        else:
-            return {
-                "status": "CLEAR",
-                "risk_rating": "LOW",
-                "reason": "Name match disqualified after discriminator comparison (DOB / Father Name mismatch).",
-                "requires_manual_ops": False,
-            }
+    if not _ecourts_provider_configured():
+        return {
+            "status": "unavailable",
+            "risk_rating": None,
+            "reason": "provider not configured",
+            "discriminators_provided": has_discriminators,
+            "requires_manual_ops": False,
+        }
 
     return {
-        "status": "CLEAR",
-        "risk_rating": "LOW",
-        "reason": "No pending or decided criminal litigation records on eCourts / NJDG national portal.",
+        "status": "PENDING_PROVIDER",
+        "risk_rating": None,
+        "reason": "ECCOURTS_API_KEY present but live litigation verifier not yet wired",
+        "discriminators_provided": has_discriminators,
         "requires_manual_ops": False,
     }
 
@@ -686,14 +691,14 @@ async def get_bgv_providers_registry():
                     {
                         "name": "Surepass / Zoop / Deepvue Aggregator",
                         "category": "PAN, DL, Voter, GSTIN, Bank IMPS Penny Drop",
-                        "status": "CONFIGURED",
+                        "status": "CONFIGURED" if SUREPASS_API_TOKEN or DEEPVUE_CLIENT_ID else "NOT_CONFIGURED",
                         "cost_model": "Pay-per-completed-check (Wallet Model)",
                         "latency_ms": 120,
                     },
                     {
                         "name": "Deepvue / Setu DigiLocker Shortcut",
                         "category": "Marksheets, Degree, Aadhaar XML via Authorized Entity",
-                        "status": "CONFIGURED",
+                        "status": "CONFIGURED" if SETU_API_KEY or DEEPVUE_CLIENT_ID else "NOT_CONFIGURED",
                         "cost_model": "Per-call DigiLocker Token Fee",
                         "latency_ms": 180,
                     },
@@ -714,7 +719,7 @@ async def get_bgv_providers_registry():
                     {
                         "name": "EPFO Employment History Gateway",
                         "category": "Candidate-Authenticated UAN Passbook Service",
-                        "status": "CONFIGURED",
+                        "status": "NOT_CONFIGURED",
                         "cost_model": "Candidate Consent Authenticated",
                         "latency_ms": 210,
                     },
@@ -724,7 +729,8 @@ async def get_bgv_providers_registry():
         "summary": {
             "active_verifiers_count": 8,
             "degree_mills_blocked": len(UGC_FAKE_UNIVERSITIES_REGISTRY),
-            "watchlist_entities_count": len(CURATED_WATCHLIST_RECORDS) + 50000,
+            "watchlist_entities_count": len(CURATED_WATCHLIST_RECORDS),
+            "embedded_watchlist_only": True,
             "human_review_queue_active": True,
         },
     }
@@ -818,8 +824,15 @@ async def run_comprehensive_bgv_scan(payload: Dict[str, Any] = Body(...)):
     court_check = evaluate_court_records_with_discriminators(name, dob=dob, district=payload.get("location"))
 
     # Determine Overall Trust Level & Risk Rating
-    overall_status = "VERIFIED"
+    overall_status = "INCOMPLETE"
     risk_score = 0  # 0 to 100
+    unavailable_tiers: List[str] = []
+    if pan_check.get("status") == "unavailable":
+        unavailable_tiers.append("tier_1_identity_pan")
+    if epfo_check.get("status") == "unavailable":
+        unavailable_tiers.append("tier_1_employment_epfo")
+    if court_check.get("status") == "unavailable":
+        unavailable_tiers.append("tier_0_court_litigation")
 
     if education_check.get("is_fake"):
         overall_status = "CRITICAL_FAILED"
@@ -858,17 +871,17 @@ async def run_comprehensive_bgv_scan(payload: Dict[str, Any] = Body(...)):
             },
             "tier_0_court_litigation": {
                 "name": "eCourts / NJDG Safe Litigation Verifier",
-                "status": court_check.get("status", "CLEAR"),
+                "status": court_check.get("status", "unavailable"),
                 "details": court_check,
             },
             "tier_1_identity_pan": {
                 "name": "NSDL / ITD PAN Verification",
-                "status": pan_check.get("status", "VALID"),
+                "status": pan_check.get("status", "NOT_PROVIDED"),
                 "details": pan_check,
             },
             "tier_1_employment_epfo": {
                 "name": "EPFO UAN Historical Passbook Verifier",
-                "status": epfo_check.get("status", "AUTHENTICATED"),
+                "status": epfo_check.get("status", "NOT_PROVIDED"),
                 "details": epfo_check,
             },
         },
@@ -878,7 +891,11 @@ async def run_comprehensive_bgv_scan(payload: Dict[str, Any] = Body(...)):
             else (
                 "MANUAL_REVIEW_REQUIRED: Potential watchlist/court ambiguity."
                 if overall_status == "FLAGGED_FOR_HUMAN_REVIEW"
-                else "APPROVE_CREDENTIAL: All automated Tier 0 & Tier 1 verification checks cleared."
+                else (
+                    f"PROVIDERS_NOT_CONFIGURED: Tier 1/live verifiers unavailable ({', '.join(unavailable_tiers) if unavailable_tiers else 'n/a'}); only offline Tier 0 checks could run."
+                    if overall_status == "INCOMPLETE"
+                    else "CHECKS_COMPLETED: All configured automated checks cleared."
+                )
             )
         ),
     }

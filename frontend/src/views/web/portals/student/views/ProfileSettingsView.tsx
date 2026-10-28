@@ -86,7 +86,7 @@ const ROLE_CFG: Record<RoleKey, {
       { Icon: CalendarCheck, label: 'Sessions Hosted',  value: s.sessions_completed ?? 0,                     tint: '#10B981' },
       { Icon: UsersRound,    label: 'Active Mentees',   value: s.connections_made ?? 0,                       tint: '#60A5FA' },
       { Icon: Eye,           label: 'Profile Views',    value: s.profile_views ?? 0,                          tint: '#60A5FA' },
-      { Icon: Star,          label: 'Avg Rating',       value: s.avg_rating ? `${s.avg_rating}★` : '—',       tint: '#F59E0B' },
+      { Icon: Star,          label: 'Avg Rating',       value: s.avg_rating ? `${s.avg_rating}` : '—',       tint: '#F59E0B' },
       { Icon: IndianRupee,   label: 'Earnings (Month)', value: s.earnings_this_month ? `₹${s.earnings_this_month}` : '₹0', tint: '#22C55E' },
     ],
   },
@@ -383,7 +383,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
                   <Pressable
                     key={t.key}
                     onPress={() => {
-                      if (t.key === 'digital-id') { router.push('/member-id' as any); return; }
+                      if (t.key === 'digital-id') { router.push('/id-card' as any); return; }
                       setTab(t.key);
                     }}
                     style={[st.tab, active && st.tabActive]}
@@ -507,7 +507,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
               {draft.is_verified ? 'Verified' : 'Active'} · since {new Date(user?.created_at || Date.now()).getFullYear()}
             </Text>
             <Pressable
-              onPress={() => router.push('/member-id' as any)}
+              onPress={() => router.push('/id-card' as any)}
               style={st.viewIdBtn}
               testID="pf-view-digital-id"
             >
@@ -569,7 +569,7 @@ function FooterActions({ dirty, saving, onSave, onDiscard, lastSavedAt }: any) {
           style={[st.btnPrimary, (!dirty || saving) && { opacity: 0.55 }]}
           testID="pf-save"
         >
-          <CheckCircle2 size={14} color="#2563EB" />
+          <CheckCircle2 size={14} color="#FFFFFF" />
           <Text style={st.btnPrimaryText}>{saving ? 'Saving…' : 'Save Profile'}</Text>
         </Pressable>
       </View>
@@ -598,7 +598,7 @@ const st = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderColor: C.bg, borderWidth: 2,
   },
-  name: { color: '#1C1C1E', fontFamily: 'DMSans_700Bold', fontSize: 22, letterSpacing: -0.3 },
+  name: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 22, letterSpacing: -0.3 },
   subline: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 13, marginTop: 4 },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   headerBadge: {
@@ -626,7 +626,7 @@ const st = StyleSheet.create({
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
     borderRadius: 14, padding: 16,
   },
-  sideTitle: { color: '#1C1C1E', fontFamily: 'DMSans_700Bold', fontSize: 14, marginTop: 4 },
+  sideTitle: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 14, marginTop: 4 },
   sideSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5 },
   sideHeading: { color: C.text2, fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.0 },
   idChip: {
@@ -637,13 +637,13 @@ const st = StyleSheet.create({
   idChipText: { color: '#2563EB', fontFamily: 'DMSans_700Bold', fontSize: 11.5, letterSpacing: 0.5 },
 
   statRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
-  statRowDivider: { borderBottomColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1 },
+  statRowDivider: { borderBottomColor: 'rgba(0,0,0,0.05)', borderBottomWidth: 1 },
   statIcon: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   statLabel: { flex: 1, color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12.5 },
-  statValue: { color: '#1C1C1E', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
+  statValue: { color: C.text, fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
 
-  idTitle: { color: '#1C1C1E', fontFamily: 'DMSans_700Bold', fontSize: 13 },
-  idValue: { color: '#1C1C1E', fontFamily: 'DMSans_800ExtraBold', fontSize: 18, letterSpacing: 0.5, marginTop: 2 },
+  idTitle: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 13 },
+  idValue: { color: C.text, fontFamily: 'DMSans_800ExtraBold', fontSize: 18, letterSpacing: 0.5, marginTop: 2 },
   idMeta: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 4 },
   viewIdBtn: {
     marginTop: 12,
@@ -659,33 +659,33 @@ const st = StyleSheet.create({
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1, borderRadius: 14,
     padding: 32, alignItems: 'center', gap: 8,
   },
-  comingTitle: { color: '#1C1C1E', fontFamily: 'DMSans_700Bold', fontSize: 16 },
+  comingTitle: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 16 },
   comingSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12, textAlign: 'center' },
 
   /* Footer save */
   footerBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 18, paddingVertical: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.card,
     borderColor: '#2563EB', borderWidth: 1.5,
     borderRadius: 12, gap: 12,
     ...(Platform.OS === 'web' ? { boxShadow: '0 4px 20px rgba(37,99,235,0.15)' } as any : { elevation: 4, shadowColor: '#2563EB', shadowOpacity: 0.2, shadowRadius: 8 }),
   },
-  footerStatus: { color: '#475569', fontFamily: 'DMSans_500Medium', fontSize: 12 },
+  footerStatus: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
   btnGhost: {
     paddingHorizontal: 14, height: 36, borderRadius: 9,
-    backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.12)', borderWidth: 1,
+    backgroundColor: 'rgba(0,0,0,0.04)', borderColor: C.border, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  btnGhostText: { color: '#334155', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  btnGhostText: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 12 },
   btnPrimary: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 16, height: 36, borderRadius: 9,
     backgroundColor: '#2563EB',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', boxShadow: '0 4px 14px rgba(37,99,235,0.40)' } as any) : {}),
   },
-  btnPrimaryText: { color: '#ffffff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  btnPrimaryText: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 12 },
 });
 
 export default ProfileSettingsView;

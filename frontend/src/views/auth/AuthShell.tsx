@@ -23,7 +23,7 @@ function MobileBrand() {
         <Svg width={28} height={33} viewBox="0 0 32 36" fill="none">
           <Path d="M16 2 L29 6.5 v13.5 c0 9 -7.5 13.5 -13 16 C10.5 33.5 3 29 3 20 V6.5 Z" fill="#D8B6FF" />
           <Path d="M16 4.5 L26.5 8.2 v11.8 c0 7 -6 11 -10.5 13 C11.5 31 5.5 27 5.5 20 V8.2 Z" fill="#7C3AED" />
-          <SvgText x="16" y="22.5" textAnchor="middle" fontFamily="Manrope, sans-serif" fontWeight="800" fontSize="12" fill="#FFFFFF">SA</SvgText>
+          <SvgText x="16" y="22.5" textAnchor="middle" fontFamily="DM Sans, sans-serif" fontWeight="800" fontSize="12" fill="#FFFFFF">SA</SvgText>
         </Svg>
         <View>
           <Text style={ms.title}>StudentAlumni</Text>

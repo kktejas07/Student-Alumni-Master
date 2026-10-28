@@ -7,7 +7,6 @@ if (!Array.prototype.toReversed) {
 }
 
 const { getDefaultConfig } = require("expo/metro-config");
-const { withNativeWind } = require("nativewind/metro");
 const path = require('path');
 const { FileStore } = require('metro-cache');
 
@@ -28,8 +27,6 @@ config.cacheStores = [
 config.resolver.extraNodeModules = {
   ...config.resolver.extraNodeModules,
   'qrcode': require.resolve('qrcode/lib/browser.js'),
-  'three': path.join(projectRoot, 'node_modules', 'three', 'build', 'three.cjs'),
-  'framer-motion': path.join(projectRoot, 'node_modules', 'framer-motion', 'dist', 'cjs', 'index.js'),
   'lucide-react': path.join(projectRoot, 'node_modules', 'lucide-react', 'dist', 'cjs', 'lucide-react.js'),
   'jspdf/dist/jspdf.es.min.js': require.resolve('jspdf/dist/jspdf.es.min.js'),
   'lucide-react-native': path.join(projectRoot, 'src', 'shims', 'lucide-react-native.js'),

@@ -22,8 +22,10 @@ import {
   Calendar, Wallet, Shield, Building2, Gift, User as UserIcon, GraduationCap,
 } from 'lucide-react-native';
 import { Sidebar, NavItem } from '@/src/views/web/platform/components';
-import { Sidebar as StudentSidebar } from '@/src/views/web/portals/student/Sidebar';
-import { Sidebar as AlumniSidebar } from '@/src/views/web/portals/alumni/Sidebar';
+import { Sidebar as PortalSidebar } from '@/src/ui/shell/Sidebar';
+import { PortalThemeProvider } from '@/src/ui/theme';
+import { STUDENT_PORTAL } from '@/src/views/web/portals/student/nav';
+import { ALUMNI_PORTAL } from '@/src/views/web/portals/alumni/nav';
 import { SA } from '@/src/views/web/platform/tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
@@ -88,7 +90,7 @@ function activeIdForPath(path: string): string {
 
 export default function FeaturePageShell({
   title, subtitle, accent = SA.purpleLight,
-  heroEmoji = '✨',
+  heroEmoji = '',
   heroIcon,
   children,
   rightSlot,
@@ -271,18 +273,15 @@ export default function FeaturePageShell({
 
       {/* Persistent sidebar */}
       {isWide && (
-        role === 'student' ? (
-          <StudentSidebar
-            active={portalActiveId as any}
-            onNav={onNav}
-            onLogout={onLogout}
-          />
-        ) : role === 'alumni' ? (
-          <AlumniSidebar
-            active={portalActiveId as any}
-            onNav={onNav}
-            onLogout={onLogout}
-          />
+        role === 'student' || role === 'alumni' ? (
+          <PortalThemeProvider portal={role} darkOnly={role === 'alumni'}>
+            <PortalSidebar
+              config={role === 'student' ? STUDENT_PORTAL : ALUMNI_PORTAL}
+              active={portalActiveId as any}
+              onNav={onNav as any}
+              onLogout={onLogout}
+            />
+          </PortalThemeProvider>
         ) : (
           <Sidebar
             navItems={NAV}

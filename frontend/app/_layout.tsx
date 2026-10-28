@@ -15,13 +15,6 @@ import {
   Outfit_700Bold,
   Outfit_800ExtraBold,
 } from '@expo-google-fonts/outfit';
-import {
-  Manrope_400Regular,
-  Manrope_500Medium,
-  Manrope_600SemiBold,
-  Manrope_700Bold,
-  Manrope_800ExtraBold,
-} from '@expo-google-fonts/manrope';
 import { ActivityIndicator, LogBox, Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -41,13 +34,17 @@ import { TourProvider } from '@/src/views/web/tour/TourProvider';
 import { TourOverlay } from '@/src/views/web/tour/TourOverlay';
 import { AnnouncementPopup } from '@/src/views/web/components/AnnouncementPopup';
 import { initGlobalErrorLogger } from '@/src/utils/globalErrorLogger';
+import { ThemeProvider } from '@/src/theme/ThemeContext';
 
 LogBox.ignoreLogs(['6000ms timeout exceeded', 'fontfaceobserver']);
-if (typeof window !== 'undefined') {
+// `window` exists on React Native too (it is a global alias), so every DOM
+// touch below must be additionally guarded by Platform.OS === 'web'.
+const IS_WEB_DOM = Platform.OS === 'web' && typeof window !== 'undefined';
+if (IS_WEB_DOM) {
   initGlobalErrorLogger();
 }
 
-if (typeof window !== 'undefined') {
+if (IS_WEB_DOM && typeof window.addEventListener === 'function') {
   window.addEventListener('error', (e) => {
     if (e.message?.includes('6000ms timeout exceeded')) {
       e.stopImmediatePropagation();
@@ -63,7 +60,7 @@ if (typeof window !== 'undefined') {
   }, true);
 }
 
-if (typeof window !== 'undefined') {
+if (IS_WEB_DOM) {
   const originalConsoleError = console.error;
   console.error = (...args) => {
     const isTimeout = args.some(arg => 
@@ -115,15 +112,8 @@ export default function RootLayout() {
     Outfit_600SemiBold,
     Outfit_700Bold,
     Outfit_800ExtraBold,
-    PlusJakartaSans_400Regular: Manrope_400Regular,
-    PlusJakartaSans_500Medium: Manrope_500Medium,
-    PlusJakartaSans_600SemiBold: Manrope_600SemiBold,
-    PlusJakartaSans_700Bold: Manrope_700Bold,
-    PlusJakartaSans_800ExtraBold: Manrope_800ExtraBold,
-    JetBrainsMono_400Regular: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    JetBrainsMono_500Medium: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    JetBrainsMono_600SemiBold: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    JetBrainsMono_700Bold: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    // Mono — one bundled weight (see src/theme/typography.ts)
+    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
 
@@ -136,6 +126,17 @@ export default function RootLayout() {
     // Boot the analytics stack — gracefully no-ops if env keys are missing.
     analytics.init();
   }, [init]);
+
+  // Global theme transition — smooth light/dark switch for all themed elements
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const KEY = 'sa-theme-transition-css';
+    if (document.getElementById(KEY)) return;
+    const s = document.createElement('style');
+    s.id = KEY;
+    s.textContent = `\n      *, *::before, *::after {\n        transition-property: background-color, color, border-color, box-shadow, fill, stroke, opacity;\n        transition-duration: 0.3s;\n        transition-timing-function: ease;\n      }\n      /* Exclude animations and transforms to prevent jank */\n      [style*="animation"], [style*="transform"] {\n        transition-property: none !important;\n      }\n    `;
+    document.head.appendChild(s);
+  }, []);
 
   const pathname = usePathname();
   const [routeTransitioning, setRouteTransitioning] = useState(false);
@@ -156,6 +157,7 @@ export default function RootLayout() {
     <AnalyticsErrorBoundary screenName="root_layout">
       <AnalyticsRoot>
         <GestureHandlerRootView style={{ flex: 1 }}>
+          <ThemeProvider>
           <PaperProvider theme={SAPaperTheme}>
             <SafeAreaProvider>
               <ToastProvider>
@@ -193,6 +195,7 @@ export default function RootLayout() {
               </ToastProvider>
             </SafeAreaProvider>
           </PaperProvider>
+          </ThemeProvider>
         </GestureHandlerRootView>
       </AnalyticsRoot>
     </AnalyticsErrorBoundary>

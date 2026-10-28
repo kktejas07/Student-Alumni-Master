@@ -24,7 +24,7 @@ import {
   Wallet, Sparkles, CircleCheck as CheckCircle2, Copy, ExternalLink, Clock,
   Tag, TrendingUp, PlusCircle, ArrowUpRight, ArrowDownLeft, Shield, Award,
   Check, Search, Filter, X, ChevronRight, Gift, Building2, Zap, RefreshCw,
-  CreditCard, DollarSign, Star, Lock,
+  CreditCard, DollarSign, Star, Lock, Info,
 } from 'lucide-react-native';
 import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import MoneyCoach from '@/src/views/web/wallet/MoneyCoach';
@@ -32,22 +32,23 @@ import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useRouter } from 'expo-router';
 import { useToast } from '@/src/views/components';
+import { useTheme } from '@/src/theme/ThemeContext';
 
-/* ────────── Design Tokens (Navy Blue Palette) ────────── */
+/* ────────── Design Tokens ────────── */
 const C = {
-  bg: '#0A1628',          // deep navy page background
-  bgCard: '#0F2347',      // navy card background
-  bgCardH: '#162E5A',     // navy card hover
-  border: '#1E3A6E',      // navy border
-  border2: '#2A4F8F',     // slightly lighter navy border
+  bg: '#0A1628',
+  bgCard: '#0F2347',
+  bgCardH: '#162E5A',
+  border: '#1E3A6E',
+  border2: '#2A4F8F',
   text: '#FFFFFF',
   text2: '#E8F0FF',
-  textSub: '#94B4E0',     // muted blue-grey on navy
-  dim: '#6B8CC4',         // dimmed text on navy
-  purple: '#60A5FA',      // accent blue (kept vibrant)
-  purple2: '#3B82F6',     // primary action blue
-  purpleL: '#93C5FD',     // lighter accent
-  purpleXL: '#DBEAFE',    // very light for labels
+  textSub: '#94B4E0',
+  dim: '#6B8CC4',
+  purple: '#60A5FA',
+  purple2: '#3B82F6',
+  purpleL: '#93C5FD',
+  purpleXL: '#DBEAFE',
   teal: '#34D399',
   blue: '#3B82F6',
   amber: '#FBBF24',
@@ -73,10 +74,14 @@ type CouponItem = {
   cost_credits: number;
   url: string;
   expiry: string;
-  status: 'active' | 'used';
+  status: 'active' | 'used' | 'locked';
   used_at?: string;
   category: string;
   accent: string;
+  instructions?: string;
+  locked?: boolean;
+  partner_name?: string;
+  event_id?: string;
 };
 
 type Summary = {
@@ -220,11 +225,50 @@ function fmtCredits(n: number): string {
 export default function WalletScreen() {
   const router = useRouter();
   const toast = useToast();
+  const { isDark } = useTheme();
   const user = useAuthStore((s) => s.user);
   const initialized = useAuthStore((s) => s.initialized);
   const isEmbedded = React.useContext(EmbeddedShellContext);
   const { width: winW } = useWindowDimensions();
   const isTablet = winW >= 680;
+
+  const colors = useMemo(() => ({
+    bg: isDark ? '#0A1628' : '#F8FAFC',
+    bgCard: isDark ? '#0F2347' : '#FFFFFF',
+    bgCardHover: isDark ? '#162E5A' : '#F1F5F9',
+    border: isDark ? '#1E3A6E' : '#E2E8F0',
+    border2: isDark ? '#2A4F8F' : '#CBD5E1',
+    text: isDark ? '#FFFFFF' : '#0F172A',
+    text2: isDark ? '#E8F0FF' : '#334155',
+    textSub: isDark ? '#94B4E0' : '#64748B',
+    dim: isDark ? '#6B8CC4' : '#94A3B8',
+    purpleL: isDark ? '#93C5FD' : '#2563EB',
+    purpleXL: isDark ? '#DBEAFE' : '#1E40AF',
+    kpiLabel: isDark ? '#93C5FD' : '#2563EB',
+    kpiValue: isDark ? '#FFFFFF' : '#0F172A',
+    kpiIconBg: isDark ? 'rgba(96, 165, 250, 0.15)' : '#EFF6FF',
+    cardShadow: isDark ? {} : {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    tabInactiveBg: isDark ? '#0F2347' : '#FFFFFF',
+    tabInactiveBorder: isDark ? '#2A4F8F' : '#CBD5E1',
+    tabInactiveText: isDark ? '#94B4E0' : '#475569',
+    searchBg: isDark ? '#0B1A33' : '#F8FAFC',
+    searchBorder: isDark ? '#3B82F6' : '#CBD5E1',
+    inputBg: isDark ? 'rgba(0,0,0,0.30)' : '#F8FAFC',
+    codeBoxBg: isDark ? 'rgba(0,0,0,0.40)' : '#F8FAFC',
+    codeBoxBorder: isDark ? 'rgba(30, 58, 110, 0.60)' : '#CBD5E1',
+    codeBoxText: isDark ? '#DBEAFE' : '#1E40AF',
+    infoBoxBg: isDark ? 'rgba(59,130,246,0.08)' : '#EFF6FF',
+    infoBoxBorder: isDark ? 'rgba(59,130,246,0.20)' : '#BFDBFE',
+    txRowBg: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF',
+    modalBg: isDark ? '#12162A' : '#FFFFFF',
+    modalBorder: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0',
+  }), [isDark]);
 
   useEffect(() => {
     if (!isEmbedded && initialized && user) {
@@ -241,9 +285,10 @@ export default function WalletScreen() {
 
   // Coupon Engine State
   const [myCoupons, setMyCoupons] = useState<CouponItem[]>(INITIAL_COUPONS);
-  const [couponFilter, setCouponFilter] = useState<'all' | 'active' | 'used'>('all');
+  const [couponFilter, setCouponFilter] = useState<'all' | 'active' | 'used' | 'locked'>('all');
   const [couponSearch, setCouponSearch] = useState('');
   const [selectedCouponModal, setSelectedCouponModal] = useState<CouponItem | null>(null);
+  const [instructionModal, setInstructionModal] = useState<{ title: string; instructions: string; website?: string } | null>(null);
 
   // Top-Up & Withdraw State
   const [topupAmount, setTopupAmount] = useState<string>('500');
@@ -288,6 +333,48 @@ export default function WalletScreen() {
 
   useEffect(() => { fetchSummary(); }, [fetchSummary]);
 
+  // Fetch real coupons from API
+  const fetchCoupons = useCallback(async () => {
+    try {
+      const r = await request<any>('/echo/coupons/by-category');
+      if (r?.success && r.data) {
+        const allCoupons: CouponItem[] = [];
+        const categories = Object.keys(r.data);
+        for (const cat of categories) {
+          for (const c of r.data[cat]) {
+            const discountLabel = c.discount_type === 'duration'
+              ? `${c.duration_months || '?'} Month${(c.duration_months || 0) !== 1 ? 's' : ''} Access`
+              : c.discount_type === 'percentage' ? `${c.discount_value}% OFF` : `₹${c.discount_value} OFF`;
+            const partnerLabel = c.partner_name || c.vendor_name || '';
+            const eventLabel = c.event_id ? c.event_id.toUpperCase() : '';
+            allCoupons.push({
+              id: `coup-${c.code}`,
+              brand: partnerLabel || 'Student Alumni',
+              title: c.description || discountLabel,
+              discount: discountLabel,
+              code: c.code,
+              cost_credits: 0,
+              url: c.website_url || '',
+              expiry: '',
+              status: c.locked ? 'locked' : 'active',
+              category: cat,
+              accent: cat === 'partner' ? '#3B82F6' : cat === 'event' ? '#10B981' : cat === 'promo' ? '#F59E0B' : '#8B5CF6',
+              instructions: c.instructions || '',
+              locked: c.locked || false,
+              partner_name: partnerLabel,
+              event_id: eventLabel,
+            });
+          }
+        }
+        setMyCoupons(allCoupons.length > 0 ? allCoupons : INITIAL_COUPONS);
+      }
+    } catch (e) {
+      // Keep demo coupons if API fails
+    }
+  }, []);
+
+  useEffect(() => { fetchCoupons(); }, [fetchCoupons]);
+
   // Copy coupon code
   const copyCouponCode = (code: string) => {
     if (Platform.OS === 'web' && navigator?.clipboard) {
@@ -301,12 +388,11 @@ export default function WalletScreen() {
     setMyCoupons((prev) =>
       prev.map((c) =>
         c.id === couponId
-          ? { ...c, status: 'used', used_at: 'Just now' }
+          ? { ...c, status: 'used', used_at: new Date().toISOString() }
           : c
       )
     );
-    toast.info('Coupon Marked as Used', 'Status updated to Used.');
-    setSelectedCouponModal(null);
+    toast.success('Coupon Marked Used', 'Moved to your redeemed history.');
   };
 
   // Redeem catalog coupon
@@ -337,7 +423,9 @@ export default function WalletScreen() {
   const filteredMyCoupons = useMemo(() => {
     return myCoupons.filter((c) => {
       const matchesFilter =
-        couponFilter === 'all' ? true : c.status === couponFilter;
+        couponFilter === 'all' ? true :
+        couponFilter === 'locked' ? c.locked :
+        c.status === couponFilter;
       const matchesSearch =
         c.brand.toLowerCase().includes(couponSearch.toLowerCase()) ||
         c.title.toLowerCase().includes(couponSearch.toLowerCase()) ||
@@ -346,10 +434,16 @@ export default function WalletScreen() {
     });
   }, [myCoupons, couponFilter, couponSearch]);
 
-  const activeCount = useMemo(() => myCoupons.filter((c) => c.status === 'active').length, [myCoupons]);
-  const usedCount = useMemo(() => myCoupons.filter((c) => c.status === 'used').length, [myCoupons]);
+  // Used coupons (for "My Redeemed" section)
+  const usedCoupons = useMemo(() => myCoupons.filter((c) => c.status === 'used'), [myCoupons]);
+  // Available coupons (active + locked, for category grouping)
+  const availableCoupons = useMemo(() => myCoupons.filter((c) => c.status !== 'used'), [myCoupons]);
 
-  // Handle Topup Submit
+  const activeCount = useMemo(() => myCoupons.filter((c) => c.status === 'active' && !c.locked).length, [myCoupons]);
+  const usedCount = useMemo(() => myCoupons.filter((c) => c.status === 'used').length, [myCoupons]);
+  const lockedCount = useMemo(() => myCoupons.filter((c) => c.locked).length, [myCoupons]);
+
+  // Handle Topup Submit — Razorpay payment
   const handleTopupSubmit = async () => {
     const amt = parseFloat(topupAmount);
     if (isNaN(amt) || amt <= 0) {
@@ -358,29 +452,94 @@ export default function WalletScreen() {
     }
     setTopupSubmitting(true);
     try {
-      await new Promise((r) => setTimeout(r, 1000));
-      const addedCredits = amt * 25;
-      if (data) {
-        setData({
-          ...data,
-          balance_credits: data.balance_credits + addedCredits,
-          balance_inr: data.balance_inr + amt,
-          history: [
-            {
-              id: `tx-topup-${Date.now()}`,
-              type: 'credit',
-              amount: addedCredits,
-              reason: `Wallet Top-up via ${topupMethod.toUpperCase()}`,
-              balance_after: data.balance_credits + addedCredits,
-              ts: new Date().toISOString(),
-            },
-            ...data.history,
-          ],
-        });
+      // Step 1: Create Razorpay order
+      const orderRes = await request<any>('/wallet/topup/create-order', {
+        method: 'POST',
+        body: { amount_inr: amt },
+      });
+      if (!orderRes.ok) {
+        toast.error('Payment Failed', orderRes.detail || 'Could not create payment order.');
+        setTopupSubmitting(false);
+        return;
       }
-      toast.success('Top-Up Successful!', `Added ${fmtINR(amt)} (+${fmtCredits(addedCredits)} pts) to your wallet.`);
-      setTab('overview');
-    } finally {
+
+      // Step 2: Load Razorpay SDK
+      const loadSDK = (): Promise<boolean> => {
+        if ((window as any).Razorpay) return Promise.resolve(true);
+        return new Promise((resolve) => {
+          const script = document.createElement('script');
+          script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+          script.async = true;
+          script.onload = () => resolve(true);
+          script.onerror = () => resolve(false);
+          document.body.appendChild(script);
+        });
+      };
+      const sdkLoaded = await loadSDK();
+      if (!sdkLoaded) {
+        toast.error('Payment Failed', 'Could not load payment gateway. Check your connection.');
+        setTopupSubmitting(false);
+        return;
+      }
+
+      // Step 3: Open Razorpay checkout
+      const rzp = new (window as any).Razorpay({
+        key: orderRes.key_id,
+        amount: orderRes.amount * 100,
+        currency: 'INR',
+        name: 'Student Alumni',
+        description: `Wallet Top-Up ₹${amt}`,
+        order_id: orderRes.order_id,
+        handler: async (response: any) => {
+          // Step 4: Verify payment and credit wallet
+          try {
+            const verifyRes = await request<any>('/wallet/topup/verify', {
+              method: 'POST',
+              body: {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                amount_inr: amt,
+              },
+            });
+            if (verifyRes.ok) {
+              // Update local state with real balance from backend
+              setData({
+                ...data!,
+                balance_credits: verifyRes.balance_credits,
+                balance_inr: verifyRes.balance_inr,
+                history: [
+                  {
+                    id: `tx-topup-${Date.now()}`,
+                    type: 'credit',
+                    amount: verifyRes.total_credits,
+                    reason: `Wallet Top-Up ₹${amt} via Razorpay (+${verifyRes.bonus_credits} bonus)`,
+                    balance_after: verifyRes.balance_credits,
+                    ts: new Date().toISOString(),
+                  },
+                  ...(data?.history || []),
+                ],
+              });
+              toast.success('Top-Up Successful!', `Added ₹${amt} (+${verifyRes.total_credits.toLocaleString()} pts) to your wallet.`);
+              setTab('overview');
+            } else {
+              toast.error('Verification Failed', 'Payment was received but verification failed. Contact support.');
+            }
+          } catch (e: any) {
+            toast.error('Verification Failed', 'Payment was received but verification failed. Contact support.');
+          }
+          setTopupSubmitting(false);
+        },
+        prefill: { name: user?.full_name || user?.name || '', email: user?.email || '' },
+        theme: { color: '#2563EB' },
+      });
+      rzp.on('payment.failed', () => {
+        toast.error('Payment Failed', 'Payment was cancelled or failed. Please try again.');
+        setTopupSubmitting(false);
+      });
+      rzp.open();
+    } catch (e: any) {
+      toast.error('Payment Failed', e?.message || 'Something went wrong. Please try again.');
       setTopupSubmitting(false);
     }
   };
@@ -432,7 +591,7 @@ export default function WalletScreen() {
   const Container: any = isEmbedded ? View : ScrollView;
   const containerProps: any = isEmbedded
     ? { style: s.embeddedShell }
-    : { style: s.shell, contentContainerStyle: s.contentContainer };
+    : { style: [s.shell, { backgroundColor: colors.bg }], contentContainerStyle: s.contentContainer };
 
   return (
     <Container {...containerProps}>
@@ -440,7 +599,7 @@ export default function WalletScreen() {
       {/* ══════════════ 1. HEADER BANNER ══════════════ */}
       <View style={s.headerBar}>
         <View style={s.headerLeft}>
-          <Text style={s.greetingText}>
+          <Text style={[s.greetingText, { color: colors.text }]}>
             Welcome back, {studentName}! Manage your SA Credits, Deals & Cashouts.
           </Text>
         </View>
@@ -451,13 +610,17 @@ export default function WalletScreen() {
             disabled={refreshing}
             style={({ pressed, hovered }: any) => [
               s.regenBtn,
-              (pressed || hovered) && s.regenBtnHover,
+              {
+                backgroundColor: isDark ? 'rgba(59, 130, 246, 0.08)' : '#EFF6FF',
+                borderColor: isDark ? 'rgba(59, 130, 246, 0.35)' : '#BFDBFE',
+              },
+              (pressed || hovered) && { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.18)' : '#DBEAFE' },
             ]}
           >
             {refreshing ? (
-              <ActivityIndicator size={13} color={C.purpleL} />
+              <ActivityIndicator size={13} color={colors.purpleL} />
             ) : (
-              <Text style={s.regenBtnText}>↺ Sync Balance</Text>
+              <Text style={[s.regenBtnText, { color: colors.purpleL }]}>↺ Sync Balance</Text>
             )}
           </Pressable>
 
@@ -477,56 +640,59 @@ export default function WalletScreen() {
       {/* ══════════════ 2. KPI METRICS STRIP (4 Cards) ══════════════ */}
       <View style={s.kpiRow}>
         {/* Card 1: Balance */}
-        <View style={[s.kpiCard, { borderColor: 'rgba(96, 165, 250, 0.40)' }]}>
+        <View style={[s.kpiCard, { backgroundColor: colors.bgCard, borderColor: colors.border }, colors.cardShadow]}>
           <View style={s.kpiTopRow}>
-            <Text style={s.kpiLabel}>WALLET BALANCE</Text>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(96, 165, 250, 0.15)' }]}>
-              <Wallet size={16} color={C.purpleL} />
+            <Text style={[s.kpiLabel, { color: colors.kpiLabel }]}>WALLET BALANCE</Text>
+            <View style={[s.kpiIconBox, { backgroundColor: colors.kpiIconBg }]}>
+              <Wallet size={16} color={colors.purpleL} />
             </View>
           </View>
-          <Text style={s.kpiValue}>{fmtINR(balanceInr)}</Text>
-          <Text style={s.kpiSubText}>✦ {fmtCredits(balancePts)} SA Credits</Text>
+          <Text style={[s.kpiValue, { color: colors.kpiValue }]}>{fmtINR(balanceInr)}</Text>
+          <Text style={[s.kpiSubText, { color: colors.textSub }]}>✦ {fmtCredits(balancePts)} SA Credits</Text>
         </View>
 
         {/* Card 2: Rewards Level */}
-        <View style={[s.kpiCard, { borderColor: 'rgba(56, 189, 248, 0.40)' }]}>
+        <View style={[s.kpiCard, { backgroundColor: colors.bgCard, borderColor: colors.border }, colors.cardShadow]}>
           <View style={s.kpiTopRow}>
-            <Text style={s.kpiLabel}>REWARDS TIER</Text>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
+            <Text style={[s.kpiLabel, { color: colors.kpiLabel }]}>REWARDS TIER</Text>
+            <View style={[s.kpiIconBox, { backgroundColor: isDark ? 'rgba(56, 189, 248, 0.15)' : '#FEF3C7' }]}>
               <Award size={16} color={C.amber} />
             </View>
           </View>
-          <Text style={s.kpiValue}>Level 3 Cobalt</Text>
-          <Text style={s.kpiSubText}>7,500 pts to Sapphire</Text>
+          <Text style={[s.kpiValue, { color: colors.kpiValue }]}>Level 3 Cobalt</Text>
+          <Text style={[s.kpiSubText, { color: colors.textSub }]}>7,500 pts to Sapphire</Text>
         </View>
 
         {/* Card 3: Active Coupons */}
-        <Pressable onPress={() => setTab('coupons')} style={[s.kpiCard, { borderColor: 'rgba(96, 165, 250, 0.40)' }]}>
+        <Pressable
+          onPress={() => setTab('coupons')}
+          style={[s.kpiCard, { backgroundColor: colors.bgCard, borderColor: colors.border }, colors.cardShadow]}
+        >
           <View style={s.kpiTopRow}>
-            <Text style={s.kpiLabel}>MY COUPONS</Text>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(96, 165, 250, 0.15)' }]}>
-              <Tag size={16} color={C.purpleL} />
+            <Text style={[s.kpiLabel, { color: colors.kpiLabel }]}>MY COUPONS</Text>
+            <View style={[s.kpiIconBox, { backgroundColor: colors.kpiIconBg }]}>
+              <Tag size={16} color={colors.purpleL} />
             </View>
           </View>
-          <Text style={s.kpiValue}>{activeCount} Active</Text>
-          <Text style={s.kpiSubText}>{usedCount} Coupons Used</Text>
+          <Text style={[s.kpiValue, { color: colors.kpiValue }]}>{activeCount} Active</Text>
+          <Text style={[s.kpiSubText, { color: colors.textSub }]}>{usedCount} Coupons Used</Text>
         </Pressable>
 
         {/* Card 4: Lifetime Savings */}
-        <View style={[s.kpiCard, { borderColor: 'rgba(56, 189, 248, 0.40)' }]}>
+        <View style={[s.kpiCard, { backgroundColor: colors.bgCard, borderColor: colors.border }, colors.cardShadow]}>
           <View style={s.kpiTopRow}>
-            <Text style={s.kpiLabel}>TOTAL SAVED</Text>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
+            <Text style={[s.kpiLabel, { color: colors.kpiLabel }]}>TOTAL SAVED</Text>
+            <View style={[s.kpiIconBox, { backgroundColor: isDark ? 'rgba(52, 211, 153, 0.15)' : '#D1FAE5' }]}>
               <Zap size={16} color={C.teal} />
             </View>
           </View>
-          <Text style={s.kpiValue}>{fmtINR(4850)}</Text>
-          <Text style={s.kpiSubText}>Across 5 SA partner deals</Text>
+          <Text style={[s.kpiValue, { color: colors.kpiValue }]}>{fmtINR(4850)}</Text>
+          <Text style={[s.kpiSubText, { color: colors.textSub }]}>Across 5 SA partner deals</Text>
         </View>
       </View>
 
       {/* ══════════════ 3. NAVIGATION TAB STRIP ══════════════ */}
-      <View style={s.tabBarRow}>
+      <View style={[s.tabBarRow, { backgroundColor: colors.tabInactiveBg, borderColor: colors.border }]}>
         {[
           { id: 'overview', label: 'Overview', icon: Wallet },
           { id: 'coupons', label: `My Coupons (${activeCount})`, icon: Tag },
@@ -542,8 +708,8 @@ export default function WalletScreen() {
               onPress={() => setTab(t.id as any)}
               style={[s.tabItem, isActive && s.tabItemActive]}
             >
-              <IconComp size={15} color={isActive ? '#FFF' : '#64748B'} />
-              <Text style={[s.tabText, isActive && s.tabTextActive]}>{t.label}</Text>
+              <IconComp size={15} color={isActive ? '#FFF' : colors.tabInactiveText} />
+              <Text style={[s.tabText, { color: colors.tabInactiveText }, isActive && s.tabTextActive]}>{t.label}</Text>
             </Pressable>
           );
         })}
@@ -556,7 +722,7 @@ export default function WalletScreen() {
         <View style={{ gap: 24 }}>
           {/* Top Hero Balance Card */}
           <LinearGradient
-            colors={['rgba(30, 58, 110, 0.70)', 'rgba(15, 35, 71, 0.90)', 'rgba(10, 22, 40, 0.98)']}
+            colors={isDark ? ['#1E3A6E', '#0F2347', '#0A1628'] : ['#1E3A8A', '#1E40AF', '#2563EB']}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={s.heroCard}
           >
@@ -572,11 +738,11 @@ export default function WalletScreen() {
                     <Text style={s.heroBtnText}>Top-Up Wallet</Text>
                   </Pressable>
                   <Pressable onPress={() => setTab('coupons')} style={s.heroBtnSecondary}>
-                    <Tag size={14} color={C.purpleL} />
+                    <Tag size={14} color="#93C5FD" />
                     <Text style={s.heroBtnTextSec}>View My Coupons</Text>
                   </Pressable>
                   <Pressable onPress={() => setTab('withdraw')} style={s.heroBtnSecondary}>
-                    <ArrowUpRight size={14} color={C.teal} />
+                    <ArrowUpRight size={14} color="#6EE7B7" />
                     <Text style={s.heroBtnTextSec}>Redeem Cash</Text>
                   </Pressable>
                 </View>
@@ -595,21 +761,21 @@ export default function WalletScreen() {
           {/* Money Coach & Recent Activity */}
           <View style={s.twoColRow}>
             {/* Money Coach Assistant — Inline Preview Panel */}
-            <View style={s.colCard}>
+            <View style={[s.colCard, { backgroundColor: colors.bgCard, borderColor: colors.border }, colors.cardShadow]}>
               <View style={s.cardHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Sparkles size={16} color={C.purpleL} />
-                  <Text style={s.sectionTitle}>MONEY COACH AI</Text>
+                  <Sparkles size={16} color={colors.purpleL} />
+                  <Text style={[s.sectionTitle, { color: colors.kpiLabel }]}>MONEY COACH AI</Text>
                 </View>
                 <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(52,211,153,0.15)' }}>
-                  <Text style={{ color: C.green, fontSize: 10, fontFamily: 'DMSans_700Bold' }}>● LIVE</Text>
+                  <Text style={{ color: C.green, fontSize: 10, fontFamily: FT.bold }}>● LIVE</Text>
                 </View>
               </View>
 
               {/* Greeting Banner */}
               <View style={{
-                backgroundColor: 'rgba(59,130,246,0.10)',
-                borderColor: 'rgba(59,130,246,0.25)',
+                backgroundColor: colors.infoBoxBg,
+                borderColor: colors.infoBoxBorder,
                 borderWidth: 1,
                 borderRadius: 12,
                 padding: 14,
@@ -621,10 +787,10 @@ export default function WalletScreen() {
                   <Sparkles size={18} color="#FFF" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#FFF', fontSize: 13, fontFamily: 'DMSans_700Bold' }}>
+                  <Text style={{ color: colors.text, fontSize: 13, fontFamily: FT.bold }}>
                     Hi {studentName}! 👋 I'm your Money Coach.
                   </Text>
-                  <Text style={{ color: C.textSub, fontSize: 11.5, fontFamily: 'DMSans_400Regular', marginTop: 2 }}>
+                  <Text style={{ color: colors.textSub, fontSize: 11.5, fontFamily: FT.reg, marginTop: 2 }}>
                     Ask me anything about your credits, savings, or spending patterns.
                   </Text>
                 </View>
@@ -632,20 +798,20 @@ export default function WalletScreen() {
 
               {/* Quick Insights */}
               <View style={{ gap: 8 }}>
-                <Text style={{ color: C.purpleXL, fontSize: 10.5, fontFamily: 'DMSans_700Bold', letterSpacing: 0.8 }}>QUICK INSIGHTS</Text>
+                <Text style={{ color: colors.kpiLabel, fontSize: 10.5, fontFamily: FT.bold, letterSpacing: 0.8 }}>QUICK INSIGHTS</Text>
                 {[
                   { icon: TrendingUp, color: '#34D399', text: `You've earned ${fmtCredits(data?.lifetime_earned || 42500)} total credits. Keep going!` },
                   { icon: Star,       color: '#FBBF24', text: 'Complete your profile to unlock 500 bonus credits this week.' },
-                  { icon: Zap,        color: '#60A5FA', text: `You're ${7500} pts away from Sapphire tier — attend 1 event to fast-track.` },
+                  { icon: Zap,        color: '#60A5FA', text: `You're 7,500 pts away from Sapphire tier — attend 1 event to fast-track.` },
                 ].map((tip, i) => (
                   <View key={i} style={{
                     flexDirection: 'row', alignItems: 'center', gap: 10,
-                    backgroundColor: 'rgba(255,255,255,0.03)',
-                    borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1,
+                    backgroundColor: colors.txRowBg,
+                    borderColor: colors.border, borderWidth: 1,
                     borderRadius: 10, padding: 10,
                   }}>
                     <tip.icon size={15} color={tip.color} />
-                    <Text style={{ flex: 1, color: C.text2, fontSize: 12, fontFamily: 'DMSans_400Regular', lineHeight: 17 }}>
+                    <Text style={{ flex: 1, color: colors.text2, fontSize: 12, fontFamily: FT.reg, lineHeight: 17 }}>
                       {tip.text}
                     </Text>
                   </View>
@@ -654,7 +820,7 @@ export default function WalletScreen() {
 
               {/* Slash Command Chips */}
               <View style={{ gap: 6 }}>
-                <Text style={{ color: C.purpleXL, fontSize: 10.5, fontFamily: 'DMSans_700Bold', letterSpacing: 0.8 }}>TRY A COMMAND</Text>
+                <Text style={{ color: colors.kpiLabel, fontSize: 10.5, fontFamily: FT.bold, letterSpacing: 0.8 }}>TRY A COMMAND</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                   {[
                     { cmd: '/credit-plan', label: '🚀 Credit Plan' },
@@ -674,12 +840,12 @@ export default function WalletScreen() {
                       style={({ hovered }: any) => ({
                         paddingHorizontal: 12, paddingVertical: 6,
                         borderRadius: 999,
-                        backgroundColor: hovered ? 'rgba(59,130,246,0.18)' : 'rgba(59,130,246,0.08)',
-                        borderColor: 'rgba(59,130,246,0.30)', borderWidth: 1,
+                        backgroundColor: hovered ? (isDark ? 'rgba(59,130,246,0.22)' : '#DBEAFE') : colors.infoBoxBg,
+                        borderColor: colors.infoBoxBorder, borderWidth: 1,
                         cursor: 'pointer',
                       } as any)}
                     >
-                      <Text style={{ color: C.purpleL, fontSize: 11.5, fontFamily: 'DMSans_700Bold' }}>
+                      <Text style={{ color: colors.purpleL, fontSize: 11.5, fontFamily: FT.bold }}>
                         {chip.label}
                       </Text>
                     </Pressable>
@@ -696,13 +862,13 @@ export default function WalletScreen() {
                 }}
                 style={({ hovered }: any) => ({
                   flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  backgroundColor: hovered ? '#2563EB' : '#1D4ED8',
+                  backgroundColor: hovered ? '#1D4ED8' : '#2563EB',
                   borderRadius: 12, paddingVertical: 12, marginTop: 4,
                   cursor: 'pointer',
                 } as any)}
               >
                 <Sparkles size={15} color="#FFF" />
-                <Text style={{ color: '#FFF', fontSize: 13, fontFamily: 'DMSans_700Bold' }}>
+                <Text style={{ color: '#FFF', fontSize: 13, fontFamily: FT.bold }}>
                   Open Money Coach Chat
                 </Text>
                 <ChevronRight size={15} color="#FFF" />
@@ -711,17 +877,17 @@ export default function WalletScreen() {
             </View>
 
             {/* Recent Activity */}
-            <View style={s.colCard}>
+            <View style={[s.colCard, { backgroundColor: colors.bgCard, borderColor: colors.border }, colors.cardShadow]}>
               <View style={s.cardHeader}>
-                <Text style={s.sectionTitle}>RECENT ACTIVITY</Text>
+                <Text style={[s.sectionTitle, { color: colors.kpiLabel }]}>RECENT ACTIVITY</Text>
                 <Pressable onPress={() => setTab('history')}>
-                  <Text style={s.cardBottomLinkText}>View All ➔</Text>
+                  <Text style={[s.cardBottomLinkText, { color: colors.purpleL }]}>View All ➔</Text>
                 </Pressable>
               </View>
 
               <View style={{ gap: 10 }}>
                 {(data?.history || []).slice(0, 4).map((tx, idx) => (
-                  <View key={tx.id || idx} style={s.txRow}>
+                  <View key={tx.id || idx} style={[s.txRow, { backgroundColor: colors.txRowBg, borderColor: colors.border }]}>
                     <View style={[s.txIconBox, { backgroundColor: tx.type === 'credit' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(248, 113, 113, 0.15)' }]}>
                       {tx.type === 'credit' ? (
                         <ArrowDownLeft size={16} color={C.green} />
@@ -730,8 +896,8 @@ export default function WalletScreen() {
                       )}
                     </View>
                     <View style={{ flex: 1, gap: 2 }}>
-                      <Text style={s.txReason}>{tx.reason}</Text>
-                      <Text style={s.txDate}>{tx.ts ? new Date(tx.ts).toLocaleDateString() : 'Recent'}</Text>
+                      <Text style={[s.txReason, { color: colors.text }]}>{tx.reason}</Text>
+                      <Text style={[s.txDate, { color: colors.textSub }]}>{tx.ts ? new Date(tx.ts).toLocaleDateString() : 'Recent'}</Text>
                     </View>
                     <Text style={[s.txAmount, { color: tx.type === 'credit' ? C.green : C.red }]}>
                       {tx.type === 'credit' ? '+' : '-'}{fmtCredits(tx.amount)} pts
@@ -755,195 +921,356 @@ export default function WalletScreen() {
                 { id: 'all', label: `All (${myCoupons.length})` },
                 { id: 'active', label: `Active (${activeCount})` },
                 { id: 'used', label: `Used (${usedCount})` },
-              ].map((f) => (
-                <Pressable
-                  key={f.id}
-                  onPress={() => setCouponFilter(f.id as any)}
-                  style={[s.filterChip, couponFilter === f.id && s.filterChipActive]}
-                >
-                  <Text style={[s.filterChipText, couponFilter === f.id && s.filterChipTextActive]}>
-                    {f.label}
-                  </Text>
-                </Pressable>
-              ))}
+                { id: 'locked', label: `Locked (${lockedCount})` },
+              ].map((f) => {
+                const isSel = couponFilter === f.id;
+                return (
+                  <Pressable
+                    key={f.id}
+                    onPress={() => setCouponFilter(f.id as any)}
+                    style={[
+                      s.filterChip,
+                      {
+                        backgroundColor: isSel ? '#2563EB' : colors.tabInactiveBg,
+                        borderColor: isSel ? '#3B82F6' : colors.tabInactiveBorder,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        s.filterChipText,
+                        { color: isSel ? '#FFFFFF' : colors.tabInactiveText },
+                        isSel && s.filterChipTextActive,
+                      ]}
+                    >
+                      {f.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
 
             {/* Search Input */}
-            <View style={s.searchWrap}>
-              <Search size={15} color={C.purpleL} style={{ marginRight: 8 }} />
+            <View style={[s.searchWrap, { backgroundColor: colors.searchBg, borderColor: colors.searchBorder }]}>
+              <Search size={15} color={colors.purpleL} style={{ marginRight: 8 }} />
               <TextInput
                 value={couponSearch}
                 onChangeText={setCouponSearch}
                 placeholder="Search by brand or code..."
-                placeholderTextColor="#94A3B8"
-                style={s.searchInput}
+                placeholderTextColor={colors.dim}
+                style={[s.searchInput, { color: colors.text }]}
               />
               {!!couponSearch && (
                 <Pressable onPress={() => setCouponSearch('')}>
-                  <X size={15} color={C.purpleL} />
+                  <X size={15} color={colors.purpleL} />
                 </Pressable>
               )}
             </View>
           </View>
 
-          {/* Section 1: My Redeemed Coupons Grid */}
-          <View>
-            <View style={s.couponSectionHeader}>
-              <Text style={s.couponSectionTitle}>MY REDEEMED COUPONS</Text>
-              <Text style={s.couponSectionSub}>
-                Copy your unique voucher code and click "Use Now" to apply on partner websites.
-              </Text>
+          {/* Help Note */}
+          <View style={{
+            padding: 16,
+            backgroundColor: colors.infoBoxBg,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors.infoBoxBorder,
+            marginBottom: 16,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Info size={16} color="#2563EB" />
+              <Text style={{ fontSize: 14, fontFamily: FT.bold, color: '#2563EB' }}>How Coupons Work</Text>
             </View>
-
-            {filteredMyCoupons.length === 0 ? (
-              <View style={s.emptyBox}>
-                <Tag size={40} color={C.dim} />
-                <Text style={s.emptyTitle}>No coupons found</Text>
-                <Text style={s.emptySub}>Redeem partner coupons below to get instant discount codes!</Text>
-              </View>
-            ) : (
-              <View style={s.couponsGrid}>
-                {filteredMyCoupons.map((c) => (
-                  <View key={c.id} style={[s.couponCard, { borderColor: c.accent + '33' }]}>
-                    <View style={s.couponCardHeader}>
-                      <View style={[s.couponBrandBadge, { backgroundColor: c.accent + '20', borderColor: c.accent + '40' }]}>
-                        <Text style={[s.couponBrandText, { color: c.accent }]}>{c.brand}</Text>
-                      </View>
-                      <View style={[s.statusPill, { backgroundColor: c.status === 'active' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(240, 238, 255, 0.1)' }]}>
-                        <Text style={[s.statusPillText, { color: c.status === 'active' ? C.green : C.dim }]}>
-                          {c.status === 'active' ? '● Ready to Use' : '✓ Used'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <Text style={s.couponTitle}>{c.title}</Text>
-                    <Text style={s.couponExpiry}>{c.expiry}</Text>
-
-                    {/* Voucher Code Box */}
-                    <View style={s.voucherCodeBox}>
-                      <Text style={s.voucherCodeText}>{c.code}</Text>
-                      <Pressable onPress={() => copyCouponCode(c.code)} style={s.copyBtn}>
-                        <Copy size={13} color={C.purpleL} />
-                        <Text style={s.copyBtnText}>Copy</Text>
-                      </Pressable>
-                    </View>
-
-                    {/* Action Buttons */}
-                    <View style={s.couponActionRow}>
-                      <Pressable
-                        onPress={() => {
-                          if (c.url) Linking.openURL(c.url);
-                        }}
-                        style={s.useNowBtn}
-                      >
-                        <Text style={s.useNowBtnText}>Use Now</Text>
-                        <ExternalLink size={12} color="#FFF" />
-                      </Pressable>
-
-                      {c.status === 'active' && (
-                        <Pressable
-                          onPress={() => markCouponAsUsed(c.id)}
-                          style={s.markUsedBtn}
-                        >
-                          <CheckCircle2 size={12} color={C.textSub} />
-                          <Text style={s.markUsedText}>Mark Used</Text>
-                        </Pressable>
-                      )}
-                    </View>
-                  </View>
-                ))}
-              </View>
-            )}
+            <Text style={{ fontSize: 13, color: colors.text2, lineHeight: 20, fontFamily: FT.reg }}>
+              • <Text style={{ fontFamily: FT.bold, color: '#7C3AED' }}>Food & Beverages</Text> — Show the code at event stalls to get discounts on food orders.{'\n'}
+              • <Text style={{ fontFamily: FT.bold, color: '#2563EB' }}>Partner</Text> — Use these codes on partner websites (Coursera, Spotify, etc.) for free access or discounts.{'\n'}
+              • <Text style={{ fontFamily: FT.bold, color: '#059669' }}>Event</Text> — Apply at event registration checkout for discounts.{'\n'}
+              • <Text style={{ fontFamily: FT.bold, color: '#D97706' }}>Promo</Text> — General platform promotions available to all users.{'\n\n'}
+              <Text style={{ fontFamily: FT.bold, color: '#EF4444' }}>Locked coupons</Text> will become available during the event. Copy the code and use "Use Now" to visit the partner website.
+            </Text>
           </View>
 
-          {/* Section 2: Catalog of Redeemable Partner Coupons */}
-          <View style={{ marginTop: 20 }}>
-            <View style={s.couponSectionHeader}>
-              <Text style={s.couponSectionTitle}>REDEEM NEW PARTNER COUPONS</Text>
-              <Text style={s.couponSectionSub}>
-                Use your SA Credits balance to unlock exclusive discounts & free passes.
-              </Text>
-            </View>
+          {/* If filtering by "used", show redeemed list immediately */}
+          {couponFilter === 'used' ? (
+            <View>
+              <View style={s.couponSectionHeader}>
+                <Text style={[s.couponSectionTitle, { color: colors.text }]}>REDEEMED COUPONS</Text>
+                <Text style={[s.couponSectionSub, { color: colors.textSub }]}>
+                  Coupons you've already used.
+                </Text>
+              </View>
 
-            <View style={s.couponsGrid}>
-              {AVAILABLE_CATALOG_COUPONS.map((cat) => (
-                <View key={cat.id} style={[s.couponCard, { borderColor: 'rgba(255,255,255,0.08)' }]}>
-                  <View style={s.couponCardHeader}>
-                    <View style={[s.couponBrandBadge, { backgroundColor: cat.accent + '20', borderColor: cat.accent + '40' }]}>
-                      <Text style={[s.couponBrandText, { color: cat.accent }]}>{cat.brand}</Text>
+              {usedCoupons.length === 0 ? (
+                <View style={[s.emptyBox, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+                  <Tag size={40} color={colors.dim} />
+                  <Text style={[s.emptyTitle, { color: colors.text }]}>No redeemed coupons yet</Text>
+                  <Text style={[s.emptySub, { color: colors.textSub }]}>Use a coupon code and it will appear here.</Text>
+                </View>
+              ) : (
+                <View style={s.couponsGrid}>
+                  {usedCoupons.map((c) => (
+                    <View
+                      key={c.id}
+                      style={[
+                        s.couponCard,
+                        {
+                          backgroundColor: colors.bgCard,
+                          borderColor: c.locked ? 'rgba(239,68,68,0.25)' : (isDark ? c.accent + '33' : colors.border),
+                          opacity: c.locked ? 0.8 : 1,
+                        },
+                        colors.cardShadow,
+                      ]}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+                        {c.brand && !c.brand.includes('Student Alumni') ? (
+                          <View style={[s.couponBrandBadge, { backgroundColor: c.accent + '20', borderColor: c.accent + '40' }]}>
+                            <Text style={[s.couponBrandText, { color: c.accent }]}>{c.brand}</Text>
+                          </View>
+                        ) : null}
+                        {c.event_id ? (
+                          <View style={[s.statusPill, { backgroundColor: 'rgba(124,92,246,0.15)', paddingHorizontal: 8, paddingVertical: 3 }]}>
+                            <Text style={{ fontSize: 10, fontFamily: FT.bold, color: '#7C3AED', letterSpacing: 0.3 }}>{c.event_id}</Text>
+                          </View>
+                        ) : null}
+                        <View style={[s.statusPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }]}>
+                          <Text style={[s.statusPillText, { color: colors.dim }]}>✓ Used</Text>
+                        </View>
+                      </View>
+
+                      <Text style={[s.couponTitle, { color: colors.text }]}>{c.title}</Text>
+                      <Text style={{ fontSize: 12, color: colors.textSub, marginTop: 2, fontFamily: FT.med }}>{c.discount}</Text>
+
+                      <View style={[s.voucherCodeBox, { backgroundColor: colors.codeBoxBg, borderColor: colors.codeBoxBorder }]}>
+                        <Text style={[s.voucherCodeText, { color: colors.codeBoxText }]}>{c.code}</Text>
+                        <Pressable onPress={() => copyCouponCode(c.code)} style={[s.copyBtn, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF' }]}>
+                          <Copy size={13} color={colors.purpleL} />
+                          <Text style={[s.copyBtnText, { color: colors.purpleL }]}>Copy</Text>
+                        </Pressable>
+                      </View>
                     </View>
-                    <View style={s.discountChip}>
-                      <Text style={s.discountChipText}>{cat.discount}</Text>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : (
+            <>
+              {/* Coupons grouped by category */}
+              {(['marketplace', 'partner', 'event', 'promo'] as const).map((cat) => {
+                const catCoupons = availableCoupons.filter((c) => {
+                  if (c.category !== cat) return false;
+                  if (couponFilter === 'locked') return c.locked;
+                  if (couponFilter === 'active') return !c.locked && c.status === 'active';
+                  return true;
+                });
+                if (catCoupons.length === 0) return null;
+                const catLabel = cat === 'marketplace' ? 'Food & Beverages' : cat === 'partner' ? 'Partner Offers' : cat === 'event' ? 'Event Discounts' : 'Promotions';
+                const catColor = cat === 'marketplace' ? '#8B5CF6' : cat === 'partner' ? '#3B82F6' : cat === 'event' ? '#10B981' : '#F59E0B';
+                return (
+                  <View key={cat} style={{ marginBottom: 24 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                      <Text style={{ fontSize: 14, fontFamily: FT.bold, color: catColor }}>{catLabel}</Text>
+                      <View style={{ flex: 1, height: 1, backgroundColor: catColor + '33' }} />
+                      <Text style={{ fontSize: 12, color: colors.textSub, fontFamily: FT.med }}>{catCoupons.length}</Text>
+                    </View>
+                    <View style={s.couponsGrid}>
+                      {catCoupons.map((c) => (
+                        <View
+                          key={c.id}
+                          style={[
+                            s.couponCard,
+                            {
+                              backgroundColor: colors.bgCard,
+                              borderColor: c.locked ? 'rgba(239,68,68,0.25)' : (isDark ? c.accent + '33' : colors.border),
+                              opacity: c.locked ? 0.8 : 1,
+                            },
+                            colors.cardShadow,
+                          ]}
+                        >
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                            {c.brand && !c.brand.includes('Student Alumni') ? (
+                              <View style={[s.couponBrandBadge, { backgroundColor: c.accent + '20', borderColor: c.accent + '40' }]}>
+                                <Text style={[s.couponBrandText, { color: c.accent }]}>{c.brand}</Text>
+                              </View>
+                            ) : null}
+                            {c.event_id ? (
+                              <View style={[s.statusPill, { backgroundColor: 'rgba(124,92,246,0.15)', paddingHorizontal: 8, paddingVertical: 3 }]}>
+                                <Text style={{ fontSize: 10, fontFamily: FT.bold, color: '#7C3AED', letterSpacing: 0.3 }}>{c.event_id}</Text>
+                              </View>
+                            ) : null}
+                            <View style={[s.statusPill, { backgroundColor: c.locked ? 'rgba(239,68,68,0.12)' : 'rgba(52, 211, 153, 0.15)' }]}>
+                              {c.locked ? (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                  <Lock size={10} color="#EF4444" />
+                                  <Text style={[s.statusPillText, { color: '#EF4444' }]}>Locked</Text>
+                                </View>
+                              ) : (
+                                <Text style={[s.statusPillText, { color: C.green }]}>● Ready</Text>
+                              )}
+                            </View>
+                          </View>
+
+                          <Text style={[s.couponTitle, { color: colors.text }]}>{c.title}</Text>
+                          <Text style={{ fontSize: 12, color: colors.textSub, marginTop: 2, fontFamily: FT.med }}>{c.discount}</Text>
+
+                          {c.instructions ? (
+                            <Pressable
+                              onPress={() => setInstructionModal({ title: c.brand || c.code, instructions: c.instructions || '', website: c.url })}
+                              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, marginBottom: 4, paddingVertical: 2 }}
+                            >
+                              <Info size={11} color="#2563EB" />
+                              <Text style={{ fontSize: 11, color: '#2563EB', flex: 1, fontFamily: FT.med }} numberOfLines={2}>{c.instructions}</Text>
+                              <Text style={{ fontSize: 10, color: '#2563EB', fontFamily: FT.bold }}>Details →</Text>
+                            </Pressable>
+                          ) : null}
+
+                          {!c.locked && (
+                            <View style={[s.voucherCodeBox, { backgroundColor: colors.codeBoxBg, borderColor: colors.codeBoxBorder }]}>
+                              <Text style={[s.voucherCodeText, { color: colors.codeBoxText }]}>{c.code}</Text>
+                              <Pressable onPress={() => copyCouponCode(c.code)} style={[s.copyBtn, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF' }]}>
+                                <Copy size={13} color={colors.purpleL} />
+                                <Text style={[s.copyBtnText, { color: colors.purpleL }]}>Copy</Text>
+                              </Pressable>
+                            </View>
+                          )}
+
+                          {c.locked && (
+                            <View style={[s.voucherCodeBox, { backgroundColor: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.2)' }]}>
+                              <Lock size={13} color="#EF4444" />
+                              <Text style={{ fontSize: 12, color: '#EF4444', fontFamily: FT.bold }}>Available during event</Text>
+                            </View>
+                          )}
+
+                          {!c.locked && (
+                            <View style={s.couponActionRow}>
+                              <Pressable onPress={() => { if (c.url) Linking.openURL(c.url); }} style={s.useNowBtn}>
+                                <Text style={s.useNowBtnText}>Use Now</Text>
+                                <ExternalLink size={12} color="#FFF" />
+                              </Pressable>
+                              {c.status === 'active' && (
+                                <Pressable
+                                  onPress={() => markCouponAsUsed(c.id)}
+                                  style={[s.markUsedBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }]}
+                                >
+                                  <CheckCircle2 size={12} color={colors.textSub} />
+                                  <Text style={[s.markUsedText, { color: colors.textSub }]}>Mark Used</Text>
+                                </Pressable>
+                              )}
+                            </View>
+                          )}
+                        </View>
+                      ))}
                     </View>
                   </View>
+                );
+              })}
 
-                  <Text style={s.couponTitle}>{cat.title}</Text>
-                  <Text style={s.couponExpiry}>{cat.expiry}</Text>
+              {/* Redeemed Coupons Summary in All Tab */}
+              {couponFilter === 'all' && usedCoupons.length > 0 && (
+                <View style={{ marginTop: 12 }}>
+                  <View style={s.couponSectionHeader}>
+                    <Text style={[s.couponSectionTitle, { color: colors.text }]}>REDEEMED COUPONS</Text>
+                    <Text style={[s.couponSectionSub, { color: colors.textSub }]}>
+                      Coupons you've already used.
+                    </Text>
+                  </View>
 
-                  <View style={s.redeemCatalogFooter}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      <Star size={14} color={C.amber} />
-                      <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>{cat.cost_credits} Pts</Text>
-                    </View>
+                  <View style={s.couponsGrid}>
+                    {usedCoupons.map((c) => (
+                      <View
+                        key={c.id}
+                        style={[
+                          s.couponCard,
+                          {
+                            backgroundColor: colors.bgCard,
+                            borderColor: colors.border,
+                          },
+                          colors.cardShadow,
+                        ]}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+                          {c.brand && !c.brand.includes('Student Alumni') ? (
+                            <View style={[s.couponBrandBadge, { backgroundColor: c.accent + '20', borderColor: c.accent + '40' }]}>
+                              <Text style={[s.couponBrandText, { color: c.accent }]}>{c.brand}</Text>
+                            </View>
+                          ) : null}
+                          <View style={[s.statusPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }]}>
+                            <Text style={[s.statusPillText, { color: colors.dim }]}>✓ Used</Text>
+                          </View>
+                        </View>
 
-                    <Pressable
-                      onPress={() => redeemCatalogCoupon(cat)}
-                      style={s.redeemCatalogBtn}
-                    >
-                      <Text style={s.redeemCatalogBtnText}>Redeem Coupon</Text>
-                    </Pressable>
+                        <Text style={[s.couponTitle, { color: colors.text }]}>{c.title}</Text>
+                        <Text style={{ fontSize: 12, color: colors.textSub, marginTop: 2, fontFamily: FT.med }}>{c.discount}</Text>
+
+                        <View style={[s.voucherCodeBox, { backgroundColor: colors.codeBoxBg, borderColor: colors.codeBoxBorder }]}>
+                          <Text style={[s.voucherCodeText, { color: colors.codeBoxText }]}>{c.code}</Text>
+                          <Pressable onPress={() => copyCouponCode(c.code)} style={[s.copyBtn, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF' }]}>
+                            <Copy size={13} color={colors.purpleL} />
+                            <Text style={[s.copyBtnText, { color: colors.purpleL }]}>Copy</Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                    ))}
                   </View>
                 </View>
-              ))}
-            </View>
-          </View>
+              )}
+            </>
+          )}
         </View>
       )}
 
       {/* ── TAB 3: ADD FUNDS ── */}
       {tab === 'topup' && (
-        <View style={s.formColCard}>
+        <View style={[s.formColCard, { backgroundColor: colors.bgCard, borderColor: colors.border }, colors.cardShadow]}>
           <View style={s.cardHeader}>
-            <Text style={s.sectionTitle}>ADD FUNDS TO WALLET</Text>
+            <Text style={[s.sectionTitle, { color: colors.kpiLabel }]}>ADD FUNDS TO WALLET</Text>
           </View>
-          <Text style={{ color: C.text2, fontSize: 14 }}>
+          <Text style={{ color: colors.text2, fontSize: 14, fontFamily: FT.reg }}>
             Top up your SA Wallet using UPI, Card, or Netbanking. Get +10% bonus SA credits on every top-up!
           </Text>
 
           {/* Amount Presets */}
           <View style={{ gap: 8, marginTop: 8 }}>
-            <Text style={s.inputLabel}>SELECT AMOUNT (INR)</Text>
+            <Text style={[s.inputLabel, { color: colors.kpiLabel }]}>SELECT AMOUNT (INR)</Text>
             <View style={s.presetsGrid}>
-              {TOPUP_PRESETS.map((amt) => (
-                <Pressable
-                  key={`top-preset-${amt}`}
-                  onPress={() => setTopupAmount(String(amt))}
-                  style={[s.presetChip, topupAmount === String(amt) && s.presetChipActive]}
-                >
-                  <Text style={[s.presetText, topupAmount === String(amt) && s.presetTextActive]}>
-                    ₹{amt}
-                  </Text>
-                </Pressable>
-              ))}
+              {TOPUP_PRESETS.map((amt) => {
+                const isSel = topupAmount === String(amt);
+                return (
+                  <Pressable
+                    key={`top-preset-${amt}`}
+                    onPress={() => setTopupAmount(String(amt))}
+                    style={[
+                      s.presetChip,
+                      {
+                        backgroundColor: isSel ? '#2563EB' : (isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9'),
+                        borderColor: isSel ? '#3B82F6' : colors.border,
+                      },
+                    ]}
+                  >
+                    <Text style={[s.presetText, { color: isSel ? '#FFFFFF' : colors.text }]}>
+                      ₹{amt}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
           </View>
 
           {/* Custom Input */}
           <View style={{ gap: 6 }}>
-            <Text style={s.inputLabel}>CUSTOM AMOUNT (INR)</Text>
+            <Text style={[s.inputLabel, { color: colors.kpiLabel }]}>CUSTOM AMOUNT (INR)</Text>
             <TextInput
               value={topupAmount}
               onChangeText={setTopupAmount}
               keyboardType="numeric"
               placeholder="Enter amount in ₹"
-              placeholderTextColor={C.dim}
-              style={s.textInputCustom}
+              placeholderTextColor={colors.dim}
+              style={[s.textInputCustom, { backgroundColor: colors.inputBg, borderColor: colors.border2, color: colors.text }]}
             />
           </View>
 
           {/* Payment Method Selector */}
           <View style={{ gap: 8 }}>
-            <Text style={s.inputLabel}>PAYMENT METHOD</Text>
+            <Text style={[s.inputLabel, { color: colors.kpiLabel }]}>PAYMENT METHOD</Text>
             <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
               {[
                 { id: 'upi', label: 'UPI / GPay / PhonePe', icon: Zap },
@@ -956,10 +1283,18 @@ export default function WalletScreen() {
                   <Pressable
                     key={m.id}
                     onPress={() => setTopupMethod(m.id as any)}
-                    style={[s.methodBox, isSel && s.methodBoxActive]}
+                    style={[
+                      s.methodBox,
+                      {
+                        backgroundColor: isSel ? (isDark ? 'rgba(59, 130, 246, 0.12)' : '#EFF6FF') : (isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC'),
+                        borderColor: isSel ? '#2563EB' : colors.border,
+                      },
+                    ]}
                   >
-                    <IconC size={16} color={isSel ? C.purpleL : C.textSub} />
-                    <Text style={[s.methodText, isSel && s.methodTextActive]}>{m.label}</Text>
+                    <IconC size={16} color={isSel ? colors.purpleL : colors.textSub} />
+                    <Text style={[s.methodText, { color: isSel ? colors.purpleL : colors.textSub }, isSel && s.methodTextActive]}>
+                      {m.label}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -967,17 +1302,17 @@ export default function WalletScreen() {
           </View>
 
           {/* Calculation summary */}
-          <View style={s.calcSummaryBox}>
+          <View style={[s.calcSummaryBox, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
             <View style={s.calcRow}>
-              <Text style={s.calcLabel}>Top-up Amount:</Text>
-              <Text style={s.calcVal}>{fmtINR(parseFloat(topupAmount) || 0)}</Text>
+              <Text style={[s.calcLabel, { color: colors.textSub }]}>Top-up Amount:</Text>
+              <Text style={[s.calcVal, { color: colors.text }]}>{fmtINR(parseFloat(topupAmount) || 0)}</Text>
             </View>
             <View style={s.calcRow}>
-              <Text style={s.calcLabel}>Base SA Credits (25x):</Text>
-              <Text style={s.calcVal}>+{fmtCredits((parseFloat(topupAmount) || 0) * 25)} Pts</Text>
+              <Text style={[s.calcLabel, { color: colors.textSub }]}>Base SA Credits (25x):</Text>
+              <Text style={[s.calcVal, { color: colors.text }]}>+{fmtCredits((parseFloat(topupAmount) || 0) * 25)} Pts</Text>
             </View>
             <View style={s.calcRow}>
-              <Text style={s.calcLabel}>10% Bonus Points:</Text>
+              <Text style={[s.calcLabel, { color: colors.textSub }]}>10% Bonus Points:</Text>
               <Text style={[s.calcVal, { color: C.green }]}>+{fmtCredits((parseFloat(topupAmount) || 0) * 2.5)} Pts</Text>
             </View>
           </View>
@@ -998,36 +1333,36 @@ export default function WalletScreen() {
 
       {/* ── TAB 4: REDEEM / CASHOUT ── */}
       {tab === 'withdraw' && (
-        <View style={s.formColCard}>
+        <View style={[s.formColCard, { backgroundColor: colors.bgCard, borderColor: colors.border }, colors.cardShadow]}>
           <View style={s.cardHeader}>
-            <Text style={s.sectionTitle}>REDEEM SA CREDITS FOR CASH</Text>
+            <Text style={[s.sectionTitle, { color: colors.kpiLabel }]}>REDEEM SA CREDITS FOR CASH</Text>
           </View>
-          <Text style={{ color: C.text2, fontSize: 14 }}>
+          <Text style={{ color: colors.text2, fontSize: 14, fontFamily: FT.reg }}>
             Convert your earned SA Credits back to real cash. Funds are transferred directly to your UPI ID or Bank account.
           </Text>
 
           {/* Custom Input */}
           <View style={{ gap: 6 }}>
-            <Text style={s.inputLabel}>AMOUNT TO CASH OUT (INR)</Text>
+            <Text style={[s.inputLabel, { color: colors.kpiLabel }]}>AMOUNT TO CASH OUT (INR)</Text>
             <TextInput
               value={wdAmountInr}
               onChangeText={setWdAmountInr}
               keyboardType="numeric"
               placeholder="Minimum ₹100"
-              placeholderTextColor={C.dim}
-              style={s.textInputCustom}
+              placeholderTextColor={colors.dim}
+              style={[s.textInputCustom, { backgroundColor: colors.inputBg, borderColor: colors.border2, color: colors.text }]}
             />
           </View>
 
           {/* Withdrawal Target Input */}
           <View style={{ gap: 6 }}>
-            <Text style={s.inputLabel}>ENTER YOUR UPI ID OR BANK DETAILS</Text>
+            <Text style={[s.inputLabel, { color: colors.kpiLabel }]}>ENTER YOUR UPI ID OR BANK DETAILS</Text>
             <TextInput
               value={wdTarget}
               onChangeText={setWdTarget}
               placeholder="e.g. username@upi or Account Number & IFSC"
-              placeholderTextColor={C.dim}
-              style={s.textInputCustom}
+              placeholderTextColor={colors.dim}
+              style={[s.textInputCustom, { backgroundColor: colors.inputBg, borderColor: colors.border2, color: colors.text }]}
             />
           </View>
 
@@ -1047,14 +1382,14 @@ export default function WalletScreen() {
 
       {/* ── TAB 5: HISTORY ── */}
       {tab === 'history' && (
-        <View style={s.formColCard}>
+        <View style={[s.formColCard, { backgroundColor: colors.bgCard, borderColor: colors.border }, colors.cardShadow]}>
           <View style={s.cardHeader}>
-            <Text style={s.sectionTitle}>TRANSACTION HISTORY</Text>
+            <Text style={[s.sectionTitle, { color: colors.kpiLabel }]}>TRANSACTION HISTORY</Text>
           </View>
 
           <View style={{ gap: 12 }}>
             {(data?.history || []).map((tx, idx) => (
-              <View key={tx.id || idx} style={s.txFullRow}>
+              <View key={tx.id || idx} style={[s.txFullRow, { backgroundColor: colors.txRowBg, borderColor: colors.border }]}>
                 <View style={[s.txIconBox, { backgroundColor: tx.type === 'credit' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(248, 113, 113, 0.15)' }]}>
                   {tx.type === 'credit' ? (
                     <ArrowDownLeft size={18} color={C.green} />
@@ -1064,8 +1399,8 @@ export default function WalletScreen() {
                 </View>
 
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={s.txFullReason}>{tx.reason}</Text>
-                  <Text style={s.txFullMeta}>
+                  <Text style={[s.txFullReason, { color: colors.text }]}>{tx.reason}</Text>
+                  <Text style={[s.txFullMeta, { color: colors.textSub }]}>
                     ID: {tx.id || 'TX-8921'} · {tx.ts ? new Date(tx.ts).toLocaleString() : 'Recent'}
                   </Text>
                 </View>
@@ -1074,13 +1409,64 @@ export default function WalletScreen() {
                   <Text style={[s.txFullAmount, { color: tx.type === 'credit' ? C.green : C.red }]}>
                     {tx.type === 'credit' ? '+' : '-'}{fmtCredits(tx.amount)} Pts
                   </Text>
-                  <Text style={s.txFullBal}>Bal: {fmtCredits(tx.balance_after || 0)} Pts</Text>
+                  <Text style={[s.txFullBal, { color: colors.dim }]}>Bal: {fmtCredits(tx.balance_after || 0)} Pts</Text>
                 </View>
               </View>
             ))}
           </View>
         </View>
       )}
+
+      {/* Instruction Detail Modal */}
+      <Modal visible={!!instructionModal} transparent animationType="fade" onRequestClose={() => setInstructionModal(null)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', alignItems: 'center', padding: 20 }} onPress={() => setInstructionModal(null)}>
+          <View
+            style={{
+              backgroundColor: colors.modalBg,
+              borderRadius: 20,
+              padding: 28,
+              maxWidth: 400,
+              width: '100%',
+              borderWidth: 1,
+              borderColor: colors.modalBorder,
+            }}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 18, fontFamily: FT.bold, color: colors.text, flex: 1 }}>{instructionModal?.title}</Text>
+              <Pressable onPress={() => setInstructionModal(null)} style={{ padding: 4 }}>
+                <X size={20} color={colors.textSub} />
+              </Pressable>
+            </View>
+            <View style={{ backgroundColor: colors.infoBoxBg, borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: colors.infoBoxBorder }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <Info size={14} color="#2563EB" />
+                <Text style={{ fontSize: 13, fontFamily: FT.bold, color: '#2563EB' }}>How to Redeem</Text>
+              </View>
+              <Text style={{ fontSize: 14, color: colors.text2, lineHeight: 20, fontFamily: FT.reg }}>{instructionModal?.instructions}</Text>
+            </View>
+            {instructionModal?.website ? (
+              <Pressable
+                onPress={() => Linking.openURL(instructionModal.website!)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  padding: 14,
+                  backgroundColor: isDark ? 'rgba(139,92,246,0.15)' : '#F5F3FF',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: isDark ? 'rgba(139,92,246,0.3)' : '#DDD6FE',
+                }}
+              >
+                <ExternalLink size={16} color="#7C3AED" />
+                <Text style={{ fontSize: 14, fontFamily: FT.bold, color: '#7C3AED' }}>Open Website</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </Pressable>
+      </Modal>
 
     </Container>
   );
@@ -1090,7 +1476,7 @@ export default function WalletScreen() {
 const s = StyleSheet.create({
   shell: {
     flex: 1,
-    backgroundColor: C.bg,
+    backgroundColor: '#0A1628',
   },
   embeddedShell: {
     flex: 1,
@@ -1121,7 +1507,6 @@ const s = StyleSheet.create({
     minWidth: 280,
   },
   greetingText: {
-    color: C.text,
     fontFamily: FT.med,
     fontSize: 15,
   },
@@ -1135,14 +1520,11 @@ const s = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.35)',
-    backgroundColor: 'rgba(59, 130, 246, 0.08)',
   },
   regenBtnHover: {
-    backgroundColor: 'rgba(59, 130, 246, 0.18)',
+    opacity: 0.9,
   },
   regenBtnText: {
-    color: C.purpleL,
     fontFamily: FT.bold,
     fontSize: 12,
   },
@@ -1153,10 +1535,10 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: C.purple2,
+    backgroundColor: '#2563EB',
   },
   reportBtnHover: {
-    backgroundColor: '#6366F1',
+    backgroundColor: '#1D4ED8',
   },
   reportBtnText: {
     color: '#FFF',
@@ -1173,8 +1555,6 @@ const s = StyleSheet.create({
   kpiCard: {
     flex: 1,
     minWidth: 160,
-    backgroundColor: C.bgCard,
-    borderColor: C.border,
     borderWidth: 1,
     borderRadius: 16,
     padding: 16,
@@ -1186,7 +1566,6 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
   },
   kpiLabel: {
-    color: C.purpleXL,
     fontFamily: FT.bold,
     fontSize: 11,
     letterSpacing: 1.1,
@@ -1199,15 +1578,10 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   kpiValue: {
-    color: '#FFF',
     fontFamily: FT.xbold,
     fontSize: 22,
-    textShadowColor: 'rgba(255,255,255,0.4)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
   },
   kpiSubText: {
-    color: C.textSub,
     fontFamily: FT.med,
     fontSize: 12,
   },
@@ -1216,16 +1590,10 @@ const s = StyleSheet.create({
   tabBarRow: {
     flexDirection: 'row',
     gap: 8,
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E2E8F0',
     borderWidth: 1,
     borderRadius: 14,
     padding: 6,
     flexWrap: 'wrap',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
   },
   tabItem: {
     flexDirection: 'row',
@@ -1239,7 +1607,6 @@ const s = StyleSheet.create({
     backgroundColor: '#2563EB',
   },
   tabText: {
-    color: '#475569',
     fontFamily: FT.bold,
     fontSize: 13,
   },
@@ -1251,8 +1618,8 @@ const s = StyleSheet.create({
   /* Hero Card */
   heroCard: {
     borderRadius: 16,
-    borderColor: 'rgba(30, 58, 110, 0.60)',
     borderWidth: 1,
+    borderColor: 'rgba(30, 58, 110, 0.60)',
     padding: 24,
     overflow: 'hidden',
   },
@@ -1262,7 +1629,7 @@ const s = StyleSheet.create({
     gap: 24,
   },
   heroOverline: {
-    color: C.purpleXL,
+    color: '#DBEAFE',
     fontFamily: FT.bold,
     fontSize: 11,
     letterSpacing: 1.2,
@@ -1271,12 +1638,9 @@ const s = StyleSheet.create({
     color: '#FFF',
     fontFamily: FT.xbold,
     fontSize: 38,
-    textShadowColor: 'rgba(255,255,255,0.4)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
   },
   heroBalanceSub: {
-    color: C.text2,
+    color: '#E0E7FF',
     fontFamily: FT.med,
     fontSize: 14,
   },
@@ -1290,7 +1654,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: C.purple2,
+    backgroundColor: '#2563EB',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
@@ -1304,40 +1668,40 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderColor: C.border2,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderColor: 'rgba(255,255,255,0.25)',
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 10,
   },
   heroBtnTextSec: {
-    color: C.text,
+    color: '#FFFFFF',
     fontFamily: FT.bold,
     fontSize: 13,
   },
   heroRightTile: {
     width: 240,
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    borderColor: C.border,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    borderColor: 'rgba(255,255,255,0.20)',
     borderWidth: 1,
     borderRadius: 14,
     padding: 16,
     gap: 6,
   },
   heroTileTitle: {
-    color: C.purpleXL,
+    color: '#DBEAFE',
     fontFamily: FT.bold,
     fontSize: 11,
     letterSpacing: 1,
   },
   heroTileVal: {
-    color: C.teal,
+    color: '#6EE7B7',
     fontFamily: FT.xbold,
     fontSize: 18,
   },
   heroTileDesc: {
-    color: C.textSub,
+    color: '#E0E7FF',
     fontFamily: FT.med,
     fontSize: 12,
     lineHeight: 16,
@@ -1351,8 +1715,6 @@ const s = StyleSheet.create({
   },
   colCard: {
     flex: 1,
-    backgroundColor: C.bgCard,
-    borderColor: C.border,
     borderWidth: 1,
     borderRadius: 16,
     padding: 20,
@@ -1364,13 +1726,11 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionTitle: {
-    color: C.purpleXL,
     fontFamily: FT.bold,
     fontSize: 16,
     letterSpacing: 1.1,
   },
   cardBottomLinkText: {
-    color: C.purpleL,
     fontFamily: FT.bold,
     fontSize: 13,
   },
@@ -1380,8 +1740,6 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: C.border,
     borderWidth: 1,
     borderRadius: 12,
     padding: 12,
@@ -1394,12 +1752,10 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   txReason: {
-    color: '#FFF',
     fontFamily: FT.bold,
     fontSize: 13,
   },
   txDate: {
-    color: C.textSub,
     fontFamily: FT.med,
     fontSize: 11,
   },
@@ -1419,38 +1775,25 @@ const s = StyleSheet.create({
   couponFilterGroup: {
     flexDirection: 'row',
     gap: 8,
+    flexWrap: 'wrap',
   },
   filterChip: {
     paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: 10,
-    backgroundColor: '#0F2347',
-    borderColor: '#2A4F8F',
-    borderWidth: 1.5,
-  },
-  filterChipActive: {
-    backgroundColor: '#2563EB',
-    borderColor: '#60A5FA',
     borderWidth: 1.5,
   },
   filterChipText: {
-    color: '#FFFFFF',
     fontFamily: FT.bold,
     fontSize: 13,
     letterSpacing: 0.2,
   },
   filterChipTextActive: {
-    color: '#FFFFFF',
     fontFamily: FT.xbold,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0B1A33',
-    borderColor: '#3B82F6',
     borderWidth: 1.5,
     borderRadius: 10,
     paddingHorizontal: 14,
@@ -1459,7 +1802,6 @@ const s = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: '#FFFFFF',
     fontFamily: FT.med,
     fontSize: 13,
   },
@@ -1468,14 +1810,12 @@ const s = StyleSheet.create({
     gap: 4,
   },
   couponSectionTitle: {
-    color: '#0F172A',
     fontFamily: FT.xbold,
     fontSize: 17,
     letterSpacing: 1.1,
     textTransform: 'uppercase',
   },
   couponSectionSub: {
-    color: '#475569',
     fontFamily: FT.med,
     fontSize: 14,
     lineHeight: 20,
@@ -1490,16 +1830,10 @@ const s = StyleSheet.create({
   couponCard: {
     flexBasis: Platform.OS === 'web' ? 340 : '100%',
     flexGrow: 1,
-    backgroundColor: C.bgCard,
     borderWidth: 1,
     borderRadius: 16,
     padding: 18,
     gap: 10,
-  },
-  couponCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
   couponBrandBadge: {
     paddingHorizontal: 10,
@@ -1520,36 +1854,14 @@ const s = StyleSheet.create({
     fontFamily: FT.bold,
     fontSize: 11,
   },
-  discountChip: {
-    backgroundColor: 'rgba(52, 211, 153, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  discountChipText: {
-    color: C.green,
-    fontFamily: FT.bold,
-    fontSize: 11,
-  },
   couponTitle: {
-    color: '#FFF',
     fontFamily: FT.bold,
     fontSize: 15,
-    textShadowColor: 'rgba(255,255,255,0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  couponExpiry: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 12,
   },
   voucherCodeBox: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(0,0,0,0.40)',
-    borderColor: 'rgba(30, 58, 110, 0.60)',
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 12,
@@ -1557,7 +1869,6 @@ const s = StyleSheet.create({
     marginTop: 4,
   },
   voucherCodeText: {
-    color: C.purpleXL,
     fontFamily: FT.bold,
     fontSize: 14,
     letterSpacing: 1,
@@ -1566,13 +1877,11 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
   copyBtnText: {
-    color: C.purpleL,
     fontFamily: FT.bold,
     fontSize: 11,
   },
@@ -1588,7 +1897,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: C.purple2,
+    backgroundColor: '#2563EB',
     paddingVertical: 8,
     borderRadius: 8,
   },
@@ -1601,13 +1910,11 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.06)',
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 8,
   },
   markUsedText: {
-    color: C.textSub,
     fontFamily: FT.med,
     fontSize: 12,
   },
@@ -1616,48 +1923,20 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 40,
     gap: 10,
-    backgroundColor: C.bgCard,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: C.border,
   },
   emptyTitle: {
-    color: '#FFF',
     fontFamily: FT.bold,
     fontSize: 16,
   },
   emptySub: {
-    color: C.textSub,
     fontFamily: FT.med,
     fontSize: 13,
-  },
-  redeemCatalogFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-  },
-  redeemCatalogBtn: {
-    backgroundColor: 'rgba(52, 211, 153, 0.15)',
-    borderColor: C.green,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  redeemCatalogBtnText: {
-    color: C.green,
-    fontFamily: FT.bold,
-    fontSize: 12,
   },
 
   /* Form Cards */
   formColCard: {
-    backgroundColor: C.bgCard,
-    borderColor: C.border,
     borderWidth: 1,
     borderRadius: 16,
     padding: 24,
@@ -1667,7 +1946,6 @@ const s = StyleSheet.create({
     width: '100%',
   },
   inputLabel: {
-    color: C.purpleXL,
     fontFamily: FT.bold,
     fontSize: 11,
     letterSpacing: 1,
@@ -1681,30 +1959,17 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderColor: C.border,
     borderWidth: 1,
   },
-  presetChipActive: {
-    backgroundColor: C.purple2,
-    borderColor: C.purpleL,
-  },
   presetText: {
-    color: C.text,
     fontFamily: FT.bold,
     fontSize: 13,
   },
-  presetTextActive: {
-    color: '#FFF',
-  },
   textInputCustom: {
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    borderColor: C.border,
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    color: '#FFF',
     fontFamily: FT.med,
     fontSize: 14,
   },
@@ -1715,26 +1980,16 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.border,
     borderWidth: 1,
   },
-  methodBoxActive: {
-    borderColor: C.purpleL,
-    backgroundColor: 'rgba(59, 130, 246, 0.12)',
-  },
   methodText: {
-    color: C.textSub,
     fontFamily: FT.med,
     fontSize: 13,
   },
   methodTextActive: {
-    color: '#FFF',
     fontFamily: FT.bold,
   },
   calcSummaryBox: {
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    borderColor: C.border,
     borderWidth: 1,
     borderRadius: 12,
     padding: 14,
@@ -1746,17 +2001,15 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
   },
   calcLabel: {
-    color: C.textSub,
     fontFamily: FT.med,
     fontSize: 13,
   },
   calcVal: {
-    color: '#FFF',
     fontFamily: FT.bold,
     fontSize: 13,
   },
   submitActionBtn: {
-    backgroundColor: C.purple2,
+    backgroundColor: '#2563EB',
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
@@ -1774,8 +2027,6 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: C.border,
     borderWidth: 1,
     borderRadius: 12,
     padding: 14,

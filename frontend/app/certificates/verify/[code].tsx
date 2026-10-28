@@ -1,12 +1,13 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
+import { WebOnlyRoute } from '@/src/lib/nativeGuard';
 import {
-  View, Text, Pressable, StyleSheet, Platform, Linking, Image, ScrollView,
+  View, Text, Pressable, StyleSheet, Platform, Linking, Image, ScrollView, TextInput, Modal, ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import {
   ShieldCheck, ExternalLink, Award, Mail, Calendar, User, ArrowLeft, FileText, CheckCircle2,
-  Lock, Copy, Check, AlertCircle, Hash, Building2,
+  Lock, Copy, Check, AlertCircle, Hash, Building2, Download, CreditCard, IdCard,
 } from 'lucide-react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
@@ -40,7 +41,7 @@ function absUrl(u?: string): string {
   return `${API_BASE}${u}`;
 }
 
-export default function CertificateVerifyResult() {
+function CertificateVerifyResult() {
   const { code } = useLocalSearchParams<{ code: string }>();
   const [data, setData] = useState<CertData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -108,6 +109,11 @@ export default function CertificateVerifyResult() {
   const isPlatform = data.issuer_type !== 'external';
   const issuedAt = data.issued_at ? new Date(data.issued_at).toLocaleDateString() : '';
   const isImageFile = (ct?: string) => !!ct && ct.startsWith('image/');
+  const docUrl = data.file_url || (data as any).image_url;
+  const docIsImage =
+    isImageFile(data.content_type) ||
+    (!data.file_url && !!(data as any).image_url) ||
+    (docUrl ? /\.(png|jpe?g|webp|gif)(\?|$)/i.test(docUrl) : false);
 
   return (
     <View style={s.outerWrap}>
@@ -156,18 +162,26 @@ export default function CertificateVerifyResult() {
                 )}
               </View>
 
+              {/* Public verification — this link is the credential; no login or ID documents collected */}
+              <View style={{ backgroundColor: 'rgba(16,185,129,0.12)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)', padding: 12, marginVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <ShieldCheck size={18} color="#34D399" />
+                <Text style={{ fontFamily: 'Outfit', fontWeight: 'bold', fontSize: 13, color: '#34D399', flex: 1 }}>
+                  Publicly verifiable credential — no login or ID documents required
+                </Text>
+              </View>
+
               {/* Certificate Document */}
-              {data.file_url && (
+              {!!docUrl && (
                 <View style={s.imageWrapper}>
-                  {isImageFile(data.content_type) ? (
+                  {docIsImage ? (
                     <Image
-                      source={{ uri: absUrl(data.file_url) }}
+                      source={{ uri: absUrl(docUrl) }}
                       style={s.fileImage}
                       resizeMode="contain"
                     />
                   ) : (
                     <Pressable
-                      onPress={() => Linking.openURL(absUrl(data.file_url))}
+                      onPress={() => Linking.openURL(absUrl(docUrl))}
                       style={s.pdfBtn}
                     >
                       <FileText size={24} color="#8B84FF" />
@@ -412,7 +426,7 @@ const s = StyleSheet.create({
     color: '#8B84FF',
     fontSize: 13.5,
     fontWeight: '700',
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
   },
   imageWrapper: {
     backgroundColor: '#070A1A',
@@ -501,7 +515,7 @@ const s = StyleSheet.create({
     fontSize: 14.5,
     fontWeight: '700',
     marginTop: 2,
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
   },
   hashBox: {
     marginTop: 8,
@@ -541,7 +555,7 @@ const s = StyleSheet.create({
     color: '#10B981',
     fontSize: 13.5,
     fontWeight: '600',
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
     letterSpacing: 0.5,
   },
   externalCard: {
@@ -602,3 +616,12 @@ const s = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
+/**
+ * Native guard — this route renders web-only UI. On iOS/Android show a
+ * placeholder that opens the page on studentalumni.ai instead of crashing.
+ */
+export default function CertificateVerifyResultRoute() {
+  if (Platform.OS !== 'web') return <WebOnlyRoute />;
+  return <CertificateVerifyResult />;
+}

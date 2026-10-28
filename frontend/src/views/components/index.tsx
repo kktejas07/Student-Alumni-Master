@@ -7,6 +7,7 @@
 export { AnimatedCard, AnimatedTile, StaggerView, CountdownBadge } from './AnimatedCard';
 export { ToastProvider, useToast } from './Toast';
 export { ConfirmProvider, useConfirm } from './ConfirmDialog';
+export { default as SkillsReviewModal } from './SkillsReviewModal';
 export { OnboardingProgressBar } from './onboarding/OnboardingProgressBar';
 
 import React from 'react';

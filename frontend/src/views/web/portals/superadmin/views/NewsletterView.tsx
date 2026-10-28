@@ -20,7 +20,7 @@ import {
   Mail, Send, RefreshCw, Calendar, AlertTriangle, Check, Users, Megaphone,
   Bell, Smartphone, Search, User, Upload, X, ImagePlus, MessageSquare,
 } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   StatusPill, Toast, useToast, KpiTile,
@@ -116,6 +116,8 @@ function buildPreviewHtml(form: any, events: any[]): string {
 }
 
 export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const T = useSAC();
+  Object.assign(st, resolveColors(st, T));
   const { toast, flash, hide } = useToast();
   const [form, setForm] = useState({
     subject: '',
@@ -217,7 +219,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const runAiDraftNewsletter = async () => {
     setAiDrafting(true);
     try {
-      const res: any = await request('/api/newsletter/admin/ai-draft', {
+      const res: any = await request('/newsletter/admin/ai-draft', {
         method: 'POST',
         auth: true,
         body: {
@@ -339,6 +341,28 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       flash(`Test WhatsApp FAILED: ${e?.message || 'Unknown error'}`, 'error');
     } finally {
       setTestWhatsappSending(false);
+    }
+  };
+
+  const [commBroadcasting, setCommBroadcasting] = useState(false);
+  const handleBroadcastCommunityInvites = async () => {
+    setCommBroadcasting(true);
+    try {
+      const res = await request<any>('/newsletter/admin/broadcast-community-invites', {
+        method: 'POST',
+        body: {
+          audience: form.audience || 'all',
+          whatsapp_url: 'https://chat.whatsapp.com/G2kc2u0gzh68DKSjlOyCxu',
+          instagram_url: 'https://www.instagram.com/studentalumni.ai/',
+          linkedin_url: 'https://linkedin.com/company/student-alumni'
+        }
+      });
+      flash(res?.message || 'Community broadcast queued across WhatsApp, Email, Push & In-App!');
+      await load();
+    } catch (e: any) {
+      flash(e?.message || 'Failed to dispatch community broadcast', 'error');
+    } finally {
+      setCommBroadcasting(false);
     }
   };
 
@@ -661,7 +685,15 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
             <Text style={st.title}>Newsletter</Text>
             <Text style={st.sub}>Compose and send an HTML newsletter to every registered user by email.</Text>
           </View>
-          <SecondaryButton onPress={load}><RefreshCw size={12} color={SAC.muted} /><Text style={st.secText}>Refresh</Text></SecondaryButton>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <SecondaryButton onPress={handleBroadcastCommunityInvites} disabled={commBroadcasting}>
+              <MessageSquare size={13} color="#34D399" />
+              <Text style={{ color: '#34D399', fontSize: 13, fontFamily: FONTS.bold }}>
+                {commBroadcasting ? 'Sending...' : 'Broadcast Community Invites'}
+              </Text>
+            </SecondaryButton>
+            <SecondaryButton onPress={load}><RefreshCw size={12} color={SAC.muted} /><Text style={st.secText}>Refresh</Text></SecondaryButton>
+          </View>
         </View>
       </Card>
 
@@ -717,7 +749,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                         <Megaphone size={14} color="#A78BFA" />
                       </View>
                       <View>
-                        <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>AI Live Platform Digest Drafter</Text>
+                        <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 }}>AI Live Platform Digest Drafter</Text>
                         <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>Ingests real-time jobs, hackathons, and member updates</Text>
                       </View>
                     </View>
@@ -734,7 +766,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                       {aiDrafting ? <ActivityIndicator size="small" color="#fff" /> : (
                         <>
                           <RefreshCw size={12} color="#fff" />
-                          <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Draft with AI (Live Data)</Text>
+                          <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Draft with AI (Live Data)</Text>
                         </>
                       )}
                     </Pressable>
@@ -751,12 +783,12 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                         </View>
                         <View style={{ backgroundColor: 'rgba(124,58,237,0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
                           <Text style={{ color: '#DDD6FE', fontFamily: FONTS.bold, fontSize: 10.5 }}>
-                            💼 {aiDraftResult.realtime_data_summary?.live_jobs_count} Live Jobs
+                            ● {aiDraftResult.realtime_data_summary?.live_jobs_count} Live Jobs
                           </Text>
                         </View>
                         <View style={{ backgroundColor: 'rgba(245,158,11,0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
                           <Text style={{ color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 10.5 }}>
-                            🚀 {aiDraftResult.realtime_data_summary?.upcoming_events_count} ECHO Hackathons
+                            → {aiDraftResult.realtime_data_summary?.upcoming_events_count} ECHO Hackathons
                           </Text>
                         </View>
                       </View>
@@ -802,12 +834,12 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                   </View>
                   <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                     {[
-                      { id: 'all', label: 'Whole Database (All Contacts & Prospects)', icon: '🌐' },
+                      { id: 'all', label: 'Whole Database (All Contacts & Prospects)', icon: '●' },
                       { id: 'directory', label: 'Platform Users & Directory', icon: '👥' },
-                      { id: 'students', label: 'Students', icon: '🎓' },
-                      { id: 'alumni', label: 'Alumni', icon: '💼' },
+                      { id: 'students', label: 'Students', icon: '●' },
+                      { id: 'alumni', label: 'Alumni', icon: '●' },
                       { id: 'mentors', label: 'Mentors', icon: '🌟' },
-                      { id: 'talent_pool', label: 'Talent Pool Candidates', icon: '🎯' },
+                      { id: 'talent_pool', label: 'Talent Pool Candidates', icon: '●' },
                       { id: 'events', label: 'Event Attendees', icon: '🎟️' },
                     ].map((aud) => {
                       const active = (form.audience || 'all') === aud.id;
@@ -840,11 +872,11 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                     {form.hero_image ? (
                       <View style={{ borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: SAC.border }}>
                         <Image source={{ uri: resolveImageUrl(form.hero_image) }} style={{ width: '100%', height: 140 }} resizeMode="cover" />
-                        <View style={{ flexDirection: 'row', gap: 8, padding: 8, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center' }}>
+                        <View style={{ flexDirection: 'row', gap: 8, padding: 8, backgroundColor: SAC.panel2, alignItems: 'center' }}>
                           {Platform.OS === 'web' && (
                             <label style={{ cursor: 'pointer' }}>
                               <span style={{
-                                backgroundColor: 'rgba(123,61,191,0.30)', color: '#fff',
+                                backgroundColor: 'rgba(123,61,191,0.30)', color: SAC.text,
                                 padding: '5px 10px', borderRadius: '6px',
                                 fontFamily: FONTS.semi, fontSize: '11px',
                               }}>
@@ -1323,7 +1355,7 @@ function StatPill({ icon: Icon, label, kind = 'success' }: { icon: any; label: s
 
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
@@ -1333,7 +1365,7 @@ const st = StyleSheet.create({
   hint: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginBottom: 4, lineHeight: 15 },
   input: {
     height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)',
-    color: '#fff', fontFamily: FONTS.med, fontSize: 13, paddingHorizontal: 12,
+    color: SAC.text, fontFamily: FONTS.med, fontSize: 13, paddingHorizontal: 12,
     borderWidth: 1, borderColor: SAC.border,
   },
   checkRow: {
@@ -1347,9 +1379,9 @@ const st = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   checkboxOn: { backgroundColor: GRAD.from, borderColor: GRAD.from },
-  checkLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  checkLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
   checkSub: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
-  btnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5, marginLeft: 6 },
+  btnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5, marginLeft: 6 },
   confirmBox: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 10,
     padding: 10, borderRadius: 10, backgroundColor: 'rgba(252,211,77,0.08)',
@@ -1361,7 +1393,7 @@ const st = StyleSheet.create({
     padding: 12, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.10)',
     borderWidth: 1, borderColor: 'rgba(124,58,237,0.35)',
   },
-  editBannerTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  editBannerTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
   editBannerSub: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1, lineHeight: 15 },
   editBannerCancel: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -1378,7 +1410,7 @@ const st = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
-  campTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  campTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
   campMeta: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
   // Tabs
   tabRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
@@ -1389,7 +1421,7 @@ const st = StyleSheet.create({
   },
   tabActive: { backgroundColor: GRAD.from, borderColor: GRAD.from },
   tabText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  tabTextActive: { color: '#fff' },
+  tabTextActive: { color: SAC.text },
   // Channel toggles
   channelSection: { marginTop: 4 },
   channelLabel: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.5, marginBottom: 6 },
@@ -1401,7 +1433,7 @@ const st = StyleSheet.create({
   },
   channelPillActive: { backgroundColor: 'rgba(124,58,237,0.2)', borderColor: '#7C3AED' },
   channelPillText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  channelPillTextActive: { color: '#fff' },
+  channelPillTextActive: { color: SAC.text },
   // User search
   searchWrap: { position: 'relative' },
   searchIcon: { position: 'absolute', left: 12, top: 13, zIndex: 1 },
@@ -1414,14 +1446,14 @@ const st = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: SAC.border,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
-  searchResultName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  searchResultName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
   searchResultEmail: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
   searchResultRole: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10, textTransform: 'capitalize' },
   selectedUser: {
     flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 10,
     backgroundColor: 'rgba(124,58,237,0.08)', borderWidth: 1, borderColor: 'rgba(124,58,237,0.25)',
   },
-  selectedUserName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  selectedUserName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
   selectedUserEmail: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   selectedUserClear: { color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 12 },
 });

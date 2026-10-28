@@ -31,7 +31,7 @@ from pathlib import Path
 from datetime import datetime, timezone, date as _date
 from typing import Any, Dict, List, Optional
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile, Query, Body
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import logging
 
@@ -46,12 +46,14 @@ from core.security import (
 )
 from core.email import send_email, render_html_email, generate_pdf_from_html
 from core.whatsapp import send_wa_message, send_wa_documents
+from core.config import JWT_SECRET, JWT_ALGORITHM
 
 router = APIRouter(prefix="/api/echo", tags=["echo-showcase"])
 
 
 @router.post("/sync-unstop")
-async def sync_unstop_opportunities():
+async def sync_unstop_opportunities(request: Request):
+    await _require_admin(request)
     """Scrape and sync live hackathons, workshops, quizzes, and competitions from Unstop into ECHO showcases."""
     try:
         logger.info("⚡ [UNSTOP SYNC] Manual trigger received. Scraping opportunities from Unstop...")
@@ -64,6 +66,179 @@ async def sync_unstop_opportunities():
         raise HTTPException(status_code=500, detail=f"Unstop sync failed: {str(e)}")
 
 
+@router.post("/admin/import-tickets/preview")
+async def import_tickets_preview(
+    request: Request,
+    file: UploadFile = File(...),
+    source: str = Query("unstop", description="Source platform: 'unstop', 'studentalumni', or a custom name"),
+):
+    """Parse an import CSV export and return a preview of what would be imported.
+    Does NOT write to the database — dry-run only. Admin-only.
+    """
+    await _require_admin(request)
+    content = await file.read()
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(content)
+    from scripts.import_unstop_csv import parse_unstop_csv, build_registrations
+    rows = parse_unstop_csv(content)
+    if not rows:
+        raise HTTPException(status_code=400, detail="CSV is empty or has no valid rows with email addresses")
+    result = build_registrations(rows, slug="", showcase_title="", source=source)
+    stats = result["stats"]
+    # Return all parsed registrations as preview
+    preview = result["registrations"]
+    return {
+        "stats": stats,
+        "preview": preview,
+        "total_rows": len(rows),
+    }
+
+
+@router.post("/admin/import-tickets")
+async def import_tickets_registrations(
+    request: Request,
+    file: UploadFile = File(...),
+    slug: str = Query(..., description="ECHO showcase slug to attach registrations to"),
+    source: str = Query("unstop", description="Source platform: 'unstop', 'studentalumni', or a custom name"),
+):
+    """Import ticket buyers into ECHO registrations + SA accounts.
+
+    - Parses the CSV, groups by Team ID
+    - Creates echo_registrations for each buyer
+    - Provisions SA accounts (idempotent by email)
+    - Generates QR codes for paid registrations
+    - Mirrors to event_registrations
+    - Sends welcome emails to newly created accounts
+    """
+    await _require_admin(request)
+    db = _get_db(request)
+    content = await file.read()
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(content)
+
+    from scripts.import_unstop_csv import parse_unstop_csv, build_registrations
+
+    rows = parse_unstop_csv(content)
+    if not rows:
+        raise HTTPException(status_code=400, detail="CSV is empty or has no valid rows with email addresses")
+
+    # Fetch the showcase for context
+    showcase = await db.echo_showcases.find_one(_slug_query(slug))
+    if not showcase:
+        raise HTTPException(status_code=404, detail=f"Showcase '{slug}' not found")
+    showcase_title = showcase.get("title", "")
+    canonical_slug = showcase.get("slug") or slug
+
+    result = build_registrations(rows, slug=canonical_slug, showcase_title=showcase_title, source=source)
+    registrations = result["registrations"]
+    stats = result["stats"]
+
+    imported = 0
+    new_accounts = 0
+    existing_accounts = 0
+    errors: List[str] = []
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+
+    for reg in registrations:
+        try:
+            email = reg.get("email", "").lower()
+            if not email:
+                continue
+
+            # Check for existing registration (idempotent by email + slug)
+            existing = await db.echo_registrations.find_one({
+                "email": email, "slug": canonical_slug
+            })
+            if existing:
+                continue  # already imported
+
+            now_iso = _now()
+            reg_id = f"Echo-{secrets.token_hex(8).upper()}"
+            is_paid = (reg.get("payment") or {}).get("status") == "paid"
+
+            # Build the ECHO registration document
+            echo_reg = {
+                "id": reg_id,
+                "slug": canonical_slug,
+                "showcase_title": showcase_title,
+                "showcase_college": showcase.get("college"),
+                "full_name": reg.get("full_name") or reg.get("first_name", ""),
+                "email": email,
+                "phone": reg.get("phone", ""),
+                "year": reg.get("year", ""),
+                "college": reg.get("college", ""),
+                "branch": reg.get("branch", ""),
+                "fee": reg.get("fee", 0),
+                "currency": reg.get("currency", "INR"),
+                "payment": reg.get("payment"),
+                "qr_code_base64": None,
+                "registered_at": reg.get("registered_at", now_iso),
+                "status": reg.get("status", "registered"),
+                "created_at": now_iso,
+                "terms_accepted": True,
+                "terms_accepted_at": now_iso,
+                "whatsapp_opt_in": True,
+                "registration_type": reg.get("registration_type", "individual"),
+                "team_name": reg.get("team_name", ""),
+                "team_id": reg.get("team_id", ""),
+                "team_size": len(reg.get("team_members", [])) + 1 if reg.get("team_members") else 1,
+                "team_members": reg.get("team_members", []),
+                "is_team_member": reg.get("is_team_member", False),
+                "is_team_lead": reg.get("is_team_lead", False),
+                "source": reg.get("source") or source,
+                "unstop_metadata": reg.get("unstop_metadata", {}),
+            }
+
+            # Generate QR code for paid registrations
+            if is_paid:
+                echo_reg["qr_code_base64"] = generate_qr_code(
+                    f"{frontend_url}/echo/scan/{reg_id}"
+                )
+                echo_reg["status"] = "registered"
+
+            await db.echo_registrations.insert_one(dict(echo_reg))
+            imported += 1
+
+            # Provision SA account (idempotent by email)
+            sa_user, created, temp_password = await _provision_sa_account(db, echo_reg, showcase)
+            if created:
+                new_accounts += 1
+                # Send welcome email
+                if temp_password:
+                    await _send_sa_welcome_email(echo_reg, showcase, temp_password)
+            elif sa_user:
+                existing_accounts += 1
+
+            # Mirror to event_registrations
+            if sa_user:
+                await _mirror_to_event_registration(db, echo_reg, showcase, sa_user)
+
+            # Generate session coupons for paid registrations
+            if is_paid:
+                sessions = showcase.get("sessions") or []
+                if sessions:
+                    await _generate_coupons_for_registration(
+                        db, canonical_slug, reg_id, sessions
+                    )
+
+        except Exception as e:
+            errors.append(f"{reg.get('email', '?')}: {str(e)}")
+            logger.error(f"[UNSTOP IMPORT] Error importing {reg.get('email')}: {e}")
+
+    logger.info(
+        f"[UNSTOP IMPORT] slug={canonical_slug} imported={imported} "
+        f"new_accounts={new_accounts} existing={existing_accounts} errors={len(errors)}"
+    )
+
+    return {
+        "status": "success",
+        "slug": canonical_slug,
+        "imported": imported,
+        "new_accounts": new_accounts,
+        "existing_accounts": existing_accounts,
+        "errors": errors,
+        "stats": stats,
+    }
 
 
 # ── Ticket / pass templates ───────────────────────────────────────────────────
@@ -110,9 +285,12 @@ def _generate_coupon_code(session_key: str, reg_id: str) -> str:
 async def _generate_coupons_for_registration(db, slug: str, reg_id: str, sessions: list):
     """Generate coupon records for all enabled sessions."""
     from datetime import timezone
+    existing = await db.echo_coupons.find({"reg_id": reg_id}).to_list(500)
+    existing_keys = {c.get("session_key") for c in existing}
+
     coupons = []
     for s in sessions:
-        if s.get("enabled") is False:
+        if s.get("enabled") is False or s["key"] in existing_keys:
             continue
         code = _generate_coupon_code(s["key"], reg_id)
         day = int(s.get("day") or 1)
@@ -222,7 +400,7 @@ async def _require_admin(request: Request):
         raise HTTPException(status_code=401, detail="Missing token")
     token = auth.split(" ", 1)[1]
     import jwt as _jwt
-    JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
+    # Uses centralized JWT_SECRET from core.config
     try:
         payload = _jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
     except Exception:
@@ -230,6 +408,35 @@ async def _require_admin(request: Request):
     if payload.get("role") not in ("admin", "super_admin"):
         raise HTTPException(status_code=403, detail="Admin only")
     return payload
+
+
+async def _require_scan_access(request: Request):
+    """Allow scan access to super_admins, admins, AND authorized volunteers."""
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing token")
+    token = auth.split(" ", 1)[1]
+    import jwt as _jwt
+    # Uses centralized JWT_SECRET from core.config
+    try:
+        payload = _jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    role = (payload.get("role") or "").lower()
+    if role in ("super_admin", "admin"):
+        return payload
+        
+    db = _get_db(request)
+    email = (payload.get("email") or "").strip().lower()
+    vol = await db.echo_volunteers.find_one({"email": email})
+    if vol:
+        # Volunteer is authorized. Attach their identity for audit.
+        payload["scanned_by"] = vol.get("name") or email
+        payload["role"] = "volunteer"
+        return payload
+        
+    raise HTTPException(status_code=403, detail="Scanner access denied")
 
 
 def _get_current_user_dependency():
@@ -270,12 +477,119 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+async def _reverse_geocode(lat: float, lng: float) -> str:
+    """Convert lat/lng to a human-readable address using Nominatim (free, no API key)."""
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(
+                "https://nominatim.openstreetmap.org/reverse",
+                params={"lat": lat, "lon": lng, "format": "json", "zoom": 18},
+                headers={"User-Agent": "StudentAlumni-ECHO/1.0"},
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                return data.get("display_name", "")
+    except Exception:
+        pass
+    return ""
+
+
+async def _send_checkin_email(reg: dict, event_title: str, checked_in_at: str, address: str = ""):
+    """Send a check-in confirmation email to the attendee."""
+    email = reg.get("email")
+    if not email:
+        return
+    name = reg.get("full_name", "Attendee")
+    subject = f"Welcome to {event_title} — You're Checked In!"
+    body = render_html_email(f"""
+    <div style="text-align:center;padding:32px 0">
+        <div style="font-size:48px;margin-bottom:16px">✅</div>
+        <h1 style="font-size:24px;color:#1a1a2e;margin:0 0 8px">You're Checked In!</h1>
+        <p style="font-size:15px;color:#666;margin:0 0 24px">Welcome to <strong>{event_title}</strong></p>
+    </div>
+    <div style="background:#f8f9fa;border-radius:12px;padding:20px;margin:0 0 20px">
+        <table style="width:100%;font-size:14px;color:#333">
+            <tr><td style="padding:6px 0;color:#888">Attendee</td><td style="padding:6px 0;font-weight:600">{name}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Event</td><td style="padding:6px 0;font-weight:600">{event_title}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Checked In At</td><td style="padding:6px 0;font-weight:600">{checked_in_at}</td></tr>
+            {"<tr><td style='padding:6px 0;color:#888'>Location</td><td style='padding:6px 0;font-weight:600'>" + address + "</td></tr>" if address else ""}
+        </table>
+    </div>
+    <p style="font-size:13px;color:#999;text-align:center">Show this email or your QR code at the venue counters.</p>
+    """)
+    try:
+        await send_email(email, subject, body)
+    except Exception:
+        pass
+
+
+async def _send_coupon_scan_email(reg: dict, session_name: str, coupon_code: str, scanned_at: str, address: str = ""):
+    """Send an email when a session coupon is scanned/used."""
+    email = reg.get("email")
+    if not email:
+        return
+    name = reg.get("full_name", "Attendee")
+    subject = f"{session_name} Pass Used — ECHO"
+    body = render_html_email(f"""
+    <div style="text-align:center;padding:32px 0">
+        <div style="font-size:48px;margin-bottom:16px">🎫</div>
+        <h1 style="font-size:22px;color:#1a1a2e;margin:0 0 8px">{session_name} Pass Confirmed</h1>
+        <p style="font-size:15px;color:#666;margin:0 0 24px">Your session pass has been scanned successfully</p>
+    </div>
+    <div style="background:#f8f9fa;border-radius:12px;padding:20px;margin:0 0 20px">
+        <table style="width:100%;font-size:14px;color:#333">
+            <tr><td style="padding:6px 0;color:#888">Attendee</td><td style="padding:6px 0;font-weight:600">{name}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Session</td><td style="padding:6px 0;font-weight:600">{session_name}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Coupon Code</td><td style="padding:6px 0;font-weight:600;font-family:monospace">{coupon_code}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Scanned At</td><td style="padding:6px 0;font-weight:600">{scanned_at}</td></tr>
+            {"<tr><td style='padding:6px 0;color:#888'>Location</td><td style='padding:6px 0;font-weight:600'>" + address + "</td></tr>" if address else ""}
+        </table>
+    </div>
+    <p style="font-size:13px;color:#999;text-align:center">Show this email at the {session_name.lower()} counter to collect your item.</p>
+    """)
+    try:
+        await send_email(email, subject, body)
+    except Exception:
+        pass
+
+
+_ALIAS_MAP = {
+    # VNR ECHO 2026 canonical slug and historical aliases
+    "vnrvjit": "vnr-echo-2026",
+    "vnr": "vnr-echo-2026",
+    "vnr-vjiet": "vnr-echo-2026",
+    "vnr-echo": "vnr-echo-2026",
+    "vnr-2026": "vnr-echo-2026",
+    # SNIST / HackWave canonical slug and historical aliases
+    "snist-hackwave": "snist",
+    "hackwave": "snist",
+    "hackwave3": "snist",
+    "hackwave-3": "snist",
+    "hackwave-3.0": "snist",
+}
+
+
+def resolve_canonical_slug(slug: str) -> str:
+    """Resolve an incoming slug alias to its canonical showcase slug."""
+    s = (slug or "").strip().lower()
+    return _ALIAS_MAP.get(s, s)
+
+
 def _slug_query(slug: str) -> dict:
     """Match a showcase by its canonical slug OR any of its legacy aliases."""
-    slug = (slug or "").strip()
-    if not slug:
+    s = (slug or "").strip().lower()
+    if not s:
         return {}
-    return {"$or": [{"slug": slug}, {"aliases": slug}]}
+    canonical = _ALIAS_MAP.get(s, s)
+    return {
+        "$or": [
+            {"slug": canonical},
+            {"slug": s},
+            {"aliases": canonical},
+            {"aliases": s},
+        ]
+    }
 
 
 # ── Payments + invoices helpers ──────────────────────────────────────────────
@@ -385,11 +699,33 @@ async def sweep_expired_echo_payments(db) -> dict:
 
     Idempotent & safe to run every minute. Returns a small summary for logs.
     """
-    result = {"checked": 0, "failed": 0, "reminded": 0, "rescued": 0}
+    result = {"checked": 0, "failed": 0, "reminded": 0, "rescued": 0, "closed": 0}
     try:
         now = datetime.now(timezone.utc)
         cutoff_fail = now.timestamp() - ECHO_PAYMENT_SESSION_TTL_SECONDS
         cutoff_remind = now.timestamp() - ECHO_PAYMENT_REMINDER_SECONDS
+
+        # Auto-close any showcase whose temporary open window has expired.
+        try:
+            expired = await db.echo_showcases.find({
+                "registration.temporary_open": True,
+                "registration.temporary_close_at": {"$ne": ""},
+            }).to_list(200)
+            for sc in expired:
+                close_at = _parse_iso((sc.get("registration") or {}).get("temporary_close_at"))
+                if close_at and close_at < now:
+                    reg_upd = dict((sc.get("registration") or {}))
+                    reg_upd["enabled"] = False
+                    reg_upd["temporary_open"] = False
+                    reg_upd["temporary_close_at"] = ""
+                    await db.echo_showcases.update_one(
+                        {"_id": sc["_id"]},
+                        {"$set": {"registration": reg_upd, "updated_at": _now()}},
+                    )
+                    result["closed"] += 1
+                    print(f"[ECHO-SWEEP] Auto-closed temporary registration window for {sc.get('slug')}")
+        except Exception as _temp_err:
+            print(f"[ECHO-SWEEP] temporary-close scan failed: {_temp_err}")
 
         pending = await db.echo_registrations.find({"payment.status": "pending"}).to_list(500)
         cfg = await _razorpay_config(db)
@@ -561,7 +897,11 @@ def _parse_iso(s: Optional[str]):
     if not s:
         return None
     try:
-        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+        if len(s) == 10 and "-" in s:
+            # Date-only format e.g. "2026-09-04" -> set to 1:00 PM IST (13:00:00+05:30)
+            dt = datetime.fromisoformat(f"{s}T13:00:00+05:30")
+        else:
+            dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
     except Exception:
         return None
     if dt.tzinfo is None:
@@ -577,7 +917,21 @@ async def _assert_registration_open(db, showcase: dict) -> None:
     if showcase.get("event_status_badge") == "Completed":
         raise HTTPException(status_code=400, detail="This event has ended — registrations are closed")
 
-    deadline = _parse_iso(reg_cfg.get("deadline"))
+    # Temporary auto-close window: if the showcase was opened for a limited window
+    # and that window has passed, treat registrations as closed (fail-closed) even
+    # before the background sweep flips enabled to False.
+    if reg_cfg.get("temporary_open"):
+        temp_close = _parse_iso(reg_cfg.get("temporary_close_at"))
+        if temp_close and temp_close < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="Registrations have closed for this event")
+
+    slug = (showcase.get("slug") or "").lower()
+    if slug in ("snist", "hackwave-3.0", "hackwave-3", "hackwave"):
+        # For HackWave 3.0 SNIST, deadline is Sep 4, 2026 1:00 PM IST
+        deadline = datetime.fromisoformat("2026-09-04T13:00:00+05:30")
+    else:
+        deadline = _parse_iso(reg_cfg.get("deadline") or showcase.get("reg_closes"))
+
     if deadline and deadline < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Registrations have closed for this event")
 
@@ -591,7 +945,32 @@ async def _assert_registration_open(db, showcase: dict) -> None:
             raise HTTPException(status_code=400, detail="Sorry — this event has reached full capacity")
 
 
-async def _send_registration_confirmation(db, reg: dict, showcase: dict, team_name: str = None) -> None:
+def _get_showcase_handbook_file(showcase: Optional[dict]) -> tuple[Optional[Path], str]:
+    if not showcase:
+        return None, ""
+    url = (showcase.get("handbook_url") or "").strip()
+    if not url:
+        for d in showcase.get("downloads") or []:
+            if isinstance(d, dict):
+                u = (d.get("file_url") or "").strip()
+                cat = (d.get("category") or "").strip().lower()
+                tit = (d.get("title") or "").strip().lower()
+                if u and (cat in ("handbook", "brochure", "guide") or "handbook" in tit or "guide" in tit or "brochure" in tit):
+                    url = u
+                    break
+    if url and not url.startswith("http://") and not url.startswith("https://"):
+        fname = Path(url).name
+        for cand in [
+            Path(__file__).parent / "static" / fname,
+            Path(__file__).parent.parent / "frontend" / "public" / fname,
+            Path(__file__).parent / fname,
+        ]:
+            if cand.exists():
+                return cand, fname
+    return None, ""
+
+
+async def _send_registration_confirmation(db, reg: dict, showcase: dict | None, team_name: str | None = None) -> None:
     """Email a confirmation (with QR) for FREE or confirmed registrations.
 
     Paid registrations get a payment invoice via _store_invoice_and_email; this
@@ -603,12 +982,13 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict, team_na
         email = (reg.get("email") or "").strip()
         if not email:
             return
-        title = reg.get("showcase_title") or showcase.get("title") or "Event Registration"
+        title = reg.get("showcase_title") or (showcase or {}).get("title") or "Event Registration"
         reg_id = reg.get("id") or ""
+        slug = (showcase or {}).get("slug") or reg.get("slug") or ""
         import urllib.parse
         ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
-        handbook_url = f"http://localhost:8002/api/echo/handbook/download"
-        ticket_block = _ticket_email_block(reg, showcase, ticket_url)
+        handbook_url = f"https://studentalumni.ai/api/echo/showcases/{slug}/handbook/download" if slug else "https://studentalumni.ai/api/echo/handbook/download"
+        ticket_block = _ticket_email_block(reg, showcase or {}, ticket_url)
         
         # Team info block
         team_info_block = ""
@@ -630,11 +1010,11 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict, team_na
 
         # Attach Handbook PDF if present
         attachments = []
-        pdf_file = Path(__file__).parent / "static" / "HackWave_3.0_Event_Handbook.pdf"
-        if pdf_file.exists():
+        pdf_file, pdf_filename = _get_showcase_handbook_file(showcase)
+        if pdf_file and pdf_file.exists():
             try:
                 attachments.append({
-                    "filename": "HackWave_3.0_Event_Handbook.pdf",
+                    "filename": pdf_filename,
                     "content": pdf_file.read_bytes(),
                 })
             except Exception as _pdf_err:
@@ -657,12 +1037,12 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict, team_na
             </table>
             {ticket_block}
             <div style="margin:20px 0;padding:16px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;">
-              <h3 style="margin:0 0 6px 0;color:#6d28d9;font-size:15px;">Official Event Handbook Attached</h3>
+              <h3 style="margin:0 0 6px 0;color:#6d28d9;font-size:15px;">Official Event Handbook</h3>
               <p style="margin:0 0 12px 0;color:#4c1d95;font-size:13px;">
-                Find full details on schedule, 5 hackathon tracks, meals, rules, and rewards in the attached <strong>HackWave_3.0_Event_Handbook.pdf</strong>.
+                Find full details on schedule, tracks, meals, rules, and rewards in the official event handbook.
               </p>
               <a href="{handbook_url}"
-                 style="display:inline-block;padding:8px 16px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px;">Download Event Handbook PDF</a>
+                 style="display:inline-block;padding:8px 16px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px;">Download Event Handbook</a>
             </div>
             <p style="margin:0 0 22px 0;color:#374151;">
               You can view your ticket anytime from your dashboard under <strong>My Tickets</strong>.
@@ -747,17 +1127,18 @@ async def _send_team_member_confirmation(db, member_reg: dict, showcase: dict, p
         member_name = member_reg.get("full_name") or "Team Member"
         
         import urllib.parse
+        slug = (showcase or {}).get("slug") or member_reg.get("slug") or ""
         ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
-        handbook_url = f"http://localhost:8002/api/echo/handbook/download"
+        handbook_url = f"https://studentalumni.ai/api/echo/showcases/{slug}/handbook/download" if slug else "https://studentalumni.ai/api/echo/handbook/download"
         ticket_block = _ticket_email_block(member_reg, showcase or {}, ticket_url)
         
         # Attach Handbook PDF if present
         attachments = []
-        pdf_file = Path(__file__).parent / "static" / "HackWave_3.0_Event_Handbook.pdf"
-        if pdf_file.exists():
+        pdf_file, pdf_filename = _get_showcase_handbook_file(showcase)
+        if pdf_file and pdf_file.exists():
             try:
                 attachments.append({
-                    "filename": "HackWave_3.0_Event_Handbook.pdf",
+                    "filename": pdf_filename,
                     "content": pdf_file.read_bytes(),
                 })
             except Exception as _pdf_err:
@@ -793,12 +1174,12 @@ async def _send_team_member_confirmation(db, member_reg: dict, showcase: dict, p
             {ticket_block}
 
             <div style="margin:20px 0;padding:16px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;">
-              <h3 style="margin:0 0 6px 0;color:#6d28d9;font-size:15px;">Official Event Handbook Attached</h3>
+              <h3 style="margin:0 0 6px 0;color:#6d28d9;font-size:15px;">Official Event Handbook</h3>
               <p style="margin:0 0 12px 0;color:#4c1d95;font-size:13px;">
-                Find full details on schedule, 5 hackathon tracks, meals, rules, and rewards in the attached <strong>HackWave_3.0_Event_Handbook.pdf</strong>.
+                Find full details on schedule, tracks, meals, rules, and rewards in the official event handbook.
               </p>
               <a href="{handbook_url}"
-                 style="display:inline-block;padding:8px 16px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px;">Download Event Handbook PDF</a>
+                 style="display:inline-block;padding:8px 16px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px;">Download Event Handbook</a>
             </div>
 
             <p style="margin:18px 0 22px 0;color:#374151;">
@@ -1428,7 +1809,12 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
     if template_id not in TICKET_TEMPLATES:
         template_id = DEFAULT_TICKET_TEMPLATE
 
-    qr = reg.get("qr_code_base64") or ""
+    qr = reg.get("qr_code_base64")
+    if not qr and reg.get("id"):
+        frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        qr = generate_qr_code(f"{frontend_url}/echo/scan/{reg.get('id')}")
+    elif not qr:
+        qr = ""
     brand = "STUDENT ALUMNI · ECHO"
     organizer = esc(showcase.get("organizer_name") or "Student Alumni Cell")
     title = esc(reg.get("showcase_title") or showcase.get("title") or "Event")
@@ -1444,6 +1830,10 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
     reg_id = esc(reg.get("id") or "")
     meta = [v for v in (branch, year, college) if v]
     attendee_line = " · ".join(meta) if meta else (phone or "Student")
+
+    is_checked_in = bool(reg.get("checked_in_at"))
+    badge_label = "CHECKED IN" if is_checked_in else "CONFIRMED PASS"
+    badge_html = f'<span class="badge">{badge_label}</span>'
 
     # Sponsor logos strip
     sponsors = showcase.get("sponsors") or []
@@ -1499,7 +1889,7 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
               <div class="c-col" style="text-align:right;">
                 <div class="dl-label">REG ID</div>
                 <div class="dl-val" style="font-size:14px;letter-spacing:1px;">{reg_id}</div>
-                <div class="c-sub" style="margin-top:8px;"><span class="badge">CONFIRMED</span></div>
+                <div class="c-sub" style="margin-top:8px;">{badge_html}</div>
               </div>
             </div>
             <div class="c-qr">{qr_img}</div>
@@ -1542,51 +1932,74 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
           <div class="m-qr">{qr_img_sm}</div>
         </div>
         <div class="m-footer">
-          <span class="badge">CONFIRMED</span>
+          {badge_html}
           <span class="m-note">Scan the QR at check-in · Keep this pass handy</span>
         </div>
         {sponsors_html}
       </div>"""
     else:  # aurora (default)
+        checkin_banner = ''
+        if is_checked_in:
+            checkin_at = reg.get('checked_in_at') or ''
+            checkin_banner = f'<div class="aur-checkin-banner"><span class="aur-checkin-icon">✓</span> Checked In{" · " + checkin_at[:16].replace("T"," ") if checkin_at else ""}</div>'
+        reg_id_short = reg_id[:24] + ('…' if len(reg_id) > 24 else '')
         inner = f"""
       <div class="sheet aurora">
         <div class="aur-glow aur-glow-a"></div>
         <div class="aur-glow aur-glow-b"></div>
+        <div class="aur-glow aur-glow-c"></div>
         <div class="aur-main">
+
+          <!-- Header -->
           <div class="aur-header">
-            <div class="aur-brand">{brand}</div>
-            <div class="aur-org">{organizer}</div>
+            <div class="aur-toprow">
+              <div>
+                <div class="aur-brand">{brand}</div>
+                <div class="aur-org">{organizer}</div>
+              </div>
+              <div class="aur-badge-pill">{badge_label}</div>
+            </div>
             <h1 class="aur-title">{title}</h1>
             <div class="aur-pills">
-              <span class="aur-pill">{event_date or 'TBA'}</span>
-              <span class="aur-pill">{event_time}</span>
-              <span class="aur-pill">{venue}</span>
+              {'<span class="aur-pill">📅 ' + event_date + '</span>' if event_date else '<span class="aur-pill">📅 TBA</span>'}
+              {'<span class="aur-pill">🕐 ' + event_time + '</span>' if event_time else ''}
+              {'<span class="aur-pill">📍 ' + venue + '</span>' if venue else ''}
             </div>
           </div>
+
+          {checkin_banner}
+
+          <!-- Body -->
           <div class="aur-body">
             <div class="aur-info">
-              <div class="aur-col">
-                <div class="dl-label">ATTENDEE</div>
+              <div class="aur-field">
+                <div class="dl-label">Attendee</div>
                 <div class="dl-val">{name}</div>
                 <div class="aur-sub">{email}</div>
                 {f'<div class="aur-sub">{attendee_line}</div>' if attendee_line else ''}
               </div>
-              <div class="aur-col">
-                <div class="dl-label">REG ID</div>
-                <div class="dl-val" style="letter-spacing:1px;">{reg_id}</div>
+              <div class="aur-field">
+                <div class="dl-label">Reg ID</div>
+                <div class="aur-reg-id">{reg_id_short}</div>
               </div>
             </div>
-            <div class="aur-qr">{qr_img}</div>
-          </div>
-          <div class="aur-badge-row"><span class="badge">CONFIRMED PASS</span></div>
-          <div class="aur-stub">
-            <div class="aur-stub-left">
-              <div class="aur-stub-event">{title}</div>
-              <div class="aur-stub-detail">{event_date} · {name}</div>
-              <div class="aur-stub-id">REG: {reg_id}</div>
+            <div class="aur-qr-wrap">
+              <div class="aur-qr">{qr_img}</div>
+              <div class="aur-qr-hint">Scan at venue</div>
             </div>
-            {qr_img_sm}
-            <div class="aur-stub-tear">|</div>
+          </div>
+
+          <!-- Stub -->
+          <div class="aur-stub">
+            <div class="aur-stub-dots"></div>
+            <div class="aur-stub-inner">
+              <div class="aur-stub-left">
+                <div class="aur-stub-event">{title}</div>
+                <div class="aur-stub-detail">{event_date or 'TBA'} · {name}</div>
+                <div class="aur-stub-id">REG: {reg_id_short}</div>
+              </div>
+              {qr_img_sm}
+            </div>
           </div>
         </div>
         {sponsors_html}
@@ -1618,35 +2031,44 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
   .sp-name {{ font-size:11px; font-weight:600; color:#94a3b8; white-space:nowrap; }}
 
   /* ── AURORA (default) ────────────────────────────────────────────────── */
-  .aurora {{ background:linear-gradient(160deg,#0f0a2e 0%,#1a1145 30%,#2d1b69 60%,#1a0e3e 100%); color:#fff; }}
-  .aurora .dl-label {{ color:#a5b4fc; }}
-  .aurora .dl-val {{ color:#fff; }}
-  .aurora .badge {{ background:rgba(52,211,153,0.15); color:#6ee7b7; }}
-  .aurora .sponsors {{ border-top-color:rgba(255,255,255,0.08); }}
-  .aurora .sp-label {{ color:rgba(255,255,255,0.35); }}
-  .aur-glow {{ position:absolute; width:350px; height:350px; border-radius:50%; filter:blur(100px); opacity:.30; pointer-events:none; }}
-  .aur-glow-a {{ top:-140px; right:-100px; background:#a855f7; }}
-  .aur-glow-b {{ bottom:-160px; left:-100px; background:#6366f1; }}
-  .aur-main {{ position:relative; }}
-  .aur-header {{ padding:36px 36px 20px; }}
-  .aur-brand {{ font-size:10px; font-weight:800; letter-spacing:3px; opacity:.6; }}
-  .aur-org {{ font-size:13px; font-weight:600; margin-top:8px; opacity:.7; }}
-  .aur-title {{ margin:12px 0 16px; font-size:32px; font-weight:900; line-height:1.1; letter-spacing:-0.5px; }}
+  .aurora {{ background:linear-gradient(160deg,#09071f 0%,#130d3b 35%,#1e1050 65%,#0d0825 100%); color:#fff; }}
+  .aurora .dl-label {{ color:rgba(165,180,252,0.7); font-size:9px; letter-spacing:1.5px; }}
+  .aurora .dl-val {{ color:#fff; font-size:22px; }}
+  .aurora .sponsors {{ border-top-color:rgba(255,255,255,0.07); }}
+  .aurora .sp-label {{ color:rgba(255,255,255,0.3); }}
+  .aur-glow {{ position:absolute; border-radius:50%; filter:blur(90px); opacity:.22; pointer-events:none; }}
+  .aur-glow-a {{ width:420px; height:420px; top:-160px; right:-80px; background:#a855f7; }}
+  .aur-glow-b {{ width:320px; height:320px; bottom:-120px; left:-60px; background:#6366f1; }}
+  .aur-glow-c {{ width:200px; height:200px; top:50%; left:50%; transform:translate(-50%,-50%); background:#8b5cf6; opacity:.12; }}
+  .aur-main {{ position:relative; z-index:1; }}
+  .aur-header {{ padding:40px 40px 24px; border-bottom:1px solid rgba(255,255,255,0.06); }}
+  .aur-toprow {{ display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px; }}
+  .aur-brand {{ font-size:9px; font-weight:800; letter-spacing:3px; color:rgba(255,255,255,0.4); text-transform:uppercase; }}
+  .aur-org {{ font-size:13px; font-weight:600; margin-top:6px; color:rgba(255,255,255,0.6); }}
+  .aur-badge-pill {{ background:rgba(52,211,153,0.15); border:1px solid rgba(52,211,153,0.3); color:#6ee7b7; font-size:10px; font-weight:800; letter-spacing:.5px; padding:6px 14px; border-radius:999px; white-space:nowrap; text-transform:uppercase; }}
+  .aur-title {{ font-size:38px; font-weight:900; line-height:1.05; letter-spacing:-1px; margin-bottom:18px; }}
   .aur-pills {{ display:flex; gap:8px; flex-wrap:wrap; }}
-  .aur-pill {{ background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.85); font-size:12px; font-weight:600; padding:6px 14px; border-radius:999px; white-space:nowrap; }}
-  .aur-body {{ display:flex; justify-content:space-between; align-items:flex-start; gap:28px; padding:20px 36px 28px; }}
-  .aur-info {{ flex:1; display:grid; grid-template-columns:1fr 1fr; gap:18px; }}
-  .aur-col {{ min-width:0; }}
-  .aur-sub {{ font-size:12px; color:rgba(255,255,255,0.55); margin-top:3px; line-height:1.4; }}
-  .aur-qr {{ background:#fff; padding:12px; border-radius:16px; flex-shrink:0; box-shadow:0 8px 30px rgba(0,0,0,0.25); }}
-  .aur-qr .qr {{ width:150px; height:150px; }}
-  .aur-badge-row {{ padding:0 36px 16px; }}
-  .aur-stub {{ display:flex; align-items:center; gap:20px; padding:18px 36px; background:rgba(255,255,255,0.04); border-top:2px dashed rgba(255,255,255,0.15); position:relative; }}
+  .aur-pill {{ background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.8); font-size:12px; font-weight:600; padding:6px 14px; border-radius:999px; white-space:nowrap; }}
+  .aur-checkin-banner {{ background:rgba(16,185,129,0.12); border-top:1px solid rgba(16,185,129,0.2); border-bottom:1px solid rgba(16,185,129,0.2); padding:10px 40px; display:flex; align-items:center; gap:10px; }}
+  .aur-checkin-icon {{ font-size:14px; color:#34d399; }}
+  .aur-checkin-banner {{ font-size:12px; font-weight:700; color:#6ee7b7; letter-spacing:.3px; }}
+  .aur-body {{ display:flex; justify-content:space-between; align-items:center; gap:32px; padding:32px 40px; }}
+  .aur-info {{ flex:1; display:flex; flex-direction:column; gap:24px; }}
+  .aur-field {{ min-width:0; }}
+  .aur-sub {{ font-size:12px; color:rgba(255,255,255,0.45); margin-top:3px; line-height:1.5; }}
+  .aur-reg-id {{ font-size:13px; font-weight:700; color:rgba(255,255,255,0.7); letter-spacing:1px; margin-top:4px; font-family:monospace; }}
+  .aur-qr-wrap {{ display:flex; flex-direction:column; align-items:center; gap:8px; flex-shrink:0; }}
+  .aur-qr {{ background:#fff; padding:14px; border-radius:20px; box-shadow:0 8px 40px rgba(0,0,0,0.4); }}
+  .aur-qr .qr {{ width:180px; height:180px; border-radius:8px; }}
+  .aur-qr-hint {{ font-size:10px; color:rgba(255,255,255,0.35); font-weight:600; letter-spacing:.5px; text-transform:uppercase; }}
+  .aur-stub {{ border-top:2px dashed rgba(255,255,255,0.12); position:relative; overflow:hidden; }}
+  .aur-stub-inner {{ display:flex; align-items:center; gap:20px; padding:20px 40px; }}
   .aur-stub-left {{ flex:1; min-width:0; }}
-  .aur-stub-event {{ font-size:14px; font-weight:700; opacity:.9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-  .aur-stub-detail {{ font-size:11px; opacity:.5; margin-top:3px; }}
-  .aur-stub-id {{ font-size:10px; font-weight:800; letter-spacing:1.5px; opacity:.45; margin-top:4px; }}
-  .aur-stub-tear {{ position:absolute; right:20px; top:-10px; font-size:11px; opacity:.3; letter-spacing:1px; font-weight:600; }}
+  .aur-stub-event {{ font-size:14px; font-weight:700; opacity:.85; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+  .aur-stub-detail {{ font-size:11px; opacity:.45; margin-top:4px; }}
+  .aur-stub-id {{ font-size:10px; font-weight:800; letter-spacing:1.5px; opacity:.35; margin-top:5px; font-family:monospace; }}
+  .aur-stub .qr-sm {{ width:68px; height:68px; border-radius:8px; opacity:.8; }}
+  .aur-stub-dots {{ position:absolute; top:-9px; left:0; right:0; height:18px; background:repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(255,255,255,0.08) 8px, rgba(255,255,255,0.08) 10px); }}
 
   /* ── CLASSIC ─────────────────────────────────────────────────────────── */
   .classic {{ background:#fff; }}
@@ -1714,7 +2136,12 @@ def _ticket_email_block(reg: dict, showcase: dict, ticket_url: str) -> str:
     Professional design matching the downloadable pass. Includes sponsor logos
     when available. Email-safe HTML (inline styles, table layout).
     """
-    qr = reg.get("qr_code_base64") or ""
+    qr = reg.get("qr_code_base64")
+    if not qr and reg.get("id"):
+        frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        qr = generate_qr_code(f"{frontend_url}/echo/scan/{reg.get('id')}")
+    elif not qr:
+        qr = ""
     title = reg.get("showcase_title") or showcase.get("title") or "Event"
     reg_id = reg.get("id") or ""
     event_date = _event_date_label(showcase)
@@ -2131,12 +2558,12 @@ async def _fulfill_team_members(db, reg: dict, showcase: Optional[dict]) -> List
             coupons = await _generate_coupons_for_registration(db, canonical_slug, member_reg_id, sessions)
             
         # 3) Send confirmation email with entry pass & QR code
-        await _send_team_member_confirmation(db, member_reg_ser, showcase, reg, reg.get("team_name") or "Your Team", coupons=coupons)
+        await _send_team_member_confirmation(db, member_reg_ser, showcase or {}, reg, reg.get("team_name") or "Your Team", coupons=coupons)
         
         # 4) Optional WhatsApp notification
         try:
             if member_phone and _wa_opt_in(reg):
-                await _send_wa_confirmation(db, member_reg_ser, showcase, coupons)
+                await _send_wa_confirmation(db, member_reg_ser, showcase or {}, coupons)
         except Exception as _wa_err:
             print(f"[ECHO] Team member WA error: {_wa_err}")
             
@@ -2417,6 +2844,8 @@ class SpeakerItem(BaseModel):
     linkedin_url: Optional[str] = None
     twitter_url: Optional[str] = None
     website_url: Optional[str] = None
+    location: Optional[str] = ""         # e.g. "Union, New Jersey, USA"
+    category: Optional[str] = ""          # e.g. "International Panel", "Voices That Build"
     is_panel_member: Optional[bool] = False   # True → shows under "Panel Members"
     session_title: Optional[str] = ""        # keynote/panel/talk this speaker is part of
     visible: Optional[bool] = True
@@ -2449,6 +2878,34 @@ class FaqItem(BaseModel):
     question: str
     answer: str
 
+class PerkItem(BaseModel):
+    """A perk/benefit card shown on the event detail page."""
+    name: str
+    description: Optional[str] = ""
+    value: Optional[str] = ""           # e.g. "$29 value", "Coupon", "Included"
+    icon: Optional[str] = None           # lucide icon key
+    display_order: Optional[int] = 0
+
+class CyberConclaveSession(BaseModel):
+    """One session card inside the Cyber Security Conclave section."""
+    title: str
+    description: Optional[str] = ""
+
+class CyberConclaveConfig(BaseModel):
+    """Configuration for the Cyber Security Conclave section."""
+    enabled: Optional[bool] = True
+    badge: Optional[str] = "INTERNATIONAL VIRTUAL CONCLAVE"
+    title: Optional[str] = "Cyber Security with AI"
+    subtitle: Optional[str] = ""
+    date_label: Optional[str] = ""
+    time_label: Optional[str] = ""
+    sessions: Optional[List[CyberConclaveSession]] = []
+
+class TickerMessage(BaseModel):
+    """A single message in the top scrolling ticker bar."""
+    text: str
+    display_order: Optional[int] = 0
+
 class PrizePoolItem(BaseModel):
     total: Optional[str] = ""
     first: Optional[str] = ""
@@ -2459,10 +2916,15 @@ class PrizePoolItem(BaseModel):
 class RegistrationConfig(BaseModel):
     enabled: Optional[bool] = True
     fee: Optional[float] = 0
+    individual_fee: Optional[float] = None
+    team_fee: Optional[float] = None
+    discount_coupons: Optional[Dict[str, float]] = Field(default_factory=dict)
     currency: Optional[str] = "INR"
     max_seats: Optional[int] = 0
     seat_leverage: Optional[float] = 0.8  # 0.0-1.0 — fraction of registrations that consume seats (0.8 = 20% buffer)
     deadline: Optional[str] = ""
+    temporary_open: Optional[bool] = False
+    temporary_close_at: Optional[str] = ""
     payment_note: Optional[str] = ""
     payment_url: Optional[str] = None  # External payment gateway link (e.g. Razorpay/Stripe) shown on the register page
     poster_images: Optional[List[str]] = []  # Poster images displayed on the register page
@@ -2479,6 +2941,9 @@ DEFAULT_SECTIONS = {
     "timeline": True,
     "speakers": True,
     "categories": True,
+    "perks": True,
+    "ticker": True,
+    "conclave": True,
     "schedule": True,
     "panels": True,
     "faqs": True,
@@ -2489,6 +2954,54 @@ DEFAULT_SECTIONS = {
     "cta": True,
     "registration": True,
 }
+
+class EchoCatalogItem(BaseModel):
+    id: Optional[str] = Field(default=None, alias="_id")
+    event_id: str
+    vendor_id: Optional[str] = None
+    vendor_name: Optional[str] = None
+    name: str
+    description: Optional[str] = None
+    servings: Optional[str] = None
+    category: str = "food" # 'food' or 'handcraft'
+    price: float = 0.0
+    stock: int = 0
+    images: List[str] = []
+    is_active: bool = True
+    created_at: Optional[datetime] = None
+
+class EchoCoupon(BaseModel):
+    code: str
+    discount_type: str = "percentage" # 'percentage', 'fixed'
+    discount_value: float = 0.0
+    event_id: Optional[str] = None
+    valid_until: Optional[datetime] = None
+    max_uses: int = 0
+    times_used: int = 0
+    created_at: Optional[datetime] = None
+
+class EchoOrderItem(BaseModel):
+    item_id: str
+    name: str
+    quantity: int
+    price_at_time: float
+    vendor_id: Optional[str] = None
+    status: str = "pending" # pending, fulfilled
+
+class EchoOrder(BaseModel):
+    id: Optional[str] = Field(default=None, alias="_id")
+    event_id: str
+    user_id: str
+    user_email: str
+    items: List[EchoOrderItem] = []
+    total_amount: float = 0.0
+    discount_applied: float = 0.0
+    coupon_code: Optional[str] = None
+    final_amount: float = 0.0
+    status: str = "pending" # pending, paid, fulfilled, cancelled
+    payment_id: Optional[str] = None
+    created_at: Optional[datetime] = None
+
 
 
 class ShowcaseCreateSchema(BaseModel):
@@ -2541,6 +3054,9 @@ class ShowcaseCreateSchema(BaseModel):
     og_image_url: Optional[str] = None
     sections: Optional[Dict[str, bool]] = None
     registration: Optional[RegistrationConfig] = None
+    perks: Optional[List[PerkItem]] = []
+    ticker_messages: Optional[List[TickerMessage]] = []
+    cyber_conclave: Optional[CyberConclaveConfig] = None
 
 # ShowcaseUpdateSchema makes every field optional (for partial PATCH-style updates).
 # Defined as a standalone model (not inheriting ShowcaseCreateSchema) to avoid
@@ -2596,36 +3112,30 @@ class ShowcaseUpdateSchema(BaseModel):
     sections: Optional[Dict[str, bool]] = None
     registration: Optional[RegistrationConfig] = None
     sessions: Optional[List[Dict[str, Any]]] = None
+    perks: Optional[List[PerkItem]] = None
+    ticker_messages: Optional[List[TickerMessage]] = None
+    cyber_conclave: Optional[CyberConclaveConfig] = None
 
 
 # ── Seed Default Data ────────────────────────────────────────────────────────
-DEFAULT_SHOWCASE_SEED = {
+VNR_SHOWCASE_SEED = {
     "title": "VNR ECHO 2026",
-    "slug": "vnrvjit",
-    "aliases": ["vnr-echo-2026", "vnr"],
-    "subtitle": "Empowering Tomorrow's Leaders",
-    "description": "A day of inspiration, learning, and networking as industry leaders, alumni, and students came together to explore opportunities and shape the future of technology.",
-    "date": "July 31, 2026",
-    "time": "09:30 AM – 04:30 PM",
+    "slug": "vnr-echo-2026",
+    "aliases": ["vnrvjit", "vnrjvit", "vnr", "vnr-vjiet", "vnr-vjit"],
+    "subtitle": "Empowering Tomorrow's Leaders · VNR VJIET in collaboration with StudentAlumni.ai",
+    "description": "Walk in with an idea, walk out with a product. A 12-hour intensive build sprint for VNR VJIET students.",
+    "date": "August 15, 2026",
+    "time": "9:00 AM – 9:00 PM",
     "venue": "Main Auditorium, VNR VJIET, Hyderabad",
     "college": "VNR VJIET",
     "category": "college-event",
     "status": "published",
-    "event_status_badge": "Completed",
-    "hero_image_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-    "hero_cover_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-    "hero_thumbnail_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-    "hero_bg_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-    "banner_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-    "poster_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-    "gallery_images": [
-        "/images/hackwave/hackwave_techfest_verticals.jpg",
-        "/images/hackwave/hackwave_speakers.jpg",
-        "/images/hackwave/hackwave_main_poster.png",
-        "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
-        "/images/hackwave/hackwave_perks_pool.jpg"
-    ],
-    "organizer_name": "Student Alumni Cell",
+    "event_status_badge": "Upcoming",
+    "hero_image_url": "https://picsum.photos/seed/echo2026-hero/1200/700",
+    "hero_cover_url": "https://picsum.photos/seed/echo2026-hero/1200/700",
+    "hero_thumbnail_url": "https://picsum.photos/seed/echo2026-hero/800/500",
+    "hero_bg_url": "https://picsum.photos/seed/echo2026-bg/1600/900",
+    "organizer_name": "Student Alumni Cell · VNR VJIET",
     "organizer_logo_url": None,
     "stats": [
         { "label": "Students Attended", "value": "320+", "icon": "users", "display_order": 0 },
@@ -2656,10 +3166,10 @@ DEFAULT_SHOWCASE_SEED = {
         { "icon": "network", "title": "Networking Sessions", "description": "Students connected with experts and alumni" }
     ],
     "speakers": [
-        { "name": "Vijay Raghavan", "position": "Chief AI Architect", "company": "Google", "bio": "Leads large-scale ML systems and has mentored 100+ student teams.", "is_panel_member": True, "session_title": "AI at Scale — Keynote", "sort_order": 0, "visible": True },
-        { "name": "Sneha Reddy", "position": "VP Engineering", "company": "Microsoft", "bio": "Product leader behind developer tooling at Microsoft. Passionate about D&I in tech.", "is_panel_member": True, "session_title": "Careers in AI — Panel", "sort_order": 1, "visible": True },
-        { "name": "Arjun Mehta", "position": "Founder", "company": "BrightFuture Labs", "bio": "Serial entrepreneur building edtech for rural India.", "is_panel_member": False, "session_title": "Entrepreneurship 101", "sort_order": 2, "visible": True },
-        { "name": "Dr. Kavitha Nair", "position": "Professor", "company": "VNR VJIET", "bio": "Researcher in NLP and student mentor for AI-DS program.", "is_panel_member": False, "session_title": "Careers in AI — Panel", "sort_order": 3, "visible": True }
+        { "name": "Vijay Raghavan", "position": "Chief AI Architect", "company": "Google", "location": "Bangalore, India", "bio": "Leads large-scale ML systems and has mentored 100+ student teams.", "is_panel_member": True, "category": "Keynote Speaker", "session_title": "AI at Scale — Keynote", "sort_order": 0, "visible": True },
+        { "name": "Sneha Reddy", "position": "VP Engineering", "company": "Microsoft", "location": "Hyderabad, India", "bio": "Product leader behind developer tooling at Microsoft. Passionate about D&I in tech.", "is_panel_member": True, "category": "Panelist", "session_title": "Careers in AI — Panel", "sort_order": 1, "visible": True },
+        { "name": "Dr. Kavitha Nair", "position": "Professor & NLP Researcher", "company": "VNR VJIET", "location": "Hyderabad, India", "bio": "Researcher in NLP and student mentor for AI-DS program.", "is_panel_member": True, "category": "Academic Mentor", "session_title": "Careers in AI — Panel", "sort_order": 2, "visible": True },
+        { "name": "Arjun Mehta", "position": "Founder", "company": "BrightFuture Labs", "location": "Hyderabad, India", "bio": "Serial entrepreneur building edtech for rural India.", "is_panel_member": False, "category": "Industry Speaker", "session_title": "Entrepreneurship 101", "sort_order": 3, "visible": True }
     ],
     "categories": [
         { "name": "Healthcare & MedTech", "description": "Build AI solutions for diagnosis, telemedicine and wellness.", "icon": "heartpulse", "color": "#F43F5E" },
@@ -2685,18 +3195,39 @@ DEFAULT_SHOWCASE_SEED = {
         { "question": "Do I need to know AI/ML to attend?", "answer": "No. The keynotes and workshops are beginner-friendly. You can join a team with mixed skills." }
     ],
     "eligibility": "Open to all undergrad and postgrad students. Teams of 4–5 encouraged; individual starts welcome.",
-    "prize_pool": { "total": "₹30,000", "first": "₹15,000", "second": "₹10,000", "third": "₹5,000", "other_prizes": ["Internship offers for top 3 teams"] },
+    "prize_pool": { "total": "₹30,000", "tracks": "₹10,000", "grand_pool": "₹20,000", "wehive_germany": None, "visas": None, "other_prizes": ["Track Winners Certificate", "Overall Winner Trophy"] },
     "team_composition": "4–5 members, at least one member from each of design, coding and presentation.",
     "partners": [
-        { "name": "Microsoft", "kind": "association", "logo_url": None },
-        { "name": "Google", "kind": "association", "logo_url": None },
-        { "name": "LinkedIn", "kind": "association", "logo_url": None }
+        { "name": "CodeSpectra", "kind": "sponsor", "logo_url": None },
+        { "name": "Featherless", "kind": "sponsor", "logo_url": None }
     ],
     "sponsors": [
         { "name": "Tech Corp", "tier": "Title Sponsor", "website_url": "https://example.com", "logo_url": None, "priority": 0 },
-        { "name": "InnoLabs", "tier": "Gold Sponsor", "website_url": "https://example.com", "logo_url": None, "priority": 1 },
-        { "name": "BrightFuture", "tier": "Silver Sponsor", "website_url": "https://example.com", "logo_url": None, "priority": 2 }
+        { "name": "InnoLabs", "tier": "Gold Sponsor", "website_url": "https://example.com", "logo_url": None, "priority": 1 }
     ],
+    "perks": [
+        { "name": "Networking with Industry Leaders", "description": "Direct access to professionals from Google, Microsoft, and startups", "value": "Live", "icon": "users" },
+        { "name": "Hackathon Prizes", "description": "₹30,000 prize pool across 5 categories", "value": "₹30,000", "icon": "trophy" },
+        { "name": "Certificates for all", "description": "Participation and winner certificates with QR verification", "value": "Verifiable", "icon": "award" },
+        { "name": "Free Food & Refreshments", "description": "Lunch, snacks, and beverages throughout the event", "value": "Included", "icon": "coffee" },
+        { "name": "Internship Opportunities", "description": "On-the-spot internship offers from partner companies", "value": "Live", "icon": "briefcase" }
+    ],
+    "ticker_messages": [
+        { "text": "VNR ECHO 2026 — Empowering Tomorrow's Leaders" },
+        { "text": "320+ students · 12 speakers · 5 hackathon tracks" },
+        { "text": "Free entry for all VNR VJIET students" },
+        { "text": "Certificates, networking, and internship opportunities" },
+        { "text": "August 15, 2026 · Main Auditorium, VNR VJIET" }
+    ],
+    "cyber_conclave": {
+        "enabled": False,
+        "badge": "",
+        "title": "",
+        "subtitle": "",
+        "date_label": "",
+        "time_label": "",
+        "sessions": []
+    },
     "downloads": [
         { "title": "VNR ECHO 2026 Brochure", "description": "Official event guide & schedule", "file_url": "", "file_size": "2.4 MB", "category": "Brochure" }
     ],
@@ -2705,11 +3236,7 @@ DEFAULT_SHOWCASE_SEED = {
         { "url": "https://picsum.photos/seed/echo2026-1/800/600", "caption": "Keynote session", "alt": "Keynote session at VNR ECHO 2026", "featured": True, "order": 0, "hero": True },
         { "url": "https://picsum.photos/seed/echo2026-2/800/600", "caption": "Audience & panels", "alt": "Panel discussion", "order": 1 },
         { "url": "https://picsum.photos/seed/echo2026-3/800/600", "caption": "Graduation ceremony", "alt": "Ceremony moments", "order": 2 },
-        { "url": "https://picsum.photos/seed/echo2026-4/800/600", "caption": "Workshops", "alt": "Hands-on workshops", "order": 3 },
-        { "url": "https://picsum.photos/seed/echo2026-5/800/600", "caption": "Event highlights", "alt": "Event highlights", "order": 4 },
-        { "url": "https://picsum.photos/seed/echo2026-6/800/600", "caption": "Networking", "alt": "Networking session", "order": 5 },
-        { "url": "https://picsum.photos/seed/echo2026-7/800/600", "caption": "Main hall", "alt": "Main auditorium", "order": 6 },
-        { "url": "https://picsum.photos/seed/echo2026-8/800/600", "caption": "Student experience", "alt": "Student experience", "order": 7 }
+        { "url": "https://picsum.photos/seed/echo2026-4/800/600", "caption": "Workshops", "alt": "Hands-on workshops", "order": 3 }
     ],
     "gallery_layout": "grid",
     "cta_title": "Stay tuned for more events!",
@@ -2728,16 +3255,10 @@ DEFAULT_SHOWCASE_SEED = {
         "deadline": "",
         "payment_note": "Free entry for VNR VJIET students. Registrations close 1 day before the event.",
         "payment_url": None,
-        "poster_images": [
-            "https://picsum.photos/seed/echo2026-poster1/900/1200",
-            "https://picsum.photos/seed/echo2026-poster2/900/1200",
-            "https://picsum.photos/seed/echo2026-poster3/900/1200"
-        ],
+        "poster_images": [],
         "contact_phones": [
             "91214 95077",
-            "84669 65800",
-            "+91 6281 083 332",
-            "+91 63001 97713"
+            "84669 65800"
         ],
     },
     "created_at": _now(),
@@ -2745,77 +3266,301 @@ DEFAULT_SHOWCASE_SEED = {
     "created_by": "system"
 }
 
+SNIST_SHOWCASE_SEED = {
+    "title": "HackWave 3.0 (2026)",
+    "slug": "snist",
+    "aliases": ["hackwave-3.0", "hackwave-3", "hackwave", "snist"],
+    "subtitle": "Career Development Center · SNIST in collaboration with StudentAlumni.ai",
+    "description": "Build something real. In one overnight sprint. National-Level 24-Hour Tech Fest with 7 Verticals across AI, Security, Hiring and Firesides.",
+    "date": "September 04 – 05, 2026",
+    "time": "Sep 4th, 08:00 AM — Sep 5th, 01:00 PM",
+    "venue": "Sreenidhi Institute of Science and Technology (SNIST), Hyderabad",
+    "college": "SNIST",
+    "category": "college-event",
+    "status": "published",
+    "event_status_badge": "Upcoming",
+    "hero_image_url": "/images/hackwave/hackwave_main_poster.png",
+    "hero_cover_url": "/images/hackwave/hackwave_main_poster.png",
+    "hero_thumbnail_url": "/images/hackwave/hackwave_main_poster.png",
+    "hero_bg_url": "/images/hackwave/hackwave_main_poster.png",
+    "hero_banners": [
+        "/images/hackwave/hackwave_main_poster.png",
+        "/images/hackwave/hackwave_full_programme.png"
+    ],
+    "organizer_name": "Career Development Center · SNIST in collaboration with StudentAlumni.ai",
+    "organizer_logo_url": None,
+    "stats": [
+        { "label": "Students Attended", "value": "1200+", "icon": "users", "display_order": 0 },
+        { "label": "Expert Speakers",   "value": "18+",  "icon": "speakers", "display_order": 1 },
+        { "label": "Verticals",         "value": "7",    "icon": "sessions", "display_order": 2 },
+        { "label": "Mega Grand Pool",   "value": "₹2L",  "icon": "trophy", "display_order": 3 },
+        { "label": "Total Prize Pool",  "value": "₹17.5L+", "icon": "feedback", "display_order": 4 }
+    ],
+    "highlights": [
+        { "icon": "code", "title": "Build by Sunset", "description": "Overnight 24-hour sprint", "display_order": 0 },
+        { "icon": "shield", "title": "Cyber Security Conclave", "description": "ISC2 NJ Chapter virtual conclave", "display_order": 1 },
+        { "icon": "briefcase", "title": "Meet Who Hire", "description": "On-the-spot placement and internship offers", "display_order": 2 }
+    ],
+    "about_cards": [
+        { "icon": "book", "title": "Learn", "description": "Industry insights from leading cybersecurity & AI practitioners" },
+        { "icon": "network", "title": "Connect", "description": "Recruiters and hiring managers in the room" },
+        { "icon": "trending", "title": "Grow", "description": "₹17,50,000+ total rewards and sponsorship pool" }
+    ],
+    "testimonials": [
+        { "name": "Karthik R.", "branch": "Computer Science", "department": "Computer Science", "year": "Final Year", "quote": "HackWave set a new benchmark for college tech fests. The on-the-spot interviews were real.", "rating": 5, "visible": True, "sort_order": 0 },
+        { "name": "Meera P.", "branch": "Information Technology", "department": "Information Technology", "year": "Pre-final Year", "quote": "The Cyber Security Conclave with the ISC2 NJ chapter opened my eyes to real security pathways.", "rating": 5, "visible": True, "sort_order": 1 }
+    ],
+    "timeline": [
+        { "icon": "star", "title": "Day 1: Kickoff & Build Sprint", "description": "Opening keynote, problem statement release, and 24-hour build" },
+        { "icon": "shield", "title": "Day 1 Evening: Cyber Conclave", "description": "ISC2 New Jersey virtual session and Q&A" },
+        { "icon": "code", "title": "Day 2 Morning: Demos & Judging", "description": "Pitch deck presentation to industry judges" },
+        { "icon": "award", "title": "Day 2 Afternoon: Awards & Offers", "description": "Distribution of prizes, visas, and internship letters" }
+    ],
+    "speakers": [
+        { "name": "Stan Mierzwa, Ph.D.", "position": "Director, Center for Cybersecurity", "company": "Kean University", "location": "Union, New Jersey, USA", "linkedin_url": "https://linkedin.com/in/stanmierzwa", "bio": "Leading cybersecurity education and research.", "is_panel_member": True, "category": "International Panel", "sort_order": 0, "visible": True },
+        { "name": "Ken Fishkin", "position": "President", "company": "ISC2 New Jersey Chapter", "location": "New Jersey, USA", "linkedin_url": "https://linkedin.com/in/kfishkin", "bio": "Champion for cybersecurity career entry from university campus.", "is_panel_member": True, "category": "International Panel", "sort_order": 1, "visible": True },
+        { "name": "Sharon Kelley", "position": "Board Member", "company": "ISC2 New Jersey Chapter", "location": "Hoboken, New Jersey, USA", "linkedin_url": "https://linkedin.com/in/sharon-kelley-0292181", "bio": "Security leader, educator, and governance mentor.", "is_panel_member": True, "category": "International Panel", "sort_order": 2, "visible": True },
+        { "name": "Jeremy Livingston", "position": "CISO & Deputy CIO", "company": "Stevens Institute of Technology", "location": "Effort, Pennsylvania, USA", "linkedin_url": "https://linkedin.com/in/jeremylivin", "bio": "Leading cybersecurity and higher ed IT infrastructure.", "is_panel_member": True, "category": "International Panel", "sort_order": 3, "visible": True },
+        { "name": "Suman Kalia", "position": "Associate Professor & Chair, Computer Science", "company": "Saint Peter's University", "location": "Jersey City, New Jersey, USA", "linkedin_url": "https://linkedin.com/in/suman-kalia-300b521", "bio": "Academic leader in algorithms and security engineering.", "is_panel_member": True, "category": "International Panel", "sort_order": 4, "visible": True },
+        { "name": "Jonna Dheeraj", "position": "Account Delivery & Program Management", "company": "Embedded SW · AI · VLSI · 5G · IoT", "location": "Hyderabad, India", "bio": "Building high-performance embedded systems.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 5, "visible": True },
+        { "name": "Harish Kotra", "position": "DevX Lead", "company": "Quirq", "location": "Hyderabad, India", "bio": "Developer relations leader and community builder.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 6, "visible": True },
+        { "name": "M Avinash Rao", "position": "Client Account Manager", "company": "Deloitte", "location": "Hyderabad, India", "bio": "Enterprise tech consulting and digital delivery expert.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 7, "visible": True },
+        { "name": "Gopichand Anumolu", "position": "Founder", "company": "ATLAST", "location": "Hyderabad, India", "bio": "Startup founder engineering developer tools.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 8, "visible": True }
+    ],
+    "categories": [
+        { "name": "AI That Solves a Real Problem", "description": "Build an AI application that solves a meaningful, real-world problem with high value.", "icon": "target", "color": "#F43F5E" },
+        { "name": "Beyond the Chatbot", "description": "Reimagine AI interaction via voice, visual, workflows, and automation.", "icon": "rocket", "color": "#8B5CF6" },
+        { "name": "AI for Builders", "description": "Developer and creator tools that remove friction and accelerate workflows.", "icon": "wrench", "color": "#3B82F6" },
+        { "name": "Autonomous AI Workflows", "description": "Multi-step reasoning, tool-using autonomous agent systems.", "icon": "cpu", "color": "#10B981" },
+        { "name": "Build the Unexpected", "description": "Original, creative, and ambitious concepts that surprise and delight.", "icon": "sparkles", "color": "#F59E0B" }
+    ],
+    "schedule": [
+        { "time": "08:00 AM", "title": "Check-in & Kit Collection", "description": "QR entry passes scanned, badge and t-shirt distribution.", "session_type": "break", "day": 1 },
+        { "time": "09:30 AM", "title": "Opening Keynote & Problem Releases", "description": "Introduction of 7 verticals and tracks.", "session_type": "keynote", "day": 1 },
+        { "time": "06:00 PM", "title": "Cyber Security Conclave (Virtual)", "description": "Live virtual stream with ISC2 New Jersey Chapter.", "session_type": "panel", "day": 1 },
+        { "time": "09:00 AM", "title": "Final Submission & Judging", "description": "Evaluation by expert panels.", "session_type": "activity", "day": 2 },
+        { "time": "12:00 PM", "title": "Valedictory & Prize Distribution", "description": "Grand pool & visa awards ceremony.", "session_type": "activity", "day": 2 }
+    ],
+    "panels": [
+        { "topic": "Cyber Security Trends & Pathways", "description": "Global insights from ISC2 NJ Chapter panelists.", "panelists": ["Stan Mierzwa, Ph.D.", "Ken Fishkin", "Sharon Kelley", "Jeremy Livingston", "Suman Kalia"] }
+    ],
+    "faqs": [
+        { "question": "Who can register?", "answer": "Students across all engineering and technology colleges with a valid student ID." },
+        { "question": "What is the team size?", "answer": "Individual or teams of 2 to 5 members." },
+        { "question": "What is included in the ticket?", "answer": "Full access to 7 verticals, 4 meal coupons, official t-shirt, participation certificate, and judging entry." }
+    ],
+    "eligibility": "Undergraduate and postgraduate students from any recognised institute.",
+    "prize_pool": {
+        "total": "₹17,50,000+",
+        "tracks": "₹50,000",
+        "grand_pool": "₹2,00,000",
+        "wehive_germany": "₹15,00,000",
+        "visas": "2 Business Visas",
+        "other_prizes": [
+            "2 Business Visas sponsored in full",
+            "Up to ₹15,00,000 Germany Master's Sponsorship",
+            "₹2,00,000 Mega Grand Pool",
+            "₹50,000 Hackathon Tracks"
+        ]
+    },
+    "team_composition": "Teams of 2–5 members recommended.",
+    "partners": [
+        { "name": "WeHive", "kind": "visa_partner", "logo_url": None },
+        { "name": "CodeSpectra", "kind": "sponsor", "logo_url": None },
+        { "name": "Featherless", "kind": "sponsor", "logo_url": None }
+    ],
+    "sponsors": [
+        { "name": "WeHive Consulting", "tier": "Visa & Global Partner", "website_url": "https://wehive.com", "logo_url": None, "priority": 0 }
+    ],
+    "perks": [
+        { "name": "Networking with Industry Leaders", "description": "Direct access to professionals from Google, Microsoft, and startups", "value": "Live", "icon": "users" },
+        { "name": "Hackathon Prizes", "description": "₹2,00,000 Mega Grand Pool (₹50,000 Track Pool)", "value": "₹2,00,000", "icon": "trophy" },
+        { "name": "Certificates for all", "description": "Participation and winner certificates with QR verification", "value": "Verifiable", "icon": "award" },
+        { "name": "Free Food & Refreshments", "description": "Meals, snacks, and beverages throughout the overnight sprint", "value": "Included", "icon": "coffee" },
+        { "name": "Internship Opportunities", "description": "On-the-spot internship offers from partner companies", "value": "Live", "icon": "briefcase" },
+        { "name": "Cyber Security Certs", "description": "ISC2-powered cert prep track with global panelists", "value": "Premium", "icon": "shield" },
+        { "name": "Open Source Bounties", "description": "Bounties and prizes for best open-source contributions", "value": "Live", "icon": "code" },
+        { "name": "Workshop Kits", "description": "Hands-on lab materials for AI, Security and Cloud tracks", "value": "Included", "icon": "wrench" },
+        { "name": "Exclusive Swag", "description": "HackWave 3.0 t-shirt, stickers, and badges for all participants", "value": "Included", "icon": "shirt" }
+    ],
+    "ticker_messages": [
+        { "text": "HackWave 3.0 — National-Level 24-Hour Tech Fest" },
+        { "text": "7 Verticals · AI, Security, Hiring & Firesides" },
+        { "text": "₹2,00,000 Mega Grand Pool · ₹50,000 Track Pool" },
+        { "text": "Certificates · Internship offers · Swag & Meal Coupons" },
+        { "text": "September 04–05, 2026 · SNIST Campus, Hyderabad" },
+        { "text": "Built with love for students across all campuses" }
+    ],
+    "cyber_conclave": {
+        "enabled": True,
+        "badge": "INTERNATIONAL VIRTUAL CONCLAVE",
+        "title": "Cyber Security with AI",
+        "subtitle": "ISC2 New Jersey Chapter × StudentAlumni.ai — Global insights for students building a career in security",
+        "date_label": "Friday, September 4, 2026",
+        "time_label": "6:00 PM IST · 8:30 AM ET",
+        "sessions": [
+            { "title": "Global security trends", "description": "Where the threat landscape is moving." },
+            { "title": "AI on both sides", "description": "How AI is reshaping defence and attack." },
+            { "title": "Certifications that matter", "description": "CISSP, CC and the paths worth it." },
+            { "title": "Career pathways", "description": "How to enter the field from campus." }
+        ]
+    },
+    "handbook_url": "/HackWave_3.0_Event_Handbook.pdf",
+    "downloads": [
+        { "title": "HackWave 3.0 Event Handbook", "description": "Official participant guide & 7 verticals rules", "file_url": "/HackWave_3.0_Event_Handbook.pdf", "file_size": "2.1 MB", "category": "Handbook" }
+    ],
+    "videos": [
+        {
+            "title": "HackWave 3.0 SNIST Official Teaser",
+            "video_url": "https://www.youtube.com/watch?v=M576WGiDBdQ",
+            "thumbnail_url": "/images/hackwave/hackwave_main_poster.png",
+            "description": "Watch the official teaser for HackWave 3.0 at SNIST — 7 Verticals, ₹17,50,000+ Prize & Sponsorship Pool.",
+            "platform": "youtube"
+        }
+    ],
+    "gallery": [
+        { "url": "/images/hackwave/hackwave_main_poster.png", "caption": "Official HackWave Poster", "alt": "HackWave 3.0 SNIST", "featured": True, "order": 0, "hero": True },
+        { "url": "/images/hackwave/hackwave_full_programme.png", "caption": "Full Programme Guide", "alt": "Programme Guide", "order": 1 }
+    ],
+    "gallery_layout": "grid",
+    "cta_title": "Register for HackWave 3.0!",
+    "cta_subtitle": "Experience the overnight build sprint at SNIST.",
+    "cta_button_text": "Get Entry Pass",
+    "cta_url": None,
+    "seo_title": "HackWave 3.0 — SNIST 24-Hour Tech Fest",
+    "seo_description": "Join HackWave 3.0 at SNIST for overnight hackathon, international cybersecurity conclave, and hiring.",
+    "seo_keywords": "SNIST, HackWave 3.0, Hackathon, Cybersecurity, Student Alumni",
+    "sections": dict(DEFAULT_SECTIONS),
+    "registration": {
+        "enabled": True,
+        "fee": 599,
+        "individual_fee": 599,
+        "team_fee": 2495,
+        "currency": "INR",
+        "max_seats": 985,
+        "deadline": "2026-09-04T13:00:00+05:30",
+        "payment_note": "Includes 4 meals, swag, hackathon entry, and certificate.",
+        "payment_url": None,
+        "poster_images": [
+            "/images/hackwave/hackwave_main_poster.png",
+            "/images/hackwave/hackwave_full_programme.png"
+        ],
+        "contact_phones": [
+            "91214 95077",
+            "84669 65800"
+        ]
+    },
+    "created_at": _now(),
+    "updated_at": _now(),
+    "created_by": "system"
+}
+
+DEFAULT_SHOWCASE_SEED = VNR_SHOWCASE_SEED
+
 
 async def seed_echo_showcase(db: AsyncIOMotorDatabase):
-    """Seed initial VNR ECHO 2026 showcase if missing, and ensure gallery_layout exists."""
+    """Seed SNIST and VNR showcases if missing, and ensure gallery_layout exists."""
     try:
-        seed_slug = str(DEFAULT_SHOWCASE_SEED.get("slug") or "vnr-echo-2026")
-        seed_aliases = DEFAULT_SHOWCASE_SEED.get("aliases") or []
-        existing = await db.echo_showcases.find_one(_slug_query(seed_slug or ""))
-        if not existing and seed_aliases:
-            existing = await db.echo_showcases.find_one(
-                {"aliases": {"$in": seed_aliases}}
-            )
-        if not existing:
-            doc = dict(DEFAULT_SHOWCASE_SEED)
-            doc["created_at"] = _now()
-            doc["updated_at"] = _now()
-            await db.echo_showcases.insert_one(doc)
+        # 1. Seed SNIST if missing
+        snist_existing = await db.echo_showcases.find_one(_slug_query("snist"))
+        if not snist_existing:
+            s_doc = dict(SNIST_SHOWCASE_SEED)
+            s_doc["created_at"] = _now()
+            s_doc["updated_at"] = _now()
+            await db.echo_showcases.insert_one(s_doc)
+            print("[ECHO CMS] Seeded default snist showcase")
+
+        # 2. Seed VNR if missing
+        vnr_existing = await db.echo_showcases.find_one(_slug_query("vnr-echo-2026"))
+        if not vnr_existing:
+            v_doc = dict(VNR_SHOWCASE_SEED)
+            v_doc["created_at"] = _now()
+            v_doc["updated_at"] = _now()
+            await db.echo_showcases.insert_one(v_doc)
             print("[ECHO CMS] Seeded default vnr-echo-2026 showcase")
-        else:
-            await db.echo_showcases.update_many(
-                {"slug": {"$in": ["vnrvjit", "vnr-echo-2026", "vnr"]}},
-                {
-                    "$set": {
-                        "event_status_badge": "Completed",
-                        "hero_image_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-                        "banner_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-                        "poster_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-                        "gallery_layout": "grid"
-                    }
-                }
-            )
+
+        await db.echo_showcases.update_many({"gallery_layout": {"$exists": False}}, {"$set": {"gallery_layout": "grid"}})
     except Exception as e:
         print(f"[ECHO CMS] Seed warning: {e}")
 
 
-# ── Public handbook download endpoint ─────────────────────────────────────
-from fastapi.responses import FileResponse
+# ── Showcase-specific handbook download endpoints ────────────────────────────
+from fastapi.responses import FileResponse, RedirectResponse
 
+@router.get("/showcases/{slug}/handbook")
+@router.get("/showcases/{slug}/handbook/download")
+async def download_showcase_handbook(slug: str, request: Request):
+    db = _get_db(request)
+    doc = await db.echo_showcases.find_one(_slug_query(slug))
+    if not doc:
+        raise HTTPException(status_code=404, detail="Showcase not found")
+
+    # 1. Check showcase.handbook_url
+    handbook_url = (doc.get("handbook_url") or "").strip()
+
+    # 2. Check showcase.downloads for a handbook/brochure/guide item
+    if not handbook_url:
+        downloads = doc.get("downloads") or []
+        for d in downloads:
+            cat = (d.get("category") or "").lower()
+            title = (d.get("title") or "").lower()
+            url = (d.get("file_url") or "").strip()
+            if url and (cat in ("handbook", "brochure", "guide") or "handbook" in title or "guide" in title or "brochure" in title):
+                handbook_url = url
+                break
+
+    if not handbook_url:
+        raise HTTPException(status_code=404, detail="Handbook not available for this showcase")
+
+    # If it's an external URL (http/https), redirect
+    if handbook_url.startswith("http://") or handbook_url.startswith("https://"):
+        return RedirectResponse(url=handbook_url)
+
+    # If it's a local static path, resolve it
+    filename = Path(handbook_url).name
+    candidate_paths = [
+        Path(__file__).parent / "static" / filename,
+        Path(__file__).parent / "uploads" / filename,
+        Path(__file__).parent / "uploads" / "documents" / filename,
+        Path(__file__).parent.parent / "uploads" / filename,
+    ]
+    for p in candidate_paths:
+        if p.is_file():
+            return FileResponse(
+                path=str(p),
+                filename=filename,
+                media_type="application/pdf"
+            )
+
+    raise HTTPException(status_code=404, detail="Handbook file not found on server")
+
+
+# ── Legacy handbook redirect endpoint (preserves backwards compatibility) ──
 @router.get("/handbook")
 @router.get("/handbook/download")
-async def download_handbook():
-    pdf_file = Path(__file__).parent / "static" / "HackWave_3.0_Event_Handbook.pdf"
-    if not pdf_file.exists():
-        raise HTTPException(status_code=404, detail="Event handbook PDF not found")
-    return FileResponse(
-        path=str(pdf_file),
-        filename="HackWave_3.0_Event_Handbook.pdf",
-        media_type="application/pdf"
-    )
+async def download_handbook_legacy(slug: Optional[str] = Query(None)):
+    target_slug = slug or "snist"
+    return RedirectResponse(url=f"/api/echo/showcases/{target_slug}/handbook", status_code=307)
+
 
 # ── Public endpoints ─────────────────────────────────────────────────────────
 @router.get("/showcases")
 async def list_showcases(request: Request):
-    try:
-        db = _get_db(request)
+    db = _get_db(request)
+    docs = await db.echo_showcases.find(
+        {"status": "published"},
+        {"gallery": 0, "testimonials": 0, "timeline": 0}
+    ).sort("date", -1).to_list(100)
+
+    # Auto-seed if empty
+    if len(docs) == 0:
+        await seed_echo_showcase(db)
         docs = await db.echo_showcases.find(
             {"status": "published"},
             {"gallery": 0, "testimonials": 0, "timeline": 0}
         ).sort("date", -1).to_list(100)
 
-        # Auto-seed if empty
-        if len(docs) == 0:
-            await seed_echo_showcase(db)
-            docs = await db.echo_showcases.find(
-                {"status": "published"},
-                {"gallery": 0, "testimonials": 0, "timeline": 0}
-            ).sort("date", -1).to_list(100)
-
-        return {"items": [_ser(d) for d in docs]}
-    except Exception as err:
-        logger.error(f"[ECHO SHOWCASES LIST ERROR] {err}")
-        return {"items": [_ser(DEFAULT_SHOWCASE_SEED)]}
+    return {"items": [_ser(d) for d in docs]}
 
 
 @router.get("/showcases/{slug}")
@@ -2823,145 +3568,9 @@ async def get_showcase(slug: str, request: Request):
     db = _get_db(request)
     doc = await db.echo_showcases.find_one(_slug_query(slug))
     if not doc:
-        # Auto-seed the default showcase on first hit so a fresh DB serves content,
-        # but only when the requested slug is the seed's canonical slug/alias or hackwave.
-        seed_slug = DEFAULT_SHOWCASE_SEED.get("slug")
-        seed_aliases = DEFAULT_SHOWCASE_SEED.get("aliases") or []
-        if slug in (seed_slug, *seed_aliases, "hackwave-3.0", "hackwave-3", "hackwave", "snist"):
-            await seed_echo_showcase(db)
-            doc = await db.echo_showcases.find_one(_slug_query(slug))
-            if not doc and slug in ("hackwave-3.0", "hackwave-3", "hackwave", "snist"):
-                hw_doc = {
-                    "_id": ObjectId(),
-                    "title": "HackWave 3.0 (2026)",
-                    "slug": slug if slug == "snist" else "hackwave-3.0",
-                    "aliases": ["hackwave-3.0", "hackwave-3", "hackwave", "snist"],
-                    "subtitle": "Career Development Center · SNIST in collaboration with StudentAlumni.ai",
-                    "description": "Build something real. In one overnight sprint. National-Level 24-Hour Tech Fest with 7 Verticals across AI, Security, Hiring and Firesides.",
-                    "date": "September 04 – 05, 2026",
-                    "dates": "September 04 – 05, 2026",
-                    "time": "Sep 4th, 08:00 AM — Sep 5th, 01:00 PM",
-                    "venue": "Sreenidhi Institute of Science and Technology (SNIST), Hyderabad",
-                    "college": "SNIST",
-                    "college_name": "Sreenidhi Institute of Science and Technology",
-                    "college_full": "Sreenidhi Institute of Science and Technology",
-                    "organizer_name": "Career Development Center · SNIST in collaboration with StudentAlumni.ai",
-                    "status": "published",
-                    "event_status_badge": "Upcoming",
-                    "fee": 599,
-                    "individual_fee": 599,
-                    "team_fee": 2495,
-                    "available_seats": 985,
-                    "team_slots_available": 197,
-                    "prize_pool": "₹2,00,000 Mega Grand Pool (₹50,000 Track Prize Pool)",
-                    "reg_closes": "2026-09-01",
-                    "hero_image_url": "/images/hackwave/hackwave_main_poster.png",
-                    "banner_url": "/images/hackwave/hackwave_main_poster.png",
-                    "poster_url": "/images/hackwave/hackwave_main_poster.png",
-                    "gallery_images": [
-                        "/images/hackwave/hackwave_main_poster.png",
-                        "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
-                        "/images/hackwave/hackwave_speakers.jpg",
-                        "/images/hackwave/hackwave_techfest_verticals.jpg",
-                        "/images/hackwave/hackwave_perks_pool.jpg"
-                    ],
-                    "cyber_security_conclave": {
-                        "title": "Cyber Security with AI",
-                        "presented_by": "ISC2 New Jersey Chapter x StudentAlumni.ai",
-                        "subtitle": "Global insights for students building a career in security",
-                        "date_time": "Friday, September 4, 2026 · 6:00 PM IST · 8:30 AM ET",
-                        "topics": [
-                            {"title": "Global security trends", "description": "Where the threat landscape is moving."},
-                            {"title": "AI on both sides", "description": "How AI is reshaping defence and attack."},
-                            {"title": "Certifications that matter", "description": "CISSP, CC and the paths worth it."},
-                            {"title": "Career pathways", "description": "How to enter the field from campus."}
-                        ]
-                    },
-                    "speakers": [
-                        {"name": "Stan Mierzwa, Ph.D.", "position": "Director, Center for Cybersecurity", "company": "Kean University", "bio": "Director @ Center for Cybersecurity, Kean University, Union, NJ.", "location": "Union, New Jersey, USA", "linkedin": "in/stanmierzwa", "is_panel_member": True, "category": "International Panel", "sort_order": 0, "visible": True},
-                        {"name": "Ken Fishkin", "position": "President", "company": "ISC2 New Jersey Chapter", "bio": "Champion for cybersecurity career entry from university campus.", "location": "New Jersey, USA", "linkedin": "in/kfishkin", "is_panel_member": True, "category": "International Panel", "sort_order": 1, "visible": True},
-                        {"name": "Sharon Kelley", "position": "Board Member", "company": "ISC2 New Jersey Chapter (MS, MBA, CISSP, CCSP)", "bio": "Security leader, educator, and governance mentor.", "location": "Hoboken, New Jersey, USA", "linkedin": "in/sharon-kelley-0292181", "is_panel_member": True, "category": "International Panel", "sort_order": 2, "visible": True},
-                        {"name": "Jeremy Livingston", "position": "CISO & Deputy CIO", "company": "Stevens Institute of Technology", "bio": "Leading cybersecurity and higher ed IT infrastructure.", "location": "Effort, Pennsylvania, USA", "linkedin": "in/jeremylivin", "is_panel_member": True, "category": "International Panel", "sort_order": 3, "visible": True},
-                        {"name": "Suman Kalia", "position": "Associate Professor & Chair, Computer Science", "company": "Saint Peter's University", "bio": "Academic leader in algorithms and security engineering.", "location": "Jersey City, New Jersey, USA", "linkedin": "in/suman-kalia-300b521", "is_panel_member": True, "category": "International Panel", "sort_order": 4, "visible": True},
-                        {"name": "Jonna Dheeraj", "position": "Account Delivery & Program Management", "company": "Embedded SW · AI · VLSI · 5G · IoT", "bio": "Building high-performance embedded systems and VLSI architectures.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 5, "visible": True},
-                        {"name": "Harish Kotra", "position": "DevX Lead", "company": "Quirq", "bio": "Developer relations leader and community builder.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 6, "visible": True},
-                        {"name": "M Avinash Rao", "position": "Client Account Manager", "company": "Deloitte", "bio": "Enterprise tech consulting and digital delivery expert.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 7, "visible": True},
-                        {"name": "Gopichand Anumolu", "position": "Founder", "company": "ATLAST", "bio": "Startup founder engineering developer tools and student platforms.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 8, "visible": True}
-                    ],
-                    "verticals": [
-                        {"title": "Build by Sunset", "description": "Ship something real between morning and dusk. Teams of 2–5, 5 AI tracks, ₹50,000 prize pool.", "icon": "rocket"},
-                        {"title": "Codethon", "description": "Pre-event coding ladder: L1 to L2 to L3. Individual, scored, closes before Sep 4.", "icon": "code"},
-                        {"title": "Voices That Build", "description": "A panel of people who have actually shipped — not people talking about shipping.", "icon": "mic"},
-                        {"title": "Meet the People Who Hire", "description": "Recruiters in the room, not behind a portal. On-the-spot internship and placement offers.", "icon": "briefcase"},
-                        {"title": "Cyber Security Conclave", "description": "Virtual, featuring the ISC2 New Jersey Chapter — global insights on trends, certifications, career pathways (Friday Sep 4, 6:00 PM IST · 8:30 AM ET).", "icon": "shield"},
-                        {"title": "International Panel", "description": "Speakers joining live on the big screen from outside India.", "icon": "globe"},
-                        {"title": "Between the Builds", "description": "Sleep, eat, work, find people. Open across both days.", "icon": "bed"},
-                        {"title": "Play After Dark", "description": "Live music when the laptops finally close.", "icon": "music"},
-                        {"title": "Build by Fireside", "description": "Where the idea you haven't shipped yet finally gets heard.", "icon": "flame"}
-                    ],
-                    "perks": [
-                        {"name": "Featherless AI", "desc": "A full account, free", "value": "$29 value", "icon": "sparkles"},
-                        {"name": "SetupMark AI", "desc": "50 credits, 2 months free", "value": "$50 value", "icon": "infinity"},
-                        {"name": "CodeSpectra AI", "desc": "3 months completely free", "value": "Assessments", "icon": "code"},
-                        {"name": "Bandiwala", "desc": "15% off food", "value": "Coupon", "icon": "utensils"},
-                        {"name": "WeHive Consulting", "desc": "15% off services", "value": "Coupon", "icon": "briefcase"},
-                        {"name": "Four meal coupons", "desc": "Lunch, dinner, midnight, breakfast", "value": "Included", "icon": "coffee"},
-                        {"name": "Certificates for all", "desc": "Participation and winner certificates", "value": "Verifiable", "icon": "award"},
-                        {"name": "On-the-spot offers", "desc": "Internship and placement offers, in the room", "value": "Live", "icon": "check"},
-                        {"name": "Surprise goodies", "desc": "Extra prizes and drops announced on the day", "value": "Surprise", "icon": "gift"}
-                    ],
-                    "categories": [
-                        {"name": "AI That Solves a Real Problem", "description": "Build an AI application that solves a meaningful, real-world problem with high value.", "icon": "target", "color": "#F43F5E"},
-                        {"name": "Beyond the Chatbot", "description": "Reimagine AI interaction via voice, visual, workflows, and automation.", "icon": "rocket", "color": "#8B5CF6"},
-                        {"name": "AI for Builders", "description": "Developer and creator tools that remove friction and accelerate workflows.", "icon": "wrench", "color": "#3B82F6"},
-                        {"name": "Autonomous AI Workflows", "description": "Multi-step reasoning, tool-using autonomous agent systems.", "icon": "cpu", "color": "#10B981"},
-                        {"name": "Build the Unexpected", "description": "Original, creative, and ambitious concepts that surprise and delight.", "icon": "sparkles", "color": "#F59E0B"}
-                    ],
-                    "registration": {
-                        "status": "open",
-                        "fee": 599,
-                        "individual_fee": 599,
-                        "team_fee": 2495,
-                        "currency": "INR",
-                        "available_seats": 985,
-                        "team_slots_available": 197,
-                        "deadline": "2026-09-01T23:59:59Z",
-                        "external_url": None,
-                        "payment_url": None
-                    },
-                    "partners": [
-                        {"name": "CodeSpectra", "kind": "association", "logo_url": None},
-                        {"name": "Featherless", "kind": "association", "logo_url": None},
-                        {"name": "Stepupmark", "kind": "association", "logo_url": None},
-                        {"name": "Bandiwala", "kind": "perk", "logo_url": None},
-                        {"name": "WeHive", "kind": "perk", "logo_url": None}
-                    ],
-                    "handbook_url": "/HackWave_3.0_Event_Handbook.pdf",
-                    "created_at": _now(),
-                    "updated_at": _now()
-                }
-                await db.echo_showcases.insert_one(hw_doc)
-            else:
-                # Synchronize existing database document with latest banner, poster URLs & speakers
-                await db.echo_showcases.update_one(
-                    {"slug": "snist"},
-                    {
-                        "$set": {
-                            "hero_image_url": "/images/hackwave/hackwave_main_poster.png",
-                            "banner_url": "/images/hackwave/hackwave_main_poster.png",
-                            "poster_url": "/images/hackwave/hackwave_main_poster.png",
-                            "gallery_images": [
-                                "/images/hackwave/hackwave_main_poster.png",
-                                "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
-                                "/images/hackwave/hackwave_speakers.jpg",
-                                "/images/hackwave/hackwave_techfest_verticals.jpg",
-                                "/images/hackwave/hackwave_perks_pool.jpg"
-                            ],
-                            "updated_at": _now()
-                        }
-                    }
-                )
-            doc = await db.echo_showcases.find_one(_slug_query(slug))
+        # Auto-seed default showcases if fresh database
+        await seed_echo_showcase(db)
+        doc = await db.echo_showcases.find_one(_slug_query(slug))
 
     if not doc:
         raise HTTPException(status_code=404, detail="Showcase not found")
@@ -2985,7 +3594,16 @@ async def get_showcase(slug: str, request: Request):
     reg_cfg = result.get("registration") or {}
     reg_cfg["paid_count"] = paid_count
     reg_cfg["total_registrations"] = total_count
+    # Truthful seat availability derived from the real capacity gate (max_seats),
+    # not the hardcoded seed default. max_seats=0 means unlimited.
+    max_seats = int(reg_cfg.get("max_seats") or 0)
+    if max_seats > 0:
+        available = max_seats - paid_count
+        reg_cfg["available_seats"] = max(available, 0)
+    else:
+        reg_cfg["available_seats"] = None
     result["registration"] = reg_cfg
+    result["available_seats"] = reg_cfg["available_seats"]
     return result
 
 
@@ -3010,13 +3628,17 @@ BRANCH_CANONICAL_MAP = {
     "Computer Science and Engineering (CSE)": "CSE",
     "Computer Science and Engineering (AI & ML)": "CSE-AIML",
     "Artificial Intelligence and Data Science": "AI-DS",
+    "AI_DS": "AI-DS",
     "Information Technology": "IT",
     "Electronics and Communication Engineering": "ECE",
     "Electrical and Electronics Engineering": "EEE",
     "Mechanical Engineering": "ME",
+    "MECH": "ME",
     "Civil Engineering": "CE",
+    "CIVIL": "CE",
     "Chemical Engineering": "CHE",
     "Biotechnology": "BT",
+    "OTHER": "Other",
 }
 
 YEAR_CANONICAL_MAP = {
@@ -3024,6 +3646,9 @@ YEAR_CANONICAL_MAP = {
     "2nd Year": "2",
     "3rd Year": "3",
     "4th Year": "4",
+    "Alumni": "Alumni",
+    "Alumni / Passed Out": "Alumni",
+    "Passed Out": "Alumni",
     "Final": "4",
     "Final Year": "4",
     "1": "1",
@@ -3089,6 +3714,7 @@ class RegisterSchema(BaseModel):
     team_name: Optional[str] = ""
     team_size: Optional[int] = 1
     team_members: Optional[List[TeamMemberSchema]] = []
+    coupon_code: Optional[str] = ""
 
     @field_validator("email")
     @classmethod
@@ -3138,8 +3764,8 @@ class RegisterSchema(BaseModel):
             return ""
         val = v.strip()
         norm = YEAR_CANONICAL_MAP.get(val, val)
-        if norm not in ("1", "2", "3", "4"):
-            raise ValueError("Academic year must be 1, 2, 3, or 4")
+        if norm not in ("1", "2", "3", "4", "Alumni", "Passed Out", "Graduated", "5"):
+            raise ValueError("Academic year must be 1, 2, 3, 4, or Alumni")
         return norm
 
     @field_validator("registration_type")
@@ -3184,6 +3810,37 @@ class RegisterSchema(BaseModel):
             if len(v) != team_size:
                 raise ValueError(f"Expected {team_size} team members, got {len(v)}")
         return v or []
+class CouponVerifyRequest(BaseModel):
+    coupon_code: str
+
+@router.post("/showcases/{slug}/verify-coupon")
+async def verify_discount_coupon(
+    slug: str,
+    payload: CouponVerifyRequest,
+    request: Request,
+):
+    """Verify a discount coupon for an Echo event registration."""
+    db = _get_db(request)
+    showcase = await db.echo_showcases.find_one(_slug_query(slug))
+    if not showcase:
+        raise HTTPException(status_code=404, detail="Showcase not found")
+    if showcase.get("status") != "published":
+        raise HTTPException(status_code=404, detail="Showcase not found")
+
+    reg_cfg = showcase.get("registration") or {}
+    coupons_dict = reg_cfg.get("discount_coupons") or {}
+    
+    if not payload.coupon_code:
+        raise HTTPException(status_code=400, detail="Coupon code is required")
+        
+    coupon_upper = payload.coupon_code.strip().upper()
+    
+    for k, v in coupons_dict.items():
+        if k.upper() == coupon_upper:
+            return {"valid": True, "discount_percent": float(v), "coupon_code": coupon_upper}
+            
+    return {"valid": False, "discount_percent": 0.0, "message": "Invalid or expired coupon"}
+
 
 
 @router.post("/showcases/{slug}/register")
@@ -3212,7 +3869,7 @@ async def register_for_showcase(
     if auth.startswith("Bearer "):
         try:
             import jwt as _jwt
-            JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
+            # Uses centralized JWT_SECRET from core.config
             payload_token = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
             user = await db.users.find_one({"_id": ObjectId(payload_token.get("sub"))})
         except Exception:
@@ -3287,7 +3944,28 @@ async def register_for_showcase(
     # Calculate total fee for team registrations
     team_size = payload.team_size or 1
     registration_type = payload.registration_type or "individual"
-    total_fee = fee * team_size if registration_type == "team" else fee
+    
+    if registration_type == "team":
+        team_fee_conf = reg_cfg.get("team_fee")
+        total_fee = float(team_fee_conf) if team_fee_conf is not None else (fee * team_size)
+    else:
+        indiv_fee_conf = reg_cfg.get("individual_fee")
+        total_fee = float(indiv_fee_conf) if indiv_fee_conf is not None else fee
+
+    applied_discount_percent = 0.0
+    applied_coupon = None
+    if payload.coupon_code:
+        coupon_upper = payload.coupon_code.strip().upper()
+        coupons_dict = reg_cfg.get("discount_coupons") or {}
+        for k, v in coupons_dict.items():
+            if k.upper() == coupon_upper:
+                applied_discount_percent = float(v)
+                applied_coupon = coupon_upper
+                break
+        
+        if applied_discount_percent > 0:
+            discount_amount = total_fee * (applied_discount_percent / 100.0)
+            total_fee = max(0.0, total_fee - discount_amount)
     
     auto_paid = total_fee <= 0
 
@@ -3363,6 +4041,8 @@ async def register_for_showcase(
         "team_name": team_name,
         "team_size": team_size,
         "team_members": team_members_data,
+        "coupon_code": applied_coupon,
+        "discount_percent": applied_discount_percent,
     }
     await db.echo_registrations.insert_one(dict(reg))
     await _sync_user_profile_data(db, user, payload)
@@ -3391,8 +4071,8 @@ async def register_for_showcase(
         coupons = await _generate_coupons_for_registration(db, canonical_slug, reg_id, sessions)
         
         # Send confirmation to primary registrant (with team info if applicable)
-        await _send_registration_confirmation(db, reg, showcase, team_name if registration_type == "team" else None)
-        await _send_wa_confirmation(db, reg, showcase, coupons)
+        await _send_registration_confirmation(db, reg, showcase or {}, team_name if registration_type == "team" else None)
+        await _send_wa_confirmation(db, reg, showcase or {}, coupons)
         confirmation_sent = True
 
     result = _ser(reg)
@@ -3411,7 +4091,7 @@ async def my_showcase_registration(slug: str, request: Request):
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer "):
         import jwt as _jwt
-        JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
+        # Uses centralized JWT_SECRET from core.config
         try:
             payload = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
             user = await db.users.find_one({"_id": ObjectId(payload.get("sub"))})
@@ -3506,8 +4186,8 @@ class PaymentOrderSchema(BaseModel):
             return ""
         val = v.strip()
         norm = YEAR_CANONICAL_MAP.get(val, val)
-        if norm not in ("1", "2", "3", "4"):
-            raise ValueError("Academic year must be 1, 2, 3, or 4")
+        if norm not in ("1", "2", "3", "4", "Alumni", "Passed Out", "Graduated", "5"):
+            raise ValueError("Academic year must be 1, 2, 3, 4, or Alumni")
         return norm
 
 
@@ -3521,7 +4201,7 @@ async def _resolve_user(request: Request, db) -> Optional[dict]:
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer "):
         import jwt as _jwt
-        JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
+        # Uses centralized JWT_SECRET from core.config
         try:
             p = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
             return await db.users.find_one({"_id": ObjectId(p.get("sub"))})
@@ -3885,17 +4565,42 @@ async def my_registrations(request: Request):
     email = (user.get("email") or "").strip().lower()
     uid = str(user["_id"])
 
-    # Find all registrations for this user — match user_key too because paid
-    # registrations can have user_id rewritten to a provisioned SA account.
-    query = {"$or": [{"user_id": uid}, {"user_key": uid}]}
+    # Find all registrations for this user — match user_key, user_id, and email.
+    # Use case-insensitive email match ($regex) to handle stored variations.
+    query: dict = {"$or": [{"user_id": uid}, {"user_key": uid}]}
     if email:
-        query = {"$or": [{"user_id": uid}, {"user_key": uid}, {"email": email}]}
+        query["$or"].append({"email": email})
+        # Also match case-insensitively for legacy registrations with mixed case
+        query["$or"].append({"email": {"$regex": f"^{email}$", "$options": "i"}})
     regs = await db.echo_registrations.find(query).sort("created_at", -1).to_list(100)
 
     results = []
     for reg in regs:
         reg_ser = _ser(reg)
-        slug = reg.get("slug", "")
+        slug = reg.get("showcase_slug") or reg.get("slug", "")
+
+        # Build nested payment object for frontend compatibility
+        payment = {}
+        if "payment_status" in reg:
+            payment["status"] = reg["payment_status"]
+        if reg.get("failed_reason"):
+            payment["failed_reason"] = reg["failed_reason"]
+        if reg.get("failed_reason_code"):
+            payment["failed_reason_code"] = reg["failed_reason_code"]
+        if reg.get("paid_at"):
+            payment["paid_at"] = reg["paid_at"]
+        if reg.get("failed_at"):
+            payment["failed_at"] = reg["failed_at"]
+        if reg.get("amount"):
+            payment["amount"] = reg["amount"]
+        if reg.get("currency"):
+            payment["currency"] = reg["currency"]
+        if reg.get("razorpay_payment_id"):
+            payment["payment_id"] = reg["razorpay_payment_id"]
+        if reg.get("payment_provider"):
+            payment["gateway"] = reg["payment_provider"]
+        payment["method"] = reg.get("payment_provider") or "online"
+        reg_ser["payment"] = payment
 
         # Fetch coupons for this registration
         coupons = []
@@ -3916,6 +4621,20 @@ async def my_registrations(request: Request):
                 invoice = _ser(inv)
         except Exception:
             pass
+
+        # Fetch event/showcase details for title and banner
+        showcase = None
+        try:
+            if slug:
+                showcase = await db.event_showcases.find_one({"slug": slug})
+        except Exception:
+            pass
+
+        if showcase:
+            reg_ser["event_title"] = showcase.get("title") or showcase.get("name") or reg_ser.get("event_title")
+            reg_ser["showcase_title"] = showcase.get("title") or showcase.get("name") or reg_ser.get("showcase_title")
+            reg_ser["banner_url"] = showcase.get("banner_url") or showcase.get("cover_image") or reg_ser.get("banner_url")
+            reg_ser["start_date"] = showcase.get("start_date") or reg_ser.get("start_date")
 
         results.append({
             "registration": reg_ser,
@@ -3975,15 +4694,17 @@ async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query
     if not reg:
         raise HTTPException(status_code=404, detail="Ticket not found")
     reg_ser = _ser(reg)
-    showcase = await db.echo_showcases.find_one({"slug": reg.get("slug")})
+    showcase = await db.echo_showcases.find_one({"slug": reg.get("showcase_slug") or reg.get("slug")})
 
     # Payment gate: free events (fee <= 0 registered) are pass-eligible; paid
     # events only after the payment is verified (payment.status == "paid").
     fee = float(reg.get("fee") or 0)
     payment = reg.get("payment") or {}
     reg_status = reg.get("status") or "pending"
-    is_free = fee <= 0 and payment.get("status") == "paid" and reg_status == "registered"
-    is_paid = payment.get("status") == "paid" and reg_status == "registered"
+    payment_status = payment.get("status") or reg.get("payment_status") or "pending"
+    
+    is_free = fee <= 0 and (payment_status == "paid" or reg_status in ("registered", "confirmed"))
+    is_paid = payment_status == "paid" and reg_status in ("registered", "confirmed")
     pass_eligible = is_free or is_paid
     if not pass_eligible:
         pending = payment.get("status") == "pending"
@@ -4022,12 +4743,13 @@ async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query
             or user_email in allowed_emails
         )
         # Also allow access if email query param matches (guest registrations)
-        email_match = email and email.strip().lower() in allowed_emails
+        email_str = email.strip().lower() if isinstance(email, str) else ""
+        email_match = bool(email_str and email_str in allowed_emails)
         if not owner_match and not email_match:
             raise HTTPException(status_code=403, detail="You do not have access to this ticket")
     
     html_content = _build_ticket_html(reg_ser, showcase or {}, reg.get("ticket_template"))
-    if format == "json":
+    if isinstance(format, str) and format.lower() == "json":
         return {
             "reg_id": reg_id,
             "status": reg.get("status"),
@@ -4086,10 +4808,12 @@ async def admin_echo_registrations(
     slug: Optional[str] = None,
     status: Optional[str] = None,
     search: Optional[str] = None,
-    limit: int = Query(500, ge=1, le=2000),
+    has_sa_account: Optional[bool] = None,
+    profile_status: Optional[str] = Query(None, description="'all', 'complete_100', 'incomplete', 'no_account'"),
+    limit: int = Query(100000, ge=1, le=1000000),
     _=Depends(_require_admin),
 ):
-    """List ECHO registrations with attendee + payment details for super-admin."""
+    """List ECHO registrations with attendee, payment, SA account completion, and certificate details."""
     db = _get_db(request)
     query: Dict[str, Any] = {}
     if slug:
@@ -4109,22 +4833,86 @@ async def admin_echo_registrations(
     cur = db.echo_registrations.find(query).sort("created_at", -1).limit(limit)
     regs = await cur.to_list(limit)
     reg_ids = [r.get("id") for r in regs if r.get("id")]
+    all_emails = list({r.get("email").lower().strip() for r in regs if r.get("email")})
+    all_phones = list({r.get("phone").strip() for r in regs if r.get("phone")})
 
-    # Batch-fetch issued artifacts (coupons + invoices) for the visible page so
-    # we can tell admins exactly what was issued per attendee.
+    # Batch-fetch issued artifacts (coupons + invoices)
     coupons_map: Dict[str, list] = {}
     invoice_map: Dict[str, dict] = {}
     if reg_ids:
         for c in await db.echo_coupons.find({"reg_id": {"$in": reg_ids}}).to_list(5000):
+            used_at = c.get("used_at")
+            if used_at and hasattr(used_at, 'isoformat'):
+                used_at = used_at.isoformat()
+            elif used_at and isinstance(used_at, str) and 'T' in used_at and '+' not in used_at and 'Z' not in used_at:
+                used_at = used_at + 'Z'
             coupons_map.setdefault(c.get("reg_id"), []).append({
                 "session_key": c.get("session_key"),
                 "session_name": c.get("session_name"),
                 "session_day": c.get("session_day") or 1,
                 "coupon_code": c.get("coupon_code"),
                 "used": bool(c.get("used")),
+                "used_at": used_at,
+                "scanned_location": c.get("scanned_location"),
+                "scanned_lat": c.get("scanned_lat"),
+                "scanned_lng": c.get("scanned_lng"),
+                "scanned_by": c.get("scanned_by")
             })
         for inv in await db.invoices.find({"reg_id": {"$in": reg_ids}}).to_list(2000):
             invoice_map[inv.get("reg_id")] = {"invoice_no": inv.get("invoice_no"), "issued": True}
+
+    # Batch-fetch SA accounts from db.users & compute profile completion
+    user_map: Dict[str, dict] = {}
+    if all_emails or all_phones:
+        from services.profile_service import compute_profile_completion
+        u_or = []
+        if all_emails:
+            u_or.append({"email": {"$in": all_emails}})
+        if all_phones:
+            u_or.append({"phone": {"$in": all_phones}})
+        async for u in db.users.find({"$or": u_or}, {"password_hash": 0, "face_image_base64": 0}):
+            comp_info = compute_profile_completion(u)
+            u_data = {
+                "user_id": str(u.get("_id")),
+                "sa_id": u.get("sa_id") or (u.get("school_info") or {}).get("roll_number") or "",
+                "email": u.get("email"),
+                "phone": u.get("phone"),
+                "full_name": u.get("full_name"),
+                "role": u.get("role"),
+                "profile_completion_pct": comp_info.get("percentage", 0),
+                "is_profile_100": comp_info.get("percentage", 0) >= 100,
+                "missing_items": [item["label"] for item in comp_info.get("items", []) if not item["done"]]
+            }
+            if u.get("email"):
+                user_map[u.get("email").lower().strip()] = u_data
+            if u.get("phone"):
+                user_map[u.get("phone").strip()] = u_data
+
+    # Batch-fetch issued certificates from db.certificates
+    cert_map: Dict[str, list] = {}  # reg_id/email → list of cert docs
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    if reg_ids or all_emails:
+        c_or = []
+        if reg_ids:
+            c_or.append({"reg_id": {"$in": reg_ids}})
+        if all_emails:
+            c_or.append({"recipient_email": {"$in": all_emails}})
+        async for c in db.certificates.find({"$or": c_or}):
+            c_code = c.get("verification_code") or c.get("certificate_id") or c.get("id")
+            c_data = {
+                "id": c.get("id") or str(c.get("_id")),
+                "verification_code": c_code,
+                "title": c.get("title") or c.get("certification_name") or "ECHO Certificate",
+                "category_key": c.get("category_key"),
+                "issued_at": c.get("issued_at") or c.get("created_at"),
+                "verify_url": f"{frontend_url}/certificates/verify/{c_code}",
+                "image_url": c.get("image_url"),
+            }
+            for k in [c.get("reg_id"), c.get("recipient_email", "").lower().strip()]:
+                if k:
+                    cert_map.setdefault(k, [])
+                    if c_code not in [x.get("verification_code") for x in cert_map[k]]:
+                        cert_map[k].append(c_data)
 
     items = []
     for r in regs:
@@ -4133,6 +4921,62 @@ async def admin_echo_registrations(
         paid = payment.get("status") == "paid" and s.get("status") == "registered"
         rid = str(s.get("id") or "")
         inv_rec = invoice_map.get(rid) or {}
+        
+        u_email = (s.get("email") or "").lower().strip()
+        u_phone = (s.get("phone") or "").strip()
+        sa_user = user_map.get(u_email) or user_map.get(u_phone)
+        has_sa = bool(sa_user or s.get("user_id") or u_email)
+
+        if sa_user:
+            comp_pct = sa_user.get("profile_completion_pct", 0)
+        else:
+            reg_eval = {
+                "email": u_email,
+                "full_name": s.get("full_name"),
+                "institution": s.get("college"),
+                "branch": s.get("branch"),
+                "year_of_study": s.get("year"),
+                "phone": u_phone,
+            }
+            eval_res = compute_profile_completion(reg_eval)
+            comp_pct = eval_res.get("percentage", 0)
+
+        # Allow explicitly flag or 100% score
+        is_100 = bool(s.get("is_profile_100") or (sa_user and sa_user.get("is_profile_100")) or comp_pct >= 100)
+        if is_100 and comp_pct < 100:
+            comp_pct = 100
+
+        certs_all = []
+        _seen_codes = set()
+        for _cc in (cert_map.get(rid) or []) + (cert_map.get(u_email) or []):
+            _code = _cc.get("verification_code")
+            if _code and _code not in _seen_codes:
+                _seen_codes.add(_code)
+                certs_all.append(_cc)
+        cert_data = certs_all[0] if certs_all else None
+        has_cert = bool(certs_all or s.get("certificate_issued") or s.get("has_3_certificates"))
+
+        # Synthesize the 3-cert matrix from actual certs when the reg has no flags set
+        c3 = s.get("certificates_3_status") or {}
+        if not c3 and certs_all:
+            def _match_cat(keyword: str):
+                for cc in certs_all:
+                    t = (cc.get("title") or "").lower()
+                    ck = (cc.get("category_key") or "").lower()
+                    if keyword in ck or keyword in t:
+                        return {
+                            "issued": True,
+                            "code": cc.get("verification_code"),
+                            "title": cc.get("title"),
+                            "verify_url": cc.get("verify_url"),
+                        }
+                return None
+            c3 = {
+                "built_by_sunset": _match_cat("sunset") or {"issued": False, "code": None},
+                "hackwave_participation": _match_cat("hackwave") or {"issued": False, "code": None},
+                "cyber_conclave": _match_cat("cyber") or {"issued": False, "code": None},
+            }
+
         items.append({
             "id": s.get("id"),
             "slug": s.get("slug"),
@@ -4152,7 +4996,15 @@ async def admin_echo_registrations(
             "paid_at": payment.get("paid_at"),
             "registered_at": s.get("registered_at"),
             "user_id": s.get("user_id"),
-            "has_account": bool(s.get("user_id")),
+            "has_account": has_sa,
+            "has_sa_account": has_sa,
+            "profile_completion_pct": comp_pct,
+            "is_profile_100": is_100,
+            "sa_account": sa_user,
+            "has_certificate": has_cert,
+            "certificate": cert_data,
+            "last_profile_reminder_at": s.get("last_profile_reminder_at"),
+            "profile_reminder_count": s.get("profile_reminder_count") or 0,
             "failed_at": payment.get("failed_at"),
             "failed_reason": payment.get("failed_reason"),
             "reminder_sent_at": s.get("payment_reminder_sent_at"),
@@ -4162,6 +5014,7 @@ async def admin_echo_registrations(
             "coupons_issued": len(coupons_map.get(rid) or []),
             "invoice_issued": bool(inv_rec.get("issued")),
             "registration_type": s.get("registration_type") or "individual",
+            "source": s.get("source") or "our_platform",
             "team_name": s.get("team_name"),
             "team_size": s.get("team_size") or 1,
             "team_members": s.get("team_members") or [],
@@ -4169,11 +5022,910 @@ async def admin_echo_registrations(
             "parent_reg_id": s.get("parent_reg_id"),
             "team_leader_name": s.get("team_leader_name"),
             "team_leader_email": s.get("team_leader_email"),
+            "certificates_3_status": c3,
+            "has_3_certificates": s.get("has_3_certificates") or len([v for v in c3.values() if v.get("issued")]) >= 2,
+            "cert_email_status": s.get("cert_email_status"),
+            "cert_email_updated_at": s.get("cert_email_updated_at"),
         })
-    return {"items": items, "total": len(items)}
+
+    # Apply filters
+    filtered_items = items
+    if has_sa_account is not None:
+        filtered_items = [i for i in filtered_items if i["has_sa_account"] == has_sa_account]
+    if profile_status:
+        if profile_status == "complete_100":
+            filtered_items = [i for i in filtered_items if i["is_profile_100"]]
+        elif profile_status == "incomplete":
+            filtered_items = [i for i in filtered_items if i["has_sa_account"] and not i["is_profile_100"]]
+        elif profile_status == "no_account":
+            filtered_items = [i for i in filtered_items if not i["has_sa_account"]]
+
+    stats = {
+        "total": len(items),
+        "sa_members_count": sum(1 for i in items if i["has_sa_account"]),
+        "members_100_percent_count": sum(1 for i in items if i["is_profile_100"]),
+        "members_incomplete_count": sum(1 for i in items if i["has_sa_account"] and not i["is_profile_100"]),
+        "non_sa_members_count": sum(1 for i in items if not i["has_sa_account"]),
+        "certificates_issued_count": sum(1 for i in items if i["has_certificate"]),
+    }
+
+    return {
+        "items": filtered_items,
+        "total": len(filtered_items),
+        "stats": stats
+    }
+
+
+@router.post("/admin/registrations/{reg_id}/issue-certificate")
+async def admin_echo_issue_certificate(
+    reg_id: str,
+    request: Request,
+    title: Optional[str] = Query(None, description="Custom certificate title"),
+    _=Depends(_require_admin),
+):
+    """Issue a verifiable ECHO certificate for a registration."""
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg and ObjectId.is_valid(reg_id):
+        reg = await db.echo_registrations.find_one({"_id": ObjectId(reg_id)})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+
+    email = reg.get("email", "").lower().strip()
+    full_name = reg.get("full_name", "").strip() or "ECHO Participant"
+    showcase_title = reg.get("showcase_title") or "ECHO Showcase 2026"
+    cert_title = title or f"Certificate of Completion — {showcase_title}"
+    
+    code = f"ECHO26-CERT-{secrets.token_hex(4).upper()}"
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    verify_url = f"{frontend_url}/certificates/verify/{code}"
+
+    cert_doc = {
+        "id": code,
+        "certificate_id": code,
+        "verification_code": code,
+        "title": cert_title,
+        "certification_name": cert_title,
+        "recipient_name": full_name,
+        "recipient_email": email,
+        "recipient_phone": reg.get("phone"),
+        "roll_number": reg.get("roll_number") or reg.get("sa_id") or "",
+        "reg_id": reg.get("id"),
+        "slug": reg.get("slug"),
+        "showcase_title": showcase_title,
+        "issuer": "StudentAlumni × ECHO Showcase",
+        "issued_at": _now(),
+        "issue_date": datetime.now(timezone.utc).strftime("%d %B %Y"),
+        "created_at": _now(),
+        "image_url": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800",
+        "verify_url": verify_url,
+    }
+
+    await db.certificates.update_one({"verification_code": code}, {"$set": cert_doc}, upsert=True)
+    await db.echo_registrations.update_one(
+        {"_id": reg["_id"]},
+        {"$set": {
+            "certificate_issued": True,
+            "certificate_code": code,
+            "certificate_url": verify_url,
+            "certificate_issued_at": _now(),
+        }}
+    )
+
+    try:
+        email_content = f"""
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #111827;">
+          <h2 style="color: #6D28D9;">Your ECHO Certificate is Ready! 🎓</h2>
+          <p>Dear <strong>{full_name}</strong>,</p>
+          <p>Congratulations! Your official certificate for <strong>{showcase_title}</strong> has been issued.</p>
+          <div style="margin: 20px 0; padding: 16px; background: #F3E8FF; border-radius: 12px; border: 1px solid #DDD6FE;">
+            <p style="margin: 0; font-weight: bold; color: #5B21B6;">Verification Code: {code}</p>
+            <p style="margin: 4px 0 0 0; font-size: 14px;"><a href="{verify_url}" style="color: #6D28D9; font-weight: bold;">Click here to View & Verify Certificate</a></p>
+          </div>
+          <p style="font-size: 13px; color: #6B7280;">You can share this link on LinkedIn, your resume, or with employers.</p>
+        </div>
+        """
+        await send_email(email, f"🎓 Your Certificate for {showcase_title}", render_html_email(email_content))
+    except Exception as e:
+        logger.warning(f"Certificate email notice error: {e}")
+
+    return {
+        "status": "success",
+        "message": f"Certificate issued for {full_name}",
+        "code": code,
+        "verify_url": verify_url,
+        "certificate": cert_doc
+    }
+
+
+async def issue_3_echo_certificates(db, reg: dict) -> dict:
+    """
+    Issue 3 official certificates for Hackwave 3.0 / ECHO Showcase:
+      1. Built by Sunset (Project Build Certificate)
+      2. Common Certificate of Participation — Hackwave 3.0
+      3. Cyber Conclave Certificate
+    Upserts into db.certificates (enabling /certificates/verify/{code} & profile sync).
+    """
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    email = (reg.get("email") or "").lower().strip()
+    full_name = (reg.get("full_name") or "").strip() or "ECHO Participant"
+    showcase_title = reg.get("showcase_title") or "Hackwave 3.0"
+    reg_id = reg.get("id") or str(reg.get("_id"))
+    
+    cert_types = [
+        ("built_by_sunset", "Built by Sunset — Project Build Certificate", "HW3-SUNSET"),
+        ("hackwave_participation", f"Certificate of Participation — {showcase_title}", "HW3-PART"),
+        ("cyber_conclave", "Cyber Conclave — Professional Certificate", "HW3-CYBER"),
+    ]
+
+    existing_certs = reg.get("certificates_3_status") or {}
+    results = {}
+    now_str = _now()
+
+    for key, title, prefix in cert_types:
+        existing = existing_certs.get(key)
+        if existing and existing.get("code"):
+            code = existing["code"]
+        else:
+            # Email-level dedup: one set of certs per email per category per event.
+            # Re-issues across repeat registrations must reuse the original code,
+            # otherwise one user accumulates N×3 certificates in My Certificates.
+            code = None
+            if email:
+                # Legacy docs predate category_key — match it OR the exact title.
+                prior = await db.certificates.find_one({
+                    "recipient_email": {"$regex": f"^{re.escape(email)}$", "$options": "i"},
+                    "slug": reg.get("slug"),
+                    "$or": [{"category_key": key}, {"title": title}],
+                })
+                if prior:
+                    code = prior.get("verification_code") or prior.get("certificate_id") or prior.get("id")
+            if not code:
+                code = f"{prefix}-{secrets.token_hex(4).upper()}"
+
+        verify_url = f"{frontend_url}/certificates/verify/{code}"
+        
+        cert_doc = {
+            "id": code,
+            "certificate_id": code,
+            "verification_code": code,
+            "title": title,
+            "certification_name": title,
+            "category_key": key,
+            "recipient_name": full_name,
+            "recipient_email": email,
+            "recipient_phone": reg.get("phone"),
+            "roll_number": reg.get("roll_number") or reg.get("sa_id") or "",
+            "reg_id": reg_id,
+            "slug": reg.get("slug"),
+            "showcase_title": showcase_title,
+            "issuer": "StudentAlumni × Hackwave 3.0",
+            "issued_at": now_str,
+            "issue_date": datetime.now(timezone.utc).strftime("%d %B %Y"),
+            "created_at": now_str,
+            "status": "valid",
+            "status_label": "Officially Verified Certificate",
+            "image_url": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800",
+            "verify_url": verify_url,
+        }
+
+        await db.certificates.update_one({"verification_code": code}, {"$set": cert_doc}, upsert=True)
+        results[key] = {
+            "issued": True,
+            "code": code,
+            "title": title,
+            "verify_url": verify_url,
+            "delivered_at": now_str,
+        }
+
+    # Update echo_registrations document with 3-certificate delivery status
+    await db.echo_registrations.update_one(
+        {"_id": reg["_id"]},
+        {"$set": {
+            "certificates_3_status": results,
+            "has_3_certificates": True,
+            "certificate_issued": True,
+            "certificate_code": results["hackwave_participation"]["code"],
+            "certificate_url": results["hackwave_participation"]["verify_url"],
+            "certificates_delivered_count": 3,
+            "certificates_updated_at": now_str,
+        }}
+    )
+
+    return results
+
+
+async def _send_single_cert_email(
+    email: str,
+    full_name: str,
+    title: str,
+    code: str,
+    verify_url: str,
+    idx: int,
+    total: int,
+) -> bool:
+    """Send ONE individual certificate email (professional template). Returns True on provider accept."""
+    from core.email_templates import render_single_cert_email
+    email_content = render_single_cert_email(full_name, title, code, verify_url, idx, total)
+    try:
+        return bool(await send_email(email, f"🎓 {title} — {code}", email_content))
+    except Exception as e:
+        logger.warning(f"Single-cert email error ({code}): {e}")
+        return False
+
+
+ORDERED_3_CERT_KEYS = ["built_by_sunset", "hackwave_participation", "cyber_conclave"]
+
+
+async def _issue_3_with_emails(db, reg: dict, force_resend: bool = False) -> tuple:
+    """Issue all 3 certs for one registration + per-cert individual emails.
+
+    force_resend=False skips regs that already have all 3 codes AND emailed
+    status (safe to re-run bulk without spamming). Returns
+    (certs, email_status, new_count, skipped).
+    """
+    pre = reg.get("certificates_3_status") or {}
+    pre_codes = {k: (pre.get(k) or {}).get("code") for k in ORDERED_3_CERT_KEYS}
+    pre_emailed = {
+        k: bool((pre.get(k) or {}).get("email_sent"))
+        or bool(((reg.get("cert_email_status") or {}).get(k) or {}).get("email_sent"))
+        for k in ORDERED_3_CERT_KEYS
+    }
+
+    certs = await issue_3_echo_certificates(db, reg)
+    new_count = sum(1 for k in ORDERED_3_CERT_KEYS if certs.get(k, {}).get("code") != pre_codes.get(k))
+
+    if not force_resend and new_count == 0 and all(pre_emailed.values()):
+        return certs, {k: {"email_sent": True, "skipped_resend": True,
+                           "code": (certs.get(k) or {}).get("code")} for k in ORDERED_3_CERT_KEYS}, 0, True
+
+    email = (reg.get("email") or "").lower().strip()
+    full_name = (reg.get("full_name") or "").strip() or "ECHO Participant"
+    email_status: dict = {}
+    now_str = _now()
+    try:
+        total = len([k for k in ORDERED_3_CERT_KEYS if k in certs])
+        for i, key in enumerate(ORDERED_3_CERT_KEYS, start=1):
+            c = certs.get(key)
+            if not c:
+                continue
+            title = c.get("title", key)
+            code = c.get("code", "")
+            verify_url = c.get("verify_url", "")
+            sent = await _send_single_cert_email(email, full_name, title, code, verify_url, i, total) if email else False
+            err = None if sent else ("no recipient email" if not email else "provider rejected / not configured — see email_failures")
+            email_status[key] = {
+                "email_sent": sent,
+                "email_sent_at": now_str if sent else None,
+                "email_error": err,
+                "code": code,
+                "title": title,
+            }
+            certs[key]["email_sent"] = sent
+            certs[key]["email_sent_at"] = now_str if sent else None
+            certs[key]["email_error"] = err
+        await db.echo_registrations.update_one(
+            {"_id": reg["_id"]},
+            {"$set": {
+                "certificates_3_status": certs,
+                "cert_email_status": email_status,
+                "cert_email_updated_at": now_str,
+            }},
+        )
+        for key in ORDERED_3_CERT_KEYS:
+            c = certs.get(key)
+            if c and c.get("code"):
+                await db.certificates.update_one(
+                    {"verification_code": c["code"]},
+                    {"$set": {
+                        "email_sent": c.get("email_sent", False),
+                        "email_sent_at": c.get("email_sent_at"),
+                        "email_error": c.get("email_error"),
+                    }},
+                )
+    except Exception as e:
+        logger.warning(f"Issue-3-certificates per-cert email error: {e}")
+
+    return certs, email_status, new_count, False
+
+
+@router.post("/admin/registrations/{reg_id}/issue-3-certificates")
+async def admin_echo_issue_3_certificates(
+    reg_id: str,
+    request: Request,
+    _=Depends(_require_admin),
+):
+    """Issue all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave) for a registration."""
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg and ObjectId.is_valid(reg_id):
+        reg = await db.echo_registrations.find_one({"_id": ObjectId(reg_id)})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+
+    # Per-certificate individual emails (1 email per cert — scales to 1..N certs)
+    # + per-cert delivery status persisted for admin visibility.
+    certs, email_status, _new_count, _skipped = await _issue_3_with_emails(db, reg, force_resend=True)
+
+    sent_count = sum(1 for v in email_status.values() if v.get("email_sent"))
+    return {
+        "status": "success",
+        "message": f"All 3 certificates issued for {reg.get('full_name')} — {sent_count}/3 emails sent",
+        "certificates": certs,
+        "email_status": email_status,
+    }
+
+
+@router.post("/admin/bulk-issue-3-certificates")
+async def admin_echo_bulk_issue_3_certificates(
+    request: Request,
+    slug: Optional[str] = Query(None, description="Optional showcase slug filter"),
+    resend: bool = Query(False, description="Resend emails even where already sent"),
+    _=Depends(_require_admin),
+):
+    """One-click bulk: issue all 3 certificates to ALL registrations at once.
+
+    Dedup-safe (email+category+event reuse) — re-runs skip fully-issued+emailed
+    regs unless resend=true. Returns per-run summary with email delivery counts.
+    """
+    db = _get_db(request)
+    q: dict = {"slug": slug} if slug else {}
+    regs = await db.echo_registrations.find(q).to_list(10000)
+
+    processed = 0
+    regs_new_certs = 0
+    emails_sent = 0
+    emails_failed = 0
+    skipped = 0
+    failures: list = []
+    for reg in regs:
+        try:
+            _certs, estatus, new_count, was_skipped = await _issue_3_with_emails(
+                db, reg, force_resend=resend
+            )
+            processed += 1
+            if was_skipped:
+                skipped += 1
+                emails_sent += sum(1 for v in estatus.values() if v.get("email_sent"))
+                continue
+            if new_count > 0:
+                regs_new_certs += 1
+            emails_sent += sum(1 for v in estatus.values() if v.get("email_sent"))
+            emails_failed += sum(1 for v in estatus.values() if not v.get("email_sent"))
+        except Exception as e:
+            failures.append({"reg_id": reg.get("id"), "email": reg.get("email"), "error": str(e)[:200]})
+
+    return {
+        "status": "success",
+        "message": f"Bulk issue complete: {processed} processed, {regs_new_certs} newly issued, {emails_sent} emails sent, {skipped} skipped (already done)",
+        "total_registrations": len(regs),
+        "processed": processed,
+        "regs_newly_issued": regs_new_certs,
+        "emails_sent": emails_sent,
+        "emails_failed": emails_failed,
+        "skipped_already_done": skipped,
+        "failures": failures[:50],
+    }
+
+
+@router.post("/admin/registrations/{reg_id}/reset-certificates")
+async def admin_echo_reset_certificates(
+    reg_id: str,
+    request: Request,
+    _=Depends(_require_admin),
+):
+    """Reset certificate issued flags on a registration so it can be re-issued.
+
+    Clears: certificate_issued, has_3_certificates, certificates_3_status,
+    cert_email_status, certificate_code, certificate_url.
+    Does NOT delete existing db.certificates docs (those remain verifiable).
+    """
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg and ObjectId.is_valid(reg_id):
+        reg = await db.echo_registrations.find_one({"_id": ObjectId(reg_id)})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+
+    await db.echo_registrations.update_one(
+        {"_id": reg["_id"]},
+        {"$unset": {
+            "certificate_issued": "",
+            "has_3_certificates": "",
+            "certificates_3_status": "",
+            "cert_email_status": "",
+            "cert_email_updated_at": "",
+            "certificate_code": "",
+            "certificate_url": "",
+            "certificate_issued_at": "",
+            "certificates_delivered_count": "",
+            "certificates_updated_at": "",
+        }},
+    )
+    return {"status": "success", "message": f"Certificate flags reset for {reg.get('full_name')} — ready to re-issue"}
+
+
+@router.post("/admin/certificates/upload-template")
+async def admin_echo_upload_cert_template(
+    request: Request,
+    category: str = Body(..., description="built_by_sunset, hackwave_participation, cyber_conclave"),
+    title: str = Body(..., description="Template title"),
+    file_url: str = Body(..., description="Template file URL or base64"),
+    _=Depends(_require_admin),
+):
+    """Upload or configure a custom certificate template asset for Hackwave / ECHO events."""
+    db = _get_db(request)
+    template_doc = {
+        "category": category,
+        "title": title,
+        "file_url": file_url,
+        "updated_at": _now(),
+    }
+    await db.echo_cert_templates.update_one({"category": category}, {"$set": template_doc}, upsert=True)
+    return {"status": "success", "template": template_doc}
+
+
+@router.get("/admin/certificates/templates")
+async def admin_echo_get_cert_templates(request: Request, _=Depends(_require_admin)):
+    """List configured certificate templates for ECHO events."""
+    db = _get_db(request)
+    items = await db.echo_cert_templates.find({}).to_list(100)
+    for i in items:
+        i["_id"] = str(i["_id"])
+    return {"templates": items}
+
+
+@router.post("/admin/showcases/{slug}/bulk-issue-certificates")
+async def admin_echo_bulk_issue_certificates(
+    slug: str,
+    request: Request,
+    _=Depends(_require_admin),
+):
+    """Bulk issue certificates for all registered/paid attendees of an ECHO showcase."""
+    db = _get_db(request)
+    regs = await db.echo_registrations.find({"slug": slug, "payment.status": "paid"}).to_list(10000)
+    if not regs:
+        regs = await db.echo_registrations.find({"slug": slug, "status": "registered"}).to_list(10000)
+
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    issued_count = 0
+    skipped_count = 0
+
+    for reg in regs:
+        if reg.get("certificate_issued"):
+            skipped_count += 1
+            continue
+        email = reg.get("email", "").lower().strip()
+        full_name = reg.get("full_name", "").strip() or "ECHO Participant"
+        showcase_title = reg.get("showcase_title") or "ECHO Showcase"
+        code = f"ECHO26-CERT-{secrets.token_hex(4).upper()}"
+        verify_url = f"{frontend_url}/certificates/verify/{code}"
+
+        cert_doc = {
+            "id": code,
+            "certificate_id": code,
+            "verification_code": code,
+            "title": f"Certificate of Completion — {showcase_title}",
+            "certification_name": f"Certificate of Completion — {showcase_title}",
+            "recipient_name": full_name,
+            "recipient_email": email,
+            "recipient_phone": reg.get("phone"),
+            "roll_number": reg.get("roll_number") or reg.get("sa_id") or "",
+            "reg_id": reg.get("id"),
+            "slug": slug,
+            "showcase_title": showcase_title,
+            "issuer": "StudentAlumni × ECHO Showcase",
+            "issued_at": _now(),
+            "issue_date": datetime.now(timezone.utc).strftime("%d %B %Y"),
+            "created_at": _now(),
+            "image_url": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800",
+            "verify_url": verify_url,
+        }
+        await db.certificates.update_one({"verification_code": code}, {"$set": cert_doc}, upsert=True)
+        await db.echo_registrations.update_one(
+            {"_id": reg["_id"]},
+            {"$set": {
+                "certificate_issued": True,
+                "certificate_code": code,
+                "certificate_url": verify_url,
+                "certificate_issued_at": _now(),
+            }}
+        )
+        issued_count += 1
+
+    return {
+        "status": "success",
+        "issued_count": issued_count,
+        "skipped_count": skipped_count,
+        "total_registrations": len(regs)
+    }
+
+
+@router.get("/registrations/{reg_id}/certificate")
+async def get_echo_registration_certificate(
+    reg_id: str,
+    request: Request,
+):
+    """Public / Attendee endpoint to fetch certificate status & verification details."""
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg and ObjectId.is_valid(reg_id):
+        reg = await db.echo_registrations.find_one({"_id": ObjectId(reg_id)})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+
+    email = reg.get("email", "").lower().strip()
+    cert = await db.certificates.find_one({"$or": [{"reg_id": reg.get("id")}, {"recipient_email": email}]})
+    
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    from urllib.parse import quote
+
+    if not cert and reg.get("certificate_code"):
+        code = reg.get("certificate_code")
+        verify_url = f"{frontend_url}/certificates/verify/{code}"
+        wa_text = quote(f"🎓 Check out my certificate for {reg.get('showcase_title', 'ECHO')} on StudentAlumni: {verify_url}")
+        return {
+            "has_certificate": True,
+            "verification_code": code,
+            "title": f"Certificate of Completion — {reg.get('showcase_title', 'ECHO')}",
+            "recipient_name": reg.get("full_name"),
+            "verify_url": verify_url,
+            "share_url": f"https://wa.me/?text={wa_text}"
+        }
+
+    if not cert:
+        return {"has_certificate": False, "message": "No certificate issued yet for this registration."}
+
+    code = cert.get("verification_code") or cert.get("certificate_id") or cert.get("id")
+    verify_url = f"{frontend_url}/certificates/verify/{code}"
+    wa_text = quote(f"🎓 Check out my verified certificate for {cert.get('title', 'ECHO Showcase')} on StudentAlumni!\n\nVerify URL: {verify_url}")
+    
+    return {
+        "has_certificate": True,
+        "verification_code": code,
+        "title": cert.get("title") or cert.get("certification_name"),
+        "recipient_name": cert.get("recipient_name"),
+        "issue_date": cert.get("issue_date") or cert.get("issued_at"),
+        "verify_url": verify_url,
+        "share_url": f"https://wa.me/?text={wa_text}",
+        "certificate": {
+            "id": cert.get("id"),
+            "verification_code": code,
+            "title": cert.get("title"),
+            "recipient_name": cert.get("recipient_name"),
+            "issuer": cert.get("issuer", "StudentAlumni"),
+            "image_url": cert.get("image_url")
+        }
+    }
+
+
+@router.post("/admin/send-profile-reminders")
+async def admin_echo_send_profile_reminders(
+    request: Request,
+    slug: Optional[str] = Query(None, description="Optional showcase slug filter"),
+    target_group: str = Query("all_incomplete", description="'no_account', 'incomplete_profile', or 'all_incomplete'"),
+    channel: str = Query("both", description="'email', 'whatsapp', or 'both'"),
+    _=Depends(_require_admin),
+):
+    """Loop agent service: scans ECHO registrants without an SA account or with incomplete profile (<100%),
+    and sends automated reminder notifications via Email and WhatsApp/SMS.
+    """
+    from services.agents.echo_profile_loop_agent import echo_profile_loop_agent
+    return await echo_profile_loop_agent.execute_cycle(slug=slug, target_group=target_group, channel=channel)
+
+
+@router.get("/admin/loop-agent/status")
+async def admin_echo_loop_agent_status(
+    request: Request,
+    _=Depends(_require_admin),
+):
+    """Get status of the ECHO profile completion & account activation autonomous loop agent."""
+    from services.agents.echo_profile_loop_agent import echo_profile_loop_agent
+    return echo_profile_loop_agent.get_status()
+
+
+@router.post("/admin/loop-agent/start")
+async def admin_echo_loop_agent_start(
+    request: Request,
+    interval_seconds: int = Query(3600, ge=60, le=86400, description="Loop interval in seconds"),
+    _=Depends(_require_admin),
+):
+    """Start the background recurring loop agent for 100% profile reminders."""
+    from services.agents.echo_profile_loop_agent import echo_profile_loop_agent
+    started = echo_profile_loop_agent.start_background_loop(interval_seconds=interval_seconds)
+    return {
+        "status": "success" if started else "already_running",
+        "message": "Background loop agent started." if started else "Loop agent is already running.",
+        "agent": echo_profile_loop_agent.get_status(),
+    }
+
+
+@router.post("/admin/loop-agent/stop")
+async def admin_echo_loop_agent_stop(
+    request: Request,
+    _=Depends(_require_admin),
+):
+    """Stop the background recurring loop agent."""
+    from services.agents.echo_profile_loop_agent import echo_profile_loop_agent
+    stopped = echo_profile_loop_agent.stop_background_loop()
+    return {
+        "status": "success" if stopped else "not_running",
+        "message": "Background loop agent stopped." if stopped else "Loop agent was not running.",
+        "agent": echo_profile_loop_agent.get_status(),
+    }
+
+
+
+
+@router.get("/admin/export-csv")
+@router.get("/export-csv")
+async def export_echo_registrations_csv(
+    request: Request,
+    slug: Optional[str] = None,
+    status: Optional[str] = None,
+    _=Depends(_require_admin),
+):
+    """
+    Generate and stream CSV of student event & hackathon registrations (Hackwave 3.0 / ECHO 2026).
+    Includes name, email, phone, campus, payment status (paid/unpaid), fee, team or individual details.
+    """
+    import csv
+    import io
+    from fastapi.responses import Response
+
+    db = _get_db(request)
+    query: Dict[str, Any] = {}
+    if slug:
+        query["slug"] = slug
+    if status:
+        query["payment.status"] = status
+
+    docs = await db.echo_registrations.find(query).sort("created_at", -1).to_list(5000)
+
+    output = io.StringIO()
+    headers = [
+        "Registration ID",
+        "Event Title",
+        "Event Slug",
+        "Full Name",
+        "Email",
+        "Phone Number",
+        "Campus / College",
+        "Branch",
+        "Year",
+        "Registration Type",
+        "Team Name",
+        "Is Team Member",
+        "Team Leader Name",
+        "Team Leader Email",
+        "Payment Status",
+        "Payment Category",
+        "Fee Amount (INR)",
+        "Payment Gateway",
+        "Payment ID",
+        "Paid At",
+        "Registration Date"
+    ]
+    
+    writer = csv.DictWriter(output, fieldnames=headers)
+    writer.writeheader()
+
+    for d in docs:
+        pay_info = d.get('payment') or {}
+        raw_status = (pay_info.get('status') or d.get('payment_status') or 'unpaid').lower()
+        fee = float(d.get('fee') or pay_info.get('amount') or 0.0)
+
+        if raw_status == 'paid':
+            payment_status = 'PAID'
+            paid_category = 'Paid (Free)' if fee == 0 else 'Paid'
+        elif raw_status == 'failed':
+            payment_status = 'FAILED'
+            paid_category = 'Failed / Unpaid'
+        elif raw_status == 'pending':
+            payment_status = 'PENDING'
+            paid_category = 'Unpaid (Pending)'
+        else:
+            payment_status = 'UNPAID'
+            paid_category = 'Unpaid'
+
+        reg_type = d.get('registration_type') or ('Team' if d.get('team_name') or d.get('is_team_member') else 'Individual')
+
+        writer.writerow({
+            "Registration ID": d.get('id') or str(d.get('_id')),
+            "Event Title": d.get('showcase_title') or d.get('event_title') or d.get('slug') or '',
+            "Event Slug": d.get('slug') or '',
+            "Full Name": d.get('full_name') or '',
+            "Email": d.get('email') or d.get('user_key') or '',
+            "Phone Number": d.get('phone') or '',
+            "Campus / College": d.get('college') or d.get('showcase_college') or '',
+            "Branch": d.get('branch') or '',
+            "Year": d.get('year') or '',
+            "Registration Type": str(reg_type).title(),
+            "Team Name": d.get('team_name') or '',
+            "Is Team Member": 'Yes' if d.get('is_team_member') else 'No',
+            "Team Leader Name": d.get('team_leader_name') or '',
+            "Team Leader Email": d.get('team_leader_email') or '',
+            "Payment Status": payment_status,
+            "Payment Category": paid_category,
+            "Fee Amount (INR)": fee,
+            "Payment Gateway": pay_info.get('gateway') or '',
+            "Payment ID": pay_info.get('payment_id') or '',
+            "Paid At": pay_info.get('paid_at') or '',
+            "Registration Date": d.get('registered_at') or d.get('created_at') or ''
+        })
+
+    csv_data = output.getvalue()
+    filename = f"hackwave_registrations_export_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@router.get("/admin/export-incomplete-profiles-csv")
+@router.get("/export-incomplete-profiles-csv")
+async def export_incomplete_profiles_csv(
+    request: Request,
+    slug: Optional[str] = None,
+    filter_type: Optional[str] = Query("all", description="'all', 'no_account', 'incomplete_profile'"),
+    _=Depends(_require_admin),
+):
+    """
+    Generate and stream CSV of registrants who do NOT have an SA account or have incomplete (<100%) profiles.
+    Includes full name, email, phone, college, account status, completion %, missing items, and registration date.
+    """
+    import csv
+    import io
+    from fastapi.responses import Response
+    from services.profile_service import compute_profile_completion
+
+    db = _get_db(request)
+    query: Dict[str, Any] = {}
+    if slug:
+        query["slug"] = slug
+
+    regs = await db.echo_registrations.find(query).sort("created_at", -1).to_list(10000)
+
+    # Collect emails and phones for batch lookup
+    all_emails = list({r.get("email").lower().strip() for r in regs if r.get("email")})
+    all_phones = list({r.get("phone").strip() for r in regs if r.get("phone")})
+
+    user_map: Dict[str, dict] = {}
+    if all_emails or all_phones:
+        u_or = []
+        if all_emails:
+            u_or.append({"email": {"$in": all_emails}})
+        if all_phones:
+            u_or.append({"phone": {"$in": all_phones}})
+        
+        async for u in db.users.find({"$or": u_or}):
+            comp = compute_profile_completion(u)
+            u_info = {
+                "user_id": str(u.get("_id")),
+                "email": u.get("email"),
+                "phone": u.get("phone"),
+                "full_name": u.get("full_name"),
+                "profile_completion_pct": comp.get("percentage", 0),
+                "is_100": comp.get("percentage", 0) >= 100,
+                "missing_items": [item["label"] for item in comp.get("items", []) if not item["done"]],
+            }
+            if u.get("email"):
+                user_map[u.get("email").lower().strip()] = u_info
+            if u.get("phone"):
+                user_map[u.get("phone").strip()] = u_info
+
+    output = io.StringIO()
+    headers = [
+        "Registration ID",
+        "Event Title",
+        "Event Slug",
+        "Full Name",
+        "Email",
+        "Phone Number",
+        "College / Campus",
+        "Account Status",
+        "Profile Completion %",
+        "Missing Profile Requirements",
+        "Registration Date"
+    ]
+
+    writer = csv.DictWriter(output, fieldnames=headers)
+    writer.writeheader()
+
+    exported_count = 0
+    for r in regs:
+        email = (r.get("email") or "").lower().strip()
+        phone = (r.get("phone") or "").strip()
+        
+        sa_user = user_map.get(email) or user_map.get(phone)
+        has_account = bool(sa_user or r.get("user_id"))
+        pct = sa_user.get("profile_completion_pct", 0) if sa_user else 0
+
+        if has_account and pct >= 100:
+            continue  # Skip 100% complete accounts
+
+        if filter_type == "no_account" and has_account:
+            continue
+        if filter_type == "incomplete_profile" and (not has_account or pct >= 100):
+            continue
+
+        account_status = "No SA Account" if not has_account else f"Incomplete SA Profile ({pct}%)"
+        missing_str = "Create SA Account" if not has_account else (", ".join(sa_user.get("missing_items", [])) or "Incomplete profile details")
+
+        writer.writerow({
+            "Registration ID": r.get("id") or str(r.get("_id")),
+            "Event Title": r.get("showcase_title") or r.get("event_title") or r.get("slug") or "",
+            "Event Slug": r.get("slug") or "",
+            "Full Name": r.get("full_name") or "",
+            "Email": r.get("email") or "",
+            "Phone Number": r.get("phone") or "",
+            "College / Campus": r.get("college") or r.get("showcase_college") or "",
+            "Account Status": account_status,
+            "Profile Completion %": f"{pct}%" if has_account else "0%",
+            "Missing Profile Requirements": missing_str,
+            "Registration Date": r.get("registered_at") or r.get("created_at") or "",
+        })
+        exported_count += 1
+
+    csv_data = output.getvalue()
+    filename = f"incomplete_profiles_export_{filter_type}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+
+
+@router.post("/admin/coupons/dedup")
+async def admin_dedup_coupons(request: Request, _=Depends(_require_admin)):
+    """Super-admin: remove duplicate coupons — keeps the oldest coupon per (reg_id, session_key) pair.
+    Safe: skips any coupon that is already marked used=True to preserve redemption history.
+    """
+    db = _get_db(request)
+    pipeline = [
+        {"$group": {
+            "_id": {"reg_id": "$reg_id", "session_key": "$session_key"},
+            "count": {"$sum": 1},
+            "docs": {"$push": {"_id": "$_id", "used": "$used", "created_at": "$created_at"}}
+        }},
+        {"$match": {"count": {"$gt": 1}}}
+    ]
+    dupes = await db.echo_coupons.aggregate(pipeline).to_list(5000)
+    total_deleted = 0
+    skipped_used = 0
+    details = []
+    for group in dupes:
+        docs = group["docs"]
+        docs.sort(key=lambda d: str(d.get("created_at") or ""))
+        to_delete = docs[1:]
+        for doc in to_delete:
+            if doc.get("used"):
+                skipped_used += 1
+                continue
+            result = await db.echo_coupons.delete_one({"_id": doc["_id"]})
+            if result.deleted_count:
+                total_deleted += 1
+                details.append({
+                    "reg_id": group["_id"]["reg_id"],
+                    "session_key": group["_id"]["session_key"],
+                    "deleted_id": str(doc["_id"]),
+                })
+    return {
+        "ok": True,
+        "duplicate_groups_found": len(dupes),
+        "deleted": total_deleted,
+        "skipped_used": skipped_used,
+        "details": details[:100],  # cap to 100 for response size
+    }
 
 
 @router.post("/admin/registrations/sync-teams")
+
 async def admin_sync_teams(request: Request, _=Depends(_require_admin)):
     """Super-admin: backfill/sync all team registrations to ensure every team member has an SA account, entry pass, and confirmation email."""
     db = _get_db(request)
@@ -4244,9 +5996,9 @@ async def admin_resend_account_tickets(reg_id: str, request: Request, _=Depends(
         coupon_list = await _generate_coupons_for_registration(db, str(canonical_slug), str(reg.get("id")), sessions)
 
     # Re-send confirmation and invoice email
-    await _send_registration_confirmation(db, reg_ser, showcase, reg.get("team_name") if reg.get("registration_type") == "team" else None)
+    await _send_registration_confirmation(db, reg_ser, showcase or {}, reg.get("team_name") if reg.get("registration_type") == "team" else None)
     try:
-        await _send_wa_confirmation(db, reg_ser, showcase, coupon_list)
+        await _send_wa_confirmation(db, reg_ser, showcase or {}, coupon_list)
     except Exception as _wa_e:
         print(f"[ECHO] Resend WA notice error: {_wa_e}")
         
@@ -4269,9 +6021,92 @@ async def admin_resend_account_tickets(reg_id: str, request: Request, _=Depends(
     }
 
 
+@router.post("/admin/registrations/{reg_id}/rescue-payment")
+async def admin_rescue_payment(reg_id: str, request: Request, _=Depends(_require_admin)):
+    """Super-admin: manually rescue a 'failed' or 'pending' registration where Razorpay
+    actually captured the payment but the webhook was missed or arrived after the sweep timer.
+
+    1. Looks up the registration by reg_id.
+    2. If already 'registered' (paid), returns early — idempotent.
+    3. Fetches the Razorpay order and checks its status.
+    4. If 'paid' on Razorpay side, calls _finalize_paid_registration to complete the flow.
+    5. Optionally the admin can pass ?payment_id=pay_xxx to force-finalize without Razorpay check.
+    """
+    from bson import ObjectId
+    db = _get_db(request)
+    payment_id_override = request.query_params.get("payment_id") or ""
+
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+
+    if reg.get("status") == "registered" and (reg.get("payment") or {}).get("status") == "paid":
+        return {"ok": True, "message": "Registration is already finalized (paid).", "already_paid": True}
+
+    showcase = await db.echo_showcases.find_one(_slug_query(reg.get("slug") or ""))
+
+    # If admin explicitly provided a payment_id, force-finalize
+    if payment_id_override:
+        finalized = await _finalize_paid_registration(db, reg, showcase, payment_id_override)
+        return {
+            "ok": True,
+            "message": f"Force-finalized registration {reg_id} with payment {payment_id_override}.",
+            "registration": _ser(finalized) if finalized else None,
+        }
+
+    # Otherwise check Razorpay for captured payment
+    order_id = (reg.get("payment_order") or {}).get("order_id") or reg.get("payment", {}).get("order_id")
+    if not order_id:
+        raise HTTPException(status_code=400, detail="No Razorpay order_id on this registration. Provide ?payment_id=pay_xxx to force-finalize.")
+
+    cfg = await _razorpay_config(db)
+    if not cfg:
+        raise HTTPException(status_code=503, detail="Razorpay not configured.")
+
+    import httpx
+    async with httpx.AsyncClient(timeout=15) as http:
+        resp = await http.get(
+            f"https://api.razorpay.com/v1/orders/{order_id}",
+            auth=(cfg["key_id"], cfg["key_secret"]),
+        )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"Razorpay API error: HTTP {resp.status_code} — {resp.text[:200]}")
+
+    order_data = resp.json()
+    rp_status = order_data.get("status")
+
+    if rp_status != "paid":
+        return {
+            "ok": False,
+            "message": f"Razorpay order {order_id} status is '{rp_status}' (not paid). Cannot rescue.",
+            "razorpay_status": rp_status,
+        }
+
+    # Find the captured payment_id
+    payment_id = ""
+    for p in (order_data.get("payments") or []):
+        if p.get("status") == "captured":
+            payment_id = p.get("id") or ""
+            break
+    if not payment_id:
+        payments = order_data.get("payments") or []
+        if payments:
+            payment_id = payments[-1].get("id") or ""
+
+    finalized = await _finalize_paid_registration(db, reg, showcase, payment_id)
+    return {
+        "ok": True,
+        "message": f"Successfully rescued registration {reg_id}. Payment {payment_id} confirmed on Razorpay.",
+        "razorpay_status": rp_status,
+        "payment_id": payment_id,
+        "registration": _ser(finalized) if finalized else None,
+    }
+
+
 class EchoBroadcastSchema(BaseModel):
     slug: Optional[str] = None
     target_group: str  # "pending_unpaid" | "confirmed_paid" | "unregistered_students"
+
     subject: Optional[str] = None
     custom_message: Optional[str] = None
 
@@ -4349,11 +6184,11 @@ async def admin_broadcast_send(
     reg_url = f"{frontend_url}/echo/{event_slug}/register"
 
     attachments = []
-    pdf_file = Path(__file__).parent / "static" / "HackWave_3.0_Event_Handbook.pdf"
-    if pdf_file.exists():
+    pdf_file, pdf_filename = _get_showcase_handbook_file(showcase)
+    if pdf_file and pdf_file.exists():
         try:
             attachments.append({
-                "filename": "HackWave_3.0_Event_Handbook.pdf",
+                "filename": pdf_filename,
                 "content": pdf_file.read_bytes(),
             })
         except Exception:
@@ -4443,6 +6278,7 @@ async def admin_broadcast_send(
                 continue
             name = r.get("full_name") or "Attendee"
             reg_id = r.get("id") or ""
+            import urllib.parse
             ticket_url = f"{frontend_url}/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
 
             body = render_html_email(
@@ -4630,7 +6466,9 @@ class AdminUpdateTeamSchema(BaseModel):
     team_name: Optional[str] = None
 
 class TicketVerifySchema(BaseModel):
-    ticket: str  # raw QR scan payload or a bare registration id
+    ticket: str
+    lat: Optional[float] = None
+    lng: Optional[float] = None  # raw QR scan payload or a bare registration id
 
 
 def _parse_ticket(ticket: str) -> dict:
@@ -4673,7 +6511,8 @@ async def admin_update_team_members(reg_id: str, request: Request, payload: Admi
     if not reg:
         raise HTTPException(404, "Registration not found")
         
-    update_data = {"team_members": team_members}
+    update_data = {}
+    update_data["team_members"] = team_members
     if team_name is not None:
         update_data["team_name"] = team_name
         
@@ -4748,7 +6587,8 @@ async def admin_resend_tickets(reg_id: str, request: Request, _=Depends(_require
                 rno = f"{raw_pid[:4]}-{raw_pid[-4:]}" if len(raw_pid) >= 8 else raw_pid
                 attachments.append({"filename": f"Receipt-{rno}.pdf", "content": receipt_pdf})
                 
-            ticket_pdf = await generate_ticket_pdf(inv_ser, showcase or {})
+            ticket_html = _build_ticket_html(_ser(reg), showcase or {})
+            ticket_pdf = await generate_pdf_from_html(ticket_html)
             if ticket_pdf:
                 attachments.append({"filename": f"EntryPass-{reg_id}.pdf", "content": ticket_pdf})
                 
@@ -4778,12 +6618,21 @@ async def verify_ticket(payload: TicketVerifySchema, request: Request, _=Depends
     if not reg:
         # Fallback: raw registration id
         reg = await db.echo_registrations.find_one({"id": parsed.get("reg_id")})
+    if not reg and parsed.get("reg_id") and len(parsed.get("reg_id")) == 8:
+        # Fallback: short-code manual entry
+        reg = await db.echo_registrations.find_one({"id": {"$regex": f"^{parsed.get('reg_id')}", "$options": "i"}})
     if not reg:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
     payment = reg.get("payment") or {}
     ser = _ser(reg)
-    verified = payment.get("status") == "paid" and reg.get("status") == "registered"
+    payment_status = payment.get("status") or reg.get("payment_status") or "pending"
+    reg_status = reg.get("status") or "pending"
+    fee = float(reg.get("fee") or 0)
+    
+    is_free = fee <= 0 and (payment_status == "paid" or reg_status in ("registered", "confirmed"))
+    is_paid = payment_status == "paid" and reg_status in ("registered", "confirmed")
+    verified = is_free or is_paid
     checked_in = bool(reg.get("checked_in_at"))
 
     return {
@@ -4814,7 +6663,7 @@ async def verify_ticket(payload: TicketVerifySchema, request: Request, _=Depends
 
 
 @router.post("/admin/registrations/check-in")
-async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Depends(_require_admin)):
+async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Depends(_require_scan_access)):
     """Check an attendee in at the venue (idempotent).
 
     Only confirmed (paid or free) registrations can be checked in. Returns the
@@ -4823,34 +6672,66 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
     db = _get_db(request)
     parsed = _parse_ticket(payload.ticket)
     if not parsed:
-        raise HTTPException(status_code=400, detail="Invalid ticket code")
+        raise HTTPException(status_code=400, detail="Invalid ticket code — could not parse")
 
     query: Dict[str, Any] = {}
     if parsed.get("slug"):
         query["slug"] = parsed["slug"]
-    if parsed.get("reg_id"):
-        query["id"] = parsed["reg_id"]
+    reg_id = parsed.get("reg_id") or ""
+    if reg_id:
+        query["id"] = reg_id
 
     reg = await db.echo_registrations.find_one(query)
+    # Exact lookup is case-sensitive; ids are stored in mixed case (e.g.
+    # `dc08b4e9a27d`, `9a361543a98b_M1`, `Echo-A6F1B42219E50B32`). Fall back to a
+    # case-insensitive exact match so scans resolve regardless of scanned casing.
+    if not reg and reg_id:
+        import re as _re
+        escaped = _re.escape(reg_id)
+        reg = await db.echo_registrations.find_one({
+            "id": {"$regex": f"^{escaped}$", "$options": "i"},
+            **( {"slug": parsed["slug"]} if parsed.get("slug") else {} ),
+        })
     if not reg:
-        reg = await db.echo_registrations.find_one({"id": parsed.get("reg_id")})
-    if not reg:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        raise HTTPException(status_code=404, detail="Ticket not found in registrations")
 
     payment = reg.get("payment") or {}
-    if payment.get("status") != "paid" or reg.get("status") != "registered":
-        raise HTTPException(status_code=400, detail="Ticket not confirmed — attendee cannot be checked in")
+    payment_status = payment.get("status") or reg.get("payment_status") or "pending"
+    reg_status = reg.get("status") or "pending"
+    fee = float(reg.get("fee") or 0)
+
+    is_free = fee <= 0 and (payment_status == "paid" or reg_status in ("registered", "confirmed"))
+    is_paid = payment_status == "paid" and reg_status in ("registered", "confirmed")
+    verified = is_free or is_paid
+
+    if not verified:
+        raise HTTPException(status_code=400, detail="Ticket not confirmed — attendee cannot be checked in. Payment may be pending.")
 
     now_iso = _now()
     first_checkin = not bool(reg.get("checked_in_at"))
+
+    update_data: dict[str, Any] = {"checked_in_at": now_iso}
+    address = ""
+    if payload.lat is not None and payload.lng is not None:
+        update_data["scanned_lat"] = payload.lat
+        update_data["scanned_lng"] = payload.lng
+        address = await _reverse_geocode(payload.lat, payload.lng)
+        if address:
+            update_data["scanned_location"] = address
+
     await db.echo_registrations.update_one(
         {"_id": reg["_id"]},
-        {"$set": {"checked_in_at": now_iso}, "$setOnInsert": {"checked_in_count": 1}},
+        {"$set": update_data, "$setOnInsert": {"checked_in_count": 1}},
     )
     if first_checkin:
         await db.echo_registrations.update_one(
             {"_id": reg["_id"]}, {"$inc": {"checked_in_count": 1}}
         )
+
+    # Send check-in email (fire-and-forget)
+    if first_checkin:
+        event_title = reg.get("showcase_title") or reg.get("slug", "ECHO Event")
+        await _send_checkin_email(reg, event_title, now_iso, address)
 
     updated = _ser(await db.echo_registrations.find_one({"_id": reg["_id"]}))
     return {
@@ -4880,6 +6761,35 @@ async def delete_registration(reg_id: str, request: Request, _=Depends(_require_
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Registration not found")
     return {"ok": True, "deleted": reg_id}
+
+
+@router.patch("/admin/registrations/{reg_id}")
+async def update_registration(reg_id: str, payload: dict, request: Request, _=Depends(_require_admin)):
+    """Admin: update registration fields (email, full_name, phone, etc.)."""
+    from bson import ObjectId
+    db = _get_db(request)
+    try:
+        oid = ObjectId(reg_id)
+    except Exception:
+        oid = None
+    reg = await db.echo_registrations.find_one({"_id": oid} if oid else {"id": reg_id})
+    if not reg:
+        raise HTTPException(404, "Registration not found")
+    update = {}
+    for k in ("email", "full_name", "phone", "college", "branch", "year", "slug"):
+        if k in payload and payload[k] is not None:
+            update[k] = str(payload[k]).strip()
+    if not update:
+        raise HTTPException(400, "No fields to update")
+    await db.echo_registrations.update_one({"_id": reg["_id"]}, {"$set": update})
+    # Also update coupons if email changed
+    if "email" in update:
+        await db.echo_coupons.update_many(
+            {"reg_id": reg.get("id")},
+            {"$set": {"attendee_email": update["email"]}}
+        )
+    updated = _ser(await db.echo_registrations.find_one({"_id": reg["_id"]}))
+    return {"ok": True, "registration": updated}
 
 
 @router.get("/admin/revenue")
@@ -4948,6 +6858,7 @@ async def get_echo_settings(request: Request):
     """Read-only: fetch current Echo settings. No auth required (template prefs are not sensitive)."""
     db = _get_db(request)
     settings = await db.echo_settings.find_one({"_id": "global"}) or {}
+    hero = settings.get("hero_config") or {}
     return {
         "default_ticket_template": settings.get("default_ticket_template", "aurora"),
         "default_invoice_template": settings.get("default_invoice_template", "modern"),
@@ -4955,6 +6866,22 @@ async def get_echo_settings(request: Request):
         "email_brand_color": settings.get("email_brand_color", "#7C3AED"),
         "brand_name": settings.get("brand_name", "Student Alumni"),
         "email_footer": settings.get("email_footer", "Student Alumni Cell — Empowering the next generation of leaders."),
+        "hero_config": {
+            "badge": hero.get("badge", "ON THE GROUND"),
+            "title": hero.get("title", "The network is a feed until it meets in person."),
+            "description": hero.get("description", "Eighty-six ECHO events across thirty-one campuses. Alumni in the room, recruiters at the table, and a build sprint that runs overnight."),
+            "stats": hero.get("stats", [
+                {"value": "86", "label": "events run", "color": "#4B3FD6"},
+                {"value": "31", "label": "cities", "color": "#0E6E8C"},
+                {"value": "4.8", "label": "average rating", "color": "#A21C63"},
+            ]),
+            "recent_hosts": hero.get("recent_hosts", ["Sreenidhi Institute", "VNR VJIET", "Khammam Institute", "CBIT Hyderabad"]),
+            "cta_primary": hero.get("cta_primary", "Browse all events"),
+            "cta_secondary": hero.get("cta_secondary", "Host on your campus"),
+            "section_badge": hero.get("section_badge", "ECHO EVENTS"),
+            "section_title": hero.get("section_title", "Explore ECHO Events by College"),
+            "section_description": hero.get("section_description", "Image galleries, partners, sponsors, speakers, testimonials and registration for every ECHO event we've conducted."),
+        },
     }
 
 
@@ -4982,6 +6909,13 @@ async def update_echo_settings(request: Request, admin=Depends(_require_admin)):
         update["brand_name"] = str(body["brand_name"])[:60]
     if "email_footer" in body:
         update["email_footer"] = str(body["email_footer"])[:300]
+    if "hero_config" in body:
+        hc = body["hero_config"]
+        if isinstance(hc, dict):
+            # Merge with existing hero_config to preserve unset fields
+            existing = (await db.echo_settings.find_one({"_id": "global"}) or {}).get("hero_config") or {}
+            merged = {**existing, **{k: v for k, v in hc.items() if v is not None}}
+            update["hero_config"] = merged
     if update:
         await db.echo_settings.update_one(
             {"_id": "global"}, {"$set": update}, upsert=True
@@ -5094,6 +7028,51 @@ async def update_showcase(showcase_id: str, payload: ShowcaseUpdateSchema, reque
     return outcome
 
 
+class TemporaryOpenSchema(BaseModel):
+    duration_minutes: int = 60
+
+
+@router.post("/admin/showcases/{showcase_id}/temporary-open")
+async def temporary_open_showcase(
+    showcase_id: str,
+    payload: TemporaryOpenSchema,
+    request: Request,
+    _=Depends(_require_admin),
+):
+    """Open ECHO registration for a limited window, then auto-close it.
+
+    Sets registration.enabled=True and registration.temporary_open=True with a
+    temporary_close_at timestamp = now + duration. A background sweep (and the
+    registration gate itself) auto-closes the showcase once that window passes.
+    """
+    from datetime import timedelta
+    db = _get_db(request)
+    minutes = max(1, min(int(payload.duration_minutes or 60), 7 * 24 * 60))  # 1 min .. 7 days
+    now = datetime.now(timezone.utc)
+    close_at = now + timedelta(minutes=minutes)
+
+    result = await db.echo_showcases.update_one(
+        {"_id": _oid(showcase_id)},
+        {"$set": {
+            "registration.enabled": True,
+            "registration.temporary_open": True,
+            "registration.temporary_close_at": close_at.isoformat(),
+            "updated_at": _now(),
+        }},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Showcase not found")
+
+    doc = await db.echo_showcases.find_one({"_id": _oid(showcase_id)})
+    ser = _ser(doc or {})
+    ser["temporary_open"] = {
+        "active": True,
+        "closes_at": close_at.isoformat(),
+        "duration_minutes": minutes,
+    }
+    return ser
+
+
 @router.delete("/admin/showcases/{showcase_id}")
 async def delete_showcase(showcase_id: str, request: Request, _=Depends(_require_admin)):
     db = _get_db(request)
@@ -5170,6 +7149,9 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
         file_bytes = base64.b64decode(data)
     else:
         raise HTTPException(status_code=400, detail="No file or base64 data provided")
+
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(file_bytes)
 
     MAX_SIZE = 10 * 1024 * 1024
     if len(file_bytes) > MAX_SIZE:
@@ -5324,6 +7306,76 @@ async def toggle_session_lock(slug: str, session_key: str, request: Request, adm
     return {"ok": True, "session_key": session_key, "locked": locked}
 
 
+# ── Registration tab passcode (server-side, hashed) ─────────────────────────
+_PASSCODE_SALT = "studentalumni::echo::registration::v1"
+_PASSCODE_COLL = "echo_admin_config"
+
+
+def _hash_passcode(passcode: str) -> str:
+    return hashlib.sha256((_PASSCODE_SALT + passcode).encode("utf-8")).hexdigest()
+
+
+async def _get_passcode_config(db) -> dict:
+    return await db[_PASSCODE_COLL].find_one({"key": "registration_passcode"})
+
+
+@router.get("/admin/registration-passcode")
+async def get_registration_passcode(request: Request, admin=Depends(_require_admin)):
+    """Return whether a registration-tab passcode is enabled. Never returns the value."""
+    db = _get_db(request)
+    cfg = await _get_passcode_config(db)
+    return {
+        "ok": True,
+        "enabled": bool(cfg and cfg.get("enabled")),
+        "has_passcode": bool(cfg and cfg.get("hash")),
+    }
+
+
+@router.put("/admin/registration-passcode")
+async def set_registration_passcode(request: Request, admin=Depends(_require_admin)):
+    """Set/update the registration-tab passcode and enable it, or disable it."""
+    db = _get_db(request)
+    body = await request.json()
+    if body.get("disable"):
+        await db[_PASSCODE_COLL].update_one(
+            {"key": "registration_passcode"},
+            {"$set": {"enabled": False}},
+            upsert=True,
+        )
+        return {"ok": True, "enabled": False}
+
+    passcode = (body.get("passcode") or "").strip()
+    if not passcode:
+        raise HTTPException(status_code=400, detail="Passcode required")
+    if not (4 <= len(passcode) <= 12):
+        raise HTTPException(
+            status_code=400,
+            detail="Passcode must be 4-12 characters",
+        )
+    await db[_PASSCODE_COLL].update_one(
+        {"key": "registration_passcode"},
+        {"$set": {"hash": _hash_passcode(passcode), "enabled": True}},
+        upsert=True,
+    )
+    return {"ok": True, "enabled": True}
+
+
+@router.post("/admin/registration-passcode/verify")
+async def verify_registration_passcode(request: Request, admin=Depends(_require_admin)):
+    """Verify a submitted passcode against the stored (hashed) value."""
+    db = _get_db(request)
+    cfg = await _get_passcode_config(db)
+    if not (cfg and cfg.get("enabled") and cfg.get("hash")):
+        return {"ok": False, "enabled": False, "reason": "not_configured"}
+    body = await request.json()
+    guess = (body.get("passcode") or "").strip()
+    if not guess:
+        return {"ok": False, "enabled": True, "reason": "empty"}
+    if _hash_passcode(guess) != cfg.get("hash"):
+        return {"ok": False, "enabled": True, "reason": "invalid"}
+    return {"ok": True, "enabled": True}
+
+
 @router.get("/{slug}/my-coupons")
 async def my_coupons(slug: str, request: Request, email: Optional[str] = Query(None)):
     """Get current user's coupons for an event. Supports guest access via ?email= param."""
@@ -5389,6 +7441,14 @@ async def scan_coupon_get(code: str, request: Request):
     # 1) Coupon lookup (case-insensitive)
     coupon = await db.echo_coupons.find_one({"coupon_code": raw.upper()})
     if coupon:
+        slug = coupon.get("slug")
+        session_locked = False
+        showcase = await db.echo_showcases.find_one({"slug": slug}) if slug else None
+        if showcase:
+            sessions = showcase.get("sessions") or []
+            locked_keys = {s["key"] for s in sessions if s.get("locked")}
+            if coupon.get("session_key") in locked_keys:
+                session_locked = True
         return {
             "ok": True,
             "type": "coupon",
@@ -5398,7 +7458,9 @@ async def scan_coupon_get(code: str, request: Request):
             "session_day": coupon.get("session_day") or 1,
             "used": coupon.get("used", False),
             "used_at": coupon.get("used_at"),
-            "slug": coupon.get("slug"),
+            "slug": slug,
+            "session_locked": session_locked,
+            "event_name": showcase.get("showcase_title") if showcase else "",
         }
 
     # 2) Ticket / entry-pass lookup
@@ -5440,18 +7502,108 @@ async def scan_coupon_get(code: str, request: Request):
     }
 
 
+@router.get("/ics/{slug}")
+async def echo_ics(slug: str, request: Request):
+    """Generate an iCalendar (.ics) file for an ECHO showcase event.
+
+    Used for 'Add to calendar' flows from the payment success screen.
+    """
+    from fastapi.responses import Response
+    from datetime import datetime as _dt
+
+    db = _get_db(request)
+    showcase = await db.echo_showcases.find_one(_slug_query(slug))
+    if not showcase:
+        raise HTTPException(status_code=404, detail="Showcase not found")
+
+    def _esc(s: str) -> str:
+        return (s or "").replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
+
+    def _dt(v) -> str:
+        try:
+            if isinstance(v, str):
+                v = _dt.strptime(v, "%Y-%m-%d")
+            if isinstance(v, _dt):
+                v = v
+            else:
+                from datetime import date as _d
+                if isinstance(v, _d):
+                    v = _dt.combine(v, _dt.min.time())
+            return v.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        except Exception:
+            return _dt.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+    title = _esc(showcase.get("title") or showcase.get("showcase_title") or "ECHO Event")
+    desc = _esc((showcase.get("description") or showcase.get("subtitle") or "")[:600])
+    venue = _esc(showcase.get("venue") or showcase.get("location") or "Online")
+    dates_raw = showcase.get("dates") or showcase.get("date") or showcase.get("date_pill") or ""
+    time_str = showcase.get("time") or "09:00 AM"
+
+    start_date = _dt(datetime.now(timezone.utc))
+    end_date = _dt(datetime.now(timezone.utc))
+
+    if dates_raw:
+        try:
+            parts = dates_raw.replace("–", "-").replace(" - ", " to ").split(" to ")
+            start_part = parts[0].strip()
+            end_part = parts[1].strip() if len(parts) > 1 else start_part
+            for fmt in ["%B %d, %Y", "%b %d, %Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"]:
+                try:
+                    start_date = _dt(datetime.strptime(start_part, fmt))
+                    break
+                except ValueError:
+                    continue
+            for fmt in ["%B %d, %Y", "%b %d, %Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"]:
+                try:
+                    end_date = _dt(datetime.strptime(end_part, fmt))
+                    break
+                except ValueError:
+                    end_date = start_date
+        except Exception:
+            pass
+
+    uid = f"{slug}@studentalumni.in"
+    now = _dt(datetime.now(timezone.utc))
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+
+    ics = "\r\n".join([
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//StudentAlumni//ECHO//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "BEGIN:VEVENT",
+        f"UID:{uid}",
+        f"DTSTAMP:{now}",
+        f"DTSTART:{start_date}",
+        f"DTEND:{end_date}",
+        f"SUMMARY:{title}",
+        f"DESCRIPTION:{desc}",
+        f"LOCATION:{venue}",
+        f"URL:{_esc(frontend_url + '/echo/' + slug)}",
+        "END:VEVENT",
+        "END:VCALENDAR",
+    ])
+
+    return Response(
+        content=ics,
+        media_type="text/calendar",
+        headers={"Content-Disposition": f'attachment; filename="{slug}.ics"'},
+    )
+
+
 @router.post("/admin/scan-coupon")
-async def scan_coupon(request: Request, admin=Depends(_require_admin)):
+async def scan_coupon(request: Request, admin=Depends(_require_scan_access)):
     """Scan a coupon QR code."""
     db = _get_db(request)
     body = await request.json()
     code = (body.get("code") or "").strip().upper()
     if not code:
-        raise HTTPException(400, "Coupon code required")
+        return {"ok": False, "status": "invalid", "message": "Coupon code is required"}
 
     coupon = await db.echo_coupons.find_one({"coupon_code": code})
     if not coupon:
-        raise HTTPException(404, "Invalid coupon code")
+        return {"ok": False, "status": "invalid", "message": f"Coupon '{code}' not found. Make sure this is a valid session pass from My Tickets."}
     # Check if session is locked
     if coupon.get("session_locked"):
         return {
@@ -5460,7 +7612,7 @@ async def scan_coupon(request: Request, admin=Depends(_require_admin)):
             "message": f"This session ({coupon.get('session_name', '')}) is currently locked. It will be available soon.",
             "coupon": {k: v for k, v in coupon.items() if k != "_id"},
         }
-    if coupon["used"]:
+    if coupon.get("used"):
         return {
             "ok": False,
             "status": "already_used",
@@ -5468,25 +7620,52 @@ async def scan_coupon(request: Request, admin=Depends(_require_admin)):
             "coupon": {k: v for k, v in coupon.items() if k != "_id"},
         }
 
+    lat = body.get("lat")
+    lng = body.get("lng")
+
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc)
+
+    update_data = {
+        "used": True,
+        "used_at": now.isoformat(),  # Store as ISO string with timezone
+        "scanned_by": admin.get("email", "admin")
+    }
+    address = ""
+    if lat is not None and lng is not None:
+        update_data["scanned_lat"] = lat
+        update_data["scanned_lng"] = lng
+        address = await _reverse_geocode(lat, lng)
+        if address:
+            update_data["scanned_location"] = address
+
     await db.echo_coupons.update_one(
         {"_id": coupon["_id"]},
-        {"$set": {"used": True, "used_at": now, "scanned_by": admin.get("email", "admin")}}
+        {"$set": update_data}
     )
 
     # Get attendee info
-    reg = await db.echo_registrations.find_one({"id": coupon["reg_id"]})
+    reg = await db.echo_registrations.find_one({"id": coupon.get("reg_id")})
+
+    # Send coupon scan email (fire-and-forget)
+    if reg:
+        await _send_coupon_scan_email(
+            reg,
+            coupon.get("session_name", "Session"),
+            code,
+            now.strftime("%b %d, %Y · %I:%M %p UTC"),
+            address,
+        )
 
     return {
         "ok": True,
         "status": "valid",
-        "message": f"Valid — {coupon['session_name']} for {reg.get('full_name', 'Unknown') if reg else 'Unknown'}",
+        "message": f"Valid — {coupon.get('session_name', 'Session')} for {reg.get('full_name', 'Attendee') if reg else 'Attendee'}",
         "coupon": {
             "code": code,
-            "session_name": coupon["session_name"],
+            "session_name": coupon.get("session_name", "Session"),
             "session_day": coupon.get("session_day") or 1,
-            "attendee_name": reg.get("full_name", "") if reg else "",
+            "attendee_name": (reg.get("full_name") or reg.get("first_name") or "") if reg else "",
             "attendee_email": reg.get("email", "") if reg else "",
             "used_at": now.isoformat(),
         },
@@ -5655,3 +7834,314 @@ async def check_scan_access(request: Request, user=Depends(_get_current_user_dep
         return {"access": True, "role": vol.get("role", "volunteer"), "slug": vol.get("slug")}
 
     return {"access": False}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ── INTERNAL HIRING & INTERNS MODULE (ECHO VNRVJIET, SNIST, ETC.) ───────────
+# ─────────────────────────────────────────────────────────────────────────────
+
+STAGE_NEXT_MAP = {
+    "applicant_pool": "shortlisted",
+    "shortlisted": "unpaid_intern",
+    "unpaid_intern": "paid_intern",
+    "paid_intern": "full_time",
+    "full_time": "full_time",
+}
+
+@router.post("/admin/interns/sync-registrations")
+async def sync_echo_registrations_to_interns(request: Request, _=Depends(_require_admin)):
+    """Sync all event registrations from Echo VNRVJIET, SNIST, etc. into the Internal Hiring applicant pool."""
+    db = _get_db(request)
+    regs = await db.echo_registrations.find({}).to_list(10000)
+    synced = 0
+    now_iso = _now()
+
+    for r in regs:
+        reg_id = r.get("id") or str(r.get("_id"))
+        email = (r.get("email") or "").strip().lower()
+        if not email:
+            continue
+
+        existing = await db.echo_intern_candidates.find_one({"$or": [{"reg_id": reg_id}, {"email": email}]})
+        if not existing:
+            branch = (r.get("branch") or "").lower()
+            skills = []
+            if any(k in branch for k in ["cs", "cse", "it", "code", "tech", "computer", "data", "ai", "ml"]):
+                skills.append("Technical")
+            if any(k in branch for k in ["mkt", "market", "biz", "comm", "media", "mgmt", "management"]):
+                skills.append("Marketing")
+            if not skills:
+                skills.append("Technical")
+
+            candidate = {
+                "reg_id": reg_id,
+                "full_name": r.get("full_name") or email.split("@")[0].title(),
+                "email": email,
+                "phone": r.get("phone") or "",
+                "college": r.get("college") or r.get("showcase_college") or "VNRVJIET / SNIST",
+                "branch": r.get("branch") or "",
+                "year": r.get("year") or "",
+                "slug": r.get("slug") or "echo-event",
+                "event_title": r.get("showcase_title") or r.get("event_title") or r.get("slug") or "Echo Event",
+                "stage": "applicant_pool",
+                "skills": skills,
+                "stipend": 0,
+                "role_title": "Intern Prospect",
+                "notes": f"Auto-synced from {r.get('showcase_title') or r.get('slug')} registration.",
+                "created_at": r.get("created_at") or now_iso,
+                "updated_at": now_iso,
+                "status": "active",
+            }
+            await db.echo_intern_candidates.insert_one(candidate)
+            synced += 1
+
+    return {"ok": True, "synced_count": synced}
+
+
+@router.get("/admin/interns")
+async def list_intern_candidates(
+    request: Request,
+    slug: Optional[str] = None,
+    stage: Optional[str] = None,
+    search: Optional[str] = None,
+    domain: Optional[str] = None,
+    limit: int = Query(1000, ge=1, le=5000),
+    _=Depends(_require_admin),
+):
+    """List internal hiring candidates and intern pipeline."""
+    db = _get_db(request)
+
+    # First auto-sync any new registrations seamlessly
+    try:
+        regs = await db.echo_registrations.find({}).to_list(10000)
+        now_iso = _now()
+        for r in regs:
+            reg_id = r.get("id") or str(r.get("_id"))
+            email = (r.get("email") or "").strip().lower()
+            if not email:
+                continue
+            existing = await db.echo_intern_candidates.find_one({"$or": [{"reg_id": reg_id}, {"email": email}]})
+            if not existing:
+                branch = (r.get("branch") or "").lower()
+                skills = []
+                if any(k in branch for k in ["cs", "cse", "it", "code", "tech", "computer", "data", "ai", "ml"]):
+                    skills.append("Technical")
+                if any(k in branch for k in ["mkt", "market", "biz", "comm", "media", "mgmt", "management"]):
+                    skills.append("Marketing")
+                if not skills:
+                    skills.append("Technical")
+
+                candidate = {
+                    "reg_id": reg_id,
+                    "full_name": r.get("full_name") or email.split("@")[0].title(),
+                    "email": email,
+                    "phone": r.get("phone") or "",
+                    "college": r.get("college") or r.get("showcase_college") or "VNRVJIET / SNIST",
+                    "branch": r.get("branch") or "",
+                    "year": r.get("year") or "",
+                    "slug": r.get("slug") or "echo-event",
+                    "event_title": r.get("showcase_title") or r.get("event_title") or r.get("slug") or "Echo Event",
+                    "stage": "applicant_pool",
+                    "skills": skills,
+                    "stipend": 0,
+                    "role_title": "Intern Prospect",
+                    "notes": f"Auto-imported from {r.get('showcase_title') or r.get('slug')} registration.",
+                    "created_at": r.get("created_at") or now_iso,
+                    "updated_at": now_iso,
+                    "status": "active",
+                }
+                await db.echo_intern_candidates.insert_one(candidate)
+    except Exception as e:
+        print(f"[INTERNS SYNC WARN] {e}")
+
+    query: Dict[str, Any] = {"status": {"$ne": "deleted"}}
+    if slug and slug != "all":
+        query["slug"] = slug
+    if stage and stage != "all":
+        query["stage"] = stage
+    if domain and domain != "all":
+        query["skills"] = domain
+    if search:
+        rx = re.compile(re.escape(search), re.IGNORECASE)
+        query["$or"] = [
+            {"full_name": rx},
+            {"email": rx},
+            {"phone": rx},
+            {"college": rx},
+            {"role_title": rx},
+        ]
+
+    docs = await db.echo_intern_candidates.find(query).sort("updated_at", -1).limit(limit).to_list(limit)
+
+    items = []
+    counts = {"applicant_pool": 0, "shortlisted": 0, "unpaid_intern": 0, "paid_intern": 0, "full_time": 0}
+
+    all_docs = await db.echo_intern_candidates.find({"status": {"$ne": "deleted"}}).to_list(10000)
+    for d in all_docs:
+        st = d.get("stage") or "applicant_pool"
+        if st in counts:
+            counts[st] += 1
+
+    for d in docs:
+        d_ser = _ser(d)
+        items.append(d_ser)
+
+    return {"items": items, "total": len(items), "counts": counts}
+
+
+@router.post("/admin/interns/convert")
+async def convert_registration_to_intern(request: Request, _=Depends(_require_admin)):
+    """Convert an event attendee into an Intern Candidate."""
+    db = _get_db(request)
+    body = await request.json()
+    reg_id = body.get("reg_id")
+    email = (body.get("email") or "").strip().lower()
+    target_stage = body.get("target_stage") or "shortlisted"
+    skills = body.get("skills") or ["Technical"]
+    notes = body.get("notes") or ""
+    role_title = body.get("role_title") or "Intern Prospect"
+    stipend = body.get("stipend") or 0
+
+    now_iso = _now()
+    existing = None
+    if reg_id:
+        existing = await db.echo_intern_candidates.find_one({"reg_id": reg_id})
+    if not existing and email:
+        existing = await db.echo_intern_candidates.find_one({"email": email})
+
+    if existing:
+        await db.echo_intern_candidates.update_one(
+            {"_id": existing["_id"]},
+            {"$set": {
+                "stage": target_stage,
+                "skills": skills,
+                "notes": notes or existing.get("notes"),
+                "role_title": role_title or existing.get("role_title"),
+                "stipend": stipend if stipend else existing.get("stipend", 0),
+                "updated_at": now_iso,
+            }}
+        )
+        updated = await db.echo_intern_candidates.find_one({"_id": existing["_id"]})
+        return {"ok": True, "candidate": _ser(updated), "message": "Updated candidate stage"}
+
+    reg_doc = None
+    if reg_id:
+        reg_doc = await db.echo_registrations.find_one({"id": reg_id})
+
+    candidate = {
+        "reg_id": reg_id or "",
+        "full_name": body.get("full_name") or (reg_doc.get("full_name") if reg_doc else email.split("@")[0].title()),
+        "email": email or (reg_doc.get("email") if reg_doc else ""),
+        "phone": body.get("phone") or (reg_doc.get("phone") if reg_doc else ""),
+        "college": body.get("college") or (reg_doc.get("college") if reg_doc else "VNRVJIET / SNIST"),
+        "branch": body.get("branch") or (reg_doc.get("branch") if reg_doc else ""),
+        "year": body.get("year") or (reg_doc.get("year") if reg_doc else ""),
+        "slug": body.get("slug") or (reg_doc.get("slug") if reg_doc else "echo-event"),
+        "event_title": reg_doc.get("showcase_title") if reg_doc else "Echo Event",
+        "stage": target_stage,
+        "skills": skills,
+        "stipend": stipend,
+        "role_title": role_title,
+        "notes": notes or "Converted from event registration.",
+        "created_at": now_iso,
+        "updated_at": now_iso,
+        "status": "active",
+    }
+    res = await db.echo_intern_candidates.insert_one(candidate)
+    candidate["_id"] = str(res.inserted_id)
+
+    return {"ok": True, "candidate": _ser(candidate), "message": "Candidate added to internal hiring"}
+
+
+@router.post("/admin/interns/{candidate_id}/advance")
+async def advance_intern_stage(candidate_id: str, request: Request, _=Depends(_require_admin)):
+    """Advance candidate to the next hiring stage (Applicant -> Shortlisted -> Unpaid Intern -> Paid Intern -> Full Time)."""
+    db = _get_db(request)
+    body = await request.json()
+
+    from bson import ObjectId
+    query: Dict[str, Any] = {}
+    try:
+        query = {"_id": ObjectId(candidate_id)}
+    except Exception:
+        query = {"id": candidate_id}
+
+    candidate = await db.echo_intern_candidates.find_one(query)
+    if not candidate:
+        query = {"reg_id": candidate_id}
+        candidate = await db.echo_intern_candidates.find_one(query)
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+
+    cur_stage = candidate.get("stage") or "applicant_pool"
+    next_stage = body.get("next_stage") or STAGE_NEXT_MAP.get(cur_stage, "unpaid_intern")
+    now_iso = _now()
+
+    updates: Dict[str, Any] = {
+        "stage": next_stage,
+        "updated_at": now_iso,
+    }
+
+    if "skills" in body and body["skills"]:
+        updates["skills"] = body["skills"]
+    if "stipend" in body and body["stipend"] is not None:
+        updates["stipend"] = body["stipend"]
+    if "role_title" in body and body["role_title"]:
+        updates["role_title"] = body["role_title"]
+    if "notes" in body and body["notes"]:
+        updates["notes"] = body["notes"]
+
+    await db.echo_intern_candidates.update_one({"_id": candidate["_id"]}, {"$set": updates})
+    updated = await db.echo_intern_candidates.find_one({"_id": candidate["_id"]})
+
+    return {
+        "ok": True,
+        "candidate": _ser(updated),
+        "prev_stage": cur_stage,
+        "new_stage": next_stage,
+        "message": f"Advanced {updated.get('full_name')} to {next_stage.replace('_', ' ').title()}",
+    }
+
+
+@router.put("/admin/interns/{candidate_id}")
+async def update_intern_candidate(candidate_id: str, request: Request, _=Depends(_require_admin)):
+    """Update intern candidate details (skills, notes, stipend, stage)."""
+    db = _get_db(request)
+    body = await request.json()
+
+    from bson import ObjectId
+    try:
+        query = {"_id": ObjectId(candidate_id)}
+    except Exception:
+        query = {"id": candidate_id}
+
+    candidate = await db.echo_intern_candidates.find_one(query)
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+
+    now_iso = _now()
+    body["updated_at"] = now_iso
+    body.pop("_id", None)
+    body.pop("id", None)
+
+    await db.echo_intern_candidates.update_one({"_id": candidate["_id"]}, {"$set": body})
+    updated = await db.echo_intern_candidates.find_one({"_id": candidate["_id"]})
+    return {"ok": True, "candidate": _ser(updated)}
+
+
+@router.delete("/admin/interns/{candidate_id}")
+async def delete_intern_candidate(candidate_id: str, request: Request, _=Depends(_require_admin)):
+    """Delete candidate from internal hiring pipeline."""
+    db = _get_db(request)
+    from bson import ObjectId
+    try:
+        query = {"_id": ObjectId(candidate_id)}
+    except Exception:
+        query = {"id": candidate_id}
+
+    res = await db.echo_intern_candidates.delete_one(query)
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+
+    return {"ok": True, "message": "Candidate deleted"}
+

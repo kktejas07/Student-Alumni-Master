@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException
 
 from db import db
-from services.career_intelligence_service import (
+from services.career_ai.skill_intelligence_service import (
     compute_full_intelligence,
     invalidate_intel_cache,
 )
@@ -73,7 +73,7 @@ async def get_claude_chat(session_id: str, system_message: str):
                     "suggestion": "Your trajectory is solid — focus this week on shipping one polished portfolio piece."
                 }"""
             if "daily" in self.sess_id.lower():
-                return '{"summary": "Mock daily brief summary", "focus_areas": ["Communication", "Technical prep"], "action_items": [{"id": "a1", "title": "Mock action", "description": "Mock description", "completed": false}], "industry_news": [{"id": "n1", "headline": "Mock news", "summary": "Mock", "url": "https://example.com"}]}'
+                return '{"summary": null, "configured": false, "reason": "LLM provider not configured; no daily brief available", "focus_areas": [], "action_items": [], "industry_news": []}'
             if "chat" in self.sess_id.lower() or "financial" in self.sess_id.lower() or "stay" in self.sess_id.lower() or "rentals" in self.sess_id.lower() or "You are speaking with" in self.sys_msg:
                 user_text = getattr(msg, "text", str(msg))
                 import re
@@ -222,93 +222,13 @@ async def career_predictions_endpoint(user: dict = Depends(_get_current_user_dep
 # 4. Career Suggestions (LLM-based)
 # ═══════════════════════════════════════════════════════════════════════════
 
-@router.post("/ai/career-suggestions")
-async def get_career_suggestions(req: dict, user: dict = Depends(_get_current_user_dependency())):
-    """Generate AI-powered career roadmap based on user's profile + chosen path.
-    Returns structured JSON: summary + milestones + skills + courses + mentor_traits.
-    """
-    if not user.get("onboarding_completed"):
-        raise HTTPException(400, "Please complete onboarding first")
-    career_path = user.get("career_path")
-    if not career_path:
-        raise HTTPException(400, "Career path not selected")
-
-    system_msg = CAREER_PATH_SYSTEM_PROMPTS.get(career_path, CAREER_PATH_SYSTEM_PROMPTS["job"])
-
-    school = user.get("school_info") or {}
-    student = user.get("student_info") or {}
-    edu_level = student.get("education_level", school.get("class_or_year", ""))
-
-    profile = (
-        f"User: {user.get('full_name')}\n"
-        f"Role: {user.get('role')}\n"
-        f"Career Path: {career_path}\n"
-        f"Education Level: {edu_level}\n"
-        f"Institution: {school.get('institution_name')}\n"
-        f"Branch: {school.get('branch_or_stream')}\n"
-        f"Interests: {', '.join(user.get('interests', []))}\n"
-        f"Skills: {', '.join(user.get('skills', []))}\n"
-    )
-
-    additional_context = (req or {}).get("additional_context") or "None"
-    prompt = (
-        f"Profile:\n{profile}\n"
-        f"Additional context: {additional_context}\n\n"
-        "Provide a personalized career roadmap as JSON ONLY (no markdown, no extra text):\n"
-        "{\n"
-        '  "summary": "1-2 sentence overview",\n'
-        '  "milestones": [\n'
-        '    {"title": "...", "timeframe": "0-3 months", "actions": ["...", "..."]},\n'
-        '    {"title": "...", "timeframe": "3-12 months", "actions": ["..."]},\n'
-        '    {"title": "...", "timeframe": "1-3 years", "actions": ["..."]}\n'
-        '  ],\n'
-        '  "recommended_skills": ["s1", "s2", "s3", "s4", "s5"],\n'
-        '  "recommended_courses": ["c1", "c2", "c3"],\n'
-        '  "mentor_traits": ["t1", "t2", "t3"]\n'
-        "}"
-    )
-
-    session_id = (req or {}).get("session_id") or f"chat-{uuid.uuid4().hex[:12]}"
-    try:
-        chat = await get_claude_chat(session_id, system_msg)
-        response = await chat.send_message(UserMessage(text=prompt))
-
-        text = response.strip()
-        if text.startswith("```"):
-            text = text.strip("`")
-            if text.startswith("json"):
-                text = text[4:]
-            text = text.strip()
-        try:
-            data = json.loads(text)
-        except Exception:
-            data = {"summary": response, "milestones": [], "recommended_skills": [],
-                    "recommended_courses": [], "mentor_traits": []}
-
-        await db.career_suggestions.update_one(
-            {"user_id": str(user["_id"])},
-            {"$set": {**data, "updated_at": datetime.now(timezone.utc), "career_path": career_path}},
-            upsert=True,
-        )
-        return data
-    except Exception as e:
-        import traceback
-        return {"error": traceback.format_exc()}
-
-
-@router.get("/ai/career-suggestions/cached")
-async def get_cached_suggestions(user: dict = Depends(_get_current_user_dependency())):
-    """Return cached AI roadmap (avoid re-paying for the same query)."""
-    return await db.career_suggestions.find_one({"user_id": str(user["_id"])}, {"_id": 0}) or {}
-
-
 # ═══════════════════════════════════════════════════════════════════════════
 # 5. Career Roadmap (12-week, richer schema for the /career-ai page)
 # ═══════════════════════════════════════════════════════════════════════════
 
 @router.post("/ai/career-roadmap")
 async def ai_career_roadmap(
-    body: Dict[str, Any] = None,
+    body: Dict[str, Any] | None = None,
     user: dict = Depends(_get_current_user_dependency()),
 ):
     """Generate (or return cached) a personalised 12-week career roadmap.
@@ -439,13 +359,13 @@ async def ai_career_roadmap(
             text = text.strip("`")
             if text.startswith("json"): text = text[4:]
             text = text.strip()
-        data = json.loads(text)
+        data: Dict[str, Any] = json.loads(text)
         if not data.get("milestones"):
             raise ValueError("LLM returned empty milestones array")
     except Exception as e:
         logger.error(f"career-roadmap AI failed: {e}")
         _fallback_milestones = [dict(m) for m in _ALL_STANDARD_MILESTONES]
-        data = {
+        data: Dict[str, Any] = {
             "target_role": goal.split(" at ")[0].strip() if " at " in goal else goal,
             "target_company_type": "Top Company in your field",
             "skill_scores": {"communication": 40, "soft_skills": 35, "technical": 50, "interview_prep": 30, "networking": 25, "leadership": 30},
@@ -454,13 +374,19 @@ async def ai_career_roadmap(
         }
 
     _t_eval_gen0 = _time.perf_counter()
-    for m in data.get("milestones", []):
-        m["completed"] = False
-        m["completed_at"] = None
-    existing_types = {m.get("milestone_type") for m in data.get("milestones", [])}
+    milestones: list[dict[str, Any]] = data.get("milestones", [])
+    if not isinstance(milestones, list):
+        milestones = []
+    
+    for m in milestones:
+        if isinstance(m, dict):
+            m["completed"] = False
+            m["completed_at"] = None
+    existing_types = {m.get("milestone_type") for m in milestones if isinstance(m, dict)}
     for std_m in _ALL_STANDARD_MILESTONES:
         if std_m["milestone_type"] not in existing_types:
-            data.setdefault("milestones", []).append(dict(std_m))
+            milestones.append(dict(std_m))
+    data["milestones"] = milestones
 
     _si_tmp = user.get("student_info") or {}
     _goal_tmp = _si_tmp.get("career_goal") or user.get("career_goal") or "Software Engineer"
@@ -500,7 +426,7 @@ async def ai_career_roadmap(
 @router.post("/ai/career-roadmap/milestone/{milestone_id}/complete")
 async def complete_roadmap_milestone(
     milestone_id: str,
-    body: Dict[str, Any] = None,
+    body: Dict[str, Any] | None = None,
     user: dict = Depends(_get_current_user_dependency()),
 ):
     """Mark a specific milestone as manually completed or uncompleted.

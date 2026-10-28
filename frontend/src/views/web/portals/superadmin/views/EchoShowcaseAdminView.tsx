@@ -1,3 +1,146 @@
+
+// ── VIDEOS & REELS UPLOAD MANAGER ─────────────────────────────────────────────
+function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v: any[]) => void }) {
+  const { flash } = useToast();
+  const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
+
+  const inputStyle = {
+    borderWidth: 1,
+    borderColor: SAC.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: SAC.text,
+    backgroundColor: SAC.bg,
+  };
+
+  const updateItem = (index: number, key: string, val: any) => {
+    const list = [...(videos || [])];
+    list[index] = { ...list[index], [key]: val };
+    onChange(list);
+  };
+
+  const addItem = () => {
+    onChange([
+      ...(videos || []),
+      {
+        title: 'New Event Video / Clip',
+        video_url: '',
+        thumbnail_url: '/images/hackwave/hackwave_main_poster.png',
+        description: 'Uploaded event teaser video clip.',
+        platform: 'native',
+      },
+    ]);
+  };
+
+  const removeItem = (index: number) => {
+    const list = (videos || []).filter((_, i) => i !== index);
+    onChange(list);
+  };
+
+  const handleFileUpload = async (index: number, e: any) => {
+    const file = e?.target?.files?.[0];
+    if (!file) return;
+    setUploadingIdx(index);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await api.uploadEchoMedia(fd);
+      const fileUrl = res?.url || res?.file_url;
+      if (fileUrl) {
+        updateItem(index, 'video_url', fileUrl);
+        updateItem(index, 'platform', 'mp4');
+        flash?.('Video file uploaded successfully!');
+      }
+    } catch (err: any) {
+      flash?.('Failed to upload video file', 'error');
+    } finally {
+      setUploadingIdx(null);
+    }
+  };
+
+  return (
+    <View style={{ gap: 16 }}>
+      {(videos || []).map((vid: any, idx: number) => {
+        const isYt = vid.video_url?.includes('youtube.com') || vid.video_url?.includes('youtu.be');
+
+        return (
+          <View key={idx} style={{ borderWidth: 1, borderColor: SAC.border, borderRadius: 14, padding: 18, backgroundColor: SAC.panel, gap: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>Video / Clip #{idx + 1}</Text>
+              <Pressable onPress={() => removeItem(idx)} style={{ padding: 4 }}>
+                <Trash2 size={16} color="#EF4444" />
+              </Pressable>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+              <TextInput
+                style={[inputStyle, { flex: 1, minWidth: 200 }]}
+                placeholder="Video Title (e.g. SNIST HackWave Teaser)"
+                value={vid.title || ''}
+                onChangeText={(t) => updateItem(idx, 'title', t)}
+              />
+              <TextInput
+                style={[inputStyle, { flex: 1.5, minWidth: 260 }]}
+                placeholder="Direct Video URL (.mp4, .webm) or Upload Local File"
+                value={isYt ? '' : (vid.video_url || '')}
+                onChangeText={(t) => updateItem(idx, 'video_url', t)}
+              />
+              {Platform.OS === 'web' && (
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 8, background: '#7C3AED', color: '#FFF', fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
+                  {uploadingIdx === idx ? 'Uploading Video...' : '🎥 Upload Local Video File'}
+                  <input type="file" accept="video/mp4,video/webm,video/quicktime,video/x-matroska,video/*" onChange={(e) => handleFileUpload(idx, e)} style={{ display: 'none' }} />
+                </label>
+              )}
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+              <TextInput
+                style={[inputStyle, { flex: 1, minWidth: 200 }]}
+                placeholder="Thumbnail Image URL (optional)"
+                value={vid.thumbnail_url || ''}
+                onChangeText={(t) => updateItem(idx, 'thumbnail_url', t)}
+              />
+              <TextInput
+                style={[inputStyle, { flex: 1.5, minWidth: 260 }]}
+                placeholder="Short Description / Caption (optional)"
+                value={vid.description || ''}
+                onChangeText={(t) => updateItem(idx, 'description', t)}
+              />
+            </View>
+
+            {/* Native HTML5 Video Preview Box */}
+            {vid.video_url && !isYt ? (
+              <View style={{ marginTop: 6, borderRadius: 10, overflow: 'hidden', backgroundColor: '#000', maxHeight: 220, alignItems: 'center', justifyContent: 'center' }}>
+                <video
+                  controls
+                  playsInline
+                  preload="metadata"
+                  poster={vid.thumbnail_url}
+                  src={vid.video_url}
+                  style={{ width: '100%', maxHeight: '220px', objectFit: 'contain' }}
+                />
+              </View>
+            ) : isYt ? (
+              <View style={{ marginTop: 6, padding: 12, borderRadius: 8, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 1, borderColor: '#EF4444' }}>
+                <Text style={{ fontSize: 12, color: '#FCA5A5', fontFamily: FONTS.med }}>
+                  Legacy YouTube URL detected. Please click <strong>🎥 Upload Local Video File</strong> above to upload your local MP4 video.
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        );
+      })}
+
+      <Pressable onPress={addItem} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, backgroundColor: 'rgba(124,92,252,0.15)', borderWidth: 1, borderColor: '#7C3AED' }}>
+        <Plus size={16} color="#A78BFA" />
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#A78BFA' }}>Add Video Option</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 // @ts-nocheck
 /**
  * Super Admin — ECHO Showcase CMS View.
@@ -16,7 +159,7 @@
  *   - Autosave to sessionStorage + unsaved changes warning.
  *   - Full shared Media Library panel.
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Platform, ActivityIndicator,
   TextInput, Modal, ScrollView, Image,
@@ -25,21 +168,53 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   Pencil, Trash2, Eye, Globe, Archive, Send, X, Zap,
   Star, BookOpen, Upload, MoveUp, MoveDown, Images, FolderOpen,
-  Copy, Check, Search, RefreshCw, PlusCircle, FileText, Link2,
+  Copy, Check, Search, RefreshCw, Plus, PlusCircle, FileText, Link2,
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users,
-  Ticket, Mail, ScanLine, Phone,
-  CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle,
+  Ticket, Mail, ScanLine, Phone, Edit2,
+  CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle, Download, FileSpreadsheet, MapPin,
+  UserCheck, GraduationCap, CreditCard, Award, Sparkles, Bot, Play,
 } from 'lucide-react-native';
 import {
   GRAD, GradientButton, SecondaryButton, Card,
   StatusPill, SearchField, KpiTile, useToast, Toast, TopTabs, IconBox,
 } from '../applekit';
-import { SAC, FONTS } from '../tokens';
-import { api, resolveImageUrl } from '@/src/models/services/api';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { api, request, resolveImageUrl } from '@/src/models/services/api';
 import { useConfirm } from '@/src/views/components';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 import { DarkDropdown } from '@/src/views/web/components/DarkDropdown';
+import { getBaseUrl } from '@/src/lib/env';
+import { CatalogOrdersManager } from './CatalogOrdersManager';
+import { ImportPanel } from '@/src/views/web/admin/ImportPage';
+
+export const triggerExportCsv = (slugVal?: string, statusVal?: string) => {
+  let base = '';
+  try {
+    base = getBaseUrl();
+  } catch {}
+  if (!base || base === '') {
+    if (typeof window !== 'undefined') {
+      const hn = window.location.hostname;
+      if (hn === 'localhost' || hn === '127.0.0.1') {
+        base = `${window.location.protocol}//${hn}:8000`;
+      } else {
+        base = window.location.origin;
+      }
+    }
+  }
+  if (!base) base = 'http://localhost:8000';
+
+  const params: string[] = [];
+  if (slugVal && slugVal !== 'all') params.push(`slug=${encodeURIComponent(slugVal)}`);
+  if (statusVal && statusVal !== 'all') params.push(`status=${encodeURIComponent(statusVal)}`);
+  const queryStr = params.length > 0 ? `?${params.join('&')}` : '';
+
+  const exportUrl = `${base}/api/echo/admin/export-csv${queryStr}`;
+  if (typeof window !== 'undefined') {
+    window.open(exportUrl, '_blank');
+  }
+};
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STATUS_PILL_MAP: Record<string, any> = {
@@ -66,19 +241,21 @@ const GALLERY_LAYOUT_OPTIONS = ['grid', 'masonry', 'mixed', 'featured-grid', 'ca
 const VIDEO_PLATFORM_OPTIONS = ['youtube', 'vimeo', 'mp4'];
 const DOWNLOAD_CATEGORY_OPTIONS = ['Brochure', 'Schedule', 'Certificate', 'Presentation', 'Report', 'Document'];
 
-type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'volunteers';
+type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'interns' | 'volunteers' | 'scan-monitor';
 type StatusFilter = 'all' | 'published' | 'draft' | 'archived';
 type FormTab =
   | 'general' | 'hero' | 'statistics' | 'about' | 'gallery'
   | 'testimonials' | 'highlights' | 'speakers' | 'categories' | 'schedule'
   | 'panels' | 'faqs' | 'sponsors' | 'videos' | 'downloads'
-  | 'sections' | 'registration' | 'seo' | 'publish';
+  | 'sections' | 'registration' | 'catalog' | 'seo' | 'publish';
 
 const PAGE_TABS: Array<{ id: PageTab; label: string; icon?: any }> = [
+  { id: 'registrations', label: 'Registrations & Payments', icon: Users },
+  { id: 'scan-monitor', label: 'Live Scan & Certificates', icon: Award },
   { id: 'all', label: 'All Showcases', icon: Layout },
   { id: 'create', label: 'Create Showcase', icon: PlusCircle },
   { id: 'drafts', label: 'Drafts', icon: FileText },
-  { id: 'registrations', label: 'Registrations & Payments', icon: Users },
+  { id: 'interns', label: 'Internal Hiring & Interns', icon: UserCheck },
   { id: 'volunteers', label: 'Volunteers', icon: Users },
   { id: 'media', label: 'Media Library', icon: Images },
 ];
@@ -108,6 +285,7 @@ const FORM_TABS: Array<{ id: FormTab; label: string }> = [
   { id: 'downloads',    label: 'Downloads' },
   { id: 'sections',     label: 'Sections' },
   { id: 'registration', label: 'Registration' },
+  { id: 'catalog',      label: 'Catalog & Orders' },
   { id: 'seo',          label: 'SEO' },
   { id: 'publish',      label: 'Publish' },
 ];
@@ -175,7 +353,7 @@ function FieldDate({ value, onChangeText, placeholder }: { value: string; onChan
         placeholder={placeholder}
         onChange={(e: any) => onChangeText(e.target.value ? isoToHuman(e.target.value) : '')}
         style={{
-          backgroundColor: '#0d1326', border: `1px solid ${SAC.border}`,
+          backgroundColor: '#101019', border: `1px solid ${SAC.border}`,
           borderRadius: 8, padding: '9px 12px',
           fontFamily: FONTS.med, fontSize: 13, color: SAC.text, width: '100%',
           colorScheme: 'dark',
@@ -197,7 +375,7 @@ function FieldTime({ value, onChangeText, placeholder }: { value: string; onChan
         placeholder={placeholder}
         onChange={(e: any) => onChangeText(e.target.value ? nativeToHumanTime(e.target.value) : '')}
         style={{
-          backgroundColor: '#0d1326', border: `1px solid ${SAC.border}`,
+          backgroundColor: '#101019', border: `1px solid ${SAC.border}`,
           borderRadius: 8, padding: '9px 12px',
           fontFamily: FONTS.med, fontSize: 13, color: SAC.text, width: '100%',
           colorScheme: 'dark',
@@ -220,7 +398,7 @@ function IsoDateField({ value, onChangeText, placeholder }: { value: string; onC
         placeholder={placeholder}
         onChange={(e: any) => onChangeText(e.target.value ? e.target.value.slice(0, 10) : '')}
         style={{
-          backgroundColor: '#0d1326', border: `1px solid ${SAC.border}`,
+          backgroundColor: '#101019', border: `1px solid ${SAC.border}`,
           borderRadius: 8, padding: '9px 12px',
           fontFamily: FONTS.med, fontSize: 13, color: SAC.text, width: '100%',
           colorScheme: 'dark',
@@ -263,7 +441,7 @@ function SelectNative({ value, onChange, options }: any) {
         value={value}
         onChange={(e: any) => onChange(e.target.value)}
         style={{
-          backgroundColor: '#0d1326',
+          backgroundColor: '#101019',
           border: `1px solid ${SAC.border}`,
           borderRadius: 8, padding: '9px 12px',
           fontFamily: FONTS.med, fontSize: 13, color: SAC.text,
@@ -271,7 +449,7 @@ function SelectNative({ value, onChange, options }: any) {
         } as any}
       >
         {options.map((o: string) => (
-          <option key={o} value={o} style={{ backgroundColor: '#0d1326' }}>{o}</option>
+          <option key={o} value={o} style={{ backgroundColor: '#101019' }}>{o}</option>
         ))}
       </select>
     );
@@ -303,9 +481,9 @@ function IconAction({ icon, label, color, bg, onPress, disabled = false, danger 
   const [hover, setHover] = useState(false);
   return (
     <View
-      style={{ position: 'relative', zIndex: hover ? 50 : 1 }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      style={{ position: 'relative', zIndex: hover ? 50 : 1 } as any}
+      onPointerEnter={() => setHover(true)}
+      onPointerLeave={() => setHover(false)}
     >
       <Pressable
         onPress={onPress}
@@ -314,9 +492,9 @@ function IconAction({ icon, label, color, bg, onPress, disabled = false, danger 
           width: 30, height: 30, borderRadius: 8,
           backgroundColor: bg || (danger ? 'rgba(239,68,68,0.15)' : 'rgba(99,102,241,0.15)'),
           alignItems: 'center', justifyContent: 'center',
-          cursor: disabled ? 'default' : 'pointer',
+          cursor: (disabled ? 'default' : 'pointer') as any,
           opacity: disabled ? 0.45 : 1,
-          transitionDuration: '120ms',
+          transitionDuration: '120ms' as any,
         }}
       >
         {icon}
@@ -329,7 +507,7 @@ function IconAction({ icon, label, color, bg, onPress, disabled = false, danger 
           backgroundColor: '#0B0F1E', borderRadius: 6,
           borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)',
           maxWidth: 150, zIndex: 60, whiteSpace: 'nowrap' as any,
-        }}>
+        } as any}>
           <Text style={{ color: '#E9E4FF', fontFamily: FONTS.med, fontSize: 10, textAlign: 'center', lineHeight: 13 }}>{label}</Text>
         </View>
       )}
@@ -342,9 +520,9 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
   const [hover, setHover] = useState(false);
   return (
     <View
-      style={{ position: 'relative', zIndex: hover ? 50 : 1 }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      style={{ position: 'relative', zIndex: hover ? 50 : 1 } as any}
+      onPointerEnter={() => setHover(true)}
+      onPointerLeave={() => setHover(false)}
     >
       {children}
       {hover && (
@@ -355,7 +533,7 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
           backgroundColor: '#0B0F1E', borderRadius: 6,
           borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)',
           maxWidth: 160, zIndex: 60, whiteSpace: 'nowrap' as any,
-        }}>
+        } as any}>
           <Text style={{ color: '#E9E4FF', fontFamily: FONTS.med, fontSize: 10, textAlign: 'center', lineHeight: 13 }}>{label}</Text>
         </View>
       )}
@@ -441,11 +619,11 @@ function ImageUploadWidget({
             style={{ width: '100%', height: 140 }}
             resizeMode="cover"
           />
-          <View style={{ flexDirection: 'row', gap: 8, padding: 8, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+          <View style={{ flexDirection: 'row', gap: 8, padding: 8, backgroundColor: SAC.panel2 }}>
             {Platform.OS === 'web' && (
               <label style={{ cursor: 'pointer' }}>
                 <span style={{
-                  backgroundColor: 'rgba(123,61,191,0.30)', color: '#fff',
+                  backgroundColor: 'rgba(123,61,191,0.30)', color: SAC.text,
                   padding: '5px 10px', borderRadius: '6px',
                   fontFamily: FONTS.semi, fontSize: '11px',
                 }}>
@@ -493,7 +671,7 @@ function ImageUploadWidget({
                 {Platform.OS === 'web' && (
                   <label style={{ cursor: 'pointer' }}>
                     <span style={{
-                      backgroundColor: 'rgba(123,61,191,0.30)', color: '#fff',
+                      backgroundColor: 'rgba(123,61,191,0.30)', color: SAC.text,
                       padding: '6px 14px', borderRadius: '8px',
                       fontFamily: FONTS.semi, fontSize: '12px',
                     }}>
@@ -552,10 +730,10 @@ function StatsEditor({ stats, onChange }: any) {
   };
   return (
     <View style={{ gap: 8 }}>
-      {stats.map((s: any, i: number) => (
+      {stats.map((statItem: any, i: number) => (
         <View key={i} style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-          <TextInput value={s.value || ''} onChangeText={(v) => update(i, 'value', v)} placeholder="Value" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 0.4 }]} />
-          <TextInput value={s.label || ''} onChangeText={(v) => update(i, 'label', v)} placeholder="Label" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 1 }]} />
+          <TextInput value={statItem.value || ''} onChangeText={(v) => update(i, 'value', v)} placeholder="Value" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 0.4 }]} />
+          <TextInput value={statItem.label || ''} onChangeText={(v) => update(i, 'label', v)} placeholder="Label" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 1 }]} />
           <View style={{ flexDirection: 'row', gap: 4 }}>
             <Tip label="Move up"><Pressable onPress={() => move(i, i - 1)} style={[cs.iconBtn, { width: 26, height: 26 }]}><MoveUp size={11} color={SAC.muted} /></Pressable></Tip>
             <Tip label="Move down"><Pressable onPress={() => move(i, i + 1)} style={[cs.iconBtn, { width: 26, height: 26 }]}><MoveDown size={11} color={SAC.muted} /></Pressable></Tip>
@@ -935,7 +1113,7 @@ function PosterEditor({ posters, onChange }: { posters: string[]; onChange: (p: 
             {Platform.OS === 'web' && (
               <label style={{ marginTop: 4, cursor: 'pointer' }}>
                 <span style={{
-                  backgroundColor: 'rgba(123,61,191,0.25)', color: '#fff',
+                  backgroundColor: 'rgba(123,61,191,0.25)', color: SAC.text,
                   padding: '5px 12px', borderRadius: '7px',
                   fontFamily: FONTS.semi, fontSize: '11px',
                 }}>
@@ -954,7 +1132,7 @@ function PosterEditor({ posters, onChange }: { posters: string[]; onChange: (p: 
         <View key={i} style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: SAC.border, gap: 8 }}>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             {url ? (
-              <Image source={{ uri: resolveImageUrl(url) }} style={{ width: 44, height: 56, borderRadius: 6, backgroundColor: '#0d1326' }} resizeMode="cover" />
+              <Image source={{ uri: resolveImageUrl(url) }} style={{ width: 44, height: 56, borderRadius: 6, backgroundColor: '#101019' }} resizeMode="cover" />
             ) : (
               <View style={{ width: 44, height: 56, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' }}>
                 <ImageIcon size={14} color={SAC.dim} />
@@ -1378,7 +1556,7 @@ function BannerCarouselEditor({ banners, onChange }: { banners: string[]; onChan
             {Platform.OS === 'web' && (
               <label style={{ marginTop: 4, cursor: 'pointer' }}>
                 <span style={{
-                  backgroundColor: 'rgba(123,61,191,0.25)', color: '#fff',
+                  backgroundColor: 'rgba(123,61,191,0.25)', color: SAC.text,
                   padding: '5px 12px', borderRadius: '7px',
                   fontFamily: FONTS.semi, fontSize: '11px',
                 }}>
@@ -1398,7 +1576,7 @@ function BannerCarouselEditor({ banners, onChange }: { banners: string[]; onChan
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             {url ? (
               <Image source={{ uri: resolveImageUrl(url) }}
-                style={{ width: 80, height: 40, borderRadius: 6, backgroundColor: '#0d1326' }} resizeMode="cover" />
+                style={{ width: 80, height: 40, borderRadius: 6, backgroundColor: '#101019' }} resizeMode="cover" />
             ) : (
               <View style={{ width: 80, height: 40, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' }}>
                 <ImageIcon size={14} color={SAC.dim} />
@@ -1521,7 +1699,7 @@ function GalleryDropzone({ gallery, onChange }: { gallery: any[]; onChange: (g: 
         {Platform.OS === 'web' && (
           <label style={{ marginTop: 12, cursor: 'pointer' }}>
             <span style={{
-              backgroundColor: 'rgba(123,61,191,0.30)', color: '#fff',
+              backgroundColor: 'rgba(123,61,191,0.30)', color: SAC.text,
               padding: '7px 14px', borderRadius: '8px',
               fontFamily: FONTS.semi, fontSize: '12px',
             }}>
@@ -1710,7 +1888,7 @@ function MediaLibraryPanel() {
               <View>
                 <GradientButton size="md">
                   <Upload size={13} color="#fff" />
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>
+                  <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>
                     {uploading ? uploadProgress : 'Bulk Upload'}
                   </Text>
                 </GradientButton>
@@ -1804,10 +1982,10 @@ function MediaLibraryPanel() {
 
       {/* Image preview modal */}
       <Modal visible={!!preview} transparent animationType="fade" onRequestClose={() => setPreview(null)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ flex: 1, backgroundColor: SAC.panel2, alignItems: 'center', justifyContent: 'center' }}>
           <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setPreview(null)} />
           {preview && (
-            <View style={{ width: '90%', maxWidth: 700, backgroundColor: '#0d1326',
+            <View style={{ width: '90%', maxWidth: 700, backgroundColor: '#101019',
               borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: SAC.border, zIndex: 2 }}>
               <Image
                 source={{ uri: resolveImageUrl(preview.url) }}
@@ -1862,9 +2040,11 @@ function ShowcaseCard({ item, onEdit, onDelete, onPublish, onDraft, onArchive, o
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>{item.title}</Text>
             <StatusPill label={(item.status || 'draft').toUpperCase()} kind={STATUS_PILL_MAP[item.status] || 'neutral'} />
-            {item.event_status_badge && (
+            {(!item.registration || item.registration?.enabled === false || String(item.registration?.enabled).toLowerCase() === 'false') ? (
+              <StatusPill label="Registrations Closed" kind="danger" />
+            ) : item.event_status_badge ? (
               <StatusPill label={item.event_status_badge} kind={item.event_status_badge === 'Live' ? 'danger' : item.event_status_badge === 'Completed' ? 'success' : 'warn'} />
-            )}
+            ) : null}
           </View>
           {item.subtitle ? <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: SAC.muted }} numberOfLines={1}>{item.subtitle}</Text> : null}
           <View style={{ flexDirection: 'row', gap: 14, marginTop: 3, flexWrap: 'wrap' }}>
@@ -1982,6 +2162,9 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
   const [activeUploads, setActiveUploads] = useState(0);
   const autosaveTimer = useRef<any>(null);
 
+  const [tempOpenMin, setTempOpenMin] = useState('60');
+  const [tempOpening, setTempOpening] = useState(false);
+
   const onUploadStart = () => setActiveUploads((c) => c + 1);
   const onUploadEnd = () => setActiveUploads((c) => Math.max(0, c - 1));
 
@@ -2041,6 +2224,28 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
     onClose();
   };
 
+  const onTemporaryOpen = async () => {
+    if (!editing?._id) return;
+    const mins = Math.max(1, Math.min(Number(tempOpenMin) || 60, 7 * 24 * 60));
+    setTempOpening(true);
+    try {
+      const res = await api.temporaryOpenEchoShowcase(editing._id, mins);
+      const reg = res?.registration || {};
+      const closeAt = res?.temporary_open?.closes_at || reg.temporary_close_at || '';
+      set('registration', {
+        ...(form.registration || {}),
+        enabled: true,
+        temporary_open: true,
+        temporary_close_at: closeAt,
+      });
+      flash(`Registration opened temporarily — auto-closes in ${mins} min`);
+    } catch (e: any) {
+      flash(e?.message || 'Failed to open temporarily');
+    } finally {
+      setTempOpening(false);
+    }
+  };
+
   const autoSlug = (title: string) => {
     if (!editing) {
       const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -2097,7 +2302,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
 
           {/* Tab bar */}
           <View style={{ borderBottomWidth: 1, borderBottomColor: SAC.border }}>
-            <TopTabs tabs={FORM_TABS} active={tab} onChange={setTab} />
+            <TopTabs tabs={FORM_TABS} active={tab} onChange={setTab as any} />
           </View>
 
           {/* Body */}
@@ -2347,7 +2552,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                       style={[fi.input, { flex: 1, minWidth: 100 }]} />
                   </View>
                   <TextInput value={((form.prize_pool || {}).other_prizes || []).join(', ')}
-                    onChangeText={(v: string) => set('prize_pool', { ...(form.prize_pool || {}), other_prizes: v.split(',').map((s: string) => s.trim()).filter(Boolean) })}
+                    onChangeText={(v: string) => set('prize_pool', { ...(form.prize_pool || {}), other_prizes: v.split(',').map((strItem: string) => strItem.trim()).filter(Boolean) })}
                     placeholder="Other prizes (comma-separated)" placeholderTextColor={SAC.dim}
                     style={fi.input} />
                 </View>
@@ -2403,16 +2608,10 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
 
             {/* ── VIDEOS TAB ── */}
             {tab === 'videos' && (
-              <FieldRow label="Event Videos" hint="Paste YouTube/Vimeo URLs or upload MP4 files.">
-                <ListEditor
-                  items={form.videos || []}
-                  fields={[
-                    { key: 'title', placeholder: 'Video Title', flex: 0.7 },
-                    { key: 'video_url', placeholder: 'YouTube / Vimeo / MP4 URL', flex: 1 },
-                    { key: 'thumbnail_url', placeholder: 'Thumbnail URL (optional)', flex: 0.8 },
-                  ]}
+              <FieldRow label="Event Videos & Promo Reels" hint="Paste YouTube/Vimeo URLs or upload MP4 video files directly to feature on the event page.">
+                <CustomVideosEditor
+                  videos={form.videos || []}
                   onChange={(v: any) => set('videos', v)}
-                  addLabel="Add Video"
                 />
               </FieldRow>
             )}
@@ -2463,7 +2662,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                         }} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ color: '#fff', fontFamily: FONTS.semi, fontSize: 13 }}>{sec.label}</Text>
+                        <Text style={{ color: SAC.text, fontFamily: FONTS.semi, fontSize: 13 }}>{sec.label}</Text>
                         <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 11 }}>{sec.hint}</Text>
                       </View>
                       <Text style={{ color: on ? '#34D399' : '#F87171', fontFamily: FONTS.bold, fontSize: 11 }}>{on ? 'Visible' : 'Hidden'}</Text>
@@ -2479,7 +2678,15 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                 <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Registration & Payment</Text>
                 <FieldRow label="Registrations Enabled">
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <Pressable onPress={() => set('registration', { ...(form.registration || {}), enabled: !((form.registration || {}).enabled) })} style={{
+                    <Pressable onPress={() => {
+                      const cur = form.registration || {};
+                      const nextEnabled = !cur.enabled;
+                      set('registration', {
+                        ...cur,
+                        enabled: nextEnabled,
+                        ...(nextEnabled ? {} : { temporary_open: false, temporary_close_at: '' }),
+                      });
+                    }} style={{
                       width: 44, height: 24, borderRadius: 12, padding: 2, backgroundColor: (form.registration || {}).enabled ? '#10B981' : '#334155',
                     }}>
                       <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', transform: [{ translateX: (form.registration || {}).enabled ? 20 : 0 }] }} />
@@ -2489,6 +2696,48 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                     </Text>
                   </View>
                 </FieldRow>
+
+                <View style={{ borderTopWidth: 1, borderTopColor: SAC.border, paddingTop: 12, gap: 8 }}>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>Open temporarily (auto-close)</Text>
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
+                    Re-enable registration now for a limited window. It re-opens only until the countdown ends, then closes automatically — no need to remember to switch it off.
+                  </Text>
+                  {(form.registration || {}).temporary_open && (form.registration || {}).temporary_close_at ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(16,185,129,0.12)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 }}>
+                      <Clock size={14} color="#34D399" />
+                      <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: '#34D399', flex: 1 }}>
+                        Active — auto-closes at {new Date((form.registration || {}).temporary_close_at).toLocaleString()}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>No temporary window active.</Text>
+                  )}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                    <Field
+                      value={tempOpenMin}
+                      onChangeText={(v: string) => setTempOpenMin(v.replace(/[^0-9]/g, ''))}
+                      placeholder="60"
+                      keyboardType="number-pad"
+                      style={{ width: 90 }}
+                    />
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>minutes</Text>
+                    <Pressable
+                      onPress={onTemporaryOpen}
+                      disabled={tempOpening || !editing?._id}
+                      style={{
+                        flexDirection: 'row', alignItems: 'center', gap: 6,
+                        backgroundColor: tempOpening || !editing?._id ? 'rgba(16,185,129,0.2)' : '#059669',
+                        borderRadius: 8, paddingHorizontal: 14, paddingVertical: 9,
+                        opacity: tempOpening || !editing?._id ? 0.6 : 1,
+                      }}
+                    >
+                      {tempOpening ? <ActivityIndicator size="small" color="#fff" /> : <Clock size={14} color="#fff" />}
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>
+                        {tempOpening ? 'Opening…' : 'Open for this long'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
                 <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
                   <View style={{ flex: 1, minWidth: 140 }}>
                     <FieldRow label="Fee (0 = free)">
@@ -2589,20 +2838,20 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   { key: 'dinner', label: 'Dinner', Icon: UtensilsCrossed },
                   { key: 'tiffin', label: 'Tiffin', Icon: Sandwich },
                   { key: 'coffee', label: 'Coffee & Tea', Icon: Coffee },
-                ].map((s) => {
+                ].map((sessKeyObj) => {
                   const sessions = (form.sessions || []);
-                  const existing = sessions.find((x: any) => x.key === s.key);
+                  const existing = sessions.find((x: any) => x.key === sessKeyObj.key);
                   const enabled = existing?.enabled ?? false;
                   const locked = existing?.locked ?? false;
                   const day = existing?.day ?? 1;
                   const maxDay = Math.max(1, Math.min(7, parseInt(form.end_date && form.date ? '2' : '1', 10) || 1));
                   const dayOptions = Array.from({ length: Math.max(2, maxDay) }, (_, i) => String(i + 1));
                   return (
-                    <View key={s.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
+                    <View key={sessKeyObj.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
                       <View style={{ width: 28, alignItems: 'center', justifyContent: 'center' }}>
-                        <s.Icon size={18} color={enabled ? GRAD.from : SAC.dim} />
+                        <sessKeyObj.Icon size={18} color={enabled ? GRAD.from : SAC.dim} />
                       </View>
-                      <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 13, color: SAC.text }}>{s.label}</Text>
+                      <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 13, color: SAC.text }}>{sessKeyObj.label}</Text>
                       {enabled && (
                         <>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -2611,15 +2860,15 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                               value={String(day)}
                               onChange={(e: any) => {
                                 const current = [...(form.sessions || [])];
-                                const idx = current.findIndex((x: any) => x.key === s.key);
+                                const idx = current.findIndex((x: any) => x.key === sessKeyObj.key);
                                 if (idx >= 0) {
                                   current[idx] = { ...current[idx], day: Number(e.target.value) || 1 };
                                   set('sessions', current);
                                 }
                               }}
-                              style={{ backgroundColor: '#0d1326', border: `1px solid ${SAC.border}`, borderRadius: 6, padding: '3px 6px', fontFamily: FONTS.med, fontSize: 11, color: SAC.text, appearance: 'none' } as any}
+                              style={{ backgroundColor: '#101019', border: `1px solid ${SAC.border}`, borderRadius: 6, padding: '3px 6px', fontFamily: FONTS.med, fontSize: 11, color: SAC.text, appearance: 'none' } as any}
                             >
-                              {dayOptions.map((d) => <option key={d} value={d} style={{ backgroundColor: '#0d1326' }}>{d}</option>)}
+                              {dayOptions.map((d) => <option key={d} value={d} style={{ backgroundColor: '#101019' }}>{d}</option>)}
                             </select>
                           </View>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -2628,7 +2877,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                             </Text>
                             <Pressable onPress={() => {
                               const current = [...(form.sessions || [])];
-                              const idx = current.findIndex((x: any) => x.key === s.key);
+                              const idx = current.findIndex((x: any) => x.key === sessKeyObj.key);
                               if (idx >= 0) {
                                 current[idx] = { ...current[idx], locked: !locked };
                               }
@@ -2644,11 +2893,11 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                       )}
                       <Pressable onPress={() => {
                         const current = [...(form.sessions || [])];
-                        const idx = current.findIndex((x: any) => x.key === s.key);
+                        const idx = current.findIndex((x: any) => x.key === sessKeyObj.key);
                         if (idx >= 0) {
                           current[idx] = { ...current[idx], enabled: !enabled, locked: false };
                         } else {
-                          current.push({ key: s.key, label: s.label, day: 1, enabled: true, locked: false });
+                          current.push({ key: sessKeyObj.key, label: sessKeyObj.label, day: 1, enabled: true, locked: false });
                         }
                         set('sessions', current);
                       }} style={{
@@ -2662,6 +2911,11 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                 })}
               </Card>
             </>}
+
+            {/* ── CATALOG TAB ── */}
+            {tab === 'catalog' && (
+              <CatalogOrdersManager showcaseId={form._id || form.id} slug={form.slug} />
+            )}
 
             {/* ── SEO TAB ── */}
             {tab === 'seo' && <>
@@ -2720,7 +2974,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
               <Text style={{ fontFamily: FONTS.semi, fontSize: 13, color: SAC.muted }}>Cancel</Text>
             </SecondaryButton>
             <GradientButton onPress={() => onSave(form)} loading={saving || activeUploads > 0} disabled={saving || activeUploads > 0} size="md">
-              <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>
+              <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 }}>
                 {activeUploads > 0 ? 'Uploading…' : editing ? 'Save Changes' : 'Create Showcase'}
               </Text>
             </GradientButton>
@@ -2733,16 +2987,16 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
 
 const ml = StyleSheet.create({
   overlay: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.70)' },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: SAC.panel2 },
   box: {
     width: '96%', maxWidth: 900, maxHeight: '95%',
-    backgroundColor: '#0d1326', borderRadius: 18,
+    backgroundColor: '#101019', borderRadius: 18,
     borderWidth: 1, borderColor: SAC.border,
     overflow: 'hidden', zIndex: 2,
     ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.60)' } as any : {}),
   },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14 },
-  headerTitle: { fontFamily: FONTS.bold, fontSize: 16, color: '#fff' },
+  headerTitle: { fontFamily: FONTS.bold, fontSize: 16, color: SAC.text },
   footer: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, padding: 16, borderTopWidth: 1, borderTopColor: SAC.border },
 });
 
@@ -2825,18 +3079,18 @@ function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh
                           return (
                             <View key={day} style={{ gap: 4 }}>
                               <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted, marginBottom: 2 }}>{dayLabel}</Text>
-                              {daySessions.map((s: any) => {
-                                const locked = s.locked ?? false;
-                                const enabled = s.enabled ?? false;
-                                const SessionIcon = SESSION_PASS_ICONS[s.key] || Ticket;
+                              {daySessions.map((sessItem: any) => {
+                                const locked = sessItem.locked ?? false;
+                                const enabled = sessItem.enabled ?? false;
+                                const SessionIcon = SESSION_PASS_ICONS[sessItem.key] || Ticket;
                                 return (
-                                  <View key={`${s.key}-${day}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                                  <View key={`${sessItem.key}-${day}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
                                     <SessionIcon size={16} color={enabled ? '#A78BFA' : SAC.dim} />
-                                    <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>{s.label}</Text>
+                                    <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>{sessItem.label}</Text>
                                     {enabled && (
                                       <>
                                         <StatusPill kind={locked ? 'warn' : 'success'} label={locked ? 'Locked' : 'Active'} />
-                                        <Pressable onPress={() => toggleLock(ev.slug, s.key, locked)} disabled={toggling === `${ev.slug}:${s.key}`} style={{
+                                        <Pressable onPress={() => toggleLock(ev.slug, sessItem.key, locked)} disabled={toggling === `${ev.slug}:${sessItem.key}`} style={{
                                           width: 32, height: 18, borderRadius: 9, padding: 2,
                                           backgroundColor: locked ? '#F59E0B' : '#334155', cursor: 'pointer',
                                         }}>
@@ -2893,6 +3147,65 @@ function RegistrationsPanel() {
   const [page, setPage] = useState(0);
   const PER_PAGE = 20;
   const { flash } = useToast();
+  const [showImport, setShowImport] = useState(false);
+  const [sendingReminders, setSendingReminders] = useState(false);
+
+  const handleSendProfileReminders = async () => {
+    const ok = await confirm({
+      title: 'Send Profile & SA Reminders',
+      message: 'Send automated 100% profile & SA account reminders via Email + WhatsApp to all incomplete registrants?',
+      confirmText: 'Send Reminders',
+    });
+    if (!ok) return;
+    setSendingReminders(true);
+    try {
+      const res = await api.adminEchoSendProfileReminders({ target_group: 'all_incomplete', channel: 'both' });
+      flash(`Loop Agent Dispatched! Processed: ${res?.processed_count}, Emails: ${res?.emails_sent}, WhatsApp: ${res?.whatsapp_sent}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to send reminders');
+    } finally {
+      setSendingReminders(false);
+    }
+  };
+
+  const handleIssueCert = async (reg: any) => {
+    try {
+      const res = await api.adminEchoIssueCertificate(reg.id);
+      flash(`Certificate issued for ${reg.full_name}! Code: ${res?.code}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to issue certificate');
+    }
+  };
+
+  const saAccountBadge = (reg: any) => {
+    if (reg.is_profile_100) {
+      return (
+        <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.4)' }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#34D399' }}>
+            SA Member ✓ (100%)
+          </Text>
+        </View>
+      );
+    }
+    if (reg.has_sa_account) {
+      return (
+        <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(245,179,66,0.18)', borderWidth: 1, borderColor: 'rgba(245,179,66,0.4)' }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#F5B342' }}>
+            SA Member ({reg.profile_completion_pct || 0}%)
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' }}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#FCA5A5' }}>
+          No SA Account
+        </Text>
+      </View>
+    );
+  };
 
   useEffect(() => { setPage(0); }, [q, status, eventSlug, rows]);
 
@@ -3101,6 +3414,31 @@ function RegistrationsPanel() {
     }
   };
 
+  const rescuePayment = async (r: any) => {
+    const regId = r.id || r._id;
+    if (!regId) return;
+    const ok = await confirm({
+      title: 'Rescue Payment?',
+      message: `This will contact Razorpay to verify if payment was captured for ${r.full_name}. If confirmed paid, the registration will be fully activated (QR, coupons, email sent).`,
+      confirmText: 'Rescue Payment',
+    });
+    if (!ok) return;
+    setActioning(regId);
+    try {
+      const res = await api.adminEchoRescuePayment(regId);
+      if (res?.ok) {
+        flash(res.message || 'Payment rescued and registration finalized!');
+        await load();
+      } else {
+        flash(res?.message || 'Could not rescue — payment not confirmed on Razorpay.');
+      }
+    } catch (err: any) {
+      flash(err?.message || 'Rescue failed. Try providing ?payment_id=pay_xxx manually.');
+    } finally {
+      setActioning(null);
+    }
+  };
+
   const syncAllTeams = async () => {
     const ok = await confirm({
       title: 'Sync & Resend All Team Accounts & Passes?',
@@ -3117,6 +3455,25 @@ function RegistrationsPanel() {
       flash(err?.message || 'Failed to sync teams');
     } finally {
       setSyncingTeams(false);
+    }
+  };
+
+  const [dedupingCoupons, setDedupingCoupons] = useState(false);
+  const dedupCoupons = async () => {
+    const ok = await confirm({
+      title: 'Remove Duplicate Coupons?',
+      message: 'This will scan all echo_coupons and delete duplicates, keeping only the oldest coupon per (registrant, session) pair. Used coupons are never deleted.',
+      confirmText: 'Run Dedup',
+    });
+    if (!ok) return;
+    setDedupingCoupons(true);
+    try {
+      const res = await api.adminEchoDedupCoupons();
+      flash(`Dedup complete! ${res?.deleted || 0} duplicate coupons removed across ${res?.duplicate_groups_found || 0} groups. ${res?.skipped_used || 0} skipped (already used).`);
+    } catch (err: any) {
+      flash(err?.message || 'Dedup failed');
+    } finally {
+      setDedupingCoupons(false);
     }
   };
 
@@ -3144,7 +3501,7 @@ function RegistrationsPanel() {
     } else if (targetGroup === 'confirmed_paid') {
       defaultSubj = `Important Event Notice & Schedule Updates — ${eventName}`;
     } else {
-      defaultSubj = `🚀 Invitation: Register your team for ${eventName}`;
+      defaultSubj = `→ Invitation: Register your team for ${eventName}`;
     }
     setBroadcastModal({
       target_group: targetGroup,
@@ -3222,14 +3579,14 @@ function RegistrationsPanel() {
           opacity: auditLoading ? 0.6 : 1,
         }}>
           {auditLoading ? <ActivityIndicator size="small" color="#fff" /> : <Search size={14} color="#fff" />}
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>{auditLoading ? 'Loading…' : 'Revenue Audit'}</Text>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>{auditLoading ? 'Loading…' : 'Revenue Audit'}</Text>
         </Pressable>
         <Pressable onPress={() => window.open('/echo/admin/scan', '_blank')} style={{
           flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#7C3AED',
           borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
         }}>
           <ScanLine size={14} color="#fff" />
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Scan Coupons</Text>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Scan Coupons</Text>
         </Pressable>
         <Pressable
           onPress={syncAllTeams}
@@ -3246,14 +3603,65 @@ function RegistrationsPanel() {
             {syncingTeams ? 'Syncing...' : 'Sync & Resend Team Passes'}
           </Text>
         </Pressable>
+        <Pressable
+          onPress={dedupCoupons}
+          disabled={dedupingCoupons}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: dedupingCoupons ? 'rgba(251,146,60,0.2)' : 'rgba(251,146,60,0.1)',
+            borderWidth: 1, borderColor: 'rgba(251,146,60,0.3)',
+            borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
+          }}
+        >
+          <Trash2 size={14} color="#FB923C" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#FB923C' }}>
+            {dedupingCoupons ? 'Removing dupes...' : 'Dedup Coupons'}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            const apiBase = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) || 'http://localhost:8000';
+            const exportUrl = `${apiBase}/api/echo/admin/export-csv${eventSlug !== 'all' ? `?slug=${eventSlug}` : ''}`;
+            if (typeof window !== 'undefined') {
+              window.open(exportUrl, '_blank');
+            }
+          }}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: '#059669',
+            borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
+          }}
+        >
+
+          <Download size={14} color="#fff" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export CSV (Registrations)</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => {
+            const apiBase = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) || 'http://localhost:8000';
+            const exportUrl = `${apiBase}/api/echo/admin/export-incomplete-profiles-csv?filter_type=all${eventSlug !== 'all' ? `&slug=${eventSlug}` : ''}`;
+            if (typeof window !== 'undefined') {
+              window.open(exportUrl, '_blank');
+            }
+          }}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: '#7C5CFC',
+            borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
+          }}
+        >
+          <Download size={14} color="#fff" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export Incomplete &amp; No-Account CSV</Text>
+        </Pressable>
       </View>
 
       {/* Segmented Audience Broadcasts & Notices */}
       <Card style={{ marginBottom: 18, backgroundColor: 'rgba(15,23,42,0.65)', borderColor: 'rgba(255,255,255,0.08)' }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
           <View>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: '#fff' }}>Targeted Broadcasts &amp; Notices</Text>
-            <Text style={{ fontFamily: FONTS.reg, fontSize: 12, color: SAC.muted, marginTop: 2 }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Targeted Broadcasts &amp; Notices</Text>
+            <Text style={{ fontFamily: FONTS.regular, fontSize: 12, color: SAC.muted, marginTop: 2 }}>
               Differentiate communication between unpaid cart registrants, confirmed attendees, and platform students
             </Text>
           </View>
@@ -3277,7 +3685,7 @@ function RegistrationsPanel() {
                   </Text>
                 </View>
               </View>
-              <Text style={{ fontFamily: FONTS.reg, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
+              <Text style={{ fontFamily: FONTS.regular, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
                 Users with Student Alumni accounts whose registration payment is incomplete. Sends direct payment resume link &amp; event handbook.
               </Text>
             </View>
@@ -3289,7 +3697,7 @@ function RegistrationsPanel() {
               }}
             >
               <Send size={13} color="#fff" />
-              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Send Payment Recovery Notice</Text>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Send Payment Recovery Notice</Text>
             </Pressable>
           </View>
 
@@ -3309,7 +3717,7 @@ function RegistrationsPanel() {
                   </Text>
                 </View>
               </View>
-              <Text style={{ fontFamily: FONTS.reg, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
+              <Text style={{ fontFamily: FONTS.regular, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
                 Attendees and teammates with active QR entry passes. Sends official timetable, track rules, meal pass guide &amp; handbook.
               </Text>
             </View>
@@ -3321,7 +3729,7 @@ function RegistrationsPanel() {
               }}
             >
               <Mail size={13} color="#fff" />
-              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Send Event Notice &amp; Updates</Text>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Send Event Notice &amp; Updates</Text>
             </Pressable>
           </View>
 
@@ -3341,7 +3749,7 @@ function RegistrationsPanel() {
                   </Text>
                 </View>
               </View>
-              <Text style={{ fontFamily: FONTS.reg, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
+              <Text style={{ fontFamily: FONTS.regular, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
                 Active Student Alumni members who have not registered for this event yet. Sends invitation newsletter with direct register link.
               </Text>
             </View>
@@ -3353,7 +3761,7 @@ function RegistrationsPanel() {
               }}
             >
               <Zap size={13} color="#fff" />
-              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Send Event Invitation</Text>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Send Event Invitation</Text>
             </Pressable>
           </View>
         </View>
@@ -3371,7 +3779,7 @@ function RegistrationsPanel() {
               <View key={ev.slug + i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: GRAD.to }} />
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{ev.title}</Text>
+                  <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: SAC.text }}>{ev.title}</Text>
                   <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>
                     {ev.paid} paid · {ev.pending} pending · {ev.free} free
                   </Text>
@@ -3399,13 +3807,13 @@ function RegistrationsPanel() {
             onChange={(e: any) => setEventSlug(e.target.value)}
             style={{
               backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 12, fontFamily: 'Inter',
+              borderRadius: 8, padding: '8px 12px', color: SAC.text, fontSize: 12, fontFamily: 'DM Sans',
               outline: 'none', cursor: 'pointer', minWidth: 140,
             }}
           >
-            <option value="all" style={{ background: '#1e1b4b', color: '#fff' }}>All Events</option>
+            <option value="all" style={{ background: '#1e1b4b', color: SAC.text }}>All Events</option>
             {uniqueEvents.map((ev: any) => (
-              <option key={ev.slug} value={ev.slug} style={{ background: '#1e1b4b', color: '#fff' }}>{ev.title}</option>
+              <option key={ev.slug} value={ev.slug} style={{ background: '#1e1b4b', color: SAC.text }}>{ev.title}</option>
             ))}
           </select>
         )}
@@ -3420,6 +3828,28 @@ function RegistrationsPanel() {
           onChange={setStatus}
         />
         <SecondaryButton onPress={load}><RefreshCw size={12} color={SAC.muted} /><Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12, marginLeft: 6 }}>Refresh</Text></SecondaryButton>
+        <Pressable
+          onPress={() => setShowImport(true)}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: '#7C3AED',
+            borderRadius: 8, paddingHorizontal: 13, paddingVertical: 8, cursor: 'pointer',
+          }}
+        >
+          <FileSpreadsheet size={13} color="#fff" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Import Tickets</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => triggerExportCsv()}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: '#059669',
+            borderRadius: 8, paddingHorizontal: 13, paddingVertical: 8, cursor: 'pointer',
+          }}
+        >
+          <Download size={13} color="#fff" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export All Events (CSV)</Text>
+        </Pressable>
       </View>
 
       {/* Registrations table */}
@@ -3441,22 +3871,30 @@ function RegistrationsPanel() {
             <View style={{ minWidth: 1050, flex: 1 }}>
               {/* Header */}
               <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: SAC.border }}>
-                <Text style={{ flex: 1.5, minWidth: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ATTENDEE</Text>
-                <Text style={{ width: 70, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>TYPE</Text>
-                <Text style={{ width: 50, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SIZE</Text>
-                <Text style={{ flex: 1.5, minWidth: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>EVENT</Text>
-                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>AMOUNT</Text>
-                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>PAYMENT</Text>
-                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>STATUS</Text>
-                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
-                <Text style={{ width: 80, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
+                <Text style={{ flex: 1.5, minWidth: 160, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ATTENDEE</Text>
+                <Text style={{ width: 140, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SA ACCOUNT & PROFILE</Text>
+                <Text style={{ width: 60, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>TYPE</Text>
+                <Text style={{ width: 45, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SIZE</Text>
+                <Text style={{ flex: 1.3, minWidth: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>EVENT</Text>
+                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>AMOUNT</Text>
+                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>PAYMENT</Text>
+                <Text style={{ width: 130, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ECHO CERTIFICATE</Text>
+                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
+                <Text style={{ width: 110, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
               </View>
               {paged.map((r: any, i: number) => {
                 const isTeam = r.registration_type === 'team' || !!r.team_name || (r.team_size && r.team_size > 1);
                 return (
                 <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
-                  <View style={{ flex: 1.5, minWidth: 180 }}>
-                    <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{r.full_name || '—'}</Text>
+                  <View style={{ flex: 1.5, minWidth: 160 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: SAC.text }}>{r.full_name || '—'}</Text>
+                      {r.source && r.source !== 'our_platform' && r.source !== 'studentalumni' && (
+                        <View style={{ paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4, backgroundColor: r.source === 'unstop' ? 'rgba(124,58,237,0.18)' : 'rgba(14,165,233,0.18)', borderWidth: 1, borderColor: r.source === 'unstop' ? 'rgba(124,58,237,0.45)' : 'rgba(14,165,233,0.45)' }}>
+                          <Text numberOfLines={1} style={{ fontFamily: FONTS.xbold, fontSize: 8, color: r.source === 'unstop' ? '#C4B5FD' : '#7DD3FC', letterSpacing: 0.4 }}>{r.source.toUpperCase()}</Text>
+                        </View>
+                      )}
+                    </View>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{r.email || r.phone || ''}</Text>
                     {isTeam && (
                       <View style={{ marginTop: 6, gap: 4 }}>
@@ -3483,7 +3921,13 @@ function RegistrationsPanel() {
                       </View>
                     )}
                   </View>
-                  <View style={{ width: 70 }}>
+                  
+                  {/* SA Account & Profile Column */}
+                  <View style={{ width: 140, justifyContent: 'center', paddingRight: 6 }}>
+                    {saAccountBadge(r)}
+                  </View>
+
+                  <View style={{ width: 60 }}>
                     <View style={{ 
                       backgroundColor: isTeam ? 'rgba(124,58,237,0.15)' : 'rgba(52,211,153,0.15)',
                       paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
@@ -3495,16 +3939,16 @@ function RegistrationsPanel() {
                       </Text>
                     </View>
                   </View>
-                  <View style={{ width: 50, paddingTop: 4 }}>
+                  <View style={{ width: 45, paddingTop: 4 }}>
                     <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: '#e5e7eb' }}>
                       {isTeam ? (r.team_size > 1 ? r.team_size : 1) : 1}
                     </Text>
                   </View>
-                  <View style={{ flex: 1.5, minWidth: 180 }}>
+                  <View style={{ flex: 1.3, minWidth: 150 }}>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: '#e5e7eb' }}>{r.event_title || r.slug || '—'}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{r.college || ''}</Text>
                   </View>
-                  <View style={{ width: 120, minWidth: 0, paddingTop: 2 }}>
+                  <View style={{ width: 90, minWidth: 0, paddingTop: 2 }}>
                     {r.is_team_member ? (
                       <View>
                         <Text style={{ fontFamily: FONTS.xbold, fontSize: 11.5, color: '#C4B5FD' }}>
@@ -3516,7 +3960,7 @@ function RegistrationsPanel() {
                       </View>
                     ) : (
                       <View>
-                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 12, color: '#fff' }}>
+                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 12, color: SAC.text }}>
                           {Number(r.fee || 0) > 0 ? `₹${Number(r.fee).toLocaleString('en-IN')}` : 'FREE'}
                         </Text>
                         {isTeam && (r.team_size > 1 || (r.team_members?.length || 0) > 0) && (
@@ -3527,39 +3971,60 @@ function RegistrationsPanel() {
                       </View>
                     )}
                   </View>
-                  <View style={{ width: 120, minWidth: 0 }}>
+                  <View style={{ width: 90, minWidth: 0 }}>
                     <StatusPill
                       kind={r.payment_status === 'paid' ? 'success' : r.payment_status === 'pending' ? 'warn' : r.payment_status === 'failed' ? 'danger' : 'neutral'}
                       label={(r.payment_status || '—').toUpperCase()}
                     />
                   </View>
-                  <View style={{ width: 120, minWidth: 0 }}>
-                    {r.payment_status === 'paid' ? (
-                      <>
-                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 10, color: '#86EFAC' }}>
-                          {r.coupons_issued > 0 ? `Ticket +${r.coupons_issued}` : 'Ticket'}
+
+                  {/* ECHO Certificate Column */}
+                  <View style={{ width: 130, justifyContent: 'center', paddingRight: 6 }}>
+                    {r.has_certificate ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(124,92,252,0.18)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 }}>
+                        <Award size={11} color="#C9A7FF" />
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#D8B4FE' }}>
+                          {r.certificate?.verification_code || 'Issued'}
                         </Text>
-                          <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9.5, color: SAC.dim }}>
-                            {r.invoice_issued ? (r.invoice_no || 'Invoice issued') : 'No invoice'}
-                          </Text>
-                        </>
-                    ) : r.payment_status === 'pending' ? (
-                      <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: '#FCD34D' }}>
-                        Nothing — awaiting payment
-                      </Text>
+                      </View>
                     ) : (
-                      <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: '#FCA5A5' }}>
-                        Not issued
-                      </Text>
+                      <Pressable
+                        onPress={() => handleIssueCert(r)}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3, alignSelf: 'flex-start' }}>
+                        <Award size={11} color="#A78BFA" />
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#A78BFA' }}>Issue Cert</Text>
+                      </Pressable>
                     )}
                   </View>
-                  <View style={{ width: 120, minWidth: 0 }}>
+                  <View style={{ width: 90, minWidth: 0 }}>
                     <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>
                       {(r.registered_at || '').slice(0, 10) || '—'}
                     </Text>
                   </View>
                   <View style={{ width: 110, flexDirection: 'row', gap: 4, justifyContent: 'center' }}>
                     <IconAction icon={<Eye size={14} color="#818CF8" />} label="View" color="#818CF8" onPress={() => setDetailRow(r)} />
+                    <IconAction
+                      icon={<UserCheck size={14} color="#34D399" />}
+                      label="Hire / Convert to Intern"
+                      color="#34D399"
+                      bg="rgba(16,185,129,0.18)"
+                      onPress={async () => {
+                        try {
+                          await api.adminEchoConvertIntern({
+                            reg_id: r.id,
+                            target_stage: 'unpaid_intern',
+                            full_name: r.full_name,
+                            email: r.email,
+                            phone: r.phone,
+                            college: r.college,
+                            slug: r.slug,
+                          });
+                          flash(`Converted ${r.full_name} to Unpaid Intern candidate!`);
+                        } catch (e: any) {
+                          flash(e?.message || 'Conversion failed');
+                        }
+                      }}
+                    />
                     {(r.payment_status === 'paid' || Number(r.fee || 0) === 0) && (
                       <IconAction
                         icon={<Send size={14} color="#A78BFA" />}
@@ -3591,14 +4056,14 @@ function RegistrationsPanel() {
                         />
                       </>
                     )}
-                    {r.payment_status === 'failed' && (
+                    {(r.payment_status === 'failed' || r.payment_status === 'pending') && (
                       <IconAction
-                        icon={<CheckCircle size={14} color="#86EFAC" />}
-                        label="Mark paid"
-                        color="#86EFAC"
-                        bg="rgba(34,197,94,0.15)"
-                        onPress={() => markPaid(r)}
-                        disabled={actioning === r.id}
+                        icon={<CheckCircle size={14} color="#34D399" />}
+                        label="Rescue Payment"
+                        color="#34D399"
+                        bg="rgba(16,185,129,0.15)"
+                        onPress={() => rescuePayment(r)}
+                        disabled={actioning === (r.id || r._id)}
                       />
                     )}
                     <IconAction
@@ -3672,10 +4137,38 @@ function RegistrationsPanel() {
         )}
       </Card>
 
+      {/* Import Tickets Modal */}
+      <Modal visible={showImport} transparent animationType="fade" onRequestClose={() => setShowImport(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(6,6,20,0.8)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{
+            width: '100%', maxWidth: 900,
+            backgroundColor: '#10182E',
+            borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
+            borderRadius: 16,
+            shadowColor: '#000', shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.55, shadowRadius: 30,
+            elevation: 12,
+            maxHeight: '88vh' as any,
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+              <View>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>Import Ticketed Buyers</Text>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted, marginTop: 2 }}>
+                  Link buyers from Unstop, Student Alumni, or another platform to accounts
+                </Text>
+              </View>
+              <Pressable onPress={() => setShowImport(false)} style={{ padding: 4 }}><X size={18} color={SAC.muted} /></Pressable>
+            </View>
+            <ScrollView style={{ padding: 20, maxHeight: '78vh' as any }} contentContainerStyle={{ gap: 12 }}>
+              <ImportPanel />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* Detail Modal */}
       {detailRow && (
         <Modal visible={true} transparent animationType="fade" onRequestClose={() => setDetailRow(null)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.72)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ flex: 1, backgroundColor: SAC.panel2, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
             <View style={{
               width: '100%', maxWidth: 680,
               backgroundColor: '#141A2D',
@@ -3683,7 +4176,7 @@ function RegistrationsPanel() {
               borderRadius: 16,
               shadowColor: '#000', shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.55, shadowRadius: 30,
               elevation: 12,
-              maxHeight: '85vh',
+              maxHeight: '85vh' as any,
             }}>
               {/* Fixed Header */}
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
@@ -3699,7 +4192,7 @@ function RegistrationsPanel() {
               </View>
 
               {/* Scrollable Content */}
-              <ScrollView style={{ maxHeight: '60vh' }} contentContainerStyle={{ padding: 20, gap: 16 }}>
+              <ScrollView style={{ maxHeight: '60vh' as any }} contentContainerStyle={{ padding: 20, gap: 16 }}>
               {/* 2-Column Grid Layout */}
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
                 {[
@@ -3742,7 +4235,7 @@ function RegistrationsPanel() {
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <View>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#fff' }}>
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: SAC.text }}>
                           Team: {detailRow.team_name || 'Team Registration'}
                         </Text>
                         <View style={{ backgroundColor: 'rgba(124,58,237,0.3)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
@@ -3775,7 +4268,7 @@ function RegistrationsPanel() {
                             </View>
                             <View style={{ flex: 1, minWidth: 0 }}>
                               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
-                                <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#fff' }} numberOfLines={1}>
+                                <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }} numberOfLines={1}>
                                   {member.name || `Team Member ${idx + 2}`}
                                 </Text>
                                 <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
@@ -3871,7 +4364,7 @@ function RegistrationsPanel() {
                           {actioning === editingTeamReg?.id ? (
                             <ActivityIndicator size="small" color="#fff" />
                           ) : (
-                            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Save</Text>
+                            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Save</Text>
                           )}
                         </Pressable>
                       </View>
@@ -3903,6 +4396,25 @@ function RegistrationsPanel() {
                           <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim }}>
                             {c.session_day > 1 ? `Day ${c.session_day} · ` : ''}{c.coupon_code || ''}
                           </Text>
+                          {c.used && (
+                            <View style={{ marginTop: 4, gap: 2 }}>
+                              {c.used_at && (
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 8.5, color: '#A78BFA' }}>
+                                  Scanned: {new Date(c.used_at).toLocaleString()}
+                                </Text>
+                              )}
+                              {c.scanned_location && (
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 8.5, color: '#A78BFA' }}>
+                                  Location: {c.scanned_location}
+                                </Text>
+                              )}
+                              {(c.scanned_lat || c.scanned_lng) && (
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 8, color: '#6B7280' }}>
+                                  Geo: {c.scanned_lat?.toFixed(4) || '—'}, {c.scanned_lng?.toFixed(4) || '—'}
+                                </Text>
+                              )}
+                            </View>
+                          )}
                         </View>
                         <View style={{
                           borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3,
@@ -3939,7 +4451,7 @@ function RegistrationsPanel() {
                   </Pressable>
                 ) : <View />}
                 <GradientButton onPress={() => setDetailRow(null)} size="sm">
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
+                  <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
                 </GradientButton>
               </View>
             </View>
@@ -3950,7 +4462,7 @@ function RegistrationsPanel() {
       {/* Broadcast / Notice Modal */}
       {broadcastModal && (
         <Modal visible={true} transparent animationType="fade" onRequestClose={() => setBroadcastModal(null)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ flex: 1, backgroundColor: SAC.panel2, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
             <View style={{
               width: '100%', maxWidth: 620,
               backgroundColor: '#141A2D',
@@ -3962,7 +4474,7 @@ function RegistrationsPanel() {
               {/* Header */}
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#fff' }}>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>
                     {broadcastModal.target_group === 'pending_unpaid' && 'Send Payment Recovery Notice'}
                     {broadcastModal.target_group === 'confirmed_paid' && 'Send Attendee Notice & Handbook'}
                     {broadcastModal.target_group === 'unregistered_students' && 'Send Event Invitation Newsletter'}
@@ -3972,7 +4484,7 @@ function RegistrationsPanel() {
               </View>
 
               {/* Body */}
-              <ScrollView style={{ padding: 20, maxHeight: '65vh' }} contentContainerStyle={{ gap: 14 }}>
+              <ScrollView style={{ padding: 20, maxHeight: '65vh' as any }} contentContainerStyle={{ gap: 14 }}>
                 {/* Target Audience Pill */}
                 <View style={{ padding: 12, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
                   <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>Target Segment</Text>
@@ -3995,7 +4507,7 @@ function RegistrationsPanel() {
                       backgroundColor: 'rgba(255,255,255,0.06)',
                       borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
                       borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
-                      color: '#fff', fontSize: 13.5, fontFamily: FONTS.reg,
+                      color: SAC.text, fontSize: 13.5, fontFamily: FONTS.regular,
                     }}
                   />
                 </View>
@@ -4016,7 +4528,7 @@ function RegistrationsPanel() {
                       backgroundColor: 'rgba(255,255,255,0.06)',
                       borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
                       borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
-                      color: '#fff', fontSize: 13, fontFamily: FONTS.reg, minHeight: 90, textAlignVertical: 'top',
+                      color: SAC.text, fontSize: 13, fontFamily: FONTS.regular, minHeight: 90, textAlignVertical: 'top',
                     }}
                   />
                 </View>
@@ -4024,8 +4536,8 @@ function RegistrationsPanel() {
                 {/* Included Assets info */}
                 <View style={{ padding: 12, backgroundColor: 'rgba(124,58,237,0.08)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(124,58,237,0.2)' }}>
                   <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#C4B5FD' }}>✓ Automatic Attachments &amp; Links Included:</Text>
-                  <Text style={{ fontFamily: FONTS.reg, fontSize: 11.5, color: '#DDD6FE', marginTop: 4, lineHeight: 16 }}>
-                    • Attached PDF: <strong style={{ color: '#fff' }}>HackWave_3.0_Event_Handbook.pdf</strong><br/>
+                  <Text style={{ fontFamily: FONTS.regular, fontSize: 11.5, color: '#DDD6FE', marginTop: 4, lineHeight: 16 }}>
+                    • Attached PDF: <strong style={{ color: SAC.text }}>HackWave_3.0_Event_Handbook.pdf</strong><br/>
                     • Personalized pass registration / checkout / ticket links<br/>
                     • Real-time payment verification and QR entry credentials
                   </Text>
@@ -4044,7 +4556,7 @@ function RegistrationsPanel() {
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Send size={13} color="#fff" />
-                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
+                    <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>
                       {broadcasting ? 'Sending Broadcast...' : 'Send Broadcast'}
                     </Text>
                   </View>
@@ -4057,10 +4569,10 @@ function RegistrationsPanel() {
 
       {/* Revenue Audit Modal */}
       <Modal visible={showAudit} transparent animationType="fade" onRequestClose={() => setShowAudit(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 }}>
-          <View style={{ backgroundColor: '#1a1a2e', borderRadius: 16, padding: 18, maxWidth: 960, width: '100%', alignSelf: 'center', maxHeight: '90vh' }}>
+        <View style={{ flex: 1, backgroundColor: SAC.panel2, justifyContent: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: '#1a1a2e', borderRadius: 16, padding: 18, maxWidth: 960, width: '100%', alignSelf: 'center', maxHeight: '90vh' as any }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <Text style={{ fontFamily: FONTS.xbold, fontSize: 16, color: '#fff' }}>Revenue Audit — DB vs Razorpay</Text>
+              <Text style={{ fontFamily: FONTS.xbold, fontSize: 16, color: SAC.text }}>Revenue Audit — DB vs Razorpay</Text>
               <Pressable onPress={() => setShowAudit(false)} style={{ width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.08)' }}>
                 <X size={16} color="#fff" />
               </Pressable>
@@ -4070,7 +4582,7 @@ function RegistrationsPanel() {
                 {/* Summary */}
                 <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
                   {[
-                    { label: 'Total Registrations', value: String(auditData.summary?.total_registrations || 0), color: '#fff', filter: 'all' as const },
+                    { label: 'Total Registrations', value: String(auditData.summary?.total_registrations || 0), color: SAC.text, filter: 'all' as const },
                     { label: 'DB Razorpay Total', value: fmtAmt(auditData.summary?.db_total_razorpay || 0), color: '#86EFAC', filter: 'paid' as const },
                     { label: 'Admin Overrides', value: fmtAmt(auditData.summary?.db_total_admin_override || 0), color: '#FBBF24', filter: 'admin' as const },
                     { label: 'Free Accounts', value: String(auditData.summary?.db_total_free || 0), color: '#C4B5FD', filter: 'free' as const },
@@ -4095,11 +4607,11 @@ function RegistrationsPanel() {
                     <View style={{ flexDirection: 'row', gap: 16, marginTop: 6 }}>
                       <View>
                         <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 9 }}>Registrations</Text>
-                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 }}>{auditData.summary?.teams?.count || 0}</Text>
+                        <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 18 }}>{auditData.summary?.teams?.count || 0}</Text>
                       </View>
                       <View>
                         <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 9 }}>Members</Text>
-                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 }}>{auditData.summary?.teams?.members_total || 0}</Text>
+                        <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 18 }}>{auditData.summary?.teams?.members_total || 0}</Text>
                       </View>
                       <View>
                         <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 9 }}>Revenue</Text>
@@ -4112,7 +4624,7 @@ function RegistrationsPanel() {
                     <View style={{ flexDirection: 'row', gap: 16, marginTop: 6 }}>
                       <View>
                         <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 9 }}>Registrations</Text>
-                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 }}>{auditData.summary?.individuals?.count || 0}</Text>
+                        <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 18 }}>{auditData.summary?.individuals?.count || 0}</Text>
                       </View>
                       <View>
                         <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 9 }}>Revenue</Text>
@@ -4186,9 +4698,9 @@ function RegistrationsPanel() {
                       <Pressable onPress={() => setAuditEventFilter('all')} style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, backgroundColor: auditEventFilter === 'all' ? '#3B82F6' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: auditEventFilter === 'all' ? '#3B82F6' : 'rgba(255,255,255,0.1)' }}>
                         <Text style={{ color: auditEventFilter === 'all' ? '#fff' : SAC.muted, fontFamily: FONTS.semi, fontSize: 8.5 }}>All</Text>
                       </Pressable>
-                      {slugs.map((s) => (
-                        <Pressable key={s} onPress={() => setAuditEventFilter(s)} style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, backgroundColor: auditEventFilter === s ? '#3B82F6' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: auditEventFilter === s ? '#3B82F6' : 'rgba(255,255,255,0.1)' }}>
-                          <Text style={{ color: auditEventFilter === s ? '#fff' : SAC.muted, fontFamily: FONTS.semi, fontSize: 8.5 }}>{s}</Text>
+                      {slugs.map((slugItem) => (
+                        <Pressable key={slugItem} onPress={() => setAuditEventFilter(slugItem)} style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, backgroundColor: auditEventFilter === slugItem ? '#3B82F6' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: auditEventFilter === slugItem ? '#3B82F6' : 'rgba(255,255,255,0.1)' }}>
+                          <Text style={{ color: auditEventFilter === slugItem ? '#fff' : SAC.muted, fontFamily: FONTS.semi, fontSize: 8.5 }}>{slugItem}</Text>
                         </Pressable>
                       ))}
                     </View>
@@ -4244,7 +4756,14 @@ function RegistrationsPanel() {
                     <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', gap: 6, backgroundColor: hasDiscrepancy ? 'rgba(239,68,68,0.08)' : undefined }}>
                       <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: r.is_free ? '#C4B5FD' : r.is_admin_pay ? '#FBBF24' : r.status === 'paid' ? '#34D399' : r.status === 'pending' ? '#F59E0B' : '#EF4444' }} />
                       <View style={{ flex: 2, minWidth: 0 }}>
-                        <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5 }} numberOfLines={1}>{r.name}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                          <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 10.5 }} numberOfLines={1}>{r.name}</Text>
+                          {r.source && r.source !== 'our_platform' && r.source !== 'studentalumni' && (
+                            <View style={{ paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3, backgroundColor: r.source === 'unstop' ? 'rgba(124,58,237,0.18)' : 'rgba(14,165,233,0.18)', borderWidth: 1, borderColor: r.source === 'unstop' ? 'rgba(124,58,237,0.45)' : 'rgba(14,165,233,0.45)' }}>
+                              <Text style={{ fontFamily: FONTS.xbold, fontSize: 7, color: r.source === 'unstop' ? '#C4B5FD' : '#7DD3FC', letterSpacing: 0.4 }}>{r.source.toUpperCase()}</Text>
+                            </View>
+                          )}
+                        </View>
                         <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 8 }} numberOfLines={1}>{r.email}</Text>
                       </View>
                       <Text style={{ width: 45, color: SAC.muted, fontFamily: FONTS.med, fontSize: 9 }} numberOfLines={1}>{r.reg_type}{r.team_size > 1 ? `(${r.team_size})` : ''}</Text>
@@ -4266,8 +4785,6 @@ function RegistrationsPanel() {
           </View>
         </View>
       </Modal>
-
-      
     </View>
   );
 }
@@ -4311,7 +4828,7 @@ function VolunteersPanel() {
       if (showResp.ok) {
         const data = await showResp.json();
         const list = Array.isArray(data) ? data : (data.items || data.showcases || []);
-        setShowcases(list.map((s: any) => ({ slug: s.slug, title: s.title || s.slug })));
+        setShowcases(list.map((scItem: any) => ({ slug: scItem.slug, title: scItem.title || scItem.slug })));
       }
     } catch { /* ignore */ }
     setLoading(false);
@@ -4393,7 +4910,7 @@ function VolunteersPanel() {
           </View>
           <GradientButton onPress={openAdd} size="sm">
             <PlusCircle size={13} color="#fff" />
-            <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12, marginLeft: 6 }}>Add Volunteer</Text>
+            <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12, marginLeft: 6 }}>Add Volunteer</Text>
           </GradientButton>
         </View>
 
@@ -4414,17 +4931,17 @@ function VolunteersPanel() {
                   {showcases.length === 0 && (
                     <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.dim }}>No showcases found. Create an event first.</Text>
                   )}
-                  {showcases.map((s) => (
+                  {showcases.map((scItem) => (
                     <Pressable
-                      key={s.slug}
-                      onPress={() => setAddSlug(s.slug)}
+                      key={scItem?.slug || Math.random()}
+                      onPress={() => scItem?.slug && setAddSlug(scItem.slug)}
                       style={{
                         paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9,
                         backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: SAC.border,
                       }}
                     >
-                      <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>{s.title}</Text>
-                      <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{s.slug}</Text>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>{scItem?.title || scItem?.slug}</Text>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{scItem?.slug}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -4445,14 +4962,14 @@ function VolunteersPanel() {
                     <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, marginBottom: 4 }}>Email</Text>
                     <TextInput value={email} onChangeText={setEmail} placeholder="volunteer@email.com"
                       placeholderTextColor="#475569" keyboardType="email-address" autoCapitalize="none"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 10, color: '#fff', fontSize: 13 }} />
+                      style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 10, color: SAC.text, fontSize: 13 }} />
                   </View>
                   <View style={{ width: 140 }}>
                     <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, marginBottom: 4 }}>Role</Text>
                     <SelectNative value={role} onChange={setRole} options={['volunteer', 'ambassador']} />
                   </View>
                   <GradientButton onPress={addVolunteer} loading={saving} disabled={saving || !email.trim()} size="sm">
-                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Add</Text>
+                    <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Add</Text>
                   </GradientButton>
                 </View>
               </>
@@ -4468,13 +4985,13 @@ function VolunteersPanel() {
             onChange={(e: any) => setFilterEvent(e.target.value)}
             style={{
               backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 12, fontFamily: 'Inter',
+              borderRadius: 8, padding: '8px 12px', color: SAC.text, fontSize: 12, fontFamily: 'DM Sans',
               outline: 'none', cursor: 'pointer', minWidth: 150,
             }}
           >
-            <option value="all" style={{ background: '#1e1b4b', color: '#fff' }}>All Events</option>
+            <option value="all" style={{ background: '#1e1b4b', color: SAC.text }}>All Events</option>
             {uniqueEvents.map((slug) => (
-              <option key={slug} value={slug} style={{ background: '#1e1b4b', color: '#fff' }}>
+              <option key={slug} value={slug} style={{ background: '#1e1b4b', color: SAC.text }}>
                 {items.find((v) => v.slug === slug)?.event_title || slug}
               </option>
             ))}
@@ -4522,7 +5039,7 @@ function VolunteersPanel() {
               {filtered.map((v) => (
                 <View key={v._id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
                   <View style={{ flex: 1.5, minWidth: 200 }}>
-                    <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{v.email}</Text>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: SAC.text }}>{v.email}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{v.user_name || '—'}</Text>
                   </View>
                   <View style={{ flex: 1.5, minWidth: 180 }}>
@@ -4558,9 +5075,1666 @@ function VolunteersPanel() {
 }
 
 
+// ── Live Scan Monitor Panel ───────────────────────────────────────────────────
+function LiveScanMonitorPanel() {
+  const { flash } = useToast();
+  const { confirm } = useConfirm();
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sendingReminders, setSendingReminders] = useState(false);
+  const [q, setQ] = useState('');
+  const [page, setPage] = useState(0);
+  const [detail, setDetail] = useState<{ reg: any; coupon: any } | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'checked_in' | 'not_checked'>('all');
+  const [couponFilter, setCouponFilter] = useState<'all' | 'used' | 'unused'>('all');
+  const [saFilter, setSaFilter] = useState<'all' | 'complete_100' | 'incomplete' | 'no_account'>('all');
+  const [editingReg, setEditingReg] = useState<{ id: string; email: string; full_name: string } | null>(null);
+  const [editEmail, setEditEmail] = useState('');
+  const [editName, setEditName] = useState('');
+  const PER_PAGE = 20;
+
+  useEffect(() => {
+    if (editingReg) {
+      setEditEmail(editingReg.email);
+      setEditName(editingReg.full_name);
+    }
+  }, [editingReg]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.adminEchoRegistrations();
+      setData(res?.items || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    const interval = setInterval(load, 15000);
+    return () => clearInterval(interval);
+  }, [load]);
+
+  useEffect(() => { setPage(0); }, [q, statusFilter, couponFilter, saFilter]);
+
+  const stats = useMemo(() => {
+    let checkedIn = 0;
+    let couponsUsed = 0;
+    let lunch = 0;
+    let swag = 0;
+    let others = 0;
+    let saMembers = 0;
+    let sa100 = 0;
+    let noAccount = 0;
+    let certIssued = 0;
+
+    data.forEach(reg => {
+      if (reg.checked_in_at) checkedIn++;
+      if (reg.has_sa_account) saMembers++;
+      if (reg.is_profile_100) sa100++;
+      if (!reg.has_sa_account) noAccount++;
+      if (reg.has_certificate) certIssued++;
+
+      if (reg.coupons) {
+        reg.coupons.forEach((c: any) => {
+          if (c.used) {
+            couponsUsed++;
+            const name = c.session_name?.toLowerCase() || '';
+            if (name.includes('lunch')) lunch++;
+            else if (name.includes('swag') || name.includes('tshirt') || name.includes('t-shirt')) swag++;
+            else others++;
+          }
+        });
+      }
+    });
+
+    return { checkedIn, couponsUsed, lunch, swag, others, saMembers, sa100, noAccount, certIssued };
+  }, [data]);
+
+  const filtered = data.filter(d => {
+    const matchesSearch = !q || 
+      d.full_name?.toLowerCase().includes(q.toLowerCase()) || 
+      d.email?.toLowerCase().includes(q.toLowerCase()) || 
+      d.id?.toLowerCase().includes(q.toLowerCase()) ||
+      d.team_name?.toLowerCase().includes(q.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || 
+      (statusFilter === 'checked_in' && d.checked_in_at) ||
+      (statusFilter === 'not_checked' && !d.checked_in_at);
+    
+    const hasUsedCoupons = d.coupons?.some((c: any) => c.used);
+    const hasUnusedCoupons = d.coupons?.some((c: any) => !c.used);
+    const matchesCoupon = couponFilter === 'all' ||
+      (couponFilter === 'used' && hasUsedCoupons) ||
+      (couponFilter === 'unused' && hasUnusedCoupons);
+
+    const matchesSa = saFilter === 'all' ||
+      (saFilter === 'complete_100' && d.is_profile_100) ||
+      (saFilter === 'incomplete' && d.has_sa_account && !d.is_profile_100) ||
+      (saFilter === 'no_account' && !d.has_sa_account);
+    
+    return matchesSearch && matchesStatus && matchesCoupon && matchesSa;
+  });
+  
+  const paginated = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+
+  const handleSendProfileReminders = async () => {
+    const ok = await confirm({
+      title: 'Send Profile & SA Reminders',
+      message: 'Send automated 100% profile & SA account reminders via Email + WhatsApp to all incomplete registrants?',
+      confirmText: 'Send Reminders',
+    });
+    if (!ok) return;
+    setSendingReminders(true);
+    try {
+      const res = await api.adminEchoSendProfileReminders({ target_group: 'all_incomplete', channel: 'both' });
+      flash(`Loop Agent Dispatched! Processed: ${res?.processed_count}, Emails: ${res?.emails_sent}, WhatsApp: ${res?.whatsapp_sent}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to send reminders', 'error');
+    } finally {
+      setSendingReminders(false);
+    }
+  };
+
+  const handleIssueCert = async (reg: any) => {
+    try {
+      const res = await api.adminEchoIssueCertificate(reg.id);
+      flash(`Certificate issued for ${reg.full_name}! Code: ${res?.code}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to issue certificate', 'error');
+    }
+  };
+
+  const handleIssue3Certs = async (reg: any) => {
+    try {
+      const res = await request(`/echo/admin/registrations/${reg.id}/issue-3-certificates`, { method: 'POST' });
+      flash(`All 3 certificates issued for ${reg.full_name}! (Built by Sunset, Hackwave 3.0, Cyber Conclave)`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to issue 3 certificates', 'error');
+    }
+  };
+
+  const handleResetCerts = async (reg: any) => {
+    const ok = await confirm({
+      title: 'Reset Certificate Status',
+      message: `Reset issued flags for ${reg.full_name} (${reg.email})? Existing certificates stay verifiable; the row returns to "Issue All 3 Certs" so you can re-issue.`,
+      confirmText: 'Reset & Re-issue',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await request(`/echo/admin/registrations/${reg.id}/reset-certificates`, { method: 'POST' });
+      flash(`Certificate status reset for ${reg.full_name}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to reset', 'error');
+    }
+  };
+
+  const handleBulkDispatch3Certs = async () => {
+    const ok = await confirm({
+      title: 'Dispatch 3 Certs to 100% Profiles',
+      message: 'Run the autonomous agent to issue and deliver all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave) via Email & WhatsApp to attendees with 100% completed profiles?',
+      confirmText: 'Dispatch Certificates',
+    });
+    if (!ok) return;
+    setSendingReminders(true);
+    try {
+      const res = await api.adminEchoSendProfileReminders({ target_group: 'complete_100_dispatch', channel: 'both' });
+      flash(`Autonomous Agent Dispatched 3 Certificates! Processed: ${res?.processed_count}, Emails: ${res?.emails_sent}, WhatsApp: ${res?.whatsapp_sent}`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to dispatch certificates', 'error');
+    } finally {
+      setSendingReminders(false);
+    }
+  };
+
+  const [bulkIssuing, setBulkIssuing] = useState(false);
+  const handleBulkIssueAll = async () => {
+    const ok = await confirm({
+      title: 'Issue 3 Certs to ALL',
+      message: `Issue all 3 certificates to ALL ${data.length} registrants at once + send each person their 3 individual emails? Already-issued users are skipped automatically.`,
+      confirmText: 'Issue to All',
+    });
+    if (!ok) return;
+    setBulkIssuing(true);
+    try {
+      const res = await api.adminEchoBulkIssue3Certs();
+      flash(res?.message || `Bulk issue complete: ${res?.processed} processed, ${res?.emails_sent} emails sent`);
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Bulk issue failed', 'error');
+    } finally {
+      setBulkIssuing(false);
+    }
+  };
+
+  const sourceBadge = (s: string | null | undefined) => {
+    if (!s || s === 'our_platform' || s === 'studentalumni') return null;
+    const isUnstop = s === 'unstop';
+    return (
+      <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, alignSelf: 'flex-start',
+        backgroundColor: isUnstop ? 'rgba(124,58,237,0.18)' : 'rgba(14,165,233,0.18)',
+        borderWidth: 1, borderColor: isUnstop ? 'rgba(124,58,237,0.45)' : 'rgba(14,165,233,0.45)' }}>
+        <Text numberOfLines={1} style={{ fontFamily: FONTS.xbold, fontSize: 8, letterSpacing: 0.4, color: isUnstop ? '#C4B5FD' : '#7DD3FC' }}>
+          {s.toUpperCase()}
+        </Text>
+      </View>
+    );
+  };
+
+  const saAccountBadge = (reg: any) => {
+    const pct = reg.profile_completion_pct || 0;
+    if (reg.is_profile_100 || pct >= 100) {
+      return (
+        <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.4)' }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#34D399' }}>
+            Profile 100% Complete ✓
+          </Text>
+        </View>
+      );
+    }
+    if (pct > 0) {
+      return (
+        <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(245,179,66,0.18)', borderWidth: 1, borderColor: 'rgba(245,179,66,0.4)' }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#F5B342' }}>
+            Profile ({pct}%) · Incomplete
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' }}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#FCA5A5' }}>
+          Profile (0%) · Incomplete
+        </Text>
+      </View>
+    );
+  };
+
+  const fmtStamp = (v: any) => {
+    if (!v) return null;
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return null;
+    const date = d.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
+    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `${date} · ${time}`;
+  };
+
+  const openMap = (lat?: number, lng?: number) => {
+    if (lat && lng && typeof window !== 'undefined') {
+      window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank');
+    }
+  };
+
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
+  const [certTitle, setCertTitle] = useState('Built by Sunset — Project Build Certificate');
+  const [certRecipientEmail, setCertRecipientEmail] = useState('');
+  const [certIssuer, setCertIssuer] = useState('StudentAlumni × Hackwave 3.0');
+  const [uploadingCert, setUploadingCert] = useState(false);
+
+  const handleCustomUploadCert = async () => {
+    if (!certRecipientEmail) {
+      flash('Please enter attendee email', 'error');
+      return;
+    }
+    setUploadingCert(true);
+    try {
+      const res: any = await request('/certificates/upload', {
+        method: 'POST',
+        body: JSON.stringify({
+          recipient_email: certRecipientEmail,
+          title: certTitle,
+          issuer: certIssuer,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      flash(`Certificate uploaded & dual-synced! Code: ${res?.verification_code || 'Issued'}`);
+      setUploadModalVisible(false);
+      setCertRecipientEmail('');
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Upload failed', 'error');
+    } finally {
+      setUploadingCert(false);
+    }
+  };
+
+  const [loopAgentStatus, setLoopAgentStatus] = useState<any>(null);
+  const [loopAgentLoading, setLoopAgentLoading] = useState(false);
+
+  const fetchLoopAgentStatus = useCallback(async () => {
+    try {
+      const res: any = await request('/echo/admin/loop-agent/status');
+      setLoopAgentStatus(res);
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLoopAgentStatus();
+  }, [fetchLoopAgentStatus]);
+
+  const handleToggleLoopAgent = async (start: boolean) => {
+    setLoopAgentLoading(true);
+    try {
+      const endpoint = start ? '/echo/admin/loop-agent/start?interval_seconds=86400' : '/echo/admin/loop-agent/stop';
+      const res: any = await request(endpoint, { method: 'POST' });
+      flash(res?.message || (start ? '24h Daily Loop Agent activated!' : 'Loop Agent paused.'));
+      fetchLoopAgentStatus();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to update loop agent status', 'error');
+    } finally {
+      setLoopAgentLoading(false);
+    }
+  };
+
+  return (
+    <View style={{ flex: 1, gap: 20 }}>
+      {/* 24h Daily Autonomous Profile Loop Agent Banner */}
+      <View style={{ backgroundColor: 'rgba(124,92,252,0.12)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(124,92,252,0.3)', padding: 18, gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <View style={{ flex: 1, minWidth: 280 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <Bot size={20} color="#C9A7FF" />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>
+                24h Autonomous Daily Profile Alert Loop Agent
+              </Text>
+              <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: loopAgentStatus?.is_running ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)', borderWidth: 1, borderColor: loopAgentStatus?.is_running ? '#10B981' : '#F59E0B' }}>
+                <Text style={{ color: loopAgentStatus?.is_running ? '#34D399' : '#FBBF24', fontFamily: FONTS.bold, fontSize: 11 }}>
+                  {loopAgentStatus?.is_running ? '● DAILY LOOP ACTIVE (24h)' : '● IDLE / MANUAL'}
+                </Text>
+              </View>
+            </View>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: '#C7D2FE' }}>
+              Automatically scans incomplete profiles daily at 09:00 UTC, dispatches email & WhatsApp completion alerts, and auto-issues all 3 certificates upon 100% completion.
+            </Text>
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {loopAgentStatus?.is_running ? (
+              <Pressable
+                onPress={() => handleToggleLoopAgent(false)}
+                disabled={loopAgentLoading}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(239,68,68,0.2)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#EF4444' }}>
+                <X size={14} color="#FCA5A5" />
+                <Text style={{ color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 }}>⏸️ Pause 24h Loop</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={() => handleToggleLoopAgent(true)}
+                disabled={loopAgentLoading}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(16,185,129,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#10B981' }}>
+                <Play size={14} color="#6EE7B7" />
+                <Text style={{ color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 12 }}>▶️ Enable 24h Daily Loop</Text>
+              </Pressable>
+            )}
+
+            <Pressable
+              onPress={handleSendProfileReminders}
+              disabled={sendingReminders}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#7C5CFC', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 }}>
+              <Zap size={14} color="#FFF" />
+              <Text style={{ color: '#FFF', fontFamily: FONTS.bold, fontSize: 12 }}>
+                {sendingReminders ? 'Sending Alerts...' : '⚡ Trigger Daily Alert Loop Now'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {loopAgentStatus?.last_run_stats && (
+          <View style={{ flexDirection: 'row', gap: 16, flexWrap: 'wrap', paddingTop: 8, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
+              🕒 Last Execution: <Text style={{ color: '#FFF', fontFamily: FONTS.bold }}>{loopAgentStatus.last_run_at ? new Date(loopAgentStatus.last_run_at).toLocaleString() : 'Never'}</Text>
+            </Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
+              📧 Daily Emails Sent: <Text style={{ color: '#34D399', fontFamily: FONTS.bold }}>{loopAgentStatus.last_run_stats.emails_sent || 0}</Text>
+            </Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
+              💬 WhatsApp Alerts: <Text style={{ color: '#34D399', fontFamily: FONTS.bold }}>{loopAgentStatus.last_run_stats.whatsapp_sent || 0}</Text>
+            </Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
+              🔄 Total Cycles: <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold }}>{loopAgentStatus.total_cycles_executed || 0}</Text>
+            </Text>
+          </View>
+        )}
+      </View>
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+        <View>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: SAC.text }}>Live Scan & SA Member Monitor</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: SAC.muted }}>Real-time check-ins, 100% profile completion, and ECHO certificates</Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Pressable
+            onPress={handleSendProfileReminders}
+            disabled={sendingReminders}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#7C5CFC' }}>
+            <Sparkles size={14} color="#C9A7FF" />
+            <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold, fontSize: 12 }}>
+              {sendingReminders ? 'Loop Agent Sending...' : '⚡ Send 100% Profile & SA Reminders'}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={handleBulkDispatch3Certs}
+            disabled={sendingReminders}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(16,185,129,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#10B981' }}>
+            <Award size={14} color="#6EE7B7" />
+            <Text style={{ color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 12 }}>
+              🎓 Dispatch 3 Certs to 100% Profiles
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={handleBulkIssueAll}
+            disabled={bulkIssuing || sendingReminders}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(245,158,11,0.22)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#F59E0B', opacity: (bulkIssuing || sendingReminders) ? 0.6 : 1 }}>
+            <Award size={14} color="#FCD34D" />
+            <Text style={{ color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 12 }}>
+              {bulkIssuing ? 'Issuing to All…' : '🎓 Issue 3 Certs to ALL'}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setUploadModalVisible(true)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(59,130,246,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#3B82F6' }}>
+            <Upload size={14} color="#93C5FD" />
+            <Text style={{ color: '#93C5FD', fontFamily: FONTS.bold, fontSize: 12 }}>
+              ⬆️ Upload Cert & Dual-Sync
+            </Text>
+          </Pressable>
+
+          <View style={{ width: 220 }}>
+            <SearchField value={q} onChange={setQ} placeholder="Search name, email, ID..." />
+          </View>
+          <SecondaryButton onPress={load}><RefreshCw size={14} color={SAC.muted} /><Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>Refresh</Text></SecondaryButton>
+        </View>
+      </View>
+
+      {/* Filter row */}
+      <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+        {/* SA Account & Profile filter */}
+        <View style={{ flexDirection: 'row', gap: 4, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
+          {[
+            { id: 'all', label: 'All Accounts' },
+            { id: 'complete_100', label: '100% Profile' },
+            { id: 'incomplete', label: 'Incomplete (<100%)' },
+            { id: 'no_account', label: 'No SA Account' },
+          ].map(f => (
+            <Pressable key={f.id} onPress={() => setSaFilter(f.id as any)}
+              style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: saFilter === f.id ? 'rgba(124,92,252,0.3)' : 'transparent' }}>
+              <Text style={{ fontSize: 12, fontFamily: FONTS.med, color: saFilter === f.id ? '#D8B4FE' : SAC.muted }}>{f.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {/* Status filter */}
+        <View style={{ flexDirection: 'row', gap: 4, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
+          {[
+            { id: 'all', label: 'All Status' },
+            { id: 'checked_in', label: 'Checked In' },
+            { id: 'not_checked', label: 'Not Checked In' },
+          ].map(f => (
+            <Pressable key={f.id} onPress={() => setStatusFilter(f.id as any)}
+              style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: statusFilter === f.id ? 'rgba(139,92,246,0.25)' : 'transparent' }}>
+              <Text style={{ fontSize: 12, fontFamily: FONTS.med, color: statusFilter === f.id ? '#A78BFA' : SAC.muted }}>{f.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {/* Coupon filter */}
+        <View style={{ flexDirection: 'row', gap: 4, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
+          {[
+            { id: 'all', label: 'All Coupons' },
+            { id: 'used', label: 'Scanned' },
+            { id: 'unused', label: 'Not Scanned' },
+          ].map(f => (
+            <Pressable key={f.id} onPress={() => setCouponFilter(f.id as any)}
+              style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: couponFilter === f.id ? 'rgba(16,185,129,0.25)' : 'transparent' }}>
+              <Text style={{ fontSize: 12, fontFamily: FONTS.med, color: couponFilter === f.id ? '#34D399' : SAC.muted }}>{f.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {/* Reset filters */}
+        {(statusFilter !== 'all' || couponFilter !== 'all' || saFilter !== 'all' || q) && (
+          <Pressable onPress={() => { setStatusFilter('all'); setCouponFilter('all'); setSaFilter('all'); setQ(''); }}
+            style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' }}>
+            <Text style={{ fontSize: 12, fontFamily: FONTS.med, color: '#FCA5A5' }}>Clear Filters</Text>
+          </Pressable>
+        )}
+      </View>
+
+      {/* KPI tiles */}
+      <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+        <KpiTile Icon={CheckCircle} label="Event Check-Ins" value={String(stats.checkedIn)} />
+        <KpiTile Icon={UserCheck} label="SA Members" value={`${stats.saMembers} (${stats.sa100} 100%)`} />
+        <KpiTile Icon={Award} label="Certificates Issued" value={String(stats.certIssued)} />
+        <KpiTile Icon={Ticket} label="Coupons Scanned" value={String(stats.couponsUsed)} />
+        <KpiTile Icon={Users} label="Total Registrations" value={String(data.length)} />
+      </View>
+
+      {/* Summary Banner */}
+      <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap', padding: 12, backgroundColor: 'rgba(124,92,252,0.08)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(124,92,252,0.2)' }}>
+        <Text style={{ fontSize: 12, color: '#D8B4FE', fontFamily: FONTS.med }}>
+          📊 SA Accounts: <Text style={{ fontFamily: FONTS.bold, color: '#FFF' }}>{stats.saMembers}</Text> Members | <Text style={{ fontFamily: FONTS.bold, color: '#34D399' }}>{stats.sa100}</Text> 100% Completed | <Text style={{ fontFamily: FONTS.bold, color: '#FCA5A5' }}>{stats.noAccount}</Text> No Account
+        </Text>
+        <Text style={{ fontSize: 12, color: '#A78BFA', fontFamily: FONTS.med }}>
+          🎓 Certificates: <Text style={{ fontFamily: FONTS.bold, color: '#FFF' }}>{stats.certIssued}</Text> Issued
+        </Text>
+      </View>
+
+      <Card style={{ padding: 0, overflow: 'hidden' }}>
+        <View style={{ flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.02)', padding: 16, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+          <Text style={{ flex: 1.6, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Attendee</Text>
+          <Text style={{ flex: 1.1, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>SA Account & Profile</Text>
+          <Text style={{ flex: 0.7, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Status</Text>
+          <Text style={{ flex: 1.4, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Check-In / Time</Text>
+          <Text style={{ flex: 1.8, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Coupons & Certificate</Text>
+          <Text style={{ flex: 1.0, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase', textAlign: 'right' }}>Actions</Text>
+        </View>
+        
+        {loading && data.length === 0 ? (
+          <View style={{ padding: 40, alignItems: 'center' }}><ActivityIndicator size="large" color={GRAD.to} /></View>
+        ) : filtered.length === 0 ? (
+          <View style={{ padding: 40, alignItems: 'center' }}><Text style={{ color: SAC.muted, fontFamily: FONTS.med }}>No registrations found.</Text></View>
+        ) : (
+          paginated.map(reg => (
+            <View key={reg.id} style={{ flexDirection: 'row', padding: 16, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+              <View style={{ flex: 1.6, justifyContent: 'center', paddingRight: 10 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text, marginBottom: 2 }}>{reg.full_name || 'Unknown'}</Text>
+                <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginBottom: 4 }}>{reg.email}</Text>
+                <Text style={{ fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>ID: {reg.id}</Text>
+              </View>
+
+              <View style={{ flex: 1.1, justifyContent: 'center', gap: 4, paddingRight: 8 }}>
+                {saAccountBadge(reg)}
+                {reg.sa_account?.sa_id && (
+                  <Text style={{ fontFamily: 'monospace', fontSize: 9.5, color: '#A78BFA' }}>
+                    SA ID: {reg.sa_account.sa_id}
+                  </Text>
+                )}
+                {reg.last_profile_reminder_at && (
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>
+                    Reminded {reg.profile_reminder_count || 1}x
+                  </Text>
+                )}
+              </View>
+              
+              <View style={{ flex: 0.7, justifyContent: 'center' }}>
+                <StatusPill 
+                  kind={reg.checked_in_at ? 'info' : reg.ticket_issued ? 'success' : 'warn'} 
+                  label={reg.checked_in_at ? 'Scanned' : reg.ticket_issued ? 'Issued' : 'Pending'} 
+                />
+              </View>
+
+              <View style={{ flex: 1.4, justifyContent: 'center', paddingRight: 10 }}>
+                {reg.checked_in_at ? (
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <CheckCircle size={13} color="#34D399" />
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#34D399' }}>Checked in</Text>
+                    </View>
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: '#6EE7B7', marginTop: 3 }}>
+                      {fmtStamp(reg.checked_in_at)}
+                    </Text>
+                  </View>
+                ) : (
+                  <View>
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Not Checked In</Text>
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: 'rgba(255,255,255,0.25)', marginTop: 3 }}>
+                      Reg: {fmtStamp(reg.registered_at)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={{ flex: 2.0, justifyContent: 'center', gap: 4 }}>
+                {reg.certificates_3_status ? (
+                  <View style={{ gap: 3 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#D8B4FE' }}>🌅 Sunset:</Text>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: reg.certificates_3_status.built_by_sunset?.issued ? '#34D399' : 'rgba(255,255,255,0.4)' }}>
+                        {reg.certificates_3_status.built_by_sunset?.issued ? `✓ ${reg.certificates_3_status.built_by_sunset.code}` : 'Pending ⏳'}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#D8B4FE' }}>🏆 Hackwave:</Text>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: reg.certificates_3_status.hackwave_participation?.issued ? '#34D399' : 'rgba(255,255,255,0.4)' }}>
+                        {reg.certificates_3_status.hackwave_participation?.issued ? `✓ ${reg.certificates_3_status.hackwave_participation.code}` : 'Pending ⏳'}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#D8B4FE' }}>🛡️ Cyber:</Text>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: reg.certificates_3_status.cyber_conclave?.issued ? '#34D399' : 'rgba(255,255,255,0.4)' }}>
+                        {reg.certificates_3_status.cyber_conclave?.issued ? `✓ ${reg.certificates_3_status.cyber_conclave.code}` : 'Pending ⏳'}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => handleResetCerts(reg)}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3, alignSelf: 'flex-start', marginTop: 2 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 8.5, color: '#FCA5A5' }}>Reset & Re-issue</Text>
+                    </Pressable>
+                  </View>
+                ) : reg.has_certificate ? (
+                  <View style={{ gap: 4 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.18)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' }}>
+                      <Award size={12} color="#C9A7FF" />
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 10.5, color: '#D8B4FE' }}>
+                        Cert: {reg.certificate?.verification_code || 'Issued'}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => handleResetCerts(reg)}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3, alignSelf: 'flex-start' }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 8.5, color: '#FCA5A5' }}>Reset & Re-issue</Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Pressable
+                    onPress={() => handleIssue3Certs(reg)}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(167,139,250,0.14)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.35)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' }}>
+                    <Award size={12} color="#A78BFA" />
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#A78BFA' }}>Issue All 3 Certs</Text>
+                  </Pressable>
+                )}
+
+                {reg.coupons && reg.coupons.length > 0 && (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+                    {reg.coupons.map((c: any, idx: number) => (
+                      <Pressable
+                        key={idx}
+                        onPress={() => setDetail({ reg, coupon: c })}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4,
+                          backgroundColor: c.used ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)',
+                          borderWidth: 1, borderColor: c.used ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.08)',
+                          borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 }}>
+                        <Ticket size={10} color={c.used ? '#34D399' : SAC.muted} />
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: c.used ? '#34D399' : SAC.muted }} numberOfLines={1}>
+                          {c.session_name}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              <View style={{ flex: 1.0, justifyContent: 'center', alignItems: 'flex-end', gap: 6 }}>
+                <Pressable
+                  onPress={() => setEditingReg({ id: reg.id, email: reg.email || '', full_name: reg.full_name || '' })}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 6, backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)' }}>
+                  <Edit2 size={12} color="#A78BFA" />
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#A78BFA' }}>Edit</Text>
+                </Pressable>
+                <Pressable
+                  onPress={async () => {
+                    const ok = await confirm({ title: 'Resend Tickets', message: `Resend tickets to ${reg.email}?`, confirmText: 'Resend' });
+                    if (!ok) return;
+                    try {
+                      await api.adminEchoResendTickets(reg.id);
+                      flash('Tickets resent to ' + reg.email);
+                    } catch (e: any) { flash(e?.message || 'Failed', 'error'); }
+                  }}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 6, backgroundColor: 'rgba(52,211,153,0.12)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.25)' }}>
+                  <RefreshCw size={12} color="#34D399" />
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#34D399' }}>Resend</Text>
+                </Pressable>
+              </View>
+            </View>
+          ))
+        )}
+
+        {totalPages > 1 && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: SAC.muted }}>
+              Showing {page * PER_PAGE + 1} - {Math.min((page + 1) * PER_PAGE, filtered.length)} of {filtered.length}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <SecondaryButton onPress={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
+                <ChevronLeft size={14} color={page === 0 ? 'rgba(255,255,255,0.2)' : SAC.muted} />
+              </SecondaryButton>
+              <SecondaryButton onPress={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page === totalPages - 1}>
+                <ChevronRight size={14} color={page === totalPages - 1 ? 'rgba(255,255,255,0.2)' : SAC.muted} />
+              </SecondaryButton>
+            </View>
+          </View>
+        )}
+      </Card>
+
+      {/* Coupon detail modal */}
+      <Modal transparent visible={!!detail} animationType="fade" onRequestClose={() => setDetail(null)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 }} onPress={() => setDetail(null)}>
+          <Pressable
+            onPress={(e: any) => e?.stopPropagation?.()}
+            style={{ width: '100%', maxWidth: 460, backgroundColor: SAC.panel, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 22 }}>
+            {detail && (() => {
+              const reg = detail.reg;
+              const c = detail.coupon;
+              const used = !!c.used;
+              return (
+                <View style={{ gap: 16 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Ticket size={18} color={used ? '#34D399' : SAC.text} />
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>{c.session_name}</Text>
+                    </View>
+                    <Pressable onPress={() => setDetail(null)} style={{ padding: 6, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)' }}>
+                      <X size={16} color={SAC.muted} />
+                    </Pressable>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <StatusPill kind={used ? 'success' : 'warn'} label={used ? 'Scanned / Used' : 'Not yet scanned'} />
+                    <Text style={{ fontFamily: 'monospace', fontSize: 12, color: SAC.muted }}>{c.coupon_code}</Text>
+                  </View>
+
+                  <View style={{ gap: 4, padding: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.03)' }}>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.4 }}>Attendee</Text>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>{reg.full_name || 'Unknown'}</Text>
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>{reg.email}</Text>
+                  </View>
+
+                  {used && (
+                    <View style={{ gap: 12 }}>
+                      <View style={{ gap: 4 }}>
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.4 }}>Scanned Time</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Clock size={14} color="#34D399" />
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#34D399' }}>{fmtStamp(c.used_at)}</Text>
+                        </View>
+                      </View>
+
+                      <View style={{ gap: 4 }}>
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.4 }}>Scanned By</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Users size={14} color="#A78BFA" />
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>{c.scanned_by || 'Unknown scanner'}</Text>
+                        </View>
+                        {c.scanned_location ? (
+                          <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginTop: 2 }}>{c.scanned_location}</Text>
+                        ) : null}
+                      </View>
+
+                      {(c.scanned_lat || c.scanned_lng) ? (
+                        <View style={{ gap: 4 }}>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.4 }}>Location / Geo</Text>
+                          {c.scanned_location ? (
+                            <View style={{ backgroundColor: 'rgba(167,139,250,0.08)', borderRadius: 8, padding: 10, borderWidth: 1, borderColor: 'rgba(167,139,250,0.15)' }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
+                                <MapPin size={13} color="#A78BFA" style={{ marginTop: 2 }} />
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.text, flex: 1, lineHeight: 18 }}>{c.scanned_location}</Text>
+                              </View>
+                            </View>
+                          ) : null}
+                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                            <View style={{ gap: 2 }}>
+                              <Text style={{ fontFamily: 'monospace', fontSize: 11, color: SAC.muted }}>
+                                {Number(c.scanned_lat ?? 0).toFixed(6)}, {Number(c.scanned_lng ?? 0).toFixed(6)}
+                              </Text>
+                            </View>
+                            <SecondaryButton onPress={() => openMap(c.scanned_lat, c.scanned_lng)}>
+                              <MapPin size={14} color="#A78BFA" />
+                              <Text style={{ color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 12, marginLeft: 5 }}>Open in Maps</Text>
+                            </SecondaryButton>
+                          </View>
+                        </View>
+                      ) : (
+                        <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+                          No geo location captured at scan time.
+                        </Text>
+                      )}
+                    </View>
+                  )}
+                </View>
+              );
+            })()}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Edit Registration Modal */}
+      <Modal transparent visible={!!editingReg} animationType="fade" onRequestClose={() => setEditingReg(null)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 }} onPress={() => setEditingReg(null)}>
+          <Pressable onPress={(e: any) => e?.stopPropagation?.()} style={{ width: '100%', maxWidth: 400, backgroundColor: SAC.panel, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 22, gap: 14 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>Edit Registration</Text>
+              <Pressable onPress={() => setEditingReg(null)}><X size={18} color={SAC.muted} /></Pressable>
+            </View>
+            <View>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginBottom: 4 }}>Full Name</Text>
+              <TextInput value={editName} onChangeText={setEditName} style={{ backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 14, fontFamily: FONTS.regular }} />
+            </View>
+            <View>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginBottom: 4 }}>Email</Text>
+              <TextInput value={editEmail} onChangeText={setEditEmail} style={{ backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 14, fontFamily: FONTS.regular }} keyboardType="email-address" />
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
+              <SecondaryButton onPress={() => setEditingReg(null)}><Text style={{ color: SAC.text }}>Cancel</Text></SecondaryButton>
+              <GradientButton onPress={async () => {
+                if (!editingReg) return;
+                try {
+                  await request(`/echo/admin/registrations/${editingReg.id}`, {
+                    method: 'PATCH',
+                    body: { email: editEmail, full_name: editName },
+                  });
+                  flash('Registration updated');
+                  setEditingReg(null);
+                  load();
+                } catch (e: any) { flash(e?.message || 'Failed', 'error'); }
+              }}><Text style={{ color: SAC.text }}>Save</Text></GradientButton>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Upload Certificate & Dual-Sync Modal */}
+      <Modal transparent visible={uploadModalVisible} animationType="fade" onRequestClose={() => setUploadModalVisible(false)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 }} onPress={() => setUploadModalVisible(false)}>
+          <Pressable onPress={(e: any) => e?.stopPropagation?.()} style={{ width: '100%', maxWidth: 460, backgroundColor: SAC.panel, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(124,92,252,0.3)', padding: 22, gap: 14 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Upload size={18} color="#93C5FD" />
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>Upload Certificate & Dual-Sync</Text>
+              </View>
+              <Pressable onPress={() => setUploadModalVisible(false)}><X size={18} color={SAC.muted} /></Pressable>
+            </View>
+
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+              Uploaded certificates automatically sync across <Text style={{ color: '#93C5FD', fontFamily: FONTS.bold }}>ECHO Scan Monitor</Text>, the global <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold }}>Certificates Module (/super-admin/certificates)</Text>, and the student's <Text style={{ color: '#34D399', fontFamily: FONTS.bold }}>My Certificates</Text> view.
+            </Text>
+
+            <View style={{ gap: 4 }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>Attendee Email Address *</Text>
+              <TextInput
+                value={certRecipientEmail}
+                onChangeText={setCertRecipientEmail}
+                placeholder="e.g. attendee@gmail.com"
+                placeholderTextColor={SAC.muted}
+                style={{ backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 13, fontFamily: FONTS.regular }}
+                keyboardType="email-address"
+              />
+            </View>
+
+            <View style={{ gap: 4 }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>Certificate Title *</Text>
+              <TextInput
+                value={certTitle}
+                onChangeText={setCertTitle}
+                placeholder="e.g. Built by Sunset — Project Build Certificate"
+                placeholderTextColor={SAC.muted}
+                style={{ backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 13, fontFamily: FONTS.regular }}
+              />
+            </View>
+
+            <View style={{ gap: 4 }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>Issuer Organization</Text>
+              <TextInput
+                value={certIssuer}
+                onChangeText={setCertIssuer}
+                placeholder="e.g. StudentAlumni × Hackwave 3.0"
+                placeholderTextColor={SAC.muted}
+                style={{ backgroundColor: SAC.bg, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 8, padding: 10, fontSize: 13, fontFamily: FONTS.regular }}
+              />
+            </View>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
+              <SecondaryButton onPress={() => setUploadModalVisible(false)}><Text style={{ color: SAC.text }}>Cancel</Text></SecondaryButton>
+              <GradientButton onPress={handleCustomUploadCert} disabled={uploadingCert}>
+                <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{uploadingCert ? 'Uploading & Syncing...' : '⬆️ Upload & Dual-Sync'}</Text>
+              </GradientButton>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+}
+
+
+// ── Internal Hiring & Interns Pipeline Panel ───────────────────────────────
+function InternalHiringPanel() {
+  const { flash } = useToast();
+  const { confirm } = useConfirm();
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({
+    applicant_pool: 0, shortlisted: 0, unpaid_intern: 0, paid_intern: 0, full_time: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [eventFilter, setEventFilter] = useState('all');
+  const [stageTab, setStageTab] = useState<string>('all');
+  const [domainFilter, setDomainFilter] = useState<string>('all');
+  const [actioningId, setActioningId] = useState<string | null>(null);
+  const [candPage, setCandPage] = useState(0);
+  const CAND_PER_PAGE = 20;
+
+  // Edit candidate modal state
+  const [editingCandidate, setEditingCandidate] = useState<any | null>(null);
+  const [editStage, setEditStage] = useState('shortlisted');
+  const [editSkills, setEditSkills] = useState<string[]>(['Technical']);
+  const [editStipend, setEditStipend] = useState('');
+  const [editRoleTitle, setEditRoleTitle] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.adminEchoListInterns({
+        slug: eventFilter,
+        stage: stageTab,
+        search,
+        domain: domainFilter,
+      });
+      setCandidates(res?.items || []);
+      if (res?.counts) setCounts(res.counts);
+    } catch (err: any) {
+      flash(err?.message || 'Failed to load internal hiring pipeline');
+    } finally {
+      setLoading(false);
+    }
+  }, [eventFilter, stageTab, search, domainFilter]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => { setCandPage(0); }, [eventFilter, stageTab, search, domainFilter]);
+
+  const candTotalPages = Math.max(1, Math.ceil(candidates.length / CAND_PER_PAGE));
+  const candSafePage = Math.min(candPage, candTotalPages - 1);
+  const pagedCandidates = candidates.slice(candSafePage * CAND_PER_PAGE, candSafePage * CAND_PER_PAGE + CAND_PER_PAGE);
+
+  const handleAdvanceStage = async (c: any, nextStage?: string) => {
+    const candidateId = c._id || c.id;
+    setActioningId(candidateId);
+    try {
+      const res = await api.adminEchoAdvanceIntern(candidateId, { next_stage: nextStage });
+      flash(res?.message || `Advanced ${c.full_name}`);
+      await loadData();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to advance stage');
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const handleSyncAll = async () => {
+    setLoading(true);
+    try {
+      const res = await api.adminEchoSyncAllInterns();
+      flash(`Successfully synced ${res?.synced_count || 0} event registrants from Echo VNRVJIET & SNIST!`);
+      await loadData();
+    } catch (err: any) {
+      flash(err?.message || 'Sync failed');
+      setLoading(false);
+    }
+  };
+
+  const openEditModal = (c: any) => {
+    setEditingCandidate(c);
+    setEditStage(c.stage || 'shortlisted');
+    setEditSkills(c.skills || ['Technical']);
+    setEditStipend(c.stipend ? String(c.stipend) : '');
+    setEditRoleTitle(c.role_title || 'Intern Prospect');
+    setEditNotes(c.notes || '');
+  };
+
+  const handleSaveModal = async () => {
+    if (!editingCandidate) return;
+    const cid = editingCandidate._id || editingCandidate.id;
+    setActioningId(cid);
+    try {
+      await api.adminEchoUpdateIntern(cid, {
+        stage: editStage,
+        skills: editSkills,
+        stipend: parseFloat(editStipend) || 0,
+        role_title: editRoleTitle,
+        notes: editNotes,
+      });
+      flash('Candidate profile updated');
+      setEditingCandidate(null);
+      await loadData();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to update candidate');
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const handleDelete = async (c: any) => {
+    const cid = c._id || c.id;
+    const ok = await confirm({
+      title: 'Remove Candidate',
+      message: `Delete ${c.full_name} from internal hiring pipeline?`,
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await api.adminEchoDeleteIntern(cid);
+      flash('Candidate deleted');
+      await loadData();
+    } catch (err: any) {
+      flash(err?.message || 'Delete failed');
+    }
+  };
+
+  const toggleSkillInModal = (sk: string) => {
+    if (editSkills.includes(sk)) {
+      setEditSkills(editSkills.filter((s) => s !== sk));
+    } else {
+      setEditSkills([...editSkills, sk]);
+    }
+  };
+
+  const exportRosterCsv = () => {
+    const headers = ['Full Name', 'Email', 'Phone', 'College', 'Event Registered', 'Stage', 'Domain Skills', 'Stipend (INR)', 'Role Title', 'Notes'];
+    const rows = [headers.join(',')];
+    for (const c of candidates) {
+      rows.push([
+        `"${(c.full_name || '').replace(/"/g, '""')}"`,
+        `"${(c.email || '').replace(/"/g, '""')}"`,
+        `"${(c.phone || '').replace(/"/g, '""')}"`,
+        `"${(c.college || '').replace(/"/g, '""')}"`,
+        `"${(c.event_title || c.slug || '').replace(/"/g, '""')}"`,
+        c.stage || '',
+        `"${(c.skills || []).join('; ')}"`,
+        c.stipend || 0,
+        `"${(c.role_title || '').replace(/"/g, '""')}"`,
+        `"${(c.notes || '').replace(/"/g, '""')}"`,
+      ].join(','));
+    }
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `internal-hiring-interns-roster-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  };
+
+  const STAGES = [
+    { id: 'all', label: 'All Candidates', count: candidates.length },
+    { id: 'applicant_pool', label: '📥 Applicant Pool', count: counts.applicant_pool || 0 },
+    { id: 'shortlisted', label: '⭐️ Shortlisted', count: counts.shortlisted || 0 },
+    { id: 'unpaid_intern', label: '🎓 Unpaid Intern', count: counts.unpaid_intern || 0 },
+    { id: 'paid_intern', label: '💰 Paid Intern', count: counts.paid_intern || 0 },
+    { id: 'full_time', label: '💼 Full Time', count: counts.full_time || 0 },
+  ];
+
+  const DOMAINS = ['Technical', 'Marketing', 'Operations', 'Design', 'AI/ML', 'Event Management'];
+
+  const getStageBadge = (st: string) => {
+    switch (st) {
+      case 'applicant_pool':
+        return { label: 'APPLICANT', color: '#94A3B8', bg: 'rgba(148,163,184,0.15)', border: 'rgba(148,163,184,0.3)' };
+      case 'shortlisted':
+        return { label: 'SHORTLISTED', color: '#FBBF24', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' };
+      case 'unpaid_intern':
+        return { label: 'UNPAID INTERN', color: '#38BDF8', bg: 'rgba(56,189,248,0.15)', border: 'rgba(56,189,248,0.3)' };
+      case 'paid_intern':
+        return { label: 'PAID INTERN', color: '#34D399', bg: 'rgba(52,211,153,0.18)', border: 'rgba(52,211,153,0.35)' };
+      case 'full_time':
+        return { label: 'FULL TIME HIRE', color: '#A78BFA', bg: 'rgba(167,139,250,0.2)', border: 'rgba(167,139,250,0.4)' };
+      default:
+        return { label: st.toUpperCase(), color: SAC.muted, bg: 'rgba(255,255,255,0.08)', border: SAC.border };
+    }
+  };
+
+  const getNextStageLabel = (st: string) => {
+    switch (st) {
+      case 'applicant_pool': return '✓ Shortlist Candidate';
+      case 'shortlisted': return '✓ Hire as Unpaid Intern';
+      case 'unpaid_intern': return '✓ Promote to Paid Intern';
+      case 'paid_intern': return '✓ Convert to Full Time';
+      case 'full_time': return '✓ Full Time Hired';
+      default: return '✓ Advance Stage';
+    }
+  };
+
+  return (
+    <View style={{ gap: 16 }}>
+      {/* Top Header & KPIs */}
+      <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+        <KpiTile Icon={Users} label="Total Applicants" value={String(candidates.length)} />
+        <KpiTile Icon={Star} label="Shortlisted" value={String(counts.shortlisted || 0)} />
+        <KpiTile Icon={GraduationCap} label="Unpaid Interns" value={String(counts.unpaid_intern || 0)} />
+        <KpiTile Icon={CreditCard} label="Paid Interns" value={String(counts.paid_intern || 0)} />
+        <KpiTile Icon={UserCheck} label="Full Time Hires" value={String(counts.full_time || 0)} delta="Active" deltaKind="success" />
+      </View>
+
+      {/* Toolbar */}
+      <Card style={{ padding: 14, gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 260 }}>
+            <SearchField value={search} onChange={setSearch} placeholder="Search name, email, college, skill..." width="100%" />
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            <Pressable
+              onPress={handleSyncAll}
+              disabled={loading}
+              style={{
+                flexDirection: 'row', alignItems: 'center', gap: 6,
+                backgroundColor: 'rgba(124,58,237,0.18)', borderWidth: 1, borderColor: '#7C3AED',
+                borderRadius: 9, paddingHorizontal: 12, paddingVertical: 8, cursor: 'pointer',
+              }}
+            >
+              <RefreshCw size={13} color="#A78BFA" />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#C4B5FD' }}>Sync Event Registrations</Text>
+            </Pressable>
+            <Pressable
+              onPress={exportRosterCsv}
+              style={{
+                flexDirection: 'row', alignItems: 'center', gap: 6,
+                backgroundColor: '#059669', borderRadius: 9, paddingHorizontal: 12, paddingVertical: 8, cursor: 'pointer',
+              }}
+            >
+              <Download size={13} color="#fff" />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export Roster CSV</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Stage Pills Navigation */}
+        <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', paddingTop: 12 }}>
+          {STAGES.map((st) => {
+            const isActive = stageTab === st.id;
+            return (
+              <Pressable
+                key={st.id}
+                onPress={() => setStageTab(st.id)}
+                style={{
+                  paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
+                  backgroundColor: isActive ? '#7C3AED' : 'rgba(255,255,255,0.05)',
+                  borderWidth: 1, borderColor: isActive ? '#9E7BFF' : 'rgba(255,255,255,0.08)',
+                  flexDirection: 'row', alignItems: 'center', gap: 6, cursor: 'pointer',
+                }}
+              >
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: isActive ? '#FFFFFF' : SAC.text }}>{st.label}</Text>
+                <View style={{
+                  paddingHorizontal: 6, paddingVertical: 1, borderRadius: 10,
+                  backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
+                }}>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: isActive ? '#FFFFFF' : SAC.muted }}>{st.count}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Card>
+
+      {/* Candidates List / Pipeline Grid */}
+      <Card style={{ overflow: 'hidden' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderBottomWidth: 1, borderBottomColor: SAC.border }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>
+            {candidates.length} Candidate{candidates.length !== 1 ? 's' : ''} in Pipeline
+          </Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>
+            Click checkmark button to advance candidates to next stage (Shortlisted → Unpaid Intern → Paid Intern → Full Time)
+          </Text>
+        </View>
+
+        {loading ? (
+          <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={GRAD.from} />
+          </View>
+        ) : candidates.length === 0 ? (
+          <View style={{ padding: 40, alignItems: 'center', gap: 10 }}>
+            <IconBox size={46}><UserCheck size={18} color={GRAD.to} /></IconBox>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>No candidates in this view</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: SAC.muted, textAlign: 'center', maxWidth: 340 }}>
+              Click "Sync Event Registrations" above or convert registrations from Echo VNRVJIET & SNIST into intern candidates.
+            </Text>
+          </View>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
+            <View style={{ minWidth: 1050, flex: 1 }}>
+              {/* Header */}
+              <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: SAC.border }}>
+                <Text style={{ flex: 1.5, minWidth: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>CANDIDATE</Text>
+                <Text style={{ flex: 1.2, minWidth: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>COLLEGE & EVENT</Text>
+                <Text style={{ width: 130, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>STAGE</Text>
+                <Text style={{ flex: 1.2, minWidth: 160, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SKILLS / DOMAIN</Text>
+                <Text style={{ width: 110, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>STIPEND</Text>
+                <Text style={{ width: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>QUICK ACTION</Text>
+              </View>
+
+              {pagedCandidates.map((c: any, i: number) => {
+                const badge = getStageBadge(c.stage || 'applicant_pool');
+                const cid = c._id || c.id;
+                const isActioning = actioningId === cid;
+
+                return (
+                  <View key={cid || i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
+                    {/* Candidate */}
+                    <View style={{ flex: 1.5, minWidth: 180 }}>
+                      <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>{c.full_name || '—'}</Text>
+                      <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim, marginTop: 1 }}>{c.email || ''}</Text>
+                      {c.phone ? (
+                        <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, marginTop: 1 }}>{c.phone}</Text>
+                      ) : null}
+                    </View>
+
+                    {/* College & Event */}
+                    <View style={{ flex: 1.2, minWidth: 150 }}>
+                      <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 11.5, color: '#E2E8F0' }}>{c.college || 'VNRVJIET / SNIST'}</Text>
+                      <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: '#A78BFA', marginTop: 1 }}>{c.event_title || c.slug || ''}</Text>
+                      {c.branch ? <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9.5, color: SAC.dim }}>{c.branch}</Text> : null}
+                    </View>
+
+                    {/* Stage Badge */}
+                    <View style={{ width: 130 }}>
+                      <View style={{
+                        paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
+                        backgroundColor: badge.bg, borderWidth: 1, borderColor: badge.border,
+                        alignSelf: 'flex-start',
+                      }}>
+                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 9.5, color: badge.color }}>
+                          {badge.label}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Skills / Domain */}
+                    <View style={{ flex: 1.2, minWidth: 160, flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+                      {(c.skills || ['Technical']).map((sk: string, sIdx: number) => (
+                        <View key={sIdx} style={{
+                          paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+                          backgroundColor: sk === 'Marketing' ? 'rgba(245,158,11,0.15)' : 'rgba(99,102,241,0.15)',
+                          borderWidth: 1, borderColor: sk === 'Marketing' ? 'rgba(245,158,11,0.3)' : 'rgba(99,102,241,0.3)',
+                        }}>
+                          <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: sk === 'Marketing' ? '#FBBF24' : '#818CF8' }}>{sk}</Text>
+                        </View>
+                      ))}
+                    </View>
+
+                    {/* Stipend */}
+                    <View style={{ width: 110 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: Number(c.stipend || 0) > 0 ? '#34D399' : SAC.muted }}>
+                        {Number(c.stipend || 0) > 0 ? `₹${Number(c.stipend).toLocaleString('en-IN')}/mo` : 'Unpaid'}
+                      </Text>
+                    </View>
+
+                    {/* Quick Action Button */}
+                    <View style={{ width: 180, flexDirection: 'row', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+                      {c.stage !== 'full_time' ? (
+                        <Pressable
+                          onPress={() => handleAdvanceStage(c)}
+                          disabled={isActioning}
+                          style={{
+                            flexDirection: 'row', alignItems: 'center', gap: 5,
+                            backgroundColor: c.stage === 'unpaid_intern' ? '#059669' : c.stage === 'shortlisted' ? '#2563EB' : '#7C3AED',
+                            paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7, cursor: 'pointer',
+                            opacity: isActioning ? 0.6 : 1,
+                          }}
+                        >
+                          {isActioning ? <ActivityIndicator size="small" color="#fff" /> : <CheckCircle size={13} color="#fff" />}
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#fff' }}>
+                            {getNextStageLabel(c.stage)}
+                          </Text>
+                        </Pressable>
+                      ) : (
+                        <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(52,211,153,0.2)', borderWidth: 1, borderColor: '#34D399' }}>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 10.5, color: '#34D399' }}>✓ Hired Full-Time</Text>
+                        </View>
+                      )}
+
+                      <IconAction icon={<Pencil size={13} color="#94A3B8" />} label="Edit / Offer" color="#94A3B8" onPress={() => openEditModal(c)} />
+                      <IconAction icon={<Trash2 size={13} color="#F87171" />} label="Delete" color="#F87171" danger onPress={() => handleDelete(c)} />
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </ScrollView>
+        )}
+
+        {/* Pagination */}
+        {candidates.length > CAND_PER_PAGE && (
+          <View style={{
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+            paddingVertical: 10, paddingHorizontal: 14,
+            borderTopWidth: 1, borderTopColor: SAC.border, flexWrap: 'wrap', gap: 10,
+          }}>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
+              Showing {candSafePage * CAND_PER_PAGE + 1}–{Math.min((candSafePage + 1) * CAND_PER_PAGE, candidates.length)} of {candidates.length}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+              <Pressable
+                onPress={() => setCandPage(candSafePage - 1)}
+                disabled={candSafePage === 0}
+                style={{
+                  paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7,
+                  backgroundColor: candSafePage === 0 ? 'rgba(255,255,255,0.04)' : 'rgba(167,139,250,0.15)',
+                  borderWidth: 1, borderColor: candSafePage === 0 ? SAC.border : 'rgba(167,139,250,0.3)',
+                  opacity: candSafePage === 0 ? 0.4 : 1,
+                }}
+              >
+                <ChevronLeft size={14} color={SAC.text} />
+              </Pressable>
+              {Array.from({ length: candTotalPages }, (_, p) => p).map((p) => {
+                if (candTotalPages > 7 && Math.abs(p - candSafePage) > 2 && p !== 0 && p !== candTotalPages - 1) {
+                  return null;
+                }
+                return (
+                  <Pressable key={p} onPress={() => setCandPage(p)} style={{
+                    minWidth: 30, alignItems: 'center', justifyContent: 'center',
+                    paddingVertical: 6, borderRadius: 7,
+                    backgroundColor: p === candSafePage ? '#7C3AED' : 'rgba(255,255,255,0.05)',
+                    borderWidth: 1, borderColor: p === candSafePage ? '#7C3AED' : SAC.border,
+                  }}>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: p === candSafePage ? '#fff' : SAC.text }}>{p + 1}</Text>
+                  </Pressable>
+                );
+              })}
+              <Pressable
+                onPress={() => setCandPage(candSafePage + 1)}
+                disabled={candSafePage >= candTotalPages - 1}
+                style={{
+                  paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7,
+                  backgroundColor: candSafePage >= candTotalPages - 1 ? 'rgba(255,255,255,0.04)' : 'rgba(167,139,250,0.15)',
+                  borderWidth: 1, borderColor: candSafePage >= candTotalPages - 1 ? SAC.border : 'rgba(167,139,250,0.3)',
+                  opacity: candSafePage >= candTotalPages - 1 ? 0.4 : 1,
+                }}
+              >
+                <ChevronRight size={14} color={SAC.text} />
+              </Pressable>
+            </View>
+          </View>
+        )}
+      </Card>
+
+      {/* Edit / Offer Details Modal */}
+      {editingCandidate && (
+        <Modal visible transparent animationType="fade" onRequestClose={() => setEditingCandidate(null)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <View style={{ backgroundColor: '#0F172A', borderRadius: 16, borderWidth: 1, borderColor: SAC.border, width: '100%', maxWidth: 520, padding: 22, gap: 16 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>Candidate Evaluation & Offer</Text>
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginTop: 2 }}>{editingCandidate.full_name} ({editingCandidate.email})</Text>
+                </View>
+                <Pressable onPress={() => setEditingCandidate(null)}><X size={18} color={SAC.muted} /></Pressable>
+              </View>
+
+              <FieldRow label="Hiring Pipeline Stage">
+                <SelectNative
+                  value={editStage}
+                  onChange={setEditStage}
+                  options={['applicant_pool', 'shortlisted', 'unpaid_intern', 'paid_intern', 'full_time']}
+                />
+              </FieldRow>
+
+              <FieldRow label="Domain Skills / Track">
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {DOMAINS.map((sk) => {
+                    const sel = editSkills.includes(sk);
+                    return (
+                      <Pressable
+                        key={sk}
+                        onPress={() => toggleSkillInModal(sk)}
+                        style={{
+                          paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6,
+                          backgroundColor: sel ? '#7C3AED' : 'rgba(255,255,255,0.06)',
+                          borderWidth: 1, borderColor: sel ? '#9E7BFF' : 'rgba(255,255,255,0.1)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: sel ? '#FFF' : SAC.text }}>{sk}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </FieldRow>
+
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <FieldRow label="Role Title">
+                    <Field value={editRoleTitle} onChangeText={setEditRoleTitle} placeholder="e.g. Software Intern" />
+                  </FieldRow>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <FieldRow label="Monthly Stipend (₹)">
+                    <Field value={editStipend} onChangeText={setEditStipend} placeholder="0 for Unpaid" />
+                  </FieldRow>
+                </View>
+              </View>
+
+              <FieldRow label="Recruiter / Interviewer Notes">
+                <Field value={editNotes} onChangeText={setEditNotes} placeholder="Notes on technical skill, marketing proficiency, interview feedback..." multiline rows={3} />
+              </FieldRow>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+                <SecondaryButton onPress={() => setEditingCandidate(null)}>
+                  <Text style={{ color: SAC.text, fontFamily: FONTS.semi, fontSize: 12 }}>Cancel</Text>
+                </SecondaryButton>
+                <GradientButton onPress={handleSaveModal} loading={actioningId === (editingCandidate._id || editingCandidate.id)}>
+                  <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Save Profile</Text>
+                </GradientButton>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+    </View>
+  );
+}
+
+
+// ── Registration tab passcode control (server-side configured) ───────────────
+function RegistrationPasscodeControl({
+  enabled,
+  onChange,
+}: {
+  enabled: boolean;
+  onChange?: (enabled: boolean) => void;
+}) {
+  const { flash } = useToast();
+  const [pass, setPass] = useState('');
+  const [confirmPass, setConfirmPass] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  const save = async () => {
+    if (pass.length < 4 || pass.length > 12) {
+      flash('Passcode must be 4-12 characters');
+      return;
+    }
+    if (pass !== confirmPass) {
+      flash('Passcodes do not match');
+      return;
+    }
+    setBusy(true);
+    try {
+      await api.setEchoRegistrationPasscode(pass);
+      onChange?.(true);
+      flash('Registration passcode saved & enabled');
+      setPass('');
+      setConfirmPass('');
+      setShowForm(false);
+    } catch (e: any) {
+      flash(e?.message || 'Failed to save passcode');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const disable = async () => {
+    setBusy(true);
+    try {
+      await api.disableEchoRegistrationPasscode();
+      onChange?.(false);
+      flash('Registration passcode disabled');
+      setShowForm(false);
+    } catch (e: any) {
+      flash(e?.message || 'Failed to disable passcode');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <IconBox tint={enabled ? '#F59E0B' : '#334155'}>
+            <Lock size={16} color={enabled ? '#F59E0B' : '#94A3B8'} />
+          </IconBox>
+          <View>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>Registrations Access Passcode</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+              <StatusPill kind={enabled ? 'warn' : 'success'} label={enabled ? 'Locked' : 'Unlocked'} />
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+                {enabled
+                  ? 'The Registrations tab requires this passcode to open.'
+                  : 'No passcode required. The Registrations tab is open.'}
+              </Text>
+            </View>
+          </View>
+        </View>
+        <Pressable
+          onPress={() => setShowForm((v) => !v)}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: 'rgba(139,92,246,0.15)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.35)',
+            borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, cursor: 'pointer',
+          }}
+        >
+          <Lock size={13} color="#A78BFA" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#A78BFA' }}>
+            {enabled ? 'Change Passcode' : 'Set Passcode'}
+          </Text>
+        </Pressable>
+      </View>
+
+      {showForm && (
+        <View style={{ marginTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(148,163,184,0.15)', paddingTop: 16, gap: 12 }}>
+          {enabled && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <Lock size={12} color="#F59E0B" />
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+                A passcode is active. The Registrations tab is locked until the correct code is entered.
+              </Text>
+            </View>
+          )}
+          <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+            <View style={{ flex: 1, minWidth: 180 }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginBottom: 6 }}>NEW PASSCODE</Text>
+              <TextInput
+                value={pass}
+                onChangeText={setPass}
+                secureTextEntry
+                placeholder="Enter new passcode"
+                placeholderTextColor="#64748B"
+                autoCapitalize="none"
+                style={{
+                  backgroundColor: 'rgba(15,23,42,0.7)', borderWidth: 1, borderColor: 'rgba(148,163,184,0.25)',
+                  borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, color: SAC.text,
+                  fontFamily: FONTS.med, fontSize: 13,
+                }}
+              />
+            </View>
+            <View style={{ flex: 1, minWidth: 180 }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginBottom: 6 }}>CONFIRM PASSCODE</Text>
+              <TextInput
+                value={confirmPass}
+                onChangeText={setConfirmPass}
+                secureTextEntry
+                placeholder="Re-enter passcode"
+                placeholderTextColor="#64748B"
+                autoCapitalize="none"
+                style={{
+                  backgroundColor: 'rgba(15,23,42,0.7)', borderWidth: 1, borderColor: 'rgba(148,163,184,0.25)',
+                  borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, color: SAC.text,
+                  fontFamily: FONTS.med, fontSize: 13,
+                }}
+              />
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
+            <GradientButton onPress={save} disabled={busy} size="sm">
+              <Lock size={13} color="#fff" />
+              <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12, marginLeft: 6 }}>
+                {busy ? 'Saving…' : enabled ? 'Save & Update' : 'Save & Lock'}
+              </Text>
+            </GradientButton>
+            {enabled && (
+              <SecondaryButton onPress={disable} disabled={busy} size="sm">
+                <Text style={{ color: '#F87171', fontFamily: FONTS.bold, fontSize: 12 }}>
+                  {busy ? 'Working…' : 'Disable & Unlock'}
+                </Text>
+              </SecondaryButton>
+            )}
+            <SecondaryButton onPress={() => setShowForm(false)} size="sm">
+              <Text style={{ color: '#94A3B8', fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
+            </SecondaryButton>
+          </View>
+        </View>
+      )}
+    </Card>
+  );
+}
+
+function RegistrationPasscodeGate({
+  onUnlocked,
+  onChange,
+  enabled,
+}: {
+  onUnlocked: () => void;
+  onChange: (enabled: boolean) => void;
+  enabled: boolean;
+}) {
+  const [input, setInput] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [showSetup, setShowSetup] = useState(false);
+
+  const tryUnlock = async () => {
+    if (!input.trim()) { setError('Enter the passcode to unlock.'); return; }
+    setBusy(true);
+    setError('');
+    try {
+      const res = await api.verifyEchoRegistrationPasscode(input.trim());
+      if (res?.ok) {
+        onUnlocked();
+      } else {
+        setError('Incorrect passcode. Please try again.');
+      }
+    } catch {
+      setError('Could not reach the server. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <View style={{ alignItems: 'center', paddingVertical: 28, paddingHorizontal: 20 }}>
+        <View style={{ width: 64, height: 64, borderRadius: 18, backgroundColor: 'rgba(245,158,11,0.15)', alignItems: 'center', justifyContent: 'center' }}>
+          <Lock size={30} color="#F59E0B" />
+        </View>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: SAC.text, marginTop: 18 }}>
+          Registrations Locked
+        </Text>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: SAC.muted, marginTop: 6, textAlign: 'center', maxWidth: 420 }}>
+          This section contains sensitive payment & registration data. Enter the configured passcode to unlock it.
+        </Text>
+
+        <View style={{ width: '100%', maxWidth: 340, marginTop: 22 }}>
+          <TextInput
+            value={input}
+            onChangeText={(t) => { setInput(t); setError(''); }}
+            secureTextEntry
+            placeholder="Enter passcode"
+            placeholderTextColor="#64748B"
+            autoCapitalize="none"
+            autoFocus
+            onSubmitEditing={tryUnlock}
+            style={{
+              backgroundColor: 'rgba(15,23,42,0.8)', borderWidth: 1,
+              borderColor: error ? '#F87171' : 'rgba(148,163,184,0.3)',
+              borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, color: SAC.text,
+              fontFamily: FONTS.med, fontSize: 16, textAlign: 'center', letterSpacing: 2,
+            }}
+          />
+          {error ? (
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: '#F87171', marginTop: 8, textAlign: 'center' }}>{error}</Text>
+          ) : null}
+          <GradientButton onPress={tryUnlock} disabled={busy} size="md" style={{ marginTop: 14, width: '100%' }}>
+            <Lock size={14} color="#fff" />
+            <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>
+              {busy ? 'Unlocking…' : 'Unlock'}
+            </Text>
+          </GradientButton>
+          <Pressable onPress={() => setShowSetup((v) => !v)} style={{ marginTop: 14, alignItems: 'center' }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#A78BFA' }}>
+              {showSetup ? 'Hide passcode settings' : 'Configure / change the passcode'}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+      {showSetup && (
+        <View style={{ marginTop: 4 }}>
+          <RegistrationPasscodeControl enabled={enabled} onChange={onChange} />
+        </View>
+      )}
+    </Card>
+  );
+}
+
 // ── Main View ─────────────────────────────────────────────────────────────────
 export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
-  const [pageTab, setPageTab] = useSubTab<PageTab>(['all', 'create', 'drafts', 'registrations', 'volunteers', 'media'], 'all', { sub, onSub });
+  const T = useSAC();
+  Object.assign(fi, resolveColors(fi, T));
+
+  const [pageTab, setPageTab] = useSubTab<PageTab>(['registrations', 'scan-monitor', 'all', 'create', 'drafts', 'interns', 'volunteers', 'media'], 'registrations', { sub, onSub });
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -4576,6 +6750,65 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
   const { toast, flash, hide } = useToast();
   const { confirm } = useConfirm();
   const user = useAuthStore((s) => s.user);
+
+  const [regPassEnabled, setRegPassEnabled] = useState<boolean | null>(null);
+  const [regPassUnlocked, setRegPassUnlocked] = useState(false);
+
+  const loadPasscodeStatus = useCallback(async () => {
+    try {
+      const res = await api.getEchoRegistrationPasscode();
+      setRegPassEnabled(res?.enabled ? true : false);
+    } catch {
+      setRegPassEnabled(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (pageTab === 'registrations') {
+      loadPasscodeStatus();
+      if (Platform.OS === 'web') {
+        try {
+          const unlocked = sessionStorage.getItem('echo_reg_pass_unlocked') === '1';
+          setRegPassUnlocked(unlocked);
+        } catch {}
+      }
+    }
+  }, [pageTab, loadPasscodeStatus]);
+
+  // Re-lock when browser tab becomes hidden (tab switch, window blur)
+  useEffect(() => {
+    if (Platform.OS !== 'web' || pageTab !== 'registrations' || !regPassEnabled) return;
+    const onVisChange = () => {
+      if (document.hidden) {
+        setRegPassUnlocked(false);
+        try { sessionStorage.removeItem('echo_reg_pass_unlocked'); } catch {}
+      }
+    };
+    document.addEventListener('visibilitychange', onVisChange);
+    return () => document.removeEventListener('visibilitychange', onVisChange);
+  }, [pageTab, regPassEnabled]);
+
+  const regPassUnlock = () => {
+    setRegPassUnlocked(true);
+    if (Platform.OS === 'web') {
+      try { sessionStorage.setItem('echo_reg_pass_unlocked', '1'); } catch {}
+    }
+  };
+
+  const onPasscodeChanged = (newEnabled: boolean) => {
+    setRegPassEnabled(newEnabled);
+    if (newEnabled) {
+      setRegPassUnlocked(false);
+      if (Platform.OS === 'web') {
+        try { sessionStorage.removeItem('echo_reg_pass_unlocked'); } catch {}
+      }
+    } else {
+      setRegPassUnlocked(true);
+      if (Platform.OS === 'web') {
+        try { sessionStorage.setItem('echo_reg_pass_unlocked', '1'); } catch {}
+      }
+    }
+  };
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return; }
@@ -4599,13 +6832,15 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
     }
   }, [pageTab]);
 
-  const filtered = items.filter((i) => {
-    const q = search.toLowerCase();
-    const matchQ = !q || i.title?.toLowerCase().includes(q) || i.slug?.toLowerCase().includes(q);
-    const matchStatus = statusFilter === 'all' || i.status === statusFilter;
-    const matchPage = pageTab === 'drafts' ? i.status === 'draft' : true;
-    return matchQ && matchStatus && matchPage;
-  });
+  const filtered = useMemo(() => {
+    return items.filter((i) => {
+      const q = search.toLowerCase();
+      const matchQ = !q || i.title?.toLowerCase().includes(q) || i.slug?.toLowerCase().includes(q);
+      const matchStatus = statusFilter === 'all' || i.status === statusFilter;
+      const matchPage = pageTab === 'drafts' ? i.status === 'draft' : true;
+      return matchQ && matchStatus && matchPage;
+    });
+  }, [items, search, statusFilter, pageTab]);
 
   useEffect(() => {
     setPage(1);
@@ -4700,10 +6935,12 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
             Create and manage showcase pages. Published showcases appear in the Student Portal.
           </Text>
         </View>
-        <GradientButton onPress={onCreate} size="md">
-          <PlusCircle size={14} color="#fff" />
-          <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>New Showcase</Text>
-        </GradientButton>
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          <GradientButton onPress={onCreate} size="md">
+            <PlusCircle size={14} color="#fff" />
+            <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>New Showcase</Text>
+          </GradientButton>
+        </View>
       </View>
 
       {/* Page-level navigation tabs */}
@@ -4713,9 +6950,29 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
 
       {/* ── MEDIA LIBRARY ── */}
       {pageTab === 'media' && <MediaLibraryPanel />}
+      {pageTab === 'scan-monitor' && <LiveScanMonitorPanel />}
 
       {/* ── REGISTRATIONS & PAYMENTS ── */}
-      {pageTab === 'registrations' && <RegistrationsPanel />}
+      {pageTab === 'registrations' && (
+        regPassEnabled === null
+          ? <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
+              <ActivityIndicator size="large" color="#8B5CF6" />
+            </View>
+          : (regPassEnabled
+              ? (!regPassUnlocked
+                  ? <RegistrationPasscodeGate onUnlocked={regPassUnlock} onChange={onPasscodeChanged} enabled={regPassEnabled} />
+                  : <View style={{ gap: 14 }}>
+                      <RegistrationPasscodeControl enabled={regPassEnabled} onChange={onPasscodeChanged} />
+                      <RegistrationsPanel />
+                    </View>)
+              : <View style={{ gap: 14 }}>
+                  <RegistrationPasscodeControl enabled={false} onChange={onPasscodeChanged} />
+                  <RegistrationsPanel />
+                </View>)
+      )}
+
+      {/* ── INTERNAL HIRING & INTERNS ── */}
+      {pageTab === 'interns' && <InternalHiringPanel />}
 
       {/* ── VOLUNTEERS ── */}
       {pageTab === 'volunteers' && <VolunteersPanel />}
@@ -4737,7 +6994,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
               <SearchField value={search} onChange={setSearch} placeholder="Search showcases…" />
             </View>
             {pageTab === 'all' && (
-              <TopTabs tabs={FILTER_TABS} active={statusFilter} onChange={setStatusFilter} />
+              <TopTabs tabs={FILTER_TABS} active={statusFilter} onChange={(val) => setStatusFilter(val as StatusFilter)} />
             )}
           </View>
 
@@ -4758,7 +7015,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
                   : 'Create your first ECHO Showcase to let students explore memorable campus events.'}
               </Text>
               <GradientButton onPress={onCreate} size="md">
-                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>+ New Showcase</Text>
+                <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 }}>+ New Showcase</Text>
               </GradientButton>
             </Card>
           ) : (
@@ -4830,19 +7087,19 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
 
       {/* Ticket Preview Modal */}
       <Modal visible={!!previewHtml} transparent animationType="fade" onRequestClose={() => setPreviewHtml(null)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-          <View style={{ backgroundColor: '#1e1b4b', borderRadius: 16, overflow: 'hidden', width: '100%', maxWidth: 800, maxHeight: '90vh', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
-              <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#fff' }}>Ticket Preview</Text>
+        <View style={{ flex: 1, backgroundColor: SAC.panel2, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: '#1e1b4b', borderRadius: 16, overflow: 'hidden', width: '100%', maxWidth: 800, maxHeight: '90vh' as any, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>Ticket Preview</Text>
               <Pressable onPress={() => setPreviewHtml(null)} style={{ padding: 6 }}>
                 <X size={18} color="#94a3b8" />
               </Pressable>
             </View>
-            <View style={{ flex: 1, overflow: 'auto' }}>
+            <View style={{ flex: 1, overflow: 'hidden' as any }}>
               {previewHtml ? (
                 <iframe
                   srcDoc={previewHtml}
-                  style={{ width: '100%', height: 600, border: 'none', background: '#0f172a' }}
+                  style={{ width: '100%', height: 600, border: 'none', background: '#101019' }}
                   title="Ticket Preview"
                 />
               ) : null}

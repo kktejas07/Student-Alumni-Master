@@ -1,3 +1,6 @@
+from __future__ import annotations
+from core.deps import require_role
+from core.deps import require_role
 """
 Visitor Analytics & Telemetry Engine
 ===================================
@@ -14,7 +17,6 @@ Collections used:
   - visitor_sessions : Unique sessions with full hardware, geo, and visitor metadata
   - visitor_events   : Fine-grained chronological event trail per session
 """
-from __future__ import annotations
 import os
 import io
 import csv
@@ -354,7 +356,7 @@ async def identify_visitor(payload: IdentifyPayload):
 # ─── Super Admin Analytics Queries ──────────────────────────────────
 
 @router.get("/admin/analytics/visitors/live")
-async def get_live_visitors(user: dict = Depends(_require_admin())):
+async def get_live_visitors(user: dict = Depends(require_role("admin", "superadmin", "college"))):
     """
     Real-time active visitors on the site within the last 5 minutes.
     """
@@ -420,7 +422,7 @@ async def list_visitors(
     module: Optional[str] = Query(None),
     country: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
-    user: dict = Depends(_require_admin())
+    user: dict = Depends(require_role("admin", "superadmin", "college"))
 ):
     """
     Paginated, filterable visitor list with search by IP, Inferred Name, Fingerprint, or Path.
@@ -472,12 +474,17 @@ async def list_visitors(
         # Determine status
         lb = s.get("last_heartbeat")
         if lb:
-            dt = datetime.fromisoformat(lb.replace("Z", "+00:00")) if isinstance(lb, str) else lb
-            if (now - dt).total_seconds() < 300:
-                s["status"] = "online"
-            elif (now - dt).total_seconds() < 3600:
-                s["status"] = "idle"
-            else:
+            try:
+                dt = datetime.fromisoformat(lb.replace("Z", "+00:00")) if isinstance(lb, str) else lb
+                if hasattr(dt, 'tzinfo') and dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                if (now - dt).total_seconds() < 300:
+                    s["status"] = "online"
+                elif (now - dt).total_seconds() < 3600:
+                    s["status"] = "idle"
+                else:
+                    s["status"] = "offline"
+            except Exception:
                 s["status"] = "offline"
         else:
             s["status"] = "offline"
@@ -494,7 +501,7 @@ async def list_visitors(
 
 
 @router.get("/admin/analytics/visitors/{session_or_visitor_id}")
-async def get_visitor_dossier(session_or_visitor_id: str, user: dict = Depends(_require_admin())):
+async def get_visitor_dossier(session_or_visitor_id: str, user: dict = Depends(require_role("admin", "superadmin", "college"))):
     """
     Detailed dossier for a single visitor session including full journey event trail.
     """
@@ -543,7 +550,7 @@ async def get_visitor_dossier(session_or_visitor_id: str, user: dict = Depends(_
 
 
 @router.get("/admin/analytics/modules")
-async def get_modular_analytics(days: int = Query(30, ge=1, le=180), user: dict = Depends(_require_admin())):
+async def get_modular_analytics(days: int = Query(30, ge=1, le=180), user: dict = Depends(require_role("admin", "superadmin", "college"))):
     """
     Module-based analytics matrix across platform components.
     """
@@ -634,7 +641,7 @@ async def get_modular_analytics(days: int = Query(30, ge=1, le=180), user: dict 
 
 
 @router.get("/admin/analytics/hardware")
-async def get_hardware_analytics(days: int = Query(60, ge=1, le=180), user: dict = Depends(_require_admin())):
+async def get_hardware_analytics(days: int = Query(60, ge=1, le=180), user: dict = Depends(require_role("admin", "superadmin", "college"))):
     """
     Hardware, device & environment distribution of visitors.
     """
@@ -686,7 +693,7 @@ async def get_hardware_analytics(days: int = Query(60, ge=1, le=180), user: dict
 
     # GPU Renderers
     gpu_pipeline = [
-        {"$match": {**match, "device.gpu_renderer": {"$exists": True, "$ne": None, "$ne": ""}}},
+        {"$match": {**match, "device.gpu_renderer": {"$exists": True, "$nin": [None, ""]}}},
         {"$group": {"_id": "$device.gpu_renderer", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}},
         {"$limit": 8},
@@ -717,7 +724,7 @@ async def get_hardware_analytics(days: int = Query(60, ge=1, le=180), user: dict
 async def export_visitors_csv(
     days: int = Query(30, ge=1, le=365),
     visitor_type: Optional[str] = Query("all"),
-    user: dict = Depends(_require_admin())
+    user: dict = Depends(require_role("admin", "superadmin", "college"))
 ):
     """
     Download visitor telemetry data as CSV.
@@ -785,3 +792,130 @@ async def export_visitors_csv(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename=visitors_export_{now.strftime('%Y%m%d_%H%M%S')}.csv"}
     )
+
+
+@router.get("/admin/analytics/heatmap")
+async def get_visitor_click_heatmap(
+    module: Optional[str] = Query("all"),
+    days: int = Query(30, ge=1, le=365),
+    user: dict = Depends(require_role("admin", "superadmin", "college"))
+):
+    """
+    Returns visual click heatmap density rankings and element interaction counts.
+    Aggregates element clicks, click percentages, heat intensity, and target URL routes.
+    """
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=days)
+    match: Dict[str, Any] = {"timestamp": {"$gte": cutoff}, "event_type": "click"}
+    
+    if module and module != "all":
+        match["module"] = module
+        
+    pipeline = [
+        {"$match": match},
+        {"$group": {
+            "_id": {"element_id": "$element_id", "element_text": "$element_text"},
+            "click_count": {"$sum": 1},
+            "last_clicked": {"$max": "$timestamp"},
+            "sample_path": {"$first": "$path"}
+        }},
+        {"$sort": {"click_count": -1}},
+        {"$limit": 30}
+    ]
+    
+    docs = await _db.visitor_events.aggregate(pipeline).to_list(30)
+    total_clicks = sum(d.get("click_count", 0) for d in docs) or 1
+
+    elements = []
+    if docs and len(docs) > 2:
+        for idx, d in enumerate(docs):
+            cnt = d.get("click_count", 0)
+            share = round((cnt / total_clicks) * 100, 1)
+            intensity = "hot" if idx < 3 else ("warm" if idx < 8 else "cool")
+            elements.append({
+                "rank": idx + 1,
+                "element_id": d["_id"].get("element_id") or f"element_{idx}",
+                "element_text": d["_id"].get("element_text") or "Card Component",
+                "click_count": cnt,
+                "click_share_pct": share,
+                "intensity": intensity,
+                "path": d.get("sample_path") or "",
+                "last_clicked": d.get("last_clicked").isoformat() if isinstance(d.get("last_clicked"), datetime) else None
+            })
+
+    return {
+        "module_filter": module,
+        "timeframe_days": days,
+        "total_clicks_analyzed": sum(e["click_count"] for e in elements),
+        "hotspots": elements
+    }
+
+
+# ── Super Admin Real-Time Announcement Broadcast Center ───────────────────────
+class BroadcastPushRequest(BaseModel):
+    title: str
+    message: str
+    target_module: Optional[str] = "all"
+    urgency: Optional[str] = "info"  # "info" | "urgent" | "winner"
+    banner_url: Optional[str] = None
+    duration_minutes: Optional[int] = 120
+
+@router.post("/admin/broadcast/push")
+async def push_announcement_broadcast(
+    body: BroadcastPushRequest,
+    user: dict = Depends(require_role("admin", "superadmin", "college"))
+):
+    """Super Admin endpoint to publish a real-time broadcast alert across web sessions."""
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(minutes=body.duration_minutes or 120)
+    
+    doc = {
+        "title": body.title,
+        "message": body.message,
+        "target_module": body.target_module or "all",
+        "urgency": body.urgency or "info",
+        "banner_url": body.banner_url,
+        "pushed_at": now.isoformat(),
+        "expires_at": expires_at.isoformat(),
+        "pushed_by": user.get("email") or "Super Admin",
+        "is_active": True
+    }
+    
+    # Deactivate previous broadcasts
+    await _db.announcement_broadcasts.update_many({}, {"$set": {"is_active": False}})
+    res = await _db.announcement_broadcasts.insert_one(doc)
+    doc["_id"] = str(res.inserted_id)
+    return {"status": "broadcast_active", "announcement": doc}
+
+
+@router.get("/admin/broadcast/active")
+async def get_active_announcement(module: Optional[str] = "all"):
+    """Public / Client endpoint to fetch the active broadcast banner."""
+    now_iso = datetime.now(timezone.utc).isoformat()
+    doc = await _db.announcement_broadcasts.find_one({
+        "is_active": True,
+        "expires_at": {"$gt": now_iso}
+    })
+    
+    if not doc:
+        # Default active broadcast banner for HackWave 3.0
+        return {
+            "active": True,
+            "announcement": {
+                "title": "HackWave 3.0 Registration Update",
+                "message": "₹17,50,000+ Total Prize Pool Live! WeHive 2 Business Visas & Germany Study Abroad Sponsorship active.",
+                "urgency": "urgent",
+                "target_module": "all",
+                "cta_label": "Claim Ticket",
+                "cta_url": "/echo/snist/register"
+            }
+        }
+    doc["_id"] = str(doc["_id"])
+    return {"active": True, "announcement": doc}
+
+
+@router.post("/admin/broadcast/clear")
+async def clear_active_announcement(user: dict = Depends(require_role("admin", "superadmin", "college"))):
+    """Clears the active broadcast banner."""
+    await _db.announcement_broadcasts.update_many({}, {"$set": {"is_active": False}})
+    return {"status": "cleared"}

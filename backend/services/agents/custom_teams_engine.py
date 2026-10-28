@@ -234,13 +234,15 @@ class CustomTeamsEngine:
 
     async def get_all_teams(self, db: Any) -> List[Dict[str, Any]]:
         """Fetch all teams from DB, seeding defaults if collection is empty."""
+        if db is None:
+            return PRESET_TEAMS
+
         try:
             custom_teams = await db.custom_agent_teams.find({}, {"_id": 0}).to_list(100)
         except Exception:
-            custom_teams = []
+            return PRESET_TEAMS
 
         if not custom_teams:
-            # Seed preset teams into DB
             try:
                 for pt in PRESET_TEAMS:
                     await db.custom_agent_teams.update_one(
@@ -252,7 +254,6 @@ class CustomTeamsEngine:
                 pass
             return PRESET_TEAMS
 
-        # Merge presets with custom if any preset is missing
         preset_ids = {t["id"] for t in custom_teams}
         for pt in PRESET_TEAMS:
             if pt["id"] not in preset_ids:
