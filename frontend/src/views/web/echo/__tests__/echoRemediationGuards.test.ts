@@ -17,7 +17,7 @@ import path from 'path';
 const FRONTEND_ROOT = path.resolve(__dirname, '../../../..', '..'); // frontend/
 const read = (rel: string) => fs.readFileSync(path.join(FRONTEND_ROOT, rel), 'utf8');
 
-const ECHO_EVENTS = 'src/views/web/echo/EchoEventsPage.tsx';
+const ECHO_EVENTS = 'src/features/echo/echoEventsPage.tsx';
 const SHOWCASE = 'src/views/web/portals/student/views/EchoShowcaseView.tsx';
 const EVENT_ROUTE = 'app/echo/[slug]/[event]/index.tsx';
 
