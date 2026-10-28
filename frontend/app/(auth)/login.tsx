@@ -21,7 +21,7 @@ import { Mail, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowRight, Sparkle
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { getBaseUrl } from '@/src/lib/env';
 import { api } from '@/src/models/services/api';
-import { initFirebaseAuth, signInWithGoogle } from '@/src/lib/firebaseAuth';
+import { initFirebaseAuth, signInWithGoogleRedirect, consumeGoogleRedirectResult } from '@/src/lib/firebaseAuth';
 
 const BASE = getBaseUrl();
 
@@ -164,6 +164,20 @@ function WebLoginScreen() {
             projectId: data.firebase.projectId,
             appId: data.firebase.appId,
           });
+          // Finish a Google sign-in that came back from the redirect flow.
+          try {
+            const redirected = await consumeGoogleRedirectResult();
+            if (redirected) {
+              await processGoogleAuth({
+                id_token: redirected.idToken,
+                email: redirected.email,
+                full_name: redirected.name,
+                picture: redirected.picture,
+              });
+            }
+          } catch (err: any) {
+            setErrorMsg(err?.message || 'Google Sign-In failed. Please try again.');
+          }
         }
       })
       .catch(() => null);
@@ -173,17 +187,10 @@ function WebLoginScreen() {
     setLoading(true);
     setErrorMsg('');
     try {
-      const result = await signInWithGoogle();
-      if (result) {
-        await processGoogleAuth({
-          id_token: result.idToken,
-          email: result.email,
-          full_name: result.name,
-          picture: result.picture,
-        });
-      } else {
-        setLoading(false);
-      }
+      // Full-page redirect instead of a popup: no COOP violations, no popup blockers.
+      await signInWithGoogleRedirect();
+      // The browser navigates to Google here; the result is handled on return
+      // by the oauth-config effect above (consumeGoogleRedirectResult).
     } catch (err: any) {
       setLoading(false);
       const firebaseUnavailable = err?.message?.includes('Firebase') || !googleClientId;
