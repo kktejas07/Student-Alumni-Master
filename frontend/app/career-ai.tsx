@@ -28,8 +28,9 @@ LogBox.ignoreAllLogs();
 import { useRouter } from 'expo-router';
 import {
   Award, Briefcase, ChevronRight, Code, Download, FileText, Flame, Folder, Link2, MessageSquare,
-  Mic, Send, Star, Target, User as UserIcon, Sparkles, Shield,
+  Mic, Send, Star, Target, User as UserIcon, Sparkles, Shield, RotateCcw,
 } from 'lucide-react-native';
+import { useTheme } from '@/src/theme/ThemeContext';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components/Toast';
@@ -57,8 +58,8 @@ import {
 } from '@/src/views/web/career';
 import { FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
 
-/* ────────── Design tokens ────────── */
-const C = {
+/* ────────── Design tokens (theme-aware) ────────── */
+const C_DARK = {
   bg: '#08080F',
   bgCard: '#101019',
   bgCardH: '#14141F',
@@ -78,6 +79,48 @@ const C = {
   red: '#F87171',
   green: '#34D399',
   pink: '#F472B6',
+  surface: '#0A0A2A',
+  surfaceBorder: 'rgba(255, 255, 255, 0.08)',
+  subtleBg: 'rgba(255, 255, 255, 0.03)',
+  subtleBorder: 'rgba(255, 255, 255, 0.06)',
+  track: 'rgba(255, 255, 255, 0.1)',
+  agentBg: 'rgba(255, 255, 255, 0.05)',
+  colCardBorder: 'rgba(0,0,0,0.07)',
+  cardShadow: '0 4px 20px rgba(0,0,0,0.15)',
+  heroCardBg: 'rgba(79, 70, 229, 0.15)',
+  heroShadow: '0 8px 32px rgba(79, 70, 229, 0.25)',
+};
+
+const C_LIGHT = {
+  bg: '#F8FAFC',
+  bgCard: '#FFFFFF',
+  bgCardH: '#F1F5F9',
+  border: 'rgba(15, 23, 42, 0.08)',
+  border2: 'rgba(15, 23, 42, 0.14)',
+  text: '#0F172A',
+  text2: 'rgba(15, 23, 42, 0.9)',
+  textSub: 'rgba(15, 23, 42, 0.75)',
+  dim: 'rgba(15, 23, 42, 0.55)',
+  purple: '#4338CA',
+  purple2: '#4F46E5',
+  purpleL: '#6366F1',
+  purpleXL: '#4338CA',
+  teal: '#0D9488',
+  blue: '#2563EB',
+  amber: '#D97706',
+  red: '#DC2626',
+  green: '#059669',
+  pink: '#DB2777',
+  surface: '#FFFFFF',
+  surfaceBorder: 'rgba(15, 23, 42, 0.08)',
+  subtleBg: 'rgba(15, 23, 42, 0.03)',
+  subtleBorder: 'rgba(15, 23, 42, 0.06)',
+  track: 'rgba(15, 23, 42, 0.1)',
+  agentBg: 'rgba(15, 23, 42, 0.04)',
+  colCardBorder: 'rgba(15, 23, 42, 0.08)',
+  cardShadow: '0 4px 20px rgba(15, 23, 42, 0.08)',
+  heroCardBg: '#FFFFFF',
+  heroShadow: '0 8px 32px rgba(79, 70, 229, 0.12)',
 };
 
 const FT = {
@@ -92,12 +135,12 @@ const FT = {
 const skillStatus = (v: number) => (v >= 70 ? 'Strong' : v >= 40 ? 'Developing' : 'Needs Work');
 
 const SKILL_META = [
-  { key: 'Technical Excellence',       label: 'Technical Excellence',       short: 'Technical Excellence',       color: '#38BDF8', Icon: Code, status: 'Strong' },
-  { key: 'Professional Communication', label: 'Professional Communication', short: 'Professional Communication', color: '#60A5FA', Icon: MessageSquare, status: 'Developing' },
-  { key: 'Leadership & Collaboration', label: 'Leadership & Collaboration', color: '#2DD4BF', Icon: Award, status: 'Needs Work' },
-  { key: 'Career Preparation',         label: 'Projects & Practical Skills',color: '#818CF8', Icon: Folder, status: 'Strong' },
-  { key: 'Personal Brand',             label: 'Personal Brand',             short: 'Personal Brand',             color: '#F59E0B', Icon: Star, status: 'Developing' },
-  { key: 'Industry Presence',          label: 'Industry Presence',          short: 'Industry Presence',          color: '#EC4899', Icon: UserIcon, status: 'Needs Work' },
+  { key: 'Technical Excellence',       label: 'Technical Excellence',       short: 'Technical Excellence',       color: '#38BDF8', colorLight: '#2563EB', Icon: Code, status: 'Strong' },
+  { key: 'Professional Communication', label: 'Professional Communication', short: 'Professional Communication', color: '#60A5FA', colorLight: '#4F46E5', Icon: MessageSquare, status: 'Developing' },
+  { key: 'Leadership & Collaboration', label: 'Leadership & Collaboration', color: '#2DD4BF', colorLight: '#0D9488', Icon: Award, status: 'Needs Work' },
+  { key: 'Career Preparation',         label: 'Projects & Practical Skills',color: '#818CF8', colorLight: '#4338CA', Icon: Folder, status: 'Strong' },
+  { key: 'Personal Brand',             label: 'Personal Brand',             short: 'Personal Brand',             color: '#F59E0B', colorLight: '#D97706', Icon: Star, status: 'Developing' },
+  { key: 'Industry Presence',          label: 'Industry Presence',          short: 'Industry Presence',          color: '#EC4899', colorLight: '#DB2777', Icon: UserIcon, status: 'Needs Work' },
 ];
 
 /* ────────── Types ────────── */
@@ -124,6 +167,9 @@ interface RoadmapResp {
    Main Page Component
 ═══════════════════════════════════════════════════════════ */
 export default function CareerAIPage({ embedded = false }: { embedded?: boolean } = {}) {
+  const { isDark } = useTheme();
+  const C = isDark ? C_DARK : C_LIGHT;
+  const s = useMemo(() => makeStyles(C), [C]);
   const router = useRouter();
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
@@ -304,7 +350,9 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   return (
     <View style={{ flex: 1, width: '100%', overflow: 'hidden' }}>
         <LinearGradient
-          colors={['#FFFFFF', '#F8FAFC', '#EFF6FF', '#E2E8F0']}
+          colors={isDark
+            ? ['#08080F', '#101019', '#14141F', '#0B0B14']
+            : ['#FFFFFF', '#F8FAFC', '#EFF6FF', '#E2E8F0']}
           locations={[0, 0.3, 0.7, 1]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -334,7 +382,10 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
             {regenerating ? (
               <ActivityIndicator size={13} color={C.purpleL} />
             ) : (
-              <Text style={s.regenBtnText}>↺ Regenerate</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <RotateCcw size={13} color={C.purpleL} />
+                <Text style={s.regenBtnText}>Regenerate</Text>
+              </View>
             )}
           </Pressable>
 
@@ -360,7 +411,9 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
       {/* ══════════════ 2. HERO MISSION CARD ══════════════ */}
       <LinearGradient
-        colors={['rgba(55, 48, 163, 0.50)', 'rgba(24, 18, 48, 0.90)', 'rgba(18, 22, 35, 0.95)']}
+        colors={isDark
+          ? ['rgba(55, 48, 163, 0.50)', 'rgba(24, 18, 48, 0.90)', 'rgba(18, 22, 35, 0.95)']
+          : ['#EEF2FF', '#E0E7FF', '#DBEAFE']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.heroCard}
       >
@@ -386,9 +439,9 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
                 {targetRole} at a {targetCo}
               </Text>
               <View style={s.heroChipsRow}>
-                <Text style={s.heroChip}>✦ Level: <Text style={s.heroChipVal}>{readinessLevel}</Text></Text>
-                <Text style={s.heroChip}>✦ Target: <Text style={s.heroChipVal}>{getLevelForScore(potentialScore)}</Text></Text>
-                <Text style={s.heroChip}>✦ ETA: <Text style={s.heroChipVal}>{estimatedWeeks}</Text></Text>
+                <Text style={s.heroChip}>Level: <Text style={s.heroChipVal}>{readinessLevel}</Text></Text>
+                <Text style={s.heroChip}>Target: <Text style={s.heroChipVal}>{getLevelForScore(potentialScore)}</Text></Text>
+                <Text style={s.heroChip}>ETA: <Text style={s.heroChipVal}>{estimatedWeeks}</Text></Text>
               </View>
             </View>
 
@@ -403,7 +456,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
                     size={64}
                     stroke={6}
                     color={C.purpleL}
-                    trackColor="rgba(255,255,255,0.08)"
+                    trackColor={isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'}
                     hideText={true}
                   />
                   <Text style={s.heroRingText}>{readinessScore}%</Text>
@@ -486,7 +539,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           style={{ flex: 1 }}
         />
         <MetricCard
-          label="SKILL STREAK 🔥"
+          label="SKILL STREAK"
           value={`${skillStreak} Days`}
           color={C.red}
           subText="Start your streak!"
@@ -511,7 +564,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
                 key={skill.key}
                 label={skill.label}
                 score={skillScores[skill.key] || 0}
-                baseColor={skill.color}
+                baseColor={isDark ? skill.color : skill.colorLight}
                 icon={skill.Icon}
                 status={skillStatus(skillScores[skill.key] || 0)}
               />
@@ -699,7 +752,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 /* ═══════════════════════════════════════════════════════════
    Styles matching Image 1 Reference
 ═══════════════════════════════════════════════════════════ */
-const s = StyleSheet.create({
+const makeStyles = (C: typeof C_DARK) => StyleSheet.create({
   shell: {
     flex: 1,
     backgroundColor: C.bg,
@@ -782,8 +835,8 @@ const s = StyleSheet.create({
     borderWidth: 1,
     padding: SPACING.xl,
     overflow: 'hidden',
-    ...(Platform.OS === 'web' ? { boxShadow: '0 8px 32px rgba(79, 70, 229, 0.25)' } as any : {}),
-    backgroundColor: 'rgba(79, 70, 229, 0.15)',
+    ...(Platform.OS === 'web' ? { boxShadow: C.heroShadow } as any : {}),
+    backgroundColor: C.heroCardBg,
   },
   heroContentRow: {
     flexDirection: 'row',
@@ -815,7 +868,7 @@ const s = StyleSheet.create({
     letterSpacing: 1.2,
   },
   heroRoleTitle: {
-    color: '#FFF',
+    color: C.text,
     fontFamily: FT.xbold,
     fontSize: 36,
     letterSpacing: -0.8,
@@ -845,8 +898,8 @@ const s = StyleSheet.create({
   heroPanel: {
     flex: 1,
     minWidth: 160,
-    backgroundColor: '#0A0A2A',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: C.surface,
+    borderColor: C.surfaceBorder,
     borderWidth: 1,
     borderRadius: RADIUS.card,
     padding: SPACING.lg,
@@ -869,12 +922,12 @@ const s = StyleSheet.create({
   },
   heroRingText: {
     position: 'absolute',
-    color: '#FFF',
+    color: C.text,
     fontFamily: FT.xbold,
     fontSize: 16,
   },
   heroPanelSubBold: {
-    color: '#FFF',
+    color: C.text,
     fontFamily: FT.bold,
     fontSize: 14,
   },
@@ -884,7 +937,7 @@ const s = StyleSheet.create({
     fontSize: 13,
   },
   heroPanelTitle: {
-    color: '#FFF',
+    color: C.text,
     fontFamily: FT.bold,
     fontSize: 14,
     marginVertical: 2,
@@ -892,7 +945,7 @@ const s = StyleSheet.create({
   heroProgressTrack: {
     height: 6,
     width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: C.track,
     borderRadius: 3,
     overflow: 'hidden',
     marginVertical: 6,
@@ -1024,14 +1077,14 @@ const s = StyleSheet.create({
   },
   colCard: {
     flex: 1,
-    backgroundColor: '#0A0A2A',
-    borderColor: 'rgba(0,0,0,0.07)',
+    backgroundColor: C.surface,
+    borderColor: C.colCardBorder,
     borderWidth: 1,
     borderRadius: RADIUS.card,
     padding: SPACING.lg,
     gap: SPACING.lg,
     justifyContent: 'space-between',
-    ...(Platform.OS === 'web' ? { boxShadow: '0 4px 20px rgba(0,0,0,0.15)' } as any : {}),
+    ...(Platform.OS === 'web' ? { boxShadow: C.cardShadow } as any : {}),
   },
   cardHeader: {
     flexDirection: 'row',
@@ -1073,8 +1126,8 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: C.subtleBg,
+    borderColor: C.subtleBorder,
     borderWidth: 1,
     borderRadius: RADIUS.card,
     padding: SPACING.sm,
@@ -1109,7 +1162,7 @@ const s = StyleSheet.create({
     gap: 2,
   },
   actionTitle: {
-    color: '#FFF',
+    color: C.text,
     fontFamily: FT.bold,
     fontSize: 13,
   },
@@ -1151,7 +1204,7 @@ const s = StyleSheet.create({
   },
   chatAgentRow: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: C.agentBg,
     borderColor: C.border,
     borderWidth: 1,
     borderRadius: RADIUS.card,
@@ -1162,7 +1215,7 @@ const s = StyleSheet.create({
   chatAgentText: { color: C.textSub, fontFamily: FT.reg, fontSize: 12, lineHeight: 17 },
   chatBox: {
     marginTop: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: C.subtleBg,
     borderColor: C.border,
     borderWidth: 1,
     borderRadius: RADIUS.btn,
@@ -1211,7 +1264,7 @@ const s = StyleSheet.create({
   },
   recruiterCard: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: C.subtleBg,
     borderColor: C.border,
     borderWidth: 1,
     borderRadius: RADIUS.card,
@@ -1226,53 +1279,18 @@ const s = StyleSheet.create({
     textTransform: 'uppercase' as any,
   },
   recruiterVal: {
-    color: '#FFF',
+    color: C.text,
     fontFamily: FT.bold,
     fontSize: 28,
   },
   recruiterTrack: {
     height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: C.subtleBorder,
     borderRadius: 1.5,
     overflow: 'hidden',
   },
   recruiterFill: {
     height: '100%',
     borderRadius: 1.5,
-  },
-
-  /* 9. Footer */
-  footerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: SPACING.md,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    flexWrap: 'wrap',
-    gap: SPACING.sm,
-  },
-  footerCopy: {
-    color: C.dim,
-    fontFamily: FT.med,
-    fontSize: 11,
-  },
-  footerLinks: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  footerLinkBtn: {
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-  },
-  footerLinkText: {
-    color: C.dim,
-    fontFamily: FT.med,
-    fontSize: 11,
-  },
-  footerDot: {
-    color: C.dim,
-    fontSize: 11,
   },
 });

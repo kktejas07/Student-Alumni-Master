@@ -16,6 +16,7 @@ import {
   deriveRankedActions,
 } from '@/src/lib/careerDerivations';
 import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING, WEB_TRANSITIONS } from '@/src/lib/designTokens';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 type Tab = 'readiness' | 'skills';
 
@@ -27,6 +28,8 @@ interface Props {
 }
 
 export const ExplainModal: React.FC<Props> = ({ visible, onClose, careerIntel, initialTab = 'readiness' }) => {
+  const { isDark } = useTheme();
+  const s = useMemo(() => makeStyles(isDark), [isDark]);
   const [tab, setTab] = useState<Tab>(initialTab);
   useEffect(() => {
     if (visible) setTab(initialTab);
@@ -73,7 +76,7 @@ export const ExplainModal: React.FC<Props> = ({ visible, onClose, careerIntel, i
               style={s.close}
               onPress={onClose}
             >
-              <X size={16} color={COLORS.dim} />
+              <X size={16} color={isDark ? COLORS.dim : 'rgba(15,23,42,0.5)'} />
             </Pressable>
           </View>
 
@@ -97,7 +100,7 @@ export const ExplainModal: React.FC<Props> = ({ visible, onClose, careerIntel, i
 
           {!hasContent ? (
             <View style={s.empty}>
-              <Target size={22} color={COLORS.dim} />
+              <Target size={22} color={isDark ? COLORS.dim : 'rgba(15,23,42,0.5)'} />
               <Text style={s.emptyTitle}>No explanation yet</Text>
               <Text style={s.emptyBody}>
                 Explanations appear after your first readiness score is calculated.
@@ -107,13 +110,20 @@ export const ExplainModal: React.FC<Props> = ({ visible, onClose, careerIntel, i
             <ScrollView style={s.body} showsVerticalScrollIndicator={false}>
               {tab === 'readiness' ? (
                 <ReadinessTab
+                  s={s}
+                  isDark={isDark}
                   readiness={readiness}
                   info={readinessInfo}
                   explanations={explanations}
                   topAction={topAction}
                 />
               ) : (
-                <SkillsTab categories={categories} topAction={topAction} />
+                <SkillsTab
+                  s={s}
+                  isDark={isDark}
+                  categories={categories}
+                  topAction={topAction}
+                />
               )}
             </ScrollView>
           )}
@@ -125,14 +135,18 @@ export const ExplainModal: React.FC<Props> = ({ visible, onClose, careerIntel, i
 
 /* ── Readiness tab ─────────────────────────────────────────────────────── */
 
+type StyleMap = ReturnType<typeof makeStyles>;
+
 interface ReadinessTabProps {
+  s: StyleMap;
+  isDark: boolean;
   readiness: ReturnType<typeof deriveReadiness>;
   info: ReturnType<typeof deriveReadinessScoreInfo>;
   explanations: ReturnType<typeof deriveExplanations>;
   topAction: ReturnType<typeof deriveRankedActions>[0];
 }
 
-const ReadinessTab: React.FC<ReadinessTabProps> = ({ readiness, info, explanations, topAction }) => {
+const ReadinessTab: React.FC<ReadinessTabProps> = ({ s, isDark, readiness, info, explanations, topAction }) => {
   const factors = explanations.readiness?.factors || [];
   return (
     <View>
@@ -172,7 +186,7 @@ const ReadinessTab: React.FC<ReadinessTabProps> = ({ readiness, info, explanatio
         </View>
       )}
 
-      <TopAction action={topAction} />
+      <TopAction s={s} isDark={isDark} action={topAction} />
     </View>
   );
 };
@@ -180,48 +194,54 @@ const ReadinessTab: React.FC<ReadinessTabProps> = ({ readiness, info, explanatio
 /* ── Skills tab ────────────────────────────────────────────────────────── */
 
 interface SkillsTabProps {
+  s: StyleMap;
+  isDark: boolean;
   categories: Array<{ name: string; currentScore: number; weightPct: number; missingPoints: number }>;
   topAction: ReadinessTabProps['topAction'];
 }
 
-const SkillsTab: React.FC<SkillsTabProps> = ({ categories, topAction }) => (
-  <View>
-    {categories.length === 0 ? (
-      <View style={s.empty}>
-        <Target size={22} color={COLORS.dim} />
-        <Text style={s.emptyTitle}>No skill breakdown yet</Text>
-        <Text style={s.emptyBody}>
-          Skill explanations appear after your first readiness score is calculated.
-        </Text>
-      </View>
-    ) : (
-      <View style={s.section}>
-        {categories.map((c) => (
-          <View key={c.name} style={s.categoryRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.factorLabel}>{c.name}</Text>
-              <Text style={s.factorWeight}>
-                {c.currentScore}% · {c.weightPct}% weight
+const SkillsTab: React.FC<SkillsTabProps> = ({ s, isDark, categories, topAction }) => {
+  const green = isDark ? COLORS.green : '#059669';
+  const red = isDark ? COLORS.red : '#DC2626';
+  return (
+    <View>
+      {categories.length === 0 ? (
+        <View style={s.empty}>
+          <Target size={22} color={isDark ? COLORS.dim : 'rgba(15,23,42,0.5)'} />
+          <Text style={s.emptyTitle}>No skill breakdown yet</Text>
+          <Text style={s.emptyBody}>
+            Skill explanations appear after your first readiness score is calculated.
+          </Text>
+        </View>
+      ) : (
+        <View style={s.section}>
+          {categories.map((c) => (
+            <View key={c.name} style={s.categoryRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.factorLabel}>{c.name}</Text>
+                <Text style={s.factorWeight}>
+                  {c.currentScore}% · {c.weightPct}% weight
+                </Text>
+              </View>
+              <Text style={[s.factorEarned, { color: c.missingPoints > 0 ? red : green }]}>
+                {c.missingPoints > 0 ? `-${c.missingPoints} pts` : 'Maxed'}
               </Text>
             </View>
-            <Text style={[s.factorEarned, { color: c.missingPoints > 0 ? COLORS.red : COLORS.green }]}>
-              {c.missingPoints > 0 ? `-${c.missingPoints} pts` : 'Maxed'}
-            </Text>
-          </View>
-        ))}
-      </View>
-    )}
-    <TopAction action={topAction} />
-  </View>
-);
+          ))}
+        </View>
+      )}
+      <TopAction s={s} isDark={isDark} action={topAction} />
+    </View>
+  );
+};
 
 /* ── Top ranked action ─────────────────────────────────────────────────── */
 
-const TopAction: React.FC<{ action: ReadinessTabProps['topAction'] }> = ({ action }) =>
+const TopAction: React.FC<{ s: StyleMap; isDark: boolean; action: ReadinessTabProps['topAction'] }> = ({ s, isDark, action }) =>
   action ? (
     <View style={s.actionCard}>
       <View style={s.actionHeader}>
-        <Zap size={13} color={COLORS.purpleL} />
+        <Zap size={13} color={isDark ? COLORS.purpleL : '#4338CA'} />
         <Text style={s.actionTitle}>Biggest next move</Text>
         {action.gain > 0 && <Text style={s.actionGain}>+{action.gain} pts</Text>}
       </View>
@@ -232,18 +252,18 @@ const TopAction: React.FC<{ action: ReadinessTabProps['topAction'] }> = ({ actio
 
 /* ── Styles ────────────────────────────────────────────────────────────── */
 
-const s = StyleSheet.create({
+const makeStyles = (dark: boolean) => StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(5, 7, 15, 0.72)',
+    backgroundColor: dark ? 'rgba(5, 7, 15, 0.72)' : 'rgba(15,23,42,0.5)',
     justifyContent: 'center',
     padding: SPACING.xl,
   },
   // Invisible full-screen tap catcher (sheet blocks its own area).
   ripple: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
   sheet: {
-    backgroundColor: '#121526',
-    borderColor: 'rgba(255,255,255,0.09)',
+    backgroundColor: dark ? '#121526' : '#FFFFFF',
+    borderColor: dark ? 'rgba(255,255,255,0.09)' : 'rgba(15,23,42,0.1)',
     borderWidth: 1,
     borderRadius: RADIUS.modal ?? 16,
     maxHeight: '80%',
@@ -257,16 +277,16 @@ const s = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.lg,
     paddingBottom: SPACING.md,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
+    borderBottomColor: dark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.08)',
     borderBottomWidth: 1,
   },
-  title: { color: COLORS.text, fontFamily: FONT_FAMILIES.xbold, fontSize: 16, letterSpacing: -0.3 },
-  subtitle: { color: COLORS.text2, fontFamily: FONT_FAMILIES.med, fontSize: FONT_SIZES.sm, marginTop: 2 },
+  title: { color: dark ? COLORS.text : '#0F172A', fontFamily: FONT_FAMILIES.xbold, fontSize: 16, letterSpacing: -0.3 },
+  subtitle: { color: dark ? COLORS.text2 : 'rgba(15,23,42,0.7)', fontFamily: FONT_FAMILIES.med, fontSize: FONT_SIZES.sm, marginTop: 2 },
   close: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: dark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
     ...(Platform.OS === 'web' ? { cursor: 'pointer', transition: WEB_TRANSITIONS.all200 } : {}),
@@ -277,39 +297,41 @@ const s = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: 6,
     borderRadius: RADIUS.btn,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: dark ? 'rgba(255,255,255,0.03)' : 'rgba(15,23,42,0.03)',
+    borderColor: dark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.08)',
     borderWidth: 1,
     ...(Platform.OS === 'web' ? { cursor: 'pointer', transition: WEB_TRANSITIONS.all200 } : {}),
   },
-  tabActive: { backgroundColor: COLORS.purpleL + '1F', borderColor: COLORS.purpleL + '50' },
-  tabLabel: { color: COLORS.text2, fontFamily: FONT_FAMILIES.bold, fontSize: FONT_SIZES.sm },
-  tabLabelActive: { color: COLORS.text },
+  tabActive: dark
+    ? { backgroundColor: COLORS.purpleL + '1F', borderColor: COLORS.purpleL + '50' }
+    : { backgroundColor: '#4338CA1F', borderColor: '#4338CA50' },
+  tabLabel: { color: dark ? COLORS.text2 : 'rgba(15,23,42,0.8)', fontFamily: FONT_FAMILIES.bold, fontSize: FONT_SIZES.sm },
+  tabLabelActive: { color: dark ? COLORS.text : '#0F172A' },
 
   body: { padding: SPACING.md },
 
   empty: { alignItems: 'center', paddingVertical: SPACING.xl, gap: SPACING.xs },
-  emptyTitle: { color: COLORS.text, fontFamily: FONT_FAMILIES.bold, fontSize: 14 },
-  emptyBody: { color: COLORS.dim, fontFamily: FONT_FAMILIES.med, fontSize: FONT_SIZES.sm, textAlign: 'center', maxWidth: 260 },
+  emptyTitle: { color: dark ? COLORS.text : '#0F172A', fontFamily: FONT_FAMILIES.bold, fontSize: 14 },
+  emptyBody: { color: dark ? COLORS.dim : 'rgba(15,23,42,0.5)', fontFamily: FONT_FAMILIES.med, fontSize: FONT_SIZES.sm, textAlign: 'center', maxWidth: 260 },
 
   scoreRow: {
     flexDirection: 'row',
     gap: SPACING.md,
-    backgroundColor: 'rgba(167,139,250,0.07)',
-    borderColor: 'rgba(167,139,250,0.2)',
+    backgroundColor: dark ? 'rgba(167,139,250,0.07)' : 'rgba(79,70,229,0.06)',
+    borderColor: dark ? 'rgba(167,139,250,0.2)' : 'rgba(79,70,229,0.2)',
     borderWidth: 1,
     borderRadius: RADIUS.card,
     padding: SPACING.md,
   },
   scoreBox: { alignItems: 'center', minWidth: 84 },
-  scoreValue: { color: COLORS.purpleL, fontFamily: FONT_FAMILIES.xbold, fontSize: 28, letterSpacing: -0.5 },
-  scoreLevel: { color: COLORS.text2, fontFamily: FONT_FAMILIES.med, fontSize: FONT_SIZES.sm, marginTop: 2 },
-  metaLabel: { color: COLORS.dim, fontFamily: FONT_FAMILIES.med, fontSize: FONT_SIZES.xs },
-  metaValue: { color: COLORS.text, fontFamily: FONT_FAMILIES.bold, fontSize: FONT_SIZES.md },
+  scoreValue: { color: dark ? COLORS.purpleL : '#4338CA', fontFamily: FONT_FAMILIES.xbold, fontSize: 28, letterSpacing: -0.5 },
+  scoreLevel: { color: dark ? COLORS.text2 : 'rgba(15,23,42,0.7)', fontFamily: FONT_FAMILIES.med, fontSize: FONT_SIZES.sm, marginTop: 2 },
+  metaLabel: { color: dark ? COLORS.dim : 'rgba(15,23,42,0.5)', fontFamily: FONT_FAMILIES.med, fontSize: FONT_SIZES.xs },
+  metaValue: { color: dark ? COLORS.text : '#0F172A', fontFamily: FONT_FAMILIES.bold, fontSize: FONT_SIZES.md },
 
   section: { marginTop: SPACING.md },
   sectionTitle: {
-    color: COLORS.text2,
+    color: dark ? COLORS.text2 : 'rgba(15,23,42,0.7)',
     fontFamily: FONT_FAMILIES.bold,
     fontSize: 12,
     letterSpacing: 0.4,
@@ -322,7 +344,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.sm,
     paddingVertical: SPACING.xs,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: dark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.08)',
     borderBottomWidth: 1,
   },
   categoryRow: {
@@ -330,24 +352,24 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.sm,
     paddingVertical: SPACING.sm,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: dark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.08)',
     borderBottomWidth: 1,
   },
-  factorLabel: { color: COLORS.text, fontFamily: FONT_FAMILIES.bold, fontSize: FONT_SIZES.sm },
-  factorWeight: { color: COLORS.dim, fontFamily: FONT_FAMILIES.med, fontSize: 11, marginTop: 1 },
-  factorEarned: { color: COLORS.text, fontFamily: FONT_FAMILIES.bold, fontSize: FONT_SIZES.sm },
+  factorLabel: { color: dark ? COLORS.text : '#0F172A', fontFamily: FONT_FAMILIES.bold, fontSize: FONT_SIZES.sm },
+  factorWeight: { color: dark ? COLORS.dim : 'rgba(15,23,42,0.5)', fontFamily: FONT_FAMILIES.med, fontSize: 11, marginTop: 1 },
+  factorEarned: { color: dark ? COLORS.text : '#0F172A', fontFamily: FONT_FAMILIES.bold, fontSize: FONT_SIZES.sm },
 
   actionCard: {
     marginTop: SPACING.md,
-    backgroundColor: 'rgba(52,211,153,0.06)',
-    borderColor: 'rgba(52,211,153,0.22)',
+    backgroundColor: dark ? 'rgba(52,211,153,0.06)' : 'rgba(5,150,105,0.06)',
+    borderColor: dark ? 'rgba(52,211,153,0.22)' : 'rgba(5,150,105,0.25)',
     borderWidth: 1,
     borderRadius: RADIUS.card,
     padding: SPACING.md,
   },
   actionHeader: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
-  actionTitle: { flex: 1, color: COLORS.green, fontFamily: FONT_FAMILIES.bold, fontSize: 11, letterSpacing: 0.4, textTransform: 'uppercase' },
-  actionGain: { color: COLORS.green, fontFamily: FONT_FAMILIES.xbold, fontSize: FONT_SIZES.md },
-  actionName: { color: COLORS.text, fontFamily: FONT_FAMILIES.bold, fontSize: FONT_SIZES.md, marginTop: SPACING.xs },
-  actionDesc: { color: COLORS.text2, fontFamily: FONT_FAMILIES.med, fontSize: FONT_SIZES.sm, marginTop: 3 },
+  actionTitle: { flex: 1, color: dark ? COLORS.green : '#059669', fontFamily: FONT_FAMILIES.bold, fontSize: 11, letterSpacing: 0.4, textTransform: 'uppercase' },
+  actionGain: { color: dark ? COLORS.green : '#059669', fontFamily: FONT_FAMILIES.xbold, fontSize: FONT_SIZES.md },
+  actionName: { color: dark ? COLORS.text : '#0F172A', fontFamily: FONT_FAMILIES.bold, fontSize: FONT_SIZES.md, marginTop: SPACING.xs },
+  actionDesc: { color: dark ? COLORS.text2 : 'rgba(15,23,42,0.7)', fontFamily: FONT_FAMILIES.med, fontSize: FONT_SIZES.sm, marginTop: 3 },
 });

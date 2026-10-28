@@ -41,3 +41,5 @@ export const Sparkles = () => null;
 export const Video = () => null;
 export const Paintbrush = () => null;
 export const Boxes = () => null;
+export const RotateCcw = () => null;
+export const Circle = () => null;
