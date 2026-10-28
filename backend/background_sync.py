@@ -181,6 +181,25 @@ async def _sync_talent_pool_profiles():
         logger.warning(f"Talent pool sync error (non-fatal): {e}")
 
 
+async def run_company_key_backfill():
+    """Nightly: normalize company_key on users (alumni_info) and jobs_cache.
+
+    - users: sets alumni_info.company_key from the best-available company field
+    - jobs_cache: sets company_key from the cached company name
+    """
+    try:
+        from services.company_norm import backfill_company_keys
+
+        db = _get_db()
+        counters = await backfill_company_keys(db)
+        logger.info(
+            "Company key backfill complete: %d users, %d jobs",
+            counters.get("users", 0), counters.get("jobs", 0),
+        )
+    except Exception as e:
+        logger.warning("Company key backfill error (non-fatal): %s", e)
+
+
 def start_sync_scheduler():
     enabled = (os.environ.get("SYNC_SCHEDULER_ENABLED") or "1").strip().lower()
     if enabled in {"0", "false", "off", "no"}:
@@ -216,6 +235,18 @@ def start_sync_scheduler():
             coalesce=True,
             next_run_time=next_run if next_run else None,
         )
+
+        # Nightly company-key backfill for alumni referrals matching
+        from apscheduler.triggers.cron import CronTrigger
+        _sync_scheduler.add_job(
+            run_company_key_backfill,
+            CronTrigger(hour=3, minute=0),
+            id="nightly_company_key_backfill",
+            replace_existing=True,
+            max_instances=1,
+            coalesce=True,
+        )
+
         _sync_scheduler.start()
         logger.info("Unified sync scheduler started (interval=10m/30m AI Event Agent)")
     except Exception as e:
