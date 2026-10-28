@@ -107,7 +107,7 @@ backend/
 - No shared pagination: 58 local `.slice()` pagination hits in superadmin alone (`EventsView/ApprovalsView/PaymentsView`).
 - Two card families: `views/web/components/` vs `views/components/` (AnimatedCard/GlassCard/Toast duplicated).
 - Two near-parallel `NetworkView.tsx` (student 2608 lines, mentor 2396) with identical graph logic.
-- Giant files: `EchoShowcaseAdminView` 7112, `LandingPage` 4462, `SettingsView` 4009, `BGVAccountVerticalsView` 3398, `EchoEventsPage` 3076, `wallet.tsx` 2053.
+- ~~Giant files: `EchoShowcaseAdminView` 7112,~~ `LandingPage` 4462, `SettingsView` 4009, `BGVAccountVerticalsView` 3398, `EchoEventsPage` 3076, `wallet.tsx` 2053. **EchoShowcaseAdminView split in Step 6a** — cut verbatim into a 7-module DAG under `src/features/echo/` (shared/fields/widgets/media/modal/panels + `echoCms` entry; 251/258/1257/249/1110/3626/397 lines); the old file is a 9-line re-export stub so `SuperAdminPortalRN`'s import is untouched. tsc error set 44 → 43 (one latent TS2353 suppressed), eslint 0 errors on all 8 files. 5 of 6 remaining giant screens left.
 
 ### B4. Dead / unused (grep-verified, zero importers)
 - `src/viewmodels/hooks/index.ts`: `useDashboard`, `useCareerSuggestions`
