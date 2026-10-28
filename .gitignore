@@ -236,3 +236,5 @@ docs/QR_PASS_QA_AUDIT.html
 docs/ponytail-integration.md
 QR_PASS_QA_AUDIT.html
 QR_PASS_QA_AUDIT.md
+backend/backups/
+frontend/test-results/

@@ -441,3 +441,151 @@ class TestEmailPasswordUntouched:
         # DB-less 500 is acceptable ONLY if the local suite pre-existing state
         # shows the same; the schema must never 404).
         assert r.status_code != 404
+
+
+class TestOauthConfigEndpoint:
+    """GET /api/auth/oauth-config — the runtime Firebase web-config source.
+
+    The login page feeds data.firebase straight into initializeApp
+    (login.tsx -> initFirebaseAuth). These tests pin the exact field names the
+    frontend consumes and guarantee no secret material is ever returned, so a
+    wrong/placeholder API key cannot be confused with a transport failure.
+    """
+
+    EXPECTED_TOP_LEVEL = {
+        "google_client_id",
+        "linkedin_client_id",
+        "github_client_id",
+        "enable_google_login",
+        "enable_linkedin_login",
+        "enable_github_login",
+        "firebase",
+        "redirect_uri",
+        "configured",
+    }
+
+    def test_unconfigured_returns_no_firebase_block(self, client):
+        # With no firebase_api_key anywhere, the firebase block must be None —
+        # the frontend must skip initialization (and report "not configured")
+        # rather than initialize against an empty/placeholder config.
+        r = client.get("/api/auth/oauth-config")
+        assert r.status_code == 200
+        data = r.json()
+        assert set(data.keys()) == self.EXPECTED_TOP_LEVEL
+        assert data["firebase"] is None
+        assert data["redirect_uri"].endswith("/oauth.html")
+
+    def test_firebase_block_field_names_match_frontend(self, monkeypatch):
+        fake_db = FakeDB(settings=[
+            setting("firebase_api_key", "unit-test-api-key"),
+            setting("firebase_auth_domain", "unit-test.firebaseapp.com"),
+            setting("firebase_project_id", "unit-test-project"),
+            setting("firebase_app_id", "1:000000000000:web:unit"),
+        ])
+        monkeypatch.setattr(auth_mod, "db", fake_db)
+        monkeypatch.setattr(auth_mod, "_record_activity", None)
+
+        app = FastAPI()
+        app.state.limiter = limiter
+        app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+        app.include_router(auth_router, prefix="/api")
+        with TestClient(app) as c:
+            data = c.get("/api/auth/oauth-config").json()
+
+        assert set(data["firebase"].keys()) == {"apiKey", "authDomain", "projectId", "appId"}
+        assert data["firebase"]["apiKey"] == "unit-test-api-key"
+        assert data["firebase"]["authDomain"] == "unit-test.firebaseapp.com"
+        assert data["firebase"]["projectId"] == "unit-test-project"
+        assert data["firebase"]["appId"] == "1:000000000000:web:unit"
+
+    def test_oauth_config_never_leaks_secrets(self, monkeypatch):
+        fake_db = FakeDB(settings=[
+            setting("firebase_api_key", "unit-test-api-key"),
+            setting("firebase_service_account", '{"type": "service_account", "private_key": "UNIT-TEST-SECRET"}'),
+            setting("linkedin_oauth_client_secret", "unit-test-linkedin-secret"),
+        ])
+        monkeypatch.setattr(auth_mod, "db", fake_db)
+        monkeypatch.setattr(auth_mod, "_record_activity", None)
+
+        app = FastAPI()
+        app.state.limiter = limiter
+        app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+        app.include_router(auth_router, prefix="/api")
+        with TestClient(app) as c:
+            body = c.get("/api/auth/oauth-config").text
+
+        assert "firebase_service_account" not in body
+        assert "linkedin_oauth_client_secret" not in body
+        assert "private_key" not in body
+        assert "UNIT-TEST-SECRET" not in body
+        assert "unit-test-linkedin-secret" not in body
+
+
+class TestGoogleLoginToggle:
+    def _set_flag(self, fake_db, value):
+        fake_db.platform_controls.docs[0]["feature_flags"] = [
+            {"key": "enable_google_login", "label": "Enable Google Login", "value": value},
+        ]
+
+    def test_disabled_returns_503(self, client, production_mode, monkeypatch):
+        monkeypatch.setattr(auth_mod.g_id, "verify_oauth2_token", google_verifier_accepts)
+        fake_db = auth_mod.db
+        fake_db.platform_controls.docs[0]["system_settings"] = [
+            setting("google_oauth_client_id", "unit-test-client-id"),
+        ]
+        self._set_flag(fake_db, False)
+        r = client.post(
+            "/api/auth/google",
+            json={"id_token": "valid-google-jwt", "email": "student@example.com", "full_name": "S"},
+        )
+        assert r.status_code == 503
+        assert "unavailable" in r.json()["detail"].lower()
+        assert fake_db.users.docs == []
+
+    def test_disabled_does_not_verify(self, client, production_mode, monkeypatch):
+        called = {"g": 0, "f": 0}
+        def gv(*a, **k):
+            called["g"] += 1
+            raise ValueError("no")
+        monkeypatch.setattr(auth_mod.g_id, "verify_oauth2_token", gv)
+        monkeypatch.setattr(auth_mod.fb_auth, "verify_id_token", lambda *a, **k: (called.__setitem__("f", called["f"]+1) or {}))
+        fake_db = auth_mod.db
+        fake_db.platform_controls.docs[0]["system_settings"] = []
+        self._set_flag(fake_db, False)
+        r = client.post("/api/auth/google", json={"id_token": "t", "email": "a@b.com", "full_name": "S"})
+        assert r.status_code == 503
+        assert called["g"] == 0 and called["f"] == 0
+
+    def test_enabled_flow_runs(self, client, production_mode, monkeypatch):
+        monkeypatch.setattr(auth_mod.g_id, "verify_oauth2_token", google_verifier_accepts)
+        fake_db = auth_mod.db
+        fake_db.platform_controls.docs[0]["system_settings"] = [
+            setting("google_oauth_client_id", "unit-test-client-id"),
+        ]
+        self._set_flag(fake_db, True)
+        r = client.post(
+            "/api/auth/google",
+            json={"id_token": "valid-google-jwt", "email": "student@example.com", "full_name": "Test User", "role": "student"},
+        )
+        assert r.status_code == 200
+        assert r.json()["access_token"]
+
+    def test_missing_flag_defaults_enabled(self, client, production_mode, monkeypatch):
+        monkeypatch.setattr(auth_mod.g_id, "verify_oauth2_token", google_verifier_accepts)
+        fake_db = auth_mod.db
+        fake_db.platform_controls.docs[0]["system_settings"] = [
+            setting("google_oauth_client_id", "unit-test-client-id"),
+        ]
+        # no feature_flags key
+        r = client.post(
+            "/api/auth/google",
+            json={"id_token": "valid-google-jwt", "email": "student@example.com", "full_name": "Test User", "role": "student"},
+        )
+        assert r.status_code == 200
+
+    def test_oauth_config_reflects_flag(self, client, monkeypatch):
+        fake_db = auth_mod.db
+        self._set_flag(fake_db, False)
+        r = client.get("/api/auth/oauth-config")
+        assert r.status_code == 200
+        assert r.json()["enable_google_login"] is False
