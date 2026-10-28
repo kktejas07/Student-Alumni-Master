@@ -123,6 +123,13 @@ async def run_unified_sync_task():
     except Exception as e:
         logger.error(f"Error in Platform RAG background sync: {e}")
 
+    try:
+        from jobs_feed import enrich_all_skill_ids
+        enriched = await enrich_all_skill_ids()
+        logger.info(f"Sync completed: Jobs skill_ids enrichment ({enriched} jobs).")
+    except Exception as e:
+        logger.error(f"Error enriching jobs with skill_ids: {e}")
+
     logger.info("Completed unified background sync task.")
 
 

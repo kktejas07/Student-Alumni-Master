@@ -28,6 +28,7 @@ from core.models import UserRole, UserResponse, SchoolInfo, MentorInfo, AlumniIn
 from personalization import build_personalized_dashboard, track_module_click
 from services.career_ai.skill_intelligence_service import compute_full_intelligence, invalidate_intel_cache
 from services.profile_service import compute_profile_completion
+from services.skills import taxonomy as skill_taxonomy, resume_parser
 
 try:
     from badges import compute_badges, refresh_user_badges, get_tier_theme
@@ -1401,7 +1402,49 @@ async def upload_my_resume(payload: dict, user: dict = Depends(get_current_user)
     )
     # Fix 12: Invalidate skill-intelligence cache so scores reflect new resume
     invalidate_intel_cache(str(user.get("id") or user.get("_id")))
+    # Auto-trigger resume parsing so proposed skills land within ~10s of upload.
+    asyncio.ensure_future(_auto_parse_resume(user, data_url, new_doc["id"]))
     return {"id": new_doc["id"], "name": new_doc["name"], "active": True}
+
+
+async def _auto_parse_resume(user: dict, data_url: str, doc_id: str) -> None:
+    """Parse the just-uploaded resume and store proposed skills for review."""
+    uid = str(user.get("id") or user.get("_id"))
+    try:
+        result = await resume_parser.parse_resume(data_url)
+        if not result.get("text_found"):
+            await db.users.update_one(
+                {"_id": user["_id"]},
+                {"$set": {
+                    "skill_review": {
+                        "status": "no_text",
+                        "reason": result.get("no_text_reason") or "no text found",
+                        "resume_id": doc_id,
+                        "parsed_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                }},
+            )
+            return
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {
+                "resume_parsed_hash": result.get("sha256"),
+                "skill_review": {
+                    "status": "pending",
+                    "resume_id": doc_id,
+                    "parsed_at": datetime.now(timezone.utc).isoformat(),
+                    "proposed_skills": result.get("skills", [])[:30],
+                    "roles": result.get("roles", []),
+                    "education": result.get("education", []),
+                    "projects": result.get("projects", []),
+                },
+            }},
+        )
+    except Exception as e:
+        logger.warning("auto resume parse failed for user %s: %s", uid, e)
+        return
+    finally:
+        invalidate_intel_cache(uid)
 
 
 @router.delete("/users/me/resume/{doc_id}")
@@ -1439,6 +1482,142 @@ async def activate_my_resume(doc_id: str, user: dict = Depends(get_current_user)
         {"$set": {"resume_documents": docs, "updated_at": datetime.now(timezone.utc)}},
     )
     return {"status": "activated", "id": doc_id}
+
+
+@router.post("/users/me/resume/parse")
+async def parse_my_resume(user: dict = Depends(get_current_user)):
+    """Re-run resume parsing on the active resume.
+
+    Skips re-parsing when the stored sha256 matches (unchanged document).
+    Returns the structured result: {status, skipped, text_found, skills, ...}.
+    """
+    user_db = await db.users.find_one({"_id": user["_id"]},
+                                       {"resume_documents": 1, "resume_parsed_hash": 1, "skill_review": 1})
+    docs = (user_db.get("resume_documents") or []) if user_db else []
+    active = next((d for d in docs if d.get("active")), docs[0] if docs else None)
+    if not active:
+        raise HTTPException(404, "No resume uploaded yet")
+
+    result = await resume_parser.parse_resume(active.get("data_url") or "")
+    if not result.get("text_found"):
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"skill_review": {
+                "status": "no_text",
+                "resume_id": active.get("id"),
+                "reason": result.get("no_text_reason") or "no text found",
+                "parsed_at": datetime.now(timezone.utc).isoformat(),
+            }}},
+        )
+        return {"status": "no_text", "reason": result.get("no_text_reason") or "no text found"}
+
+    review = user_db.get("skill_review") or {}
+    if review.get("resume_id") == active.get("id") and review.get("status") == "pending" \
+            and user_db.get("resume_parsed_hash") == result.get("sha256"):
+        return {"status": "skipped", "reason": "resume unchanged since last parse",
+                "skills": review.get("proposed_skills") or []}
+
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {
+            "resume_parsed_hash": result.get("sha256"),
+            "skill_review": {
+                "status": "pending",
+                "resume_id": active.get("id"),
+                "parsed_at": datetime.now(timezone.utc).isoformat(),
+                "proposed_skills": result.get("skills", [])[:30],
+                "roles": result.get("roles", []),
+                "education": result.get("education", []),
+                "projects": result.get("projects", []),
+            },
+        }},
+    )
+    invalidate_intel_cache(str(user.get("id") or user.get("_id")))
+    return {
+        "status": "ok",
+        "text_found": True,
+        "skills": result.get("skills", []),
+        "roles": result.get("roles", []),
+        "education": result.get("education", []),
+        "projects": result.get("projects", []),
+    }
+
+
+class SkillConfirmRequest(BaseModel):
+    add: List[str] = Field(default_factory=list)
+    remove: List[str] = Field(default_factory=list)
+
+
+@router.post("/users/me/skills/confirm")
+async def confirm_my_skills(payload: SkillConfirmRequest, user: dict = Depends(get_current_user)):
+    """Apply resume-proposed skills to the profile.
+
+    `add` — canonical skill ids to include; each must exist in the active
+    skill_review proposal set. `remove` — ids to exclude. Writes:
+    - users.skills: canonical display names
+    - users.skill_profile: {id, source: 'resume'|'manual', confidence, confirmed_at}
+    """
+    user_db = await db.users.find_one({"_id": user["_id"]},
+                                      {"skill_review": 1, "skills": 1, "skill_profile": 1})
+    review = (user_db.get("skill_review") or {}) if user_db else {}
+    proposed = {s.get("id"): s for s in (review.get("proposed_skills") or []) if s.get("id")}
+
+    to_add: Dict[str, dict] = {}
+    for sid in payload.add:
+        if sid not in proposed:
+            # Only allow ids present in the latest parse — prevents confirming
+            # skills the resume never surfaced.
+            raise HTTPException(400, f"skill id not in current resume proposal: {sid}")
+        s = proposed[sid]
+        to_add[sid] = {
+            "id": sid,
+            "name": s.get("name") or sid,
+            "category": s.get("category") or "",
+            "confidence": s.get("confidence"),
+            "source": "resume",
+            "confirmed_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    remove_ids = set(payload.remove)
+    current_profile = {p.get("id"): dict(p) for p in (user_db.get("skill_profile") or []) if p.get("id")}
+    for sid in remove_ids:
+        current_profile.pop(sid, None)
+    current_profile.update(to_add)
+    profile = list(current_profile.values())
+
+    skills = [s["name"] for s in profile] if profile else list(user_db.get("skills") or [])
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {
+            "skill_profile": profile,
+            "skills": skills,
+            "skill_review.status": "confirmed",
+            "skill_review.confirmed_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+    invalidate_intel_cache(str(user.get("id") or user.get("_id")))
+    return {"confirmed": sorted(to_add.keys()), "removed": sorted(remove_ids), "skills": skills}
+
+
+@router.get("/users/me/skills/summary")
+async def get_my_skills_summary(user: dict = Depends(get_current_user)):
+    """Profile-facing skills payload: confirmed names, sourced profile, pending review."""
+    user_db = await db.users.find_one({"_id": user["_id"]},
+                                      {"skills": 1, "skill_profile": 1, "skill_review": 1})
+    skills = [s for s in ((user_db.get("skills") or []) if user_db else []) if isinstance(s, str)]
+    profile = [p for p in ((user_db.get("skill_profile") or []) if user_db else [])
+               if isinstance(p, dict) and p.get("id")]
+    review = ((user_db.get("skill_review") or None) if user_db else None) or None
+    return {"skills": skills, "profile": profile, "review": review}
+
+
+@router.get("/skills/suggest")
+async def suggest_skills(q: str = "", limit: int = 10, user: dict = Depends(get_current_user)):
+    """Autocomplete over the canonical skill vocabulary."""
+    limit = max(1, min(25, limit))
+    if len(q) < 2:
+        raise HTTPException(400, "query must be at least 2 characters")
+    return {"suggestions": skill_taxonomy.suggest(q, limit=limit)}
 
 
 @router.patch("/users/me/preferences")
@@ -2729,7 +2908,7 @@ async def list_opportunities(
         it["saved"] = it.get("id") in saved
         it["applied"] = it.get("id") in applied
         out.append(it)
-    out.sort(key=lambda x: x.get("match_score", 0), reverse=True)
+    out.sort(key=lambda x: (x.get("match_score") if x.get("match_score") is not None else -1), reverse=True)
     # Distinct domains for filter chips
     domains = sorted({i.get("domain") for i in items if i.get("domain")})
     return {"items": out, "total": len(out), "domains": list(domains)}
