@@ -8,8 +8,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { api } from '@/src/models/services/api';
+import { api, request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { getBaseUrl } from '@/src/lib/env';
+import { initFirebaseAuth, signInWithGoogle } from '@/src/lib/firebaseAuth';
 
 export function OnboardingShellRN() {
   const router = useRouter();
@@ -22,25 +24,72 @@ export function OnboardingShellRN() {
 }
 
 function WebOnboardingEngine({ router }: { router: any }) {
-  const [isLoaded, setIsLoaded] = useState(false);
   const [flow, setFlow] = useState<'student' | 'alumnus' | 'college'>('student');
+  const [isLoaded, setIsLoaded] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
 
   // Real-Time Auth & OTP State
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [userPassword, setUserPassword] = useState('');
+  const [userDob, setUserDob] = useState(''); // ISO YYYY-MM-DD — required by /auth/register
+  const [showPwd, setShowPwd] = useState(false);
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [realtimeOtpCode, setRealtimeOtpCode] = useState<string | null>(null);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [otpError, setOtpError] = useState<string | null>(null);
   const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(true);
+  const finishInProgressRef = useRef(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+  const dobInputRef = useRef<HTMLInputElement>(null);
 
   const setUser = useAuthStore((s) => s.setUser);
   const setTokens = useAuthStore((s) => s.setTokens);
 
   const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+  const focusMissingAccountField = (field: 'name' | 'email' | 'password' | 'dob') => {
+    const fieldRefs = {
+      name: nameInputRef,
+      email: emailInputRef,
+      password: passwordInputRef,
+      dob: dobInputRef,
+    };
+    const input = fieldRefs[field].current;
+    if (!input) return;
+    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    input.focus({ preventScroll: true });
+  };
+
+  const validateAccountFields = () => {
+    if (!userName.trim()) {
+      setOtpError('Please enter your full name.');
+      focusMissingAccountField('name');
+      return false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail.trim())) {
+      setOtpError('Please enter a valid email address.');
+      focusMissingAccountField('email');
+      return false;
+    }
+    if (!userPassword) {
+      setOtpError('Please create a password for your account.');
+      focusMissingAccountField('password');
+      return false;
+    }
+    if (!userDob) {
+      setOtpError('Please enter your date of birth to create your account.');
+      focusMissingAccountField('dob');
+      return false;
+    }
+    return true;
+  };
 
   const handleSendRealtimeOtp = async () => {
     if (!userEmail || !userEmail.includes('@')) {
@@ -56,12 +105,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
         setRealtimeOtpCode(res.otp_code);
         setOtpDigits(res.otp_code.split(''));
       }
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) await delay(6000 - elapsed);
       return true;
     } catch (err: any) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) await delay(6000 - elapsed);
       setOtpError(err?.message || 'Failed to send OTP code.');
       return false;
     } finally {
@@ -83,14 +128,10 @@ function WebOnboardingEngine({ router }: { router: any }) {
       setIsOtpVerified(true);
       if (res && res.user && res.token) {
         setUser(res.user);
-        setTokens(res.token, res.token);
+        await setTokens(res.token, res.token);
       }
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) await delay(6000 - elapsed);
       return true;
     } catch (err: any) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) await delay(6000 - elapsed);
       setOtpError(err?.message || 'Invalid 6-digit code. Please enter the correct code.');
       return false;
     } finally {
@@ -99,77 +140,155 @@ function WebOnboardingEngine({ router }: { router: any }) {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!userEmail || !userEmail.includes('@')) {
-      setOtpError('Please enter your email address above before continuing with Google.');
-      return;
-    }
-    const startTime = Date.now();
+    setIsGoogleLoading(true);
+    setOtpError(null);
     try {
-      const emailToUse = userEmail.trim().toLowerCase();
-      const rawName = userName || emailToUse.split('@')[0];
-      const res = await api.oauthGoogle({
+      const googleProfile = await signInWithGoogle();
+      if (!googleProfile) return;
+      if (!googleProfile.idToken || !googleProfile.email) {
+        throw new Error('Google did not return a verified email address. Please try again.');
+      }
+
+      const emailToUse = googleProfile.email.trim().toLowerCase();
+      const res = await api.oauthFirebase({
+        id_token: googleProfile.idToken,
         email: emailToUse,
-        full_name: rawName,
-        picture: avatarUri || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        full_name: googleProfile.name || emailToUse.split('@')[0],
+        picture: googleProfile.picture,
         role: flow === 'alumnus' ? 'alumni' : flow,
       });
 
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) await delay(6000 - elapsed);
-
       if (res && res.user && res.access_token) {
         setUser(res.user);
-        setTokens(res.access_token, res.refresh_token);
-        if (flow === 'alumnus') router.replace('/alumni-portal');
-        else if (flow === 'college') router.replace('/college-portal');
+        await setTokens(res.access_token, res.refresh_token);
+        const role = String(res.user.role || '').toLowerCase();
+        if (role === 'alumni') router.replace('/alumni-portal');
+        else if (role === 'college') router.replace('/college-portal');
+        else if (role === 'mentor') router.replace('/mentor-portal');
+        else if (role === 'admin' || role === 'super_admin') router.replace('/super-admin');
         else router.replace('/student-portal/dashboard');
+      } else {
+        throw new Error('Google authentication failed. Please try again.');
       }
     } catch (err: any) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) await delay(6000 - elapsed);
       setOtpError(err?.message || 'Google authentication failed.');
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
   const handleFinishOnboarding = async () => {
-    try {
-      await AsyncStorage.removeItem('sa_onboarding_state');
-      const regRes = await api.register({
-        email: userEmail,
-        password: userPassword || 'SAOnboarded2026!',
-        full_name: userName || userEmail.split('@')[0],
-        role: flow === 'alumnus' ? 'alumni' : flow,
-      }).catch(() => null);
+    if (finishInProgressRef.current) return;
+    finishInProgressRef.current = true;
+    setIsFinishing(true);
+    setOtpError(null);
 
-      if (regRes && regRes.user) {
+    try {
+      const existingUser = useAuthStore.getState().user;
+      const alreadyRegistered = existingUser?.email?.toLowerCase() === userEmail.trim().toLowerCase();
+
+      if (!alreadyRegistered) {
+        if (!userPassword) {
+          setOtpError('Please create a password for your account before continuing.');
+          setStepIdx(1);
+          setTimeout(() => focusMissingAccountField('password'), 0);
+          return;
+        }
+
+        if (!userDob) {
+          setOtpError('Please enter your date of birth to create your account.');
+          setStepIdx(1);
+          setTimeout(() => focusMissingAccountField('dob'), 0);
+          return;
+        }
+
+        const regRes = await api.register({
+          email: userEmail,
+          password: userPassword,
+          full_name: userName || userEmail.split('@')[0],
+          role: flow === 'alumnus' ? 'alumni' : flow,
+          dob: userDob,
+        });
+
+        if (!regRes?.user || !regRes.access_token) {
+          setOtpError('Registration failed. Please try again.');
+          return;
+        }
+
         setUser(regRes.user);
-        setTokens(regRes.access_token, regRes.refresh_token);
+        await setTokens(regRes.access_token, regRes.refresh_token);
       }
 
-      await api.completeOnboarding({
+      if (avatarUri && !profilePhotoSaved) {
+        await api.updateProfile({ face_image_base64: avatarUri, photo_data: avatarUri });
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser) {
+          setUser({ ...currentUser, face_image_base64: avatarUri, photo_data: avatarUri });
+        }
+        setProfilePhotoSaved(true);
+      }
+
+      if (resumeFile && !resumeUploadComplete) {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            if (typeof reader.result === 'string') resolve(reader.result);
+            else reject(new Error('Could not read the selected resume.'));
+          };
+          reader.onerror = () => reject(new Error('Could not read the selected resume.'));
+          reader.readAsDataURL(resumeFile);
+        });
+        await request('/users/me/resume', {
+          method: 'POST',
+          body: { name: resumeFile.name, size: resumeFile.size, data_url: dataUrl },
+        });
+        setResumeUploadComplete(true);
+      }
+
+      void AsyncStorage.removeItem('sa_onboarding_state').catch((err) => {
+        console.warn('Unable to clear saved onboarding state:', err);
+      });
+
+      void api.completeOnboarding({
         flow,
         email: userEmail,
         name: userName,
+        full_name: capitalizeName(userName || userEmail.split('@')[0]),
         course: selectedCourse,
         year: selectedYear,
         goal: selectedGoal,
         skills: skillLevels,
-        avatar_uri: avatarUri,
+        face_image_base64: avatarUri,
         interests,
         institution: instName,
-      }).catch(() => null);
-    } catch (e) {
-      // Best effort completed
-    }
+        company: alumCompany,
+        role: alumRole,
+        capacity: alumCap,
+        expertise: alumExpertise,
+        mentor_format: mentorFmt,
+        mentor_frequency: mentorFreq,
+        mentor_audience: mentorWho,
+        sa_id: generatedSaId,
+      }).catch((err) => {
+        console.warn('Unable to save onboarding details:', err);
+      });
 
-    if (flow === 'alumnus') router.replace('/alumni-portal');
-    else if (flow === 'college') router.replace('/college-portal');
-    else router.replace('/student-portal/dashboard');
+      if (flow === 'alumnus') router.replace('/alumni-portal');
+      else if (flow === 'college') router.replace('/college-portal');
+      else router.replace('/student-portal/dashboard');
+    } catch (regErr: any) {
+      const msg = regErr?.detail || regErr?.message || 'Registration failed. Please check your details and try again.';
+      setOtpError(msg);
+    } finally {
+      finishInProgressRef.current = false;
+      setIsFinishing(false);
+    }
   };
 
   // Student Form State
   const [selectedCourse, setSelectedCourse] = useState('Computer Science');
   const [selectedYear, setSelectedYear] = useState('2027');
+  const [selectedSem, setSelectedSem] = useState('5');
   const [selectedGoal, setSelectedGoal] = useState('Software engineering');
   const [skillLevels, setSkillLevels] = useState<Record<string, number>>({
     dsa: 2,
@@ -178,12 +297,16 @@ function WebOnboardingEngine({ router }: { router: any }) {
     portfolio: 1,
   });
   const [resumeUploaded, setResumeUploaded] = useState(false);
-  const [atsScore, setAtsScore] = useState(0);
-  
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeError, setResumeError] = useState('');
+  const [resumeUploadComplete, setResumeUploadComplete] = useState(false);
+
   // Profile Photo State
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
-  const [isCapturingPhoto, setIsCapturingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+  const [profilePhotoSaved, setProfilePhotoSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const resumeInputRef = useRef<HTMLInputElement>(null);
 
   const [interests, setInterests] = useState<string[]>(['Backend', 'Machine learning', 'Hackathons']);
   const [mentorFmt, setMentorFmt] = useState('Video calls');
@@ -192,14 +315,31 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const [followedMentors, setFollowedMentors] = useState<Record<string, boolean>>({});
 
   // Alumnus Form State
-  const [alumCompany, setAlumCompany] = useState('Deloitte');
-  const [alumRole, setAlumRole] = useState('Senior Consultant');
+  const [alumCompany, setAlumCompany] = useState('');
+  const [alumRole, setAlumRole] = useState('');
   const [alumCap, setAlumCap] = useState('2');
   const [alumExpertise, setAlumExpertise] = useState<string[]>(['Resume review', 'Interview prep', 'Career switching']);
 
+  // Name capitalization helper — capitalize first letter of each word
+  const capitalizeName = (name: string) => {
+    if (!name) return '';
+    return name.replace(/\b\w/g, (c) => c.toUpperCase());
+  };
+
+  // Dynamic SA ID generation
+  const generateSaId = () => {
+    const prefix = flow === 'alumnus' ? 'AL' : 'ST';
+    const year = flow === 'alumnus' ? (selectedYear || '26').slice(-2) : new Date().getFullYear().toString().slice(-2);
+    const collegeShort = (instName || 'MRIT').replace(/[^A-Z]/gi, '').substring(0, 4).toUpperCase();
+    const seq = String(Math.floor(10000 + Math.random() * 90000));
+    return `SA-${prefix}-${year}-${collegeShort}-${seq}`;
+  };
+
+  const [generatedSaId, setGeneratedSaId] = useState('');
+
   // College Form State
-  const [instName, setInstName] = useState('Malla Reddy Institute of Technology');
-  const [instRole, setInstRole] = useState('Head of Career Services');
+  const [instName, setInstName] = useState('');
+  const [instRole, setInstRole] = useState('');
   const [instSize, setInstSize] = useState('500–2,000');
   const [collegeDepts, setCollegeDepts] = useState<string[]>(['Computer Science', 'Business']);
 
@@ -214,57 +354,43 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const [isCardFlipped, setIsCardFlipped] = useState(false);
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const saved = await AsyncStorage.getItem('sa_onboarding_state');
-        if (saved) {
-          const state = JSON.parse(saved);
-          if (state.flow) setFlow(state.flow);
-          if (state.stepIdx !== undefined) setStepIdx(state.stepIdx);
-          if (state.userEmail !== undefined) setUserEmail(state.userEmail);
-          if (state.userName !== undefined) setUserName(state.userName);
-          if (state.userPassword !== undefined) setUserPassword(state.userPassword);
-          if (state.selectedCourse) setSelectedCourse(state.selectedCourse);
-          if (state.selectedYear) setSelectedYear(state.selectedYear);
-          if (state.selectedGoal) setSelectedGoal(state.selectedGoal);
-          if (state.skillLevels) setSkillLevels(state.skillLevels);
-          if (state.interests) setInterests(state.interests);
-          if (state.mentorFmt) setMentorFmt(state.mentorFmt);
-          if (state.mentorFreq) setMentorFreq(state.mentorFreq);
-          if (state.mentorWho) setMentorWho(state.mentorWho);
-          if (state.alumCompany) setAlumCompany(state.alumCompany);
-          if (state.alumRole) setAlumRole(state.alumRole);
-          if (state.alumCap) setAlumCap(state.alumCap);
-          if (state.alumExpertise) setAlumExpertise(state.alumExpertise);
-          if (state.instName) setInstName(state.instName);
-          if (state.instRole) setInstRole(state.instRole);
-          if (state.instSize) setInstSize(state.instSize);
-          if (state.collegeDepts) setCollegeDepts(state.collegeDepts);
-          if (state.notifs) setNotifs(state.notifs);
-        }
-      } catch (e) {}
-      setIsLoaded(true);
-    };
-    loadData();
+    setIsLoaded(true);
   }, []);
 
   useEffect(() => {
-    if (!isLoaded) return;
-    const saveData = async () => {
+    let cancelled = false;
+
+    const initializeGoogleAuth = async () => {
+      let firebaseConfig;
       try {
-        const state = {
-          flow, stepIdx, userEmail, userName, userPassword,
-          selectedCourse, selectedYear, selectedGoal, skillLevels,
-          interests, mentorFmt, mentorFreq, mentorWho,
-          alumCompany, alumRole, alumCap, alumExpertise,
-          instName, instRole, instSize, collegeDepts,
-          notifs
-        };
-        await AsyncStorage.setItem('sa_onboarding_state', JSON.stringify(state));
-      } catch (e) {}
+        const response = await fetch(`${getBaseUrl()}/api/auth/oauth-config`);
+        if (!response.ok) {
+          throw new Error(`OAuth configuration request failed (${response.status})`);
+        }
+        const config = await response.json();
+        firebaseConfig = config?.firebase;
+      } catch (err) {
+        console.warn('Unable to load Google sign-in configuration:', err);
+      }
+
+      await initFirebaseAuth(firebaseConfig || {
+        apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
+        authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+        projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '',
+        appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '',
+      });
+      if (!cancelled) {
+        setIsGoogleLoading(false);
+      }
     };
-    saveData();
-  }, [isLoaded, flow, stepIdx, userEmail, userName, userPassword, selectedCourse, selectedYear, selectedGoal, skillLevels, interests, mentorFmt, mentorFreq, mentorWho, alumCompany, alumRole, alumCap, alumExpertise, instName, instRole, instSize, collegeDepts, notifs]);
+
+    void initializeGoogleAuth();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+
 
   const FLOW_SEQS = {
     student: ['who', 'account', 'verify', 'course', 'goal', 'skills', 'resume', 'photo', 'interests', 'mentorpref', 'notify', 'roadmap', 'mentors', 'perks', 'card', 'done'],
@@ -301,23 +427,45 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const currentKey = currentSeq[stepIdx] || 'who';
   const progressPct = ((stepIdx / (currentSeq.length - 1)) * 100).toFixed(1);
 
+  // Generate SA ID once when card step is reached
+  useEffect(() => {
+    if (currentKey === 'card' && !generatedSaId) {
+      setGeneratedSaId(generateSaId());
+    }
+  }, [currentKey]);
+
   const nextStep = async () => {
-    if (currentKey === 'account') {
-      await handleSendRealtimeOtp();
-      setStepIdx(stepIdx + 1);
-      return;
-    }
-    if (currentKey === 'verify') {
-      const ok = await handleVerifyRealtimeOtp();
-      if (ok) {
-        setStepIdx(stepIdx + 1);
+    if (isNavigating) return;
+    setIsNavigating(true);
+    try {
+      if (currentKey === 'account') {
+        if (!validateAccountFields()) return;
+        const sent = await handleSendRealtimeOtp();
+        if (sent) setStepIdx(stepIdx + 1);
+        return;
       }
-      return;
+      if (currentKey === 'verify') {
+        const ok = await handleVerifyRealtimeOtp();
+        if (ok) {
+          setStepIdx(stepIdx + 1);
+        }
+        return;
+      }
+      if (stepIdx < currentSeq.length - 1) {
+        setStepIdx(stepIdx + 1);
+      } else {
+        await handleFinishOnboarding();
+      }
+    } finally {
+      setIsNavigating(false);
     }
+  };
+
+  const skipStep = () => {
     if (stepIdx < currentSeq.length - 1) {
       setStepIdx(stepIdx + 1);
     } else {
-      await handleFinishOnboarding();
+      handleFinishOnboarding();
     }
   };
 
@@ -345,34 +493,56 @@ function WebOnboardingEngine({ router }: { router: any }) {
   };
 
   const handleResumeDrop = () => {
-    setResumeUploaded(true);
-    let cur = 0;
-    const interval = setInterval(() => {
-      cur += 6;
-      if (cur >= 71) {
-        setAtsScore(71);
-        clearInterval(interval);
-      } else {
-        setAtsScore(cur);
-      }
-    }, 25);
+    resumeInputRef.current?.click();
   };
 
-  const handleTakePhoto = () => {
-    setIsCapturingPhoto(true);
-    // Simulate capturing high quality verified student portrait
-    setTimeout(() => {
-      setAvatarUri('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80');
-      setIsCapturingPhoto(false);
-    }, 900);
+  const handleResumeSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (!['pdf', 'doc', 'docx'].includes(extension || '')) {
+      setResumeError('Unsupported file type. Please choose a PDF, DOC, or DOCX file.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setResumeError('File too large (max 5MB)');
+      return;
+    }
+
+    setResumeError('');
+    setResumeFile(file);
+    setResumeUploaded(true);
+    setResumeUploadComplete(false);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setAvatarUri(url);
+    e.target.value = '';
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setPhotoError('Unsupported image type. Please choose a JPG, PNG, or WebP image.');
+      return;
     }
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError('Image too large (max 5MB)');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setAvatarUri(reader.result);
+        setPhotoError('');
+        setProfilePhotoSaved(false);
+      } else {
+        setPhotoError('Could not read the selected image.');
+      }
+    };
+    reader.onerror = () => setPhotoError('Could not read the selected image.');
+    reader.readAsDataURL(file);
   };
 
   const copyCouponCode = (code: string) => {
@@ -396,11 +566,12 @@ function WebOnboardingEngine({ router }: { router: any }) {
         fontFamily: "'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         color: 'var(--text)',
         backgroundColor: 'var(--bg)',
-        minHeight: '100vh',
+        height: '100vh',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
         overflowX: 'clip',
+        overflowY: 'auto',
         width: '100%',
       }}
     >
@@ -452,7 +623,18 @@ function WebOnboardingEngine({ router }: { router: any }) {
         type="file"
         ref={fileInputRef}
         onChange={handleFileUpload}
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
+        data-testid="onboarding-photo-input"
+        aria-label="Choose a profile photo"
+        style={{ display: 'none' }}
+      />
+      <input
+        type="file"
+        ref={resumeInputRef}
+        onChange={handleResumeSelect}
+        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        data-testid="onboarding-resume-input"
+        aria-label="Choose a resume"
         style={{ display: 'none' }}
       />
 
@@ -527,7 +709,12 @@ function WebOnboardingEngine({ router }: { router: any }) {
           />
         </div>
         <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px' }}>
-          <div onClick={() => router.replace('/')} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+          <button
+            type="button"
+            aria-label="StudentAlumni home"
+            onClick={() => router.replace('/')}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', border: 0, padding: 0, background: 'transparent', color: 'inherit', font: 'inherit', textAlign: 'left' }}
+          >
             <svg width="26" height="30" viewBox="0 0 300 350" style={{ flex: 'none' }}>
               <defs>
                 <linearGradient id="obBadge" x1="0" y1="0" x2="1" y2="1">
@@ -543,7 +730,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
               </text>
             </svg>
             <span style={{ fontSize: '15px', fontWeight: 700 }}>StudentAlumni</span>
-          </div>
+          </button>
           <div id="ob-crumb" style={{ fontSize: '13px', color: 'var(--muted)' }}>
             {CRUMBS[currentKey] || 'Getting started'}
           </div>
@@ -551,13 +738,18 @@ function WebOnboardingEngine({ router }: { router: any }) {
             <span id="ob-count" style={{ fontSize: '13px', color: 'var(--muted)' }}>
               Step {stepIdx + 1} of {currentSeq.length}
             </span>
-            <span
+            <button
+              type="button"
               id="ob-exit"
-              onClick={() => router.replace('/')}
-              style={{ fontSize: '13px', color: 'var(--muted)', cursor: 'pointer' }}
+              aria-label="Cancel onboarding"
+              onClick={async () => {
+                await AsyncStorage.removeItem('sa_onboarding_state');
+                router.replace('/');
+              }}
+              style={{ fontSize: '13px', color: 'var(--muted)', cursor: 'pointer', border: 0, padding: 0, background: 'transparent', font: 'inherit' }}
             >
-              Save &amp; exit
-            </span>
+              Cancel
+            </button>
           </div>
         </div>
       </div>
@@ -586,8 +778,10 @@ function WebOnboardingEngine({ router }: { router: any }) {
               ].map((p) => {
                 const on = flow === p.id;
                 return (
-                  <div
+                  <button
                     key={p.id}
+                    type="button"
+                    aria-pressed={on}
                     onClick={() => {
                       setFlow(p.id as any);
                       setTimeout(nextStep, 260);
@@ -599,6 +793,10 @@ function WebOnboardingEngine({ router }: { router: any }) {
                       background: on ? 'var(--tint)' : 'var(--card)',
                       padding: '28px 26px 30px',
                       cursor: 'pointer',
+                      width: '100%',
+                      color: 'var(--text)',
+                      font: 'inherit',
+                      textAlign: 'left',
                     }}
                   >
                     <svg width="26" height="26" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--ind-lt)', strokeWidth: 1.6, marginBottom: '30px' }}>
@@ -609,7 +807,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
                     <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '1.2px', color: 'var(--ind-lt)', marginTop: '18px' }}>
                       {p.badge}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -630,15 +828,25 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   </p>
                 </div>
                 <div style={{ display: 'grid', gap: '14px', maxWidth: '460px' }}>
-                  <div onClick={handleGoogleSignIn} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', border: '1px solid var(--dot)', borderRadius: '10px', padding: '14px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', background: 'var(--card)' }}>
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={isGoogleLoading}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', border: '1px solid var(--dot)', borderRadius: '10px', padding: '14px', fontSize: '15px', fontWeight: 600, cursor: isGoogleLoading ? 'wait' : 'pointer', background: 'var(--card)', color: 'var(--text)', opacity: isGoogleLoading ? 0.7 : 1 }}
+                  >
                     <svg width="18" height="18" viewBox="0 0 48 48">
                       <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.5 6.5 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-7.9 19.7-20 0-1.3-.1-2.4-.3-3.5z" />
                       <path fill="#FF3D00" d="M6.3 14.1l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.5 6.5 29.5 4 24 4 16.3 4 9.6 8.4 6.3 14.1z" />
                       <path fill="#4CAF50" d="M24 44c5.3 0 10.1-2 13.7-5.3l-6.3-5.3c-2 1.4-4.6 2.3-7.4 2.3-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.4 39.5 16.1 44 24 44z" />
                       <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4 5.8l6.3 5.3c-.4.4 6.7-4.9 6.7-15.1 0-1.3-.1-2.4-.3-3.5z" />
                     </svg>
-                    Continue with Google
-                  </div>
+                    {isGoogleLoading ? 'Preparing Google sign-in...' : 'Continue with Google'}
+                  </button>
+                  {otpError && (
+                    <div role="alert" style={{ border: '1px solid #EF4444', borderRadius: '10px', background: 'rgba(239,68,68,0.12)', padding: '12px 16px', color: '#F87171', fontSize: '14px' }}>
+                      {otpError}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '14px', margin: '6px 0' }}>
                     <span style={{ flex: 1, height: '1px', background: 'var(--line)' }} />
                     <span style={{ fontSize: '12.5px', color: 'var(--muted)' }}>or continue with email</span>
@@ -647,6 +855,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   <div>
                     <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Full Name</div>
                     <input
+                      ref={nameInputRef}
+                      aria-label="Full Name"
                       type="text"
                       value={userName}
                       onChange={(e) => setUserName(e.target.value)}
@@ -657,6 +867,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   <div>
                     <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Email Address</div>
                     <input
+                      ref={emailInputRef}
+                      aria-label="Email Address"
                       type="email"
                       value={userEmail}
                       onChange={(e) => setUserEmail(e.target.value)}
@@ -666,13 +878,25 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   </div>
                   <div>
                     <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Password</div>
-                    <input
-                      type="password"
-                      value={userPassword}
-                      onChange={(e) => setUserPassword(e.target.value)}
-                      placeholder="••••••••••"
-                      style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
-                    />
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        ref={passwordInputRef}
+                        aria-label="Password"
+                        type={showPwd ? 'text' : 'password'}
+                        value={userPassword}
+                        onChange={(e) => setUserPassword(e.target.value)}
+                        placeholder="••••••••••"
+                        style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', paddingRight: '55px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                      />
+                      <button
+                        type="button"
+                        aria-label={`${showPwd ? 'Hide' : 'Show'} password`}
+                        onClick={() => setShowPwd(!showPwd)}
+                        style={{ position: 'absolute', right: '15px', top: '15px', fontSize: '13px', fontWeight: '600', color: 'var(--muted)', cursor: 'pointer', border: 0, padding: 0, background: 'transparent', font: 'inherit' }}
+                      >
+                        {showPwd ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
                     <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
                       <span style={{ flex: 1, height: '3px', borderRadius: '2px', background: 'var(--ind)' }} />
                       <span style={{ flex: 1, height: '3px', borderRadius: '2px', background: 'var(--ind)' }} />
@@ -681,6 +905,22 @@ function WebOnboardingEngine({ router }: { router: any }) {
                     </div>
                     <div style={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '8px' }}>
                       Strong password ready for account registration.
+                    </div>
+                  </div>
+                  {/* Date of Birth — required by platform age policy */}
+                  <div>
+                    <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Date of Birth</div>
+                    <input
+                      ref={dobInputRef}
+                      aria-label="Date of Birth"
+                      type="date"
+                      value={userDob}
+                      onChange={(e) => setUserDob(e.target.value)}
+                      max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
+                      style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: userDob ? 'var(--text)' : 'var(--muted)', width: '100%', outline: 'none' }}
+                    />
+                    <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '6px' }}>
+                      Required for age verification. Stored securely and encrypted.
                     </div>
                   </div>
                 </div>
@@ -811,9 +1051,17 @@ function WebOnboardingEngine({ router }: { router: any }) {
             <div style={{ display: 'grid', gap: '26px', maxWidth: '720px' }}>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '10px' }}>College</div>
-                <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>Malla Reddy Institute of Technology</span>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ind-lt)' }}>VERIFIED</span>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    value={instName}
+                    onChange={(e) => setInstName(e.target.value)}
+                    placeholder="Enter your college name"
+                    style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', paddingRight: '80px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                  />
+                  {(instName.toLowerCase().includes('malla reddy') || instName.toLowerCase().includes('mrit')) && (
+                    <span style={{ position: 'absolute', right: '15px', top: '16px', fontSize: '12px', fontWeight: 600, color: 'var(--ind-lt)' }}>VERIFIED</span>
+                  )}
                 </div>
               </div>
               <div>
@@ -863,6 +1111,32 @@ function WebOnboardingEngine({ router }: { router: any }) {
                         }}
                       >
                         {y}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '10px' }}>Current Semester</div>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {['1', '2', '3', '4', '5', '6', '7', '8'].map((s) => {
+                    const on = selectedSem === s;
+                    return (
+                      <span
+                        key={s}
+                        onClick={() => setSelectedSem(s)}
+                        className="ob-chip"
+                        style={{
+                          fontSize: '14.5px',
+                          padding: '11px 18px',
+                          borderRadius: '100px',
+                          border: `1px solid ${on ? 'var(--ind)' : 'var(--line)'}`,
+                          background: on ? 'var(--tint)' : 'transparent',
+                          color: on ? 'var(--text)' : 'var(--muted2)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Sem {s}
                       </span>
                     );
                   })}
@@ -995,7 +1269,16 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   <div
                     id="ob-drop"
                     onClick={handleResumeDrop}
-                    style={{
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Choose a resume file"
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      handleResumeDrop();
+                    }
+                  }}
+                  style={{
                       border: '1px dashed var(--dot)',
                       borderRadius: '16px',
                       background: 'var(--card)',
@@ -1009,7 +1292,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
                       <path d="M12 16 V5 M8 9 l4 -4 4 4" />
                       <path d="M4 15 v3 a2 2 0 002 2 h12 a2 2 0 002 -2 v-3" />
                     </svg>
-                    <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>Drop your resume here</div>
+                    <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>Choose your resume</div>
                     <div style={{ fontSize: '14px', color: 'var(--muted)' }}>or browse your files</div>
                   </div>
                 ) : (
@@ -1019,48 +1302,31 @@ function WebOnboardingEngine({ router }: { router: any }) {
                         <path d="M6 3.5 h8 l4 4 v13 h-12 Z M14 3.5 v4 h4" />
                       </svg>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '15px', fontWeight: 600 }}>aisha-kapoor-resume.pdf</div>
-                        <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '2px' }}>184 KB · parsed just now</div>
+                        <div data-testid="onboarding-resume-name" style={{ fontSize: '15px', fontWeight: 600, overflowWrap: 'anywhere' }}>{resumeFile?.name}</div>
+                        <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '2px' }}>
+                          {resumeFile ? `${(resumeFile.size / 1024).toFixed(1)} KB · Ready to upload` : ''}
+                        </div>
                       </div>
-                      <span onClick={handleResumeDrop} style={{ fontSize: '13px', color: 'var(--muted)', cursor: 'pointer' }}>Replace</span>
+                      <button type="button" onClick={handleResumeDrop} style={{ fontSize: '13px', color: 'var(--muted)', cursor: 'pointer', border: 0, background: 'transparent', font: 'inherit' }}>Replace</button>
                     </div>
                   </div>
                 )}
+                {resumeError && <div role="alert" style={{ color: '#F87171', fontSize: '13px', marginTop: '12px' }}>{resumeError}</div>}
                 <div style={{ fontSize: '13.5px', color: 'var(--muted)', marginTop: '16px' }}>
                   You can skip this and add it later from your dashboard.
                 </div>
               </div>
               <div style={{ border: '1px solid var(--line)', borderRadius: '16px', background: 'var(--card)', padding: '26px 28px 28px' }}>
                 <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--ind-lt)', marginBottom: '22px' }}>
-                  ATS SCORE
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '18px' }}>
-                  <span id="ob-ats" style={{ fontSize: '44px', fontWeight: 800, letterSpacing: '-2px' }}>
-                    {resumeUploaded ? atsScore : '—'}
-                  </span>
-                  <span style={{ fontSize: '15px', color: 'var(--muted)' }}>/ 100</span>
-                </div>
-                <div style={{ height: '8px', borderRadius: '4px', background: 'var(--line2)', overflow: 'hidden', marginBottom: '22px' }}>
-                  <div style={{ height: '100%', width: `${atsScore}%`, borderRadius: '4px', background: 'var(--ind)', transition: 'width 1.1s cubic-bezier(.2,.8,.2,1)' }} />
+                  RESUME STATUS
                 </div>
                 {resumeUploaded ? (
-                  <div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '12px', alignItems: 'start', marginBottom: '14px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ind-lt)' }}>01</span>
-                      <div style={{ fontSize: '14px', lineHeight: 1.55, color: 'var(--muted2)' }}>Tighten the internship bullet to a measurable result</div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '12px', alignItems: 'start', marginBottom: '14px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ind-lt)' }}>02</span>
-                      <div style={{ fontSize: '14px', lineHeight: 1.55, color: 'var(--muted2)' }}>Add the systems project — it matches 4 open roles</div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '12px', alignItems: 'start' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ind-lt)' }}>03</span>
-                      <div style={{ fontSize: '14px', lineHeight: 1.55, color: 'var(--muted2)' }}>Drop the coursework block, it costs you a third of page one</div>
-                    </div>
+                  <div data-testid="onboarding-resume-status" style={{ fontSize: '16px', fontWeight: 600, color: 'var(--ind-lt)' }}>
+                    Selected — uploads when you finish creating your account.
                   </div>
                 ) : (
                   <div style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--muted)' }}>
-                    Upload a file and Agent K scores it against your target role.
+                    Choose a PDF, DOC, or DOCX file up to 5 MB. Resume scoring is not available during this step.
                   </div>
                 )}
               </div>
@@ -1087,13 +1353,12 @@ function WebOnboardingEngine({ router }: { router: any }) {
               {/* Photo Display Preview */}
               <div style={{ position: 'relative' }}>
                 <div
+                  data-testid="onboarding-photo-preview"
                   style={{
                     width: '128px',
                     height: '128px',
                     borderRadius: '50%',
-                    background: avatarUri
-                      ? `url(${avatarUri}) center/cover no-repeat`
-                      : 'linear-gradient(135deg, var(--ind), #2FB8C6)',
+                    background: 'linear-gradient(135deg, var(--ind), #2FB8C6)',
                     border: '3px solid var(--ind-lt)',
                     boxShadow: '0 10px 30px rgba(91,79,233,0.35)',
                     display: 'flex',
@@ -1102,15 +1367,18 @@ function WebOnboardingEngine({ router }: { router: any }) {
                     overflow: 'hidden',
                   }}
                 >
+                  {avatarUri && <img src={avatarUri} alt="Selected profile photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                   {!avatarUri && (
                     <span style={{ fontSize: '42px', color: '#FFFFFF', fontWeight: 800 }}>
-                      {flow === 'alumnus' ? 'AM' : 'AK'}
+                      {capitalizeName(userName || userEmail.split('@')[0] || 'Student').split(' ').map((part) => part[0] || '').slice(0, 2).join('').toUpperCase()}
                     </span>
                   )}
                 </div>
                 {avatarUri && (
-                  <span
-                    onClick={() => setAvatarUri(null)}
+                  <button
+                    type="button"
+                    aria-label="Remove selected profile photo"
+                    onClick={() => { setAvatarUri(null); setPhotoError(''); setProfilePhotoSaved(false); }}
                     style={{
                       position: 'absolute',
                       top: '0',
@@ -1129,39 +1397,12 @@ function WebOnboardingEngine({ router }: { router: any }) {
                     }}
                   >
                     ×
-                  </span>
+                  </button>
                 )}
               </div>
 
               {/* Action Buttons */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <button
-                  onClick={handleTakePhoto}
-                  disabled={isCapturingPhoto}
-                  className="ob-cta"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '10px',
-                    fontSize: '15px',
-                    fontWeight: 600,
-                    padding: '13px 24px',
-                    borderRadius: '10px',
-                    background: 'var(--ind)',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    cursor: 'pointer',
-                    transition: 'all .2s ease',
-                  }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#FFFFFF', strokeWidth: 1.8 }}>
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                    <circle cx="12" cy="13" r="4" />
-                  </svg>
-                  {isCapturingPhoto ? 'Accessing camera…' : avatarUri ? 'Take new photo' : 'Take live photo'}
-                </button>
-
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="ob-ghost"
@@ -1188,6 +1429,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   </svg>
                   Upload from device
                 </button>
+                {photoError && <div role="alert" style={{ color: '#F87171', fontSize: '13px' }}>{photoError}</div>}
 
                 <span
                   onClick={nextStep}
@@ -1425,13 +1667,48 @@ function WebOnboardingEngine({ router }: { router: any }) {
                 {selectedGoal}, graduating {selectedYear}, starting from system design.
               </p>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '20px', position: 'relative', borderTop: '2px solid var(--ind)', paddingTop: '32px' }}>
-              {[
-                { sem: 'NOW · SEM 5', title: 'System design basics', sub: 'Two mentor sessions and one guided project.' },
-                { sem: 'SEM 6', title: 'Portfolio project', sub: 'The one that matches 4 of your open roles.' },
-                { sem: 'SUMMER', title: 'Internship', sub: 'Referral route through two MRIT alumni.' },
-                { sem: 'SEM 8', title: 'First offer', sub: 'Interview prep, then negotiation prompts.' },
-              ].map((m, idx) => (
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(200px, 1fr))`, gap: '20px', position: 'relative', borderTop: '2px solid var(--ind)', paddingTop: '32px' }}>
+              {(() => {
+                const currentNum = parseInt(selectedSem) || 5;
+                const roadmap = [];
+
+                roadmap.push({
+                  sem: `NOW · SEM ${currentNum}`,
+                  title: `${selectedCourse} basics`,
+                  sub: 'Two mentor sessions and one guided project.'
+                });
+
+                if (currentNum < 6) {
+                  roadmap.push({
+                    sem: `SEM ${currentNum + 1}`,
+                    title: 'Portfolio project',
+                    sub: 'The one that matches your open roles.'
+                  });
+                } else if (currentNum === 6) {
+                  roadmap.push({
+                    sem: 'SUMMER',
+                    title: 'Hackathon prep',
+                    sub: 'Build a project to showcase.'
+                  });
+                }
+
+                if (currentNum <= 7) {
+                  roadmap.push({
+                    sem: 'SEM 7',
+                    title: 'Internship',
+                    sub: `Referral route through two ${instName || 'alumni'}.`
+                  });
+                }
+
+                if (currentNum <= 8) {
+                  roadmap.push({
+                    sem: 'SEM 8',
+                    title: 'First offer',
+                    sub: 'Interview prep, then negotiation prompts.'
+                  });
+                }
+                return roadmap;
+              })().map((m, idx) => (
                 <div key={idx} className="ob-rstep" style={{ position: 'relative' }}>
                   <span
                     style={{
@@ -1524,20 +1801,28 @@ function WebOnboardingEngine({ router }: { router: any }) {
             <div style={{ display: 'grid', gap: '22px' }}>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>Company</div>
-                <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px' }}>
-                  {alumCompany}
-                </div>
+                <input
+                  type="text"
+                  value={alumCompany}
+                  onChange={(e) => setAlumCompany(e.target.value)}
+                  placeholder="e.g. Google, Deloitte, Microsoft"
+                  style={{ width: '100%', border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>Role</div>
-                <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px' }}>
-                  {alumRole}
-                </div>
+                <input
+                  type="text"
+                  value={alumRole}
+                  onChange={(e) => setAlumRole(e.target.value)}
+                  placeholder="e.g. Software Engineer, Senior Consultant"
+                  style={{ width: '100%', border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>Graduated from</div>
                 <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>MRIT · Class of 2019</span>
+                  <span>{instName || 'College'} · Class of {selectedYear}</span>
                   <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ind-lt)' }}>VERIFIED</span>
                 </div>
               </div>
@@ -1645,15 +1930,23 @@ function WebOnboardingEngine({ router }: { router: any }) {
             <div style={{ display: 'grid', gap: '22px' }}>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>Institution name</div>
-                <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px' }}>
-                  {instName}
-                </div>
+                <input
+                  type="text"
+                  value={instName}
+                  onChange={(e) => setInstName(e.target.value)}
+                  placeholder="Enter institution name"
+                  style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                />
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>Your role</div>
-                <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px' }}>
-                  {instRole}
-                </div>
+                <input
+                  type="text"
+                  value={instRole}
+                  onChange={(e) => setInstRole(e.target.value)}
+                  placeholder="e.g. Head of Career Services"
+                  style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                />
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '10px' }}>Students per graduating cohort</div>
@@ -1855,13 +2148,13 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 0', borderBottom: '1px solid var(--line)' }}>
                     <span style={{ fontSize: '13.5px', color: 'var(--muted)' }}>SA ID</span>
                     <span id="ob-said" style={{ fontFamily: 'ui-monospace, monospace', fontSize: '14px', fontWeight: 600 }}>
-                      {flow === 'alumnus' ? 'SA-19-MRIT-00874' : 'SA-26-MRIT-04193'}
+                      {generatedSaId || 'Generating...'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 0', borderBottom: '1px solid var(--line)' }}>
                     <span style={{ fontSize: '13.5px', color: 'var(--muted)' }}>Status</span>
                     <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ind-lt)' }}>
-                      {flow === 'alumnus' ? 'Verified Mentor' : 'Verified Student'}
+                      {flow === 'alumnus' ? (alumRole ? `Verified ${alumRole}` : 'Verified Mentor') : 'Verified Student'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 0' }}>
@@ -1938,7 +2231,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
                             </svg>
                             <span style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '1.4px' }}>STUDENTALUMNI</span>
                           </div>
-                          
+
                           {/* Live Avatar Preview or Verified Badge */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             {avatarUri && (
@@ -1957,17 +2250,17 @@ function WebOnboardingEngine({ router }: { router: any }) {
                         </div>
                         <div>
                           <div id="ob-card-name" style={{ fontSize: '27px', fontWeight: 700, letterSpacing: '-1px', marginBottom: '4px' }}>
-                            {flow === 'alumnus' ? 'Arjun Mehta' : 'Aisha Kapoor'}
+                            {capitalizeName(userName || userEmail.split('@')[0] || 'Student')}
                           </div>
                           <div id="ob-card-sub" style={{ fontSize: '13.5px', opacity: 0.82 }}>
-                            {flow === 'alumnus' ? 'Senior Consultant, Deloitte · Class of 2019' : `${selectedCourse} · Class of ${selectedYear}`}
+                            {flow === 'alumnus' ? `${alumRole || 'Professional'}, ${alumCompany || 'Company'} · Class of ${selectedYear}` : `${selectedCourse} · Class of ${selectedYear}`}
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
                           <div>
                             <div style={{ fontSize: '9.5px', fontWeight: 700, letterSpacing: '1.6px', opacity: 0.7, marginBottom: '5px' }}>SA ID</div>
                             <div id="ob-card-id" style={{ fontFamily: 'ui-monospace, monospace', fontSize: '15px', fontWeight: 600, letterSpacing: '.5px' }}>
-                              {flow === 'alumnus' ? 'SA-19-MRIT-00874' : 'SA-26-MRIT-04193'}
+                              {generatedSaId || 'Generating...'}
                             </div>
                           </div>
                           <div style={{ width: '46px', height: '46px', borderRadius: '6px', background: 'rgba(255,255,255,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', fontWeight: 800, fontSize: '18px' }}>
@@ -2007,7 +2300,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'ui-monospace, monospace', fontSize: '12px', opacity: 0.75 }}>
                           <span>studentalumni.ai/verify</span>
-                          <span id="ob-card-back-id">{flow === 'alumnus' ? 'SA-19-MRIT-00874' : 'SA-26-MRIT-04193'}</span>
+                          <span id="ob-card-back-id">{generatedSaId || 'Generating...'}</span>
                         </div>
                       </div>
                     </div>
@@ -2021,11 +2314,16 @@ function WebOnboardingEngine({ router }: { router: any }) {
         {/* STEP: DONE (ALL FLOWS) */}
         {currentKey === 'done' && (
           <div className="ob-step" style={{ display: 'block', maxWidth: '620px', animation: 'ob-in .4s ease' }}>
+            {otpError && (
+              <div role="alert" style={{ border: '1px solid #EF4444', borderRadius: '10px', background: 'rgba(239,68,68,0.12)', padding: '12px 16px', color: '#F87171', fontSize: '14px', marginBottom: '20px' }}>
+                {otpError}
+              </div>
+            )}
             <div style={{ position: 'relative', width: '76px', height: '76px', marginBottom: '34px' }}>
               <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid var(--ind)', animation: 'ob-ring 2.6s ease-out infinite' }} />
               <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid var(--ind)', animation: 'ob-ring 2.6s ease-out infinite 1.3s' }} />
               <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'linear-gradient(135deg, var(--ind), #2FB8C6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '30px' }}>
-                🎉
+
               </span>
             </div>
             <h1 style={{ fontSize: '42px', fontWeight: 700, lineHeight: 1.1, letterSpacing: -1.7, margin: '0 0 14px' }}>
@@ -2051,13 +2349,15 @@ function WebOnboardingEngine({ router }: { router: any }) {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              <span
-                onClick={() => router.replace('/student-portal/dashboard')}
+              <button
+                type="button"
+                onClick={handleFinishOnboarding}
                 className="ob-cta"
-                style={{ fontSize: '15px', fontWeight: 600, padding: '15px 26px', borderRadius: '10px', background: 'var(--ind)', color: '#FFFFFF', cursor: 'pointer', transition: 'background .2s ease' }}
+                disabled={isFinishing}
+                style={{ fontSize: '15px', fontWeight: 600, padding: '15px 26px', borderRadius: '10px', border: 0, background: 'var(--ind)', color: '#FFFFFF', cursor: isFinishing ? 'wait' : 'pointer', opacity: isFinishing ? 0.7 : 1, transition: 'background .2s ease' }}
               >
-                Go to dashboard →
-              </span>
+                {isFinishing ? 'Opening dashboard...' : 'Continue to dashboard →'}
+              </button>
               <span
                 id="ob-restart"
                 onClick={() => setStepIdx(0)}
@@ -2075,7 +2375,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
       {currentKey !== 'done' && (
         <div style={{ position: 'sticky', bottom: 0, background: 'var(--nav-bg)', backdropFilter: 'blur(14px)', borderTop: '1px solid var(--line)', zIndex: 20 }}>
           <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px' }}>
-            <span
+            <button
+              type="button"
               id="ob-back"
               onClick={prevStep}
               style={{
@@ -2084,19 +2385,29 @@ function WebOnboardingEngine({ router }: { router: any }) {
                 color: 'var(--muted)',
                 cursor: 'pointer',
                 padding: '12px 0',
+                border: 0,
+                background: 'transparent',
+                fontFamily: 'inherit',
               }}
             >
               Back
-            </span>
+            </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
               {stepIdx > 0 && currentKey !== 'notify' && currentKey !== 'roadmap' && (
-                <span id="ob-skip" onClick={nextStep} style={{ fontSize: '14px', color: 'var(--muted)', cursor: 'pointer' }}>
+                <button
+                  type="button"
+                  id="ob-skip"
+                  onClick={skipStep}
+                  style={{ fontSize: '14px', color: 'var(--muted)', cursor: 'pointer', border: 0, background: 'transparent', fontFamily: 'inherit' }}
+                >
                   Skip
-                </span>
+                </button>
               )}
-              <span
+              <button
+                type="button"
                 id="ob-next"
                 onClick={nextStep}
+                disabled={isNavigating}
                 className="ob-cta"
                 style={{
                   display: 'inline-flex',
@@ -2108,15 +2419,20 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   borderRadius: '10px',
                   background: 'var(--ind)',
                   color: '#FFFFFF',
-                  cursor: 'pointer',
+                  cursor: isNavigating ? 'wait' : 'pointer',
+                  opacity: isNavigating ? 0.7 : 1,
                   transition: 'background .2s ease',
+                  border: 0,
+                  fontFamily: 'inherit',
                 }}
               >
-                {stepIdx === currentSeq.length - 2 ? 'Finish' : 'Continue'}
-                <svg width="14" height="14" viewBox="0 0 16 16" style={{ fill: 'none', stroke: '#FFFFFF', strokeWidth: 1.9 }}>
-                  <path d="M3 8 h10 M9 4 l4 4 -4 4" />
-                </svg>
-              </span>
+                {isNavigating ? 'Loading...' : (stepIdx === currentSeq.length - 2 ? 'Finish' : 'Continue')}
+                {!isNavigating && (
+                  <svg width="14" height="14" viewBox="0 0 16 16" style={{ fill: 'none', stroke: '#FFFFFF', strokeWidth: 1.9 }}>
+                    <path d="M3 8 h10 M9 4 l4 4 -4 4" />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
         </div>

@@ -20,7 +20,13 @@ interface Predictions {
   };
 }
 
-export function PredictionTimeline({ data }: { data?: any }) {
+export function PredictionTimeline({
+  data,
+  onViewAnalysis,
+}: {
+  data?: any;
+  onViewAnalysis?: () => void;
+}) {
   const current = Number(data?.current || 33);
   const p7 = Number(data?.predictions?.['7d']?.score || 40);
   const p30 = Number(data?.predictions?.['30d']?.score || 51);
@@ -102,6 +108,8 @@ export function PredictionTimeline({ data }: { data?: any }) {
           </Text>
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel="View full career analysis"
+            onPress={onViewAnalysis}
             style={({ pressed, hovered }: any) => [
               s.insightBtn,
               (pressed || hovered) && s.insightBtnHover,
