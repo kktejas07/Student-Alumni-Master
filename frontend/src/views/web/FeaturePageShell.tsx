@@ -146,7 +146,6 @@ export default function FeaturePageShell({
     heroBg = '#FFFFFF';
     heroBoxShadow = '0 20px 60px -12px rgba(124,92,252,0.18), 0 0 0 1px rgba(226,232,240,0.9) inset';
     heroOrbColor1 = 'rgba(124,92,252,0.10)';
-    heroOrbColor2 = 'rgba(59,130,246,0.08)';
     heroGradient = ['#FFFFFF', '#F5F3FF'] as readonly [string, string];
     heroTitleColor = '#0F172A';
     heroSubColor = '#64748B';
