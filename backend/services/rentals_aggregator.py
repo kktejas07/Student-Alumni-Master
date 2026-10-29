@@ -328,7 +328,7 @@ class RentalsSourceAdapter(abc.ABC):
 
     @abc.abstractmethod
     async def fetch_listings(self) -> List[Dict[str, Any]]:
-        ...
+        pass
 
     # shared helpers ─────────────────────────────────────────────────────
     async def _get_json(self, url: str, **kwargs: Any) -> Any:
