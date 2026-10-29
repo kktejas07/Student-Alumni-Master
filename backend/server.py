@@ -27,6 +27,7 @@ load_dotenv(ROOT_DIR / '.env')
 
 import os
 import socket
+import logging
 
 # --- GLOBALLY PATCH DNS TO PREVENT 34-SECOND IPv6 HANGS ON WINDOWS ---
 import sys
@@ -41,6 +42,7 @@ if sys.platform == "win32" and not getattr(socket, "_ipv4_patched", False):
     socket.getaddrinfo = _ipv4_getaddrinfo
     socket._ipv4_patched = True  # type: ignore[attr-defined]
 # ---------------------------------------------------------------------
+logger = logging.getLogger(__name__)
 import re
 import uuid
 import io
@@ -380,7 +382,7 @@ async def _lifespan(application):
         from services.rentals_aggregator import stop_rentals_aggregator_scheduler
         stop_rentals_aggregator_scheduler()
     except Exception:
-        pass
+        logger.exception("Failed to stop rentals aggregator scheduler during shutdown")
     client.close()
 
 
