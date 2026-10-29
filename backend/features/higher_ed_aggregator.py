@@ -140,7 +140,7 @@ class HESourceAdapter(abc.ABC):
 
     @abc.abstractmethod
     async def fetch_rows(self) -> List[Dict[str, Any]]:
-        ...
+        raise NotImplementedError("Subclasses must implement fetch_rows()")
 
     # shared helpers ───────────────────────────────────────────────────────
     async def _get_json(self, url: str, **kwargs: Any) -> Any:
