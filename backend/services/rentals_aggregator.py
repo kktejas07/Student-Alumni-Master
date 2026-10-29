@@ -1159,9 +1159,7 @@ class RentalsAggregator:
         if not await self.source_enabled(name):
             return [], "disabled"
         injected = adapter.http
-        if injected is not None:
-            client = injected
-        else:
+        if injected is None:
             client = httpx.AsyncClient(timeout=PER_API_TIMEOUT_S,
                                        headers={"User-Agent": USER_AGENT})
             adapter.http = client
