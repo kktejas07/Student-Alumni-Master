@@ -322,6 +322,13 @@ async def _lifespan(application):
         except Exception as _e:
             logger.warning("Could not start Course Aggregator scheduler: %s", _e)
 
+        # Start the 24-hour rentals aggregator cron (daily 04:00 UTC + startup catch-up)
+        try:
+            from services.rentals_aggregator import start_rentals_aggregator_scheduler
+            start_rentals_aggregator_scheduler()
+        except Exception as _e:
+            logger.warning("Could not start Rentals Aggregator scheduler: %s", _e)
+
 
     try:
         from core.leader import run_as_leader
@@ -366,6 +373,12 @@ async def _lifespan(application):
     try:
         from services.course_aggregator import stop_course_aggregator_scheduler
         stop_course_aggregator_scheduler()
+    except Exception:
+        pass
+
+    try:
+        from services.rentals_aggregator import stop_rentals_aggregator_scheduler
+        stop_rentals_aggregator_scheduler()
     except Exception:
         pass
     client.close()
@@ -1994,6 +2007,9 @@ api_router.include_router(courses_router)
 # Course Aggregator (C1) — 24h external course bot: admin status / source toggle / manual run
 from services.course_aggregator import admin_router as course_aggregator_admin_router
 api_router.include_router(course_aggregator_admin_router)
+# Rentals Aggregator (R1) — 24h universal rentals bot: admin status / source toggle / manual run
+from services.rentals_aggregator import admin_router as rentals_aggregator_admin_router
+api_router.include_router(rentals_aggregator_admin_router)
 from features.college_portal import router as college_router  # College admin Phase 3: roster + analytics
 api_router.include_router(college_router)
 
