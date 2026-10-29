@@ -322,6 +322,15 @@ async def _lifespan(application):
         except Exception as _e:
             logger.warning("Could not start Course Aggregator scheduler: %s", _e)
 
+        # Start the staggered deals aggregator crons (banks 01:00, coupons 02:00,
+        # cashback 02:30, community 6h, APIs 03:00, student/airlines weekly,
+        # affiliate 6h — all UTC + startup catch-up)
+        try:
+            from services.deals_aggregator import start_deals_aggregator_scheduler
+            start_deals_aggregator_scheduler()
+        except Exception as _e:
+            logger.warning("Could not start Deals Aggregator scheduler: %s", _e)
+
 
     try:
         from core.leader import run_as_leader
@@ -366,6 +375,12 @@ async def _lifespan(application):
     try:
         from services.course_aggregator import stop_course_aggregator_scheduler
         stop_course_aggregator_scheduler()
+    except Exception:
+        pass
+
+    try:
+        from services.deals_aggregator import stop_deals_aggregator_scheduler
+        stop_deals_aggregator_scheduler()
     except Exception:
         pass
     client.close()
@@ -1994,6 +2009,9 @@ api_router.include_router(courses_router)
 # Course Aggregator (C1) — 24h external course bot: admin status / source toggle / manual run
 from services.course_aggregator import admin_router as course_aggregator_admin_router
 api_router.include_router(course_aggregator_admin_router)
+# Deals Aggregator (D1) — universal deal bot: admin status / source toggle / manual run
+from services.deals_aggregator import admin_router as deals_aggregator_admin_router
+api_router.include_router(deals_aggregator_admin_router)
 from features.college_portal import router as college_router  # College admin Phase 3: roster + analytics
 api_router.include_router(college_router)
 
