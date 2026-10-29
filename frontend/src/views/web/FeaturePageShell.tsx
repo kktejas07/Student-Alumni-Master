@@ -28,6 +28,7 @@ import { STUDENT_PORTAL } from '@/src/views/web/portals/student/nav';
 import { ALUMNI_PORTAL } from '@/src/views/web/portals/alumni/nav';
 import { SA } from '@/src/views/web/platform/tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useTheme } from '@/src/theme/ThemeContext';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 
 /**
@@ -110,6 +111,7 @@ export default function FeaturePageShell({
   const { width } = useWindowDimensions();
   const isWide = width >= 1024;
   const isEmbedded = React.useContext(EmbeddedShellContext);
+  const { isDark: shellDark } = useTheme();
 
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -127,7 +129,28 @@ export default function FeaturePageShell({
   let heroBoxShadow = '0 20px 60px -12px rgba(99,102,241,0.25), 0 0 0 1px rgba(255, 255, 255, 0.08) inset';
   let heroOrbColor1 = 'rgba(99,102,241,0.22)';
   let heroOrbColor2 = 'rgba(191,219,254,0.18)';
+  let heroGradient = ['#172554', '#0F172A'] as readonly [string, string];
+  let heroTitleColor = '#fff';
+  let heroSubColor = 'rgba(255,255,255,0.82)';
   let avatarGradient: readonly [string, string] | undefined = undefined;
+
+  // Pages that force the light theme (e.g. /deals) pin the context to LIGHT,
+  // so the shell chrome — which otherwise hardcodes dark gradients — must
+  // follow, or the light panel floats on dark chrome.
+  if (!shellDark) {
+    pageBgColors = ['#F8FAFC', '#EEF2FF'] as any;
+    sidebarBg = 'rgba(255, 255, 255, 0.92)';
+    orbColor1 = 'rgba(124,92,252,0.14)';
+    orbColor2 = 'rgba(59,130,246,0.12)';
+    heroBorder = 'rgba(124,92,252,0.22)';
+    heroBg = '#FFFFFF';
+    heroBoxShadow = '0 20px 60px -12px rgba(124,92,252,0.18), 0 0 0 1px rgba(226,232,240,0.9) inset';
+    heroOrbColor1 = 'rgba(124,92,252,0.10)';
+    heroOrbColor2 = 'rgba(59,130,246,0.08)';
+    heroGradient = ['#FFFFFF', '#F5F3FF'] as readonly [string, string];
+    heroTitleColor = '#0F172A';
+    heroSubColor = '#64748B';
+  }
 
   if (role === 'alumni') {
     pageBgColors = ['#0a0f1e', '#131938'] as any;
@@ -232,19 +255,19 @@ export default function FeaturePageShell({
         {!hideHero && (
           <View style={[
             styles.heroShell,
-            { borderColor: heroBorder, position: 'relative', overflow: 'hidden' },
+            { backgroundColor: heroBg, borderColor: heroBorder, position: 'relative', overflow: 'hidden' },
             Platform.OS === 'web' ? ({ boxShadow: heroBoxShadow } as any) : {}
           ]}>
             <LinearGradient
-              colors={['#172554', '#0F172A']}
+              colors={heroGradient as any}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0.5 }}
               style={StyleSheet.absoluteFillObject}
             />
             <View style={[styles.heroBody, !isWide && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
               <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
                 <View style={styles.heroBadge}>{heroIcon || <Text style={styles.heroBadgeText}>{heroEmoji}</Text>}</View>
-                <Text style={styles.heroTitle}>{title}</Text>
-                {!!subtitle && <Text style={styles.heroSub}>{subtitle}</Text>}
+                <Text style={[styles.heroTitle, { color: heroTitleColor }]}>{title}</Text>
+                {!!subtitle && <Text style={[styles.heroSub, { color: heroSubColor }]}>{subtitle}</Text>}
               </View>
               {!!rightSlot && <View>{rightSlot}</View>}
             </View>
@@ -309,10 +332,18 @@ export default function FeaturePageShell({
         <View style={styles.topBar}>
           <View style={{ flex: 1 }} />
           <Pressable
-            style={({ pressed }) => [styles.bellBtn, pressed && { opacity: 0.7 }]}
+            style={({ pressed }) => [
+              styles.bellBtn,
+              !shellDark && {
+                backgroundColor: '#FFFFFF',
+                borderColor: '#E2E8F0',
+                ...(Platform.OS === 'web' ? { boxShadow: '0 4px 12px rgba(15,23,42,0.08)' } : {}),
+              },
+              pressed && { opacity: 0.7 },
+            ]}
             onPress={() => router.push('/notifications')}
           >
-            <Bell size={16} color="#fff" />
+            <Bell size={16} color={shellDark ? '#fff' : '#0F172A'} />
           </Pressable>
         </View>
 
@@ -320,19 +351,19 @@ export default function FeaturePageShell({
         {!hideHero && (
           <View style={[
             styles.heroShell,
-            { borderColor: heroBorder, position: 'relative', overflow: 'hidden' },
+            { backgroundColor: heroBg, borderColor: heroBorder, position: 'relative', overflow: 'hidden' },
             Platform.OS === 'web' ? ({ boxShadow: heroBoxShadow } as any) : {}
           ]}>
             <LinearGradient
-              colors={['#172554', '#0F172A']}
+              colors={heroGradient as any}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0.5 }}
               style={StyleSheet.absoluteFillObject}
             />
             <View style={[styles.heroBody, !isWide && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
               <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
                 {heroIcon || <Text style={styles.heroEmoji}>{heroEmoji}</Text>}
-                <Text style={[styles.heroTitle, !isWide && { fontSize: 22, lineHeight: 28 }]}>{title}</Text>
-                {subtitle ? <Text style={styles.heroSub}>{subtitle}</Text> : null}
+                <Text style={[styles.heroTitle, !isWide && { fontSize: 22, lineHeight: 28 }, { color: heroTitleColor }]}>{title}</Text>
+                {subtitle ? <Text style={[styles.heroSub, { color: heroSubColor }]}>{subtitle}</Text> : null}
               </View>
               {rightSlot}
             </View>
