@@ -147,9 +147,28 @@ async def courses_list(
     level: str = Query("all"),
     q: str = Query(""),
     sort: str = Query("popular"),
+    source: str = Query("all"),
     user: dict = Depends(_auth()),
 ):
     items = CURATED_COURSES
+    for c in items:
+        c.setdefault("source", "internal")
+    if source == "internal":
+        items = [c for c in items if c.get("source") == "internal"]
+    elif source in {"external", "community"}:
+        items = []
+    # source ∈ {external, community, all}: also merge the 24h external catalog
+    if source in {"external", "community", "all"}:
+        try:
+            from services.course_aggregator import fetch_external_courses
+            external = await fetch_external_courses(
+                category=category, subcategory=subcategory,
+                pricing=pricing, level=level, q=q)
+            if source == "community":
+                external = [c for c in external if c.get("source") == "community"]
+            items = items + external
+        except Exception as e:
+            logger.warning(f"[courses] external merge failed: {e}")
     if category and category != "all":
         items = [c for c in items if c["category"] == category]
     if subcategory and subcategory != "all":
