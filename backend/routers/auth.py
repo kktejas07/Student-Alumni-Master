@@ -40,6 +40,7 @@ from core.security import serialize_user
 from core.deps import get_current_user
 from core.email import send_email
 from core.email_quality import assess
+from services.resume_ats import calculate_resume_ats_score
 try:
     from firebase_admin import credentials, initialize_app, auth as fb_auth
 except ImportError:
@@ -147,6 +148,57 @@ def _assert_min_age(role: str, age: Optional[int]) -> None:
         return
     if age < 18:
         raise HTTPException(status_code=400, detail="You must be at least 18 years old to register")
+
+
+class ResumeATSCheckRequest(BaseModel):
+    name: str
+    size: int
+    data_url: str
+    target_role: str = "Software engineering"
+
+
+@router.post("/auth/resume-ats-check")
+async def check_resume_ats(req: ResumeATSCheckRequest):
+    """Score resume text in memory without storing or authenticating the resume."""
+    if req.size <= 0 or req.size > 5 * 1024 * 1024:
+        raise HTTPException(400, "Resume must be between 1 byte and 5 MB")
+    if not req.data_url.startswith("data:") or "," not in req.data_url:
+        raise HTTPException(400, "Resume must be a base64 data URL")
+
+    try:
+        content = base64.b64decode(req.data_url.split(",", 1)[1], validate=True)
+    except ValueError:
+        raise HTTPException(400, "Invalid resume data")
+
+    if len(content) != req.size:
+        raise HTTPException(400, "Resume size does not match uploaded content")
+
+    extension = req.name.rsplit(".", 1)[-1].lower() if "." in req.name else ""
+    try:
+        if extension == "docx":
+            from docx import Document
+
+            document = Document(io.BytesIO(content))
+            text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+        elif extension == "pdf":
+            from pypdf import PdfReader
+
+            reader = PdfReader(io.BytesIO(content))
+            text = "\n".join(page.extract_text() or "" for page in reader.pages)
+        else:
+            raise HTTPException(400, "ATS check supports PDF and DOCX files")
+    except HTTPException:
+        raise
+    except ImportError:
+        raise HTTPException(503, "Resume text extraction is temporarily unavailable")
+    except Exception:
+        raise HTTPException(400, "Could not read this resume. Please upload a text-based PDF or DOCX file")
+
+    if not text.strip():
+        raise HTTPException(400, "No readable text found. Please upload a text-based resume")
+
+    return {"score": calculate_resume_ats_score(text, req.target_role)}
+
 
 # ----- Auth payloads -----
 class RegisterRequest(BaseModel):

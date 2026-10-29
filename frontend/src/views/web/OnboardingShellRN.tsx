@@ -300,6 +300,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeError, setResumeError] = useState('');
   const [resumeUploadComplete, setResumeUploadComplete] = useState(false);
+  const [resumeATS, setResumeATS] = useState<{ score: number } | null>(null);
+  const [resumeATSLoading, setResumeATSLoading] = useState(false);
 
   // Profile Photo State
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
@@ -515,6 +517,41 @@ function WebOnboardingEngine({ router }: { router: any }) {
     setResumeFile(file);
     setResumeUploaded(true);
     setResumeUploadComplete(false);
+    setResumeATS(null);
+    if (extension === 'pdf' || extension === 'docx') {
+      setResumeATSLoading(true);
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          if (typeof reader.result !== 'string') {
+            throw new Error('Could not read the selected resume.');
+          }
+          const response = await fetch(`${getBaseUrl()}/api/auth/resume-ats-check`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: file.name,
+              size: file.size,
+              data_url: reader.result,
+              target_role: selectedGoal,
+            }),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data?.detail || 'ATS check failed');
+          if (typeof data?.score !== 'number') throw new Error('ATS response did not include a score.');
+          setResumeATS(data);
+        } catch (error: unknown) {
+          setResumeError(error instanceof Error ? error.message : 'Unable to check this resume right now.');
+        } finally {
+          setResumeATSLoading(false);
+        }
+      };
+      reader.onerror = () => {
+        setResumeATSLoading(false);
+        setResumeError('Could not read the selected resume.');
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1321,12 +1358,25 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   RESUME STATUS
                 </div>
                 {resumeUploaded ? (
-                  <div data-testid="onboarding-resume-status" style={{ fontSize: '16px', fontWeight: 600, color: 'var(--ind-lt)' }}>
-                    Selected — uploads when you finish creating your account.
+                  <div data-testid="onboarding-resume-status" style={{ color: 'var(--ind-lt)' }}>
+                    {resumeATSLoading ? (
+                      <div style={{ fontSize: '14px', color: 'var(--muted)' }}>Calculating ATS score…</div>
+                    ) : resumeATS ? (
+                      <>
+                        <div style={{ fontSize: '14px', color: 'var(--muted)', marginBottom: '4px' }}>ATS score</div>
+                        <div style={{ fontSize: '30px', fontWeight: 800 }}>{resumeATS.score}/100</div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: '14px', color: 'var(--muted)' }}>
+                        {resumeFile?.name.toLowerCase().endsWith('.doc')
+                          ? 'ATS scoring supports PDF and DOCX. Your resume will still upload after account creation.'
+                          : 'ATS score is unavailable. Your resume will still upload after account creation.'}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--muted)' }}>
-                    Choose a PDF, DOC, or DOCX file up to 5 MB. Resume scoring is not available during this step.
+                    Choose a PDF or DOCX to calculate an ATS score. DOC files can still be uploaded.
                   </div>
                 )}
               </div>
