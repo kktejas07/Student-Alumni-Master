@@ -51,7 +51,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const passwordInputRef = useRef<HTMLInputElement>(null);
   const dobInputRef = useRef<HTMLInputElement>(null);
   const passwordCheck = passwordStrength(userPassword);
-  const showPasswordRequirements = isPasswordFocused || userPassword.length > 0;
+  const showPasswordRequirements = isPasswordFocused && userPassword.length > 0;
 
   const setUser = useAuthStore((s) => s.setUser);
   const setTokens = useAuthStore((s) => s.setTokens);
