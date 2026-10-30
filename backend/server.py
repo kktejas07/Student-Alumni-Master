@@ -379,6 +379,13 @@ async def _lifespan(application):
         except Exception as _e:
             logger.warning("Could not start Wallet Notifications scheduler: %s", _e)
 
+        # Start the Visitor Radar anomaly detector (VR8, every 5 min)
+        try:
+            from visitor_anomaly_detector import start_visitor_anomaly_scheduler
+            start_visitor_anomaly_scheduler()
+        except Exception as _e:
+            logger.warning("Could not start Visitor Anomaly scheduler: %s", _e)
+
 
     try:
         from core.leader import run_as_leader
@@ -450,6 +457,12 @@ async def _lifespan(application):
         stop_wallet_notifications_scheduler()
     except Exception:
         logger.exception("Failed to stop wallet notifications scheduler during shutdown")
+
+    try:
+        from visitor_anomaly_detector import stop_visitor_anomaly_scheduler
+        stop_visitor_anomaly_scheduler()
+    except Exception:
+        logger.exception("Failed to stop visitor anomaly scheduler during shutdown")
 
     client.close()
 
@@ -2113,6 +2126,10 @@ api_router.include_router(auth_analytics_router)
 # Visitor analytics & telemetry engine (Unregistered + Registered visitors)
 from features.visitor_analytics import router as visitor_analytics_router
 api_router.include_router(visitor_analytics_router)
+
+# Visitor Radar real-time WebSocket hub (VR7) — /api/ws/visitor-radar
+from websocket_hub import router as visitor_radar_ws_router
+api_router.include_router(visitor_radar_ws_router)
 
 # PostHog analytics proxy
 from features.posthog_proxy import router as posthog_proxy_router

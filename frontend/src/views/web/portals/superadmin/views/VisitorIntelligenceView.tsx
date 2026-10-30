@@ -12,29 +12,30 @@
  *  - Chronological Journey Breadcrumbs & Click Stream
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ScrollView,
   TextInput, ActivityIndicator,
 } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { G, Circle, Text as SvgText, Polyline, Polygon, Rect, Line } from 'react-native-svg';
 import {
   Radar, Users, Globe, Monitor, Smartphone, Laptop, Cpu, HardDrive,
   Sparkles, Eye, Clock, Download, RefreshCw, Search, Filter, ShieldCheck,
   UserX, UserCheck, ExternalLink, ChevronRight, Activity, Zap, Compass,
   Layers, MapPin, Hash, MousePointer, X, CheckCircle2, Server, HelpCircle,
-  Radio,
+  Radio, Bell, TriangleAlert, Info, ArrowDown, ArrowRight, CircleDot,
 } from 'lucide-react-native';
 
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { Card, GRAD, SecondaryButton, GradientButton, StatusPill, TopTabs } from '../applekit';
 import { getBaseUrl } from '@/src/lib/env';
-import { request } from '@/src/models/services/api';
+import { request, tokenStore } from '@/src/models/services/api';
 
 const BASE_URL = getBaseUrl();
 
-type TabId = 'live' | 'heatmap' | 'modules' | 'hardware' | 'geo' | 'acquisition';
+type TabId = 'live' | 'heatmap' | 'modules' | 'hardware' | 'geo' | 'acquisition' | 'funnel';
 
 export function VisitorIntelligenceView() {
   const T = useSAC();
@@ -98,6 +99,31 @@ export function VisitorIntelligenceView() {
   const [selectedVisitorId, setSelectedVisitorId] = useState<string | null>(null);
   const [dossier, setDossier] = useState<any>(null);
   const [dossierLoading, setDossierLoading] = useState(false);
+
+  // VR2 — geographic dot-map
+  const [geoSummary, setGeoSummary] = useState<any>(null);
+  const [geoLoading, setGeoLoading] = useState(false);
+
+  // VR3 — acquisition & UTM
+  const [acqData, setAcqData] = useState<any>(null);
+  const [acqLoading, setAcqLoading] = useState(false);
+
+  // VR4 — funnel
+  const [funnelData, setFunnelData] = useState<any>(null);
+  const [funnelLoading, setFunnelLoading] = useState(false);
+
+  // VR6 — day x hour traffic heatmap
+  const [trafficHeat, setTrafficHeat] = useState<any>(null);
+  const [trafficLoading, setTrafficLoading] = useState(false);
+
+  // VR7 — real-time radar socket
+  const [wsConnected, setWsConnected] = useState(false);
+  const [wsViewers, setWsViewers] = useState<number | null>(null);
+
+  // VR8 — anomaly alerts
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [alertCount, setAlertCount] = useState(0);
+  const [alertsLoading, setAlertsLoading] = useState(false);
 
   // ── Fetch Click Heatmap Analytics ─────────────────────────────────────────
   const fetchHeatmapAnalytics = useCallback(async (moduleName = 'all') => {
@@ -192,6 +218,148 @@ export function VisitorIntelligenceView() {
     }
   };
 
+  // ── Fetch Geographic Summary (VR2) ────────────────────────────────────────
+  const fetchGeoSummary = useCallback(async () => {
+    setGeoLoading(true);
+    try {
+      const res = await request<any>('/admin/analytics/geo-summary?days=30');
+      if (res) setGeoSummary(res);
+    } catch (e) {
+      console.warn('Failed to fetch geographic summary', e);
+    } finally {
+      setGeoLoading(false);
+    }
+  }, []);
+
+  // ── Fetch Acquisition / UTM (VR3) ─────────────────────────────────────────
+  const fetchAcquisition = useCallback(async () => {
+    setAcqLoading(true);
+    try {
+      const res = await request<any>('/admin/analytics/acquisition?days=30');
+      if (res) setAcqData(res);
+    } catch (e) {
+      console.warn('Failed to fetch acquisition analytics', e);
+    } finally {
+      setAcqLoading(false);
+    }
+  }, []);
+
+  // ── Fetch Funnel (VR4) ────────────────────────────────────────────────────
+  const fetchFunnel = useCallback(async () => {
+    setFunnelLoading(true);
+    try {
+      const res = await request<any>('/admin/analytics/funnel?days=30');
+      if (res) setFunnelData(res);
+    } catch (e) {
+      console.warn('Failed to fetch funnel analytics', e);
+    } finally {
+      setFunnelLoading(false);
+    }
+  }, []);
+
+  // ── Fetch Day x Hour Traffic Heatmap (VR6) ────────────────────────────────
+  const fetchTrafficHeatmap = useCallback(async () => {
+    setTrafficLoading(true);
+    try {
+      const res = await request<any>('/admin/analytics/traffic-heatmap?days=30');
+      if (res) setTrafficHeat(res);
+    } catch (e) {
+      console.warn('Failed to fetch traffic heatmap', e);
+    } finally {
+      setTrafficLoading(false);
+    }
+  }, []);
+
+  // ── Fetch Anomaly Alerts (VR8) ───────────────────────────────────────────
+  const fetchAlerts = useCallback(async () => {
+    setAlertsLoading(true);
+    try {
+      const res = await request<any>('/admin/analytics/visitor-alerts?hours=24');
+      if (res && Array.isArray(res.alerts)) {
+        const act = res.alerts.filter((a: any) => !a.dismissed);
+        setAlerts(act);
+        setAlertCount(act.length);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch visitor alerts', e);
+    } finally {
+      setAlertsLoading(false);
+    }
+  }, []);
+
+  const dismissAlert = async (alertId: string) => {
+    try {
+      await request('/admin/analytics/visitor-alerts/dismiss', {
+        method: 'POST',
+        body: { alert_id: alertId },
+      });
+      setAlerts((prev: any[]) => prev.filter((a: any) => a.id !== alertId));
+      setAlertCount((prev: number) => Math.max(0, prev - 1));
+    } catch (e) {
+      console.warn('Failed to dismiss alert', e);
+    }
+  };
+
+  // ── Real-time Radar WebSocket (VR7) ───────────────────────────────────────
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    let socket: WebSocket | null = null;
+    let closed = false;
+    let reconnect: any = null;
+
+    const buildUrl = async () => {
+      const tok = await tokenStore.getAccess();
+      const base = BASE_URL || `${window.location.protocol}//${window.location.host}`;
+      const wsBase = base.replace(/^http/, 'ws').replace(/^https/, 'wss');
+      return `${wsBase}/api/ws/visitor-radar?token=${encodeURIComponent(tok || '')}`;
+    };
+
+    const connect = async () => {
+      if (closed) return;
+      try {
+        const url = await buildUrl();
+        socket = new WebSocket(url);
+        socket.onopen = () => {
+          setWsConnected(true);
+        };
+        socket.onmessage = (ev: MessageEvent) => {
+          try {
+            const msg = JSON.parse(ev.data);
+            if (msg.type === 'radar_connected' || msg.type === 'summary_update') {
+              setWsViewers(typeof msg.viewers === 'number' ? msg.viewers : msg.data?.radar_viewers ?? null);
+            }
+          } catch { /* ignore malformed frame */ }
+        };
+        socket.onclose = () => {
+          setWsConnected(false);
+          if (!closed) reconnect = setTimeout(connect, 5000);
+        };
+        socket.onerror = () => {
+          setWsConnected(false);
+        };
+      } catch {
+        if (!closed) reconnect = setTimeout(connect, 5000);
+      }
+    };
+
+    connect();
+    const ping = setInterval(() => {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        try { socket.send('ping'); } catch { /* ignore */ }
+      }
+    }, 25000);
+
+    return () => {
+      closed = true;
+      clearInterval(ping);
+      if (reconnect) clearTimeout(reconnect);
+      if (socket) {
+        socket.onclose = null;
+        try { socket.close(); } catch { /* ignore */ }
+      }
+    };
+  }, []);
+
   // ── CSV Export ────────────────────────────────────────────────────────────
   const handleExportCSV = async () => {
     if (Platform.OS !== 'web') return;
@@ -212,7 +380,13 @@ export function VisitorIntelligenceView() {
     fetchVisitorsList(1);
     fetchModularAnalytics();
     fetchHardwareAnalytics();
-  }, [fetchLiveRadar, fetchVisitorsList, fetchModularAnalytics, fetchHardwareAnalytics]);
+    fetchGeoSummary();
+    fetchAcquisition();
+    fetchFunnel();
+    fetchTrafficHeatmap();
+    fetchAlerts();
+  }, [fetchLiveRadar, fetchVisitorsList, fetchModularAnalytics, fetchHardwareAnalytics,
+      fetchGeoSummary, fetchAcquisition, fetchFunnel, fetchTrafficHeatmap, fetchAlerts]);
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -249,16 +423,42 @@ export function VisitorIntelligenceView() {
     return String.fromCodePoint(...codePoints);
   };
 
+  // VR5 — horizontal page-flow chips: consecutive same-path events collapse
+  const [flowHover, setFlowHover] = useState<number | null>(null);
+  const pageFlow: any[] = [];
+  if (dossier?.events?.length) {
+    for (const ev of dossier.events) {
+      const atTime = ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+      const last = pageFlow[pageFlow.length - 1];
+      const p = ev.path || '/';
+      if (last && last.path === p) {
+        last.n += 1;
+        last.atTime = atTime;
+      } else {
+        pageFlow.push({ path: p, short: p.length > 22 ? `${p.slice(0, 20)}…` : p, n: 1, atTime });
+      }
+    }
+  }
+
   return (
     <View style={s.container}>
       {/* ── Header Title & Radar Status Bar ───────────────────────────────── */}
       <View style={s.headerRow}>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View style={s.radarPill}>
-              <View style={s.radarDotPulse} />
-              <Text style={s.radarPillText}>LIVE RADAR ACTIVE</Text>
-            </View>
+            {wsConnected ? (
+              <View style={s.radarPillLive}>
+                <View style={s.radarDotPulseLive} />
+                <Text style={s.radarPillTextLive}>
+                  LIVE RADAR • WS{typeof wsViewers === 'number' ? ` • ${wsViewers} watching` : ''}
+                </Text>
+              </View>
+            ) : (
+              <View style={s.radarPill}>
+                <View style={s.radarDotPulseAmber} />
+                <Text style={s.radarPillTextAmber}>POLLING (10s)</Text>
+              </View>
+            )}
             <Text style={s.headerTitle}>Visitor Intelligence & Telemetry</Text>
           </View>
           <Text style={s.headerSub}>
@@ -307,6 +507,37 @@ export function VisitorIntelligenceView() {
           </GradientButton>
         </View>
       </View>
+
+      {/* ── VR8: Anomaly Alert Banner ───────────────────────────────────────── */}
+      {alerts.length > 0 && (
+        <View style={{ gap: 8 }}>
+          {alerts.slice(0, 3).map((al: any) => {
+            const sev = al.severity === 'critical' ? 'critical'
+              : al.severity === 'warning' ? 'warning' : 'info';
+            const c = sev === 'critical' ? '#F87171' : sev === 'warning' ? '#FBBF24' : '#60A5FA';
+            const bg = sev === 'critical' ? 'rgba(239,68,68,0.14)'
+              : sev === 'warning' ? 'rgba(245,158,11,0.14)' : 'rgba(59,130,246,0.14)';
+            const bd = sev === 'critical' ? 'rgba(239,68,68,0.35)'
+              : sev === 'warning' ? 'rgba(245,158,11,0.35)' : 'rgba(59,130,246,0.35)';
+            const Icon = sev === 'info' ? Info : TriangleAlert;
+            return (
+              <View key={al.id} style={[s.alertBanner, { backgroundColor: bg, borderColor: bd, borderLeftColor: c, borderLeftWidth: 3 }]}>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                    <Icon size={14} color={c} />
+                    <Text style={[s.alertBannerTitle, { color: c }]}>{al.title}</Text>
+                  </View>
+                  <Text style={s.alertBannerMsg} numberOfLines={2}>{al.message}</Text>
+                </View>
+                <Pressable onPress={() => dismissAlert(al.id)} style={s.alertBannerDismiss}>
+                  <Text style={s.alertBannerDismissText}>Dismiss</Text>
+                  <X size={12} color={SAC.muted} />
+                </Pressable>
+              </View>
+            );
+          })}
+        </View>
+      )}
 
       {/* ── KPI Summary Cards ──────────────────────────────────────────────── */}
       <View style={s.kpiGrid}>
@@ -378,12 +609,23 @@ export function VisitorIntelligenceView() {
           tabs={[
             { id: 'live', label: 'Live Visitors & Stream', icon: Radar, count: summary.total_live },
             { id: 'heatmap', label: 'Click Heatmap Overlay', icon: MousePointer, tag: 'HOT' },
+            { id: 'funnel', label: 'Conversion Funnel', icon: Sparkles },
             { id: 'modules', label: 'Modular Platform Analytics', icon: Layers },
             { id: 'hardware', label: 'Hardware & Device Intelligence', icon: Monitor },
             { id: 'geo', label: 'Geographic Traffic Map', icon: Globe },
             { id: 'acquisition', label: 'Acquisition & UTM Campaigns', icon: Compass },
           ]}
         />
+
+        {/* VR8 — active anomaly badge */}
+        {alertCount > 0 && (
+          <View style={s.alertNavBadge}>
+            <Bell size={13} color={alerts.some((a: any) => a.severity === 'critical') ? '#EF4444' : alerts.some((a: any) => a.severity === 'warning') ? '#F59E0B' : '#3B82F6'} />
+            <Text style={s.alertNavBadgeText}>
+              {alertCount} Active {alertCount === 1 ? 'Alert' : 'Alerts'}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* ═══════════════════════════════════════════════════════════════════════
@@ -573,7 +815,7 @@ export function VisitorIntelligenceView() {
 
                         <SecondaryButton size="sm" onPress={() => openDossier(v.session_id)}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Eye size={13} color="#fff" />
+                            <Eye size={13} color={T.text} />
                             <Text style={{ color: SAC.text, fontSize: 12.5, fontFamily: FONTS.semi }}>Dossier</Text>
                             <ChevronRight size={13} color={SAC.muted} />
                           </View>
@@ -655,7 +897,7 @@ export function VisitorIntelligenceView() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                   <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1, color: '#FCA5A5' }}>🔥 TOP HOTSPOT</Text>
                 </View>
-                <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: '#FFFFFF' }}>
+                <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: T.text }}>
                   {heatmapData?.hotspots?.[0]?.element_text || 'WeHive Sponsor Spotlight'}
                 </Text>
                 <Text style={{ fontSize: 12, color: '#F87171', marginTop: 2 }}>
@@ -667,7 +909,7 @@ export function VisitorIntelligenceView() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                   <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1, color: '#FDE68A' }}>⚡ WARM ELEMENT</Text>
                 </View>
-                <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: '#FFFFFF' }}>
+                <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: T.text }}>
                   {heatmapData?.hotspots?.[1]?.element_text || 'One Ticket ₹599 Button'}
                 </Text>
                 <Text style={{ fontSize: 12, color: '#FBBF24', marginTop: 2 }}>
@@ -679,7 +921,7 @@ export function VisitorIntelligenceView() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                   <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1, color: '#C7D2FE' }}>📊 ANALYZED CLICKS</Text>
                 </View>
-                <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: '#FFFFFF' }}>
+                <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: T.text }}>
                   {heatmapData?.total_clicks_analyzed || 1865} Interactions
                 </Text>
                 <Text style={{ fontSize: 12, color: '#818CF8', marginTop: 2 }}>
@@ -727,11 +969,11 @@ export function VisitorIntelligenceView() {
 
                       {/* Click Count & Progress Bar */}
                       <View style={{ alignItems: 'flex-end', minWidth: 160 }}>
-                        <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: '#FFFFFF' }}>
+                        <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: T.text }}>
                           {spot.click_count} <Text style={{ fontSize: 12, color: SAC.muted, fontWeight: 'normal' }}>clicks</Text>
                         </Text>
 
-                        <View style={{ width: 140, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 6, overflow: 'hidden' }}>
+                        <View style={{ width: 140, height: 6, borderRadius: 3, backgroundColor: T.panel2, marginTop: 6, overflow: 'hidden' }}>
                           <View style={{ width: `${Math.min(spot.click_share_pct * 2.5, 100)}%`, height: '100%', backgroundColor: color, borderRadius: 3 }} />
                         </View>
                         <Text style={{ fontSize: 11, color: SAC.muted, marginTop: 2 }}>
@@ -744,6 +986,51 @@ export function VisitorIntelligenceView() {
               })}
             </View>
           )}
+
+          {/* ── VR6: Day x Hour Traffic Heatmap ─────────────────────────────── */}
+          <Card style={{ padding: 22, gap: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <View style={{ gap: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Clock size={18} color={T.purple} />
+                  <Text style={{ color: SAC.text, fontSize: 18, fontFamily: FONTS.bold }}>Day x Hour Traffic Heatmap</Text>
+                </View>
+                <Text style={{ color: SAC.muted, fontSize: 13 }}>
+                  30-day session volume by weekday and hour. Cell darkness = session count.
+                </Text>
+              </View>
+              {trafficHeat && (
+                <View style={{ flexDirection: 'row', gap: 18 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <CircleDot size={13} color={T.ok} />
+                    <Text style={{ fontSize: 12, color: SAC.muted }}>
+                      Peak: <Text style={{ fontFamily: FONTS.bold, color: T.text }}>{trafficHeat.peak ? `${trafficHeat.peak.day} ${String(trafficHeat.peak.hour).padStart(2, '0')}:00` : '—'}</Text>
+                      <Text style={{ color: T.ok }}> ({trafficHeat.peak?.sessions ?? 0} sessions)</Text>
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <CircleDot size={13} color={T.dim} />
+                    <Text style={{ fontSize: 12, color: SAC.muted }}>
+                      Quietest: <Text style={{ fontFamily: FONTS.bold, color: T.text }}>{trafficHeat.quiet ? `${trafficHeat.quiet.day} ${String(trafficHeat.quiet.hour).padStart(2, '0')}:00` : '—'}</Text>
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {trafficLoading ? (
+              <View style={{ height: 220, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                <ActivityIndicator size="large" color={T.purple} />
+                <Text style={{ color: SAC.muted, fontSize: 13 }}>Building day x hour session grid...</Text>
+              </View>
+            ) : trafficHeat?.matrix ? (
+              <DayHourHeatmap data={trafficHeat} surface={T.bg} border={T.border} panel2={T.panel2} />
+            ) : (
+              <View style={{ height: 220, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: SAC.dim ?? SAC.muted, fontSize: 13 }}>No session volume recorded in the last 30 days.</Text>
+              </View>
+            )}
+          </Card>
         </Animated.View>
       )}
 
@@ -908,41 +1195,171 @@ export function VisitorIntelligenceView() {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
+          TAB: CONVERSION FUNNEL (VR4)
+         ═══════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'funnel' && (
+        <Animated.View entering={FadeIn.duration(200)} style={{ gap: 14 }}>
+          <View>
+            <Text style={s.sectionH1}>Visitor Conversion Funnel</Text>
+            <Text style={s.sectionSub}>Landing to returning, session by session (last 30 days).</Text>
+          </View>
+
+          {funnelLoading ? (
+            <Card style={{ padding: 36, alignItems: 'center', gap: 12 }}>
+              <ActivityIndicator size="large" color="#A78BFA" />
+              <Text style={{ color: SAC.muted, fontSize: 13 }}>Building conversion funnel...</Text>
+            </Card>
+          ) : (
+            <View style={s.funnelGrid}>
+              <Card style={{ flex: 1, minWidth: 320, padding: 20 }}>
+                <Text style={s.hwCardTitle}>Stage Progression</Text>
+                <View style={{ gap: 0, marginTop: 14 }}>
+                  {(funnelData?.steps || []).map((st: any, i: number) => {
+                    const prev = i > 0 ? (funnelData?.steps || [])[i - 1] : null;
+                    const widthPct = Math.max(4, st.pct_of_top ?? 0);
+                    return (
+                      <View key={st.key}>
+                        {prev && (
+                          <View style={s.funnelDropRow}>
+                            <View style={{ flex: 1 }} />
+                            <View style={{ alignItems: 'center', paddingVertical: 2 }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                                <ArrowDown size={11} color={SAC.dim} />
+                                <Text style={[s.funnelDropText, { color: '#F87171' }]}>
+                                  {prev.drop_off != null ? `-${prev.drop_off} drop off` : ''}
+                                </Text>
+                              </View>
+                            </View>
+                            <View style={{ flex: 1 }} />
+                          </View>
+                        )}
+                        <View style={s.funnelTierWrap}>
+                          <View
+                            style={[s.funnelTier, {
+                              width: `${widthPct}%`,
+                              backgroundColor: T.purple,
+                              borderColor: T.purple,
+                            }]}
+                          >
+                            <View style={s.funnelTierInner}>
+                              <Text style={s.funnelTierLabel}>{st.label}</Text>
+                              <Text style={s.funnelTierVal}>
+                                {st.count}
+                                <Text style={s.funnelTierPct}>{st.pct_of_top}%</Text>
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </Card>
+
+              <Card style={{ flex: 1, minWidth: 280, padding: 20 }}>
+                <Text style={s.hwCardTitle}>Funnel Read-out</Text>
+                <View style={{ gap: 16, marginTop: 14 }}>
+                  <View>
+                    <Text style={s.funnelInsightLbl}>Overall conversion</Text>
+                    <Text style={s.funnelInsightBig}>{funnelData?.overall_conversion_rate_pct ?? 0}%</Text>
+                    <Text style={s.funnelInsightSub}>landed to signed up</Text>
+                  </View>
+                  {funnelData?.biggest_drop_off ? (
+                    <View style={s.funnelInsightCard}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <TriangleAlert size={15} color="#F87171" />
+                        <Text style={s.funnelInsightTitle}>Biggest drop-off</Text>
+                      </View>
+                      <Text style={s.funnelInsightBody}>
+                        At the {funnelData.biggest_drop_off.step} stage,{' '}
+                        {funnelData.biggest_drop_off.drop_off} sessions fell through — the single
+                        largest leak in the current funnel.
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={s.funnelInsightSub}>No meaningful drop-off detected.</Text>
+                  )}
+                </View>
+              </Card>
+            </View>
+          )}
+        </Animated.View>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
           TAB 4: GEOGRAPHIC INTELLIGENCE
          ═══════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'geo' && (
         <Animated.View entering={FadeIn.duration(200)} style={{ gap: 14 }}>
           <View>
             <Text style={s.sectionH1}>Geographic Traffic Intelligence</Text>
-            <Text style={s.sectionSub}>Global visitor origin resolved via IP telemetry.</Text>
+            <Text style={s.sectionSub}>Global visitor origin resolved via IP telemetry (last 30 days).</Text>
           </View>
 
-          <View style={s.geoGrid}>
-            <Card style={{ flex: 1, minWidth: 320 }}>
-              <Text style={s.hwCardTitle}>Top Countries (Last 90 Days)</Text>
-              <View style={{ gap: 10, marginTop: 14 }}>
-                {visitorsList.slice(0, 8).map((v) => {
-                  const geo = v.geo || {};
-                  return (
-                    <View key={v.session_id} style={s.geoCountryRow}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                        <Text style={{ fontSize: 20 }}>{getCountryFlag(geo.country_code)}</Text>
-                        <View>
-                          <Text style={{ color: SAC.text, fontSize: 13.5, fontFamily: FONTS.med }}>
-                            {geo.country || 'Global Visitor'}
+          {geoLoading ? (
+            <Card style={{ padding: 36, alignItems: 'center', gap: 12 }}>
+              <ActivityIndicator size="large" color="#60A5FA" />
+              <Text style={{ color: SAC.muted, fontSize: 13 }}>Mapping visitor origins...</Text>
+            </Card>
+          ) : (
+            <View style={s.geoGrid}>
+              <Card style={{ flex: 1.4, minWidth: 380, padding: 20 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={s.hwCardTitle}>Global Dot-Map</Text>
+                  <Text style={{ color: SAC.muted, fontSize: 12 }}>
+                    {geoSummary?.total_visitors ?? 0} visitors
+                  </Text>
+                </View>
+                {geoSummary?.points?.length ? (
+                  <GeoDotMap points={geoSummary.points} surface={T.bg} />
+                ) : (
+                  <Text style={{ color: SAC.muted, fontSize: 13, marginTop: 12 }}>
+                    No geo-resolved origins in the selected window yet.
+                  </Text>
+                )}
+                <View style={s.geoLegend}>
+                  <View style={s.geoLegendRow}>
+                    <CircleDot size={11} color={T.purple} />
+                    <Text style={s.geoLegendText}>City traffic (size = visitor count)</Text>
+                  </View>
+                </View>
+              </Card>
+
+              <Card style={{ flex: 1, minWidth: 300, padding: 20 }}>
+                <Text style={s.hwCardTitle}>City & Country Rankings</Text>
+                <View style={{ gap: 6, marginTop: 12 }}>
+                  {(geoSummary?.countries || []).slice(0, 8).map((cc: any) => (
+                    <View key={cc.country_code || cc.country} style={s.geoCountryRow}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+                        <Text style={{ fontSize: 20, color: T.dim }}>
+                          {getCountryFlag(cc.country_code)}
+                        </Text>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={{ color: T.text, fontSize: 13.5, fontFamily: FONTS.med }} numberOfLines={1}>
+                            {cc.country}
                           </Text>
-                          <Text style={{ color: SAC.muted, fontSize: 12 }}>
-                            {geo.city || 'Unknown City'} • IP: {v.ip}
+                          <Text style={{ color: T.muted, fontSize: 12 }} numberOfLines={1}>
+                            {(cc.cities || []).slice(0, 3).map((c: any) => c.city).filter(Boolean).join(', ') || '—'}
                           </Text>
                         </View>
                       </View>
-                      <StatusPill label={v.current_module?.toUpperCase() || 'LANDING'} kind="brand" />
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={{ color: T.text, fontSize: 14, fontFamily: FONTS.bold }}>{cc.visitors}</Text>
+                        {cc.registered > 0 && (
+                          <Text style={{ color: T.ok, fontSize: 11, fontFamily: FONTS.med }}>
+                            {cc.registered} registered
+                          </Text>
+                        )}
+                      </View>
                     </View>
-                  );
-                })}
-              </View>
-            </Card>
-          </View>
+                  ))}
+                  {(geoSummary?.countries || []).length === 0 && (
+                    <Text style={{ color: SAC.muted, fontSize: 13 }}>No country data yet.</Text>
+                  )}
+                </View>
+              </Card>
+            </View>
+          )}
         </Animated.View>
       )}
 
@@ -953,37 +1370,113 @@ export function VisitorIntelligenceView() {
         <Animated.View entering={FadeIn.duration(200)} style={{ gap: 14 }}>
           <View>
             <Text style={s.sectionH1}>Acquisition Channels & UTM Attribution</Text>
-            <Text style={s.sectionSub}>Where visitors originate: direct, organic search, campaigns, or referring portals.</Text>
+            <Text style={s.sectionSub}>Where visitors originate: direct, organic search, campaigns, or referring portals (last 30 days).</Text>
           </View>
 
-          <View style={s.hwGrid}>
-            <Card style={s.hwCard}>
-              <Text style={s.hwCardTitle}>Top Referring URLs</Text>
-              <View style={{ gap: 10, marginTop: 14 }}>
-                {visitorsList.filter(v => !!v.referrer).slice(0, 6).map((v) => (
-                  <View key={v.session_id} style={s.gpuRow}>
-                    <Text style={s.gpuText} numberOfLines={1}>{v.referrer}</Text>
-                    <Text style={s.gpuCount}>{v.current_module}</Text>
-                  </View>
-                ))}
-                {visitorsList.filter(v => !!v.referrer).length === 0 && (
-                  <Text style={{ color: SAC.muted, fontSize: 13 }}>Majority direct navigation & bookmarks.</Text>
-                )}
-              </View>
+          {acqLoading ? (
+            <Card style={{ padding: 36, alignItems: 'center', gap: 12 }}>
+              <ActivityIndicator size="large" color="#F59E0B" />
+              <Text style={{ color: SAC.muted, fontSize: 13 }}>Aggregating acquisition channels...</Text>
             </Card>
+          ) : (
+            <View style={s.hwGrid}>
+              {/* Channels */}
+              <Card style={s.hwCard}>
+                <View style={s.hwCardHead}>
+                  <Zap size={18} color="#F59E0B" />
+                  <Text style={s.hwCardTitle}>Traffic Channels</Text>
+                </View>
+                <View style={{ gap: 10, marginTop: 14 }}>
+                  {(acqData?.channels || []).map((ch: any) => (
+                    <View key={ch.channel}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text style={{ color: T.text, fontSize: 13, fontFamily: FONTS.med }}>{ch.channel}</Text>
+                        <Text style={{ color: T.muted, fontSize: 13 }}>
+                          {ch.share_pct}% ({ch.visitors})
+                        </Text>
+                      </View>
+                      <View style={s.barTrack}>
+                        <View style={[s.barFill, { width: `${ch.share_pct}%`, backgroundColor: '#F59E0B' }]} />
+                      </View>
+                      <Text style={{ color: T.dim, fontSize: 11, marginTop: 2 }}>
+                        {ch.registration_rate_pct}% registration rate
+                      </Text>
+                    </View>
+                  ))}
+                  {(acqData?.channels || []).length === 0 && (
+                    <Text style={{ color: SAC.muted, fontSize: 13 }}>No channel data yet.</Text>
+                  )}
+                </View>
+              </Card>
 
-            <Card style={s.hwCard}>
-              <Text style={s.hwCardTitle}>Landing Pages</Text>
-              <View style={{ gap: 10, marginTop: 14 }}>
-                {visitorsList.slice(0, 6).map((v) => (
-                  <View key={v.session_id} style={s.gpuRow}>
-                    <Text style={s.gpuText} numberOfLines={1}>{v.landing_page || v.current_path || '/'}</Text>
-                    <Text style={s.gpuCount}>{v.page_views_count} views</Text>
-                  </View>
-                ))}
-              </View>
-            </Card>
-          </View>
+              {/* Top referrers */}
+              <Card style={s.hwCard}>
+                <View style={s.hwCardHead}>
+                  <ExternalLink size={18} color="#3B82F6" />
+                  <Text style={s.hwCardTitle}>Top Referring Domains</Text>
+                </View>
+                <View style={{ gap: 8, marginTop: 14 }}>
+                  {(acqData?.top_referrers || []).slice(0, 8).map((r: any) => (
+                    <View key={r.domain} style={s.gpuRow}>
+                      <Text style={s.gpuText} numberOfLines={1}>{r.domain}</Text>
+                      <Text style={s.gpuCount}>{r.visitors} · {r.share_pct}%</Text>
+                    </View>
+                  ))}
+                  {(acqData?.top_referrers || []).length === 0 && (
+                    <Text style={{ color: SAC.muted, fontSize: 13 }}>
+                      Majority direct navigation & bookmarks.
+                    </Text>
+                  )}
+                </View>
+              </Card>
+
+              {/* UTM campaigns */}
+              <Card style={s.hwCard}>
+                <View style={s.hwCardHead}>
+                  <Hash size={18} color="#A78BFA" />
+                  <Text style={s.hwCardTitle}>UTM Campaigns</Text>
+                </View>
+                <View style={{ gap: 8, marginTop: 14 }}>
+                  {(acqData?.utm_campaigns || []).slice(0, 8).map((c: any, i: number) => (
+                    <View key={`${c.campaign}-${i}`} style={s.gpuRow}>
+                      <Text style={s.gpuText} numberOfLines={1}>
+                        {c.campaign}
+                        <Text style={{ color: T.dim, fontSize: 11 }}> ({c.source} / {c.medium})</Text>
+                      </Text>
+                      <Text style={s.gpuCount}>{c.visitors} · {c.registration_rate_pct}% reg</Text>
+                    </View>
+                  ))}
+                  {(acqData?.utm_campaigns || []).length === 0 && (
+                    <Text style={{ color: SAC.muted, fontSize: 13 }}>No tagged UTM campaigns in window.</Text>
+                  )}
+                </View>
+              </Card>
+
+              {/* Landing pages + bounce */}
+              <Card style={s.hwCard}>
+                <View style={s.hwCardHead}>
+                  <Compass size={18} color="#10B981" />
+                  <Text style={s.hwCardTitle}>Top Landing Pages</Text>
+                </View>
+                <View style={{ gap: 8, marginTop: 14 }}>
+                  {(acqData?.top_landings || []).slice(0, 8).map((l: any) => (
+                    <View key={l.path} style={s.gpuRow}>
+                      <Text style={s.gpuText} numberOfLines={1}>{l.path}</Text>
+                      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                        <Text style={s.gpuCount}>{l.visitors} · {l.share_pct}%</Text>
+                        <Text style={{ color: l.bounce_rate_pct >= 60 ? '#F87171' : T.dim, fontSize: 11 }}>
+                          {l.bounce_rate_pct}% bounce
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                  {(acqData?.top_landings || []).length === 0 && (
+                    <Text style={{ color: SAC.muted, fontSize: 13 }}>No landing data yet.</Text>
+                  )}
+                </View>
+              </Card>
+            </View>
+          )}
         </Animated.View>
       )}
 
@@ -1011,7 +1504,7 @@ export function VisitorIntelligenceView() {
               </View>
 
               <Pressable onPress={() => setSelectedVisitorId(null)} style={s.modalCloseBtn}>
-                <X size={18} color="#fff" />
+                <X size={18} color={T.text} />
               </Pressable>
             </View>
 
@@ -1126,7 +1619,29 @@ export function VisitorIntelligenceView() {
                   <Text style={s.dossierSectionTitle}>
                     Navigation Journey & Click Stream ({dossier.events?.length || 0} events)
                   </Text>
-                  
+
+                  {dossier.events?.length ? (
+                    <View style={s.pageFlowWrap}>
+                      <Text style={s.pageFlowTitle}>Page Flow (deduped)</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 4 }}>
+                        {pageFlow.map((step, i) => (
+                          <View key={`${step.path}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Pressable
+                              onMouseEnter={(e: any) => setFlowHover(i)}
+                              onMouseLeave={() => setFlowHover(null)}
+                            >
+                              <View style={[s.pageFlowChip, flowHover === i && s.pageFlowChipHover]}>
+                                <Text style={s.pageFlowChipPath} numberOfLines={1}>{step.short}</Text>
+                                <Text style={s.pageFlowChipMeta}>{step.n > 1 ? `${step.n}x` : step.atTime}</Text>
+                              </View>
+                            </Pressable>
+                            {i < pageFlow.length - 1 && <ArrowRight size={13} color={T.dim} />}
+                          </View>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  ) : null}
+
                   {(!dossier.events || dossier.events.length === 0) ? (
                     <Text style={{ color: SAC.muted, fontSize: 13, padding: 12 }}>
                       Initial landing captured at {dossier.session.landing_page}. Event trail will populate as visitor navigates.
@@ -1167,10 +1682,193 @@ export function VisitorIntelligenceView() {
   );
 }
 
+// ── VR2: equirectangular geo dot-map (SVG) ─────────────────────────────
+const GEO_W = 720;
+const GEO_H = 300;
+
+function GeoDotMap({ points, surface }: { points?: any[]; surface: string }) {
+  const [hover, setHover] = useState<any>(null);
+  const dots = useMemo(() => {
+    const pts = (points || []).filter((p: any) => Number.isFinite(p?.lat) && Number.isFinite(p?.lon));
+    const maxV = Math.max(1, ...pts.map((p: any) => p.visitors ?? 0));
+    return pts.map((p: any, i: number) => ({
+      key: i,
+      label: p.city || p.country || '—',
+      country: p.country,
+      visitors: p.visitors ?? 0,
+      registered: p.registered ?? 0,
+      x: ((p.lon + 180) / 360) * GEO_W,
+      y: ((90 - p.lat) / 180) * GEO_H,
+      r: 4 + 14 * Math.sqrt((p.visitors ?? 0) / maxV),
+    }));
+  }, [points]);
+
+  // Faint graticule
+  const lines: any[] = [];
+  for (let lon = -120; lon <= 120; lon += 60) {
+    lines.push(<Line key={`v${lon}`} x1={((lon + 180) / 360) * GEO_W} y1={0} x2={((lon + 180) / 360) * GEO_W} y2={GEO_H} stroke={surface === '#F4F5FA' ? '#E4E6F0' : '#1F1F30'} strokeWidth={1} />);
+  }
+  for (let lat = -60; lat <= 60; lat += 30) {
+    lines.push(<Line key={`h${lat}`} x1={0} y1={((90 - lat) / 180) * GEO_H} x2={GEO_W} y2={((90 - lat) / 180) * GEO_H} stroke={surface === '#F4F5FA' ? '#E4E6F0' : '#1F1F30'} strokeWidth={1} />);
+  }
+
+  const eqr = GEO_H / 2;
+  return (
+    <View style={{ position: 'relative' as any }}>
+      <Svg width={GEO_W} height={GEO_H}>
+        <Rect x={0} y={0} width={GEO_W} height={GEO_H} fill="transparent" />
+        {lines}
+        <Line x1={0} y1={eqr} x2={GEO_W} y2={eqr} stroke={surface === '#F4F5FA' ? '#C4C8DA' : '#2C2A52'} strokeWidth={1.5} />
+        {dots.map((d) => (
+          <Circle
+            key={d.key}
+            cx={d.x}
+            cy={d.y}
+            r={d.r}
+            fill="rgba(124,92,252,0.28)"
+            stroke="#7C5CFC"
+            strokeWidth={1.5}
+            onMouseEnter={() => setHover(d)}
+            onMouseLeave={() => setHover((h: any) => (h?.key === d.key ? null : h))}
+          />
+        ))}
+      </Svg>
+      {hover && (
+        <View style={{
+          position: 'absolute',
+          left: Math.min(hover.x + 12, GEO_W - 170),
+          top: Math.max(hover.y - 34, 0),
+          width: 160,
+          padding: 8,
+          borderRadius: 8,
+          backgroundColor: surface === '#F4F5FA' ? '#FFFFFF' : '#14141F',
+          borderWidth: 1,
+          borderColor: surface === '#F4F5FA' ? '#E4E6F0' : '#1F1F30',
+          boxShadow: '0 6px 18px rgba(8,8,15,0.25)',
+          pointerEvents: 'none',
+          gap: 2,
+        }}>
+          <Text style={{ color: surface === '#F4F5FA' ? '#141726' : '#EDEDF5', fontSize: 12, fontFamily: FONTS.bold }} numberOfLines={1}>
+            {hover.label}{hover.country ? ` (${hover.country})` : ''}
+          </Text>
+          <Text style={{ color: surface === '#F4F5FA' ? '#565B70' : '#7E7E92', fontSize: 11 }}>
+            {hover.visitors} visitors{hover.registered > 0 ? ` · ${hover.registered} registered` : ''}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ── VR6: day x hour traffic heatmap (white → dark purple, validated ramp) ─
+const HEAT_RAMP = ['#F5F3FC', '#DED6F5', '#C0B1EC', '#9C85E0', '#7758D5', '#5732C8', '#4729A3', '#392183', '#2D1A66', '#201249'];
+
+function DayHourHeatmap({ data, surface, border, panel2 }: {
+  data: any; surface: string; border: string; panel2: string;
+}) {
+  const [hover, setHover] = useState<{ d: number; h: number; v: number; left: number; top: number } | null>(null);
+  const days = data.days || [];
+  const matrix = data.matrix || [];
+  const maxV = Math.max(1, ...matrix.flat());
+
+  const cellW = 26;
+  const cellH = 26;
+  const labelW = 44;
+  const gridW = labelW + 24 * cellW;
+  const gridH = 7 * cellH + 22;
+
+  const rampFor = (v: number) => {
+    const idx = Math.min(HEAT_RAMP.length - 1, Math.floor((v / maxV) * HEAT_RAMP.length));
+    return v <= 0 ? (surface === '#F4F5FA' ? panel2 : '#14141F') : HEAT_RAMP[Math.max(1, idx)];
+  };
+  const textInk = surface === '#F4F5FA' ? '#141726' : '#EDEDF5';
+  const subInk = surface === '#F4F5FA' ? '#565B70' : '#7E7E92';
+
+  return (
+    <View style={{ position: 'relative' as any }}>
+      <View style={{
+        display: 'grid',
+        gridTemplateColumns: `${labelW}px repeat(24, ${cellW}px)`,
+        gridTemplateRows: `repeat(7, ${cellH}px) 22px`,
+        gap: 3,
+        maxWidth: gridW,
+      }}>
+        {days.map((day: string, d: number) => (
+          <React.Fragment key={`row-${d}`}>
+            <View style={{ display: 'flex' as any, alignItems: 'center' as any, justifyContent: 'flex-end' as any, paddingRight: 8 }}>
+              <Text style={{ color: subInk, fontSize: 11.5, fontFamily: FONTS.bold }}>{day}</Text>
+            </View>
+            {(matrix[d] || []).map((v: number, h: number) => {
+              const isPeak = data.peak && data.peak.day === day && data.peak.hour === h;
+              const isQuiet = data.quiet && data.quiet.day === day && data.quiet.hour === h;
+              return (
+                <View
+                  key={`c-${d}-${h}`}
+                  style={{
+                    width: cellW - 4,
+                    height: cellH - 4,
+                    borderRadius: 4,
+                    backgroundColor: rampFor(v),
+                    outline: isPeak ? '2px solid #047857' : isQuiet ? '2px dashed #6B7080' : 'none',
+                    outlineOffset: 1,
+                  }}
+                  onMouseEnter={(e: any) => {
+                    const host = e.currentTarget.getBoundingClientRect();
+                    const root = e.currentTarget.parentElement?.getBoundingClientRect();
+                    setHover({ d, h, v, left: host.left - (root?.left ?? 0) + cellW / 2, top: host.top - (root?.top ?? 0) });
+                  }}
+                  onMouseLeave={() => setHover(null)}
+                />
+              );
+            })}
+          </React.Fragment>
+        ))}
+        <View />
+        {Array.from({ length: 24 }, (_, h) => h).map((h) => (
+          <View key={`hr-${h}`} style={{ display: 'flex' as any, alignItems: 'center' as any }}>
+            <Text style={{ color: subInk, fontSize: 10, fontFamily: FONTS.bold }}>{h % 3 === 0 ? `${h}:00` : ''}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* ramp legend */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, maxWidth: gridW }}>
+        <Text style={{ color: subInk, fontSize: 11 }}>Quiet</Text>
+        <View style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: `linear-gradient(to right, ${HEAT_RAMP.join(',')})`, overflow: 'hidden' }} />
+        <Text style={{ color: subInk, fontSize: 11 }}>Peak</Text>
+      </View>
+
+      {hover && (
+        <View style={{
+          position: 'absolute',
+          left: Math.max(0, Math.min(hover.left - 60, gridW - 130)),
+          top: hover.top - 44,
+          width: 120,
+          padding: 8,
+          borderRadius: 8,
+          backgroundColor: surface === '#F4F5FA' ? '#FFFFFF' : '#14141F',
+          borderWidth: 1,
+          borderColor: border,
+          boxShadow: '0 6px 18px rgba(8,8,15,0.25)',
+          pointerEvents: 'none',
+        }}>
+          <Text style={{ color: textInk, fontSize: 12, fontFamily: FONTS.bold }}>
+            {days[hover.d]} {String(hover.h).padStart(2, '0')}:00
+          </Text>
+          <Text style={{ color: subInk, fontSize: 11, marginTop: 2 }}>
+            {hover.v} session{hover.v === 1 ? '' : 's'}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 // ── Styles ──────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   container: {
     gap: 16,
+    backgroundColor: SAC.bgPage,
   },
   headerRow: {
     flexDirection: 'row',
@@ -1191,14 +1889,37 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
   },
-  radarDotPulse: {
+  radarPillLive: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(16,185,129,0.14)',
+    borderColor: 'rgba(16,185,129,0.4)',
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  radarDotPulseLive: {
     width: 7,
     height: 7,
     borderRadius: 4,
     backgroundColor: '#10B981',
   },
-  radarPillText: {
+  radarPillTextLive: {
     color: '#10B981',
+    fontSize: 10.5,
+    fontFamily: FONTS.bold,
+    letterSpacing: 0.5,
+  },
+  radarDotPulseAmber: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#F59E0B',
+  },
+  radarPillTextAmber: {
+    color: '#F59E0B',
     fontSize: 10.5,
     fontFamily: FONTS.bold,
     letterSpacing: 0.5,
@@ -1227,7 +1948,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: SAC.panel2,
     borderWidth: 1,
     borderColor: SAC.border,
   },
@@ -1295,7 +2016,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: SAC.panel2,
     borderWidth: 1,
     borderColor: SAC.border,
   },
@@ -1317,7 +2038,7 @@ const s = StyleSheet.create({
     gap: 4,
     padding: 3,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: SAC.panel2,
     borderWidth: 1,
     borderColor: SAC.border,
   },
@@ -1352,7 +2073,7 @@ const s = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: SAC.panel2,
     borderWidth: 1,
     borderColor: SAC.border,
     alignItems: 'center',
@@ -1500,7 +2221,7 @@ const s = StyleSheet.create({
   ratioTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: SAC.panel2,
     flexDirection: 'row',
     overflow: 'hidden',
   },
@@ -1518,7 +2239,7 @@ const s = StyleSheet.create({
     marginTop: 12,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.04)',
+    borderTopColor: SAC.border,
   },
   moduleDwellText: {
     color: SAC.muted,
@@ -1547,7 +2268,7 @@ const s = StyleSheet.create({
   barTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: SAC.panel2,
     overflow: 'hidden',
   },
   barFill: {
@@ -1560,7 +2281,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.04)',
+    borderBottomColor: SAC.border,
   },
   gpuText: {
     color: SAC.text,
@@ -1584,7 +2305,7 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.04)',
+    borderBottomColor: SAC.border,
   },
   modalOverlay: {
     position: 'absolute' as any,
@@ -1625,13 +2346,13 @@ const s = StyleSheet.create({
     padding: 18,
     borderBottomWidth: 1,
     borderBottomColor: SAC.border,
-    backgroundColor: 'rgba(255,255,255,0.02)',
+    backgroundColor: SAC.panel2,
   },
   dossierAvatar: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: SAC.panel2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1649,7 +2370,7 @@ const s = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: SAC.panel2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1672,7 +2393,7 @@ const s = StyleSheet.create({
   dossierItem: {
     flex: 1,
     minWidth: 200,
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: SAC.panel2,
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
@@ -1712,7 +2433,7 @@ const s = StyleSheet.create({
     borderColor: SAC.cardSolid,
   },
   timelineBody: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: SAC.panel2,
     padding: 10,
     borderRadius: 8,
     borderWidth: 1,
@@ -1732,5 +2453,201 @@ const s = StyleSheet.create({
     color: SAC.muted,
     fontSize: 12,
     marginTop: 4,
+  },
+
+  // VR7 — live-radar pill (amber polling fallback variant)
+  // radarPillLive / radarDotPulseLive / radarPillTextLive /
+  // radarDotPulseAmber / radarPillTextAmber are defined near radarPill above.
+
+  // VR8 — alert nav badge + banners
+  alertNavBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(239,68,68,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.28)',
+  },
+  alertNavBadgeText: {
+    fontSize: 11.5,
+    fontFamily: FONTS.bold,
+    color: SAC.text,
+  },
+  alertBanner: {
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+  },
+  alertBannerTitle: {
+    fontSize: 13.5,
+    fontFamily: FONTS.bold,
+    color: SAC.text,
+    flex: 1,
+  },
+  alertBannerMsg: {
+    fontSize: 12.5,
+    color: SAC.muted,
+    marginTop: 4,
+    flex: 1,
+  },
+  alertBannerDismiss: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: 'rgba(128,128,148,0.10)',
+  },
+  alertBannerDismissText: {
+    fontSize: 11.5,
+    fontFamily: FONTS.bold,
+    color: SAC.muted,
+  },
+
+  // VR4 — funnel
+  funnelGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(12, 1fr)',
+    gap: 16,
+  },
+  funnelTierWrap: {
+    gap: 4,
+  },
+  funnelTier: {
+    alignSelf: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  funnelTierInner: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 2,
+  },
+  funnelTierLabel: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontFamily: FONTS.bold,
+  },
+  funnelTierVal: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+  },
+  funnelTierPct: {
+    color: 'rgba(255,255,255,0.65)',
+    fontSize: 11,
+  },
+  funnelDropRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 2,
+  },
+  funnelDropText: {
+    color: '#EF4444',
+    fontSize: 11,
+    fontFamily: FONTS.bold,
+  },
+  funnelInsightLbl: {
+    color: SAC.dim,
+    fontSize: 11,
+    fontFamily: FONTS.bold,
+    letterSpacing: 0.6,
+    marginBottom: 4,
+  },
+  funnelInsightBig: {
+    color: SAC.text,
+    fontSize: 26,
+    fontFamily: FONTS.bold,
+  },
+  funnelInsightSub: {
+    color: SAC.muted,
+    fontSize: 12.5,
+    marginTop: 4,
+  },
+  funnelInsightCard: {
+    borderRadius: 12,
+    padding: 14,
+    backgroundColor: 'rgba(239,68,68,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.25)',
+    gap: 4,
+  },
+  funnelInsightTitle: {
+    color: '#EF4444',
+    fontSize: 13,
+    fontFamily: FONTS.bold,
+  },
+  funnelInsightBody: {
+    color: SAC.muted,
+    fontSize: 12.5,
+    marginTop: 4,
+  },
+
+  // VR2 — geo legend
+  geoLegend: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: SAC.border,
+  },
+  geoLegendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  geoLegendText: {
+    color: SAC.muted,
+    fontSize: 11.5,
+  },
+
+  // VR5 — horizontal page-flow chips (dossier)
+  pageFlowWrap: {
+    marginBottom: 14,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: SAC.panel2,
+    borderWidth: 1,
+    borderColor: SAC.border,
+    gap: 6,
+  },
+  pageFlowTitle: {
+    color: SAC.dim,
+    fontSize: 10.5,
+    fontFamily: FONTS.bold,
+    letterSpacing: 0.8,
+  },
+  pageFlowChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: SAC.panel,
+    borderWidth: 1,
+    borderColor: SAC.border,
+    gap: 1,
+  },
+  pageFlowChipHover: {
+    borderColor: SAC.purple,
+    backgroundColor: SAC.cardSolid,
+  },
+  pageFlowChipPath: {
+    color: SAC.text,
+    fontSize: 12,
+    fontFamily: FONTS.bold,
+    maxWidth: 160,
+  },
+  pageFlowChipMeta: {
+    color: SAC.dim,
+    fontSize: 10.5,
   },
 });

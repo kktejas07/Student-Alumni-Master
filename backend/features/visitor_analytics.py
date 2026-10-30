@@ -274,6 +274,28 @@ async def record_heartbeat(hb: VisitorHeartbeat, request: Request):
             {"$set": session_doc}
         )
 
+    # VR7 — real-time radar: broadcast this visitor's update to any
+    # connected super-admins. Best-effort; never blocks the heartbeat.
+    try:
+        import asyncio
+        from websocket_hub import push_heartbeat_radar
+        heartbeat_data = {
+            "session_id": hb.session_id,
+            "visitor_id": hb.visitor_id,
+            "alias": alias,
+            "country": geo.get("country"),
+            "city": geo.get("city"),
+            "module": module,
+            "current_path": hb.current_path,
+            "is_registered": is_registered,
+            "page_views": int(session_doc.get("page_views_count") or 0),
+            "clicks": int(session_doc.get("clicks_count") or 0),
+            "ts": now.isoformat(),
+        }
+        asyncio.create_task(push_heartbeat_radar(heartbeat_data))
+    except Exception as _e:  # noqa: BLE001
+        logger.debug("radar push unavailable: %s", _e)
+
     return {
         "ok": True,
         "session_id": hb.session_id,
@@ -843,6 +865,390 @@ async def get_visitor_click_heatmap(
         "total_clicks_analyzed": sum(e["click_count"] for e in elements),
         "hotspots": elements
     }
+
+
+# ── VR2: Geo Traffic Summary (radar dot-map data) ─────────────────────────
+def _clean_referrer_domain(ref: Optional[str]) -> Optional[str]:
+    if not ref:
+        return None
+    from urllib.parse import urlparse
+    try:
+        host = (urlparse(ref).netloc or "").lower()
+    except Exception:  # noqa: BLE001
+        host = (ref or "").lower()
+    host = host.split("@")[-1].split(":")[0]
+    return host or None
+
+
+@router.get("/admin/analytics/geo-summary")
+async def geo_summary(
+    days: int = Query(30, le=365, ge=1),
+    user: dict = Depends(require_role("admin", "superadmin", "college")),
+):
+    """VR2 — countries ranked by visitor volume + city breakdown (with lat/lon)
+    so the frontend can render a real SVG dot-map instead of a fake map.
+    """
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=days)
+
+    city_pipe = [
+        {"$match": {"created_at": {"$gte": cutoff}}},
+        {"$group": {
+            "_id": {"country": "$geo.country", "country_code": "$geo.country_code",
+                    "city": "$geo.city", "lat": "$geo.lat", "lon": "$geo.lon"},
+            "visitors": {"$sum": 1},
+            "registered": {"$sum": {"$cond": [
+                {"$eq": ["$is_registered", True]}, 1, 0]}},
+        }},
+        {"$sort": {"visitors": -1}},
+        {"$limit": 500},
+    ]
+    rows = await _db.visitor_sessions.aggregate(city_pipe).to_list(500)
+
+    points: List[Dict[str, Any]] = []
+    for r in rows:
+        ident = r["_id"]
+        lat, lon = ident.get("lat"), ident.get("lon")
+        if isinstance(lat, (int, float)) and isinstance(lon, (int, float)):
+            points.append({
+                "country_code": ident.get("country_code") or "??",
+                "country": ident.get("country") or "Unknown",
+                "city": ident.get("city") or "Unknown",
+                "lat": round(float(lat), 2),
+                "lon": round(float(lon), 2),
+                "visitors": int(r.get("visitors", 0)),
+                "registered": int(r.get("registered", 0)),
+            })
+
+    country_map: Dict[str, Dict[str, Any]] = {}
+    for r in rows:
+        ident = r["_id"]
+        cc = (ident.get("country_code") or "??").upper()
+        if cc in ("", "?", "??", "ZZ"):
+            cc = "???"
+        c = country_map.setdefault(cc, {
+            "country": ident.get("country") or "Unknown",
+            "country_code": cc,
+            "visitors": 0,
+            "registered": 0,
+            "cities": [],
+        })
+        c["visitors"] += int(r.get("visitors", 0))
+        c["registered"] += int(r.get("registered", 0))
+        c["cities"].append({
+            "city": ident.get("city") or "Unknown",
+            "lat": ident.get("lat"),
+            "lon": ident.get("lon"),
+            "visitors": int(r.get("visitors", 0)),
+        })
+    for c in country_map.values():
+        c["cities"].sort(key=lambda x: x["visitors"], reverse=True)
+        c["cities"] = c["cities"][:15]
+    countries = sorted(country_map.values(), key=lambda x: x["visitors"], reverse=True)[:25]
+
+    return {
+        "timeframe_days": days,
+        "countries": countries,
+        "points": points[:150],
+        "total_visitors": sum(c["visitors"] for c in country_map.values()),
+    }
+
+
+# ── VR3: Acquisition / UTM campaign analytics ─────────────────────────────
+_ORGANIC_SOURCES = {"google", "bing", "yahoo", "duckduckgo", "baidu",
+                    "yandex", "search", "google-search", "bing-search"}
+_SOCIAL_SOURCES = {"facebook", "instagram", "linkedin", "tiktok", "x",
+                   "twitter", "youtube", "whatsapp", "pinterest", "reddit"}
+
+
+def _classify_channel(sess: Dict[str, Any]) -> str:
+    utm = sess.get("utm") or {}
+    campaign = (utm.get("campaign") or "").strip().lower()
+    if campaign:
+        return "Campaign"
+    source = (utm.get("source") or "").strip().lower()
+    if source in _ORGANIC_SOURCES:
+        return "Organic"
+    if source in _SOCIAL_SOURCES:
+        return "Social"
+    ref = (sess.get("referrer") or "").strip()
+    if ref:
+        return "Referral"
+    return "Direct"
+
+
+@router.get("/admin/analytics/acquisition")
+async def acquisition_summary(
+    days: int = Query(30, le=365, ge=1),
+    user: dict = Depends(require_role("admin", "superadmin", "college")),
+):
+    """VR3 — acquisition channels, top referrer domains, UTM campaign
+    performance, and top landing pages (with bounce share)."""
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=days)
+
+    pipe = [
+        {"$match": {"created_at": {"$gte": cutoff}}},
+    ]
+    sessions = await _db.visitor_sessions.aggregate(pipe).to_list(20000)
+
+    total = len(sessions) or 1
+    channels: Dict[str, Dict[str, int]] = {
+        "Direct": {"visitors": 0, "registered": 0},
+        "Organic": {"visitors": 0, "registered": 0},
+        "Social": {"visitors": 0, "registered": 0},
+        "Referral": {"visitors": 0, "registered": 0},
+        "Campaign": {"visitors": 0, "registered": 0},
+    }
+    referrers: Dict[str, int] = {}
+    campaigns: Dict[tuple, Dict[str, int]] = {}
+    landings: Dict[str, Dict[str, int]] = {}
+
+    for s in sessions:
+        reg = 1 if s.get("is_registered") else 0
+        ch = _classify_channel(s)
+        channels[ch]["visitors"] += 1
+        channels[ch]["registered"] += reg
+
+        dom = _clean_referrer_domain(s.get("referrer"))
+        if dom and dom not in ("studentalumni.in", "www.studentalumni.in"):
+            referrers[dom] = referrers.get(dom, 0) + 1
+
+        utm = s.get("utm") or {}
+        camp = (utm.get("campaign") or "").strip()
+        if camp:
+            key = (camp, (utm.get("source") or "").lower() or "—",
+                   (utm.get("medium") or "").lower() or "—")
+            c = campaigns.setdefault(key, {"visitors": 0, "registered": 0})
+            c["visitors"] += 1
+            c["registered"] += reg
+
+        lp = (s.get("landing_page") or "/").split("?")[0] or "/"
+        l = landings.setdefault(lp, {"visitors": 0, "bounced": 0})
+        l["visitors"] += 1
+        if int(s.get("page_views_count") or 1) <= 1:
+            l["bounced"] += 1
+
+    channel_rows = []
+    for name, v in channels.items():
+        channel_rows.append({
+            "channel": name,
+            "visitors": v["visitors"],
+            "share_pct": round(v["visitors"] / total * 100, 1),
+            "registration_rate_pct": round(100.0 * v["registered"] / v["visitors"], 1)
+                                     if v["visitors"] else 0.0,
+        })
+    channel_rows.sort(key=lambda x: x["visitors"], reverse=True)
+
+    top_referrers = [
+        {"domain": d, "visitors": n, "share_pct": round(n / total * 100, 1)}
+        for d, n in sorted(referrers.items(), key=lambda x: x[1], reverse=True)[:15]
+    ]
+    camp_rows = [
+        {"campaign": k[0], "source": k[1], "medium": k[2],
+         "visitors": v["visitors"],
+         "registration_rate_pct": round(100.0 * v["registered"] / v["visitors"], 1)
+         if v["visitors"] else 0.0}
+        for k, v in sorted(campaigns.items(), key=lambda x: x[1]["visitors"],
+                           reverse=True)[:15]
+    ]
+    landing_rows = [
+        {"path": p, "visitors": v["visitors"],
+         "share_pct": round(v["visitors"] / total * 100, 1),
+         "bounce_rate_pct": round(100.0 * v["bounced"] / v["visitors"], 1)
+         if v["visitors"] else 0.0}
+        for p, v in sorted(landings.items(), key=lambda x: x[1]["visitors"],
+                           reverse=True)[:15]
+    ]
+
+    return {
+        "timeframe_days": days,
+        "total_sessions": total,
+        "channels": channel_rows,
+        "top_referrers": top_referrers,
+        "utm_campaigns": camp_rows,
+        "top_landings": landing_rows,
+    }
+
+
+# ── VR4: Conversion funnel ─────────────────────────────────────────────────
+@router.get("/admin/analytics/funnel")
+async def conversion_funnel(
+    days: int = Query(30, le=365, ge=1),
+    user: dict = Depends(require_role("admin", "superadmin", "college")),
+):
+    """VR4 — Landed -> Browsed 2+ pages -> Engaged (click/form) ->
+    Signed up -> Returned (2+ sessions), with drop-off + insights."""
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=days)
+
+    sessions = await _db.visitor_sessions.aggregate(
+        [{"$match": {"created_at": {"$gte": cutoff}}}]).to_list(50000)
+
+    engaged_ids = set()
+    async for ev in _db.visitor_events.find(
+            {"timestamp": {"$gte": cutoff},
+             "event_type": {"$in": ["lead_submit", "form_focus", "modal_open", "click"]}},
+            {"session_id": 1}, no_cursor_timeout=True):
+        engaged_ids.add(ev.get("session_id"))
+
+    seen = {s.get("session_id") for s in sessions}
+    all_by_visitor: Dict[str, int] = {}
+    async for s in _db.visitor_sessions.find({}, {"visitor_id": 1, "session_id": 1}):
+        v = s.get("visitor_id")
+        if v:
+            all_by_visitor[v] = all_by_visitor.get(v, 0) + 1
+
+    landed = len(seen)
+    browsed = sum(1 for s in sessions if int(s.get("page_views_count") or 0) >= 2)
+    engaged = sum(1 for s in sessions
+                  if s.get("session_id") in engaged_ids
+                  or int(s.get("clicks_count") or 0) >= 1)
+    signed_up = sum(1 for s in sessions if s.get("is_registered"))
+    returned = sum(1 for s in sessions
+                   if all_by_visitor.get(s.get("visitor_id"), 0) >= 2)
+
+    steps = [
+        {"key": "landed", "label": "Landed", "count": landed},
+        {"key": "browsed", "label": "Browsed 2+ pages", "count": browsed},
+        {"key": "engaged", "label": "Engaged (click / form)", "count": engaged},
+        {"key": "signed_up", "label": "Signed up", "count": signed_up},
+        {"key": "returned", "label": "Returned (2+ visits)", "count": returned},
+    ]
+    top = landed or 1
+    out_steps = []
+    for i, st in enumerate(steps):
+        prev = steps[i - 1]["count"] if i else None
+        out_steps.append({
+            **st,
+            "pct_of_top": round(100.0 * st["count"] / top, 1),
+            "pct_of_prev": round(100.0 * st["count"] / prev, 1) if prev else None,
+            "drop_off": (prev - st["count"]) if prev is not None else 0,
+        })
+
+    biggest = None
+    for i in range(1, len(out_steps)):
+        if biggest is None:
+            biggest = {"step": out_steps[i]["key"], "drop_off": out_steps[i]["drop_off"]}
+        elif out_steps[i]["drop_off"] > biggest["drop_off"]:
+            biggest = {"step": out_steps[i]["key"], "drop_off": out_steps[i]["drop_off"]}
+
+    return {
+        "timeframe_days": days,
+        "total_sessions": landed,
+        "steps": out_steps,
+        "overall_conversion_rate_pct": round(100.0 * signed_up / top, 1) if top else 0.0,
+        "biggest_drop_off": biggest,
+    }
+
+
+# ── VR6: Day x Hour traffic heatmap ────────────────────────────────────────
+@router.get("/admin/analytics/traffic-heatmap")
+async def traffic_heatmap(
+    days: int = Query(30, le=365, ge=1),
+    user: dict = Depends(require_role("admin", "superadmin", "college")),
+):
+    """VR6 — 7x24 (Sunday-start weekday x hour-of-day UTC) session matrix
+    from visitor_sessions.created_at, plus peak/quiet insights."""
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=days)
+
+    pipe = [
+        {"$match": {"created_at": {"$gte": cutoff}}},
+        {"$project": {"dow": {"$dayOfWeek": "$created_at"},
+                      "hour": {"$hour": "$created_at"}}},
+        {"$group": {"_id": {"d": "$dow", "h": "$hour"}, "n": {"$sum": 1}}},
+    ]
+    rows = await _db.visitor_sessions.aggregate(pipe).to_list(200)
+
+    matrix = [[0] * 24 for _ in range(7)]
+    for r in rows:
+        dow = (r["_id"]["d"] - 1) % 7  # Mongo 1=Sun..7=Sat -> 0=Sun..6=Sat
+        hour = int(r["_id"]["h"])
+        matrix[dow][hour] += int(r.get("n", 0))
+
+    total = sum(sum(row) for row in matrix)
+    peak_d, peak_h, peak_n = 0, 0, 0
+    quiet_d, quiet_h, quiet_n = 0, 0, None
+    for d in range(7):
+        for h in range(24):
+            n = matrix[d][h]
+            if n > peak_n:
+                peak_d, peak_h, peak_n = d, h, n
+            if total:
+                if quiet_n is None or n < quiet_n:
+                    quiet_d, quiet_h, quiet_n = d, h, n
+
+    weekday = sum(n for d in range(5) for n in matrix[d])
+    weekend = sum(n for d in (5, 6) for n in matrix[d])
+    weekday_share = round(100.0 * weekday / total, 1) if total else 0.0
+
+    day_names = ["Sunday", "Monday", "Tuesday", "Wednesday",
+                 "Thursday", "Friday", "Saturday"]
+
+    return {
+        "timeframe_days": days,
+        "total_sessions": total,
+        "days": day_names,
+        "hours": list(range(24)),
+        "matrix": matrix,
+        "peak": {"day": day_names[peak_d], "hour": peak_h, "sessions": peak_n},
+        "quiet": {"day": day_names[quiet_d], "hour": quiet_h,
+                  "sessions": quiet_n},
+        "weekday_share_pct": weekday_share,
+        "weekend_share_pct": round(100.0 - weekday_share, 1),
+    }
+
+
+# ── VR8: Visitor anomaly alerts ─────────────────────────────────────────────
+@router.get("/admin/analytics/visitor-alerts")
+async def visitor_alerts(
+    hours: int = Query(24, le=168, ge=1),
+    user: dict = Depends(require_role("admin", "superadmin", "college")),
+):
+    """VR8 — anomaly alerts raised by visitor_anomaly_detector (traffic
+    spike, bot suspect, IP flood, new country), newest first."""
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(hours=hours)
+    cursor = _db.admin_notifications.find(
+        {"kind": {"$regex": "^visitor_anomaly"},
+         "created_at": {"$gte": cutoff}},
+        no_cursor_timeout=True)
+    alerts: List[Dict[str, Any]] = []
+    async for doc in cursor.sort("created_at", -1).limit(100):
+        payload = doc.get("payload") or doc.get("data") or {}
+        alerts.append({
+            "id": str(doc["_id"]),
+            "kind": doc.get("kind"),
+            "severity": doc.get("severity", "info"),
+            "title": doc.get("title") or payload.get("title"),
+            "message": doc.get("message") or payload.get("message"),
+            "created_at": (doc.get("created_at") or now).isoformat(),
+            "details": payload,
+            "dismissed": bool(doc.get("dismissed")),
+        })
+    return {"alerts": alerts, "window_hours": hours}
+
+
+class DismissAlertRequest(BaseModel):
+    alert_id: str
+
+@router.post("/admin/analytics/visitor-alerts/dismiss")
+async def dismiss_visitor_alert(
+    body: DismissAlertRequest,
+    user: dict = Depends(require_role("admin", "superadmin", "college")),
+):
+    """VR8 — mark a single anomaly alert as dismissed."""
+    try:
+        oid = ObjectId(body.alert_id)
+    except Exception:
+        raise HTTPException(400, "Invalid alert id")
+    res = await _db.admin_notifications.update_one(
+        {"_id": oid, "kind": {"$regex": "^visitor_anomaly"}},
+        {"$set": {"dismissed": True,
+                  "dismissed_at": datetime.now(timezone.utc),
+                  "dismissed_by": user.get("email") or "admin"}})
+    return {"ok": res.modified_count > 0}
 
 
 # ── Super Admin Real-Time Announcement Broadcast Center ───────────────────────
