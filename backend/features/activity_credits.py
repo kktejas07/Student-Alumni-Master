@@ -1090,7 +1090,8 @@ async def _coach_context(user: dict) -> Dict[str, Any]:
         from features.gamification_engine import _streak_state
         streak = int((await _streak_state(user)).get("current") or 0)
     except Exception:
-        pass
+        logger.exception("Failed to load streak state for coach context")
+        streak = 0
 
     try:
         referral_count = len((await _get_or_create_referral(user)).get(
