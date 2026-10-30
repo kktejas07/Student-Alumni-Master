@@ -1018,6 +1018,7 @@ def create_refresh_token(user_id: str) -> str:
     """Long-lived refresh token to obtain new access tokens without re-login."""
     payload = {
         "sub": user_id,
+        "jti": secrets.token_hex(16),  # unique token ID for revocation
         "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
         "type": "refresh",
     }
@@ -3135,6 +3136,7 @@ async def logout(request: Request, user: dict = Depends(get_current_user)):
     itself would have expired, so the collection stays bounded.
     """
     auth = request.headers.get("Authorization", "")
+    # --- Blacklist the access token ---
     try:
         payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
         jti = payload.get("jti")
@@ -3154,6 +3156,31 @@ async def logout(request: Request, user: dict = Depends(get_current_user)):
                 pass  # Duplicate JTI insert is fine — token already revoked
     except Exception:
         pass  # Token already invalid; logout is still successful
+
+    # --- Blacklist the refresh token (sent in body) ---
+    try:
+        body = await request.json()
+        refresh_raw = body.get("refresh_token")
+        if refresh_raw:
+            rp = jwt.decode(refresh_raw, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            r_jti = rp.get("jti")
+            r_exp = rp.get("exp")
+            if r_jti:
+                r_expires_at = datetime.fromtimestamp(r_exp, tz=timezone.utc) if r_exp else (
+                    datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+                )
+                try:
+                    await db.token_blacklist.insert_one({
+                        "jti": r_jti,
+                        "user_id": str(user["_id"]),
+                        "expires_at": r_expires_at,
+                        "revoked_at": datetime.now(timezone.utc),
+                    })
+                except Exception:
+                    pass
+    except Exception:
+        pass  # Body may be empty or refresh token already invalid
+
     return {"status": "logged_out"}
 
 

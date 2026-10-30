@@ -45,8 +45,8 @@ export function AlumniPortalRN() {
   React.useEffect(() => setQ(searchQuery), [searchQuery]);
 
   const onLogout = async () => {
-    router.replace('/welcome');
     try { await logout(); } catch {}
+    router.replace('/welcome');
   };
   const handleNav = (id: AlumniNavId, params?: { q?: string }) => {
     if (id !== active) go(id);
