@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`brandLogoMetrics snapshots metrics at the two card sizes (36, 48) 1`] = `
+{
+  "fontSize": 14,
+  "radius": 10,
+}
+`;
+
+exports[`brandLogoMetrics snapshots metrics at the two card sizes (36, 48) 2`] = `
+{
+  "fontSize": 18,
+  "radius": 13,
+}
+`;
