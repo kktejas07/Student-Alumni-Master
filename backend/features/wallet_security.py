@@ -160,6 +160,7 @@ async def register_failed_debit(user: Dict[str, Any], amount: int = 0,
     """Log a failed debit and lock the wallet for 30 min on the 3rd failure
     within a 30-minute window."""
     uid = str(user["_id"])
+    safe_uid = re.sub(r"[\r\n]+", "", uid)
     now = datetime.now(timezone.utc)
     lo = now - timedelta(minutes=LOCK_WINDOW_MIN)
     await _db[AUDIT].insert_one({
@@ -175,7 +176,7 @@ async def register_failed_debit(user: Dict[str, Any], amount: int = 0,
         await _db.users.update_one(
             {"_id": user["_id"]},
             {"$set": {"wallet.locked_until": until}})
-        logger.info("wallet locked %s for %d min (failed debits)", uid, LOCK_DURATION_MIN)
+        logger.info("wallet locked %s for %d min (failed debits)", safe_uid, LOCK_DURATION_MIN)
 
 
 # ─── ALERTS (in-app notification feed, preference-aware) ───────────────
