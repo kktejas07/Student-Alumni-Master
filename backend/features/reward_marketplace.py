@@ -199,6 +199,7 @@ async def redeem_reward(
     )
 
     rid = str((body or {}).get("reward_id") or (body or {}).get("id") or "").strip()
+    rid_log = rid.replace("\r", "").replace("\n", "")
     await _ensure_seeded()
     reward = await _db[REWARDS].find_one({"_id": rid})
     if not reward:
@@ -269,7 +270,7 @@ async def redeem_reward(
         ins = await _db[REDEMPTIONS].insert_one(doc)
         doc["_id"] = ins.inserted_id
     except Exception as e:  # noqa: BLE001
-        logger.warning("reward redemption failed for %s: %s", rid, e)
+        logger.warning("reward redemption failed for %s: %s", rid_log, e)
         # Claw back the debit and the stock claim so the user loses nothing.
         try:
             await _credit_user(user, cost, f"Redemption refund: {rid}",
