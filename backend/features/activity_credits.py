@@ -753,7 +753,7 @@ async def _upi_settle_topup(doc: Dict[str, Any], vpa: str) -> Dict[str, Any]:
             f"(incl. {TOPUP_BONUS_PCT}% bonus).",
             data={"kind": "topup", "ref": ref, "amount": total_credits})
     except Exception:
-        pass
+        logger.exception("UPI top-up settled but wallet notification failed for ref=%s user_id=%s", ref, uid)
     return {"ref": ref, "amount_inr": amount_inr,
             "total_credits": 0 if dup else total_credits,
             "duplicate": dup, "balance_credits": new_bal}
