@@ -312,11 +312,41 @@ def _auth():
     return get_current_user
 
 
+# ─── Live cache (features/higher_ed_aggregator, 24h cron) ──────────────
+from features import higher_ed_aggregator as _he_agg  # noqa: E402
+
+
+async def _programme_pool() -> List[Dict[str, Any]]:
+    """Aggregated programmes; seed fallback until the first run lands."""
+    docs = await _he_agg.read_programme_cache()
+    return docs or _seed_programmes()
+
+
+async def _scholarship_pool() -> List[Dict[str, Any]]:
+    docs = await _he_agg.read_scholarship_cache()
+    return docs or _seed_scholarships()
+
+
+async def _country_pool() -> List[Dict[str, Any]]:
+    docs = await _he_agg.read_country_cache()
+    return docs or _seed_countries()
+
+
+async def _find_programme(pid: Optional[str]) -> Optional[Dict[str, Any]]:
+    if not pid:
+        return None
+    for pool in (await _he_agg.read_programme_cache(), _seed_programmes()):
+        hit = next((p for p in pool if p.get('id') == pid), None)
+        if hit:
+            return hit
+    return None
+
+
 # ─── Endpoints ───────────────────────────────────────────────────────────
 @router.get("/he/programmes")
 async def he_programmes(country: str = Query("all"), degree: str = Query("all"),
                         max_n: int = Query(12), user: dict = Depends(_auth())):
-    progs = _seed_programmes()
+    progs = await _programme_pool()
     if country != "all":
         progs = [p for p in progs if p['country'].lower() == country.lower()]
     if degree != "all":
@@ -333,9 +363,9 @@ async def he_programmes(country: str = Query("all"), degree: str = Query("all"),
 @router.get("/he/scholarships")
 async def he_scholarships(country: str = Query("all"), degree: str = Query("all"),
                           user: dict = Depends(_auth())):
-    items = _seed_scholarships()
+    items = await _scholarship_pool()
     if country != "all":
-        items = [s for s in items if country.lower() in s['country'].lower() or s['country'] == 'Multiple']
+        items = [s for s in items if country.lower() in s.get('country', '').lower() or s.get('country') == 'Multiple']
     if degree != "all":
         items = [s for s in items if degree.upper() in s['degree_levels']]
     return {"scholarships": items, "total": len(items)}
@@ -343,7 +373,7 @@ async def he_scholarships(country: str = Query("all"), degree: str = Query("all"
 
 @router.get("/he/countries")
 async def he_countries(user: dict = Depends(_auth())):
-    return {"countries": _seed_countries()}
+    return {"countries": await _country_pool()}
 
 
 @router.post("/he/compare")
@@ -351,8 +381,8 @@ async def he_compare(body: Dict[str, Any], user: dict = Depends(_auth())):
     ids = (body or {}).get("programme_ids") or []
     if not (2 <= len(ids) <= 4):
         raise HTTPException(400, "Provide 2 to 4 programme_ids")
-    progs = _seed_programmes()
-    selected = [p for p in progs if p['id'] in ids]
+    progs = await _programme_pool()
+    selected = [p for p in progs if p.get('id') in ids]
     if len(selected) < 2:
         raise HTTPException(404, "Programmes not found")
     profile = user.get('he_profile') or {}
@@ -439,7 +469,7 @@ async def he_apply(body: Dict[str, Any], user: dict = Depends(_auth())):
     pid = (body or {}).get("programme_id")
     if not pid:
         raise HTTPException(400, "programme_id required")
-    prog = next((p for p in _seed_programmes() if p['id'] == pid), None)
+    prog = await _find_programme(pid)
     if not prog:
         raise HTTPException(404, "Programme not found")
     # Check existing
@@ -545,7 +575,7 @@ async def ai_sop(body: Dict[str, Any], user: dict = Depends(_auth())):
     """4-question SOP flow. Body: {programme_id, answers?: {q1,q2,q3,q4}}"""
     pid = (body or {}).get("programme_id")
     answers = (body or {}).get("answers") or {}
-    prog = next((p for p in _seed_programmes() if p['id'] == pid), None)
+    prog = await _find_programme(pid)
     if not prog:
         raise HTTPException(404, "Programme not found")
     # If no answers yet → return the 4 questions
@@ -622,7 +652,7 @@ Keep concise — bullet points, action verbs."""
 async def ai_cover_letter(body: Dict[str, Any], user: dict = Depends(_auth())):
     pid = (body or {}).get("programme_id")
     answers = (body or {}).get("answers") or {}
-    prog = next((p for p in _seed_programmes() if p['id'] == pid), None)
+    prog = await _find_programme(pid)
     if not prog:
         raise HTTPException(404, "Programme not found")
     if not answers or len(answers) < 3:
@@ -662,7 +692,7 @@ async def ai_lor_email(body: Dict[str, Any], user: dict = Depends(_auth())):
     prof = (body or {}).get("prof_name") or "Professor"
     relationship = (body or {}).get("relationship") or ""
     outcome = (body or {}).get("outcome") or ""
-    prog = next((p for p in _seed_programmes() if p['id'] == pid), None) if pid else None
+    prog = await _find_programme(pid) if pid else None
     if not relationship or not outcome:
         return {"stage": "questions", "questions": [
             {"id": "prof_name",     "label": "Professor's name"},
@@ -691,7 +721,7 @@ Format:
 @router.post("/he/ai/eligibility")
 async def ai_eligibility(body: Dict[str, Any], user: dict = Depends(_auth())):
     pid = (body or {}).get("programme_id")
-    prog = next((p for p in _seed_programmes() if p['id'] == pid), None) if pid else None
+    prog = await _find_programme(pid) if pid else None
     if not prog:
         return {"content": "Please select a specific programme from the Search tab to check your eligibility. Click the 'Eligibility' button directly on a programme card.", "programme_id": pid}
     profile = user.get('he_profile') or {}
