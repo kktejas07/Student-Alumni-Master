@@ -6,7 +6,8 @@ import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, Image
 import {
   Building2, GraduationCap, UserCheck, Users, CreditCard, Calendar,
   CheckCircle, BarChart3, Sparkles,
-  Image as ImageIcon, Save, X, Upload, Trash2, TrendingUp, RefreshCw
+  Image as ImageIcon, Save, X, Upload, Trash2, TrendingUp, RefreshCw,
+  Tag, Mail, Handshake, Download,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, FONTS, useSAC, resolveColors } from '../tokens';
@@ -42,8 +43,11 @@ type SuperAdminAnalytics = {
   recent_bookings: { type: 'booking'; topic?: string | null; status?: string | null; at: string }[];
   recent_signups: { type: 'signup'; name?: string | null; role?: string | null; at: string }[];
   monthly_enrollments: { month: string; value: number }[];
-  // `revenue` is intentionally NOT used: the backend estimates it from booking counts
-  // when no payments exist, which is not a real figure.
+  // Backend already returns these — now surfaced:
+  growth_series?: { date: string; count: number }[];
+  top_colleges?: { name: string; total: number; students: number; alumni: number }[];
+  mentor_categories?: { label: string; value: number }[];
+  booking_statuses?: { label: string; value: number }[];
 };
 
 // GET /api/admin/super-overview  (backend/portals.py::super_admin_overview)
@@ -324,7 +328,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   };
 
   return (
-    <View style={{ gap: 16 }}>
+    <View style={{ gap: 16, backgroundColor: '#F8FAFC' }}>
       {/* Live counters */}
       <LiveStrip accent={GRAD.to} keys={['users', 'students', 'mentors', 'colleges', 'bookings']} />
 
@@ -392,6 +396,30 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
             </View>
           )}
         </View>
+      </View>
+
+      {/* Quick Actions */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {([
+          { label: 'Approve Mentors', icon: UserCheck, color: '#16A34A', nav: 'approvals', badge: realPending },
+          { label: 'Manage Events', icon: Calendar, color: '#7C3AED', nav: 'events', badge: 0 },
+          { label: 'Create Coupon', icon: Tag, color: '#D97706', nav: 'coupons', badge: 0 },
+          { label: 'Import Users', icon: Upload, color: '#0891B2', nav: 'imports', badge: 0 },
+          { label: 'Send Newsletter', icon: Mail, color: '#DB2777', nav: 'newsletter', badge: 0 },
+          { label: 'View Analytics', icon: BarChart3, color: '#4B3FD6', nav: 'analytics', badge: 0 },
+          { label: 'Manage Partners', icon: Handshake, color: '#EA580C', nav: 'partners', badge: 0 },
+          { label: 'Export Data', icon: Download, color: '#64748B', nav: 'analytics', badge: 0 },
+        ]).map((a) => {
+          const Icon = a.icon;
+          return (
+            <Pressable key={a.label} onPress={() => onNavigate?.(a.nav)}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', borderWidth: 1, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14, ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}) }}>
+              <Icon size={14} color={a.color} />
+              <Text style={{ fontSize: 12, fontFamily: FONTS.semi, color: '#334155' }}>{a.label}</Text>
+              {a.badge > 0 ? <View style={{ backgroundColor: '#EF4444', borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1 }}><Text style={{ color: '#fff', fontSize: 9, fontFamily: FONTS.bold }}>{a.badge}</Text></View> : null}
+            </Pressable>
+          );
+        })}
       </View>
 
       {/* Echo Promo Banner */}
@@ -647,6 +675,78 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
         })}
       </View>
 
+      {/* User Growth + Top Colleges */}
+      <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
+        {/* User Growth Sparkline */}
+        <View style={[s.card, { flex: stack ? undefined : 1 }]}>
+          <Text style={s.cardTitle}>User Growth</Text>
+          <Text style={s.cardSub}>New accounts per day, last 14 days</Text>
+          {analytics?.growth_series && analytics.growth_series.length > 0 ? (() => {
+            const series = analytics.growth_series!;
+            const maxVal = Math.max(1, ...series.map(d => d.count));
+            const growthTotal = series.reduce((acc, d) => acc + d.count, 0);
+            const w = 500, h = 80;
+            const pts = series.map((d, i) => ({
+              x: (i / Math.max(1, series.length - 1)) * w,
+              y: h - (d.count / maxVal) * (h - 10) - 5,
+            }));
+            const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+            const area = `${line} L${w},${h} L0,${h} Z`;
+            return (
+              <View style={{ marginTop: 16 }}>
+                {Platform.OS === 'web' ? (
+                  <div dangerouslySetInnerHTML={{ __html: `
+                    <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:80px" role="img" aria-label="14-day user growth sparkline">
+                      <defs><linearGradient id="ugfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4B3FD6" stop-opacity="0.15"/><stop offset="100%" stop-color="#4B3FD6" stop-opacity="0"/></linearGradient></defs>
+                      <path d="${area}" fill="url(#ugfill)"/>
+                      <polyline points="${pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}" fill="none" stroke="#4B3FD6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="${pts[pts.length - 1].x.toFixed(1)}" cy="${pts[pts.length - 1].y.toFixed(1)}" r="4" fill="#4B3FD6" stroke="#FFFFFF" stroke-width="2"/>
+                    </svg>
+                  `}} />
+                ) : (
+                  <View style={{ height: 80, backgroundColor: T.panel2, borderRadius: 8 }} />
+                )}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+                  <Text style={{ fontSize: 12, fontFamily: FONTS.bold, color: T.text }}>{growthTotal.toLocaleString('en-IN')} new users</Text>
+                  <Text style={{ fontSize: 11, fontFamily: FONTS.med, color: T.muted }}>last 14 days</Text>
+                </View>
+              </View>
+            );
+          })() : (
+            <Text style={s.emptyText}>No growth data available yet.</Text>
+          )}
+        </View>
+
+        {/* Top Colleges */}
+        <View style={[s.card, { flex: stack ? undefined : 1 }]}>
+          <Text style={s.cardTitle}>Top Colleges</Text>
+          <Text style={s.cardSub}>By registered user count</Text>
+          <View style={{ gap: 10, marginTop: 14 }}>
+            {analyticsLoading && !analytics ? (
+              <View style={s.stateRow}><ActivityIndicator size="small" color={T.dim} /><Text style={s.stateText}>Loading...</Text></View>
+            ) : (analytics?.top_colleges ?? []).length === 0 ? (
+              <Text style={s.emptyText}>No college data yet.</Text>
+            ) : (analytics?.top_colleges ?? []).slice(0, 5).map((c, i) => {
+              const colors = ['#7C3AED', '#0D9488', '#F59E0B', '#3B82F6', '#16A34A', '#EA580C', '#DB2777', '#64748B'];
+              const initials = c.name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]?.toUpperCase()).join('');
+              return (
+                <Pressable key={`${c.name}-${i}`} onPress={() => onNavigate?.('colleges')}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Text style={{ fontSize: 11, fontFamily: FONTS.bold, color: T.muted, width: 18 }}>{i + 1}</Text>
+                  <View style={{ width: 28, height: 28, borderRadius: 7, backgroundColor: colors[i % colors.length], alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 10, fontFamily: FONTS.bold }}>{initials}</Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={{ fontSize: 12.5, fontFamily: FONTS.semi, color: T.text }} numberOfLines={1}>{c.name}</Text>
+                  </View>
+                  <Text style={{ fontSize: 12, fontFamily: FONTS.bold, color: T.violet }}>{c.total.toLocaleString('en-IN')}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      </View>
+
       {/* Recent Activity + Platform Users */}
       <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
         {/* Recent Activity */}
@@ -761,7 +861,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                       start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
                       style={{ width: '100%', height: h, borderTopLeftRadius: 5, borderTopRightRadius: 5, opacity: isLast ? 1 : 0.7 }}
                     />
-                    <Text style={[s.barMonth, isLast && { color: '#F4F4FA', fontFamily: FONTS.bold }]}>{m.month}</Text>
+                    <Text style={[s.barMonth, isLast && { color: T.text, fontFamily: FONTS.bold }]}>{m.month}</Text>
                   </View>
                 );
               })}
@@ -817,29 +917,29 @@ const s = StyleSheet.create({
     paddingHorizontal: 22, paddingVertical: 18,
   },
   heroKicker: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1.2, marginBottom: 6 },
-  heroTitle:  { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 19, letterSpacing: -0.4 },
+  heroTitle:  { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 19, letterSpacing: -0.4 },
   heroPrimary: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10, backgroundColor: SAC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   heroPrimaryText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12 },
   heroSec: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10,    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
-  heroSecText: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
+  heroSecText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
 
   card: { backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 18 },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15, letterSpacing: -0.2 },
+  cardTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15, letterSpacing: -0.2 },
   cardSub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
   linkRight: { color: SAC.accentBright, fontFamily: FONTS.bold, fontSize: 11.5 },
 
   activityRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   activityIcon: { width: 34, height: 34, borderRadius: 9, backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  activityText: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 13 },
+  activityText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
   activitySub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
   activityDot: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11 },
   activityTime: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11 },
 
-  distLabel: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12.5 },
-  distPct:   { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  distLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
+  distPct:   { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12.5 },
   distCount: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 5 },
-  distTrack: { height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.04)', overflow: 'hidden' },
+  distTrack: { height: 5, borderRadius: 3, backgroundColor: '#F1F5F9', overflow: 'hidden' },
   distFill:  { height: '100%', borderRadius: 3 },
   revAmount: { color: SAC.accentBright, fontFamily: FONTS.xbold, fontSize: 12.5 },
 
@@ -863,7 +963,7 @@ const s = StyleSheet.create({
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
     borderRadius: 14, padding: 14,
   },
-  adManagerTitle: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 13 },
+  adManagerTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
   adEditBtn: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
     backgroundColor: SAC.primary,
@@ -877,17 +977,17 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? { position: 'fixed' } as any : {}),
   },
   adEditorModal: {
-    backgroundColor: '#101019', borderColor: SAC.border, borderWidth: 1,
+    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
     borderRadius: 16, padding: 20, width: '90%', maxWidth: 440,
     gap: 8,
     ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.60)' } as any : {}),
   },
-  adEditorTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
+  adEditorTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
   adFieldLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, marginTop: 6 },
   adFieldInput: {
     backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1,
     borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
-    color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
+    color: SAC.text, fontFamily: FONTS.med, fontSize: 13,
   },
   adEmptyDrop: {
     alignItems: 'center', gap: 8, paddingVertical: 22, paddingHorizontal: 12,
