@@ -222,52 +222,62 @@ class DailyAuditOrchestratorService:
         now_iso = datetime.now(timezone.utc).isoformat()
         self._next_run_at = (datetime.now(timezone.utc) + timedelta(seconds=self._interval_seconds)).isoformat()
 
-        # Run the 3 jobs concurrently
-        t_res, a_res, l_res = await asyncio.gather(
-            self.audit_unit_tests(),
-            self.audit_platform_analytics(db=db),
-            self.audit_debugging_logs(db=db)
-        )
+        from services.agents.agent_run_log import start as log_start, finish as log_finish
+        run_id = await log_start("daily_audit", "Autonomous 24-Hour Operations & Audit Swarm Agent", db)
+        try:
+            # Run the 3 jobs concurrently
+            t_res, a_res, l_res = await asyncio.gather(
+                self.audit_unit_tests(),
+                self.audit_platform_analytics(db=db),
+                self.audit_debugging_logs(db=db)
+            )
 
-        dossier_id = f"DOSSIER-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+            dossier_id = f"DOSSIER-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
 
-        tests_part = (
-            f"{t_res.passed}/{t_res.total_tests} unit tests passed" if t_res.total_tests
-            else "unit tests not run here (see CI)"
-        )
-        verdict = (
-            f"24-hour audit: {tests_part}. Stability: {l_res.system_stability_index}. "
-            f"{a_res.dau_active_users} accounts active in the last 7 days, {a_res.new_users_24h} new in 24 h, "
-            f"{l_res.critical_exceptions_count} client-reported errors."
-        )
-        if t_res.failed > 0 or l_res.critical_exceptions_count > 0:
-            health = "DEGRADED"
-        elif t_res.total_tests == 0 and l_res.total_log_entries_analyzed == 0:
-            health = "UNKNOWN"
-        else:
-            health = "HEALTHY"
+            tests_part = (
+                f"{t_res.passed}/{t_res.total_tests} unit tests passed" if t_res.total_tests
+                else "unit tests not run here (see CI)"
+            )
+            verdict = (
+                f"24-hour audit: {tests_part}. Stability: {l_res.system_stability_index}. "
+                f"{a_res.dau_active_users} accounts active in the last 7 days, {a_res.new_users_24h} new in 24 h, "
+                f"{l_res.critical_exceptions_count} client-reported errors."
+            )
+            if t_res.failed > 0 or l_res.critical_exceptions_count > 0:
+                health = "DEGRADED"
+            elif t_res.total_tests == 0 and l_res.total_log_entries_analyzed == 0:
+                health = "UNKNOWN"
+            else:
+                health = "HEALTHY"
 
-        dossier = DailyDossierResponse(
-            dossier_id=dossier_id,
-            executed_at=now_iso,
-            next_scheduled_run=self._next_run_at,
-            unit_tests=t_res,
-            analytics=a_res,
-            debugging_logs=l_res,
-            executive_verdict=verdict,
-            health_status=health
-        )
+            dossier = DailyDossierResponse(
+                dossier_id=dossier_id,
+                executed_at=now_iso,
+                next_scheduled_run=self._next_run_at,
+                unit_tests=t_res,
+                analytics=a_res,
+                debugging_logs=l_res,
+                executive_verdict=verdict,
+                health_status=health
+            )
 
-        self._last_dossier = dossier
+            self._last_dossier = dossier
 
-        # Persist to database if available
-        if db is not None:
-            try:
-                await db.daily_audit_reports.insert_one(dossier.dict())
-            except Exception as e:
-                logger.warning(f"Could not persist daily audit dossier: {e}")
+            # Persist to database if available
+            if db is not None:
+                try:
+                    await db.daily_audit_reports.insert_one(dossier.dict())
+                except Exception as e:
+                    logger.warning(f"Could not persist daily audit dossier: {e}")
 
-        return dossier
+            await log_finish(run_id, "success", db,
+                             summary=f"Health: {health} — {verdict}",
+                             items_processed=(t_res.total_tests or 0) + l_res.total_log_entries_analyzed,
+                             started_iso=now_iso)
+            return dossier
+        except Exception as e:
+            await log_finish(run_id, "failed", db, error=str(e), started_iso=now_iso)
+            raise
 
     async def _loop(self, db=None):
         logger.info("[DailyAudit] Started 24-Hour Autonomous Operations & Audit Swarm.")

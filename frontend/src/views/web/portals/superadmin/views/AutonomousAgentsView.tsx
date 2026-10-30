@@ -47,7 +47,7 @@ export function AutonomousAgentsView() {
     }
   };
 
-  const [activeTab, setActiveTab] = useState<'custom_teams' | 'outreach_directory' | 'swarm' | 'autopilot' | 'qa' | 'specialized' | 'observability' | 'daily_audit' | 'cicd'>('custom_teams');
+  const [activeTab, setActiveTab] = useState<'custom_teams' | 'outreach_directory' | 'swarm' | 'autopilot' | 'qa' | 'specialized' | 'observability' | 'daily_audit' | 'cicd' | 'run_history'>('custom_teams');
 
   // Custom Teams State
   const [teamsLoading, setTeamsLoading] = useState(false);
@@ -146,6 +146,11 @@ export function AutonomousAgentsView() {
   const [dossierLoading, setDossierLoading] = useState(false);
   const [dailyDossier, setDailyDossier] = useState<any>(null);
 
+  const [runLog, setRunLog] = useState<any[]>([]);
+  const [runLogLoading, setRunLogLoading] = useState(false);
+  const [runLogAgentFilter, setRunLogAgentFilter] = useState('all');
+  const [runLogStatusFilter, setRunLogStatusFilter] = useState('all');
+
 
   // ─── Custom Teams Logic ──────────────────────────────────────────────
   const fetchTeams = async () => {
@@ -168,6 +173,24 @@ export function AutonomousAgentsView() {
   };
 
   // ─── Outreach & Goodies Directory Logic ──────────────────────────────
+  const fetchRunLog = async (agentFilter?: string, statusFilter?: string) => {
+    const agent = agentFilter !== undefined ? agentFilter : runLogAgentFilter;
+    const status = statusFilter !== undefined ? statusFilter : runLogStatusFilter;
+    setRunLogLoading(true);
+    try {
+      const params = new URLSearchParams({ limit: '50' });
+      if (agent && agent !== 'all') params.set('agent_id', agent);
+      if (status && status !== 'all') params.set('status', status);
+      const res: any = await getPortal(`/admin/agents/run-log?${params.toString()}`);
+      setRunLog(Array.isArray(res?.runs) ? res.runs : []);
+    } catch (e: any) {
+      setRunLog([]);
+      flash?.(e?.message || 'Could not load agent run history', 'error');
+    } finally {
+      setRunLogLoading(false);
+    }
+  };
+
   const fetchOutreachDirectory = async (domain?: string) => {
     setOutreachLoading(true);
     const targetDomain = domain !== undefined ? domain : outreachDomainFilter;
@@ -418,6 +441,8 @@ export function AutonomousAgentsView() {
       fetchObservability();
     } else if (activeTab === 'daily_audit') {
       fetchDailyDossier();
+    } else if (activeTab === 'run_history') {
+      fetchRunLog();
     } else if (activeTab === 'custom_teams' && teamsList.length === 0) {
       fetchTeams();
     } else if (activeTab === 'outreach_directory') {
@@ -677,6 +702,10 @@ export function AutonomousAgentsView() {
           <Code size={14} color={activeTab === 'cicd' ? '#fff' : SAC.muted} />
           <Text style={[s.tabText, activeTab === 'cicd' && s.tabTextActive]}>CI/CD PR Evaluator</Text>
           <Badge label="GIT SCOUT" color="indigo" />
+        </Pressable>
+        <Pressable onPress={() => setActiveTab('run_history')} style={[s.tabBtn, activeTab === 'run_history' && s.tabActive]}>
+          <Database size={14} color={activeTab === 'run_history' ? '#fff' : SAC.muted} />
+          <Text style={[s.tabText, activeTab === 'run_history' && s.tabTextActive]}>Run History</Text>
         </Pressable>
       </View>
 
@@ -1721,6 +1750,88 @@ export function AutonomousAgentsView() {
 
       {/* TAB 8: CI/CD EVALUATOR & GIT SCOUT */}
       {activeTab === 'cicd' && <CICDEvaluatorView />}
+
+      {/* TAB 9: AGENT RUN HISTORY (AG2) */}
+      {activeTab === 'run_history' && (
+        <View style={s.card}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View>
+              <Text style={s.cardTitle}>Persistent Agent Run History</Text>
+              <Text style={s.cardSub}>Every autonomous-agent run, logged to MongoDB with a 90-day retention (TTL) window.</Text>
+            </View>
+            <Pressable style={s.specBtn} onPress={() => fetchRunLog()} disabled={runLogLoading}>
+              <RefreshCw size={14} color="#fff" />
+              <Text style={s.specBtnText}>Refresh</Text>
+            </Pressable>
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+            {['all', 'talent_enrichment', 'jobs_sync', 'data_hygiene', 'qa_synthetic', 'code_health', 'daily_audit', 'cicd_loop'].map((ag) => (
+              <Pressable
+                key={ag}
+                onPress={() => { setRunLogAgentFilter(ag); fetchRunLog(ag, runLogStatusFilter); }}
+                style={[s.catChip, runLogAgentFilter === ag && s.catChipActive]}
+              >
+                <Text style={[s.catChipText, runLogAgentFilter === ag && { color: SAC.text }]}>{ag === 'all' ? 'ALL AGENTS' : ag.toUpperCase()}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+            {['all', 'running', 'success', 'failed'].map((st) => (
+              <Pressable
+                key={st}
+                onPress={() => { setRunLogStatusFilter(st); fetchRunLog(runLogAgentFilter, st); }}
+                style={[s.catChip, runLogStatusFilter === st && s.catChipActive]}
+              >
+                <Text style={[s.catChipText, runLogStatusFilter === st && { color: SAC.text }]}>{st.toUpperCase()}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {runLogLoading ? (
+            <ActivityIndicator size="medium" color={SAC.accent} style={{ marginVertical: 20 }} />
+          ) : runLog.length === 0 ? (
+            <Text style={[s.cardSub, { marginTop: 14 }]}>No agent runs logged yet — trigger a scheduler cycle or swarm audit to populate the log.</Text>
+          ) : (
+            <View style={{ marginTop: 14, gap: 10 }}>
+              {runLog.map((run, idx) => (
+                <View key={run._id || idx} style={[s.stepCard, run.status === 'failed' && { backgroundColor: SAC.dangerTint, borderColor: SAC.danger, borderWidth: 1 }]}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                      <Bot size={13} color={run.status === 'failed' ? SAC.danger : SAC.violet} />
+                      <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 }}>{run.agent_name || run.agent_id}</Text>
+                      <Badge
+                        label={run.status?.toUpperCase() || 'UNKNOWN'}
+                        color={run.status === 'success' ? 'green' : run.status === 'failed' ? 'red' : 'amber'}
+                      />
+                    </View>
+                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>
+                      {run.duration_s != null ? `${run.duration_s}s` : '—'}
+                    </Text>
+                  </View>
+                  {run.summary ? (
+                    <Text style={[s.stepResult, { marginTop: 6 }]}>{run.summary}</Text>
+                  ) : null}
+                  {run.error ? (
+                    <Text style={{ color: SAC.danger, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 6 }}>{run.error}</Text>
+                  ) : null}
+                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
+                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>
+                      {new Date(run.started_at || run.created_at || 0).toLocaleString()}
+                    </Text>
+                    {run.items_processed != null ? (
+                      <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>{run.items_processed} items processed</Text>
+                    ) : null}
+                    {run.tokens_used != null ? (
+                      <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>{run.tokens_used} tokens</Text>
+                    ) : null}
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
 
       {/* Modal to Create / Edit Custom Agent Team */}
       <Modal visible={modalVisible} transparent animationType="fade">

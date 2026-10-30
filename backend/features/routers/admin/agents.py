@@ -197,6 +197,16 @@ async def trigger_agent_scheduler_cycle(user=Depends(require_role("admin", "supe
     results = await agent_scheduler.run_cycle(db=db)
     return {"ok": True, "triggered_at": agent_scheduler.get_status().last_cycle_at, "results": results}
 
+# ─── AG2: Persistent Agent Run History ────────────────────────────────
+@router.get("/run-log")
+async def get_agent_run_log(limit: int = 50, agent_id: str = None, status: str = None,
+                            user=Depends(require_role("admin", "superadmin", "super_admin"))):
+    """Returns persistent agent run history (90-day TTL), newest first, with optional filters."""
+    from services.agents.agent_run_log import list_runs
+    limit = max(1, min(limit, 500))
+    runs = await list_runs(limit=limit, agent_id=agent_id, status=status)
+    return {"ok": True, "count": len(runs), "runs": runs}
+
 
 # ─── 24-Hour Autonomous Operations & Audit Swarm ──────────────────────
 from services.agents.daily_audit_agents import (

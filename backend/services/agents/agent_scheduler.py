@@ -76,9 +76,12 @@ class AgentSchedulerService:
         self._next_cycle_at = (datetime.now(timezone.utc) + timedelta(seconds=self._interval_seconds)).isoformat()
         cycle_results = {}
 
+        from services.agents.agent_run_log import start as log_start, finish as log_finish
+
         # 1. Talent Scout & Auto-Enrichment Agent
         t1 = self._tasks["talent_enrichment"]
         t1.status = "RUNNING"
+        r1 = await log_start("talent_enrichment", t1.name, db)
         try:
             enriched_count = 0
             if db is not None:
@@ -91,14 +94,18 @@ class AgentSchedulerService:
             t1.next_run_at = self._next_cycle_at
             t1.last_summary = f"Audited talent pool: {enriched_count} candidate records verified & tagged."
             cycle_results["talent_enrichment"] = {"ok": True, "count": enriched_count}
+            await log_finish(r1, "success", db, summary=t1.last_summary,
+                             items_processed=enriched_count, started_iso=now_iso)
         except Exception as e:
             t1.status = "FAILED"
             t1.last_error = str(e)
             cycle_results["talent_enrichment"] = {"ok": False, "error": str(e)}
+            await log_finish(r1, "failed", db, error=str(e), started_iso=now_iso)
 
         # 2. Jobs & Events Synchronization Agent
         t2 = self._tasks["jobs_sync"]
         t2.status = "RUNNING"
+        r2 = await log_start("jobs_sync", t2.name, db)
         try:
             active_jobs = 0
             if db is not None:
@@ -109,14 +116,18 @@ class AgentSchedulerService:
             t2.next_run_at = self._next_cycle_at
             t2.last_summary = f"Synchronized platform career cache: {active_jobs} active opportunities validated."
             cycle_results["jobs_sync"] = {"ok": True, "active_jobs": active_jobs}
+            await log_finish(r2, "success", db, summary=t2.last_summary,
+                             items_processed=active_jobs, started_iso=now_iso)
         except Exception as e:
             t2.status = "FAILED"
             t2.last_error = str(e)
             cycle_results["jobs_sync"] = {"ok": False, "error": str(e)}
+            await log_finish(r2, "failed", db, error=str(e), started_iso=now_iso)
 
         # 3. Data Hygiene & Certificate Security Agent
         t3 = self._tasks["data_hygiene"]
         t3.status = "RUNNING"
+        r3 = await log_start("data_hygiene", t3.name, db)
         try:
             t3.total_runs += 1
             t3.status = "SUCCESS"
@@ -124,14 +135,17 @@ class AgentSchedulerService:
             t3.next_run_at = self._next_cycle_at
             t3.last_summary = "Zero certificate hash collisions detected; verified cryptographic audit trail."
             cycle_results["data_hygiene"] = {"ok": True}
+            await log_finish(r3, "success", db, summary=t3.last_summary, started_iso=now_iso)
         except Exception as e:
             t3.status = "FAILED"
             t3.last_error = str(e)
             cycle_results["data_hygiene"] = {"ok": False, "error": str(e)}
+            await log_finish(r3, "failed", db, error=str(e), started_iso=now_iso)
 
         # 4. QA Synthetic Simulator Agent
         t4 = self._tasks["qa_synthetic"]
         t4.status = "RUNNING"
+        r4 = await log_start("qa_synthetic", t4.name, db)
         try:
             from services.agents.qa_agent import qa_agent
             sim_res = await qa_agent.run_persona_simulation(persona="student")
@@ -141,14 +155,19 @@ class AgentSchedulerService:
             t4.next_run_at = self._next_cycle_at
             t4.last_summary = f"Synthetic QA check passed (Health: {sim_res.health_score}%, {sim_res.total_passed} passed, {sim_res.total_failed} failed)."
             cycle_results["qa_synthetic"] = {"ok": True, "health_score": sim_res.health_score}
+            await log_finish(r4, "success", db, summary=t4.last_summary,
+                             items_processed=sim_res.total_passed + sim_res.total_failed,
+                             started_iso=now_iso)
         except Exception as e:
             t4.status = "FAILED"
             t4.last_error = str(e)
             cycle_results["qa_synthetic"] = {"ok": False, "error": str(e)}
+            await log_finish(r4, "failed", db, error=str(e), started_iso=now_iso)
 
         # 5. CodeHealthAgent Auditor
         t5 = self._tasks["code_health"]
         t5.status = "RUNNING"
+        r5 = await log_start("code_health", t5.name, db)
         try:
             from services.agents.code_health_agent import code_health_agent
             ch_res = await code_health_agent.execute_cycle(scope="repo", autofix=False)
@@ -158,10 +177,14 @@ class AgentSchedulerService:
             t5.next_run_at = self._next_cycle_at
             t5.last_summary = f"CodeHealth check completed (Score: {ch_res.get('health_score')}/100, Open findings: {ch_res.get('total_findings')})."
             cycle_results["code_health"] = {"ok": True, "health_score": ch_res.get("health_score")}
+            await log_finish(r5, "success", db, summary=t5.last_summary,
+                             items_processed=ch_res.get("total_findings"),
+                             started_iso=now_iso)
         except Exception as e:
             t5.status = "FAILED"
             t5.last_error = str(e)
             cycle_results["code_health"] = {"ok": False, "error": str(e)}
+            await log_finish(r5, "failed", db, error=str(e), started_iso=now_iso)
 
         return cycle_results
 

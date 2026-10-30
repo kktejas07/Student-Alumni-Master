@@ -206,30 +206,42 @@ class CICDLoopAgent:
         self._last_run_at: Optional[str] = None
         self._evaluations_count: int = 0
 
-    async def run_cycle(self) -> Dict[str, Any]:
+    async def run_cycle(self, db=None) -> Dict[str, Any]:
         """Execute continuous PR audit cycle."""
         logger.info("🤖 [CI/CD LOOP AGENT] Running continuous PR evaluation & test audit cycle...")
-        evaluator = CICDPREvaluatorAgent()
-        sample_req = PREvalRequest(
-            pr_title="feat(echo): ECHO Showcase Certificates, SA Account Check & Autonomous Loop Agent",
-            branch_name="feature/echo-certificates-and-profile-loop-agent",
-            files_changed=[
-                "backend/echo_showcase.py",
-                "backend/services/agents/echo_profile_loop_agent.py",
-                "backend/tests/test_echo_certificates_profile_agent_unit.py",
-                "frontend/src/models/services/api.ts",
-                "frontend/src/views/web/echo/EchoTicketsConfirmationPage.tsx",
-                "frontend/src/views/web/portals/superadmin/views/EchoShowcaseAdminView.tsx",
-            ]
-        )
-        report = await evaluator.evaluate_pr(sample_req)
-        self._last_run_at = datetime.now(timezone.utc).isoformat()
-        self._evaluations_count += 1
-        return {
-            "status": "success",
-            "cycle_executed_at": self._last_run_at,
-            "latest_evaluation": report.dict(),
-        }
+        started_iso = datetime.now(timezone.utc).isoformat()
+        from services.agents.agent_run_log import start as log_start, finish as log_finish
+        run_id = await log_start("cicd_loop", "CI/CD Loop Agent (Continuous PR Evaluation)", db)
+        try:
+            evaluator = CICDPREvaluatorAgent()
+            sample_req = PREvalRequest(
+                pr_title="feat(echo): ECHO Showcase Certificates, SA Account Check & Autonomous Loop Agent",
+                branch_name="feature/echo-certificates-and-profile-loop-agent",
+                files_changed=[
+                    "backend/echo_showcase.py",
+                    "backend/services/agents/echo_profile_loop_agent.py",
+                    "backend/tests/test_echo_certificates_profile_agent_unit.py",
+                    "frontend/src/models/services/api.ts",
+                    "frontend/src/views/web/echo/EchoTicketsConfirmationPage.tsx",
+                    "frontend/src/views/web/portals/superadmin/views/EchoShowcaseAdminView.tsx",
+                ]
+            )
+            report = await evaluator.evaluate_pr(sample_req)
+            self._last_run_at = datetime.now(timezone.utc).isoformat()
+            self._evaluations_count += 1
+            result = {
+                "status": "success",
+                "cycle_executed_at": self._last_run_at,
+                "latest_evaluation": report.dict(),
+            }
+            await log_finish(run_id, "success", db,
+                             summary=f"PR evaluation: {report.verdict} (score {report.overall_score}/100, {len(report.issues_found)} issues)",
+                             items_processed=len(report.issues_found),
+                             started_iso=started_iso)
+            return result
+        except Exception as e:
+            await log_finish(run_id, "failed", db, error=str(e), started_iso=started_iso)
+            raise
 
     async def _worker(self, interval_seconds: int = 1800):
         while self._is_running:
