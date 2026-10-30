@@ -41,6 +41,13 @@ _DB_NAME   = os.getenv("DB_NAME") or "career_platform"
 from db import client as _client
 _db        = _client[_DB_NAME]
 
+# Reuse the project's curated NIRF 2024 reference list. It is intentionally
+# a small, non-exhaustive catalogue; users can enter any unlisted college.
+try:
+    from scripts.seed_real_datasets import COLLEGES_REAL as _CURATED_INDIAN_COLLEGES
+except Exception:
+    _CURATED_INDIAN_COLLEGES = []
+
 # ─── Auth helpers ──────────────────────────────────────────────────
 try:
     import jwt  # PyJWT
@@ -613,15 +620,59 @@ async def search_colleges_public(q: str = "", limit: int = 8):
         # Empty query → curated pick of active colleges
         await fetch_and_filter({}, only_active=True, cap=limit)
 
+    def tier_for_rank(rank: Any) -> Optional[str]:
+        try:
+            rank = int(rank)
+        except (TypeError, ValueError):
+            return None
+        # These rank bands match the existing seeded college reference logic.
+        return "Tier 1" if rank <= 50 else "Tier 2" if rank <= 150 else "Tier 3"
+
+    results_by_name: Dict[str, dict] = {}
     ranked = sorted(seen.values(), key=lambda c: ((c.get("status") != "active"), (c.get("name") or "").lower()))
-    results = [{
-        "id": str(c["_id"]),
-        "name": c.get("name") or "",
-        "city": c.get("city") or "",
-        "state": c.get("state") or "",
-        "country": c.get("country") or "",
-        "status": c.get("status") or "pending",
-    } for c in ranked[:limit]]
+    for college in ranked:
+        name = college.get("name") or ""
+        norm = _normalize(name)
+        ranking = college.get("ranking") or []
+        tier_source = college.get("college_tier") or college.get("tier") or ""
+        tier_match = re.search(r"Tier\s*-?\s*([123])\b", str(tier_source), re.I)
+        if not tier_match:
+            tier_match = next((re.search(r"Tier\s*-?\s*([123])\b", str(tag), re.I) for tag in ranking if re.search(r"Tier\s*-?\s*[123]\b", str(tag), re.I)), None)
+        tier = f"Tier {tier_match.group(1)}" if tier_match else None
+        if not tier:
+            curated_match = next((item for item in _CURATED_INDIAN_COLLEGES if _normalize(item.get("name", "")) == norm), None)
+            tier = tier_for_rank(curated_match.get("nirf_rank")) if curated_match else None
+        results_by_name[norm] = {
+            "id": str(college["_id"]),
+            "name": name,
+            "city": college.get("city") or "",
+            "state": college.get("state") or "",
+            "country": college.get("country") or "",
+            "status": college.get("status") or "pending",
+            "tier": tier,
+        }
+
+    # The database is the authoritative catalogue; add matching curated
+    # references for coverage, with stable catalog IDs when not yet in Mongo.
+    for college in _CURATED_INDIAN_COLLEGES:
+        name = (college.get("name") or "").strip()
+        norm = _normalize(name)
+        flat = re.sub(r"[^a-z0-9]+", "", name.lower())
+        if not name or norm in results_by_name:
+            continue
+        if query and query not in norm and query not in flat:
+            continue
+        results_by_name[norm] = {
+            "id": f"catalog:{norm.replace(' ', '-')}",
+            "name": name,
+            "city": college.get("city") or "",
+            "state": college.get("state") or "",
+            "country": "India",
+            "status": "curated",
+            "tier": tier_for_rank(college.get("nirf_rank")),
+        }
+
+    results = list(results_by_name.values())[:limit]
     return {"results": results, "count": len(results)}
 
 

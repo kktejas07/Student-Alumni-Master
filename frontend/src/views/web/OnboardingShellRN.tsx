@@ -13,6 +13,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { getBaseUrl } from '@/src/lib/env';
 import { passwordStrength } from '@/src/lib/authAnalytics';
 import { initFirebaseAuth, signInWithGoogle } from '@/src/lib/firebaseAuth';
+import { CollegeAutocomplete, type CollegeSelection } from '@/src/views/components/CollegeAutocomplete';
 
 export function OnboardingShellRN() {
   const router = useRouter();
@@ -43,6 +44,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const [otpError, setOtpError] = useState<string | null>(null);
   const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [collegeSelection, setCollegeSelection] = useState<CollegeSelection | null>(null);
+  const [collegeError, setCollegeError] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(true);
   const finishInProgressRef = useRef(false);
@@ -267,32 +270,28 @@ function WebOnboardingEngine({ router }: { router: any }) {
         setResumeUploadComplete(true);
       }
 
+      const selectedInstitution = collegeSelection?.name.trim() || '';
+      const savedUser = await api.completeOnboarding({
+        school_info: {
+          institution_name: selectedInstitution,
+          institution_type: 'college',
+          college_id: collegeSelection?.isCustom ? null : collegeSelection?.id,
+          college_tier: collegeSelection?.isCustom ? null : collegeSelection?.tier,
+          is_custom_college: Boolean(collegeSelection?.isCustom),
+          custom_college_name: collegeSelection?.isCustom ? selectedInstitution : null,
+          class_or_year: selectedYear,
+          branch_or_stream: selectedCourse,
+          graduation_year: Number(selectedYear),
+        },
+        career_path: 'job',
+        interests,
+        skills: Object.keys(skillLevels),
+        ...(avatarUri ? { face_image_base64: avatarUri } : {}),
+      });
+      if (savedUser) setUser(savedUser);
+
       void AsyncStorage.removeItem('sa_onboarding_state').catch((err) => {
         console.warn('Unable to clear saved onboarding state:', err);
-      });
-
-      void api.completeOnboarding({
-        flow,
-        email: userEmail,
-        name: userName,
-        full_name: capitalizeName(userName || userEmail.split('@')[0]),
-        course: selectedCourse,
-        year: selectedYear,
-        goal: selectedGoal,
-        skills: skillLevels,
-        face_image_base64: avatarUri,
-        interests,
-        institution: instName,
-        company: alumCompany,
-        role: alumRole,
-        capacity: alumCap,
-        expertise: alumExpertise,
-        mentor_format: mentorFmt,
-        mentor_frequency: mentorFreq,
-        mentor_audience: mentorWho,
-        sa_id: generatedSaId,
-      }).catch((err) => {
-        console.warn('Unable to save onboarding details:', err);
       });
 
       if (flow === 'alumnus') router.replace('/alumni-portal');
@@ -418,7 +417,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
 
   const FLOW_SEQS = {
     student: ['who', 'account', 'verify', 'course', 'goal', 'skills', 'resume', 'photo', 'interests', 'mentorpref', 'notify', 'roadmap', 'mentors', 'perks', 'card', 'done'],
-    alumnus: ['who', 'account', 'verify', 'role', 'photo', 'capacity', 'expertise', 'notify', 'perks', 'card', 'done'],
+    alumnus: ['who', 'account', 'verify', 'college', 'role', 'photo', 'capacity', 'expertise', 'notify', 'perks', 'card', 'done'],
     college: ['who', 'account', 'verify', 'institution', 'departments', 'invite', 'notify', 'perks', 'done'],
   };
 
@@ -437,6 +436,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
     roadmap: 'Your plan',
     mentors: 'Your plan',
     role: 'About you',
+    college: 'About you',
     capacity: 'Your commitment',
     expertise: 'Your commitment',
     institution: 'Your institution',
@@ -460,6 +460,11 @@ function WebOnboardingEngine({ router }: { router: any }) {
 
   const nextStep = async () => {
     if (isNavigating) return;
+    if (['course', 'college', 'institution'].includes(currentKey)) {
+      const validCollege = Boolean(collegeSelection?.name.trim());
+      setCollegeError(!validCollege);
+      if (!validCollege) return;
+    }
     setIsNavigating(true);
     try {
       if (currentKey === 'account') {
@@ -486,6 +491,10 @@ function WebOnboardingEngine({ router }: { router: any }) {
   };
 
   const skipStep = () => {
+    if (['course', 'college', 'institution'].includes(currentKey)) {
+      void nextStep();
+      return;
+    }
     if (stepIdx < currentSeq.length - 1) {
       setStepIdx(stepIdx + 1);
     } else {
@@ -514,6 +523,12 @@ function WebOnboardingEngine({ router }: { router: any }) {
     setCollegeDepts((prev) =>
       prev.includes(dept) ? prev.filter((d) => d !== dept) : [...prev, dept]
     );
+  };
+
+  const updateCollegeSelection = (selection: CollegeSelection | null) => {
+    setCollegeSelection(selection);
+    setInstName(selection?.name || '');
+    if (selection?.name.trim()) setCollegeError(false);
   };
 
   const handleResumeDrop = () => {
@@ -1128,6 +1143,17 @@ function WebOnboardingEngine({ router }: { router: any }) {
           </div>
         )}
 
+        {currentKey === 'college' && (
+          <div className="ob-step" style={{ display: 'block', maxWidth: '620px', animation: 'ob-in .4s ease' }}>
+            <div style={{ marginBottom: '30px' }}>
+              <h1 style={{ fontSize: '38px', fontWeight: 700, lineHeight: 1.12, letterSpacing: -1.5, margin: '0 0 12px' }}>Select your college</h1>
+              <p style={{ fontSize: '16.5px', lineHeight: 1.65, color: 'var(--muted2)', margin: 0 }}>Choose your college or enter its full name if it is not listed.</p>
+            </div>
+            <CollegeAutocomplete value={collegeSelection} onChange={updateCollegeSelection} error={collegeError ? 'Please enter your college name.' : undefined} />
+            <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '6px' }}>Curated Indian college listings; the dataset is not exhaustive.</div>
+          </div>
+        )}
+
         {/* STUDENT STEP: COURSE */}
         {currentKey === 'course' && (
           <div className="ob-step" style={{ display: 'block', maxWidth: '620px', animation: 'ob-in .4s ease' }}>
@@ -1141,19 +1167,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
             </div>
             <div style={{ display: 'grid', gap: '26px', maxWidth: '720px' }}>
               <div>
-                <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '10px' }}>College</div>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="text"
-                    value={instName}
-                    onChange={(e) => setInstName(e.target.value)}
-                    placeholder="Enter your college name"
-                    style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', paddingRight: '80px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
-                  />
-                  {(instName.toLowerCase().includes('malla reddy') || instName.toLowerCase().includes('mrit')) && (
-                    <span style={{ position: 'absolute', right: '15px', top: '16px', fontSize: '12px', fontWeight: 600, color: 'var(--ind-lt)' }}>VERIFIED</span>
-                  )}
-                </div>
+                <CollegeAutocomplete value={collegeSelection} onChange={updateCollegeSelection} error={collegeError ? 'Please enter your college name.' : undefined} />
+                <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '6px' }}>Curated Indian college listings; the dataset is not exhaustive.</div>
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '10px' }}>Course</div>
@@ -2032,16 +2047,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
               </p>
             </div>
             <div style={{ display: 'grid', gap: '22px' }}>
-              <div>
-                <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>Institution name</div>
-                <input
-                  type="text"
-                  value={instName}
-                  onChange={(e) => setInstName(e.target.value)}
-                  placeholder="Enter institution name"
-                  style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
-                />
-              </div>
+              <CollegeAutocomplete value={collegeSelection} onChange={updateCollegeSelection} error={collegeError ? 'Please enter your college name.' : undefined} />
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>Your role</div>
                 <input
