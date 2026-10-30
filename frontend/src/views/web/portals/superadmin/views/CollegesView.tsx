@@ -1,6 +1,6 @@
 // @ts-nocheck
 /**
- * CollegesView — Amber Admin grid of college cards.
+ * CollegesView — college-card grid in the standard super-admin theme.
  *
  * Pulls from `/api/admin/colleges/list` — the colleges collection is
  * auto-populated as users are imported with a college name, and enriched
@@ -27,21 +27,6 @@ import {
 } from '../applekit';
 import { request, resolveImageUrl } from '@/src/models/services/api';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
-
-const PC_AMBER = {
-  bgFrom:  '#1A0F05', bgTo: '#120A03',
-  border:  'rgba(251,146,60,0.18)',
-  borderH: 'rgba(251,146,60,0.38)',
-  accent:  '#F97316',
-  bright:  '#FB923C',
-  deep:    '#EA580C',
-  text:    '#FFFFFF',
-  text2:   '#C4A788',
-  muted:   '#8B6F52',
-  label:   '#6B5237',
-  pill:    'rgba(255,255,255,0.04)',
-  pillBd:  'rgba(251,146,60,0.12)',
-};
 
 type Status = 'all' | 'pending' | 'active' | 'paused';
 
@@ -153,7 +138,7 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
             <Plus size={13} color="#fff" /><Text style={s.btnText}>Onboard college</Text>
           </GradientButton>
           <SecondaryButton onPress={backfill} disabled={backfilling}>
-            <Download size={12} color={SAC.muted} />
+            <Download size={12} color={T.muted} />
             <Text style={s.secText}>{backfilling ? 'Backfilling…' : 'Backfill from users'}</Text>
           </SecondaryButton>
         </View>
@@ -235,13 +220,13 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
                 <Text style={s.modalTitle}>Onboard a college</Text>
                 <Text style={s.muted}>Just type the name — enrichment runs automatically.</Text>
               </View>
-              <Pressable onPress={() => setCreating(false)}><X size={16} color={SAC.muted} /></Pressable>
+              <Pressable onPress={() => setCreating(false)}><X size={16} color={T.muted} /></Pressable>
             </LinearGradient>
             <View style={{ padding: 18, gap: 12 }}>
               <TextInput
                 value={newName} onChangeText={setNewName}
                 placeholder="e.g. Indian Institute of Technology Bombay"
-                placeholderTextColor={SAC.dim} style={s.input} autoFocus
+                placeholderTextColor={T.dim} style={s.input} autoFocus
                 onSubmitEditing={createCollege}
               />
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
@@ -264,6 +249,7 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
  *  CollegeCard
  * ══════════════════════════════════════════════════════════════════ */
 function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRemove, onReenrich }: any) {
+  const T = useSAC();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const enrichBadge = c.enrichment_status === 'enriched'
@@ -290,14 +276,14 @@ function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRe
           {c.logo_url ? (
             <Image source={{ uri: resolveImageUrl(c.logo_url) }} style={s.logo} resizeMode="cover" />
           ) : (
-            <View style={[s.logo, { backgroundColor: 'rgba(249,115,22,0.18)', alignItems: 'center', justifyContent: 'center' }]}>
-              <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 19 }}>{c.initials}</Text>
+            <View style={[s.logo, { backgroundColor: T.warnTint, alignItems: 'center', justifyContent: 'center' }]}>
+              <Text style={{ color: T.onTint, fontFamily: FONTS.xbold, fontSize: 19 }}>{c.initials}</Text>
             </View>
           )}
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={s.cName} numberOfLines={2}>{c.name}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-              <MapPin size={11} color={PC_AMBER.muted} />
+              <MapPin size={11} color={T.dim} />
               <Text style={s.cLine} numberOfLines={1}>
                 {[c.city, c.state, c.country].filter(Boolean).join(', ') || '—'}
               </Text>
@@ -307,21 +293,21 @@ function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRe
             )}
           </View>
           <Pressable onPress={(e: any) => { e?.stopPropagation?.(); setMenuOpen((m) => !m); }} style={s.menuTrigger}>
-            <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 14, lineHeight: 14 }}>⋯</Text>
+            <Text style={{ color: T.text, fontFamily: FONTS.xbold, fontSize: 14, lineHeight: 14 }}>⋯</Text>
           </Pressable>
         </View>
 
         {/* Stats: students + accreditation */}
         <View style={s.statRow}>
           <View style={s.statBox}>
-            <Users size={11} color={PC_AMBER.bright} />
+            <Users size={11} color={T.amber} />
             <View>
               <Text style={s.statVal}>{c.student_count?.toLocaleString?.('en-IN') || 0}</Text>
               <Text style={s.statLbl}>STUDENTS</Text>
             </View>
           </View>
           {(c.accreditation || []).slice(0, 2).map((a: string, i: number) => (
-            <View key={i} style={s.tag}><Award size={10} color={PC_AMBER.bright} /><Text style={s.tagText}>{a}</Text></View>
+            <View key={i} style={s.tag}><Award size={10} color={T.amber} /><Text style={s.tagText}>{a}</Text></View>
           ))}
         </View>
 
@@ -332,7 +318,7 @@ function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRe
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                 {(c.ranking || []).map((r: string, i: number) => (
                   <View key={i} style={s.rankPill}>
-                    <Sparkles size={9} color={PC_AMBER.bright} />
+                    <Sparkles size={9} color={T.amber} />
                     <Text style={s.rankText}>{r}</Text>
                   </View>
                 ))}
@@ -341,7 +327,7 @@ function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRe
             {(c.specialties || []).length > 0 && (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                 {(c.specialties || []).slice(0, 4).map((sp: string, i: number) => (
-                  <View key={i} style={s.tag}><BookOpen size={9} color={PC_AMBER.muted} /><Text style={s.tagText}>{sp}</Text></View>
+                  <View key={i} style={s.tag}><BookOpen size={9} color={T.dim} /><Text style={s.tagText}>{sp}</Text></View>
                 ))}
                 {(c.specialties || []).length > 4 && (
                   <Text style={s.muted}>+{(c.specialties || []).length - 4} more</Text>
@@ -360,19 +346,19 @@ function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRe
         {/* Action row */}
         <View style={s.actionRow}>
           <Pressable onPress={(e: any) => { e?.stopPropagation?.(); onOpen(); }} style={{ flex: 1 }}>
-            <LinearGradient colors={[PC_AMBER.bright, PC_AMBER.accent, PC_AMBER.deep]}
+            <LinearGradient colors={[GRAD.from, GRAD.to, GRAD.deep]}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.viewBtn}>
               <Text style={s.viewBtnText}>View details</Text>
             </LinearGradient>
           </Pressable>
           {c.website ? (
             <Pressable onPress={(e: any) => { e?.stopPropagation?.(); Linking.openURL(c.website).catch(() => {}); }} style={s.socialBtn}>
-              <Globe size={16} color="#fff" />
+              <Globe size={16} color={T.text} />
             </Pressable>
           ) : null}
           {c.linkedin_url ? (
             <Pressable onPress={(e: any) => { e?.stopPropagation?.(); Linking.openURL(c.linkedin_url).catch(() => {}); }} style={[s.socialBtn, { backgroundColor: '#0A66C2' }]}>
-              <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: -0.5 }}>in</Text>
+              <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: -0.5 }}>in</Text>
             </Pressable>
           ) : null}
         </View>
@@ -400,12 +386,13 @@ function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRe
 }
 
 function MenuItem({ icon: Icon, label, onPress, danger }: any) {
+  const T = useSAC();
   return (
     <Pressable onPress={onPress} style={({ hovered }: any) => [
-      s.menuItem, hovered && Platform.OS === 'web' ? { backgroundColor: 'rgba(245,158,11,0.10)' } : null,
+      s.menuItem, hovered && Platform.OS === 'web' ? { backgroundColor: T.warnTint } : null,
     ]}>
-      <Icon size={12} color={danger ? '#FCA5A5' : SAC.muted} />
-      <Text style={[s.menuLabel, danger && { color: '#FCA5A5' }]}>{label}</Text>
+      <Icon size={12} color={danger ? T.danger : T.muted} />
+      <Text style={[s.menuLabel, danger && { color: T.danger }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -414,7 +401,7 @@ function CollegeCardSkeleton() {
   return (
     <View style={[s.card, { padding: 22 }]}>
       <View style={{ flexDirection: 'row', gap: 14 }}>
-        <View style={[s.logo, { backgroundColor: 'rgba(255,255,255,0.06)' }]} />
+        <View style={s.logo} />
         <View style={{ flex: 1, gap: 8 }}>
           <View style={[s.skBox, { width: '70%', height: 14 }]} />
           <View style={[s.skBox, { width: '50%', height: 11 }]} />
@@ -430,6 +417,7 @@ function CollegeCardSkeleton() {
  *  Detail modal
  * ══════════════════════════════════════════════════════════════════ */
 function CollegeDetail({ college, onClose, onSaved, onError }: any) {
+  const T = useSAC();
   const [edit, setEdit] = useState(false);
   const [draft, setDraft] = useState<any>({});
   const [confirmDel, setConfirmDel] = useState(false);
@@ -463,8 +451,8 @@ function CollegeDetail({ college, onClose, onSaved, onError }: any) {
             {c.logo_url ? (
               <Image source={{ uri: resolveImageUrl(c.logo_url) }} style={[s.logo, { width: 48, height: 48 }]} />
             ) : (
-              <View style={[s.logo, { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(249,115,22,0.18)' }]}>
-                <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 }}>{c.initials}</Text>
+              <View style={[s.logo, { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: T.warnTint }]}>
+                <Text style={{ color: T.text, fontFamily: FONTS.xbold, fontSize: 15 }}>{c.initials}</Text>
               </View>
             )}
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -473,14 +461,14 @@ function CollegeDetail({ college, onClose, onSaved, onError }: any) {
                 {[c.city, c.state, c.country].filter(Boolean).join(', ') || '—'}
               </Text>
             </View>
-            <Pressable onPress={onClose}><X size={16} color={SAC.muted} /></Pressable>
+            <Pressable onPress={onClose}><X size={16} color={T.muted} /></Pressable>
           </LinearGradient>
 
           <ScrollView style={{ maxHeight: 560 }} contentContainerStyle={{ padding: 20, gap: 16 }}>
             {!!c.description && (
               <View>
                 <SectionLabel>ABOUT</SectionLabel>
-                <Text style={[s.muted, { marginTop: 6, lineHeight: 18, color: '#C4A788' }]} numberOfLines={6}>{c.description}</Text>
+                <Text style={[s.muted, { marginTop: 6, lineHeight: 18, color: T.muted }]} numberOfLines={6}>{c.description}</Text>
                 {!!c.wiki_url && (
                   <Pressable onPress={() => Linking.openURL(c.wiki_url).catch(() => {})} style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                     <ExternalLink size={10} color={GRAD.to} />
@@ -495,10 +483,10 @@ function CollegeDetail({ college, onClose, onSaved, onError }: any) {
                 <SectionLabel>RECOGNITIONS</SectionLabel>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                   {(c.accreditation || []).map((a: string, i: number) => (
-                    <View key={'a' + i} style={s.tag}><Award size={10} color={PC_AMBER.bright} /><Text style={s.tagText}>{a}</Text></View>
+                    <View key={'a' + i} style={s.tag}><Award size={10} color={T.amber} /><Text style={s.tagText}>{a}</Text></View>
                   ))}
                   {(c.ranking || []).map((r: string, i: number) => (
-                    <View key={'r' + i} style={s.rankPill}><Sparkles size={9} color={PC_AMBER.bright} /><Text style={s.rankText}>{r}</Text></View>
+                    <View key={'r' + i} style={s.rankPill}><Sparkles size={9} color={T.amber} /><Text style={s.rankText}>{r}</Text></View>
                   ))}
                 </View>
               </View>
@@ -509,7 +497,7 @@ function CollegeDetail({ college, onClose, onSaved, onError }: any) {
                 <SectionLabel>SPECIALTIES</SectionLabel>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                   {c.specialties.map((sp: string, i: number) => (
-                    <View key={i} style={s.tag}><BookOpen size={9} color={PC_AMBER.muted} /><Text style={s.tagText}>{sp}</Text></View>
+                    <View key={i} style={s.tag}><BookOpen size={9} color={T.dim} /><Text style={s.tagText}>{sp}</Text></View>
                   ))}
                 </View>
               </View>
@@ -545,10 +533,10 @@ function CollegeDetail({ college, onClose, onSaved, onError }: any) {
               {!edit ? (
                 <>
                   <SecondaryButton onPress={() => setEdit(true)}>
-                    <Pencil size={12} color={SAC.muted} /><Text style={s.secText}>Edit</Text>
+                    <Pencil size={12} color={T.muted} /><Text style={s.secText}>Edit</Text>
                   </SecondaryButton>
                   <SecondaryButton danger onPress={() => setConfirmDel(true)}>
-                    <Trash2 size={12} color={'#FCA5A5'} /><Text style={[s.secText, { color: '#FCA5A5' }]}>Delete</Text>
+                    <Trash2 size={12} color={T.danger} /><Text style={[s.secText, { color: T.danger }]}>Delete</Text>
                   </SecondaryButton>
                 </>
               ) : (
@@ -565,8 +553,8 @@ function CollegeDetail({ college, onClose, onSaved, onError }: any) {
 
             {confirmDel && (
               <View style={s.warnBox}>
-                <AlertTriangle size={13} color={'#FCA5A5'} />
-                <Text style={[s.muted, { color: '#FCA5A5', flex: 1 }]}>Archive this college?</Text>
+                <AlertTriangle size={13} color={T.danger} />
+                <Text style={[s.muted, { color: T.danger, flex: 1 }]}>Archive this college?</Text>
                 <SecondaryButton size="sm" onPress={() => setConfirmDel(false)}><Text style={s.secText}>No</Text></SecondaryButton>
                 <Pressable onPress={del} style={s.destructiveBtn}><Text style={s.btnText}>Yes, archive</Text></Pressable>
               </View>
@@ -588,10 +576,11 @@ function DetailRow({ label, value, href }: { label: string; value: string; href?
   );
 }
 function EditRow({ label, value, onChange }: any) {
+  const T = useSAC();
   return (
     <View style={s.detailRow}>
       <Text style={[s.detailLabel, { width: 120 }]}>{label}</Text>
-      <TextInput value={value || ''} onChangeText={onChange} placeholderTextColor={SAC.dim} style={s.input} />
+      <TextInput value={value || ''} onChangeText={onChange} placeholderTextColor={T.dim} style={s.input} />
     </View>
   );
 }
@@ -599,10 +588,10 @@ function EditRow({ label, value, onChange }: any) {
 /* ─── Styles ─────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 760 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
-  btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
+  btnText: { color: SAC.onAccent, fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
 
   kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
@@ -615,70 +604,70 @@ const s = StyleSheet.create({
 
   /* card */
   card: {
-    borderRadius: 20, borderWidth: 1, borderColor: PC_AMBER.border,
-    backgroundColor: PC_AMBER.bgFrom, position: 'relative',
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 0 1px rgba(251,146,60,0.06), 0 10px 30px rgba(0,0,0,0.45)', transitionDuration: '200ms', cursor: 'pointer' } as any) : {}),
+    borderRadius: 20, borderWidth: 1, borderColor: SAC.line,
+    backgroundColor: SAC.card, position: 'relative',
+    ...(Platform.OS === 'web' ? ({ boxShadow: SAC.shadow, transitionDuration: '200ms', cursor: 'pointer' } as any) : {}),
   },
   cardHover: {
-    borderColor: PC_AMBER.borderH,
+    borderColor: SAC.line2,
     transform: [{ translateY: -2 }],
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 0 1px rgba(251,146,60,0.18), 0 18px 44px rgba(0,0,0,0.55)' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({ boxShadow: SAC.shadowMd } as any) : {}),
   },
 
-  logo: { width: 60, height: 60, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.04)' },
+  logo: { width: 60, height: 60, borderRadius: 14, backgroundColor: SAC.dots },
 
-  cName: { color: PC_AMBER.text, fontFamily: FONTS.xbold, fontSize: 14.5, lineHeight: 18 },
-  cLine: { color: PC_AMBER.text2, fontFamily: FONTS.med, fontSize: 11.5 },
+  cName: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 14.5, lineHeight: 18 },
+  cLine: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
 
   statRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14, flexWrap: 'wrap' },
   statBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
-    backgroundColor: 'rgba(249,115,22,0.08)', borderWidth: 1, borderColor: 'rgba(249,115,22,0.22)',
+    backgroundColor: SAC.warnTint, borderWidth: 1, borderColor: SAC.warnLine,
   },
-  statVal: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 14 },
-  statLbl: { color: PC_AMBER.muted, fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
+  statVal: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 14 },
+  statLbl: { color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
 
   tag: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 4.5, borderRadius: 999,
-    backgroundColor: PC_AMBER.pill, borderWidth: 1, borderColor: PC_AMBER.pillBd,
+    backgroundColor: SAC.dots, borderWidth: 1, borderColor: SAC.line,
   },
-  tagText: { color: PC_AMBER.text2, fontFamily: FONTS.bold, fontSize: 10.5 },
+  tagText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5 },
 
   rankPill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999,
-    backgroundColor: 'rgba(245,158,11,0.10)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.30)',
+    backgroundColor: SAC.warnTint, borderWidth: 1, borderColor: SAC.warnLine,
   },
-  rankText: { color: PC_AMBER.bright, fontFamily: FONTS.xbold, fontSize: 10.5 },
+  rankText: { color: SAC.accentBright, fontFamily: FONTS.xbold, fontSize: 10.5 },
 
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 },
   viewBtn: { height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
-  viewBtnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13 },
+  viewBtnText: { color: SAC.onAccent, fontFamily: FONTS.xbold, fontSize: 13 },
   socialBtn: {
     width: 42, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#1F1208', borderColor: PC_AMBER.border, borderWidth: 1,
+    backgroundColor: SAC.panel2, borderColor: SAC.line, borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
 
   menuTrigger: {
     width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: SAC.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
+    backgroundColor: SAC.panel2, borderColor: SAC.line, borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   menu: {
     position: 'absolute', top: 58, right: 18, minWidth: 180, zIndex: 20,
-    backgroundColor: '#170D04', borderColor: 'rgba(251,146,60,0.30)', borderWidth: 1,
+    backgroundColor: SAC.card, borderColor: SAC.line, borderWidth: 1,
     borderRadius: 10, padding: 6, gap: 2,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 12px 32px rgba(0,0,0,0.55)' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({ boxShadow: SAC.shadow } as any) : {}),
   },
   menuItem: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingVertical: 7, paddingHorizontal: 10, borderRadius: 7,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  menuLabel: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
+  menuLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
 
   /* modal */
   modalBg: {
@@ -691,24 +680,24 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
   },
   modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
-  modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
+  modalTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
 
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 110 },
-  detailValue: { color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
+  detailValue: { color: SAC.text, fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   input: {
-    flex: 1, color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
+    flex: 1, color: SAC.text, fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
     paddingHorizontal: 12, paddingVertical: 10,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
   destructiveBtn: { backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)' },
+  warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: SAC.dangerTint, borderWidth: 1, borderColor: SAC.danger },
 
-  skBox: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6 },
+  skBox: { backgroundColor: SAC.dots, borderRadius: 6 },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, gap: 14 },
-  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.card, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  pageBtnText: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
+  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.cardSolid, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  pageBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
   pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 });
