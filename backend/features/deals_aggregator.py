@@ -33,6 +33,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import httpx
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 
 
 
@@ -47,6 +48,14 @@ PER_API_TIMEOUT_S = 8.0
 CLAIM_CREDITS = 20            # +20 SA credits per claim
 MAX_CLAIMS_PER_DAY = 3
 AI_REFRESH_TTL_HRS = 6        # AI hot-deal cache window
+
+# D3 — Crowdsourced verification & auto-expiry thresholds
+VERIFICATION_PUSH_DELAY_HRS = 24   # "Did the deal work?" push after a claim
+UNRELIABLE_MIN_REPORTS = 5        # <50% worked-rate after 5 reports → UNRELIABLE tag
+UNRELIABLE_RATE = 0.50
+EXPIRED_MIN_REPORTS = 10          # <20% worked-rate after 10 reports → expired
+EXPIRED_RATE = 0.20
+STALE_AFTER_DAYS = 30            # no verification reports for 30 days → STALE
 USER_AGENT = "StudentAlumniBot/1.0 (+https://studentalumni.in)"
 
 CATEGORIES = ["tech", "food", "learning", "entertainment", "insurance",
@@ -63,6 +72,8 @@ TAG_RULES = {
     "INDIA_EXCLUSIVE":  "Country=IN and not available globally",
     "NO_EXPIRY":        "Ongoing / no expiry date",
     "BEST_VALUE":       "Top 3 by absolute ₹ savings within its category",
+    "UNRELIABLE":       "Community reports <50% worked after 5+ reports (auto-tagged)",
+    "STALE":            "No verification reports for 30 days (auto-tagged)",
 }
 
 # ─── Helpers ─────────────────────────────────────────────────────────────
@@ -701,6 +712,14 @@ def apply_tags(deal: Dict[str, Any], all_deals: List[Dict[str, Any]]) -> List[st
         except Exception:
             pass
 
+    # D3 — Crowdsourced verification: UNRELIABLE when the community reports
+    # this deal's worked-rate below 50% (>= 5 reports, stamped by the sweep)
+    rate = deal.get("success_rate")
+    if rate is not None and int(deal.get("verification_count") or 0) >= 5 and rate < 0.5:
+        tags.append("UNRELIABLE")
+    if deal.get("staleness_flag"):
+        tags.append("STALE")
+
     # Source-based
     if deal.get("student_only"):
         tags.append("STUDENT_VERIFIED")
@@ -1206,3 +1225,248 @@ async def deals_ai_generate(
         "model": "claude-sonnet-4-5",
         "deals": normalized,
     }
+
+
+# ─── D3: Crowdsourced Deal Verification + Auto-Expiry ───────────────────
+class DealVerificationIn(BaseModel):
+    worked: bool
+    comment: Optional[str] = None
+
+
+async def _recompute_verification_stats(db, deal_id: str) -> Dict[str, Any]:
+    worked = await db.deal_verifications.count_documents(
+        {"deal_id": deal_id, "worked": True})
+    total = await db.deal_verifications.count_documents({"deal_id": deal_id})
+    last = await db.deal_verifications.find_one(
+        {"deal_id": deal_id}, sort=[("reported_at", -1)])
+    rate = round(worked / total, 4) if total else 0.0
+    stats = {"worked_count": worked, "total_reports": total,
+             "success_rate": rate,
+             "last_reported_at": last.get("reported_at") if last else None}
+    # Stamped onto the deal doc so apply_tags / admin dashboard / client badge
+    # can read a single canonical field (verification_count).
+    await db.deals.update_one(
+        {"deal_id": deal_id},
+        {"$set": {**stats, "verification_count": total}})
+    return stats
+
+
+@router.post("/deals/verify/{deal_id}")
+async def deals_verify(
+    deal_id: str,
+    body: DealVerificationIn,
+    user: dict = Depends(_get_current_user_dependency()),
+):
+    """Report whether a claimed deal actually worked. One report per
+    user per deal (a later report replaces the earlier one)."""
+    deal = await _db.deals.find_one({"deal_id": deal_id})
+    if not deal:
+        raise HTTPException(404, "Deal not found")
+    uid = str(user["_id"])
+    now = datetime.now(timezone.utc)
+
+    created = False
+    existing = await _db.deal_verifications.find_one(
+        {"deal_id": deal_id, "user_id": uid})
+    if existing:
+        await _db.deal_verifications.update_one(
+            {"_id": existing["_id"]},
+            {"$set": {"worked": body.worked,
+                      "comment": (body.comment or "")[:500],
+                      "reported_at": now,
+                      "updated": True}},
+        )
+    else:
+        created = True
+        await _db.deal_verifications.insert_one({
+            "deal_id": deal_id, "user_id": uid, "worked": body.worked,
+            "comment": (body.comment or "")[:500], "reported_at": now,
+            "updated": False,
+        })
+
+    # 24h reminder becomes irrelevant once reported
+    if not existing:
+        await _db.deal_claims.update_many(
+            {"user_id": uid, "deal_id": deal_id,
+             "verification_push_sent_at": None},
+            {"$set": {"verification_push_sent_at": now}})
+
+    stats = await _recompute_verification_stats(_db, deal_id)
+    return {"ok": True, "reported": True, "created": created,
+            "stats": stats}
+
+
+@router.get("/deals/verification-stats/{deal_id}")
+async def deals_verification_stats(
+    deal_id: str,
+    user: dict = Depends(_get_current_user_dependency()),
+):
+    """Per-deal verification stats + reporter breakdown for the client."""
+    deal = await _db.deals.find_one({"deal_id": deal_id})
+    if not deal:
+        raise HTTPException(404, "Deal not found")
+    stats = await _recompute_verification_stats(_db, deal_id)
+    reports = []
+    cur = _db.deal_verifications.find({"deal_id": deal_id}).sort("reported_at", -1).limit(10)
+    async for r in cur:
+        reports.append({"user_id": r.get("user_id"), "worked": r.get("worked"),
+                       "comment": r.get("comment"), "reported_at": r.get("reported_at")})
+    mine = await _db.deal_verifications.find_one(
+        {"deal_id": deal_id, "user_id": str(user["_id"])})
+    return {"deal_id": deal_id, "stats": stats,
+            "my_report": {"worked": mine.get("worked")} if mine else None,
+            "recent_reports": reports}
+
+
+@router.get("/deals/verify-pending")
+async def deals_verify_pending(user: dict = Depends(_get_current_user_dependency())):
+    """Claims made >= 24h ago by this user, with whether a report exists and
+    when — feeds the in-app 'Did the deal work?' quick yes/no card and
+    matches the data payload of the 24h push notification."""
+    def _utc(v) -> Optional[datetime]:
+        if isinstance(v, str):
+            try:
+                v = datetime.fromisoformat(v.replace("Z", "+00:00"))
+            except Exception:
+                return None
+        if isinstance(v, datetime):
+            if v.tzinfo is None:
+                v = v.replace(tzinfo=timezone.utc)
+            return v
+        return None
+
+    now = datetime.now(timezone.utc)
+    due = now - timedelta(hours=VERIFICATION_PUSH_DELAY_HRS)
+    out: List[Dict[str, Any]] = []
+    cur = _db.deal_claims.find({"user_id": str(user["_id"]), "ts": {"$lte": due}})
+    async for c in cur:
+        rep = await _db.deal_verifications.find_one(
+            {"deal_id": c.get("deal_id"), "user_id": str(user["_id"])})
+        deal = await _db.deals.find_one({"deal_id": c.get("deal_id")})
+        claimed_at = _utc(c.get("ts"))
+        out.append({
+            "deal_id": c.get("deal_id"),
+            "brand": c.get("brand") or (deal or {}).get("brand"),
+            "title": c.get("title") or (deal or {}).get("title"),
+            "claimed_at": claimed_at,
+            "reported": bool(rep),
+            "worked": rep.get("worked") if rep else None,
+            "claimed_within_36h_of_now": bool(
+                claimed_at and claimed_at >= now - timedelta(hours=36)),
+        })
+    out.sort(key=lambda x: x.get("claimed_at") or datetime.min.replace(tzinfo=timezone.utc),
+             reverse=True)
+    return {"pending": out}
+
+
+async def run_deal_verification_sweep() -> Dict[str, Any]:
+    """Hourly D3 pipeline (called from the deals scheduler):
+
+    1. ``expires_at < now``                     -> status=expired
+    2. <20% worked after 10+ reports            -> status=expired (auto)
+    3. <50% worked after 5+ reports             -> UNRELIABLE tag (derived
+       by apply_tags from the stamped success_rate / verification_count)
+    4. no verification report for 30 days       -> STALE tag (staleness_flag)
+    5. claimed 24h ago, still no report         -> 'Did the deal work?' push
+    """
+    db = _db
+    now = datetime.now(timezone.utc)
+    result: Dict[str, Any] = {"expired_time": 0, "expired_quality": 0,
+                              "unreliable": 0, "stale": 0, "pushed": 0,
+                              "at": now.isoformat()}
+
+    try:
+        await db.deal_verifications.create_index(
+            [("deal_id", 1), ("user_id", 1)], unique=True, name="uniq_deal_user")
+        await db.deal_claims.create_index(
+            [("ts", 1), ("verification_push_sent_at", 1)], name="idx_claim_push")
+    except Exception:
+        pass
+
+    # 1) time-based expiry
+    res = await db.deals.update_many(
+        {"status": {"$in": ["active", None]}, "expires_at": {"$lt": now}},
+        {"$set": {"status": "expired", "expired_at": now}})
+    result["expired_time"] = res.modified_count
+
+    stale_cutoff = now - timedelta(days=STALE_AFTER_DAYS)
+    # 2/3/4) per-deal quality + staleness from live verification counts
+    async for d in db.deals.find({"deal_id": {"$ne": None}}):
+        did = d.get("deal_id")
+        total = await db.deal_verifications.count_documents({"deal_id": did})
+        if total:
+            worked = await db.deal_verifications.count_documents(
+                {"deal_id": did, "worked": True})
+            rate = worked / total
+            await _recompute_verification_stats(db, str(did))
+            if total >= UNRELIABLE_MIN_REPORTS and rate < UNRELIABLE_RATE:
+                result["unreliable"] += 1
+            if total >= EXPIRED_MIN_REPORTS and rate < EXPIRED_RATE:
+                resq = await db.deals.update_one(
+                    {"deal_id": did, "status": {"$ne": "expired"}},
+                    {"$set": {"status": "expired", "expired_at": now,
+                              "expiry_reason": "low_success_rate"}})
+                if resq.modified_count:
+                    result["expired_quality"] += 1
+
+        # 4) STALE: no verification report for 30 days. The clock is the most
+        # recent report, or the deal's creation if never reported.
+        last_rep = await db.deal_verifications.find_one(
+            {"deal_id": did}, sort=[("reported_at", -1)])
+        clock = (last_rep.get("reported_at") if last_rep else None
+                 or d.get("created_at") or d.get("last_synced_at"))
+        if isinstance(clock, str):
+            try:
+                clock = datetime.fromisoformat(clock.replace("Z", "+00:00"))
+            except Exception:
+                clock = None
+        if isinstance(clock, datetime) and clock.tzinfo is None:
+            clock = clock.replace(tzinfo=timezone.utc)
+        is_stale = bool(
+            isinstance(clock, datetime) and clock < stale_cutoff
+            and d.get("status") != "expired")
+        if is_stale:
+            if d.get("staleness_flag") is not True:
+                result["stale"] += 1
+            await db.deals.update_one({"deal_id": did},
+                                      {"$set": {"staleness_flag": True}})
+        elif d.get("staleness_flag") is True:
+            await db.deals.update_one(
+                {"deal_id": did, "staleness_flag": True},
+                {"$unset": {"staleness_flag": ""}})
+
+    # 5) 24h 'did it work?' push to claimers who never reported
+    try:
+        from features.notifications import send_push
+    except Exception:
+        send_push = None
+    due_cutoff = now - timedelta(hours=VERIFICATION_PUSH_DELAY_HRS)
+    claims_cursor = db.deal_claims.find(
+        {"ts": {"$lte": due_cutoff}, "verification_push_sent_at": None})
+    async for claim in claims_cursor:
+        deal_id = claim.get("deal_id")
+        uid = claim.get("user_id")
+        already = await db.deal_verifications.find_one(
+            {"deal_id": deal_id, "user_id": uid})
+        await db.deal_claims.update_one(
+            {"_id": claim.get("_id")},
+            {"$set": {"verification_push_sent_at": now}})
+        if already or not send_push:
+            continue
+        deal = await db.deals.find_one({"deal_id": deal_id})
+        brand = (deal or {}).get("brand") or "This"
+        try:
+            await send_push(
+                db,
+                user_id=str(uid),
+                title=f"Did the {brand} deal work?",
+                body="You claimed this offer a day ago — tell us if it actually "
+                      "applied, so we can keep bad deals out.",
+                data={"type": "deal_verification", "deal_id": str(deal_id)},
+            )
+            result["pushed"] += 1
+        except Exception as e:  # noqa: BLE001
+            logger.warning("[deals/verify] push failed: %s", e)
+
+    logger.info("[deals/verify] sweep: %s", result)
+    return result
