@@ -231,6 +231,29 @@ async def _lifespan(application):
         _safe_create_index(db.career_applications, [("student_id", 1), ("created_at", -1)]),
         _safe_create_index(db.career_applications, [("career_opening_id", 1), ("status", 1)]),
         _safe_create_index(db.career_application_history, [("application_id", 1), ("changed_at", -1)]),
+        # Wallet coupon engine (W1) — partner catalog + per-user claims
+        _safe_create_index(db.sa_coupons, "slug", unique=True),
+        _safe_create_index(db.sa_user_coupons, [("user_id", 1), ("status", 1)]),
+        _safe_create_index(db.sa_user_coupons, [("status", 1), ("expires_at", 1)]),
+        # Wallet referral engine (W5) + badges (W6)
+        _safe_create_index(db.sa_referrals, "referrer_id", unique=True),
+        _safe_create_index(db.sa_referrals, "referral_code", unique=True),
+        _safe_create_index(db.sa_referrals, "referred_users"),
+        _safe_create_index(db.sa_badges, [("user_id", 1), ("slug", 1)], unique=True),
+        _safe_create_index(db.sa_challenges, [("user_id", 1), ("week", 1)], unique=True),
+        _safe_create_index(db.sa_wallet_audit, [("user_id", 1), ("ts", -1)]),
+        # Wallet notifications (W9) — wallet-scoped in-app feed + weekly digest sweep
+        _safe_create_index(db.notifications, [("user_id", 1), ("type", 1), ("created_at", -1)]),
+        _safe_create_index(db.wallet_transactions, [("user_id", 1), ("ts", -1)]),
+        _safe_create_index(db.users, [("wallet.last_credited_at", -1)]),
+        _safe_create_index(db.users, [("wallet.last_used_at", -1)]),
+        # Wallet reward marketplace (W2) — catalog + redemptions
+        _safe_create_index(db.sa_rewards, "title"),
+        _safe_create_index(db.sa_redemptions, [("user_id", 1), ("ts", -1)]),
+        _safe_create_index(db.sa_redemptions, [("user_id", 1), ("reward_id", 1), ("ts", 1)]),
+        _safe_create_index(db.sa_ai_resume_reviews, [("user_id", 1), ("status", 1)]),
+        _safe_create_index(db.sa_marketplace_purchases, [("user_id", 1), ("ts", -1)]),
+        _safe_create_index(db.sa_marketplace_purchases, [("user_id", 1), ("service", 1), ("ts", 1)]),
     ]
     await asyncio.gather(*index_tasks, return_exceptions=True)
 
@@ -342,6 +365,20 @@ async def _lifespan(application):
             logger.warning(
                 "Could not start Financial Aggregator scheduler: %s", _e)
 
+        # Start the daily wallet coupon expiry sweep + 3-day reminder (05:00 IST + startup run)
+        try:
+            from features.coupon_engine import start_coupon_engine_scheduler
+            start_coupon_engine_scheduler()
+        except Exception as _e:
+            logger.warning("Could not start Coupon Engine scheduler: %s", _e)
+
+        # Start the weekly wallet digest cron (Mon 06:00 IST)
+        try:
+            from features.wallet_notifications import start_wallet_notifications_scheduler
+            start_wallet_notifications_scheduler()
+        except Exception as _e:
+            logger.warning("Could not start Wallet Notifications scheduler: %s", _e)
+
 
     try:
         from core.leader import run_as_leader
@@ -401,6 +438,19 @@ async def _lifespan(application):
     except Exception:
         logger.exception(
             "Failed to stop financial aggregator scheduler during shutdown")
+
+    try:
+        from features.coupon_engine import stop_coupon_engine_scheduler
+        stop_coupon_engine_scheduler()
+    except Exception:
+        logger.exception("Failed to stop coupon engine scheduler during shutdown")
+
+    try:
+        from features.wallet_notifications import stop_wallet_notifications_scheduler
+        stop_wallet_notifications_scheduler()
+    except Exception:
+        logger.exception("Failed to stop wallet notifications scheduler during shutdown")
+
     client.close()
 
 
@@ -2010,8 +2060,26 @@ from features.mentor_ai import router as mentor_ai_router  # mentor AI studio (m
 api_router.include_router(mentor_ai_router)
 from features.wallet_and_availability import router as wallet_router  # SA Credits + mentor availability + demo seed
 api_router.include_router(wallet_router)
+from features.reward_marketplace import router as reward_marketplace_router  # Reward marketplace (W2): sa_rewards catalog + fulfillment engine
+api_router.include_router(reward_marketplace_router)
 from features.activity_credits import router as activity_credits_router  # Activity-based earnings + Wallet summary/topup/withdraw
 api_router.include_router(activity_credits_router)
+from features.coupon_engine import router as coupon_engine_router  # Wallet coupons (W1): partner catalog, claims, expiry
+api_router.include_router(coupon_engine_router)
+from features.referral_engine import router as referral_engine_router  # Wallet referrals (W5): code, milestones, leaderboard
+api_router.include_router(referral_engine_router)
+from features.gamification_engine import router as gamification_engine_router  # Wallet streaks, wallet badges, weekly challenges, leaderboard (W6)
+api_router.include_router(gamification_engine_router)
+from features.wallet_security import router as wallet_security_router  # Wallet security: rate limits, audit log, KYC-lite (W8)
+api_router.include_router(wallet_security_router)
+from features.wallet_notifications import router as wallet_notifications_router  # Wallet notifications: inbox feed, prefs, weekly digest (W9)
+api_router.include_router(wallet_notifications_router)
+from features.wallet_transfer import router as wallet_transfer_router  # Wallet-to-wallet transfers (W11): 10-500cr, 3/day, both notified
+api_router.include_router(wallet_transfer_router)
+from features.credit_marketplace import router as credit_marketplace_router  # SA credit marketplace (W12): buy platform services with credits
+api_router.include_router(credit_marketplace_router)
+from features.wallet_analytics import router as wallet_analytics_router  # Wallet spending analytics (W3): donut/bars/trend/milestones/projection
+api_router.include_router(wallet_analytics_router)
 from features.deals_aggregator import router as deals_aggregator_router  # SA Member Deals + Tag Engine + AI generator
 api_router.include_router(deals_aggregator_router)
 from features.higher_ed_platform import router as higher_ed_router  # SA Higher Education programmes/scholarships/tracker/AI tools
