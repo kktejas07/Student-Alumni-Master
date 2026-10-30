@@ -347,44 +347,14 @@ async def _lifespan(application):
         except Exception as _e:
             logger.warning("Could not start Course Aggregator scheduler: %s", _e)
 
-        # Start the 24-hour rentals aggregator cron (daily 04:00 UTC + startup catch-up)
+        # Start the staggered deals aggregator crons (banks 01:00, coupons 02:00,
+        # cashback 02:30, community 6h, APIs 03:00, student/airlines weekly,
+        # affiliate 6h — all UTC + startup catch-up)
         try:
-            from services.rentals_aggregator import start_rentals_aggregator_scheduler
-            start_rentals_aggregator_scheduler()
+            from services.deals_aggregator import start_deals_aggregator_scheduler
+            start_deals_aggregator_scheduler()
         except Exception as _e:
-            logger.warning("Could not start Rentals Aggregator scheduler: %s", _e)
-
-        # Start the 24-hour financial products aggregator cron
-        # (daily 05:00 IST + startup catch-up)
-        try:
-            from financial_aggregator import (
-                start_financial_aggregator_scheduler,
-            )
-            start_financial_aggregator_scheduler()
-        except Exception as _e:
-            logger.warning(
-                "Could not start Financial Aggregator scheduler: %s", _e)
-
-        # Start the daily wallet coupon expiry sweep + 3-day reminder (05:00 IST + startup run)
-        try:
-            from features.coupon_engine import start_coupon_engine_scheduler
-            start_coupon_engine_scheduler()
-        except Exception as _e:
-            logger.warning("Could not start Coupon Engine scheduler: %s", _e)
-
-        # Start the weekly wallet digest cron (Mon 06:00 IST)
-        try:
-            from features.wallet_notifications import start_wallet_notifications_scheduler
-            start_wallet_notifications_scheduler()
-        except Exception as _e:
-            logger.warning("Could not start Wallet Notifications scheduler: %s", _e)
-
-        # Start the Visitor Radar anomaly detector (VR8, every 5 min)
-        try:
-            from visitor_anomaly_detector import start_visitor_anomaly_scheduler
-            start_visitor_anomaly_scheduler()
-        except Exception as _e:
-            logger.warning("Could not start Visitor Anomaly scheduler: %s", _e)
+            logger.warning("Could not start Deals Aggregator scheduler: %s", _e)
 
 
     try:
@@ -434,36 +404,10 @@ async def _lifespan(application):
         pass
 
     try:
-        from services.rentals_aggregator import stop_rentals_aggregator_scheduler
-        stop_rentals_aggregator_scheduler()
+        from services.deals_aggregator import stop_deals_aggregator_scheduler
+        stop_deals_aggregator_scheduler()
     except Exception:
-        logger.exception("Failed to stop rentals aggregator scheduler during shutdown")
-
-    try:
-        from financial_aggregator import stop_financial_aggregator_scheduler
-        stop_financial_aggregator_scheduler()
-    except Exception:
-        logger.exception(
-            "Failed to stop financial aggregator scheduler during shutdown")
-
-    try:
-        from features.coupon_engine import stop_coupon_engine_scheduler
-        stop_coupon_engine_scheduler()
-    except Exception:
-        logger.exception("Failed to stop coupon engine scheduler during shutdown")
-
-    try:
-        from features.wallet_notifications import stop_wallet_notifications_scheduler
-        stop_wallet_notifications_scheduler()
-    except Exception:
-        logger.exception("Failed to stop wallet notifications scheduler during shutdown")
-
-    try:
-        from visitor_anomaly_detector import stop_visitor_anomaly_scheduler
-        stop_visitor_anomaly_scheduler()
-    except Exception:
-        logger.exception("Failed to stop visitor anomaly scheduler during shutdown")
-
+        pass
     client.close()
 
 
@@ -2108,14 +2052,9 @@ api_router.include_router(courses_router)
 # Course Aggregator (C1) — 24h external course bot: admin status / source toggle / manual run
 from services.course_aggregator import admin_router as course_aggregator_admin_router
 api_router.include_router(course_aggregator_admin_router)
-# Rentals Aggregator (R1) — 24h universal rentals bot: admin status / source toggle / manual run
-from services.rentals_aggregator import admin_router as rentals_aggregator_admin_router
-api_router.include_router(rentals_aggregator_admin_router)
-# Financial Aggregator (F1) — 24h financial products bot: manual refresh + admin status / source toggle
-from financial_aggregator import router as financial_aggregator_router
-from financial_aggregator import admin_router as financial_aggregator_admin_router
-api_router.include_router(financial_aggregator_router)
-api_router.include_router(financial_aggregator_admin_router)
+# Deals Aggregator (D1) — universal deal bot: admin status / source toggle / manual run
+from services.deals_aggregator import admin_router as deals_aggregator_admin_router
+api_router.include_router(deals_aggregator_admin_router)
 from features.college_portal import router as college_router  # College admin Phase 3: roster + analytics
 api_router.include_router(college_router)
 
