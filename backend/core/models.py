@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 from typing import Optional, List, Dict, Any, Literal
 from datetime import datetime
 
@@ -42,6 +42,10 @@ MentorStatus = Literal["pending", "approved", "rejected"]
 class SchoolInfo(BaseModel):
     """Institution / education info common to all roles."""
     institution_name: str
+    college_id: Optional[str] = None
+    college_tier: Optional[str] = None
+    is_custom_college: bool = False
+    custom_college_name: Optional[str] = None
     institution_type: Literal["school", "college", "university"] = "college"
     class_or_year: Optional[str] = None
     branch_or_stream: Optional[str] = None
@@ -53,6 +57,23 @@ class SchoolInfo(BaseModel):
     state: Optional[str] = None
     country: str = "India"
     graduation_year: Optional[int] = None
+
+    @field_validator("custom_college_name")
+    @classmethod
+    def normalize_custom_college_name(cls, value: Optional[str]) -> Optional[str]:
+        return value.strip() if isinstance(value, str) else value
+
+    @model_validator(mode="after")
+    def validate_custom_college(self):
+        if self.is_custom_college:
+            if not self.custom_college_name:
+                raise ValueError("Please enter your college name.")
+            self.institution_name = self.custom_college_name
+            self.college_id = None
+            self.college_tier = None
+        elif self.custom_college_name:
+            raise ValueError("Custom college details require is_custom_college.")
+        return self
 
 
 class MentorInfo(BaseModel):

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 import qrcode
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, Form, UploadFile, File
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from bson import ObjectId
 
 from core.db import db
@@ -68,6 +68,14 @@ class OnboardingRequest(BaseModel):
     # Per HTML spec — collect phone number during onboarding for all roles.
     # Stored at the root user level (not role-specific).
     phone: Optional[str] = None
+
+    @field_validator("school_info")
+    @classmethod
+    def require_college_name(cls, value: SchoolInfo) -> SchoolInfo:
+        value.institution_name = (value.institution_name or "").strip()
+        if not value.institution_name:
+            raise ValueError("Please enter your college name.")
+        return value
 
 
 class CareerSuggestionRequest(BaseModel):
