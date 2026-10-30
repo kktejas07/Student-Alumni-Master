@@ -124,6 +124,7 @@ tzdata==2025.1
 qdrant-client
 fastembed
 pymupdf
+pypdf
 python-docx
 pdfplumber
 rapidfuzz
