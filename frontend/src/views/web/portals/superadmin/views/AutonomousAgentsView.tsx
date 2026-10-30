@@ -634,7 +634,7 @@ export function AutonomousAgentsView() {
     <View style={s.container}>
       {/* Header Banner */}
       <View style={s.header}>
-        <View style={s.hIcon}><Bot size={22} color={SAC.accent} /></View>
+        <View style={s.hIcon}><Bot size={22} color={SAC.violet} /></View>
         <View style={{ flex: 1 }}>
           <Text style={s.hTitle}>Autonomous Agents & Custom Teams Control Plane</Text>
           <Text style={s.hSub}>Orchestrate Top 5 AI Teams (Outreach, Growth, Dev, QA, Career) with AI Community Blog Engine, Campus Venue Scouting, and Impact Analytics.</Text>
@@ -699,8 +699,8 @@ export function AutonomousAgentsView() {
           {teamsLoading ? (
             <ActivityIndicator size="medium" color={SAC.accent} style={{ marginVertical: 20 }} />
           ) : teamsError ? (
-            <Pressable onPress={fetchTeams} style={{ padding: 14, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(248,113,113,0.4)', backgroundColor: 'rgba(248,113,113,0.08)' }}>
-              <Text style={{ color: '#FCA5A5', fontSize: 13 }}>{teamsError}. Tap to retry.</Text>
+            <Pressable onPress={fetchTeams} style={{ padding: 14, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(190,18,60,0.4)', backgroundColor: SAC.dangerTint }}>
+              <Text style={{ color: SAC.danger, fontSize: 13 }}>{teamsError}. Tap to retry.</Text>
             </Pressable>
           ) : teamsList.length === 0 ? (
             <Text style={{ color: SAC.muted, fontSize: 13, paddingVertical: 12 }}>No agent teams configured yet.</Text>
@@ -729,7 +729,7 @@ export function AutonomousAgentsView() {
                             <Pencil size={12} color={SAC.muted} />
                           </Pressable>
                           <Pressable onPress={() => deleteTeam(team.id)} style={s.iconBtn}>
-                            <Trash2 size={12} color="#F87171" />
+                            <Trash2 size={12} color={SAC.danger} />
                           </Pressable>
                         </View>
                       )}
@@ -825,20 +825,20 @@ export function AutonomousAgentsView() {
         <View style={{ gap: 16 }}>
 
           {/* ── Autonomous Goodies Harvester & Multi-Spec Outreach Swarm ── */}
-          <View style={{ border: '1px solid #3A2E72', borderRadius: 16, padding: 20, backgroundColor: 'rgba(27,20,58,0.85)', gap: 16 }}>
+          <View style={{ borderColor: SAC.border2, borderWidth: 1, borderRadius: 16, padding: 20, backgroundColor: SAC.card, gap: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
               <View style={{ gap: 4, flex: 1 }}>
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#FFF' }}>🤖 Autonomous Goodies Harvester & Multi-Spec Outreach Swarm</Text>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>🤖 Autonomous Goodies Harvester & Multi-Spec Outreach Swarm</Text>
                 <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: SAC.muted }}>Scouts platforms for free student goodies/coupons and dispatches multi-spec partnership contracts in an automated loop.</Text>
               </View>
 
               <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
-                <Pressable onPress={runHarvesterLoop} disabled={harvesterLoading} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#8B5CF6', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, opacity: harvesterLoading ? 0.7 : 1 }}>
+                <Pressable onPress={runHarvesterLoop} disabled={harvesterLoading} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: SAC.violet, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, opacity: harvesterLoading ? 0.7 : 1 }}>
                   <Gift size={16} color="#FFF" />
                   <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#FFF' }}>{harvesterLoading ? 'Scouting Goodies...' : 'Run Goodies Harvester Loop'}</Text>
                 </Pressable>
 
-                <Pressable onPress={runSpecDispatcherLoop} disabled={specDispatchLoading} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#3B82F6', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, opacity: specLoading ? 0.7 : 1 }}>
+                <Pressable onPress={runSpecDispatcherLoop} disabled={specDispatchLoading} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: SAC.blue, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, opacity: specLoading ? 0.7 : 1 }}>
                   <Send size={16} color="#FFF" />
                   <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#FFF' }}>{specDispatchLoading ? 'Dispatching...' : 'Dispatch Multi-Spec Loop'}</Text>
                 </Pressable>
@@ -847,7 +847,7 @@ export function AutonomousAgentsView() {
 
             {/* Spec Template Selector */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#A78BFA' }}>Select Spec Template:</Text>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.muted }}>Select Spec Template:</Text>
               {[
                 { id: 'goodies_partnership', label: '🎁 Goodies & Perks Spec' },
                 { id: 'event_sponsorship', label: '⚡ ECHO Event Sponsorship Spec' },
@@ -856,25 +856,25 @@ export function AutonomousAgentsView() {
                 <Pressable
                   key={st.id}
                   onPress={() => setSelectedSpecType(st.id)}
-                  style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: selectedSpecType === st.id ? '#7C3AED' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: selectedSpecType === st.id ? '#A78BFA' : SAC.border }}
+                  style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: selectedSpecType === st.id ? SAC.primary : SAC.panel2, borderWidth: 1, borderColor: selectedSpecType === st.id ? SAC.accent : SAC.border }}
                 >
-                  <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: selectedSpecType === st.id ? '#FFF' : SAC.muted }}>{st.label}</Text>
+                  <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: selectedSpecType === st.id ? SAC.onAccent : SAC.muted }}>{st.label}</Text>
                 </Pressable>
               ))}
             </View>
 
             {/* Harvester / Spec Results Display */}
             {harvesterResult && (
-              <View style={{ border: '1px solid #10B981', borderRadius: 10, padding: 14, backgroundColor: 'rgba(16,185,129,0.1)', gap: 6 }}>
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#10B981' }}>✅ Goodies Harvester Output ({harvesterResult.offers_harvested} Platforms Discovered)</Text>
-                <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: '#D1FAE5' }}>{harvesterResult.message}</Text>
+              <View style={{ border: '1px solid ' + SAC.okLine, borderRadius: 10, padding: 14, backgroundColor: SAC.okTint, gap: 6 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.ok }}>✅ Goodies Harvester Output ({harvesterResult.offers_harvested} Platforms Discovered)</Text>
+                <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: SAC.muted }}>{harvesterResult.message}</Text>
               </View>
             )}
 
             {specDispatchResult && (
-              <View style={{ border: '1px solid #3B82F6', borderRadius: 10, padding: 14, backgroundColor: 'rgba(59,130,246,0.1)', gap: 6 }}>
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#60A5FA' }}>🚀 Dispatched Specs ({specDispatchResult.dispatched_count} Sent)</Text>
-                <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: '#DBEAFE' }}>{specDispatchResult.message}</Text>
+              <View style={{ border: '1px solid ' + SAC.blue, borderRadius: 10, padding: 14, backgroundColor: 'rgba(30,86,196,0.08)', gap: 6 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.blue }}>🚀 Dispatched Specs ({specDispatchResult.dispatched_count} Sent)</Text>
+                <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: SAC.muted }}>{specDispatchResult.message}</Text>
               </View>
             )}
           </View>
@@ -882,22 +882,22 @@ export function AutonomousAgentsView() {
           {impactAnalytics && (
             <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
               <View style={s.kpiTile}>
-                <DollarSign size={16} color="#34D399" />
+                <DollarSign size={16} color={SAC.green} />
                 <Text style={s.kpiVal}>{impactAnalytics.total_dollar_value_unlocked}</Text>
                 <Text style={s.kpiLabel}>DOLLAR VALUE UNLOCKED</Text>
               </View>
               <View style={s.kpiTile}>
-                <Users size={16} color="#60A5FA" />
+                <Users size={16} color={SAC.blue} />
                 <Text style={s.kpiVal}>{impactAnalytics.total_student_reach}</Text>
                 <Text style={s.kpiLabel}>TOTAL STUDENT REACH</Text>
               </View>
               <View style={s.kpiTile}>
-                <Gift size={16} color="#F59E0B" />
+                <Gift size={16} color={SAC.accent} />
                 <Text style={s.kpiVal}>{impactAnalytics.total_perks_claimed} Claimed</Text>
                 <Text style={s.kpiLabel}>STUDENT PERKS UNLOCKED</Text>
               </View>
               <View style={s.kpiTile}>
-                <Building2 size={16} color="#A78BFA" />
+                <Building2 size={16} color={SAC.violet} />
                 <Text style={s.kpiVal}>{impactAnalytics.active_community_partners} Active</Text>
                 <Text style={s.kpiLabel}>COMMUNITY PARTNERS</Text>
               </View>
@@ -907,7 +907,7 @@ export function AutonomousAgentsView() {
           {/* Status & Dynamic Cadence Banner */}
           <View style={s.scoutStatusBanner}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <View style={s.scoutIconBox}><Globe size={20} color="#8B5CF6" /></View>
+              <View style={s.scoutIconBox}><Globe size={20} color={SAC.violet} /></View>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 14 }}>Autonomous Community Scouting Worker</Text>
@@ -939,9 +939,9 @@ export function AutonomousAgentsView() {
             </View>
 
             {/* Dynamic Cadence Control Bar */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(139,92,246,0.2)' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: SAC.accentLine }}>
               <Clock size={13} color={SAC.accent} />
-              <Text style={{ color: '#ddd', fontFamily: FONTS.bold, fontSize: 11.5 }}>Adjust Scouting Cadence:</Text>
+              <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5 }}>Adjust Scouting Cadence:</Text>
               {[4, 8, 12, 24].map((hrs) => (
                 <Pressable
                   key={hrs}
@@ -1044,20 +1044,20 @@ export function AutonomousAgentsView() {
                         <Text style={s.contactText}>{comm.email}</Text>
                       </View>
                       <View style={s.contactItem}>
-                        <Phone size={12} color="#34D399" />
+                        <Phone size={12} color={SAC.green} />
                         <Text style={s.contactText}>{comm.phone}</Text>
                       </View>
                       <View style={s.contactItem}>
-                        <Globe size={12} color="#60A5FA" />
+                        <Globe size={12} color={SAC.blue} />
                         <Text style={s.contactText}>{comm.website}</Text>
                       </View>
                       <View style={s.contactItem}>
-                        <ExternalLink size={12} color="#F472B6" />
+                        <ExternalLink size={12} color={SAC.pink} />
                         <Text style={s.contactText}>LinkedIn: {comm.linkedin}</Text>
                       </View>
                       {comm.discord && (
                         <View style={s.contactItem}>
-                          <Users size={12} color="#A78BFA" />
+                          <Users size={12} color={SAC.violet} />
                           <Text style={s.contactText}>Discord: {comm.discord}</Text>
                         </View>
                       )}
@@ -1067,7 +1067,7 @@ export function AutonomousAgentsView() {
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
                       <View style={s.organizerRow}>
                         <Building2 size={13} color={SAC.muted} />
-                        <Text style={{ color: '#ddd', fontFamily: FONTS.bold, fontSize: 12 }}>
+                        <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>
                           Lead Organizer: <Text style={{ color: SAC.text }}>{comm.organizer_name}</Text> ({comm.organizer_role}) • Contact: <Text style={{ color: SAC.accentBright }}>{comm.organizer_email}</Text>
                         </Text>
                       </View>
@@ -1082,14 +1082,14 @@ export function AutonomousAgentsView() {
                     {/* Discovered Free Goodies & Sponsorship Vouchers */}
                     {comm.free_goodies && comm.free_goodies.length > 0 && (
                       <View style={{ marginTop: 10, gap: 8 }}>
-                        <Text style={{ color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 12 }}>🎁 Unlocked Free Goodies & Sponsorship Perks:</Text>
+                        <Text style={{ color: SAC.accent, fontFamily: FONTS.bold, fontSize: 12 }}>🎁 Unlocked Free Goodies & Sponsorship Perks:</Text>
                         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
                           {comm.free_goodies.map((g: any, idx: number) => (
                             <View key={idx} style={s.goodieCard}>
-                              <Gift size={13} color="#F59E0B" />
+                              <Gift size={13} color={SAC.accent} />
                               <View>
                                 <Text style={s.goodieTitle}>{g.title}</Text>
-                                <Text style={s.goodieSub}>{g.value} • Promo Code: <Text style={{ color: '#34D399', fontFamily: FONTS.bold }}>{g.code}</Text></Text>
+                                <Text style={s.goodieSub}>{g.value} • Promo Code: <Text style={{ color: SAC.green, fontFamily: FONTS.bold }}>{g.code}</Text></Text>
                               </View>
                             </View>
                           ))}
@@ -1106,10 +1106,10 @@ export function AutonomousAgentsView() {
           {outreachViewMode === 'kanban' && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingTop: 6 }}>
               {[
-                { id: 'discovered', label: '1. Discovered (Auto-Scouted)', color: '#8B5CF6' },
-                { id: 'outreach_sent', label: '2. Campaign Dispatched', color: '#3B82F6' },
-                { id: 'negotiating', label: '3. In Negotiation', color: '#F59E0B' },
-                { id: 'active_partner', label: '4. Active Partner', color: '#10B981' },
+                { id: 'discovered', label: '1. Discovered (Auto-Scouted)', color: SAC.violet },
+                { id: 'outreach_sent', label: '2. Campaign Dispatched', color: SAC.blue },
+                { id: 'negotiating', label: '3. In Negotiation', color: SAC.accent },
+                { id: 'active_partner', label: '4. Active Partner', color: SAC.green },
               ].map((column) => {
                 const columnItems = communitiesList.filter((c) => (c.crm_stage || 'discovered') === column.id);
                 return (
@@ -1137,7 +1137,7 @@ export function AutonomousAgentsView() {
                               </Pressable>
                             )}
                             {column.id !== 'active_partner' && (
-                              <Pressable style={[s.kanbanActionBtn, { backgroundColor: '#10B981' }]} onPress={() => updateCrmStage(comm.id, 'active_partner')}>
+                              <Pressable style={[s.kanbanActionBtn, { backgroundColor: SAC.green }]} onPress={() => updateCrmStage(comm.id, 'active_partner')}>
                                 <Text style={{ color: SAC.text, fontSize: 10, fontFamily: FONTS.bold }}>Partner</Text>
                               </Pressable>
                             )}
@@ -1174,14 +1174,14 @@ export function AutonomousAgentsView() {
                     <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 }}>By {generatedBlog.author} • Published on {generatedBlog.date}</Text>
 
                     <View style={{ padding: 12, borderRadius: 10, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1 }}>
-                      <Text style={{ color: '#93c5fd', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 }}>{generatedBlog.description}</Text>
+                      <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 }}>{generatedBlog.description}</Text>
                     </View>
 
                     {generatedBlog.sections?.map((sec: any, idx: number) => (
                       <View key={idx} style={{ gap: 4, marginTop: 6 }}>
-                        <Text style={{ color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 13 }}>{sec.label}</Text>
+                        <Text style={{ color: SAC.accent, fontFamily: FONTS.bold, fontSize: 13 }}>{sec.label}</Text>
                         {sec.content?.map((p: string, pIdx: number) => (
-                          <Text key={pIdx} style={{ color: '#cbd5e1', fontFamily: FONTS.med, fontSize: 12, lineHeight: 17 }}>{p}</Text>
+                          <Text key={pIdx} style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, lineHeight: 17 }}>{p}</Text>
                         ))}
                       </View>
                     ))}
@@ -1693,12 +1693,12 @@ export function AutonomousAgentsView() {
           ) : (
             dailyDossier && (
               <View style={{ marginTop: 20, gap: 14 }}>
-                <View style={{ padding: 14, borderRadius: 12, backgroundColor: 'rgba(16,185,129,0.12)', borderColor: '#10B981', borderWidth: 1 }}>
+                <View style={{ padding: 14, borderRadius: 12, backgroundColor: SAC.okTint, borderColor: SAC.okLine, borderWidth: 1 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ color: '#34D399', fontFamily: FONTS.bold, fontSize: 13 }}>{dailyDossier.dossier_id}</Text>
+                    <Text style={{ color: SAC.ok, fontFamily: FONTS.bold, fontSize: 13 }}>{dailyDossier.dossier_id}</Text>
                     <Badge label={dailyDossier.health_status} color="green" />
                   </View>
-                  <Text style={{ color: '#F1F5F9', fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 18 }}>
+                  <Text style={{ color: SAC.text, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 18 }}>
                     {dailyDossier.executive_verdict}
                   </Text>
                 </View>
@@ -1767,7 +1767,7 @@ export function AutonomousAgentsView() {
                     <TextInput value={ag.avatar} onChangeText={(v) => updateAgentField(idx, 'avatar', v)} style={[s.input, { width: 44, textAlign: 'center' }]} />
                     <TextInput value={ag.name} onChangeText={(v) => updateAgentField(idx, 'name', v)} style={[s.input, { flex: 1 }]} placeholder="Agent Name" placeholderTextColor={SAC.muted} />
                     <Pressable onPress={() => removeAgentFromForm(idx)}>
-                      <Trash2 size={14} color="#F87171" />
+                      <Trash2 size={14} color={SAC.danger} />
                     </Pressable>
                   </View>
                   <TextInput value={ag.role} onChangeText={(v) => updateAgentField(idx, 'role', v)} style={s.input} placeholder="Agent Role" placeholderTextColor={SAC.muted} />
@@ -1794,9 +1794,9 @@ export function AutonomousAgentsView() {
 }
 
 const s = StyleSheet.create({
-  container: { gap: 16 },
-  header: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: 14, backgroundColor: 'rgba(99,102,241,0.08)', borderColor: SAC.border2, borderWidth: 1, alignItems: 'center' },
-  hIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(99,102,241,0.18)', alignItems: 'center', justifyContent: 'center' },
+  container: { gap: 16, backgroundColor: '#F8FAFC' },
+  header: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: 14, backgroundColor: SAC.tint, borderColor: SAC.border2, borderWidth: 1, alignItems: 'center' },
+  hIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: SAC.tintStrong, alignItems: 'center', justifyContent: 'center' },
   hTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
   hSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 18 },
   tabsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
@@ -1807,31 +1807,31 @@ const s = StyleSheet.create({
   card: { backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 16, padding: 20 },
   cardTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
   cardSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
-  label: { color: '#ddd', fontFamily: FONTS.bold, fontSize: 12 },
+  label: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   input: { backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1, borderRadius: 10, padding: 12, color: SAC.text, fontFamily: FONTS.med, fontSize: 13 },
   primaryBtn: { height: 42, borderRadius: 10, backgroundColor: SAC.primary, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
-  btnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
+  btnText: { color: SAC.onAccent, fontFamily: FONTS.bold, fontSize: 13 },
   sectionHeader: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 14, marginTop: 10 },
-  dialogueBubble: { padding: 12, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: SAC.border, borderWidth: 1, gap: 4 },
+  dialogueBubble: { padding: 12, borderRadius: 12, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1, gap: 4 },
   agentTag: { color: SAC.accent, fontFamily: FONTS.bold, fontSize: 12 },
-  dialogueText: { color: '#eee', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 },
+  dialogueText: { color: SAC.text, fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 },
   artifactCard: { padding: 14, borderRadius: 12, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1 },
   artifactHeader: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 },
-  codeBlock: { color: '#93c5fd', fontFamily: FONTS.med, fontSize: 11.5, lineHeight: 17 },
-  stepCard: { padding: 12, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: SAC.border, borderWidth: 1, gap: 6 },
+  codeBlock: { color: SAC.blue, fontFamily: FONTS.med, fontSize: 11.5, lineHeight: 17 },
+  stepCard: { padding: 12, borderRadius: 12, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1, gap: 6 },
   stepTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
   stepThought: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
-  stepResult: { color: '#a7f3d0', fontFamily: FONTS.med, fontSize: 12 },
+  stepResult: { color: SAC.ok, fontFamily: FONTS.med, fontSize: 12 },
   personaBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, alignItems: 'center' },
   personaBtnActive: { backgroundColor: SAC.primary, borderColor: SAC.accent },
   personaBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  assertionCard: { padding: 12, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: SAC.border, borderWidth: 1, gap: 4 },
+  assertionCard: { padding: 12, borderRadius: 12, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1, gap: 4 },
   assertionName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
   assertionEndpoint: { color: SAC.accent, fontFamily: FONTS.med, fontSize: 11.5 },
   assertionMsg: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
-  latencyTag: { color: '#4ade80', fontFamily: FONTS.bold, fontSize: 11.5 },
+  latencyTag: { color: SAC.ok, fontFamily: FONTS.bold, fontSize: 11.5 },
   specBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: SAC.primary },
-  specBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
+  specBtnText: { color: SAC.onAccent, fontFamily: FONTS.bold, fontSize: 12 },
 
   // KPI Tile Styles
   kpiTile: { flex: 1, minWidth: 140, padding: 14, borderRadius: 12, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, gap: 4 },
@@ -1841,28 +1841,28 @@ const s = StyleSheet.create({
   // Custom Teams Styles
   addTeamBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: SAC.primary },
   teamCard: { flex: 1, minWidth: 280, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 16, gap: 8 },
-  teamCardSelected: { borderColor: SAC.accent, backgroundColor: 'rgba(245,158,11,0.06)' },
+  teamCardSelected: { borderColor: SAC.accent, backgroundColor: SAC.warnTint },
   teamBadgeIcon: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   teamName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 14 },
   teamCat: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.5 },
-  teamDesc: { color: '#cbd5e1', fontFamily: FONTS.med, fontSize: 12, lineHeight: 16 },
-  agentPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: SAC.border, borderWidth: 1 },
-  agentPillText: { color: '#ddd', fontFamily: FONTS.med, fontSize: 11 },
-  selectBtn: { height: 34, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: SAC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
+  teamDesc: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, lineHeight: 16 },
+  agentPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1 },
+  agentPillText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
+  selectBtn: { height: 34, borderRadius: 8, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
   selectBtnActive: { backgroundColor: SAC.primary, borderColor: SAC.accent },
   selectBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  iconBtn: { padding: 6, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)' },
+  iconBtn: { padding: 6, borderRadius: 6, backgroundColor: SAC.panel2 },
 
   // Outreach & Goodies Directory Styles
-  scoutStatusBanner: { padding: 16, borderRadius: 14, backgroundColor: 'rgba(139,92,246,0.10)', borderColor: '#8B5CF6', borderWidth: 1 },
-  scoutIconBox: { width: 40, height: 40, borderRadius: 10, backgroundColor: 'rgba(139,92,246,0.22)', alignItems: 'center', justifyContent: 'center' },
-  cadenceChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: SAC.border, borderWidth: 1 },
-  cadenceChipActive: { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' },
+  scoutStatusBanner: { padding: 16, borderRadius: 14, backgroundColor: SAC.tint, borderColor: SAC.violet, borderWidth: 1 },
+  scoutIconBox: { width: 40, height: 40, borderRadius: 10, backgroundColor: SAC.tintStrong, alignItems: 'center', justifyContent: 'center' },
+  cadenceChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1 },
+  cadenceChipActive: { backgroundColor: SAC.primary, borderColor: SAC.accent },
   cadenceChipText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5 },
-  broadcastBannerBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, backgroundColor: '#8B5CF6' },
-  blogBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: '#EC4899' },
-  venueBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: '#F59E0B' },
-  socialBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: '#3B82F6' },
+  broadcastBannerBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, backgroundColor: SAC.primary },
+  blogBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: SAC.pink },
+  venueBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: SAC.accent },
+  socialBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: SAC.blue },
 
   viewModeBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
   viewModeBtnActive: { backgroundColor: SAC.primary },
@@ -1870,21 +1870,21 @@ const s = StyleSheet.create({
 
   communityCard: { backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 16, gap: 10 },
   commTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
-  commDesc: { color: '#cbd5e1', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 17 },
+  commDesc: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 17 },
   contactGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, padding: 10, borderRadius: 10, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1 },
   contactItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  contactText: { color: '#ddd', fontFamily: FONTS.med, fontSize: 11.5 },
+  contactText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
   organizerRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 4 },
-  goodieCard: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.3)', borderWidth: 1 },
+  goodieCard: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: SAC.warnTint, borderColor: SAC.warnLine, borderWidth: 1 },
   goodieTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
   goodieSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
-  
-  mouBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: '#8B5CF6' },
-  ambassadorBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: '#10B981' },
-  campaignBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: '#6366F1' },
-  convertBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: '#374151' },
+
+  mouBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: SAC.violet },
+  ambassadorBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: SAC.green },
+  campaignBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: SAC.cat1 },
+  convertBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: SAC.muted },
   convertBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5 },
-  roleChip: { flex: 1, paddingVertical: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: SAC.border, borderWidth: 1, alignItems: 'center' },
+  roleChip: { flex: 1, paddingVertical: 10, borderRadius: 8, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1, alignItems: 'center' },
   roleChipActive: { backgroundColor: SAC.primary, borderColor: SAC.accent },
   roleChipText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
 
@@ -1892,19 +1892,19 @@ const s = StyleSheet.create({
   kanbanColumn: { width: 280, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 14, minHeight: 300 },
   kanbanColumnTitle: { fontFamily: FONTS.bold, fontSize: 13 },
   kanbanCard: { padding: 12, borderRadius: 10, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1, gap: 6 },
-  kanbanActionBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.08)' },
+  kanbanActionBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: '#F1F5F9' },
   kanbanActionText: { color: SAC.muted, fontSize: 10, fontFamily: FONTS.bold },
 
   // Modal Styles
-  modalOverlay: { flex: 1, backgroundColor: SAC.panel2, alignItems: 'center', justifyContent: 'center', padding: 16 },
-  modalContent: { width: '100%', maxWidth: 600, backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1, borderRadius: 16, padding: 20 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.72)', zIndex: 1000, alignItems: 'center', justifyContent: 'center', padding: 16 },
+  modalContent: { width: '100%', maxWidth: 600, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 16, padding: 20 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   modalTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
-  catChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: SAC.border, borderWidth: 1 },
+  catChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1 },
   catChipActive: { backgroundColor: SAC.primary, borderColor: SAC.accent },
   catChipText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10 },
   addAgentBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: SAC.primary },
   agentFormCard: { padding: 12, borderRadius: 10, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1, gap: 8 },
-  cancelBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)' },
+  cancelBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, backgroundColor: SAC.panel2 },
   saveBtn: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 8, backgroundColor: SAC.primary },
 });

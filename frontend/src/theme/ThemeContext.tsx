@@ -23,16 +23,24 @@ type Ctx = { theme: Theme; mode: Mode; setMode: (m: Mode) => void; isDark: boole
 const ThemeContext = createContext<Ctx | null>(null);
 /** Lets a subtree pin the *document* to dark (see ForceDarkTheme). */
 const PinContext = createContext<() => () => void>(() => () => {});
+/** Lets a subtree pin the *document* to light (see ForceLightTheme). */
+const PinLightContext = createContext<() => () => void>(() => () => {});
 const STORAGE_KEY = 'apple-theme';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<Mode>('dark');           // default dark theme
   const [systemDark, setSystemDark] = useState<boolean>(true);
-  // Number of mounted ForceDarkTheme subtrees; while > 0 the document stays dark.
+  // Number of mounted ForceDarkTheme / ForceLightTheme subtrees; the document
+  // follows whichever is active (a page-level pin beats the user's mode).
   const [darkPins, setDarkPins] = useState(0);
   const pinDark = React.useCallback(() => {
     setDarkPins((n) => n + 1);
     return () => setDarkPins((n) => Math.max(0, n - 1));
+  }, []);
+  const [lightPins, setLightPins] = useState(0);
+  const pinLight = React.useCallback(() => {
+    setLightPins((n) => n + 1);
+    return () => setLightPins((n) => Math.max(0, n - 1));
   }, []);
 
   // Load persisted mode + listen to system changes
@@ -76,8 +84,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const isDark = mode === 'dark' || (mode === 'system' && systemDark) || (mode !== 'light' && mode !== 'system' ? true : false);
   const theme = isDark ? DARK : (LIGHT as unknown as Theme);
 
-  // Sync with document element for CSS override method
-  const documentDark = isDark || darkPins > 0;
+  // Sync with document element for CSS override method. A mounted page-level
+  // pin (ForceDarkTheme / ForceLightTheme) overrides the user's mode for the
+  // document, so the global CSS-vars / scrollbar / <html> never disagree with
+  // the pinned subtree.
+  // A mounted *dark* commit (ForceDarkTheme, e.g. a dark-only portal) wins
+  // over any light pin: an embedded light page (e.g. /deals inside the
+  // alumni portal) must not re-theme the document underneath a dark portal.
+  const documentDark = darkPins > 0 || (lightPins === 0 && isDark);
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       const root = document.documentElement;
@@ -94,12 +108,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('theme', isDark ? 'dark' : 'light');
       } catch {}
     }
-  }, [isDark, documentDark, mode]);
+  }, [isDark, documentDark, lightPins, darkPins, mode]);
 
   const value = useMemo<Ctx>(() => ({ theme, mode, setMode, isDark }), [theme, mode, isDark]);
   return (
     <PinContext.Provider value={pinDark}>
-      <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+      <PinLightContext.Provider value={pinLight}>
+        <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+      </PinLightContext.Provider>
     </PinContext.Provider>
   );
 }
@@ -116,6 +132,17 @@ export function ForceDarkTheme({ children }: { children: React.ReactNode }) {
   useEffect(() => pinDark(), [pinDark]);
   const value = useMemo<Ctx>(
     () => ({ theme: DARK, mode: 'dark', setMode: parent.setMode, isDark: true }),
+    [parent.setMode],
+  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+
+export function ForceLightTheme({ children }: { children: React.ReactNode }) {
+  const parent = useTheme();
+  const pinLight = useContext(PinLightContext);
+  useEffect(() => pinLight(), [pinLight]);
+  const value = useMemo<Ctx>(
+    () => ({ theme: LIGHT as unknown as Theme, mode: 'light', setMode: parent.setMode, isDark: false }),
     [parent.setMode],
   );
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

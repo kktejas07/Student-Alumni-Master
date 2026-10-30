@@ -73,7 +73,7 @@ export function CICDEvaluatorView() {
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <GitPullRequest size={22} color="#7C5CFC" />
+            <GitPullRequest size={22} color={SAC.violet} />
             <Text style={{ fontFamily: FONTS.bold, fontSize: 22, color: SAC.text }}>Autonomous CI/CD PR Evaluator & Git Scout</Text>
           </View>
           <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: SAC.muted }}>
@@ -85,9 +85,9 @@ export function CICDEvaluatorView() {
           <Pressable
             onPress={triggerCicdLoop}
             disabled={loopRunning}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.25)', borderWidth: 1, borderColor: '#7C5CFC', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 }}>
-            {loopRunning ? <ActivityIndicator size="small" color="#D8B4FE" /> : <Bot size={15} color="#D8B4FE" />}
-            <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold, fontSize: 13 }}>
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: SAC.tintStrong, borderWidth: 1, borderColor: SAC.violet, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 }}>
+            {loopRunning ? <ActivityIndicator size="small" color={SAC.onTint} /> : <Bot size={15} color={SAC.onTint} />}
+            <Text style={{ color: SAC.onTint, fontFamily: FONTS.bold, fontSize: 13 }}>
               {loopRunning ? 'Loop Agent Watching...' : '🤖 Start CI/CD Loop Agent'}
             </Text>
           </Pressable>
@@ -95,9 +95,9 @@ export function CICDEvaluatorView() {
           <Pressable
             onPress={runGitScout}
             disabled={scouting}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(16,185,129,0.2)', borderWidth: 1, borderColor: '#10B981', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 }}>
-            {scouting ? <ActivityIndicator size="small" color="#6EE7B7" /> : <Search size={15} color="#6EE7B7" />}
-            <Text style={{ color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 13 }}>
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: SAC.okTint, borderWidth: 1, borderColor: SAC.ok, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 }}>
+            {scouting ? <ActivityIndicator size="small" color={SAC.ok} /> : <Search size={15} color={SAC.ok} />}
+            <Text style={{ color: SAC.ok, fontFamily: FONTS.bold, fontSize: 13 }}>
               {scouting ? 'Scouting Tools...' : '🔍 Scout Open-Source Tools'}
             </Text>
           </Pressable>
@@ -105,10 +105,10 @@ export function CICDEvaluatorView() {
       </View>
 
       {/* Interactive PR Evaluator Playground */}
-      <Card style={{ padding: 20, gap: 16, backgroundColor: 'rgba(124,92,252,0.06)', borderColor: 'rgba(124,92,252,0.2)' }}>
+      <Card style={{ padding: 20, gap: 16, backgroundColor: SAC.tint, borderColor: SAC.accentLine }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Code size={18} color="#C9A7FF" />
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#FFF' }}>Evaluate Pull Request (Quality Gate & Security Scan)</Text>
+          <Code size={18} color={SAC.violet} />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>Evaluate Pull Request (Quality Gate & Security Scan)</Text>
         </View>
         <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: SAC.muted }}>
           Enter a PR number or branch name to trigger full static analysis, unit test assertion verification, and quality gate scoring.
@@ -121,8 +121,8 @@ export function CICDEvaluatorView() {
               value={prNumber}
               onChangeText={setPrNumber}
               placeholder="e.g. 1, 42"
-              placeholderTextColor="rgba(255,255,255,0.3)"
-              style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, color: '#FFF', fontSize: 13, fontFamily: FONTS.med }}
+              placeholderTextColor={SAC.dim}
+              style={{ backgroundColor: SAC.panel2, borderWidth: 1, borderColor: SAC.line2, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, color: SAC.text, fontSize: 13, fontFamily: FONTS.med }}
             />
           </View>
           <View style={{ flex: 2, minWidth: 220 }}>
@@ -131,14 +131,14 @@ export function CICDEvaluatorView() {
               value={branchName}
               onChangeText={setBranchName}
               placeholder="feature/branch-name"
-              placeholderTextColor="rgba(255,255,255,0.3)"
-              style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, color: '#FFF', fontSize: 13, fontFamily: FONTS.med }}
+              placeholderTextColor={SAC.dim}
+              style={{ backgroundColor: SAC.panel2, borderWidth: 1, borderColor: SAC.line2, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, color: SAC.text, fontSize: 13, fontFamily: FONTS.med }}
             />
           </View>
           <Pressable
             onPress={runPrEvaluation}
             disabled={evaluating}
-            style={{ marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#7C5CFC', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 8 }}>
+            style={{ marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: SAC.violet, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 8 }}>
             {evaluating ? <ActivityIndicator size="small" color="#FFF" /> : <Play size={14} color="#FFF" />}
             <Text style={{ color: '#FFF', fontFamily: FONTS.bold, fontSize: 13 }}>
               {evaluating ? 'Evaluating PR...' : '⚡ Evaluate PR Now'}
@@ -148,49 +148,49 @@ export function CICDEvaluatorView() {
 
         {/* Evaluation Output Result Card */}
         {evalResult && (
-          <View style={{ marginTop: 10, padding: 16, backgroundColor: '#0D0E1A', borderRadius: 12, borderWidth: 1, borderColor: evalResult.error ? 'rgba(239,68,68,0.4)' : 'rgba(16,185,129,0.4)', gap: 12 }}>
+          <View style={{ marginTop: 10, padding: 16, backgroundColor: SAC.card, borderRadius: 12, borderWidth: 1, borderColor: evalResult.error ? SAC.danger : SAC.okLine, gap: 12 }}>
             {evalResult.error ? (
-              <Text style={{ color: '#FCA5A5', fontFamily: FONTS.med, fontSize: 13 }}>Error: {evalResult.error}</Text>
+              <Text style={{ color: SAC.danger, fontFamily: FONTS.med, fontSize: 13 }}>Error: {evalResult.error}</Text>
             ) : (
               <>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <ShieldCheck size={20} color={evalResult.evaluation?.passed ? '#34D399' : '#F5B342'} />
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: '#FFF' }}>
-                      PR #{evalResult.pr_number || prNumber} Quality Report — Score: <Text style={{ color: evalResult.evaluation?.quality_score >= 75 ? '#34D399' : '#FCA5A5' }}>{evalResult.evaluation?.quality_score || 92} / 100</Text>
+                    <ShieldCheck size={20} color={evalResult.evaluation?.passed ? SAC.ok : SAC.accent} />
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>
+                      PR #{evalResult.pr_number || prNumber} Quality Report — Score: <Text style={{ color: evalResult.evaluation?.quality_score >= 75 ? SAC.ok : SAC.danger }}>{evalResult.evaluation?.quality_score || 92} / 100</Text>
                     </Text>
                   </View>
-                  <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: evalResult.evaluation?.passed ? 'rgba(16,185,129,0.2)' : 'rgba(245,179,66,0.2)', borderWidth: 1, borderColor: evalResult.evaluation?.passed ? '#10B981' : '#F5B342' }}>
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: evalResult.evaluation?.passed ? '#34D399' : '#F5B342' }}>
+                  <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: evalResult.evaluation?.passed ? SAC.okTint : SAC.warnTint, borderWidth: 1, borderColor: evalResult.evaluation?.passed ? SAC.okLine : SAC.warnLine }}>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: evalResult.evaluation?.passed ? SAC.ok : SAC.accent }}>
                       {evalResult.evaluation?.passed ? 'APPROVED FOR MERGE ✓' : 'CHANGES REQUESTED ⚠️'}
                     </Text>
                   </View>
                 </View>
 
                 <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
-                  <View style={{ flex: 1, minWidth: 160, padding: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
+                  <View style={{ flex: 1, minWidth: 160, padding: 10, backgroundColor: SAC.panel2, borderRadius: 8, borderWidth: 1, borderColor: SAC.line }}>
                     <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.muted, textTransform: 'uppercase' }}>Test Assertions</Text>
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#34D399', marginTop: 2 }}>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.ok, marginTop: 2 }}>
                       {evalResult.evaluation?.test_assertions_verified || '23/23 Passed (100%)'}
                     </Text>
                   </View>
-                  <View style={{ flex: 1, minWidth: 160, padding: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
+                  <View style={{ flex: 1, minWidth: 160, padding: 10, backgroundColor: SAC.panel2, borderRadius: 8, borderWidth: 1, borderColor: SAC.line }}>
                     <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.muted, textTransform: 'uppercase' }}>Security Vulnerabilities</Text>
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#6EE7B7', marginTop: 2 }}>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.ok, marginTop: 2 }}>
                       {evalResult.evaluation?.security_issues_count || 0} Critical / High
                     </Text>
                   </View>
-                  <View style={{ flex: 1, minWidth: 160, padding: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
+                  <View style={{ flex: 1, minWidth: 160, padding: 10, backgroundColor: SAC.panel2, borderRadius: 8, borderWidth: 1, borderColor: SAC.line }}>
                     <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.muted, textTransform: 'uppercase' }}>Performance Risk</Text>
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#D8B4FE', marginTop: 2 }}>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.violet, marginTop: 2 }}>
                       {evalResult.evaluation?.performance_risk || 'Low Impact'}
                     </Text>
                   </View>
                 </View>
 
                 {evalResult.evaluation?.summary && (
-                  <View style={{ padding: 12, backgroundColor: 'rgba(124,92,252,0.1)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(124,92,252,0.2)' }}>
-                    <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: '#D8B4FE' }}>
+                  <View style={{ padding: 12, backgroundColor: SAC.tint, borderRadius: 8, borderWidth: 1, borderColor: SAC.accentLine }}>
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.onTint }}>
                       💬 Agent Feedback: {evalResult.evaluation.summary}
                     </Text>
                   </View>
@@ -210,12 +210,12 @@ export function CICDEvaluatorView() {
 
         <View style={{ gap: 10 }}>
           {(scoutResult?.tools || defaultTools).map((tool: any, idx: number) => (
-            <Card key={idx} style={{ padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+            <Card key={idx} style={{ padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', backgroundColor: SAC.panel2 }}>
               <View style={{ flex: 2, minWidth: 200, gap: 4 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Star size={14} color="#F5B342" />
-                  <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: '#FFF' }}>{tool.name}</Text>
-                  <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: '#F5B342', backgroundColor: 'rgba(245,179,66,0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                  <Star size={14} color={SAC.accent} />
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>{tool.name}</Text>
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.accent, backgroundColor: SAC.warnTint, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
                     {tool.stars}
                   </Text>
                 </View>
@@ -225,11 +225,11 @@ export function CICDEvaluatorView() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.muted, textTransform: 'uppercase' }}>Benchmark Score</Text>
-                  <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#34D399' }}>{tool.score} / 100</Text>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.ok }}>{tool.score} / 100</Text>
                 </View>
 
-                <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.35)' }}>
-                  <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#34D399' }}>{tool.status}</Text>
+                <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, backgroundColor: SAC.okTint, borderWidth: 1, borderColor: SAC.okLine }}>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.ok }}>{tool.status}</Text>
                 </View>
               </View>
             </Card>

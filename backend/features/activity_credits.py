@@ -16,18 +16,22 @@ Endpoints (all under /api):
    POST /wallet/topup                       — INR → credits (mock gateway)
    POST /wallet/withdraw                    — credits → INR (mock cash-out)
    POST /wallet/seed-demo-earnings          — seed pre-populated activity events for the test user
+   GET  /wallet/topup/upi?amount_inr=       — W7: UPI deep-link top-up session (deep link, QR, ref)
+   GET  /wallet/topup/status/{ref}          — W7: poll UPI session; auto-settles on ledger confirm
+   POST /wallet/topup/upi/settle           — W7: admin ops settle for a pending UPI session
 """
 from __future__ import annotations
 
 import os
 import logging
+import math
 import uuid
 from datetime import datetime, timezone, timedelta, date as _date
 from typing import Any, Dict, List, Optional, Tuple
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
 from core.db import db as _db
 
@@ -37,6 +41,7 @@ router = APIRouter()
 CREDITS_PER_INR = 25  # 25 credits = ₹1
 WITHDRAW_THRESHOLD_CREDITS = 2500  # Need at least ₹100 worth before cash-out
 TOPUP_BONUS_PCT = 5  # 5% bonus credits on top-up
+UPI_TOPUPS = "sa_upi_topups"  # W7: pending UPI deep-link top-up sessions
 
 
 def credits_to_inr(c: int) -> float:
@@ -167,6 +172,7 @@ async def _credit_user(
     wallet = user.get("wallet") or {}
     cur = int(wallet.get("balance_credits", 0))
     new_bal = cur + amount
+    lifetime_before = int(wallet.get("lifetime_earned") or 0)
     await _db.users.update_one(
         {"_id": user["_id"]},
         {"$set": {"wallet.balance_credits": new_bal,
@@ -183,7 +189,26 @@ async def _credit_user(
         "balance_after": new_bal,
         "ts": datetime.now(timezone.utc),
     })
+    await _maybe_notify_level_up(user, lifetime_before, lifetime_before + amount)
     return new_bal, False
+
+
+async def _maybe_notify_level_up(user: Dict[str, Any],
+                                 lifetime_before: int,
+                                 lifetime_after: int) -> None:
+    """Raise a level-up notification when a credit crosses a tier
+    boundary. Uses the in-memory lifetime_earned snapshot, so callers
+    that credit several times in one request should refresh
+    user["wallet"]["lifetime_earned"] between calls."""
+    try:
+        before = _compute_level(lifetime_before)
+        after = _compute_level(lifetime_after)
+        if int(after.get("level") or 0) <= int(before.get("level") or 0):
+            return
+        from features.wallet_notifications import notify_level_up
+        await notify_level_up(user, after)
+    except Exception as e:  # noqa: BLE001
+        logger.warning("level-up notification failed: %s", e)
 
 
 async def _debit_user(
@@ -255,11 +280,28 @@ async def _record_activity(
 
     amount = int(rule["credits"])
     label = rule["label"]
+
+    # W8 wallet security: lock check, rate limit, daily earning cap, audit
+    from features.wallet_security import (
+        audit_op, alert_transaction, check_credit_rate_limit,
+        check_daily_earning_cap, check_debit_lock,
+    )
+    await check_debit_lock(user)
+    await check_credit_rate_limit(user)
+    await check_daily_earning_cap(user, amount)
+    await audit_op(str(user["_id"]), "credit", amount, f"Activity: {label}", "attempted",
+                   {"activity_type": activity_type})
+
     new_bal, dup = await _credit_user(
         user, amount, f"Activity: {label}",
         metadata={**metadata, "activity_type": activity_type, "category": rule.get("category"), "icon": rule.get("icon")},
         idempotency_key=idem,
     )
+    await audit_op(str(user["_id"]), "credit", 0 if dup else amount, f"Activity: {label}",
+                   "ok" if not dup else "duplicate", {"activity_type": activity_type})
+    await alert_transaction(user, {
+        "type": "credit", "amount": 0 if dup else amount,
+        "reason": f"Activity: {label}", "metadata": {"category": rule.get("category")}})
     # Also log to activity_events for analytics
     await _db.activity_events.insert_one({
         "user_id": str(user["_id"]),
@@ -522,6 +564,12 @@ async def wallet_topup_verify(
     if not _hmac.compare_digest(expected, razorpay_signature):
         raise HTTPException(400, "Invalid payment signature")
 
+    # W8 wallet security: rate limit + audit
+    from features.wallet_security import audit_op, alert_transaction, check_credit_rate_limit
+    await check_credit_rate_limit(user)
+    await audit_op(str(user["_id"]), "topup", inr_to_credits(amount_inr),
+                   "Razorpay top-up", "attempted", {"razorpay_order_id": razorpay_order_id})
+
     # Credit wallet
     base_credits = inr_to_credits(amount_inr)
     bonus_credits = int(round(base_credits * (TOPUP_BONUS_PCT / 100.0)))
@@ -542,6 +590,12 @@ async def wallet_topup_verify(
         },
         idempotency_key=idem,
     )
+    await audit_op(str(user["_id"]), "topup", 0 if dup else total_credits,
+                   "Razorpay top-up", "ok" if not dup else "duplicate",
+                   {"razorpay_order_id": razorpay_order_id})
+    await alert_transaction(u, {
+        "type": "credit", "amount": 0 if dup else total_credits,
+        "reason": f"Top-up via Razorpay", "metadata": {"kind": "topup"}})
     return {
         "ok": True,
         "duplicate": dup,
@@ -573,6 +627,12 @@ async def wallet_topup(
     bonus_credits = int(round(base_credits * (TOPUP_BONUS_PCT / 100.0)))
     total_credits = base_credits + bonus_credits
 
+    # W8 wallet security: rate limit + audit
+    from features.wallet_security import audit_op, alert_transaction, check_credit_rate_limit
+    await check_credit_rate_limit(user)
+    await audit_op(str(user["_id"]), "topup", total_credits, "Top-up", "attempted",
+                   {"payment_method": payment_method})
+
     u = await _resolve_user(user["_id"])
     new_bal, dup = await _credit_user(
         u, total_credits,
@@ -586,6 +646,11 @@ async def wallet_topup(
         },
         idempotency_key=idem,
     )
+    await audit_op(str(user["_id"]), "topup", 0 if dup else total_credits, "Top-up",
+                   "ok" if not dup else "duplicate", {"payment_method": payment_method})
+    await alert_transaction(u, {
+        "type": "credit", "amount": 0 if dup else total_credits,
+        "reason": f"Top-up via {payment_method.upper()}", "metadata": {"kind": "topup"}})
     return {
         "ok": True,
         "duplicate": dup,
@@ -596,6 +661,220 @@ async def wallet_topup(
         "balance_credits": new_bal,
         "balance_inr": credits_to_inr(new_bal),
     }
+
+
+# ─── UPI Deep Link Top-up (W7) ──────────────────────────────────────
+# Zero-gateway-cost option alongside Razorpay: pay the SA VPA directly
+# via upi:// deep link (mobile UPI app grid) or QR (desktop). A session
+# lands in sa_upi_topups; the frontend polls GET /wallet/topup/status/{ref}
+# and _upi_check_pending_topups() auto-settles when the UPI tool ledger
+# confirms the transaction ref. Without a configured VPA the flow runs
+# in demo mode and settles immediately so the UX works end to end.
+
+UPI_APPS = [
+    {"id": "gpay", "name": "Google Pay"},
+    {"id": "phonepe", "name": "PhonePe"},
+    {"id": "paytm", "name": "Paytm"},
+    {"id": "bhim", "name": "BHIM"},
+]
+
+
+async def _upi_vpa() -> Optional[str]:
+    """Receiving VPA: sa_settings value, then the UPI installed tool,
+    then SA_WALLET_UPI_VPA env. None = not configured (demo mode)."""
+    try:
+        doc = await _db.sa_settings.find_one({"key": "wallet_upi_vpa"})
+        if (doc or {}).get("value"):
+            return str(doc["value"]).strip()
+    except Exception:
+        logger.warning("Failed to read wallet UPI VPA from sa_settings; trying next source", exc_info=True)
+    try:
+        tool = await _db.installed_tools.find_one(
+            {"tool_id": "upi", "status": "connected"})
+        vpa = str(((tool or {}).get("credentials") or {}).get("vpa") or "").strip()
+        if vpa:
+            return vpa
+    except Exception:
+        logger.warning("Failed to read wallet UPI VPA from installed_tools; trying env fallback", exc_info=True)
+    return os.environ.get("SA_WALLET_UPI_VPA", "").strip() or None
+
+
+def _upi_deep_link(vpa: str, amount_inr: float, ref: str) -> str:
+    return (f"upi://pay?pa={vpa}"
+            "&pn=StudentAlumni"
+            f"&am={amount_inr:.2f}"
+            "&cu=INR"
+            f"&tn=Wallet%20top-up%20(+{int(inr_to_credits(amount_inr))}%20credits)"
+            f"&tr={ref}")
+
+
+def _upi_qr_payload(vpa: str, amount_inr: float, ref: str) -> str:
+    """NPIC collect QR content — client renders it as an image."""
+    return (f"upi://pay?pa={vpa}&pn=StudentAlumni"
+            f"&am={amount_inr:.2f}&cu=INR&tr={ref}")
+
+
+async def _upi_settle_topup(doc: Dict[str, Any], vpa: str) -> Dict[str, Any]:
+    """Credit a pending UPI session (idempotent per ref) and settle it."""
+    uid = str(doc["user_id"])
+    amount_inr = float(doc.get("amount_inr") or 0)
+    ref = str(doc["ref"])
+    base_credits = inr_to_credits(amount_inr)
+    bonus_credits = int(round(base_credits * (TOPUP_BONUS_PCT / 100.0)))
+    total_credits = base_credits + bonus_credits
+
+    from features.wallet_security import audit_op, alert_transaction, check_credit_rate_limit
+    u = await _resolve_user(ObjectId(uid))
+    await check_credit_rate_limit(u)
+    await audit_op(uid, "topup", total_credits, "UPI top-up", "attempted", {"ref": ref})
+    new_bal, dup = await _credit_user(
+        u, total_credits,
+        f"Top-up ₹{amount_inr:.0f} via UPI (+{TOPUP_BONUS_PCT}% bonus)",
+        metadata={"kind": "topup", "amount_inr": amount_inr,
+                  "base_credits": base_credits, "bonus_credits": bonus_credits,
+                  "payment_method": "upi", "ref": ref, "upi": True},
+        idempotency_key=f"topup:upi:{uid}:{ref}",
+    )
+    await _db[UPI_TOPUPS].update_one(
+        {"ref": ref, "status": {"$ne": "settled"}},
+        {"$set": {"status": "settled", "settled_at": datetime.now(timezone.utc),
+                  "total_credits": 0 if dup else total_credits}})
+    await audit_op(uid, "topup", 0 if dup else total_credits, "UPI top-up",
+                   "ok" if not dup else "duplicate", {"ref": ref})
+    await alert_transaction(u, {"type": "credit",
+                                "amount": 0 if dup else total_credits,
+                                "reason": "Top-up via UPI",
+                                "metadata": {"kind": "topup"}})
+    try:
+        from features.wallet_notifications import notify_wallet_event
+        await notify_wallet_event(
+            u, "earn", "UPI top-up confirmed",
+            f"₹{amount_inr:.0f} added: +{total_credits} credits "
+            f"(incl. {TOPUP_BONUS_PCT}% bonus).",
+            data={"kind": "topup", "ref": ref, "amount": total_credits})
+    except Exception:
+        logger.exception("UPI top-up settled but wallet notification failed for ref=%s user_id=%s", ref, uid)
+    return {"ref": ref, "amount_inr": amount_inr,
+            "total_credits": 0 if dup else total_credits,
+            "duplicate": dup, "balance_credits": new_bal}
+
+
+async def _upi_check_pending_topups(ref: str) -> Dict[str, Any]:
+    """Scan the UPI tool ledger for a paid tx matching our ref and settle."""
+    try:
+        tool = await _db.installed_tools.find_one(
+            {"tool_id": "upi", "status": "connected"})
+        if not tool:
+            return {"ref": ref, "settled": False,
+                    "note": "UPI gateway not connected"}
+        ledger = ((tool.get("credentials") or {}).get("ledger")
+                  or tool.get("txns") or [])
+        for t in ledger:
+            if str(t.get("tr") or t.get("ref") or "") != ref:
+                continue
+            if str(t.get("status") or "").lower() in ("success", "captured", "paid"):
+                doc = await _db[UPI_TOPUPS].find_one({"ref": ref})
+                if doc and doc.get("status") == "pending":
+                    await _upi_settle_topup(doc, doc.get("vpa") or "upi")
+                return {"ref": ref, "settled": True}
+        return {"ref": ref, "settled": False,
+                "note": "payment not confirmed yet"}
+    except Exception as e:  # noqa: BLE001
+        logger.warning("UPI ledger check failed for %s: %s", ref, e)
+        return {"ref": ref, "settled": False, "note": "ledger check failed"}
+
+
+@router.get("/wallet/topup/upi")
+async def wallet_topup_upi(
+    amount_inr: float = Query(0, gt=0, le=100000),
+    user: dict = Depends(_get_current_user_dependency()),
+):
+    """W7: prepare a UPI deep-link top-up session — deep link for the
+    mobile UPI app grid, QR payload for desktop, and a `ref` to poll on
+    /wallet/topup/status/{ref}. No VPA configured -> demo settle."""
+    uid = str(user["_id"])
+    ref = "upitop-" + uuid.uuid4().hex[:12]
+    base_credits = inr_to_credits(amount_inr)
+    expected = base_credits + int(round(base_credits * (TOPUP_BONUS_PCT / 100.0)))
+    vpa = await _upi_vpa()
+    demo = vpa is None
+    await _db[UPI_TOPUPS].insert_one({
+        "ref": ref, "user_id": uid, "amount_inr": amount_inr,
+        "status": "pending", "vpa": "demo@sa-upi" if demo else vpa,
+        "demo": demo, "ts": datetime.now(timezone.utc),
+    })
+
+    if demo:
+        # No VPA configured — settle immediately so the UX works end to end.
+        res = await _upi_settle_topup(
+            {"ref": ref, "user_id": uid, "amount_inr": amount_inr}, "demo@sa-upi")
+        return {"ok": True, "ref": ref, "status": "settled", "demo": True,
+                "amount_inr": amount_inr, "expected_credits": expected,
+                "upi": {"apps": UPI_APPS, "deep_link": None,
+                         "qr_payload": None, "vpa": None},
+                "balance_credits": res["balance_credits"],
+                "note": "UPI not configured — demo mode credited your wallet directly."}
+
+    from features.wallet_security import _mask_vpa
+    return {"ok": True, "ref": ref, "status": "pending", "demo": False,
+            "amount_inr": amount_inr, "expected_credits": expected,
+            "upi": {"apps": UPI_APPS, "vpa": _mask_vpa(vpa),
+                    "deep_link": _upi_deep_link(vpa, amount_inr, ref),
+                    "qr_payload": _upi_qr_payload(vpa, amount_inr, ref)},
+            "note": "Pay in any UPI app, then poll /wallet/topup/status/{ref} until settled."}
+
+
+@router.get("/wallet/topup/status/{ref}")
+async def wallet_topup_status(
+    ref: str,
+    user: dict = Depends(_get_current_user_dependency()),
+):
+    """W7: poll a UPI deep-link session; auto-settles when the UPI
+    gateway ledger confirms the transaction ref."""
+    uid = str(user["_id"])
+    doc = await _db[UPI_TOPUPS].find_one({"ref": ref, "user_id": uid})
+    if not doc:
+        raise HTTPException(404, "Unknown top-up reference")
+    if doc.get("status") == "pending":
+        check = await _upi_check_pending_topups(ref)
+        if check.get("settled"):
+            doc = await _db[UPI_TOPUPS].find_one({"ref": ref})
+    amount_inr = float(doc.get("amount_inr") or 0)
+    base_credits = inr_to_credits(amount_inr)
+    expected = base_credits + int(round(base_credits * (TOPUP_BONUS_PCT / 100.0)))
+    settled = doc.get("status") == "settled"
+    return {"ok": True, "ref": ref, "status": doc.get("status"),
+            "amount_inr": amount_inr, "expected_credits": expected,
+            "credits": int(doc.get("total_credits") or 0) if settled else 0,
+            "demo": bool(doc.get("demo")),
+            "settled_at": doc.get("settled_at"),
+            "note": ("Waiting for your UPI app to confirm — check again "
+                      "in a few seconds."
+                     if not settled else "Top-up settled. Credits are in your wallet.")}
+
+
+def _require_admin_dependency():
+    from core.deps import require_admin_role  # noqa
+    return require_admin_role
+
+
+@router.post("/wallet/topup/upi/settle")
+async def wallet_topup_upi_settle(
+    body: Dict[str, Any],
+    user: dict = Depends(_require_admin_dependency()),
+):
+    """W7 ops endpoint: manually confirm a pending UPI session (e.g. the
+    bank ref arrived off-system). Idempotent."""
+    ref = str((body or {}).get("ref") or "").strip()
+    if not ref:
+        raise HTTPException(400, "ref required")
+    doc = await _db[UPI_TOPUPS].find_one({"ref": ref})
+    if not doc:
+        raise HTTPException(404, "Unknown top-up reference")
+    if doc.get("status") == "settled":
+        return {"ok": True, "ref": ref, "status": "settled", "duplicate": True}
+    res = await _upi_settle_topup(doc, doc.get("vpa") or "upi")
+    return {"ok": True, "ref": ref, "status": "settled", **res}
 
 
 @router.post("/wallet/withdraw")
@@ -622,21 +901,44 @@ async def wallet_withdraw(
     target = (body or {}).get("target") or "—"
     idem = (body or {}).get("idempotency_key") or f"wd:{user['_id']}:{uuid.uuid4().hex[:12]}"
 
-    u = await _resolve_user(user["_id"])
-    new_bal, dup = await _debit_user(
-        u, amount_credits,
-        f"Withdraw ₹{credits_to_inr(amount_credits):.0f} via {method.upper()}",
-        metadata={
-            "kind": "withdraw",
-            "amount_credits": amount_credits,
-            "amount_inr": credits_to_inr(amount_credits),
-            "method": method,
-            "target": target,
-            "status": "processing",
-            "eta": "1-2 business days",
-        },
-        idempotency_key=idem,
+    # W8 wallet security: lock check, KYC-lite, withdrawal rate limits, audit
+    from features.wallet_security import (
+        audit_op, alert_transaction, check_debit_lock,
+        check_withdrawal_rate_limits, require_kyc_for_withdrawal,
     )
+    await check_debit_lock(user)
+    await require_kyc_for_withdrawal(user, amount_credits)
+    await check_withdrawal_rate_limits(user)
+    await audit_op(str(user["_id"]), "withdraw", amount_credits, "Withdrawal", "attempted",
+                   {"method": method})
+
+    u = await _resolve_user(user["_id"])
+    try:
+        new_bal, dup = await _debit_user(
+            u, amount_credits,
+            f"Withdraw ₹{credits_to_inr(amount_credits):.0f} via {method.upper()}",
+            metadata={
+                "kind": "withdraw",
+                "amount_credits": amount_credits,
+                "amount_inr": credits_to_inr(amount_credits),
+                "method": method,
+                "target": target,
+                "status": "processing",
+                "eta": "1-2 business days",
+            },
+            idempotency_key=idem,
+        )
+    except HTTPException:
+        await audit_op(str(user["_id"]), "withdraw", amount_credits, "Withdrawal", "failed",
+                       {"method": method})
+        from features.wallet_security import register_failed_debit
+        await register_failed_debit(u)
+        raise
+    await audit_op(str(user["_id"]), "withdraw", 0 if dup else amount_credits, "Withdrawal",
+                   "ok" if not dup else "duplicate", {"method": method})
+    await alert_transaction(u, {
+        "type": "debit", "amount": 0 if dup else amount_credits,
+        "reason": f"Withdraw via {method.upper()}", "metadata": {"kind": "withdraw"}})
     return {
         "ok": True,
         "duplicate": dup,
@@ -757,33 +1059,201 @@ async def wallet_seed_demo(user: dict = Depends(_get_current_user_dependency()))
 
 
 
-# ─── Money Coach (deterministic — no LLM cost) ───────────────────────────
-@router.post("/wallet/coach/chat")
-async def wallet_coach_chat(body: Dict[str, Any] = Body(default={}),
-                              user: dict = Depends(_get_current_user_dependency())):
-    """Deterministic Money Coach. Returns structured replies based on slash commands.
-    No LLM required — fully rule-based & free."""
-    msg = (body or {}).get("message", "").strip()
-    low = msg.lower()
-    wallet = (user.get("wallet") or {})
-    balance_cr = int(wallet.get("balance_credits", 0))
-    lifetime = int(wallet.get("lifetime_earned", 0))
-    balance_inr = balance_cr // CREDITS_PER_INR
-    name = user.get("first_name", "there")
+# ─── Money Coach (W4: deterministic slash commands + hybrid LLM) ────────
+async def _coach_context(user: dict) -> Dict[str, Any]:
+    """Personalized wallet context for the coach — feeds both the
+    deterministic replies and the LLM prompt."""
+    from features.coupon_engine import USER_COUPONS
+    from features.referral_engine import _get_or_create_referral
 
-    # Pull last 30d earnings/spend
-    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
-    cur = _db.credit_events.find({"user_id": str(user["_id"]),
-                                   "created_at": {"$gte": cutoff}})
+    wallet = (user.get("wallet") or {})
+    balance_cr = int(wallet.get("balance_credits") or 0)
+    lifetime = int(wallet.get("lifetime_earned") or 0)
+    level = _compute_level(lifetime)
+
     total_in = 0
     total_out = 0
     by_cat: Dict[str, int] = {}
-    async for e in cur:
-        amt = int(e.get("amount", 0) or 0)
-        if amt > 0: total_in += amt
-        else:       total_out += abs(amt)
-        cat = e.get("category", "other")
-        by_cat[cat] = by_cat.get(cat, 0) + abs(amt)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+    async for t in _db.wallet_transactions.find(
+            {"user_id": str(user["_id"]), "ts": {"$gte": cutoff}}):
+        amt = int(t.get("amount") or 0)
+        if t.get("type") == "credit":
+            total_in += amt
+            cat = (t.get("metadata") or {}).get("category") or "other"
+            by_cat[cat] = by_cat.get(cat, 0) + amt
+        elif t.get("type") == "debit":
+            total_out += amt
+
+    streak = 0
+    try:
+        from features.gamification_engine import _streak_state
+        streak = int((await _streak_state(user)).get("current") or 0)
+    except Exception:
+        logger.exception("Failed to load streak state for coach context")
+        streak = 0
+
+    try:
+        referral_count = len((await _get_or_create_referral(user)).get(
+            "referred_users") or [])
+    except Exception:
+        referral_count = 0
+
+    try:
+        active_coupons = await _db[USER_COUPONS].count_documents({
+            "user_id": str(user["_id"]), "status": "active"})
+    except Exception:
+        active_coupons = 0
+
+    upcoming_events: List[Dict[str, Any]] = []
+    now = datetime.now(timezone.utc)
+    for field in ("start_date", "when", "date"):
+        try:
+            rows = await _db.events.find(
+                {field: {"$gte": now}}).sort(field, 1).limit(3).to_list(3)
+        except Exception:
+            continue
+        if rows:
+            upcoming_events = [
+                {"id": str(r.get("_id")), "title": r.get("title")}
+                for r in rows if r.get("title")]
+            break
+
+    profile = user.get("profile") or {}
+    profile_fields = [f for f in ("headline", "about", "education", "skills")
+                      if (profile.get(f) or user.get(f))]
+    profile_completion = round(len(profile_fields) / 4 * 100)
+
+    return {
+        "balance_credits": balance_cr,
+        "balance_inr": balance_cr // CREDITS_PER_INR,
+        "lifetime_earned": lifetime,
+        "level": level,
+        "streak_days": streak,
+        "earn_30d": total_in,
+        "spend_30d": total_out,
+        "earn_by_cat": dict(sorted(by_cat.items(), key=lambda x: -x[1])),
+        "active_coupons": active_coupons,
+        "upcoming_events": upcoming_events,
+        "profile_completion": profile_completion,
+        "referral_count": referral_count,
+    }
+
+
+COACH_SYSTEM = (
+    "You are the StudentAlumni Money Coach — a friendly, encouraging, "
+    "practical wallet assistant for students and alumni in India. "
+    "You only talk about SA credits, wallet topups and withdrawals, "
+    "campus deals, and SA rewards. Never recommend external financial "
+    "products (banks, loans, investment apps, crypto). Keep replies under "
+    "150 words, warm but concrete, and end with one actionable next step. "
+    "No emoji. Plain text only."
+)
+
+
+def _coach_user_prompt(ctx: Dict[str, Any], message: str) -> str:
+    lvl = ctx["level"]
+    lines = [
+        f"Your wallet: {ctx['balance_credits']} credits "
+        f"(~₹{ctx['balance_inr']}), {lvl['name']} tier "
+        f"({lvl['progress_pct']}% toward "
+        f"{lvl.get('next_level_name') or 'top tier'}).",
+        f"Lifetime earned: {ctx['lifetime_earned']} credits. "
+        f"Login streak: {ctx['streak_days']} day(s).",
+        f"Last 30 days: +{ctx['earn_30d']} credits earned, "
+        f"-{ctx['spend_30d']} spent.",
+    ]
+    top_cat = next(iter(ctx["earn_by_cat"]), None)
+    if top_cat:
+        lines.append(f"Top earning category: {top_cat}.")
+    lines.append(f"Active coupons: {ctx['active_coupons']}. "
+                 f"Referrals: {ctx['referral_count']}. "
+                 f"Profile completion: {ctx['profile_completion']}%.")
+    if ctx["upcoming_events"]:
+        lines.append("Upcoming events: "
+                     + ", ".join(e["title"] for e in ctx["upcoming_events"]))
+    lines.append(f"\nYour message: {message}")
+    return "\n".join(lines)
+
+
+async def _coach_llm_reply(ctx: Dict[str, Any],
+                           message: str) -> Optional[str]:
+    """Route free-text coach questions to Claude (emergentintegrations).
+
+    Returns the reply, or None when the LLM is unavailable — the caller
+    then serves the deterministic fallback."""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+    except Exception:
+        return None
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        return None
+    try:
+        chat = (LlmChat(api_key=api_key,
+                        session_id=f"coach-{uuid.uuid4().hex[:8]}",
+                        system_message=COACH_SYSTEM)
+                 .with_model("anthropic", "claude-sonnet-4-5-20250929"))
+        out = await chat.send_message(
+            UserMessage(text=_coach_user_prompt(ctx, message)))
+        return (out or "").strip() or None
+    except Exception as e:  # noqa: BLE001
+        logger.warning("money coach LLM fallback: %s", e)
+        return None
+
+
+async def _coach_fallback(ctx: Dict[str, Any]) -> str:
+    """Deterministic nudge when the LLM is unavailable."""
+    lvl = ctx["level"]
+    nxt = lvl.get("next_level_name")
+    if nxt:
+        gap = int(lvl.get("credits_to_next") or 0)
+        return (f"You have {ctx['balance_credits']} credits and need {gap} "
+                f"more lifetime credits for {nxt}. Try /credit-plan for the "
+                "fastest path, or earn more by claiming deals, referring a "
+                f"friend (+100cr), and keeping your {ctx['streak_days']}-day "
+                "streak alive.")
+    return ("You're at the top tier — nice work. Use /spend to review "
+            "your last 30 days, /forecast to project ahead, or redeem "
+            "rewards in the Rewards tab while your balance is high.")
+
+
+async def _coach_peer_benchmark() -> Optional[Dict[str, Any]]:
+    """Average 30-day credits earned across active wallet users, so
+    /compare can place the user against real peers instead of a guess."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+    try:
+        rows = await _db.wallet_transactions.aggregate([
+            {"$match": {"type": "credit", "ts": {"$gte": cutoff}}},
+            {"$group": {"_id": "$user_id", "earned": {"$sum": "$amount"}}},
+            {"$project": {"earned": 1}},
+        ]).to_list(50000)
+    except Exception as e:  # noqa: BLE001
+        logger.warning("coach peer benchmark unavailable: %s", e)
+        return None
+    if not rows:
+        return None
+    avg = int(sum(r["earned"] for r in rows) / len(rows))
+    return {"avg_peer_earn_30d": avg, "active_wallet_users": len(rows)}
+
+
+@router.post("/wallet/coach/chat")
+async def wallet_coach_chat(body: Dict[str, Any] = Body(default={}),
+                             user: dict = Depends(_get_current_user_dependency())):
+    """Hybrid Money Coach (W4). Slash commands stay deterministic and
+    free; anything else goes to Claude with personalized wallet context
+    and falls back to a deterministic nudge when the LLM is unavailable."""
+    message = (body or {}).get("message", "").strip()
+    low = message.lower()
+    ctx = await _coach_context(user)
+    balance_cr = ctx["balance_credits"]
+    balance_inr = ctx["balance_inr"]
+    lifetime = ctx["lifetime_earned"]
+    total_in = ctx["earn_30d"]
+    total_out = ctx["spend_30d"]
+    by_cat = ctx["earn_by_cat"]
+    name = user.get("first_name") or "there"
+    lvl = ctx["level"]
 
     cmd = "chat"
     reply = ""
@@ -804,7 +1274,7 @@ async def wallet_coach_chat(body: Dict[str, Any] = Body(default={}),
     elif low.startswith("/save"):
         cmd = "save"
         try:
-            goal = int("".join(c for c in msg if c.isdigit())) or 1000
+            goal = int("".join(c for c in message if c.isdigit())) or 1000
         except Exception:
             goal = 1000
         per_week = max(50, goal // 12)
@@ -815,45 +1285,149 @@ async def wallet_coach_chat(body: Dict[str, Any] = Body(default={}),
                    {"label": "Find cashback offers", "action": "navigate",
                     "url": "/deals"}]
 
+    elif low.startswith("/goal"):
+        cmd = "goal"
+        digits = [d for d in message.split() if d.isdigit()]
+        target = int(digits[0]) if digits else int(lvl.get("next_level_at") or 0)
+        await _db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"wallet.goal_credits": target,
+                      "wallet.goal_set_at": datetime.now(timezone.utc)}})
+        gap = max(0, target - lifetime)
+        daily_rate = round(total_in / 30, 1) if total_in else 0
+        eta = (f" At your current pace ({daily_rate}cr/day) that's about "
+               f"{math.ceil(gap / daily_rate)} days."
+               if daily_rate > 0 and gap > 0 else "")
+        reply = (f"Goal set: {target} lifetime credits. You've earned "
+                 f"{lifetime} so far."
+                 + (f" {gap} to go.{eta}" if gap > 0 else " Already achieved. ")
+                 + "I'll track it on your Overview — /forecast to check pace.")
+        actions = [{"label": "Set a saving goal", "action": "save_goal",
+                    "value": target}]
+
+    elif low.startswith("/compare"):
+        cmd = "compare"
+        daily_rate = total_in / 30
+        sorted_cat = sorted(by_cat.items(), key=lambda x: -x[1])
+        top_line = (f"Top earner: {sorted_cat[0][0]} "
+                    f"({sorted_cat[0][1]}cr of {total_in} in 30 days)."
+                    if sorted_cat else "No earnings yet this period.")
+        peer = await _coach_peer_benchmark()
+        avg_peer = int(peer["avg_peer_earn_30d"]) if peer else 0
+        if peer and avg_peer > 0:
+            if total_in > avg_peer:
+                compare_line = (f"The average active wallet user earned "
+                                f"{avg_peer} credits in 30 days — you're "
+                                f"ahead by {total_in - avg_peer}.")
+            elif total_in == avg_peer:
+                compare_line = (f"You earned exactly the 30-day average of "
+                                "active wallet users — one referral or a "
+                                "deal claim puts you above it.")
+            else:
+                compare_line = (f"The average active wallet user earned "
+                                f"{avg_peer} credits in 30 days — "
+                                f"{avg_peer - total_in} more than you. "
+                                "A 7-day streak plus one event closes most "
+                                "of the gap.")
+        else:
+            compare_line = "No active peer data yet — you're among the " \
+                           "first wallets moving credits on SA."
+        reply = (f"You earned {total_in} credits in 30 days "
+                 f"({daily_rate:.1f}/day) and spent {total_out}. "
+                 f"{top_line} {compare_line}")
+        cards = [{"type": "compare",
+                  "data": {"top_category": top_line,
+                           "earn_30d": total_in, "spend_30d": total_out,
+                           "avg_peer_earn_30d": avg_peer,
+                           "peer_sample": int(peer["active_wallet_users"]) if peer else 0,
+                           "above_avg": bool(peer and avg_peer > 0 and total_in > avg_peer)}}]
+
+    elif low.startswith("/leaderboard"):
+        cmd = "leaderboard"
+        try:
+            from features.referral_engine import (
+                REFERRALS as _REF_COLL, PER_REFERRAL_CREDITS as _REF_CR,
+                _get_or_create_referral, _mask_name)
+            top_rows = []
+            async for r in _db[_REF_COLL].find(
+                    {"referred_users.0": {"$exists": True}}):
+                top_rows.append((r.get("referrer_id") or str(r["_id"]),
+                                 len(r.get("referred_users") or []),
+                                 r.get("referral_code")))
+            top_rows.sort(key=lambda t: (-t[1], t[2]))
+            board = [
+                {"rank": i + 1, "referral_count": c,
+                 "display_name": _mask_name((code or "u").split("-")[0])}
+                for i, (_, c, code) in enumerate(top_rows[:5])]
+            mine = await _get_or_create_referral(user)
+            my_count = len(mine.get("referred_users") or [])
+            my_rank = sum(1 for _, c, _ in top_rows if c > my_count) + 1
+            reply = (f"You rank #{my_rank} on the referral leaderboard with "
+                     f"{my_count} referral(s). Each signup earns "
+                     f"{_REF_CR}cr plus milestone bonuses — one more "
+                     "close friend moves you up fast. Copy your link to share.")
+        except Exception:
+            board = []
+            my_count = ctx["referral_count"]
+            my_rank = 1
+            reply = (f"Referral leaderboard is quiet right now. You have "
+                     f"{my_count} referral(s) so far — share your link "
+                     "to claim 100cr per signup plus milestone bonuses.")
+        cards = [{"type": "leaderboard",
+                  "data": {"board": board, "my_rank": my_rank,
+                           "my_count": my_count}}]
+        actions = [{"label": "Copy referral link", "action": "share",
+                    "type": "referral"}]
+
+    elif low.startswith("/tip"):
+        cmd = "tip"
+        tips = []
+        if ctx["profile_completion"] < 100:
+            tips.append("Finish your profile for a one-time 100cr bonus.")
+        if ctx["active_coupons"] == 0:
+            tips.append("Claim a coupon in the Coupons tab — partner "
+                        "deals pay cashback credits.")
+        if ctx["streak_days"] < 7:
+            tips.append(f"Reach a 7-day login streak for +50cr. You're at "
+                        f"{ctx['streak_days']} today.")
+        if total_in < total_out:
+            tips.append("You've spent more than you earned this month — "
+                        "an event completion (+60cr) or a referral "
+                        "(+100cr) flips that.")
+        if not tips:
+            tips.append("Wallet is in great shape. Check upcoming events — "
+                        "completing one pays 60cr and keeps your streak warm.")
+        reply = " ".join(tips[:2])
+
     elif low.startswith("/credit-plan") or "/optimize" in low:
         cmd = "credit_plan"
-        # Determine target tier
-        thresholds = [("Silver", 100), ("Gold", 500), ("Platinum", 1500)]
-        target_name, target_at = next(
-            ((n, t) for n, t in thresholds if balance_cr < t),
-            ("Platinum", 1500))
-        gap = max(0, target_at - balance_cr)
+        nxt_at = int(lvl.get("next_level_at") or 0)
+        target_name = lvl.get("next_level_name") or "Diamond"
+        gap = max(0, nxt_at - lifetime)
         plan_actions = []
-        # Greedy plan to fill the gap
         if gap >= 100:
             plan_actions.append({
                 "title": "Refer 1 friend",
                 "gain": 100, "effort": "low", "eta_days": 5,
                 "action": {"type": "share", "label": "Copy referral link"}})
-        if gap >= 50:
+        if gap >= 60:
             plan_actions.append({
-                "title": "Book 1 mentor session",
-                "gain": 50, "effort": "medium", "eta_days": 3,
-                "action": {"type": "navigate", "label": "Browse mentors",
-                            "url": "/mentors"}})
-        if gap >= 30:
-            plan_actions.append({
-                "title": "Submit 1 SA Higher-Ed application",
-                "gain": 30, "effort": "medium", "eta_days": 7,
-                "action": {"type": "navigate", "label": "Open Higher-Ed",
-                            "url": "/higher-education"}})
-        if gap >= 25:
-            plan_actions.append({
-                "title": "Complete profile (one-time)",
-                "gain": 25, "effort": "low", "eta_days": 1,
-                "action": {"type": "navigate", "label": "Open profile",
-                            "url": "/profile"}})
-        if gap >= 15:
-            plan_actions.append({
-                "title": "Register for 1 event",
-                "gain": 15, "effort": "low", "eta_days": 2,
+                "title": "Complete 1 event",
+                "gain": 60, "effort": "medium", "eta_days": 2,
                 "action": {"type": "navigate", "label": "Browse events",
                             "url": "/events"}})
+        if gap >= 30:
+            plan_actions.append({
+                "title": "Attend 1 mentor session",
+                "gain": 30, "effort": "medium", "eta_days": 3,
+                "action": {"type": "navigate", "label": "Browse mentors",
+                            "url": "/mentors"}})
+        if ctx["profile_completion"] < 100:
+            plan_actions.append({
+                "title": "Complete profile (one-time)",
+                "gain": 100, "effort": "low", "eta_days": 1,
+                "action": {"type": "navigate", "label": "Open profile",
+                            "url": "/profile"}})
         if gap >= 10:
             plan_actions.append({
                 "title": "Claim 1 deal",
@@ -862,9 +1436,11 @@ async def wallet_coach_chat(body: Dict[str, Any] = Body(default={}),
                             "url": "/deals"}})
         # Fastest ETA: max of selected
         eta = max((a["eta_days"] for a in plan_actions), default=7)
-        reply = (f"You need {gap} more credits to reach {target_name}. "
-                 f"Fastest path: {eta} days." if gap > 0 else
-                 f"You're already at {target_name}! 🎉 Next: keep stacking for Platinum.")
+        reply = (f"You need {gap} more lifetime credits to reach "
+                 f"{target_name}. Fastest path: about {eta} days."
+                 if gap > 0 else
+                 f"You're at {target_name} already — keep stacking for "
+                 "the next tier.")
         cards = [{"type": "credit_plan",
                   "summary": reply,
                   "fastest_path_days": eta,
@@ -892,7 +1468,7 @@ async def wallet_coach_chat(body: Dict[str, Any] = Body(default={}),
     elif low.startswith("/alert"):
         cmd = "alert"
         try:
-            amt = int("".join(c for c in msg if c.isdigit())) or 200
+            amt = int("".join(c for c in message if c.isdigit())) or 200
         except Exception:
             amt = 200
         reply = (f"Got it — I'll alert you when balance drops below ₹{amt}. "
@@ -900,7 +1476,7 @@ async def wallet_coach_chat(body: Dict[str, Any] = Body(default={}),
 
     elif low.startswith("/split"):
         cmd = "split"
-        digits = [int(x) for x in msg.split() if x.isdigit()]
+        digits = [int(x) for x in message.split() if x.isdigit()]
         amt = digits[0] if digits else 1000
         n = digits[1] if len(digits) >= 2 else 4
         per = round(amt / max(n, 1))
@@ -909,87 +1485,43 @@ async def wallet_coach_chat(body: Dict[str, Any] = Body(default={}),
 
     elif low.startswith("/dispute"):
         cmd = "dispute"
-        reply = ("To dispute a transaction, open History → tap the row → "
-                 "'Report issue'. Most disputes resolve in 5-7 working days.")
+        reply = ("To dispute a transaction, open History, tap the row, "
+                 "then 'Report issue'. Most disputes resolve in 5-7 working days.")
 
     elif low.startswith("/tax"):
         cmd = "tax"
-        reply = (f"Hi {name} — based on the last FY's wallet activity you've "
-                 "spent on courses (80C eligible up to ₹1.5L) and mentor "
-                 "sessions. Generate the formal 80C statement from the "
-                 "History tab → Export.")
-        actions = [{"label": "Export 80C statement", "action": "navigate",
-                    "url": "/wallet?tab=history&export=80c"}]
+        reply = (f"Hi {name} — keep withdrawals under ₹20,000 a year to "
+                 "avoid TDS under section 194R. Credits are an internal "
+                 "SA currency, not investment income. Export the formal "
+                 "statement from the History tab for your records.")
+        actions = [{"label": "Export statement", "action": "navigate",
+                    "url": "/wallet?tab=history&export=statement"}]
 
     else:
-        # General chat — give a tier nudge
-        thresholds = [("Silver", 100), ("Gold", 500), ("Platinum", 1500)]
-        nxt = next(((n, t) for n, t in thresholds if balance_cr < t), None)
-        if nxt:
-            reply = (f"Hi {name}! You have {balance_cr} credits "
-                     f"(~₹{balance_inr}). You're {nxt[1] - balance_cr} away "
-                     f"from {nxt[0]}. Try /credit-plan for a fast path.")
-        else:
-            reply = (f"Hi {name}! You have {balance_cr} credits — top tier already. "
-                     "Try /spend to see your last 30 days, or /forecast to project ahead.")
+        # Free text — hybrid: Claude with personalized context,
+        # deterministic fallback when the LLM is unavailable.
+        cmd = "chat"
+        reply = await _coach_llm_reply(ctx, message) or \
+            await _coach_fallback(ctx)
 
     return {
         "reply": reply, "cmd": cmd,
         "cards": cards, "actions": actions,
-        "context": {"balance_credits": balance_cr, "balance_inr": balance_inr,
-                     "lifetime_earned": lifetime,
-                     "totals_30d": {"in": total_in, "out": total_out}},
+        "context": {
+            "balance_credits": balance_cr, "balance_inr": balance_inr,
+            "lifetime_earned": lifetime, "level": lvl["name"],
+            "streak_days": ctx["streak_days"],
+            "totals_30d": {"in": total_in, "out": total_out},
+            "active_coupons": ctx["active_coupons"],
+            "referral_count": ctx["referral_count"],
+            "profile_completion": ctx["profile_completion"],
+        },
     }
 
 
 # ─── Credit Redemptions ──────────────────────────────────────────────────
-REWARD_CATALOG = [
-    {"id": "free_mentor",      "title": "Free Mentor Session",
-     "desc": "Redeem for a 30-min free session", "cost": 200, "tone": "teal", "hot": True},
-    {"id": "event_pass",       "title": "Free Event Pass",
-     "desc": "Entry to any paid workshop/event", "cost": 100, "tone": "indigo", "hot": True},
-    {"id": "profile_boost",    "title": "Profile Boost",
-     "desc": "Featured in mentor discovery for 7 days", "cost": 75, "tone": "orange", "hot": False},
-    {"id": "deal_extra_5",     "title": "Extra 5% Deal Discount",
-     "desc": "On top of existing SA deal discount", "cost": 50, "tone": "green", "hot": False},
-    {"id": "gold_badge",       "title": "Gold Member Badge",
-     "desc": "Exclusive gold profile badge for 30 days", "cost": 150, "tone": "gold", "hot": False},
-    {"id": "rental_credit",    "title": "Rental Credit ₹200",
-     "desc": "₹200 off on any SA rental booking", "cost": 80, "tone": "pink", "hot": True},
-]
-
-
-@router.get("/wallet/rewards")
-async def list_rewards(user: dict = Depends(_get_current_user_dependency())):
-    return {"rewards": REWARD_CATALOG}
-
-
-@router.post("/wallet/redeem")
-async def redeem_credits(body: Dict[str, Any] = Body(default={}),
-                          user: dict = Depends(_get_current_user_dependency())):
-    rid = (body or {}).get("reward_id")
-    reward = next((r for r in REWARD_CATALOG if r["id"] == rid), None)
-    if not reward:
-        raise HTTPException(404, "Reward not found")
-    cost = int(reward["cost"])
-    cur_bal = int((user.get("wallet") or {}).get("balance_credits", 0))
-    if cur_bal < cost:
-        raise HTTPException(400, f"Insufficient credits: need {cost}, have {cur_bal}")
-    code = f"SA-{uuid.uuid4().hex[:8].upper()}"
-    # Deduct credits
-    await _db.users.update_one(
-        {"_id": user["_id"]},
-        {"$inc": {"wallet.balance_credits": -cost,
-                  "wallet.lifetime_redeemed": cost}})
-    # Log event (append-only)
-    await _db.credit_events.insert_one({
-        "user_id": str(user["_id"]),
-        "activity_type": "redemption",
-        "category": "redeem",
-        "amount": -cost,
-        "description": f"Redeemed: {reward['title']}",
-        "metadata": {"reward_id": rid, "code": code},
-        "created_at": datetime.now(timezone.utc),
-    })
-    return {"ok": True, "code": code, "reward": reward,
-            "new_balance": cur_bal - cost}
+# W2: the reward catalog migrated to MongoDB (sa_rewards) with a
+# fulfillment engine in features/reward_marketplace.py. Its GET
+# /wallet/rewards + POST /wallet/redeem shadow this legacy static
+# version because that router is registered first in server.py.
+# Do not add reward endpoints here.

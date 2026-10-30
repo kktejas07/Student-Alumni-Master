@@ -40,7 +40,7 @@ export const ALUMNI_PORTAL: PortalConfig = {
   idCard: { label: 'My Alumni Card', route: '/id-card' },
   agentK: true,
   profileTab: 'profile',
-  mobileTabs: ['dashboard', 'internships', 'network', 'events', 'profile'],
+  mobileTabs: ['dashboard', 'career-ai', 'wallet', 'network', 'courses'],
   topbar: { greetingTab: 'dashboard', greetingSub: "Here's your personalised dashboard for today", search: {} },
   profile: (user) => {
     const ai: any = user?.alumni_info || {};
