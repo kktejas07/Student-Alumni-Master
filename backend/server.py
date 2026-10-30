@@ -331,14 +331,16 @@ async def _lifespan(application):
         except Exception as _e:
             logger.warning("Could not start Rentals Aggregator scheduler: %s", _e)
 
-        # Start the 24-hour higher-ed aggregator cron (03:00 IST + startup run)
+        # Start the 24-hour financial products aggregator cron
+        # (daily 05:00 IST + startup catch-up)
         try:
-            from features.higher_ed_aggregator import (
-                start_higher_ed_aggregator_scheduler
+            from financial_aggregator import (
+                start_financial_aggregator_scheduler,
             )
-            start_higher_ed_aggregator_scheduler()
+            start_financial_aggregator_scheduler()
         except Exception as _e:
-            logger.warning("Could not start Higher-Ed Aggregator scheduler: %s", _e)
+            logger.warning(
+                "Could not start Financial Aggregator scheduler: %s", _e)
 
 
     try:
@@ -394,14 +396,11 @@ async def _lifespan(application):
         logger.exception("Failed to stop rentals aggregator scheduler during shutdown")
 
     try:
-        from features.higher_ed_aggregator import (
-            stop_higher_ed_aggregator_scheduler
-        )
-        stop_higher_ed_aggregator_scheduler()
+        from financial_aggregator import stop_financial_aggregator_scheduler
+        stop_financial_aggregator_scheduler()
     except Exception:
         logger.exception(
-            "Failed to stop higher-ed aggregator scheduler during shutdown"
-        )
+            "Failed to stop financial aggregator scheduler during shutdown")
     client.close()
 
 
@@ -2031,12 +2030,11 @@ api_router.include_router(course_aggregator_admin_router)
 # Rentals Aggregator (R1) — 24h universal rentals bot: admin status / source toggle / manual run
 from services.rentals_aggregator import admin_router as rentals_aggregator_admin_router
 api_router.include_router(rentals_aggregator_admin_router)
-# Higher-Ed Aggregator (H1) — 24h programmes/scholarships/countries/forex bot:
-# POST /he/refresh (super_admin) + /admin/he-aggregator status / source toggle
-from features.higher_ed_aggregator import router as he_aggregator_router
-from features.higher_ed_aggregator import admin_router as he_aggregator_admin_router
-api_router.include_router(he_aggregator_router)
-api_router.include_router(he_aggregator_admin_router)
+# Financial Aggregator (F1) — 24h financial products bot: manual refresh + admin status / source toggle
+from financial_aggregator import router as financial_aggregator_router
+from financial_aggregator import admin_router as financial_aggregator_admin_router
+api_router.include_router(financial_aggregator_router)
+api_router.include_router(financial_aggregator_admin_router)
 from features.college_portal import router as college_router  # College admin Phase 3: roster + analytics
 api_router.include_router(college_router)
 
