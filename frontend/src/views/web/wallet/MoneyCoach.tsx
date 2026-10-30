@@ -78,7 +78,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
     if (open && messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        text: "Hi! I'm your Money Coach 👋 Try /credit-plan for the fastest path to next tier, /spend for a 30-day breakdown, or /save 5000 for a plan.",
+        text: "Hi! I'm your Money Coach. Try /credit-plan for the fastest path to next tier, /spend for a 30-day breakdown, or /save 5000 for a plan.",
       }]);
       // If launched with a pre-typed command, auto-send it
       if (initialCmd) t = setTimeout(() => send(initialCmd), 400);
