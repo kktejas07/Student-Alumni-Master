@@ -771,14 +771,13 @@ async def super_admin_overview(user: dict = Depends(require_role('admin'))):
 
     # KPIs
     kpis = [
-        {"id": "colleges",   "icon": "Building2",     "label": "Total Colleges",      "value": str(len(colleges)), "delta": "↑ growing"},
-        {"id": "students",   "icon": "GraduationCap", "label": "Total Students",      "value": f"{students:,}",    "delta": "↑ active"},
-        {"id": "mentors",    "icon": "UserCheck",     "label": "Active Mentors",      "value": str(mentors),       "delta": f"+ {pending_mentors} pending"},
-        {"id": "alumni",     "icon": "Users",         "label": "Alumni Network",      "value": f"{alumni:,}",      "delta": "↑ joined"},
-        {"id": "revenue",    "icon": "CreditCard",    "label": "Revenue This Month",  "value": _money(revenue_amt), "delta": "↑ 12% MoM"},
-        {"id": "events",     "icon": "Calendar",      "label": "Active Events",       "value": str(events),        "delta": "↑ this week"},
-        {"id": "approvals",  "icon": "CheckCircle",   "label": "Pending Approvals",   "value": str(pending_mentors), "delta": "review needed"},
-        {"id": "engagement", "icon": "BarChart3",     "label": "Platform Engagement", "value": "78%",              "delta": "↑ 3 pts"},
+        {"id": "colleges",   "icon": "Building2",     "label": "Total Colleges",      "value": str(len(colleges)), "delta": "distinct institutions"},
+        {"id": "students",   "icon": "GraduationCap", "label": "Total Students",      "value": f"{students:,}",    "delta": "on platform"},
+        {"id": "mentors",    "icon": "UserCheck",     "label": "Active Mentors",      "value": str(mentors),       "delta": f"{pending_mentors} pending"},
+        {"id": "alumni",     "icon": "Users",         "label": "Alumni Network",      "value": f"{alumni:,}",      "delta": "on platform"},
+        {"id": "revenue",    "icon": "CreditCard",    "label": "Revenue This Month",  "value": _money(revenue_amt), "delta": "paid registrations"},
+        {"id": "events",     "icon": "Calendar",      "label": "Active Events",       "value": str(events),        "delta": "scheduled"},
+        {"id": "approvals",  "icon": "CheckCircle",   "label": "Pending Approvals",   "value": str(pending_mentors), "delta": "review needed" if pending_mentors > 0 else "all clear"},
     ]
 
     # Recent activity from bookings + new users
@@ -851,10 +850,10 @@ async def super_admin_overview(user: dict = Depends(require_role('admin'))):
 
     return {
         "admin": {
-            "name": "Super Admin",
-            "email": "admin@studentalumni.in",
-            "initials": "SA",
-            "role": "Platform Admin · Full Access",
+            "name": user.get("full_name") or "Admin",
+            "email": user.get("email") or "",
+            "initials": _initials(user.get("full_name") or "Admin"),
+            "role": f"{user.get('role', 'admin').replace('_', ' ').title()} · Platform",
         },
         "kpis": kpis,
         "recentActivity": recent[:5],
