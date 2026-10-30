@@ -1,0 +1,920 @@
+import { getBaseUrl } from '@/src/lib/env';
+/**
+ * MODEL LAYER - API Service
+ * All HTTP communication is centralised here. No UI / state logic.
+ */
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
+import { debugLog } from '@/src/utils/debugLog';
+
+const BASE_URL = getBaseUrl();
+
+const TOKEN_KEY = 'scd_access_token';
+const REFRESH_KEY = 'scd_refresh_token';
+
+// ----- Token storage (SecureStore on native, in-memory + localStorage on web) -----
+async function setItem(key: string, value: string) {
+  if (Platform.OS === 'web') {
+    try {
+      window.localStorage.setItem(key, value);
+    } catch {}
+    return;
+  }
+  await SecureStore.setItemAsync(key, value);
+}
+
+async function getItem(key: string): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    try {
+      return window.localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+  return await SecureStore.getItemAsync(key);
+}
+
+async function deleteItem(key: string) {
+  if (Platform.OS === 'web') {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {}
+    return;
+  }
+  await SecureStore.deleteItemAsync(key);
+}
+
+export const tokenStore = {
+  getAccess: () => getItem(TOKEN_KEY),
+  getRefresh: () => getItem(REFRESH_KEY),
+  setTokens: async (access: string, refresh: string) => {
+    await setItem(TOKEN_KEY, access);
+    await setItem(REFRESH_KEY, refresh);
+  },
+  clear: async () => {
+    await deleteItem(TOKEN_KEY);
+    await deleteItem(REFRESH_KEY);
+  },
+};
+
+// ----- HTTP wrapper -----
+
+// Single-flight lock: concurrent 401s all wait on one in-flight refresh.
+let refreshInFlight: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    const refreshToken = await tokenStore.getRefresh();
+    try {
+      const res = await fetch(`${BASE_URL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(refreshToken ? { refresh_token: refreshToken } : {}),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data.access_token) return null;
+      const newRefresh = data.refresh_token || refreshToken || '';
+      await tokenStore.setTokens(data.access_token, newRefresh);
+      return data.access_token;
+    } catch {
+      return null;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+  return refreshInFlight;
+}
+
+export async function request<T>(
+  path: string,
+  options: { method?: string; body?: any; auth?: boolean; headers?: Record<string, string> } = {},
+): Promise<T> {
+  const { method = 'GET', body, auth = true, headers: customHeaders } = options;
+  const t0 = typeof Date !== 'undefined' ? Date.now() : 0;
+  const fullUrl = `${BASE_URL}/api${path}`;
+
+  // eslint-disable-next-line no-console
+  debugLog(`👉 [API REQ] ${method} ${fullUrl}`);
+
+  // Token-readiness retry: AsyncStorage may not have surfaced the saved
+  // token on first paint after navigation/page reload. Wait briefly so
+  // the first call doesn't 401 just because the token is still loading.
+  let token: string | null = null;
+  if (auth) {
+    token = await tokenStore.getAccess();
+    if (!token && Platform.OS !== 'web') {
+      // Short backoff, up to ~900 ms total (only on native)
+      for (const ms of [120, 220, 280, 280]) {
+        await new Promise((r) => setTimeout(r, ms));
+        token = await tokenStore.getAccess();
+        if (token) break;
+      }
+    }
+  }
+
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  const headers: Record<string, string> = { ...customHeaders };
+  if (!isFormData && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+  if (auth && token && !headers['Authorization']) headers['Authorization'] = `Bearer ${token}`;
+
+  try {
+    const res = await fetch(fullUrl, {
+      method,
+      headers,
+      credentials: 'include',
+      body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
+    });
+
+    const duration = t0 ? Date.now() - t0 : 0;
+
+    const text = await res.text();
+    let data: any;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      data = { raw: text };
+    }
+
+    // On 401, exchange the refresh token for a fresh access token and retry once.
+    if (res.status === 401 && auth) {
+      const fresh = await refreshAccessToken();
+      if (fresh) {
+        const r2 = await fetch(fullUrl, {
+          method,
+          headers: { ...headers, Authorization: `Bearer ${fresh}` },
+          credentials: 'include',
+          body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
+        });
+        const t = await r2.text();
+        let d: any;
+        try { d = t ? JSON.parse(t) : {}; } catch { d = { raw: t }; }
+        if (r2.ok) {
+          // eslint-disable-next-line no-console
+          debugLog(`👈 [API RES] ${r2.status} OK (${Date.now() - t0}ms) ${method} ${fullUrl}`);
+          return d as T;
+        }
+        const detail2 = d?.detail;
+        const msg2 = typeof detail2 === 'string'
+          ? detail2
+          : detail2?.msg || `Request failed (${r2.status})`;
+        throw new Error(msg2);
+      }
+    }
+
+    if (!res.ok) {
+      const detail = data?.detail;
+      const msg =
+        typeof detail === 'string'
+          ? detail
+          : Array.isArray(detail)
+            ? detail.map((d: any) => d?.msg || JSON.stringify(d)).join(' ')
+            : detail?.msg || `Request failed (${res.status})`;
+      // eslint-disable-next-line no-console
+      console.warn(`[API WARN] ${res.status} (${duration}ms) ${method} ${fullUrl} - ${msg}`);
+      throw new Error(msg);
+    }
+
+    // eslint-disable-next-line no-console
+    debugLog(`👈 [API RES] ${res.status} OK (${duration}ms) ${method} ${fullUrl}`);
+    return data as T;
+  } catch (err: any) {
+    const duration = t0 ? Date.now() - t0 : 0;
+    // eslint-disable-next-line no-console
+    console.error(`[API ERR] (${duration}ms) ${method} ${fullUrl}`, err?.message || err);
+    throw err;
+  }
+}
+
+export const api = {
+  // Auth
+  register: (payload: {
+    email: string;
+    password: string;
+    full_name: string;
+    role: string;
+    phone?: string;
+    dob?: string; // ISO YYYY-MM-DD — required by backend /auth/register age gate
+  }) => request<any>('/auth/register', { method: 'POST', body: payload, auth: false }),
+
+  login: (email: string, password: string) =>
+    request<any>('/auth/login', { method: 'POST', body: { email, password }, auth: false }),
+
+  // OAuth — Option C: backend uses MOCK verification (passes email/full_name in body)
+  // Switch to real provider tokens by populating id_token/access_token instead.
+  oauthGoogle: (payload: { id_token?: string; email?: string; full_name?: string; picture?: string; role?: string }) =>
+    request<any>('/auth/google', { method: 'POST', body: payload, auth: false }),
+
+  oauthLinkedIn: (payload: { email: string; full_name: string; picture?: string; role?: string }) =>
+    request<any>('/auth/linkedin', { method: 'POST', body: payload, auth: false }),
+
+  me: () => request<any>('/auth/me'),
+
+  logout: async () => {
+    try {
+      const refreshToken = await tokenStore.getRefresh();
+      await request<any>('/auth/logout', {
+        method: 'POST',
+        body: refreshToken ? { refresh_token: refreshToken } : {},
+        auth: true,
+      });
+    } catch {
+      // Ignore network errors on logout to allow local cleanup
+    } finally {
+      await tokenStore.clear();
+    }
+  },
+
+  // 2FA — TOTP-based
+  twoFASetup: () =>
+    request<{ secret: string; otpauth_uri: string; qr_code_base64: string }>(
+      '/auth/2fa/setup', { method: 'POST', body: {} }),
+
+  twoFAEnable: (code: string) =>
+    request<{ enabled: boolean; backup_codes: string[] }>(
+      '/auth/2fa/enable', { method: 'POST', body: { code } }),
+
+  twoFAVerify: (challenge_id: string, code: string) =>
+    request<any>('/auth/2fa/verify', { method: 'POST', body: { challenge_id, code }, auth: false }),
+
+  twoFADisable: (password: string, code: string) =>
+    request<{ disabled: boolean }>('/auth/2fa/disable', { method: 'POST', body: { password, code } }),
+
+  twoFARegenerateBackupCodes: (code: string) =>
+    request<{ enabled: boolean; backup_codes: string[] }>(
+      '/auth/2fa/regenerate-backup-codes', { method: 'POST', body: { code } }),
+
+  checkEmail: (email: string) =>
+    request<{ exists: boolean; role?: string; full_name?: string; onboarding_completed?: boolean }>(
+      '/auth/check-email', { method: 'POST', body: { email }, auth: false }
+    ),
+
+  sendEmailOtp: (email: string, phone?: string) =>
+    request<{ status: string; message: string; otp_code?: string }>(
+      '/auth/email-otp/send', { method: 'POST', body: { email, phone }, auth: false }
+    ),
+
+  verifyEmailOtp: (email: string, otp: string) =>
+    request<{ status: string; message: string; token?: string; user?: any }>(
+      '/auth/verify-email-otp', { method: 'POST', body: { email, otp }, auth: false }
+    ),
+
+  // Onboarding
+  completeOnboarding: (payload: any) =>
+    request<any>('/users/onboarding', { method: 'POST', body: payload }),
+
+  updateProfile: (payload: any) =>
+    request<any>('/users/me', { method: 'PUT', body: payload }),
+
+  getPublicProfile: (userId: string) =>
+    request<any>(`/users/${userId}/public-profile`),
+
+  // AI
+  getCareerIntelligence: () => request<any>('/users/me/skill-intelligence'),
+
+  getCareerSuggestions: (additional_context?: string) =>
+    request<any>('/ai/career-suggestions', {
+      method: 'POST',
+      body: { additional_context },
+    }),
+
+  getCachedSuggestions: () => request<any>('/ai/career-suggestions/cached'),
+
+  chatSend: (message: string, session_id?: string) =>
+    request<any>('/ai/chat', { method: 'POST', body: { message, session_id } }),
+
+  chatHistory: (session_id?: string) =>
+    request<any>(`/ai/chat/history${session_id ? `?session_id=${session_id}` : ''}`),
+
+  chatSessions: () => request<any>('/ai/chat/sessions'),
+
+  generateBio: (data: {
+    role: string;
+    full_name?: string;
+    writing_style: string;
+    existing_bio?: string;
+    institution?: string;
+    education_level?: string;
+    career_goal?: string;
+    interests?: string[];
+    skills?: string[];
+    organization?: string;
+    job_title?: string;
+    mentor_category?: string;
+    expertise?: string[];
+    graduation_year?: string;
+    employment_status?: string;
+    institution_name?: string;
+    location?: string;
+    institution_type?: string;
+  }) => request<{ bio: string }>('/ai/generate-bio', { method: 'POST', body: data }),
+
+  // Catalog
+  listCourses: (career_path?: string) =>
+    request<any>(`/catalog/courses${career_path ? `?career_path=${career_path}` : ''}`),
+  listMentors: (career_path?: string) =>
+    request<any>(`/catalog/mentors${career_path ? `?career_path=${career_path}` : ''}`),
+  listInternships: (career_path?: string) =>
+    request<any>(`/catalog/internships${career_path ? `?career_path=${career_path}` : ''}`),
+  listDeals: (category?: string) =>
+    request<any>(`/catalog/deals${category ? `?category=${category}` : ''}`),
+  listResources: (category?: string) =>
+    request<any>(`/catalog/resources${category ? `?category=${category}` : ''}`),
+  listEvents: (category?: string) =>
+    request<any>(`/catalog/events${category ? `?category=${category}` : ''}`),
+  listFinancial: (kind?: 'loan' | 'scholarship') =>
+    request<any>(`/catalog/financial${kind ? `?kind=${kind}` : ''}`),
+  listInsurance: (kind?: string) =>
+    request<any>(`/catalog/insurance${kind ? `?kind=${kind}` : ''}`),
+  listHousing: (country?: string) =>
+    request<any>(`/catalog/housing${country ? `?country=${country}` : ''}`),
+
+  // Bookings
+  createBooking: (payload: any) =>
+    request<any>('/bookings', { method: 'POST', body: payload }),
+  myBookings: () => request<any>('/bookings/me'),
+
+  // Event registration with QR
+  registerEvent: (event_id: string) =>
+    request<any>(`/events/${event_id}/register`, { method: 'POST', body: {} }),
+  myEventRegistration: (event_id: string) =>
+    request<any>(`/events/${event_id}/my-registration`),
+  myEventRegistrations: () => request<any>('/events/my-registrations'),
+
+  // Knowledge Rooms (Module 4: Networking chat)
+  listRooms: () => request<any>('/rooms'),
+  roomMessages: (room_id: string) => request<any>(`/rooms/${room_id}/messages`),
+  postRoomMessage: (room_id: string, message: string) =>
+    request<any>(`/rooms/${room_id}/messages`, { method: 'POST', body: { message } }),
+
+  // Admin
+  pendingMentors: () => request<any>('/admin/mentors/pending'),
+  approveMentor: (id: string) =>
+    request<any>(`/admin/mentors/${id}/approve`, { method: 'POST' }),
+  rejectMentor: (id: string) =>
+    request<any>(`/admin/mentors/${id}/reject`, { method: 'POST' }),
+
+  // Dashboard
+  dashboard: () => request<any>('/dashboard'),
+
+  // Personalization (preferences editor + alumni transition + click tracking)
+  updatePreferences: (payload: {
+    career_path?: string;
+    education_level?: string;
+    interests?: string[];
+    skills?: string[];
+  }) => request<any>('/users/me/preferences', { method: 'PATCH', body: payload }),
+
+  transitionToAlumni: () =>
+    request<any>('/users/me/transition-alumni', { method: 'POST', body: {} }),
+
+  trackModuleClick: (module_id: string) =>
+    request<any>('/dashboard/track-click', { method: 'POST', body: { module_id } }),
+
+  // Analytics — adapts payload to caller's role (admin/college/mentor)
+  analytics: () => request<any>('/analytics'),
+
+  // Integrations status + live fetches
+  integrationsStatus: () => request<any>('/integrations/status'),
+  liveCourses: (q?: string) => request<any>(`/integrations/courses${q ? `?query=${encodeURIComponent(q)}` : ''}`),
+  liveInternships: (q?: string) => request<any>(`/integrations/internships${q ? `?query=${encodeURIComponent(q)}` : ''}`),
+
+  // Reviews
+  postReview: (payload: { mentor_id: string; rating: number; comment?: string; booking_id?: string }) =>
+    request<any>('/reviews', { method: 'POST', body: payload }),
+  mentorReviews: (mentor_id: string) => request<any>(`/mentors/${mentor_id}/reviews`),
+  replyToReview: (review_id: string, reply: string) =>
+    request<any>(`/reviews/${review_id}/reply`, { method: 'POST', body: { reply } }),
+
+  // Bookings / Dev actions
+  markBookingCompleted: (booking_id: string) =>
+    request<any>(`/student/bookings/${booking_id}/complete`, { method: 'POST', body: {} }),
+
+  // Notifications
+  registerPushToken: (token: string, platform = 'unknown') =>
+    request<any>('/notifications/register', { method: 'POST', body: { token, platform } }),
+  notifications: () => request<any>('/notifications'),
+  markNotificationsRead: (ids?: string[]) =>
+    request<any>('/notifications/mark-read', {
+      method: 'POST',
+      body: ids ? { ids } : {},
+    }),
+  dismissNotifications: (ids?: string[]) =>
+    request<any>('/notifications/dismiss', {
+      method: 'POST',
+      body: ids ? { ids } : {},
+    }),
+  // Mentor portal: booking actions + session posting
+  confirmBooking: (id: string) =>
+    request<any>(`/bookings/${id}/confirm`, { method: 'POST', body: {} }),
+  declineBooking: (id: string) =>
+    request<any>(`/bookings/${id}/decline`, { method: 'POST', body: {} }),
+  createMentorSession: (payload: {
+    title: string;
+    topic: string;
+    scheduled_at: string;
+    duration_minutes: number;
+    max_attendees: number;
+  }) => request<any>('/mentor/sessions', { method: 'POST', body: payload }),
+  myMentorSessions: () => request<any>('/mentor/sessions/me'),
+  mentorConnections: (email?: string, page: number = 1, per_page: number = 24) => request<any>(`/mentor/connections${email ? `?email=${encodeURIComponent(email)}&page=${page}&per_page=${per_page}` : `?page=${page}&per_page=${per_page}`}`),
+  acceptConnection: (otherId: string) => request<any>(`/network/accept/${otherId}`, { method: 'POST' }),
+  rejectConnection: (otherId: string) => request<any>(`/network/reject/${otherId}`, { method: 'POST' }),
+  withdrawConnection: (otherId: string) => request<any>(`/network/withdraw/${otherId}`, { method: 'POST' }),
+  createMentorBooking: (payload: {
+    student_id: string;
+    slot_start_iso: string;
+    topic: string;
+    notes?: string;
+  }) => request<any>('/mentor/bookings', { method: 'POST', body: payload }),
+  rescheduleBooking: (id: string, slotStartIso: string) =>
+    request<any>(`/bookings/${id}/reschedule`, { method: 'POST', body: { slot_start_iso: slotStartIso } }),
+  networkDiscover: (q?: string) => request<any>(`/network/discover${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  networkConnections: () => request<any>('/network/connections'),
+  networkRequests: () => request<any>('/network/requests'),
+  sendConnectionRequest: (otherId: string, message?: string) =>
+    request<any>(`/network/connect/${encodeURIComponent(otherId)}`, {
+      method: 'POST',
+      body: message ? { message } : {},
+    }),
+
+  // ── ECHO Showcase ──────────────────────────────────────────────────────────
+  listEchoShowcases: () => request<any>('/echo/showcases', { auth: false }),
+  getEchoShowcase: (slug: string) => request<any>(`/echo/showcases/${slug}`, { auth: false }),
+  registerEchoShowcase: (slug: string, payload: any) =>
+    request<any>(`/echo/showcases/${slug}/register`, { method: 'POST', body: payload }),
+  myEchoRegistration: (slug: string) =>
+    request<any>(`/echo/showcases/${slug}/my-registration`),
+  createEchoPaymentOrder: (slug: string, payload: any) =>
+    request<any>(`/echo/showcases/${slug}/payment-order`, { method: 'POST', body: payload }),
+  verifyEchoPayment: (slug: string, payload: any) =>
+    request<any>(`/echo/showcases/${slug}/verify-payment`, { method: 'POST', body: payload }),
+
+  // Promotions
+  getPromotionsPopup: () => request<any>('/promotions/popup', { auth: false }),
+
+  // Public college autocomplete (registration / onboarding forms)
+  searchColleges: (q: string, limit = 8) =>
+    request<any>(`/colleges/search?q=${encodeURIComponent(q)}&limit=${limit}`, { auth: false }),
+
+  // Admin ECHO Showcase
+  adminListEchoShowcases: () => request<any>('/echo/admin/showcases'),
+  createEchoShowcase: (payload: any) =>
+    request<any>('/echo/admin/showcases', { method: 'POST', body: payload }),
+  updateEchoShowcase: (id: string, payload: any) =>
+    request<any>(`/echo/admin/showcases/${id}`, { method: 'PUT', body: payload }),
+  temporaryOpenEchoShowcase: (id: string, durationMinutes: number) =>
+    request<any>(`/echo/admin/showcases/${id}/temporary-open`, { method: 'POST', body: { duration_minutes: durationMinutes } }),
+  deleteEchoShowcase: (id: string) =>
+    request<any>(`/echo/admin/showcases/${id}`, { method: 'DELETE' }),
+  publishEchoShowcase: (id: string) =>
+    request<any>(`/echo/admin/showcases/${id}/publish`, { method: 'PATCH' }),
+  draftEchoShowcase: (id: string) =>
+    request<any>(`/echo/admin/showcases/${id}/draft`, { method: 'PATCH' }),
+  archiveEchoShowcase: (id: string) =>
+    request<any>(`/echo/admin/showcases/${id}/archive`, { method: 'PATCH' }),
+  uploadEchoMedia: (payload: any) => {
+    if (typeof FormData !== 'undefined' && payload instanceof FormData) {
+      return request<any>('/echo/admin/upload', { method: 'POST', body: payload });
+    }
+    if (payload && payload.file && typeof FormData !== 'undefined') {
+      const fd = new FormData();
+      fd.append('file', payload.file, payload.filename || payload.file.name);
+      return request<any>('/echo/admin/upload', { method: 'POST', body: fd });
+    }
+    return request<any>('/echo/admin/upload', { method: 'POST', body: payload });
+  },
+  listEchoMedia: () =>
+    request<any>('/echo/admin/media'),
+  getEchoMediaStats: () =>
+    request<any>('/echo/admin/media/stats'),
+  deleteEchoMedia: (filename: string) =>
+    request<any>(`/echo/admin/media/${encodeURIComponent(filename)}`, { method: 'DELETE' }),
+  bulkDeleteEchoMedia: (filenames: string[]) =>
+    request<any>('/echo/admin/media/bulk-delete', { method: 'POST', body: { filenames } }),
+  adminEchoRegistrations: (params?: { slug?: string; status?: string; search?: string; has_sa_account?: boolean; profile_status?: string }) => {
+    const q = new URLSearchParams();
+    q.set('_t', String(Date.now()));
+    if (params?.slug) q.set('slug', params.slug);
+    if (params?.status) q.set('status', params.status);
+    if (params?.search) q.set('search', params.search);
+    if (params?.has_sa_account !== undefined) q.set('has_sa_account', String(params.has_sa_account));
+    if (params?.profile_status) q.set('profile_status', params.profile_status);
+    return request<any>(`/echo/admin/registrations?${q.toString()}`);
+  },
+  adminEchoIssueCertificate: (regId: string, title?: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/issue-certificate${title ? '?title=' + encodeURIComponent(title) : ''}`, { method: 'POST' }),
+  adminEchoBulkIssueCertificates: (slug: string) =>
+    request<any>(`/echo/admin/showcases/${slug}/bulk-issue-certificates`, { method: 'POST' }),
+  adminEchoBulkIssue3Certs: () =>
+    request<any>('/echo/admin/bulk-issue-3-certificates', { method: 'POST' }),
+  getEchoRegistrationCertificate: (regId: string) =>
+    request<any>(`/echo/registrations/${regId}/certificate`, { auth: false }),
+  adminEchoSendProfileReminders: (params?: { slug?: string; target_group?: string; channel?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.slug) q.set('slug', params.slug);
+    if (params?.target_group) q.set('target_group', params.target_group);
+    if (params?.channel) q.set('channel', params.channel);
+    return request<any>(`/echo/admin/send-profile-reminders?${q.toString()}`, { method: 'POST' });
+  },
+  adminEchoLoopAgentStatus: () =>
+    request<any>('/echo/admin/loop-agent/status'),
+  adminEchoLoopAgentStart: (intervalSeconds?: number) =>
+    request<any>(`/echo/admin/loop-agent/start${intervalSeconds ? '?interval_seconds=' + intervalSeconds : ''}`, { method: 'POST' }),
+  adminEchoLoopAgentStop: () =>
+    request<any>('/echo/admin/loop-agent/stop', { method: 'POST' }),
+  adminEchoDeleteRegistration: (regId: string) =>
+    request<any>(`/echo/admin/registrations/${regId}`, { method: 'DELETE' }),
+  adminEchoSendPaymentReminder: (regId: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/remind`, { method: 'POST' }),
+  adminEchoResendAccountTickets: (regId: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/resend-account-tickets`, { method: 'POST' }),
+  adminEchoRescuePayment: (regId: string, paymentId?: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/rescue-payment${paymentId ? '?payment_id=' + paymentId : ''}`, { method: 'POST' }),
+  adminEchoDedupCoupons: () =>
+    request<any>('/echo/admin/coupons/dedup', { method: 'POST' }),
+  adminEchoSyncTeams: () =>
+    request<any>('/echo/admin/registrations/sync-teams', { method: 'POST' }),
+  adminEchoBroadcastSummary: (slug?: string) =>
+    request<any>(`/echo/admin/broadcast/audience-summary${slug ? '?slug=' + slug : ''}`),
+  adminEchoBroadcastSend: (payload: any) =>
+    request<any>('/echo/admin/broadcast/send', { method: 'POST', body: payload }),
+  adminEchoMarkRegistrationFailed: (regId: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/mark-failed`, { method: 'POST' }),
+  adminEchoMarkRegistrationPaid: (regId: string, paymentId?: string, reason?: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/mark-paid`, { method: 'POST', body: { payment_id: paymentId || undefined, reason: reason || undefined } }),
+  adminEchoUpdateTeam: (regId: string, teamMembers: any[], teamName?: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/team`, { method: 'PUT', body: { team_members: teamMembers, team_name: teamName } }),
+  adminEchoResendTickets: (regId: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/resend-tickets`, { method: 'POST' }),
+  getEchoRegistrationPasscode: () =>
+    request<any>('/echo/admin/registration-passcode'),
+  setEchoRegistrationPasscode: (passcode: string) =>
+    request<any>('/echo/admin/registration-passcode', { method: 'PUT', body: { passcode } }),
+  disableEchoRegistrationPasscode: () =>
+    request<any>('/echo/admin/registration-passcode', { method: 'PUT', body: { disable: true } }),
+  verifyEchoRegistrationPasscode: (passcode: string) =>
+    request<any>('/echo/admin/registration-passcode/verify', { method: 'POST', body: { passcode } }),
+  adminEchoRevenue: () =>
+    request<any>('/echo/admin/revenue'),
+  adminRevenueAudit: () =>
+    request<any>('/admin/super/revenue-audit'),
+  adminRazorpayPaymentFees: (payment_ids: string[]) =>
+    request<any>('/admin/super/razorpay-payment-fees', { method: 'POST', body: { payment_ids } }),
+  myEchoInvoices: () =>
+    request<any>('/echo/my-invoices'),
+  myEchoRegistrations: () =>
+    request<any>('/echo/my-registrations'),
+  myMarketplaceOrders: () =>
+    request<any>('/echo/my-marketplace-orders'),
+  myMarketplaceInvoice: (orderId: string) =>
+    request<any>(`/echo/marketplace-invoices/${orderId}`),
+  myMarketplaceOrderQr: (orderId: string) =>
+    request<any>(`/echo/orders/${orderId}/qr`),
+
+  // ── Marketplace admin helpers ─────────────────────────────────────────────
+  adminListMarketplaceCatalog: (showcaseId: string) =>
+    request<any>(`/echo/admin/showcases/${showcaseId}/catalog`),
+  adminCreateMarketplaceItem: (showcaseId: string, payload: any) =>
+    request<any>(`/echo/admin/showcases/${showcaseId}/catalog`, { method: 'POST', body: payload }),
+  adminUpdateMarketplaceItem: (itemId: string, payload: any) =>
+    request<any>(`/echo/admin/catalog/${itemId}`, { method: 'PUT', body: payload }),
+  adminDeleteMarketplaceItem: (itemId: string) =>
+    request<any>(`/echo/admin/catalog/${itemId}`, { method: 'DELETE' }),
+  adminListMarketplaceOrders: (showcaseId: string) =>
+    request<any>(`/echo/admin/showcases/${showcaseId}/orders`),
+  adminListMarketplaceCoupons: (eventSlug?: string) =>
+    request<any>(`/echo/admin/coupons${eventSlug ? `?event_slug=${eventSlug}` : ''}`),
+  adminCreateMarketplaceCoupon: (payload: any) =>
+    request<any>('/echo/admin/coupons', { method: 'POST', body: payload }),
+  adminListVendors: () =>
+    request<any>('/echo/admin/vendors'),
+  adminCreateVendor: (payload: any) =>
+    request<any>('/echo/admin/vendors', { method: 'POST', body: payload }),
+  adminUpdateVendor: (vendorId: string, payload: any) =>
+    request<any>(`/echo/admin/vendors/${vendorId}`, { method: 'PUT', body: payload }),
+  adminDeleteVendor: (vendorId: string) =>
+    request<any>(`/echo/admin/vendors/${vendorId}`, { method: 'DELETE' }),
+  adminVendorStats: () =>
+    request<any>('/echo/admin/vendors/stats'),
+  adminResetVendorPasscode: (vendorId: string, passcode: string) =>
+    request<any>(`/echo/admin/vendors/${vendorId}/password-reset`, { method: 'POST', body: { passcode } }),
+  adminSendVendorCredentials: (vendorId: string) =>
+    request<any>(`/echo/admin/vendors/${vendorId}/send-credentials`, { method: 'POST' }),
+  previewMarketplaceCoupon: (payload: any) =>
+    request<any>('/echo/orders/coupon-preview', { method: 'POST', body: payload }),
+
+  // ── Internal Hiring & Interns Pipeline ────────────────────────────────────
+  adminEchoListInterns: (params?: any) => {
+    const q = new URLSearchParams();
+    if (params?.slug) q.set('slug', params.slug);
+    if (params?.stage) q.set('stage', params.stage);
+    if (params?.search) q.set('search', params.search);
+    if (params?.domain) q.set('domain', params.domain);
+    const qs = q.toString();
+    return request<any>(`/echo/admin/interns${qs ? '?' + qs : ''}`);
+  },
+  adminEchoConvertIntern: (payload: any) =>
+    request<any>('/echo/admin/interns/convert', { method: 'POST', body: payload }),
+  adminEchoAdvanceIntern: (id: string, payload?: any) =>
+    request<any>(`/echo/admin/interns/${id}/advance`, { method: 'POST', body: payload || {} }),
+  adminEchoUpdateIntern: (id: string, payload: any) =>
+    request<any>(`/echo/admin/interns/${id}`, { method: 'PUT', body: payload }),
+  adminEchoDeleteIntern: (id: string) =>
+    request<any>(`/echo/admin/interns/${id}`, { method: 'DELETE' }),
+  adminEchoSyncAllInterns: () =>
+    request<any>('/echo/admin/interns/sync-registrations', { method: 'POST' }),
+
+
+
+  // ── Echo Settings & Branding ──────────────────────────────────────────────
+  getEchoSettings: () => request<any>('/echo/admin/settings'),
+  getEchoHeroConfig: () => request<any>('/echo/admin/settings').then((s: any) => s?.hero_config || null),
+  updateEchoSettings: (payload: any) =>
+    request<any>('/echo/admin/settings', { method: 'PUT', body: payload }),
+  getEchoBranding: () => request<any>('/echo/admin/branding'),
+  updateEchoBranding: (payload: any) =>
+    request<any>('/echo/admin/branding', { method: 'PUT', body: payload }),
+  getEchoTicketPreview: (tplId: string) =>
+    request<any>(`/echo/tickets/preview/${tplId}`),
+  getEchoInvoicePreview: (tplId: string) =>
+    request<any>(`/echo/admin/settings/preview/invoice/${tplId}`),
+  getEchoTicket: (regId: string) =>
+    request<any>(`/echo/tickets/${regId}?format=json`),
+  getEchoInvoice: (invoiceNo: string) =>
+    request<any>(`/echo/invoices/${invoiceNo}`),
+
+  // ── Echo Admin Sessions & Volunteers ──────────────────────────────────────
+  getEchoSessions: (slug: string) =>
+    request<any>(`/echo/admin/${slug}/sessions`),
+  updateEchoSessions: (slug: string, payload: any) =>
+    request<any>(`/echo/admin/${slug}/sessions`, { method: 'PUT', body: payload }),
+  lockEchoSession: (slug: string, sessionKey: string) =>
+    request<any>(`/echo/admin/${slug}/sessions/${sessionKey}/lock`, { method: 'POST' }),
+  listEchoVolunteers: (slug: string) =>
+    request<any>(`/echo/admin/${slug}/volunteers`),
+  addEchoVolunteer: (slug: string, payload: any) =>
+    request<any>(`/echo/admin/${slug}/volunteers`, { method: 'POST', body: payload }),
+  deleteEchoVolunteer: (slug: string, volunteerId: string) =>
+    request<any>(`/echo/admin/${slug}/volunteers/${volunteerId}`, { method: 'DELETE' }),
+
+  // ── Unstop CSV Import ─────────────────────────────────────────────────────
+  echoImportTicketsPreview: (file: File, source: string = 'unstop') => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return request<any>(`/echo/admin/import-tickets/preview?source=${encodeURIComponent(source)}`, { method: 'POST', body: fd });
+  },
+  echoImportTickets: (file: File, slug: string, source: string = 'unstop') => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return request<any>(`/echo/admin/import-tickets?slug=${encodeURIComponent(slug)}&source=${encodeURIComponent(source)}`, { method: 'POST', body: fd });
+  },
+
+  // ── Admin Contacts ────────────────────────────────────────────────────────
+  listContacts: (params: { page?: number; per_page?: number; q?: string; source?: string; include_registered?: boolean }) => {
+    const qs = new URLSearchParams();
+    if (params.page) qs.set('page', String(params.page));
+    if (params.per_page) qs.set('per_page', String(params.per_page));
+    if (params.q) qs.set('q', params.q);
+    if (params.source) qs.set('source', params.source);
+    if (params.include_registered) qs.set('include_registered', 'true');
+    return request<any>(`/admin/contacts?${qs}`);
+  },
+  listContactLists: () => request<any>('/admin/contact-lists'),
+  getContactStats: () => request<any>('/admin/contacts/stats'),
+  deleteContact: (id: string) =>
+    request<any>(`/admin/contacts/${id}`, { method: 'DELETE' }),
+  bulkDeleteContacts: (ids: string[]) =>
+    request<any>('/admin/contacts/bulk', { method: 'DELETE', body: { ids } }),
+  importContacts: (formData: FormData) =>
+    request<any>('/admin/contacts/import', { method: 'POST', body: formData }),
+  createContact: (payload: any) =>
+    request<any>('/admin/contacts', { method: 'POST', body: payload }),
+  updateContact: (id: string, payload: any) =>
+    request<any>(`/admin/contacts/${id}`, { method: 'PUT', body: payload }),
+
+  // ── Admin Imports ─────────────────────────────────────────────────────────
+  uploadImportFile: (formData: FormData) =>
+    request<any>('/admin/imports/upload', { method: 'POST', body: formData }),
+  commitImport: (payload: { cache_id: string; mapping: any; skip_invalid: boolean }) =>
+    request<any>('/admin/imports/commit', { method: 'POST', body: payload }),
+
+  // ── Admin Email Quality ───────────────────────────────────────────────────
+  emailQualityAudit: () => request<any>('/admin/email-quality/audit'),
+  bulkRestoreEmails: (emails: string[]) => {
+    const qs = new URLSearchParams();
+    emails.forEach((e) => qs.append('emails', e));
+    return request<any>(`/admin/email-quality/suppressions/bulk?${qs}`, { method: 'DELETE' });
+  },
+  restoreAllSuppressions: () => request<any>('/admin/email-quality/suppressions/all', { method: 'DELETE' }),
+
+  // ── Admin Exports ─────────────────────────────────────────────────────────
+  exportPayments: () => request<any>('/admin/export/payments'),
+
+  // ── College Students ──────────────────────────────────────────────────────
+  exportCollegeStudents: (params: { format?: string; department?: string; year?: string }) => {
+    const qs = new URLSearchParams();
+    if (params.format) qs.set('format', params.format);
+    if (params.department) qs.set('department', params.department);
+    if (params.year) qs.set('year', params.year);
+    return request<any>(`/college/students/export?${qs}`);
+  },
+  clearCollegeStudents: () =>
+    request<any>('/college/students/clear', { method: 'POST' }),
+  bulkDeleteCollegeStudents: (ids: string[]) =>
+    request<any>('/college/students/bulk-delete', { method: 'POST', body: { ids } }),
+  uploadCollegeStudents: (formData: FormData) =>
+    request<any>('/college/students/upload', { method: 'POST', body: formData }),
+
+  // ── Newsletter ────────────────────────────────────────────────────────────
+  sendNewsletter: (payload: any) =>
+    request<any>('/newsletter/admin/send', { method: 'POST', body: payload }),
+  saveNewsletterDraft: (payload: any) =>
+    request<any>('/newsletter/admin/save-draft', { method: 'POST', body: payload }),
+  previewNewsletter: (payload: any) =>
+    request<any>('/newsletter/admin/preview', { method: 'POST', body: payload }),
+  sendNewsletterTest: (payload: any) =>
+    request<any>('/newsletter/admin/send-test', { method: 'POST', body: payload }),
+  sendNewsletterTestWhatsApp: (payload: any) =>
+    request<any>('/newsletter/admin/send-test-whatsapp', { method: 'POST', body: payload }),
+  cancelNewsletterCampaign: (campaignId: string) =>
+    request<any>(`/newsletter/admin/campaigns/${campaignId}`, { method: 'DELETE' }),
+  getNewsletterCampaign: (campaignId: string) =>
+    request<any>(`/newsletter/admin/campaigns/${campaignId}`),
+  updateNewsletterCampaign: (campaignId: string, payload: any) =>
+    request<any>(`/newsletter/admin/campaigns/${campaignId}`, { method: 'PATCH', body: payload }),
+  listNewsletterCampaigns: () =>
+    request<any>('/newsletter/admin/campaigns'),
+  newsletterUpcomingEvents: () =>
+    request<any>('/newsletter/admin/upcoming-events'),
+  getNewsletterRecipientCount: (audience = 'all') =>
+    request<any>(`/newsletter/admin/recipient-count?audience=${encodeURIComponent(audience)}`),
+
+  emailQualityReport: (q = '') =>
+    request<any>(`/admin/email-quality${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  unsuppressEmail: (email: string) =>
+    request<any>(`/admin/email-quality/suppressions?email=${encodeURIComponent(email)}`, { method: 'DELETE' }),
+
+  // ── Newsletter image upload (shared /admin/upload endpoint) ───────────────
+  uploadNewsletterImage: (file: File, folder = 'newsletter') => {
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+    return request<any>(`/admin/upload?folder=${encodeURIComponent(folder)}`, { method: 'POST', body: fd });
+  },
+
+  // ── Individual notifications ──────────────────────────────────────────────
+  searchUsers: (q: string) =>
+    request<any>(`/newsletter/admin/search-users?q=${encodeURIComponent(q)}`),
+  sendIndividualNotification: (payload: any) =>
+    request<any>('/newsletter/admin/send-individual', { method: 'POST', body: payload }),
+
+  // ── BGV & Account Verticals ──────────────────────────────────────────────
+  getAccountAnalytics: () =>
+    request<any>('/bgv/admin/analytics'),
+  listAccountsByVertical: (vertical = 'all', q = '', page = 1, limit = 25, country = 'all', has_linkedin = 'all') =>
+    request<any>(`/bgv/admin/list?vertical=${encodeURIComponent(vertical)}&q=${encodeURIComponent(q)}&page=${page}&limit=${limit}&country=${encodeURIComponent(country)}&has_linkedin=${encodeURIComponent(has_linkedin)}`),
+  toggleAccountTestStatus: (payload: { id: string; collection?: string; is_test: boolean }) =>
+    request<any>('/bgv/admin/toggle-test', { method: 'POST', body: payload }),
+  purgeTestAccounts: (confirm = true) =>
+    request<any>('/bgv/admin/purge-test', { method: 'POST', body: { confirm } }),
+  lookupBGVRecord: (identifier: string) =>
+    request<any>(`/bgv/lookup?identifier=${encodeURIComponent(identifier)}`),
+  backfillBGVIdentifiers: () =>
+    request<any>('/bgv/admin/backfill', { method: 'POST', body: {} }),
+  getMonthlyRemindersStatus: () =>
+    request<any>('/bgv/admin/monthly-reminders/status'),
+  updateMonthlyRemindersSettings: (payload: { auto_reminders_enabled?: boolean; interval_days?: number; claim_base_url?: string; subject_template?: string; test_email?: string }) =>
+    request<any>('/bgv/admin/monthly-reminders/settings', { method: 'POST', body: payload }),
+  runMonthlyReminders: (payload?: { dry_run?: boolean; limit?: number }) =>
+    request<any>('/bgv/admin/monthly-reminders/run', { method: 'POST', body: payload || {} }),
+  sendSingleClaimEmail: (payload: { id: string; collection?: string; custom_url?: string; email?: string }) =>
+    request<any>('/bgv/admin/monthly-reminders/send-single', { method: 'POST', body: payload }),
+  updateAccountProfile: (payload: { id: string; collection?: string; name?: string; email?: string; phone?: string; country?: string; location?: string; linkedin_url?: string; college?: string; degree?: string; graduation_year?: string; roll_number?: string }) =>
+    request<any>('/bgv/admin/update-profile', { method: 'POST', body: payload }),
+  autoEnrichProfiles: () =>
+    request<any>('/bgv/admin/enrich-profiles', { method: 'POST', body: {} }),
+  getBGVProvidersRegister: () =>
+    request<any>('/bgv/integrations/providers'),
+  listFakeUniversities: (q = '') =>
+    request<any>(`/bgv/integrations/fake-universities?q=${encodeURIComponent(q)}`),
+  verifyDegreeInstitution: (payload: { college: string }) =>
+    request<any>('/bgv/integrations/verify-degree-institution', { method: 'POST', body: payload }),
+  screenWatchlist: (payload: { name: string; dob?: string; country?: string }) =>
+    request<any>('/bgv/integrations/screen-watchlist', { method: 'POST', body: payload }),
+  runComprehensiveBGVScan: (payload: { name: string; email?: string; college?: string; degree?: string; pan?: string; uan?: string; country?: string; dob?: string; location?: string }) =>
+    request<any>('/bgv/integrations/scan', { method: 'POST', body: payload }),
+  getPublicBGVRecord: (identifier: string) =>
+    request<any>(`/bgv/verify-public/${encodeURIComponent(identifier)}`),
+  downloadBGVReportPdf: (identifier: string) =>
+    request<any>(`/bgv/report/pdf/${encodeURIComponent(identifier)}`),
+
+  // ── Blog & Community ──────────────────────────────────────────────────────
+  listBlogPosts: (category?: string, search?: string) => {
+    const params = new URLSearchParams();
+    if (category && category !== 'All') params.append('category', category);
+    if (search) params.append('q', search);
+    const queryString = params.toString();
+    return request<any>(`/blog/posts${queryString ? `?${queryString}` : ''}`, { auth: false });
+  },
+  getBlogPost: (slug: string) =>
+    request<any>(`/blog/posts/${encodeURIComponent(slug)}`, { auth: false }),
+  getCommunityData: () =>
+    request<any>('/community/data', { auth: false }),
+  // ── First-Party Careers & Direct Opportunities ───────────────────────────
+  listPublicCareers: (params?: { search?: string; work_mode?: string; employment_type?: string; experience_level?: string; skip?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.search) qs.append('search', params.search);
+    if (params?.work_mode && params.work_mode !== 'ALL') qs.append('work_mode', params.work_mode);
+    if (params?.employment_type && params.employment_type !== 'ALL') qs.append('employment_type', params.employment_type);
+    if (params?.experience_level && params.experience_level !== 'ALL') qs.append('experience_level', params.experience_level);
+    if (params?.skip !== undefined) qs.append('skip', String(params.skip));
+    if (params?.limit !== undefined) qs.append('limit', String(params.limit));
+    const str = qs.toString();
+    return request<any>(`/careers${str ? `?${str}` : ''}`, { auth: false });
+  },
+  getPublicCareer: (id: string) =>
+    request<any>(`/careers/${encodeURIComponent(id)}`, { auth: false }),
+  applyToCareer: (id: string, payload: { cover_letter?: string; resume_url?: string; phone?: string }) =>
+    request<any>(`/careers/${encodeURIComponent(id)}/apply`, { method: 'POST', body: payload }),
+  getMyCareerApplications: () =>
+    request<any>('/careers/student/my-applications'),
+  getMyCareerApplication: (id: string) =>
+    request<any>(`/careers/student/my-applications/${encodeURIComponent(id)}`),
+  withdrawCareerApplication: (id: string) =>
+    request<any>(`/careers/student/my-applications/${encodeURIComponent(id)}/withdraw`, { method: 'POST' }),
+  getCareerAdminStats: () =>
+    request<any>('/careers/admin/stats'),
+  listAdminCareers: (params?: { status?: string; search?: string; skip?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.status && params.status !== 'ALL') qs.append('status', params.status);
+    if (params?.search) qs.append('search', params.search);
+    if (params?.skip !== undefined) qs.append('skip', String(params.skip));
+    if (params?.limit !== undefined) qs.append('limit', String(params.limit));
+    const str = qs.toString();
+    return request<any>(`/careers/admin/openings${str ? `?${str}` : ''}`);
+  },
+  createAdminCareer: (payload: any) =>
+    request<any>('/careers/admin/openings', { method: 'POST', body: payload }),
+  getAdminCareer: (id: string) =>
+    request<any>(`/careers/admin/openings/${encodeURIComponent(id)}`),
+  updateAdminCareer: (id: string, payload: any) =>
+    request<any>(`/careers/admin/openings/${encodeURIComponent(id)}`, { method: 'PUT', body: payload }),
+  publishAdminCareer: (id: string) =>
+    request<any>(`/careers/admin/openings/${encodeURIComponent(id)}/publish`, { method: 'POST' }),
+  closeAdminCareer: (id: string) =>
+    request<any>(`/careers/admin/openings/${encodeURIComponent(id)}/close`, { method: 'POST' }),
+  deleteAdminCareer: (id: string) =>
+    request<any>(`/careers/admin/openings/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  listAdminCareerApplications: (params?: { opening_id?: string; status?: string; search?: string; skip?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.opening_id && params.opening_id !== 'ALL') qs.append('opening_id', params.opening_id);
+    if (params?.status && params.status !== 'ALL') qs.append('status', params.status);
+    if (params?.search) qs.append('search', params.search);
+    if (params?.skip !== undefined) qs.append('skip', String(params.skip));
+    if (params?.limit !== undefined) qs.append('limit', String(params.limit));
+    const str = qs.toString();
+    return request<any>(`/careers/admin/applications${str ? `?${str}` : ''}`);
+  },
+  getAdminCareerApplication: (id: string) =>
+    request<any>(`/careers/admin/applications/${encodeURIComponent(id)}`),
+  updateAdminCareerApplicationStatus: (id: string, payload: { status: string; admin_notes?: string }) =>
+    request<any>(`/careers/admin/applications/${encodeURIComponent(id)}/status`, { method: 'PATCH', body: payload }),
+};
+
+
+// The API backend's ONLY static mount is /uploads (backend/server.py — ECHO
+// media, newsletters, coupons, certificates). Every other root-relative path
+// stored in the database refers to a frontend-bundled public asset
+// (frontend/public/, e.g. /images/hackwave/..., /logos/...,
+// /HackWave_3.0_Event_Handbook.pdf) that is served by the web host itself:
+// Expo's dev server locally, nginx (try_files) in production.
+const BACKEND_STATIC_PREFIX = '/uploads/';
+
+export function resolveImageUrl(url?: any): string {
+  if (!url || typeof url !== 'string') return '';
+  if (
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('data:') ||
+    url.startsWith('blob:')
+  ) {
+    return url;
+  }
+  const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+  if (cleanUrl.startsWith(BACKEND_STATIC_PREFIX)) {
+    // Backend-served upload — needs the absolute API origin (native apps have
+    // no page origin to resolve relative URLs against).
+    return `${BASE_URL}${cleanUrl}`;
+  }
+  // Frontend-bundled public asset — keep it relative to the web origin so it
+  // resolves against whichever host serves the app (Expo dev server locally,
+  // nginx in production). Sending it to the API origin 404s because the
+  // backend mounts only /uploads.
+  return cleanUrl;
+}
+
+export { BASE_URL };

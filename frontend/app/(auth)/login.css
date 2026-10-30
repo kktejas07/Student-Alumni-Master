@@ -1,0 +1,493 @@
+/* Extracted from login.tsx */
+.au-st-1 {
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  min-height: 100vh;
+}
+.au-st-2 {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.au-st-3 {
+  position: absolute;
+  left: -12%;
+  top: -20%;
+  width: 780px;
+  height: 640px;
+  background: radial-gradient(circle, rgba(91,79,233,.22), transparent 68%);
+  filter: blur(70px);
+  animation: au-drift 40s ease-in-out infinite;
+}
+.au-st-4 {
+  position: absolute;
+  right: -16%;
+  bottom: -18%;
+  width: 720px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(240,166,232,.10), transparent 70%);
+  filter: blur(80px);
+  animation: au-drift 56s ease-in-out infinite reverse;
+}
+.au-st-5 {
+  position: absolute;
+}
+.au-st-6 {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+}
+.au-st-7 {
+  position: relative;
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 40px;
+  padding: 44px 52px;
+}
+.au-st-8 {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.au-st-9 {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 122px;
+  font-weight: 800;
+  letter-spacing: -6px;
+  fill: #FFFFFF;
+}
+.au-st-10 {
+  font-size: 18px;
+  font-weight: 700;
+}
+.au-st-11 {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+}
+.au-st-12 {
+  position: relative;
+  min-height: 400px;
+}
+.au-st-13 {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  display: block;
+  margin-bottom: 30px;
+}
+.au-st-14 {
+  fill: none;
+  stroke: url(#au-hash);
+  stroke-width: 3px;
+  stroke-linecap: round;
+}
+.au-st-15 {
+  fill: none;
+  stroke: #2A2A55;
+  stroke-width: 1.4px;
+}
+.au-st-16 {
+  animation: au-pulse 3.2s ease-in-out infinite;
+  transform-origin: 306px 16px;
+}
+.au-st-17 {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  fill: #F4F5FB;
+}
+.au-st-18 {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  color: var(--ind-lt);
+  margin-bottom: 14px;
+}
+.au-st-19 {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  line-height: 1.14;
+  max-width: 440px;
+}
+.au-st-20 {
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 400px;
+  margin-top: 14px;
+}
+.au-st-21 {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  display: block;
+  margin-bottom: 30px;
+}
+.au-st-22 {
+  fill: none;
+  stroke: #2A2A55;
+  stroke-width: 1.6px;
+}
+.au-st-23 {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+  fill: #8B84FF;
+}
+.au-st-24 {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  fill: #C7C2FF;
+}
+.au-st-25 {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  fill: #F6C9EE;
+}
+.au-st-26 {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  fill: #8DE8C4;
+}
+.au-st-27 {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  fill: #AECDF9;
+}
+.au-st-28 {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  color: #F0A6E8;
+  margin-bottom: 14px;
+}
+.au-st-29 {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  line-height: 1.14;
+  max-width: 440px;
+}
+.au-st-30 {
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 400px;
+  margin-top: 14px;
+}
+.au-st-31 {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  display: block;
+  margin-bottom: 30px;
+}
+.au-st-32 {
+  animation: au-float 6s ease-in-out infinite;
+  transform-origin: 250px 100px;
+}
+.au-st-33 {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 19px;
+  font-weight: 800;
+  fill: #8B84FF;
+}
+.au-st-34 {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  fill: #9AA0B4;
+}
+.au-st-35 {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  color: #6FA8F5;
+  margin-bottom: 14px;
+}
+.au-st-36 {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  line-height: 1.14;
+  max-width: 440px;
+}
+.au-st-37 {
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 400px;
+  margin-top: 14px;
+}
+.au-st-38 {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  display: block;
+  margin-bottom: 30px;
+}
+.au-st-39 {
+  animation: au-float 7.5s ease-in-out infinite;
+  transform-origin: 160px 96px;
+}
+.au-st-40 {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  fill: #FFFFFF;
+}
+.au-st-41 {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: .8px;
+  fill: #34D399;
+}
+.au-st-42 {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  color: #34D399;
+  margin-bottom: 14px;
+}
+.au-st-43 {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  line-height: 1.14;
+  max-width: 440px;
+}
+.au-st-44 {
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 400px;
+  margin-top: 14px;
+}
+.au-st-45 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 34px;
+}
+.au-st-46 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.au-st-47 {
+  fill: var(--ind-lt);
+  flex: none;
+}
+.au-st-48 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 44px 44px 56px;
+  animation: au-in .55s cubic-bezier(.2,.8,.2,1);
+}
+.au-st-49 {
+  width: 100%;
+  max-width: 400px;
+}
+.au-st-50 {
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+.au-st-51 {
+  font-size: 14.5px;
+  color: var(--muted);
+  margin-top: 7px;
+}
+.au-st-52 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  border: 1px solid var(--line-hi);
+  border-radius: 12px;
+  background: #FFFFFF;
+  color: #1F2430;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 14px;
+  margin-top: 26px;
+  cursor: pointer;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.au-st-53 {
+  flex: none;
+}
+.au-st-54 {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 22px 0;
+}
+.au-st-55 {
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.au-st-56 {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1.4px;
+  color: var(--muted);
+}
+.au-st-57 {
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.au-st-58 {
+  background: rgba(248, 113, 134, 0.15);
+  border: 1px solid rgba(248, 113, 134, 0.35);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--danger);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.au-st-59 {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+  color: var(--muted);
+  margin-bottom: 9px;
+}
+.au-st-60 {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  padding: 14px 15px;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.au-st-61 {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.8px;
+  flex: none;
+}
+.au-st-62 {
+  flex: 1;
+  min-width: 0;
+  border-width: 0;
+  background-color: transparent;
+  color: #F4F5FB;
+  font-size: 15px;
+  outline-style: none;
+}
+.au-st-63 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+  margin-top: 18px;
+}
+.au-st-64 {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+  color: var(--muted);
+}
+.au-st-65 {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ind-lt);
+  cursor: pointer;
+}
+.au-st-66 {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  padding: 14px 15px;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.au-st-67 {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.8px;
+  flex: none;
+}
+.au-st-68 {
+  flex: 1;
+  min-width: 0;
+  border-width: 0;
+  background-color: transparent;
+  color: #F4F5FB;
+  font-size: 15px;
+  outline-style: none;
+}
+.au-st-69 {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+.au-st-70 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+.au-st-71 {
+  accent-color: var(--ind);
+  cursor: pointer;
+}
+.au-st-72 {
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.au-st-73 {
+  fill: none;
+  stroke: #FFFFFF;
+  stroke-width: 2.6px;
+  stroke-linecap: round;
+  animation: au-spin .8s linear infinite;
+}
+.au-st-74 {
+  font-size: 13.5px;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 18px;
+}
+.au-st-75 {
+  font-weight: 600;
+  color: var(--ind-lt);
+  cursor: pointer;
+}
+.au-st-brand-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+.au-st-brand-svg { flex: none; }
+.au-st-brand-text { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+.au-st-brand-highlight { color: #8B84FF; }
+
+.au-st-62::placeholder, .au-st-68::placeholder { color: #7B8199; }

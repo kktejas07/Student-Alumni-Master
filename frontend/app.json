@@ -1,0 +1,74 @@
+{
+  "expo": {
+    "name": "Student Alumni",
+    "slug": "studentalumni",
+    "description": "AI Career Platform for Students",
+    "version": "1.1.1",
+    "orientation": "portrait",
+    "icon": "./assets/images/sa-icon.png",
+    "scheme": "studentalumni",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.studentalumni.ai",
+      "buildNumber": "20",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Capture your profile photo for your unique student ID.",
+        "NSPhotoLibraryUsageDescription": "Choose a profile photo for your student ID."
+      }
+    },
+    "android": {
+      "package": "com.studentalumni.ai",
+      "versionCode": 20,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/sa-adaptive-icon.png",
+        "backgroundColor": "#0a0f1e"
+      },
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/images/sa-favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/sa-splash-image.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0a0f1e"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Capture your profile photo for your unique student ID."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose a profile photo for your student ID."
+        }
+      ],
+      "expo-web-browser",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
+    }
+  }
+}

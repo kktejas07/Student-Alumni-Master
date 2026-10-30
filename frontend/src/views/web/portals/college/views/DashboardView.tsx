@@ -1,0 +1,494 @@
+/**
+ * College Admin Portal — Dashboard view (true RN port).
+ *
+ * Sections:
+ *   • Hero greeting
+ *   • 4 KPI tiles
+ *   • AI Daily Briefing card (Powered by Claude)
+ *   • Dept Placement Rates (left) + Upcoming Events (right)
+ *   • Recent Activity (left) + Top Recruiters (right)
+ */
+import React from 'react';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import {
+  GraduationCap, Users, Trophy, CalendarDays, Sparkles, ArrowRight,
+  UserPlus, Calendar, Briefcase, Bell, TrendingUp, Building2, Plus,
+} from 'lucide-react-native';
+import { CC, FONTS } from '../tokens';
+import { Badge, KpiCard } from '../atoms';
+import { usePortalData } from '@/src/lib/portalApi';
+import { TierBadge } from '@/src/views/web/TierBadge';
+
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { request } from '@/src/models/services/api';
+import type { CollegeNavId } from '../nav';
+import { AdBanner } from '@/src/views/web/components/AdBanner';
+import { CouponBanner } from '@/src/views/web/components/CouponBanner';
+
+const KPI_ICONS = { students: GraduationCap, alumni: Users, placement: Trophy, events: CalendarDays } as const;
+
+const ACTIVITY_ICONS: Record<string, any> = {
+  GraduationCap, UserPlus, Calendar, Briefcase, Bell, TrendingUp,
+};
+
+/**
+ * Response shape of GET /api/admin/college-stats (backend/portals.py,
+ * `college_admin_stats`). Every list may legitimately be empty.
+ */
+type CollegeTier = {
+  tier: string;
+  score: number;
+  naac?: string;
+  visuals?: { bg?: string; text?: string; border?: string; icon?: string };
+};
+type CollegeDashboard = {
+  college: {
+    name: string;
+    shortName: string;
+    initials: string;
+    rank: string;
+    emoji: string;
+    placementRate: number;
+    upcomingHighlight: string;
+    tier: CollegeTier | null;
+  };
+  kpis: { id: string; label: string; value: string; delta: string; color: string }[];
+  deptPlacement: { dept: string; pct: number; placed: number; color: string }[];
+  recentActivity: { id: string | number; kind?: string; text: string; time: string; icon: string; tint: string }[];
+  upcomingEvents: { id: string | number; title: string; date: string; attending: number; color: string }[];
+  topRecruiters: { id: string | number; name: string; offers: number; ctc: string | null; color: string }[];
+};
+
+/** Labels for the four KPI tiles, used only as placeholders when the API has no numbers. */
+const KPI_PLACEHOLDERS: CollegeDashboard['kpis'] = [
+  { id: 'students',  label: 'Total Students',    value: '--', delta: 'No data yet', color: 'blue' },
+  { id: 'alumni',    label: 'Alumni Network',    value: '--', delta: 'No data yet', color: 'purple' },
+  { id: 'placement', label: 'Placement Rate',    value: '--', delta: 'No data yet', color: 'green' },
+  { id: 'events',    label: 'Events This Month', value: '--', delta: 'No data yet', color: 'amber' },
+];
+
+function makeEmpty(collegeName: string): CollegeDashboard {
+  const name = collegeName || 'Your college';
+  return {
+    college: {
+      name,
+      shortName: name,
+      initials: name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase(),
+      rank: '',
+      emoji: '',
+      placementRate: 0,
+      upcomingHighlight: '',
+      tier: null,
+    },
+    kpis: [],
+    deptPlacement: [],
+    recentActivity: [],
+    upcomingEvents: [],
+    topRecruiters: [],
+  };
+}
+
+/** Day-of-month from a date string such as "May 10, 2026"; "--" when absent. */
+function dayOf(date: string): string {
+  const m = /\b(\d{1,2})\b/.exec(date || '');
+  return m ? m[1] : '--';
+}
+
+function SkeletonBlock({ height, flex }: { height: number; flex?: number }) {
+  return <View style={[s.skeleton, { height }, flex !== undefined && { flex }]} />;
+}
+
+function EmptyLine({ text }: { text: string }) {
+  return <Text style={s.emptyLine}>{text}</Text>;
+}
+
+export function DashboardView({
+  onOpenProfile,
+  onNavigate,
+}: {
+  onOpenProfile?: () => void;
+  onNavigate?: (id: CollegeNavId) => void;
+}) {
+  const user = useAuthStore((state) => state.user);
+  const collegeName = (user as any)?.institution || user?.college_info?.institution_name || user?.school_info?.institution_name || '';
+  const EMPTY = React.useMemo(() => makeEmpty(collegeName), [collegeName]);
+
+  const { data, loading, error, refresh } = usePortalData<CollegeDashboard>(
+    collegeName
+      ? `/admin/college-stats?college_name=${encodeURIComponent(collegeName)}`
+      : '/admin/college-stats',
+    EMPTY
+  );
+
+  const { width } = useWindowDimensions();
+  const stack = width < 1100;
+
+  const [briefText, setBriefText] = React.useState<string>('');
+  const [briefLoading, setBriefLoading] = React.useState<boolean>(false);
+
+  const view: CollegeDashboard = data || EMPTY;
+  const COLLEGE = view.college;
+  // The API always returns four KPI entries; an empty list means nothing has loaded.
+  const hasData = view.kpis.length > 0;
+  const KPIS = hasData ? view.kpis : KPI_PLACEHOLDERS;
+  const DEPT_PLACEMENT = view.deptPlacement;
+  const RECENT_ACTIVITY = view.recentActivity;
+  const UPCOMING_EVENTS = view.upcomingEvents;
+  const TOP_RECRUITERS = view.topRecruiters;
+
+  if (loading && !hasData) {
+    return (
+      <View style={{ gap: 16 }}>
+        <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
+          <View style={{ flex: 1, gap: 8 }}>
+            <SkeletonBlock height={26} />
+            <SkeletonBlock height={14} />
+          </View>
+          {!stack && <SkeletonBlock height={64} flex={0.6} />}
+        </View>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+          {[0, 1, 2, 3].map((i) => <SkeletonBlock key={i} height={104} flex={1} />)}
+        </View>
+        <SkeletonBlock height={96} />
+        <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
+          <SkeletonBlock height={240} flex={stack ? undefined : 1.7} />
+          <SkeletonBlock height={240} flex={stack ? undefined : 1} />
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+          <ActivityIndicator size="small" color="#FCD34D" />
+          <Text style={s.emptyLine}>Loading dashboard</Text>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ gap: 16 }}>
+      {/* Error banner: request failed. Any previously loaded data stays on screen. */}
+      {error && (
+        <View style={s.errorBox}>
+          <Text style={s.errorText}>Could not load dashboard data. {error}</Text>
+          <Pressable onPress={refresh} style={({ hovered }: any) => [s.retryBtn, hovered && { opacity: 0.9 }]}>
+            <Text style={s.retryText}>Retry</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {/* Hero */}
+      <View style={{ flexDirection: stack ? 'column' : 'row', alignItems: stack ? 'flex-start' : 'center', gap: 16 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={s.heroTitle}>Good morning, {(user?.full_name || 'Admin').split(' ')[0]} </Text>
+          <Text style={s.heroSub}>
+            {hasData
+              ? `${COLLEGE.name} · ${COLLEGE.placementRate}% placement rate${COLLEGE.upcomingHighlight && COLLEGE.upcomingHighlight !== '—' ? ` · ${COLLEGE.upcomingHighlight}` : ''}`
+              : `${COLLEGE.name} · No dashboard data yet`}
+          </Text>
+        </View>
+        {/* TIER BANNER */}
+        {COLLEGE.tier && (
+          <View style={s.tierBanner}>
+            <TierBadge tier={COLLEGE.tier.tier} size="lg" />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={s.tierKicker}>INSTITUTIONAL TIER{COLLEGE.tier.naac ? ` · NAAC ${COLLEGE.tier.naac}` : ''}</Text>
+              <Text style={s.tierTitle}>
+                {COLLEGE.tier.tier} <Text style={s.tierScore}>· {COLLEGE.tier.score}/100</Text>
+              </Text>
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* 4 KPI tiles */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+        {KPIS.map((k) => {
+          const Icon = KPI_ICONS[k.id as keyof typeof KPI_ICONS];
+          return <KpiCard key={k.id} Icon={Icon} label={k.label} value={k.value} delta={k.delta} color={k.color} />;
+        })}
+      </View>
+
+      {/* Ad Banner */}
+      <AdBanner />
+
+      {/* Exclusive Coupons — below the ad banner */}
+      <CouponBanner portal="college" />
+
+      {/* AI Daily Briefing */}
+      <LinearGradient
+        colors={['rgba(245,158,11,0.18)', 'rgba(245,158,11,0.06)']}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={s.briefCard}
+      >
+        <View style={s.briefIcon}><Sparkles size={18} color="#FCD34D" /></View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <Text style={s.briefTitle}>AI Daily Briefing</Text>
+            <Badge label="Powered by Claude" color="purple" />
+          </View>
+          <Text style={s.briefBody}>
+            {briefText || (
+              <>
+                <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold }}>Tap Generate AI Brief</Text> for a personalized summary on placement insights, alumni metrics and an action item for today.
+              </>
+            )}
+          </Text>
+        </View>
+        <Pressable
+          onPress={async () => {
+            try {
+              setBriefLoading(true);
+              const j = await request<any>('/ai/daily-brief', {
+                method: 'POST',
+                body: { role: 'college' },
+              });
+              setBriefText(j?.brief || 'Could not generate brief.');
+            } catch (e: any) { setBriefText('Error: ' + (e?.message || 'unknown')); }
+            finally { setBriefLoading(false); }
+          }}
+          disabled={briefLoading}
+          style={({ hovered }: any) => [s.briefBtn, hovered && { backgroundColor: 'rgba(252,211,77,0.20)' }, briefLoading && { opacity: 0.6 }]}
+        >
+          <Sparkles size={14} color="#fff" />
+          <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 11.5 }}>
+            {briefLoading ? 'Generating…' : (briefText ? 'Regenerate' : 'Generate AI Brief')}
+          </Text>
+        </Pressable>
+      </LinearGradient>
+
+      {/* Dept Placement + Upcoming Events */}
+      <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
+        {/* Dept Placement rates */}
+        <View style={[s.card, { flex: stack ? undefined : 1.7 }]}>
+          <View style={s.cardHead}>
+            <Text style={s.kicker}>DEPT. PLACEMENT RATES 2025–26</Text>
+            <Pressable onPress={() => onNavigate?.('analytics')}><Text style={s.linkRight}>Full report →</Text></Pressable>
+          </View>
+          <View style={{ gap: 14, marginTop: 14 }}>
+            {DEPT_PLACEMENT.length === 0 && <EmptyLine text="No department placement data yet." />}
+            {DEPT_PLACEMENT.map((d) => (
+              <View key={d.dept}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <Text style={s.deptName}>{d.dept}</Text>
+                  <Text style={s.deptValue}>{d.pct}%   <Text style={s.deptCount}>({d.placed} placed)</Text></Text>
+                </View>
+                <View style={s.deptTrack}>
+                  <LinearGradient
+                    colors={[d.color, d.color + '80'] as any}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                    style={[s.deptFill, { width: `${d.pct}%` as any }]}
+                  />
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Upcoming Events */}
+        <View style={[s.card, { flex: stack ? undefined : 1 }]}>
+          <View style={s.cardHead}>
+            <Text style={s.kicker}>UPCOMING EVENTS</Text>
+            <Pressable onPress={() => onNavigate?.('events')}><Text style={s.linkRight}>See all →</Text></Pressable>
+          </View>
+          <View style={{ gap: 10, marginTop: 12 }}>
+            {UPCOMING_EVENTS.length === 0 && <EmptyLine text="No upcoming events." />}
+            {UPCOMING_EVENTS.map((e) => (
+              <View key={e.id} style={s.eventRow}>
+                <View style={[s.eventDate, { backgroundColor: e.color + '15', borderColor: e.color + '40' }]}>
+                  <Text style={[s.eventDateNum, { color: e.color }]}>{dayOf(e.date)}</Text>
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text numberOfLines={1} style={s.eventTitle}>{e.title}</Text>
+                  <Text style={s.eventMeta}>{e.date} · {e.attending} attending</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+          <Pressable onPress={() => onNavigate?.('create-event')} style={({ hovered }: any) => [s.createBtn, hovered && { backgroundColor: CC.primaryD }]}>
+            <Plus size={14} color="#fff" />
+            <Text style={s.createBtnText}>Create New Event</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      {/* Recent Activity + Top Recruiters */}
+      <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
+        {/* Recent Activity */}
+        <View style={[s.card, { flex: stack ? undefined : 1.7 }]}>
+          <View style={s.cardHead}>
+            <Text style={s.kicker}>RECENT ACTIVITY</Text>
+            <Pressable onPress={() => onNavigate?.('analytics')}><Text style={s.linkRight}>View all →</Text></Pressable>
+          </View>
+          <View style={{ gap: 12, marginTop: 12 }}>
+            {RECENT_ACTIVITY.length === 0 && <EmptyLine text="No recent activity." />}
+            {RECENT_ACTIVITY.map((a) => {
+              const Icon = ACTIVITY_ICONS[a.icon] || Bell;
+              return (
+                <View key={a.id} style={s.activityRow}>
+                  <View style={[s.activityIcon, { backgroundColor: a.tint + '20', borderColor: a.tint + '50' }]}>
+                    <Icon size={14} color={a.tint} />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={s.activityText}>{a.text}</Text>
+                    <Text style={s.activityTime}>{a.time}</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Top Recruiters */}
+        <View style={[s.card, { flex: stack ? undefined : 1 }]}>
+          <View style={s.cardHead}>
+            <Text style={s.kicker}>TOP RECRUITERS</Text>
+            <Pressable onPress={() => onNavigate?.('placements')}><Text style={s.linkRight}>All →</Text></Pressable>
+          </View>
+          <View style={{ gap: 10, marginTop: 12 }}>
+            {TOP_RECRUITERS.length === 0 && <EmptyLine text="No recruiter data yet." />}
+            {TOP_RECRUITERS.map((r) => (
+              <View key={r.id} style={s.recruiterRow}>
+                <View style={[s.recruiterLogo, { backgroundColor: r.color }]}>
+                  <Text style={s.recruiterLogoText}>{(r.name || '?')[0]}</Text>
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text numberOfLines={1} style={s.recruiterName}>{r.name}</Text>
+                  <Text style={s.recruiterMeta}>{r.offers} offers{r.ctc ? ` · ${r.ctc}` : ''}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+          <Pressable onPress={() => onNavigate?.('alumni')} style={({ hovered }: any) => [s.alumniCta, hovered && { backgroundColor: CC.cardH }]}>
+            <Building2 size={13} color={CC.accentBright} />
+            <Text style={s.alumniCtaText}>View Alumni Network</Text>
+            <ArrowRight size={13} color={CC.accentBright} />
+          </Pressable>
+        </View>
+      </View>
+
+      {/* Profile completion CTA */}
+      {COLLEGE.tier && (
+        <LinearGradient
+          colors={[CC.primary, CC.primaryD] as any}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={s.completionCard}
+        >
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <Text style={s.completionLabel}>Profile Score</Text>
+              <View style={s.completionScorePill}>
+                <Text style={s.completionScoreText}>{COLLEGE.tier.score}%</Text>
+              </View>
+            </View>
+            <Text style={s.completionTitle}>Complete your profile to unlock Platinum status</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+              {(!user?.college_info?.logo) && <View style={s.missingChip}><Text style={s.missingText}>Logo</Text></View>}
+              {(!user?.college_info?.cover_photo) && <View style={s.missingChip}><Text style={s.missingText}>Cover Photo</Text></View>}
+              {(!user?.college_info?.bio) && <View style={s.missingChip}><Text style={s.missingText}>Description / Bio</Text></View>}
+              {(user?.college_info?.accreditations?.length || 0) === 0 && <View style={s.missingChip}><Text style={s.missingText}>Accreditations</Text></View>}
+              {(!user?.college_info?.official_website) && <View style={s.missingChip}><Text style={s.missingText}>Official Website</Text></View>}
+            </View>
+          </View>
+          <Pressable onPress={onOpenProfile} style={({ hovered }: any) => [s.completeCta, hovered && { backgroundColor: '#fff' }]}>
+            <Text style={s.completeCtaText}>Complete Profile →</Text>
+          </Pressable>
+        </LinearGradient>
+      )}
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  heroTitle: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.5 },
+  heroSub:   { color: CC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
+
+  /* Loading / empty / error states */
+  skeleton:  { borderRadius: 14, backgroundColor: CC.card, borderWidth: 1, borderColor: CC.border, minWidth: 120 },
+  emptyLine: { color: CC.dim, fontFamily: FONTS.med, fontSize: 12 },
+  errorBox:  { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(239,68,68,0.35)', backgroundColor: 'rgba(239,68,68,0.08)' },
+  errorText: { flex: 1, minWidth: 160, color: '#FCA5A5', fontFamily: FONTS.med, fontSize: 12 },
+  retryBtn:  { paddingHorizontal: 12, height: 30, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(239,68,68,0.45)', alignItems: 'center', justifyContent: 'center' },
+  retryText: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 },
+
+  tierBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#FFF9E6',
+    borderColor: 'rgba(252,211,77,0.22)', borderWidth: 1, borderRadius: 14,
+    padding: 14, minWidth: 280,
+  },
+  tierKicker: { color: '#FCD34D', fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 1 },
+  tierTitle: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: -0.4, marginTop: 2 },
+  tierScore: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 13 },
+
+  briefCard: {
+    flexDirection: 'row', gap: 14, alignItems: 'flex-start',
+    borderColor: 'rgba(245,158,11,0.30)', borderTopColor: 'rgba(245,158,11,0.45)', borderWidth: 1.5,
+    borderRadius: 20, padding: 20,
+    ...(Platform.OS === 'web' ? ({
+      backdropFilter: 'blur(16px)',
+      boxShadow: '0 12px 40px -12px rgba(245,158,11,0.25)',
+    } as any) : {}),
+  },
+  briefIcon: {
+    width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(245,158,11,0.18)',
+    borderColor: 'rgba(253,230,138,0.35)', borderWidth: 1, alignItems: 'center', justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 2px 8px rgba(245,158,11,0.15)' } as any) : {}),
+  },
+  briefBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 16, height: 38, borderRadius: 12,
+    backgroundColor: '#F59E0B',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms', boxShadow: '0 4px 12px rgba(245,158,11,0.35)' } as any) : {}),
+  },
+  briefTitle: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 14 },
+  briefBody:  { color: CC.muted, fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 19 },
+
+  card: {
+    backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 14,
+    padding: 18,
+  },
+  cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  kicker:   { color: CC.dim, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1 },
+  linkRight:{ color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 11.5 },
+
+  deptName: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 },
+  deptValue:{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 13 },
+  deptCount:{ color: CC.muted, fontFamily: FONTS.med, fontSize: 11 },
+  deptTrack:{ height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.04)', overflow: 'hidden' },
+  deptFill: { height: '100%', borderRadius: 3 },
+
+  eventRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  eventDate:{ width: 36, height: 36, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  eventDateNum: { fontFamily: FONTS.xbold, fontSize: 14 },
+  eventTitle:{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 },
+  eventMeta: { color: CC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
+
+  createBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, height: 38, borderRadius: 10, backgroundColor: CC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  createBtnText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12.5 },
+
+  activityRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  activityIcon: { width: 32, height: 32, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  activityText: { color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 12.5 },
+  activityTime: { color: CC.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 2 },
+
+  recruiterRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  recruiterLogo: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  recruiterLogoText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12 },
+  recruiterName: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 },
+  recruiterMeta: { color: CC.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
+
+  alumniCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, height: 36, borderRadius: 10, backgroundColor: CC.card, borderWidth: 1, borderColor: CC.border2, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}), },
+  alumniCtaText: { color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 12 },
+
+  completionCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 16,
+    borderRadius: 16, padding: 18, marginTop: 16,
+  },
+  completionLabel: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.xbold, fontSize: 11.5, letterSpacing: 0.5 },
+  completionScorePill: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
+  completionScoreText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 },
+  completionTitle: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 14, marginTop: 4 },
+  missingChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  missingText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5 },
+  completeCta: { paddingHorizontal: 18, height: 40, borderRadius: 10, backgroundColor: '#6366F1', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  completeCtaText: { color: CC.primaryD, fontFamily: FONTS.xbold, fontSize: 12.5 },
+});

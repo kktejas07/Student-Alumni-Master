@@ -1,0 +1,2608 @@
+// @ts-nocheck
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, Pressable, TextInput, StyleSheet, ScrollView, Platform, Linking, ActivityIndicator, Modal } from 'react-native';
+import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { 
+  Search, 
+  UserPlus, 
+  Check, 
+  MessageSquare, 
+  Star, 
+  Clock, 
+  Calendar, 
+  Users, 
+  GraduationCap, 
+  Briefcase, 
+  Linkedin, 
+  Github, 
+  Eye, 
+  Plus, 
+  X 
+} from '../iconShims';
+import { ChevronUp, ChevronDown, Activity, Heart, Settings, Sparkles, User, Link2, Code } from 'lucide-react-native';
+import { SC, FONTS } from '../tokens';
+import { GRAD } from '../portalkit';
+import { GlassCard } from '../glass';
+import { Av, Badge } from '../atoms';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useToast } from '@/src/views/components';
+import { request, api } from '@/src/models/services/api';
+
+import { StudentPortalNavContext } from '../StudentPortalNavContext';
+import { useTheme } from '@/src/theme/ThemeContext';
+import { useNetworkViewState, type DiscoverSubTab, type FilterType } from '../../shared/useNetworkViewState';
+
+function LinkedinGlyph({ size = 14, color = '#fff' }: { size?: number; color?: string }) {
+  return (
+    <Text style={{
+      color, fontSize: Math.round(size * 0.8),
+      fontFamily: FONTS.xbold,
+      fontWeight: '800' as any, letterSpacing: -0.5,
+    }}>in</Text>
+  );
+}
+
+
+
+export function NetworkView() {
+  const { isDark } = useTheme();
+  const {
+    activeTab,
+    setActiveTab,
+    q,
+    setQ,
+    filter,
+    setFilter,
+    discoverSubTab,
+    setDiscoverSubTab,
+    discoverSections,
+    setDiscoverSections,
+    incomingRequests,
+    setIncomingRequests,
+    sentRequests,
+    setSentRequests,
+    connectionsList,
+    setConnectionsList,
+    showMatchedInterest,
+    setShowMatchedInterest,
+    searchQuery,
+    setSearchQuery,
+    dbSearchStatus,
+    setDbSearchStatus,
+    dbStatusMsg,
+    setDbStatusMsg,
+    conn,
+    setConn,
+    pending,
+    setPending,
+    localSent,
+    setLocalSent,
+    pickedPerson,
+    setPickedPerson,
+    bookingMentor,
+    setBookingMentor,
+    bookingSlot,
+    setBookingSlot,
+    bookingTopic,
+    setBookingTopic,
+    bookingSubmitting,
+    setBookingSubmitting,
+    mentorLimit,
+    setMentorLimit,
+    alumniLimit,
+    setAlumniLimit,
+    studentLimit,
+    setStudentLimit,
+    networkData,
+    setNetworkData,
+    loading,
+    setLoading,
+    networkPage,
+    setNetworkPage,
+    networkPages,
+    setNetworkPages,
+    toast,
+    router,
+    authUser,
+    activeSection,
+    normalizeDiscoverUser,
+    normalizedDiscover,
+    filteredMatchedDiscover,
+    discoverCounts,
+    handleOpenBooking,
+    bookingSlots,
+    handleConfirmBooking,
+    fetchNetworkData,
+    loadDiscover,
+    handleDatabaseSearch,
+    loadRequests,
+    loadConnections,
+    handleAcceptRequest,
+    handleIgnoreRequest,
+    rawPeople,
+    sumChars,
+    normalizedPeople,
+    portalNav,
+    filteredList,
+    mentorsList,
+    alumniList,
+    studentsList,
+    visibleMentors,
+    visibleAlumni,
+    visibleStudents,
+    handleConnect,
+    viewMentor,
+  } = useNetworkViewState({
+    navContext: StudentPortalNavContext,
+    defaultAccent: '#6366F1',
+    githubOf: (p) => p.github_url || p.github || '',
+  });
+
+  if (loading) {
+    return (
+      <View style={{ padding: 60, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={SC.primary} size="large" />
+      </View>
+    );
+  }
+
+  return (
+    <View style={s.container}>
+      
+      {/* Tab Selector row */}
+      <View style={[
+        s.tabRow,
+        {
+          backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF',
+          borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)',
+          borderWidth: 1,
+          borderRadius: 12,
+          padding: 4,
+        }
+      ]}>
+        <Pressable 
+          onPress={() => setActiveTab('discover')} 
+          style={[s.tabBtn, activeTab === 'discover' && s.tabBtnActive]}
+        >
+          <Text style={[s.tabBtnText, { color: activeTab === 'discover' ? '#FFFFFF' : isDark ? 'rgba(255,255,255,0.7)' : '#334155' }]}>Discover</Text>
+        </Pressable>
+
+        <Pressable 
+          onPress={() => setActiveTab('connections')} 
+          style={[s.tabBtn, activeTab === 'connections' && s.tabBtnActive]}
+        >
+          <Text style={[s.tabBtnText, { color: activeTab === 'connections' ? '#FFFFFF' : isDark ? 'rgba(255,255,255,0.7)' : '#334155' }]}>My Connections</Text>
+        </Pressable>
+
+        <Pressable 
+          onPress={() => setActiveTab('book')} 
+          style={[s.tabBtn, activeTab === 'book' && s.tabBtnActive]}
+        >
+          <Text style={[s.tabBtnText, { color: activeTab === 'book' ? '#FFFFFF' : isDark ? 'rgba(255,255,255,0.7)' : '#334155' }]}>Book a Mentor</Text>
+        </Pressable>
+
+        <Pressable 
+          onPress={() => setActiveTab('requests')} 
+          style={[s.tabBtn, activeTab === 'requests' && s.tabBtnActive, { flexDirection: 'row', alignItems: 'center' }]}
+        >
+          <Text style={[s.tabBtnText, { color: activeTab === 'requests' ? '#FFFFFF' : isDark ? 'rgba(255,255,255,0.7)' : '#334155' }]}>Requests</Text>
+          <View style={[s.reqBadge, activeTab === 'requests' && s.reqBadgeOn, { marginLeft: 6 }]}>
+            <Text style={[s.countBadgeText, activeTab === 'requests' && s.countBadgeTextOn]}>{incomingRequests.length + sentRequests.length}</Text>
+          </View>
+        </Pressable>
+      </View>
+
+      {/* Global Search bar with DB Search Button & Status Feedback */}
+      <View style={{ gap: 8, marginBottom: 16 }}>
+        <View style={s.searchRowContainer}>
+          <View style={[
+            s.searchContainerFlex,
+            {
+              backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
+              borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#CBD5E1',
+            }
+          ]}>
+            <Search size={16} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 8 }} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={(val) => {
+                setSearchQuery(val);
+                setQ(val);
+                if (!val.trim() && dbSearchStatus !== 'idle') {
+                  setDbSearchStatus('idle');
+                  setDbStatusMsg('');
+                }
+              }}
+              onSubmitEditing={() => handleDatabaseSearch()}
+              placeholder="Filter displayed accounts or search DB..."
+              placeholderTextColor="#94A3B8"
+              style={[s.searchInput, { color: isDark ? '#FFFFFF' : '#0F172A' }]}
+            />
+            {searchQuery ? (
+              <Pressable onPress={() => { setSearchQuery(''); setQ(''); setDbSearchStatus('idle'); setDbStatusMsg(''); }} style={{ padding: 4 }}>
+                <X size={14} color={isDark ? '#94A3B8' : '#64748B'} />
+              </Pressable>
+            ) : null}
+          </View>
+
+          <Pressable 
+            onPress={() => handleDatabaseSearch()}
+            disabled={dbSearchStatus === 'searching'}
+            style={[
+              s.dbSearchBtn,
+              dbSearchStatus === 'searching' && { opacity: 0.7 }
+            ]}
+          >
+            {dbSearchStatus === 'searching' ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Search size={13} color="#FFFFFF" style={{ marginRight: 5 }} />
+                <Text style={s.dbSearchBtnText}>Search DB</Text>
+              </>
+            )}
+          </Pressable>
+        </View>
+
+        {/* Status Feedback Banner */}
+        {dbSearchStatus !== 'idle' && (
+          <View style={[
+            s.statusBanner,
+            dbSearchStatus === 'searching' && s.statusBannerSearching,
+            dbSearchStatus === 'success' && s.statusBannerSuccess,
+            dbSearchStatus === 'error' && s.statusBannerError,
+          ]}>
+            {dbSearchStatus === 'searching' && <ActivityIndicator size="small" color="#60A5FA" style={{ marginRight: 8 }} />}
+            {dbSearchStatus === 'success' && <Check size={14} color="#34D399" style={{ marginRight: 8 }} />}
+            {dbSearchStatus === 'error' && <X size={14} color="#F87171" style={{ marginRight: 8 }} />}
+            <Text style={[
+              s.statusText,
+              dbSearchStatus === 'searching' && { color: '#60A5FA' },
+              dbSearchStatus === 'success' && { color: '#34D399' },
+              dbSearchStatus === 'error' && { color: '#F87171' },
+            ]}>
+              {dbStatusMsg}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* 3. Discover Tab Redesign (Screenshot 1) */}
+      {activeTab === 'discover' && (
+        <View style={{ gap: 16 }}>
+          
+          {/* Secondary Sub-filters Row */}
+          <View style={s.subFiltersRow}>
+            {['everyone', 'students', 'alumnis', 'mentors', 'industry'].map((f) => {
+              const filterLabels: Record<string, string> = {
+                everyone: 'Everyone',
+                students: 'Students',
+                alumnis: 'Alumni',
+                mentors: 'Mentors',
+                industry: 'Industry'
+              };
+              const isSelected = filter === f;
+              return (
+              <Pressable 
+                key={f}
+                onPress={() => setFilter(f as FilterType)} 
+                style={[
+                  s.subFilterChip,
+                  {
+                    backgroundColor: isSelected 
+                      ? (isDark ? 'rgba(20, 184, 166, 0.15)' : 'rgba(13, 148, 136, 0.12)')
+                      : (isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF'),
+                    borderColor: isSelected 
+                      ? (isDark ? 'rgba(20, 184, 166, 0.35)' : 'rgba(13, 148, 136, 0.35)')
+                      : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'),
+                  }
+                ]}
+              >
+                <Text style={[
+                  s.subFilterText,
+                  {
+                    color: isSelected 
+                      ? (isDark ? '#5EEAD4' : '#0F766E')
+                      : (isDark ? 'rgba(255,255,255,0.75)' : '#475569'),
+                    fontFamily: isSelected ? FONTS.bold : FONTS.semi,
+                  }
+                ]}>
+                  {filterLabels[f] || f}
+                </Text>
+              </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Discover Sub-category Pill Filters Row */}
+          <View style={s.discoverRow}>
+            {[
+              { key: 'interest', label: 'Matched by Interest', icon: Heart, iconColor: '#14B8A6', count: discoverCounts.interest, badgeBg: 'rgba(20, 184, 166, 0.12)', badgeText: '#0D9488' },
+              { key: 'path', label: 'Matched by Career Path', icon: Settings, iconColor: '#F97316', count: discoverCounts.path, badgeBg: 'rgba(249, 115, 22, 0.12)', badgeText: '#EA580C' },
+              { key: 'college', label: 'From Your College', icon: GraduationCap, iconColor: '#3B82F6', count: discoverCounts.college, badgeBg: 'rgba(59, 130, 246, 0.12)', badgeText: '#2563EB' },
+              { key: 'recommended', label: 'Recommended Mentors', icon: Users, iconColor: '#F59E0B', count: discoverCounts.recommended, badgeBg: 'rgba(245, 158, 11, 0.12)', badgeText: '#D97706' },
+              { key: 'expand', label: 'Expand Your Horizons', icon: Activity, iconColor: '#EC4899', count: discoverCounts.expand, badgeBg: 'rgba(236, 72, 153, 0.12)', badgeText: '#DB2777' },
+            ].map((tab) => {
+              const isSelected = discoverSubTab === tab.key;
+              const Icon = tab.icon;
+              return (
+                <Pressable 
+                  key={tab.key}
+                  onPress={() => setDiscoverSubTab(tab.key as DiscoverSubTab)}
+                  style={[
+                    s.tabBtn,
+                    {
+                      backgroundColor: isSelected ? '#8B5CF6' : (isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF'),
+                      borderColor: isSelected ? 'transparent' : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'),
+                      borderWidth: 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: 12,
+                      paddingVertical: 9,
+                      borderRadius: 10,
+                    }
+                  ]}
+                >
+                  <Icon size={13} color={isSelected ? '#FFFFFF' : (isDark ? '#94A3B8' : '#64748B')} style={{ marginRight: 6 }} />
+                  <Text style={[
+                    s.tabBtnText,
+                    {
+                      color: isSelected ? '#FFFFFF' : (isDark ? 'rgba(255,255,255,0.75)' : '#334155'),
+                      fontFamily: isSelected ? FONTS.bold : FONTS.semi,
+                      fontSize: 12.5,
+                    }
+                  ]}>
+                    {tab.label}
+                  </Text>
+                  <View style={[
+                    s.discBadge,
+                    {
+                      backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : tab.badgeBg,
+                      marginLeft: 6,
+                    }
+                  ]}>
+                    <Text style={[
+                      s.discBadgeText,
+                      { color: isSelected ? '#FFFFFF' : tab.badgeText }
+                    ]}>
+                      {tab.count}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Matched list view */}
+          {filteredMatchedDiscover.length > 0 && (
+            <View style={s.sectionFrame}>
+              <Pressable 
+                onPress={() => setShowMatchedInterest(!showMatchedInterest)} 
+                style={[s.sectionHeaderRow, { borderBottomColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}
+              >
+                {discoverSubTab === 'interest' ? <Heart size={18} color="#14B8A6" style={{ marginRight: 8 }} /> : discoverSubTab === 'path' ? <Briefcase size={18} color="#F97316" style={{ marginRight: 8 }} /> : discoverSubTab === 'college' ? <GraduationCap size={18} color="#3B82F6" style={{ marginRight: 8 }} /> : discoverSubTab === 'recommended' ? <Users size={18} color="#F59E0B" style={{ marginRight: 8 }} /> : <Activity size={18} color="#EC4899" style={{ marginRight: 8 }} />}
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={[s.secTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>
+                      {discoverSubTab === 'interest' ? 'Matched by Interest' : discoverSubTab === 'path' ? 'Matched by Career Path' : discoverSubTab === 'college' ? 'From Your College' : discoverSubTab === 'recommended' ? 'Recommended Mentors' : 'Expand Your Horizons'}
+                    </Text>
+                    <View style={[s.secBadge, { backgroundColor: isDark ? 'rgba(20,184,166,0.1)' : 'rgba(20,184,166,0.12)' }]}>
+                      <Text style={[s.secBadgeText, { color: isDark ? '#5EEAD4' : '#0D9488' }]}>{filteredMatchedDiscover.length}</Text>
+                    </View>
+                  </View>
+                  <Text style={[s.secSub, { color: isDark ? SC.muted : '#475569' }]}>{activeSection?.subtitle || 'Based on your profile matching criteria.'}</Text>
+                </View>
+                <Pressable onPress={() => setShowMatchedInterest(!showMatchedInterest)} style={[s.toggleBtn, { backgroundColor: isDark ? 'rgba(20,184,166,0.06)' : 'rgba(20,184,166,0.1)' }]}>
+                  <Text style={[s.toggleBtnText, { color: isDark ? '#5EEAD4' : '#0D9488' }]}>{showMatchedInterest ? 'Show less' : 'Show more'}</Text>
+                  {showMatchedInterest ? <ChevronUp size={12} color={isDark ? '#5EEAD4' : '#0D9488'} style={{ marginLeft: 4 }} /> : <ChevronDown size={12} color={isDark ? '#5EEAD4' : '#0D9488'} style={{ marginLeft: 4 }} />}
+                </Pressable>
+              </Pressable>
+
+              {showMatchedInterest && (
+                <View style={s.cardsGrid}>
+                  {filteredMatchedDiscover.map((person) => (
+                    <View key={person.id} style={[
+                      s.profileCard,
+                      {
+                        backgroundColor: isDark ? 'rgba(19, 25, 53, 0.7)' : '#FFFFFF',
+                        borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                      }
+                    ]}>
+                      <View>
+                        {/* Card Profile Info */}
+                        <View style={s.cardProfileRow}>
+                          <Av initials={person.avatar} size={42} color={person.color} />
+                          <View style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <Text numberOfLines={1} style={[s.nameBold, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{person.name}</Text>
+                              <View style={[
+                                s.rolePillBase, 
+                                person.tag === 'Student' ? s.rolePillStudent : person.tag === 'Mentor' ? s.rolePillMentor : s.rolePillAlumni
+                              ]}>
+                                <Text style={[
+                                  s.rolePillBaseText, 
+                                  person.tag === 'Student' ? s.rolePillStudentText : person.tag === 'Mentor' ? s.rolePillMentorText : s.rolePillAlumniText
+                                ]}>{person.tag}</Text>
+                              </View>
+                            </View>
+                            <Text numberOfLines={1} style={[s.subtitleLine, { color: isDark ? SC.muted : '#475569' }]}>{person.role}</Text>
+                            <Text numberOfLines={1} style={[s.subtitleSubLine, { color: isDark ? SC.dim : '#64748B' }]}>
+                              {person.company ? `${person.company} • ` : ''}{person.college}{person.year ? ` • ${person.year}` : ''}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Skill Pills */}
+                        <View style={s.skillsRow}>
+                          {person.tags.map((skill: string, sIdx: number) => (
+                            <View key={sIdx} style={[
+                              s.skillChip,
+                              {
+                                backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F1F5F9',
+                                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                              }
+                            ]}>
+                              <Text style={[s.skillChipText, { color: isDark ? SC.dim : '#334155' }]}>{skill}</Text>
+                            </View>
+                          ))}
+                        </View>
+
+                        {/* Mutual Connection Counter */}
+                        <View style={s.mutualRow}>
+                          <Users size={12} color={isDark ? SC.dim : '#64748B'} style={{ marginRight: 6 }} />
+                          <Text style={[s.mutualText, { color: isDark ? SC.dim : '#64748B' }]}>{person.mutual} mutual connections</Text>
+                        </View>
+                      </View>
+
+                      {/* Card Action Row */}
+                      <View style={[s.cardActions, { marginTop: 14, flexDirection: 'column', gap: 8, alignItems: 'stretch', borderTopColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
+                        
+                        {/* Action Button depending on Connection State */}
+                        {person.connectionState === 'connected' ? (
+                          <View style={[s.draftMsgBtn, { borderColor: 'rgba(34,197,94,0.3)', backgroundColor: 'rgba(34,197,94,0.06)' }]}>
+                            <Check size={12} color="#16A34A" style={{ marginRight: 6 }} />
+                            <Text style={[s.draftMsgBtnText, { color: '#16A34A' }]}>Connected</Text>
+                          </View>
+                        ) : person.connectionState === 'pending' || localSent.includes(person.id) ? (
+                          <View style={[s.draftMsgBtn, { borderColor: 'rgba(245,158,11,0.3)', backgroundColor: 'rgba(245,158,11,0.06)' }]}>
+                            <Clock size={12} color="#D97706" style={{ marginRight: 6 }} />
+                            <Text style={[s.draftMsgBtnText, { color: '#D97706' }]}>Pending Invite</Text>
+                          </View>
+                        ) : person.connectionState === 'incoming' ? (
+                          <Pressable 
+                            onPress={() => handleAcceptRequest(person.id, person.name)}
+                            style={({ hovered }: any) => [s.draftMsgBtn, { borderColor: '#14B8A6', backgroundColor: '#14B8A6' }, hovered && { opacity: 0.9 }]}
+                          >
+                            <Check size={12} color="#FFFFFF" style={{ marginRight: 6 }} />
+                            <Text style={[s.draftMsgBtnText, { color: '#FFFFFF' }]}>Accept Connection</Text>
+                          </Pressable>
+                        ) : (
+                          <Pressable 
+                            onPress={() => handleConnect(person.id, person.name)}
+                            disabled={pending.includes(person.id)}
+                            style={({ hovered }: any) => [
+                              s.draftMsgBtn, 
+                              {
+                                borderColor: isDark ? 'rgba(94, 234, 212, 0.35)' : 'rgba(13, 148, 136, 0.3)',
+                                backgroundColor: isDark ? 'rgba(94, 234, 212, 0.06)' : 'rgba(13, 148, 136, 0.06)',
+                              },
+                              hovered && !pending.includes(person.id) && { borderColor: '#14B8A6', backgroundColor: 'rgba(20, 184, 166, 0.12)' }
+                            ]}
+                          >
+                            {pending.includes(person.id) ? (
+                              <ActivityIndicator size="small" color="#14B8A6" />
+                            ) : (
+                              <>
+                                <UserPlus size={12} color={isDark ? '#5EEAD4' : '#0D9488'} style={{ marginRight: 6 }} />
+                                <Text style={[s.draftMsgBtnText, { color: isDark ? '#5EEAD4' : '#0D9488' }]}>Connect</Text>
+                              </>
+                            )}
+                          </Pressable>
+                        )}
+
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 6 }}>
+                          <Pressable 
+                            onPress={() => setPickedPerson(person)}
+                            style={({ hovered }: any) => [
+                              s.viewProfileBtn, 
+                              { flex: 1, height: 32, backgroundColor: isDark ? '#14B8A6' : '#0F766E' }, 
+                              hovered && { opacity: 0.9 }
+                            ]}
+                          >
+                            <Eye size={12} color="#FFFFFF" style={{ marginRight: 6 }} />
+                            <Text style={[s.viewProfileBtnText, { color: '#FFFFFF' }]}>View Profile</Text>
+                          </Pressable>
+
+                          <View style={{ flexDirection: 'row', gap: 6 }}>
+                            <Pressable onPress={() => toast.info('Starting chat', `Opening messages with ${person.name}`)} style={[s.iconSquareBtn, { height: 32, width: 32, borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
+                              <User size={13} color="#EF4444" />
+                            </Pressable>
+                            <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#0A66C2' }]}>
+                              <LinkedinGlyph size={13} color="#fff" />
+                            </Pressable>
+                            {person.github && (
+                              <Pressable onPress={() => person.github ? Linking.openURL(person.github.startsWith('http') ? person.github : `https://${person.github}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#24292e' }]}>
+                                <Code size={13} color="#fff" />
+                              </Pressable>
+                            )}
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
+          {filteredMatchedDiscover.length === 0 && (
+            <View style={[
+              s.stubCard,
+              {
+                backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF',
+                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+              }
+            ]}>
+              <Sparkles size={24} color="#8B5CF6" style={{ marginBottom: 10 }} />
+              <Text style={[s.stubTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>No Matches Found</Text>
+              <Text style={[s.stubSub, { color: isDark ? SC.muted : '#475569' }]}>
+                There are no matching network accounts in the database for this category right now.
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
+       {/* 4. Requests Tab Redesign */}
+      {activeTab === 'requests' && (
+        <View style={{ gap: 16 }}>
+          
+          {/* Incoming Requests */}
+          <View style={[
+            s.requestListFrame,
+            {
+              backgroundColor: isDark ? SC.card : '#FFFFFF',
+              borderColor: isDark ? SC.border : 'rgba(0,0,0,0.08)',
+            }
+          ]}>
+            <View style={[s.requestListHeaderRow, { borderBottomColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
+              <Clock size={16} color="#F59E0B" style={{ marginRight: 8 }} />
+              <Text style={[s.requestListTitle, { color: '#F59E0B' }]}>INCOMING REQUESTS ({incomingRequests.length})</Text>
+            </View>
+
+            <View style={{ gap: 8, marginTop: 10 }}>
+              {incomingRequests.map((req) => {
+                const tagStyle = req.role === 'Student' ? s.rolePillStudent : req.role === 'Mentor' ? s.rolePillMentor : req.role === 'Industry' ? s.rolePillIndustry : s.rolePillAlumni;
+                const tagTextStyle = req.role === 'Student' ? s.rolePillStudentText : req.role === 'Mentor' ? s.rolePillMentorText : req.role === 'Industry' ? s.rolePillIndustryText : s.rolePillAlumniText;
+
+                return (
+                  <View key={req.id} style={[
+                    s.requestRow,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
+                      borderColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)',
+                    }
+                  ]}>
+                    <Av initials={req.avatar} size={42} color={req.color} />
+                    <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <Text style={[s.requestName, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{req.name}</Text>
+                        <View style={[s.rolePillBase, tagStyle]}>
+                          <Text style={[s.rolePillBaseText, tagTextStyle]}>{req.role}</Text>
+                        </View>
+                        <Text style={[s.requestTimeText, { color: isDark ? SC.dim : '#64748B' }]}>{req.time}</Text>
+                      </View>
+                      <Text style={[s.requestSublineText, { color: isDark ? SC.muted : '#475569' }]} numberOfLines={1}>{req.subtitle}</Text>
+                      {req.message ? (
+                        <Text style={{ color: isDark ? '#5EEAD4' : '#0D9488', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 4, fontStyle: 'italic' }}>
+                          Note: "{req.message}"
+                        </Text>
+                      ) : null}
+                    </View>
+
+                    {/* Actions */}
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <Pressable 
+                        onPress={() => handleAcceptRequest(req.id, req.name)}
+                        style={({ hovered }: any) => [s.acceptBtn, hovered && { opacity: 0.9 }]}
+                      >
+                        <Text style={[s.acceptBtnText, { color: '#FFFFFF' }]}>Accept</Text>
+                      </Pressable>
+                      <Pressable 
+                        onPress={() => handleIgnoreRequest(req.id, req.name)}
+                        style={({ hovered }: any) => [
+                          s.ignoreBtn, 
+                          {
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F1F5F9',
+                            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                          },
+                          hovered && { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0' }
+                        ]}
+                      >
+                        <Text style={[s.ignoreBtnText, { color: isDark ? SC.muted : '#475569' }]}>Ignore</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                );
+              })}
+
+              {incomingRequests.length === 0 && (
+                <Text style={[s.noRequestText, { color: isDark ? SC.dim : '#64748B' }]}>No pending incoming requests.</Text>
+              )}
+            </View>
+          </View>
+
+          {/* Sent Requests */}
+          <View style={[
+            s.requestListFrame,
+            {
+              backgroundColor: isDark ? SC.card : '#FFFFFF',
+              borderColor: isDark ? SC.border : 'rgba(0,0,0,0.08)',
+            }
+          ]}>
+            <View style={[s.requestListHeaderRow, { borderBottomColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
+              <Users size={16} color="#14B8A6" style={{ marginRight: 8 }} />
+              <Text style={[s.requestListTitle, { color: isDark ? '#14B8A6' : '#0D9488' }]}>SENT REQUESTS ({sentRequests.length})</Text>
+            </View>
+
+            <View style={{ gap: 8, marginTop: 10 }}>
+              {sentRequests.map((req) => {
+                const tagStyle = req.role === 'Student' ? s.rolePillStudent : req.role === 'Mentor' ? s.rolePillMentor : req.role === 'Industry' ? s.rolePillIndustry : s.rolePillAlumni;
+                const tagTextStyle = req.role === 'Student' ? s.rolePillStudentText : req.role === 'Mentor' ? s.rolePillMentorText : req.role === 'Industry' ? s.rolePillIndustryText : s.rolePillAlumniText;
+
+                return (
+                <View key={req.id} style={[
+                  s.requestRow,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
+                    borderColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)',
+                  }
+                ]}>
+                  <Av initials={req.avatar} size={42} color={req.color} />
+                  <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <Text style={[s.requestName, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{req.name}</Text>
+                      <View style={[s.rolePillBase, tagStyle]}>
+                        <Text style={[s.rolePillBaseText, tagTextStyle]}>{req.role}</Text>
+                      </View>
+                      <Text style={[s.requestTimeText, { color: isDark ? SC.dim : '#64748B' }]}>{req.time}</Text>
+                    </View>
+                    <Text style={[s.requestSublineText, { color: isDark ? SC.muted : '#475569' }]} numberOfLines={1}>{req.subtitle}</Text>
+                  </View>
+
+                  {/* Pending label */}
+                  <View style={s.pendingStatusContainer}>
+                    <Clock size={11} color="#D97706" style={{ marginRight: 4 }} />
+                    <Text style={[s.pendingStatusText, { color: '#D97706' }]}>Pending</Text>
+                  </View>
+                </View>
+                );
+              })}
+
+              {sentRequests.length === 0 && (
+                <Text style={[s.noRequestText, { color: isDark ? SC.dim : '#64748B' }]}>No pending sent requests.</Text>
+              )}
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Connections tab screen */}
+      {activeTab === 'connections' && (
+        <View style={{ gap: 16 }}>
+          <View style={[s.secHeaderRow, { borderBottomColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
+            <View style={[s.secIconBg, { backgroundColor: 'rgba(34,197,94,0.12)' }]}>
+              <Users size={14} color="#16A34A" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[s.secTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>My Connections</Text>
+                <View style={[s.secBadge, { backgroundColor: 'rgba(34,197,94,0.12)' }]}>
+                  <Text style={[s.secBadgeText, { color: '#16A34A' }]}>{connectionsList.length}</Text>
+                </View>
+              </View>
+              <Text style={[s.secSub, { color: isDark ? SC.muted : '#475569' }]}>People you are actively connected with</Text>
+            </View>
+          </View>
+
+          <View style={s.grid}>
+            {connectionsList.map((person) => (
+              <View key={person.id} style={[
+                s.card,
+                {
+                  backgroundColor: isDark ? 'rgba(19, 25, 53, 0.7)' : '#FFFFFF',
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                }
+              ]}>
+                <View>
+                  <View style={s.cardHead}>
+                    <Av initials={person.initials} size={46} color={person.color} photo={person.photo} />
+                    <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <Text numberOfLines={1} style={[s.cardName, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{person.name}</Text>
+                        <View style={person.kind === 'mentor' ? s.badgeMentor : person.kind === 'alumni' ? s.badgeAlumni : s.badgeStudent}>
+                          <Text style={person.kind === 'mentor' ? s.badgeMentorText : person.kind === 'alumni' ? s.badgeAlumniText : s.badgeStudentText}>{person.tag}</Text>
+                        </View>
+                      </View>
+                      <Text numberOfLines={1} style={[s.cardRole, { color: isDark ? SC.muted : '#475569' }]}>{person.role}</Text>
+                      <Text numberOfLines={1} style={[s.cardCompany, { color: isDark ? SC.dim : '#64748B' }]}>{person.company}</Text>
+                    </View>
+                  </View>
+
+                  <View style={s.tagsRow}>
+                    {person.tags.slice(0, 3).map((tag, idx) => (
+                      <View key={idx} style={[
+                        s.tagChip,
+                        {
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F1F5F9',
+                          borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                        }
+                      ]}>
+                        <Text style={[s.tagChipText, { color: isDark ? SC.muted : '#334155' }]}>{tag}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  <View style={s.mutualRow}>
+                    <Users size={11} color={isDark ? SC.dim : '#64748B'} style={{ marginRight: 6 }} />
+                    <Text style={[s.mutualText, { color: isDark ? SC.dim : '#64748B' }]}>{person.mutual} mutual connections</Text>
+                  </View>
+                </View>
+
+                <View style={[s.cardActions, { borderTopColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
+                  {person.kind === 'mentor' ? (
+                    <>
+                      <Pressable onPress={() => setPickedPerson(person)} style={s.actionBtnOutline}>
+                        <Eye size={12} color={SC.accentBright} style={{ marginRight: 5 }} />
+                        <Text style={s.actionBtnOutlineText}>View Profile</Text>
+                      </Pressable>
+                      <Pressable onPress={() => setBookingMentor(person)} style={s.actionBtnFill}>
+                        <Calendar size={12} color="#fff" style={{ marginRight: 5 }} />
+                        <Text style={s.actionBtnFillText}>Book</Text>
+                      </Pressable>
+                    </>
+                  ) : (
+                    <>
+                      <Pressable onPress={() => setPickedPerson(person)} style={s.actionBtnOutline}>
+                        <Eye size={12} color={SC.accentBright} style={{ marginRight: 5 }} />
+                        <Text style={s.actionBtnOutlineText}>View Profile</Text>
+                      </Pressable>
+                      <View style={s.connectedBadge}>
+                        <Check size={11} color="#16A34A" style={{ marginRight: 4 }} />
+                        <Text style={[s.connectedText, { color: '#16A34A' }]}>Connected</Text>
+                      </View>
+                    </>
+                  )}
+
+                  <View style={{ flexDirection: 'row', gap: 4 }}>
+                    <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={s.iconBtn}>
+                      <Linkedin size={12} color={isDark ? SC.muted : '#64748B'} />
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            ))}
+
+            {connectionsList.length === 0 && (
+              <View style={[
+                s.emptyCard,
+                {
+                  backgroundColor: isDark ? SC.card : '#FFFFFF',
+                  borderColor: isDark ? SC.border : 'rgba(0,0,0,0.08)',
+                }
+              ]}>
+                <Users size={24} color={isDark ? SC.muted : '#64748B'} style={{ marginBottom: 10 }} />
+                <Text style={[s.emptyText, { color: isDark ? SC.muted : '#475569' }]}>No connections fit the current search filters.</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* Book a Mentor tab screen */}
+      {activeTab === 'book' && (
+        <View style={{ gap: 16 }}>
+          <View style={[s.secHeaderRow, { borderBottomColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
+            <View style={[s.secIconBg, { backgroundColor: 'rgba(34,197,94,0.12)' }]}>
+              <Briefcase size={14} color="#16A34A" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[s.secTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>All Mentors</Text>
+                <View style={[s.secBadge, { backgroundColor: 'rgba(34,197,94,0.12)' }]}>
+                  <Text style={[s.secBadgeText, { color: '#16A34A' }]}>{mentorsList.length}</Text>
+                </View>
+              </View>
+              <Text style={[s.secSub, { color: isDark ? SC.muted : '#475569' }]}>Browse experts and schedule your 1:1 sessions</Text>
+            </View>
+          </View>
+
+          <View style={s.grid}>
+            {mentorsList.map((m) => (
+              <View key={m.id} style={[
+                s.card,
+                {
+                  backgroundColor: isDark ? 'rgba(19, 25, 53, 0.7)' : '#FFFFFF',
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                }
+              ]}>
+                <View>
+                  <View style={s.cardHead}>
+                    <Av initials={m.initials} size={46} color={m.color} photo={m.photo} />
+                    <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <Text numberOfLines={1} style={[s.cardName, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{m.name}</Text>
+                        <View style={s.badgeMentor}><Text style={s.badgeMentorText}>MENTOR</Text></View>
+                      </View>
+                      <Text numberOfLines={1} style={[s.cardRole, { color: isDark ? SC.muted : '#475569' }]}>{m.role}</Text>
+                      <Text numberOfLines={1} style={[s.cardCompany, { color: isDark ? SC.dim : '#64748B' }]}>{m.company}</Text>
+                    </View>
+                    
+                    {/* Top-Right Social Links */}
+                    <View style={{ flexDirection: 'row', gap: 4, alignSelf: 'flex-start' }}>
+                      <Pressable onPress={() => m.linkedin ? Linking.openURL(m.linkedin.startsWith('http') ? m.linkedin : `https://${m.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={s.iconBtn}>
+                        <Linkedin size={12} color={isDark ? SC.muted : '#64748B'} />
+                      </Pressable>
+                      {m.github && (
+                        <Pressable onPress={() => m.github ? Linking.openURL(m.github.startsWith('http') ? m.github : `https://${m.github}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={s.iconBtn}>
+                          <Github size={12} color={isDark ? SC.muted : '#64748B'} />
+                        </Pressable>
+                      )}
+                    </View>
+                  </View>
+
+                  <View style={s.tagsRow}>
+                    {m.tags.slice(0, 3).map((tag, idx) => (
+                      <View key={idx} style={[
+                        s.tagChip,
+                        {
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F1F5F9',
+                          borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                        }
+                      ]}>
+                        <Text style={[s.tagChipText, { color: isDark ? SC.muted : '#334155' }]}>{tag}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  <View style={s.statsRow}>
+                    <View style={s.statItem}>
+                      <Star size={11} color={SC.amber} fill={SC.amber} />
+                      <Text style={[s.statText, { color: isDark ? SC.muted : '#475569' }]}>{m.rating}</Text>
+                    </View>
+                    <View style={s.statItem}>
+                      <Clock size={11} color={isDark ? SC.muted : '#64748B'} />
+                      <Text style={[s.statText, { color: isDark ? SC.muted : '#475569' }]}>{m.sessions} sessions</Text>
+                    </View>
+                    <Text style={s.priceText}>{m.price}/session</Text>
+                  </View>
+
+                  <View style={s.mutualRow}>
+                    <Users size={11} color={isDark ? SC.dim : '#64748B'} style={{ marginRight: 6 }} />
+                    <Text style={[s.mutualText, { color: isDark ? SC.dim : '#64748B' }]}>{m.mutual} mutual connections</Text>
+                  </View>
+                </View>
+
+                <View style={[s.cardActions, { borderTopColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
+                  <Pressable onPress={() => setPickedPerson(m)} style={[s.actionBtnOutline, { flex: 1, marginRight: 4 }]}>
+                    <Eye size={12} color={SC.accentBright} style={{ marginRight: 5 }} />
+                    <Text style={s.actionBtnOutlineText}>View Profile</Text>
+                  </Pressable>
+
+                  {conn.includes(m.id) || m.connectionState === 'connected' ? (
+                    <View style={[s.connectedBadge, { flex: 1, marginRight: 4 }]}>
+                      <Check size={11} color="#16A34A" style={{ marginRight: 4 }} />
+                      <Text style={[s.connectedText, { color: '#16A34A' }]}>Connected</Text>
+                    </View>
+                  ) : pending.includes(m.id) || m.connectionState === 'pending' ? (
+                    <View style={[s.pendingBadge, { flex: 1, marginRight: 4 }]}>
+                      <Clock size={11} color="#D97706" style={{ marginRight: 4 }} />
+                      <Text style={[s.pendingText, { color: '#D97706' }]}>Pending</Text>
+                    </View>
+                  ) : (
+                    <Pressable onPress={() => handleConnect(m.id, m.name)} style={[s.actionBtnOutline, { flex: 1, marginRight: 4 }]}>
+                      <UserPlus size={12} color={SC.accentBright} style={{ marginRight: 5 }} />
+                      <Text style={s.actionBtnOutlineText}>Connect</Text>
+                    </Pressable>
+                  )}
+
+                  <Pressable onPress={() => setBookingMentor(m)} style={[s.actionBtnFill, { flex: 1.1 }]}>
+                    <Calendar size={12} color="#fff" style={{ marginRight: 5 }} />
+                    <Text style={s.actionBtnFillText}>Book</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+
+            {mentorsList.length === 0 && (
+              <View style={[
+                s.emptyCard,
+                {
+                  backgroundColor: isDark ? SC.card : '#FFFFFF',
+                  borderColor: isDark ? SC.border : 'rgba(0,0,0,0.08)',
+                }
+              ]}>
+                <Users size={24} color={isDark ? SC.muted : '#64748B'} style={{ marginBottom: 10 }} />
+                <Text style={[s.emptyText, { color: isDark ? SC.muted : '#475569' }]}>No mentors match the current search filters.</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* Profile detail Modal */}
+      <Modal visible={!!pickedPerson} animationType="slide" transparent onRequestClose={() => setPickedPerson(null)}>
+        <View style={s.backdrop}>
+          <Pressable onPress={() => setPickedPerson(null)} style={{ flex: 1 }} />
+          <View style={[
+            s.modal,
+            {
+              backgroundColor: isDark ? '#0C0818' : '#FFFFFF',
+              borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+            }
+          ]}>
+            <View style={[s.modalHeader, { borderBottomColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
+              <Text style={[s.modalTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>
+                {pickedPerson?.kind === 'mentor' ? 'Mentor Profile' : pickedPerson?.kind === 'alumni' ? 'Alumni Profile' : 'Student Profile'}
+              </Text>
+              <Pressable onPress={() => setPickedPerson(null)} style={s.closeBtn}>
+                <X size={16} color={isDark ? '#FFFFFF' : '#0F172A'} />
+              </Pressable>
+            </View>
+            {pickedPerson && (() => {
+              const isConnected = conn.includes(pickedPerson.id) || pickedPerson.connectionState === 'connected';
+              const isPending = pending.includes(pickedPerson.id) || pickedPerson.connectionState === 'pending';
+              const nameInitials = pickedPerson.initials;
+              const titleLine = pickedPerson.role || pickedPerson.subline || 'Member';
+              const collegeLine = pickedPerson.company || pickedPerson.college || '';
+              const bioText = pickedPerson.bio || pickedPerson.looking || 'No bio provided.';
+              
+              return (
+                <ScrollView style={{ padding: 20 }} contentContainerStyle={{ gap: 16 }}>
+                  {/* Basic Info Card */}
+                  <View style={[
+                    s.profileHeaderCard,
+                    {
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : '#F8FAFC',
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.06)',
+                      padding: 16,
+                    }
+                  ]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <Av initials={nameInitials} size={64} color={pickedPerson.color} photo={pickedPerson.photo} />
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={{ color: isDark ? '#FFFFFF' : '#0F172A', fontFamily: FONTS.xbold, fontSize: 18 }}>{pickedPerson.name}</Text>
+                        <Text style={{ color: isDark ? SC.muted : '#475569', fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 }}>
+                          {titleLine}
+                        </Text>
+                        <Text style={{ color: isDark ? SC.dim : '#64748B', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 }}>
+                          {collegeLine}
+                        </Text>
+                      </View>
+                      
+                      {/* Social Icons */}
+                      <View style={{ flexDirection: 'row', gap: 6, alignSelf: 'flex-start' }}>
+                        {pickedPerson.linkedin && (
+                          <Pressable 
+                            onPress={() => pickedPerson.linkedin ? Linking.openURL(pickedPerson.linkedin.startsWith('http') ? pickedPerson.linkedin : `https://${pickedPerson.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} 
+                            style={s.socialIconBtn}
+                          >
+                            <Linkedin size={14} color="#fff" />
+                          </Pressable>
+                        )}
+                        {pickedPerson.github && (
+                          <Pressable 
+                            onPress={() => pickedPerson.github ? Linking.openURL(pickedPerson.github.startsWith('http') ? pickedPerson.github : `https://${pickedPerson.github}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} 
+                            style={s.socialIconBtn}
+                          >
+                            <Github size={14} color="#fff" />
+                          </Pressable>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Bio Card */}
+                  <View style={[
+                    s.profileBioCard,
+                    {
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.02)' : '#F8FAFC',
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0,0,0,0.06)',
+                      padding: 16,
+                    }
+                  ]}>
+                    <Text style={{ color: isDark ? 'rgba(255,255,255,0.75)' : '#334155', fontFamily: FONTS.med, fontSize: 13, lineHeight: 18 }}>
+                      {bioText}
+                    </Text>
+                  </View>
+
+                  {/* Mentor Stats Section */}
+                  {pickedPerson.kind === 'mentor' && (
+                    <View style={{ gap: 8 }}>
+                      <Text style={{ color: '#F97316', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>MENTOR STATS</Text>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F1F5F9', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)', borderWidth: 1, borderRadius: 10, padding: 12 }}>
+                          <Text style={{ color: isDark ? '#FFFFFF' : '#0F172A', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.rating}</Text>
+                          <Text style={{ color: isDark ? SC.muted : '#64748B', fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Rating</Text>
+                        </View>
+                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F1F5F9', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)', borderWidth: 1, borderRadius: 10, padding: 12 }}>
+                          <Text style={{ color: isDark ? '#FFFFFF' : '#0F172A', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.sessions}</Text>
+                          <Text style={{ color: isDark ? SC.muted : '#64748B', fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Sessions</Text>
+                        </View>
+                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F1F5F9', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)', borderWidth: 1, borderRadius: 10, padding: 12 }}>
+                          <Text style={{ color: isDark ? '#FFFFFF' : '#0F172A', fontFamily: FONTS.xbold, fontSize: 13 }} numberOfLines={1}>{pickedPerson.price}</Text>
+                          <Text style={{ color: isDark ? SC.muted : '#64748B', fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Price</Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Skills Section */}
+                  <View style={{ gap: 8 }}>
+                    <Text style={{ color: isDark ? 'rgba(255,255,255,0.50)' : '#64748B', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>SKILLS</Text>
+                    <View style={s.tagsRow}>
+                      {pickedPerson.tags && pickedPerson.tags.map((tag: string, idx: number) => (
+                        <View key={idx} style={[
+                          s.tagChip,
+                          {
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F1F5F9',
+                            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                          }
+                        ]}>
+                          <Text style={[s.tagChipText, { color: isDark ? SC.muted : '#334155' }]}>{tag}</Text>
+                        </View>
+                      ))}
+                      {(!pickedPerson.tags || pickedPerson.tags.length === 0) && (
+                        <Text style={{ color: isDark ? SC.muted : '#64748B', fontFamily: FONTS.med, fontSize: 12 }}>No specified skills.</Text>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Connection / Booking Action Button */}
+                  <View style={{ marginTop: 8 }}>
+                    {pickedPerson.kind === 'mentor' ? (
+                      <View style={{ flexDirection: 'row', gap: 10 }}>
+                        {isConnected ? (
+                          <View style={[s.connectedPillLarge, { flex: 1 }]}>
+                            <Check size={16} color="#16A34A" style={{ marginRight: 6 }} />
+                            <Text style={{ color: '#16A34A', fontFamily: FONTS.bold, fontSize: 14 }}>Connected</Text>
+                          </View>
+                        ) : isPending ? (
+                          <View style={[s.pendingPillLarge, { flex: 1 }]}>
+                            <Clock size={16} color="#D97706" style={{ marginRight: 6 }} />
+                            <Text style={{ color: '#D97706', fontFamily: FONTS.bold, fontSize: 14 }}>Pending</Text>
+                          </View>
+                        ) : (
+                          <Pressable 
+                            onPress={() => handleConnect(pickedPerson.id, pickedPerson.name)} 
+                            style={[s.connectBtnLarge, { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(37,99,235,0.4)' }]}
+                          >
+                            <UserPlus size={16} color={SC.accentBright} style={{ marginRight: 6 }} />
+                            <Text style={{ color: SC.accentBright, fontFamily: FONTS.xbold, fontSize: 14 }}>Connect</Text>
+                          </Pressable>
+                        )}
+                        
+                        <Pressable 
+                          onPress={() => handleOpenBooking(pickedPerson)} 
+                          style={[s.bookBtnLarge, { flex: 1.2 }]}
+                        >
+                          <Calendar size={16} color="#fff" style={{ marginRight: 8 }} />
+                          <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 14 }}>Book Session</Text>
+                        </Pressable>
+                      </View>
+                    ) : isConnected ? (
+                      <View style={s.connectedPillLarge}>
+                        <Check size={16} color="#16A34A" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#16A34A', fontFamily: FONTS.bold, fontSize: 14 }}>Connected</Text>
+                      </View>
+                    ) : isPending ? (
+                      <View style={s.pendingPillLarge}>
+                        <Clock size={16} color="#D97706" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#D97706', fontFamily: FONTS.bold, fontSize: 14 }}>Request Pending</Text>
+                      </View>
+                    ) : (
+                      <Pressable 
+                        onPress={() => handleConnect(pickedPerson.id, pickedPerson.name)} 
+                        style={s.connectBtnLarge}
+                      >
+                        <UserPlus size={16} color="#fff" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 14 }}>+ Connect</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </ScrollView>
+              );
+            })()}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Booking Modal */}
+      <Modal visible={!!bookingMentor} animationType="fade" transparent onRequestClose={() => setBookingMentor(null)}>
+        <View style={s.bookingBackdrop}>
+          <Pressable onPress={() => setBookingMentor(null)} style={StyleSheet.absoluteFill} />
+          {bookingMentor && (
+            <View style={[
+              s.bookingModal,
+              {
+                backgroundColor: isDark ? '#0C0818' : '#FFFFFF',
+                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+              }
+            ]}>
+              <View style={[s.bookingModalHeader, { borderBottomColor: isDark ? SC.border : 'rgba(0,0,0,0.08)' }]}>
+                <Text style={[s.bookingModalTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>Book Session</Text>
+                <Pressable onPress={() => setBookingMentor(null)} style={s.bookingCloseBtn}>
+                  <X size={16} color={isDark ? '#FFFFFF' : '#0F172A'} />
+                </Pressable>
+              </View>
+
+              <ScrollView style={{ padding: 20 }} contentContainerStyle={{ gap: 16 }}>
+                {/* Mentor Header Section */}
+                <View style={{ alignItems: 'center', gap: 8, paddingVertical: 12 }}>
+                  <Av initials={bookingMentor.initials} size={64} color={bookingMentor.color} photo={bookingMentor.photo} />
+                  <Text style={{ color: isDark ? '#FFFFFF' : '#0F172A', fontFamily: FONTS.xbold, fontSize: 18, textAlign: 'center' }}>
+                    {bookingMentor.name}
+                  </Text>
+                  <Text style={{ color: isDark ? SC.muted : '#475569', fontFamily: FONTS.med, fontSize: 13, textAlign: 'center' }}>
+                    {bookingMentor.role || 'Mentor'}
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Star size={14} color={SC.amber} fill={SC.amber} />
+                    <Text style={{ color: isDark ? '#FFFFFF' : '#0F172A', fontFamily: FONTS.bold, fontSize: 12.5 }}>
+                      {bookingMentor.rating}
+                    </Text>
+                    <Text style={{ color: isDark ? SC.muted : '#64748B', fontFamily: FONTS.med, fontSize: 12.5 }}>
+                      · {bookingMentor.sessions} sessions
+                    </Text>
+                  </View>
+                  
+                  {/* Tags */}
+                  {bookingMentor.tags && bookingMentor.tags.length > 0 && (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginTop: 4 }}>
+                      {bookingMentor.tags.map((t: string) => (
+                        <View key={t} style={{ backgroundColor: 'rgba(139,92,246,0.12)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 }}>
+                          <Text style={{ color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 9.5, textTransform: 'uppercase' }}>{t}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+
+                {/* ABOUT */}
+                <View style={{ gap: 6 }}>
+                  <Text style={{ color: isDark ? 'rgba(255,255,255,0.50)' : '#64748B', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>ABOUT</Text>
+                  <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F8FAFC', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)', borderWidth: 1, borderRadius: 12, padding: 14 }}>
+                    <Text style={{ color: isDark ? 'rgba(255,255,255,0.75)' : '#334155', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 }}>
+                      {bookingMentor.bio || 'Experienced professional ready to share industry insights, career strategies, and guidance.'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Available Slots */}
+                <View style={{ gap: 6 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Calendar size={14} color={SC.accentBright} />
+                    <Text style={{ color: isDark ? '#FFFFFF' : '#0F172A', fontFamily: FONTS.bold, fontSize: 13.5 }}>Available Slots</Text>
+                  </View>
+                  <Text style={{ color: isDark ? SC.muted : '#64748B', fontFamily: FONTS.med, fontSize: 11.5 }}>
+                    30-minute 1:1 sessions. Pick a slot that works for you.
+                  </Text>
+                  
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                    {bookingSlots.map((slot, idx) => {
+                      const isSelected = bookingSlot?.iso === slot.iso;
+                      return (
+                        <Pressable 
+                          key={idx} 
+                          onPress={() => setBookingSlot(slot)}
+                          style={[
+                            s.slotChip, 
+                            { 
+                              flexDirection: 'row', 
+                              alignItems: 'center',
+                              backgroundColor: isSelected ? 'rgba(139,92,246,0.20)' : (isDark ? 'rgba(255,255,255,0.03)' : '#F1F5F9'),
+                              borderColor: isSelected ? SC.primary : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'),
+                            }, 
+                            isSelected && s.slotChipActive
+                          ]}
+                        >
+                          <Clock size={12} color={isSelected ? '#8B5CF6' : (isDark ? SC.muted : '#64748B')} style={{ marginRight: 6 }} />
+                          <Text style={[s.slotText, { color: isSelected ? (isDark ? '#FFFFFF' : '#6D28D9') : (isDark ? SC.muted : '#334155') }]}>{slot.label}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Topic Input */}
+                <View style={{ gap: 6 }}>
+                  <Text style={{ color: isDark ? 'rgba(255,255,255,0.50)' : '#64748B', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>WHAT WOULD YOU LIKE TO DISCUSS?</Text>
+                  <TextInput
+                    value={bookingTopic}
+                    onChangeText={setBookingTopic}
+                    placeholder="e.g., How do I prepare for FAANG interviews?"
+                    placeholderTextColor={isDark ? SC.dim : '#94A3B8'}
+                    multiline
+                    numberOfLines={3}
+                    style={{
+                      backgroundColor: isDark ? 'rgba(0,0,0,0.25)' : '#F8FAFC',
+                      borderColor: isDark ? SC.border : '#CBD5E1',
+                      borderWidth: 1,
+                      borderRadius: 10,
+                      padding: 12,
+                      color: isDark ? '#FFFFFF' : '#0F172A',
+                      fontFamily: FONTS.med,
+                      fontSize: 13,
+                      height: 80,
+                      textAlignVertical: 'top',
+                      ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {})
+                    }}
+                  />
+                </View>
+
+                {/* Submit button */}
+                <Pressable 
+                  disabled={!bookingSlot || !bookingTopic.trim() || bookingSubmitting}
+                  onPress={handleConfirmBooking}
+                  style={[
+                    s.bookingSubmitBtn, 
+                    (!bookingSlot || !bookingTopic.trim()) && s.bookingSubmitBtnDisabled
+                  ]}
+                >
+                  {bookingSubmitting ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <MessageSquare size={16} color="#fff" style={{ marginRight: 4 }} />
+                      <Text style={[
+                        s.bookingSubmitBtnText,
+                        (!bookingSlot || !bookingTopic.trim()) && s.bookingSubmitBtnTextDisabled
+                      ]}>
+                        Confirm session
+                      </Text>
+                    </View>
+                  )}
+                </Pressable>
+              </ScrollView>
+            </View>
+          )}
+        </View>
+      </Modal>
+
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  container: {
+    width: '100%',
+    paddingBottom: 40
+  },
+
+  // Sub tab selector styles
+  tabRow: {
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: SC.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 6,
+    marginBottom: 16
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    ...({ cursor: 'pointer' } as any)
+  },
+  tabBtnActive: {
+    backgroundColor: SC.primary
+  },
+  tabBtnText: {
+    color: SC.muted,
+    fontFamily: FONTS.semi,
+    fontSize: 13
+  },
+  tabBtnTextActive: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.bold
+  },
+
+  // Search input & DB button styles
+  searchRowContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  searchContainerFlex: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 42,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+  },
+  dbSearchBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3B82F6',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    height: 42,
+  },
+  dbSearchBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontFamily: FONTS.med,
+    fontWeight: '600',
+  },
+  statusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  statusBannerSearching: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  statusBannerSuccess: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  statusBannerError: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  statusText: {
+    fontSize: 12,
+    fontFamily: FONTS.med,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 42,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+  },
+  searchInput: {
+    flex: 1,
+    color: '#0F172A',
+    fontFamily: FONTS.med,
+    fontSize: 13,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {})
+  },
+
+  // Collapsible section styles
+  section: {
+    marginBottom: 24,
+    gap: 16
+  },
+  secHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomColor: SC.border,
+    borderBottomWidth: 1,
+    paddingBottom: 12
+  },
+  secIconBg: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10
+  },
+  secTitle: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.xbold,
+    fontSize: 15,
+    letterSpacing: -0.2
+  },
+  secBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.06)'
+  },
+  secBadgeText: {
+    color: SC.accentBright,
+    fontFamily: FONTS.xbold,
+    fontSize: 10
+  },
+  secSub: {
+    color: SC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 11,
+    marginTop: 2
+  },
+
+  // Spacious Grid layouts
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14
+  },
+  card: {
+    flexGrow: 1,
+    flexBasis: 340,
+    maxWidth: 460,
+    minHeight: 220,
+    justifyContent: 'space-between',
+    borderColor: SC.border,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16
+  },
+  cardHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10
+  },
+  cardName: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.bold,
+    fontSize: 14.5
+  },
+  cardRole: {
+    color: SC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 11.5,
+    marginTop: 2
+  },
+  cardCompany: {
+    color: SC.dim,
+    fontFamily: FONTS.med,
+    fontSize: 10.5
+  },
+
+  // Badges styles
+  badgeMentor: {
+    backgroundColor: 'rgba(34,197,94,0.12)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4
+  },
+  badgeMentorText: {
+    color: '#86EFAC',
+    fontFamily: FONTS.bold,
+    fontSize: 9.5
+  },
+  badgeAlumni: {
+    backgroundColor: 'rgba(139,92,246,0.12)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4
+  },
+  badgeAlumniText: {
+    color: SC.accentBright,
+    fontFamily: FONTS.bold,
+    fontSize: 9.5
+  },
+  badgeStudent: {
+    backgroundColor: 'rgba(59,130,246,0.12)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4
+  },
+  badgeStudentText: {
+    color: '#93C5FD',
+    fontFamily: FONTS.bold,
+    fontSize: 9.5
+  },
+
+  // Tags list
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginVertical: 8
+  },
+  tagChip: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4.5,
+    borderRadius: 6
+  },
+  tagChipText: {
+    color: SC.muted,
+    fontFamily: FONTS.bold,
+    fontSize: 10
+  },
+
+  // Stats / ratings
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginVertical: 4
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
+  },
+  statText: {
+    color: SC.muted,
+    fontFamily: FONTS.bold,
+    fontSize: 11
+  },
+  priceText: {
+    color: SC.accentBright,
+    fontFamily: FONTS.xbold,
+    fontSize: 11.5,
+    marginLeft: 'auto'
+  },
+
+
+
+
+  // Action buttons
+
+  actionBtnOutline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(37,99,235,0.3)',
+    backgroundColor: 'transparent',
+    ...({ cursor: 'pointer' } as any)
+  },
+  actionBtnOutlineText: {
+    color: SC.accentBright,
+    fontFamily: FONTS.bold,
+    fontSize: 11.5
+  },
+  actionBtnFill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: SC.primary,
+    ...({ cursor: 'pointer' } as any)
+  },
+  actionBtnFillText: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.xbold,
+    fontSize: 11.5
+  },
+  iconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: SC.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+
+  connectedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(34,197,94,0.08)',
+    borderColor: 'rgba(34,197,94,0.22)',
+    borderWidth: 1
+  },
+  connectedText: {
+    color: '#86EFAC',
+    fontFamily: FONTS.bold,
+    fontSize: 11.5
+  },
+  pendingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(245,158,11,0.08)',
+    borderColor: 'rgba(245,158,11,0.22)',
+    borderWidth: 1
+  },
+  pendingText: {
+    color: '#FDE047',
+    fontFamily: FONTS.bold,
+    fontSize: 11.5
+  },
+
+  // Empty state card
+  emptyCard: {
+    flex: 1,
+    backgroundColor: SC.card,
+    borderColor: SC.border,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10
+  },
+  emptyText: {
+    color: SC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 12.5,
+    textAlign: 'center'
+  },
+
+  // Modal Backdrop
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(5, 8, 16, 0.75)',
+    justifyContent: 'flex-end',
+    alignItems: Platform.OS === 'web' ? 'flex-end' : 'stretch',
+  },
+  modal: {
+    backgroundColor: '#0C0818',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderLeftWidth: Platform.OS === 'web' ? 1 : 0,
+    borderWidth: Platform.OS === 'web' ? 0 : 1,
+    borderTopLeftRadius: Platform.OS === 'web' ? 0 : 20,
+    borderTopRightRadius: Platform.OS === 'web' ? 0 : 20,
+    width: Platform.OS === 'web' ? 440 : '100%',
+    height: Platform.OS === 'web' ? '100%' : '85%',
+    maxHeight: '100%',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: -10, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomColor: SC.border,
+    borderBottomWidth: 1
+  },
+  modalTitle: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.xbold,
+    fontSize: 15
+  },
+  closeBtn: {
+    padding: 4,
+    ...({ cursor: 'pointer' } as any)
+  },
+
+  profileHeaderCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  profileBioCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  socialIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.09)',
+    borderWidth: 1,
+    ...({ cursor: 'pointer' } as any)
+  },
+  connectBtnLarge: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: SC.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+  connectedPillLarge: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: 'rgba(16,185,129,0.1)',
+    borderColor: 'rgba(16,185,129,0.2)',
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingPillLarge: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: 'rgba(245,158,11,0.1)',
+    borderColor: 'rgba(245,158,11,0.2)',
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewMoreContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 16
+  },
+  viewMoreBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(37,99,235,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+  viewMoreBtnText: {
+    color: SC.accentBright,
+    fontFamily: FONTS.bold,
+    fontSize: 12
+  },
+
+  bookBtnLarge: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: SC.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+
+  // Centered booking modal styles
+  bookingBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(5, 8, 16, 0.82)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20
+  },
+  bookingModal: {
+    backgroundColor: '#0C0818',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderRadius: 20,
+    width: Platform.OS === 'web' ? 480 : '100%',
+    maxWidth: 480,
+    maxHeight: '90%',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20
+  },
+  bookingModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomColor: SC.border,
+    borderBottomWidth: 1
+  },
+  bookingModalTitle: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.xbold,
+    fontSize: 16
+  },
+  bookingCloseBtn: {
+    padding: 4,
+    ...({ cursor: 'pointer' } as any)
+  },
+  bookingLabel: {
+    color: 'rgba(255,255,255,0.50)',
+    fontFamily: FONTS.bold,
+    fontSize: 11,
+    letterSpacing: 0.6,
+    marginTop: 8
+  },
+  dayScroll: {
+    marginVertical: 4
+  },
+  dayCard: {
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    width: 76,
+    height: 58,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    ...({ cursor: 'pointer' } as any)
+  },
+  dayCardActive: {
+    backgroundColor: 'rgba(139,92,246,0.15)',
+    borderColor: SC.primary,
+    borderWidth: 1.5
+  },
+  dayText: {
+    color: SC.muted,
+    fontFamily: FONTS.bold,
+    fontSize: 12
+  },
+  dayTextActive: {
+    color: '#FFFFFF',
+  },
+  dateText: {
+    color: SC.dim,
+    fontFamily: FONTS.med,
+    fontSize: 10,
+    marginTop: 2
+  },
+  dateTextActive: {
+    color: SC.accentBright
+  },
+  slotsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginVertical: 4
+  },
+  slotChip: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+  slotChipActive: {
+    backgroundColor: 'rgba(139,92,246,0.20)',
+    borderColor: SC.primary,
+    borderWidth: 1
+  },
+  slotText: {
+    color: SC.muted,
+    fontFamily: FONTS.bold,
+    fontSize: 12
+  },
+  slotTextActive: {
+    color: '#FFFFFF'
+  },
+  bookingSubmitBtn: {
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: SC.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    ...({ cursor: 'pointer' } as any)
+  },
+  bookingSubmitBtnDisabled: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1
+  },
+  bookingSubmitBtnText: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.xbold,
+    fontSize: 14
+  },
+  bookingSubmitBtnTextDisabled: {
+    color: SC.dim
+  },
+  countBadge: {
+    marginLeft: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.08)'
+  },
+  countBadgeOn: {
+    backgroundColor: 'rgba(9, 13, 22, 0.15)'
+  },
+  countBadgeText: {
+    color: SC.muted,
+    fontFamily: FONTS.xbold,
+    fontSize: 10
+  },
+  countBadgeTextOn: {
+    color: '#090D16'
+  },
+  reqBadge: {
+    marginLeft: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 6,
+    backgroundColor: 'rgba(245,158,11,0.18)'
+  },
+  reqBadgeOn: {
+    backgroundColor: 'rgba(9, 13, 22, 0.15)'
+  },
+  reqBadgeText: {
+    color: '#F59E0B',
+    fontFamily: FONTS.xbold,
+    fontSize: 10
+  },
+
+  // Subfilters style
+  subFiltersRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 4
+  },
+  subFilterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    ...({ cursor: 'pointer' } as any)
+  },
+  subFilterChipOn: {
+    backgroundColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: 'rgba(20, 184, 166, 0.35)'
+  },
+  subFilterText: {
+    color: SC.muted,
+    fontFamily: FONTS.semi,
+    fontSize: 12
+  },
+  subFilterTextOn: {
+    color: '#5EEAD4',
+    fontFamily: FONTS.bold
+  },
+
+  // Search input style
+
+
+  // Discover sub tab style
+  discoverRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12
+  },
+  discChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    ...({ cursor: 'pointer' } as any)
+  },
+  discChipOn: {
+    borderColor: 'rgba(20, 184, 166, 0.25)',
+    backgroundColor: 'rgba(20, 184, 166, 0.08)'
+  },
+  discChipText: {
+    color: '#E2E8F0',
+    fontFamily: FONTS.semi,
+    fontSize: 11.5
+  },
+  discChipTextOn: {
+    color: '#5EEAD4',
+    fontFamily: FONTS.bold
+  },
+  discBadge: {
+    marginLeft: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.06)'
+  },
+  discBadgeOn: {
+    backgroundColor: 'rgba(20, 184, 166, 0.15)'
+  },
+  discBadgeText: {
+    color: '#5EEAD4',
+    fontFamily: FONTS.xbold,
+    fontSize: 9.5
+  },
+
+  // Subsections and Collapsibles
+  sectionFrame: {
+    gap: 14,
+    marginBottom: 16
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomColor: SC.border,
+    borderBottomWidth: 1,
+    paddingBottom: 10,
+    ...({ cursor: 'pointer' } as any)
+  },
+
+  secBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    backgroundColor: 'rgba(20,184,166,0.1)'
+  },
+  secBadgeText: {
+    color: '#5EEAD4',
+    fontFamily: FONTS.xbold,
+    fontSize: 9.5
+  },
+  toggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: 'rgba(20,184,166,0.06)',
+    ...({ cursor: 'pointer' } as any)
+  },
+  toggleBtnText: {
+    color: '#5EEAD4',
+    fontFamily: FONTS.bold,
+    fontSize: 11
+  },
+
+  // Cards grid layout
+
+
+  
+  // Requests tab layouts
+  requestListFrame: {
+    backgroundColor: SC.card,
+    borderColor: SC.border,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10
+  },
+  requestListHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomColor: SC.border,
+    borderBottomWidth: 1,
+    paddingBottom: 10
+  },
+  requestListTitle: {
+    fontFamily: FONTS.xbold,
+    fontSize: 13,
+    letterSpacing: 0.8
+  },
+  requestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    minHeight: 64
+  },
+  requestName: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.bold,
+    fontSize: 14
+  },
+  requestTimeText: {
+    color: SC.dim,
+    fontFamily: FONTS.med,
+    fontSize: 10.5,
+    marginLeft: 4
+  },
+  requestSublineText: {
+    color: SC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 11.5,
+    marginTop: 2
+  },
+  acceptBtn: {
+    height: 32,
+    borderRadius: 6,
+    backgroundColor: '#14B8A6',
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+  acceptBtnText: {
+    color: '#090D16',
+    fontFamily: FONTS.xbold,
+    fontSize: 12
+  },
+  ignoreBtn: {
+    height: 32,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+  ignoreBtnText: {
+    color: SC.muted,
+    fontFamily: FONTS.bold,
+    fontSize: 12
+  },
+  pendingStatusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    height: 28,
+    borderRadius: 20,
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    borderColor: 'rgba(245, 158, 11, 0.22)',
+    borderWidth: 1
+  },
+  pendingStatusText: {
+    color: '#FCD34D',
+    fontFamily: FONTS.bold,
+    fontSize: 11
+  },
+  noRequestText: {
+    color: SC.dim,
+    fontFamily: FONTS.med,
+    fontSize: 12.5,
+    paddingVertical: 14,
+    textAlign: 'center'
+  },
+
+  // Stub structures
+  stubCard: {
+    backgroundColor: SC.card,
+    borderColor: SC.border,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 10,
+    textAlign: 'center'
+  },
+  stubTitle: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.xbold,
+    fontSize: 16
+  },
+  stubSub: {
+    color: SC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 12.5,
+    lineHeight: 18,
+    textAlign: 'center',
+    maxWidth: 420,
+    marginBottom: 8
+  },
+  stubBtn: {
+    paddingHorizontal: 14,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: 'rgba(20, 184, 166, 0.1)',
+    borderColor: SC.border2,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+  stubBtnText: {
+    color: '#5EEAD4',
+    fontFamily: FONTS.bold,
+    fontSize: 12
+  },
+
+  // Glassmorphic Drafting Modal overlay
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  draftModal: {
+    backgroundColor: SC.cardSolid || '#131935',
+    borderColor: SC.border2,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 22,
+    width: '100%',
+    maxWidth: 460,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+  },
+  modalHeaderBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: SC.border,
+    paddingBottom: 10
+  },
+  draftModalTitle: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.xbold,
+    fontSize: 16
+  },
+  draftModalLabel: {
+    color: SC.dim,
+    fontFamily: FONTS.bold,
+    fontSize: 9.5,
+    letterSpacing: 0.8,
+    marginTop: 4
+  },
+  draftTextContainer: {
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    borderColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    minHeight: 120
+  },
+  draftTextInput: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.med,
+    fontSize: 13,
+    lineHeight: 18,
+    textAlignVertical: 'top',
+    height: '100%',
+    width: '100%',
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {})
+  },
+  draftActions: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 10,
+    marginTop: 10
+  },
+  draftCancelBtn: {
+    flex: 1,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: SC.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+  draftCancelText: {
+    color: SC.muted,
+    fontFamily: FONTS.bold,
+    fontSize: 13
+  },
+  draftSendBtn: {
+    flex: 1.5,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#14B8A6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+  draftSendText: {
+    color: '#090D16',
+    fontFamily: FONTS.xbold,
+    fontSize: 13
+  },
+
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomColor: SC.border,
+    borderBottomWidth: 1
+  },
+  modalTitle: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.xbold,
+    fontSize: 15
+  },
+  closeBtn: {
+    padding: 4,
+    ...({ cursor: 'pointer' } as any)
+  },
+  profileHeaderCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  profileBioCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  socialIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.09)',
+    borderWidth: 1,
+    ...({ cursor: 'pointer' } as any)
+  },
+
+  successPopupContainer: {
+    position: 'absolute',
+    top: 24,
+    right: 24,
+    backgroundColor: '#090D16',
+    borderColor: '#5EEAD4',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    width: 320,
+    zIndex: 10000,
+    shadowColor: '#5EEAD4',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  successPopupContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  successPopupText: {
+    color: '#E2E8F0',
+    fontFamily: FONTS.med,
+    fontSize: 14,
+    flex: 1,
+  },
+  successPopupBtn: {
+    backgroundColor: '#14B8A6',
+    borderRadius: 6,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successPopupBtnText: {
+    color: '#090D16',
+    fontFamily: FONTS.bold,
+    fontSize: 13,
+  },
+
+  // Cards grid layout
+  cardsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12
+  },
+
+  // Profile Grid Card layout
+  profileCard: {
+    flexGrow: 1,
+    flexBasis: 280,
+    maxWidth: 350,
+    height: 280,
+    justifyContent: 'space-between',
+    backgroundColor: SC.card,
+    borderColor: SC.border,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8
+  },
+  cardProfileRow: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  nameBold: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.bold,
+    fontSize: 14.5
+  },
+  subtitleLine: {
+    color: SC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 11.5,
+    marginTop: 2
+  },
+  subtitleSubLine: {
+    color: SC.dim,
+    fontFamily: FONTS.med,
+    fontSize: 10.5
+  },
+
+  // Mentees student tag
+  rolePillStudent: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: 'rgba(34,197,94,0.12)'
+  },
+  rolePillStudentText: {
+    color: '#86EFAC',
+    fontFamily: FONTS.bold,
+    fontSize: 9.5
+  },
+
+  // Professional badges
+  rolePillBase: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4
+  },
+  rolePillBaseText: {
+    fontFamily: FONTS.bold,
+    fontSize: 9.5
+  },
+  rolePillIndustry: {
+    backgroundColor: 'rgba(245,158,11,0.12)'
+  },
+  rolePillIndustryText: {
+    color: '#FCD34D'
+  },
+  rolePillMentor: {
+    backgroundColor: 'rgba(20,184,1, 0.15)',
+    borderColor: 'rgba(20,184,166,0.3)'
+  },
+  rolePillMentorText: {
+    color: '#34D399'
+  },
+  rolePillAlumni: {
+    backgroundColor: 'rgba(59,130,246,0.15)',
+    borderColor: 'rgba(59,130,246,0.3)'
+  },
+  rolePillAlumniText: {
+    color: '#93C5FD'
+  },
+
+  skillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 2
+  },
+  skillChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4.5,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1
+  },
+  skillChipText: {
+    color: SC.dim,
+    fontFamily: FONTS.bold,
+    fontSize: 10
+  },
+
+  mutualRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2
+  },
+  mutualText: {
+    color: SC.dim,
+    fontFamily: FONTS.med,
+    fontSize: 11
+  },
+
+  // Mentorship Progress Bar
+  progressRow: {
+    marginTop: 4,
+    gap: 5
+  },
+  progressTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    overflow: 'hidden'
+  },
+  progressFill: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#10B981',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3
+  },
+  progressText: {
+    color: SC.dim,
+    fontFamily: FONTS.med,
+    fontSize: 10.5
+  },
+
+  // Actions
+  cardActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopColor: SC.border,
+    borderTopWidth: 1,
+    paddingTop: 12,
+    marginTop: 4
+  },
+  draftMsgBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 32,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(94, 234, 212, 0.25)',
+    backgroundColor: 'rgba(94, 234, 212, 0.04)',
+    width: '100%',
+    ...({ cursor: 'pointer' } as any)
+  },
+  draftMsgBtnText: {
+    color: '#5EEAD4',
+    fontFamily: FONTS.bold,
+    fontSize: 11.5
+  },
+  viewProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    height: 30,
+    borderRadius: 6,
+    backgroundColor: '#14B8A6',
+    ...({ cursor: 'pointer' } as any)
+  },
+  viewProfileBtnText: {
+    color: '#090D16',
+    fontFamily: FONTS.xbold,
+    fontSize: 11
+  },
+  iconSquareBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+
+  
+});

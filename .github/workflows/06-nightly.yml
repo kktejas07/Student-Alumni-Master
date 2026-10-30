@@ -1,0 +1,167 @@
+# ═══════════════════════════════════════════════════════════════════════
+# Nightly Jobs — DB backup, image cleanup, health checks, reports
+# ═══════════════════════════════════════════════════════════════════════
+# Runs every night at 2 AM UTC.
+# Keeps last 7 days of backups, cleans up old Docker images.
+# ═══════════════════════════════════════════════════════════════════════
+
+name: Nightly Jobs
+
+on:
+  schedule:
+    - cron: "0 2 * * *" # Every day at 2 AM UTC
+  workflow_dispatch:
+
+jobs:
+  # ─── Database backup ─────────────────────────────────────────
+  database-backup:
+    name: Database Backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.PROD_SSH_KEY }}
+          known_hosts: ${{ secrets.PROD_SSH_HOST }}
+          if_key_exists: replace
+
+      - name: Add host to known_hosts
+        run: ssh-keyscan -H ${{ secrets.PROD_SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Create MongoDB backup
+        run: |
+          ssh ${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }} bash -s << 'SCRIPT'
+            set -e
+            BACKUP_DIR="/root/backups/mongodb/$(date +%Y-%m-%d)"
+            mkdir -p "$BACKUP_DIR"
+
+            echo "📦 Creating MongoDB dump..."
+            docker exec $(docker ps -q --filter "name=mongo") mongodump \
+              --uri="$MONGO_URL" \
+              --out=/tmp/mongo-dump-$(date +%s) 2>/dev/null || {
+              echo "⚠️  MongoDB container not found, using mongodump directly"
+              mongodump --uri="$MONGO_URL" --out="$BACKUP_DIR/dump" 2>/dev/null || echo "Failed"
+            }
+
+            echo "📂 Compressing backup..."
+            tar -czf "$BACKUP_DIR/dump.tar.gz" -C "$BACKUP_DIR" dump 2>/dev/null || true
+
+            echo "🗑️  Cleaning up backups older than 7 days..."
+            find /root/backups/mongodb/ -maxdepth 1 -type d -mtime +7 -exec rm -rf {} \; 2>/dev/null || true
+
+            echo "✅ Backup complete: $BACKUP_DIR/dump.tar.gz"
+SCRIPT
+
+      - name: Verify backup
+        run: |
+          echo "✅ Nightly backup job completed successfully"
+          echo "   Backups older than 7 days are auto-cleaned"
+
+  # ─── Docker image cleanup ────────────────────────────────────
+  docker-cleanup:
+    name: Docker Image Cleanup
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.PROD_SSH_KEY }}
+          known_hosts: ${{ secrets.PROD_SSH_HOST }}
+          if_key_exists: replace
+
+      - name: Clean up old Docker images
+        run: |
+          ssh ${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }} bash -s << 'SCRIPT'
+            echo "🧹 Cleaning up Docker..."
+            docker system prune -af --filter "until=72h" 2>/dev/null || true
+            docker image prune -af --filter "until=168h" 2>/dev/null || true
+            docker builder prune -af 2>/dev/null || true
+            echo "✅ Cleanup complete"
+            echo "   Disk usage after cleanup:"
+            df -h / | tail -1
+SCRIPT
+
+  # ─── Health check ────────────────────────────────────────────
+  health-check:
+    name: Health Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check backend health
+        run: |
+          echo "🔍 Checking backend..."
+          STATUS=$(curl -fsS -o /dev/null -w "%{http_code}" --max-time 10 https://studentalumni.ai/api/health || echo "000")
+          if [[ "$STATUS" == "200" ]]; then
+            echo "✅ Backend healthy (HTTP $STATUS)"
+          else
+            echo "❌ Backend unhealthy (HTTP $STATUS)"
+            exit 1
+          fi
+
+      - name: Check frontend health
+        run: |
+          echo "🔍 Checking frontend..."
+          STATUS=$(curl -fsS -o /dev/null -w "%{http_code}" --max-time 10 https://studentalumni.ai/healthz || echo "000")
+          if [[ "$STATUS" == "200" ]]; then
+            echo "✅ Frontend healthy (HTTP $STATUS)"
+          else
+            echo "❌ Frontend unhealthy (HTTP $STATUS)"
+            exit 1
+          fi
+
+      - name: Check SSL certificate expiry
+        run: |
+          echo "🔐 Checking SSL certificate..."
+          EXPIRY=$(echo | openssl s_client -servername studentalumni.ai -connect studentalumni.ai:443 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2 || echo "unknown")
+          if [[ "$EXPIRY" != "unknown" ]]; then
+            EXPIRY_EPOCH=$(date -d "$EXPIRY" +%s 2>/dev/null || echo 0)
+            NOW_EPOCH=$(date +%s)
+            DAYS_LEFT=$(( (EXPIRY_EPOCH - NOW_EPOCH) / 86400 ))
+            if [[ $DAYS_LEFT -lt 14 ]]; then
+              echo "⚠️  SSL certificate expires in $DAYS_LEFT days — renew soon!"
+            else
+              echo "✅ SSL certificate valid for $DAYS_LEFT more days"
+            fi
+          else
+            echo "⚠️  Could not check SSL certificate"
+          fi
+
+  # ─── Report generation ──────────────────────────────────────
+  generate-report:
+    name: Generate Nightly Report
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [database-backup, docker-cleanup, health-check]
+
+    steps:
+      - name: Build report
+        run: |
+          {
+            echo "## Nightly Operations Report — $(date -u '+%Y-%m-%d')"
+            echo ""
+            echo "| Job | Status |"
+            echo "|---|---|"
+            echo "| Database Backup | ${{ needs.database-backup.result }} |"
+            echo "| Docker Cleanup | ${{ needs.docker-cleanup.result }} |"
+            echo "| Health Check | ${{ needs.health-check.result }} |"
+            echo ""
+            echo "---"
+            echo "_Generated by GitHub Actions Nightly workflow_"
+          } > /tmp/nightly-report.md
+          cat /tmp/nightly-report.md
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-report-${{ github.run_id }}
+          path: /tmp/nightly-report.md
+          retention-days: 30

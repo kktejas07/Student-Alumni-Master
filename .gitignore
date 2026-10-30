@@ -1,0 +1,242 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+env/
+env*/
+backend/env*/
+.env
+.venv/
+venv/
+pip-wheel-metadata/
+build/
+dist/
+*.egg-info/
+
+# Editor/IDE
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+coverage/
+.pytest_cache/
+
+# Docker
+docker-compose.override.yml
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+yarn-debug.log*
+/.expo/
+/.expo-shared/
+android/
+ios/
+
+# Frontend build
+dist/
+build/
+
+# Secrets
+.env.local
+.env.*.local
+*.pem
+
+# Local IDE run configs and workspace settings
+.idea/
+.vscode/
+
+# OneDrive / Windows
+~$*
+# ─────────────────────────────────────────────────────────────────
+# Project .gitignore — Student Alumni / NexusOS
+# ─────────────────────────────────────────────────────────────────
+
+# ── IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*.bak
+*~
+
+# ── OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Node / JS deps
+node_modules/
+.pnp
+.pnp.js
+.pnpm-debug.log*
+
+# ── Yarn
+.yarn/install-state.gz
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# ── npm / yarn logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Build outputs
+/build
+/out
+/dist
+dist/
+.next/
+*.tsbuildinfo
+
+# ── Expo / React Native
+.expo/
+.expo-shared/
+expo-env.d.ts
+web-build/
+
+# ── Metro / Babel / Watchman caches
+.metro-cache/
+.metro-health-check*
+.haste_cache/
+.babel-cache/
+.jest-cache/
+
+# ── Coverage / tests
+/coverage
+test_reports/
+
+# ── Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.python-version
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Notebook checkpoints
+.ipynb_checkpoints/
+
+# ── Environment files (NEVER commit secrets)
+.env
+.env.*
+!.env.example
+*.env
+credentials.json
+*token.json*
+*credentials.json*
+*.pem
+*.key
+.credentials
+
+# ── Database / runtime
+dump.rdb
+*.sqlite
+*.sqlite3
+*.db-journal
+.run.pids
+.run.pid
+.qdrant_local/
+
+# ── Seed / export data (regenerable, often huge)
+backend/seed_data_export/
+
+# ── Archives / large binaries
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
+*.pack
+*.deb
+*.dylib
+
+# ── Deployment caches
+.vercel
+.dokploy/
+
+# ── Misc
+.cache/
+chainlit.md
+.chainlit
+.ac
+memory/test_credentials.md
+agenthub/agents/youtube/db
+android-sdk/
+
+# ── Files that should never have been committed
+# (binary-named cruft, accidental drops)
+frontend/\001*
+
+run.sh
+run.ps1
+
+# Scratch folder and local Node/Yarn runtimes
+scratch/
+node-local/
+yarn-local/
+
+# ── Test artifacts & results (regenerable, never commit)
+QA-Automation/allure-results/
+QA-Automation/reports/
+tests/artifacts/
+backend/acceptance_screenshots/
+backend/e2e_report/
+backend/qa_audit_report/
+backend/phase7_e2e_screenshots/
+
+# ── Result dumps & one-off output (never commit)
+git_log.txt
+frontend_lint_results.txt
+backend_test_results.txt
+frontend_test_results.txt
+test_commits.txt
+portal_regression_results.json
+backend/out.txt
+backend/working_accounts.json
+backend/body_text.txt
+backend/api_audit_results.json
+backend/phase7_e2e_results.json
+backend/portal_regression_results.json
+backend/cryptography.whl
+
+# ── User uploaded files / media (always store in docker volume, never in Git)
+uploads/
+backend/uploads/
+SA New Theme/
+# Audit and removal records
+REMOVED_FILES_AUDIT.md
+docs/REMOVED_FILES_AUDIT.md
+CURRENT_ALL_USERS_REPORT.md
+CURRENT_ALL_USERS_REPORT.html
+QR_PASS_QA_AUDIT.html
+docs/QR_PASS_QA_AUDIT.html
+
+# Local Ponytail quality layer (kept locally)
+.agents/rules/ponytail.md
+.agents/skills/ponytail/
+docs/ponytail-integration.md
+QR_PASS_QA_AUDIT.html
+QR_PASS_QA_AUDIT.md
+
+# Playwright test execution results
+test-results/
+frontend/test-results/

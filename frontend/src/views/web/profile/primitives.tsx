@@ -1,0 +1,434 @@
+/**
+ * Profile editor shared primitives — Card, Field, TextField, TextArea, SelectField,
+ * Toggle, ToggleRow, ChipPicker, SaveBar.
+ */
+import { useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, TextInput, Pressable, Animated, Platform, ScrollView } from 'react-native';
+import { ChevronDown, Check } from 'lucide-react-native';
+import { COUNTRY_CODES } from './countryCodes';
+
+export const C = {
+  bg: '#F9FAFB',
+  card: '#FFFFFF',
+  border: 'rgba(0,0,0,0.08)',
+  borderHi: 'rgba(0,0,0,0.18)',
+  text: '#111827',
+  text2: '#334155',
+  text3: '#64748B',
+  purple: '#2563EB',
+  green: '#10B981',
+  amber: '#F59E0B',
+  rose: '#F43F5E',
+  cyan: '#22D3EE',
+};
+
+export function Card({ title, subtitle, children, action }: {
+  title?: string; subtitle?: string; children: React.ReactNode; action?: React.ReactNode;
+}) {
+  return (
+    <View style={s.card}>
+      {(title || action) && (
+        <View style={s.cardHead}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            {!!title && <Text style={s.cardTitle}>{title}</Text>}
+            {!!subtitle && <Text style={s.cardSub}>{subtitle}</Text>}
+          </View>
+          {action}
+        </View>
+      )}
+      <View style={{ gap: 14 }}>{children}</View>
+    </View>
+  );
+}
+
+export function Field({ label, hint, children, half }: {
+  label: string; hint?: string; children: React.ReactNode; half?: boolean;
+}) {
+  return (
+    <View style={[{ gap: 6 }, half ? { flex: 1, minWidth: 220 } : null]}>
+      <Text style={s.label}>{label}</Text>
+      {children}
+      {!!hint && <Text style={s.hint}>{hint}</Text>}
+    </View>
+  );
+}
+
+export function TF({ value, onChangeText, placeholder, secure, leftIcon, testID, onSubmitEditing }: {
+  value: string; onChangeText: (v: string) => void; placeholder?: string;
+  secure?: boolean; leftIcon?: React.ReactNode; testID?: string;
+  onSubmitEditing?: () => void;
+}) {
+  return (
+    <View style={s.tfWrap}>
+      {leftIcon && <View style={{ marginRight: 8 }}>{leftIcon}</View>}
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={C.text3}
+        secureTextEntry={secure}
+        style={s.tf}
+        testID={testID}
+        onSubmitEditing={onSubmitEditing}
+      />
+    </View>
+  );
+}
+
+export function TA({ value, onChangeText, placeholder, rows = 3, testID }: {
+  value: string; onChangeText: (v: string) => void; placeholder?: string; rows?: number; testID?: string;
+}) {
+  return (
+    <TextInput
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      placeholderTextColor={C.text3}
+      multiline
+      numberOfLines={rows}
+      style={[
+        s.tf,
+        s.ta,
+        {
+          minHeight: rows * 22 + 16,
+          backgroundColor: '#FFFFFF',
+          borderColor: C.border,
+          borderWidth: 1,
+          borderRadius: 10,
+          paddingHorizontal: 12,
+          paddingTop: 10,
+          paddingBottom: 10,
+        },
+      ]}
+      testID={testID}
+    />
+  );
+}
+
+export function SF({ value, onChange, options, placeholder, testID }: {
+  value: string; onChange: (v: string) => void; options: string[]; placeholder?: string; testID?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const handleClick = (e: MouseEvent) => {
+      if (wrapRef.current && wrapRef.current.contains && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    if (open) {
+      setTimeout(() => document.addEventListener('mousedown', handleClick), 0);
+    }
+    return () => {
+      if (Platform.OS === 'web') document.removeEventListener('mousedown', handleClick);
+    };
+  }, [open]);
+
+  return (
+    <View ref={wrapRef} style={[{ position: 'relative' }, Platform.OS === 'web' ? { zIndex: open ? 9999 : 1 } as any : { zIndex: open ? 9999 : 1 }]}>
+      <Pressable style={[s.tfWrap, open && { borderColor: C.purple, backgroundColor: 'rgba(37,99,235,0.08)' }]} onPress={() => setOpen((o) => !o)} testID={testID}>
+        <Text style={[s.tf, { color: value ? C.text : C.text3, paddingVertical: 0 }]}>
+          {value || placeholder || 'Select…'}
+        </Text>
+        <ChevronDown size={14} color={open ? C.purple : C.text2} />
+      </Pressable>
+      {open && (
+        <View style={s.ddMenu}>
+          <ScrollView nestedScrollEnabled={true} keyboardShouldPersistTaps="handled" style={{ maxHeight: 150 }}>
+            {options.map((o) => (
+              <Pressable key={o} onPress={() => { onChange(o); setOpen(false); }} style={s.ddItem}>
+                <Text style={[s.ddText, value === o && { color: C.purple, fontFamily: 'DMSans_700Bold' }]}>{o}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+    </View>
+  );
+}
+
+export function SSF({ value, onChange, options, placeholder, testID }: {
+  value: string; onChange: (v: string) => void; options: string[]; placeholder?: string; testID?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const wrapRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const handleClick = (e: MouseEvent) => {
+      if (wrapRef.current && wrapRef.current.contains && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    if (open) {
+      setTimeout(() => document.addEventListener('mousedown', handleClick), 0);
+    }
+    return () => {
+      if (Platform.OS === 'web') document.removeEventListener('mousedown', handleClick);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) setSearch('');
+  }, [open]);
+
+  const filtered = options.filter(o => o.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <View ref={wrapRef} style={[{ position: 'relative' }, Platform.OS === 'web' ? { zIndex: open ? 9999 : 1 } as any : { zIndex: open ? 9999 : 1 }]}>
+      <Pressable style={[s.tfWrap, open && { borderColor: C.purple, backgroundColor: 'rgba(37,99,235,0.08)' }]} onPress={() => setOpen((o) => !o)} testID={testID}>
+        <Text style={[s.tf, { color: value ? C.text : C.text3, paddingVertical: 0 }]} numberOfLines={1}>
+          {value || placeholder || 'Select…'}
+        </Text>
+        <ChevronDown size={14} color={open ? C.purple : C.text2} />
+      </Pressable>
+      {open && (
+        <View style={s.ddMenu}>
+          <View style={{ padding: 8, borderBottomWidth: 1, borderBottomColor: C.borderHi || 'rgba(255,255,255,0.1)' }}>
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search..."
+              placeholderTextColor={C.text3}
+              style={[{ color: C.text, fontFamily: 'DMSans_500Medium', fontSize: 13, padding: 6, backgroundColor: '#FFFFFF', borderRadius: 6 }, Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}]}
+              autoFocus
+            />
+          </View>
+          <ScrollView nestedScrollEnabled={true} keyboardShouldPersistTaps="handled" style={{ maxHeight: 220 }}>
+            {filtered.map((o) => (
+              <Pressable key={o} onPress={() => { onChange(o); setOpen(false); }} style={s.ddItem}>
+                <Text style={[s.ddText, value === o && { color: C.purple, fontFamily: 'DMSans_700Bold' }]}>{o}</Text>
+              </Pressable>
+            ))}
+            {filtered.length === 0 && (
+              <View style={{ padding: 12, alignItems: 'center' }}>
+                <Text style={{ color: C.text3, fontSize: 12, fontFamily: 'DMSans_400Regular' }}>No matches found</Text>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      )}
+    </View>
+  );
+}
+
+export function Toggle({ on, onChange, testID }: { on: boolean; onChange: (v: boolean) => void; testID?: string }) {
+  return (
+    <Pressable
+      onPress={() => onChange(!on)}
+      style={[s.toggle, on && { backgroundColor: C.purple, borderColor: C.purple }]}
+      testID={testID}
+    >
+      <Animated.View style={[s.toggleThumb, on && { transform: [{ translateX: 16 }] }]} />
+    </Pressable>
+  );
+}
+
+export function ToggleRow({ title, desc, on, onChange, testID }: {
+  title: string; desc?: string; on: boolean; onChange: (v: boolean) => void; testID?: string;
+}) {
+  return (
+    <View style={s.toggleRow}>
+      <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+        <Text style={s.trTitle}>{title}</Text>
+        {!!desc && <Text style={s.trDesc}>{desc}</Text>}
+      </View>
+      <Toggle on={on} onChange={onChange} testID={testID} />
+    </View>
+  );
+}
+
+export function ChipPicker({
+  options, selected, onToggle, multi = true, max,
+}: {
+  options: string[];
+  selected: string[];
+  onToggle: (v: string) => void;
+  multi?: boolean;
+  max?: number;
+}) {
+  return (
+    <View style={s.chipsWrap}>
+      {options.map((o) => {
+        const isSel = selected.includes(o);
+        const disabled = !isSel && max != null && selected.length >= max;
+        return (
+          <Pressable
+            key={o}
+            onPress={() => !disabled && onToggle(o)}
+            style={[s.chip, isSel && s.chipActive, disabled && { opacity: 0.4 }]}
+            testID={`chip-${o.replace(/\s+/g, '_').toLowerCase()}`}
+          >
+            {isSel && <Check size={11} color="#fff" />}
+            <Text style={[s.chipText, isSel && { color: '#fff' }]}>{o}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+export function SaveBar({ dirty, saving, onSave, onDiscard, lastSavedAt }: {
+  dirty: boolean; saving: boolean; onSave: () => void; onDiscard: () => void; lastSavedAt?: string | null;
+}) {
+  return (
+    <View style={s.saveBar}>
+      {lastSavedAt ? (
+        <Text style={s.saveStatus}>Last saved {lastSavedAt}</Text>
+      ) : (
+        <Text style={s.saveStatus}>{dirty ? 'You have unsaved changes' : 'All changes saved'}</Text>
+      )}
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {dirty && (
+          <Pressable onPress={onDiscard} style={[s.btn, { backgroundColor: 'rgba(255,255,255,0.25)', borderColor: 'rgba(255,255,255,0.4)', borderWidth: 1, shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.4, shadowRadius: 6, elevation: 8, ...(Platform.OS === 'web' ? ({ boxShadow: '0 4px 12px rgba(0,0,0,0.3)' } as any) : {}) }]} testID="profile-discard">
+            <Text style={[s.btnGhostText, { color: '#fff' }]}>Discard</Text>
+          </Pressable>
+        )}
+        <Pressable
+          onPress={onSave}
+          disabled={!dirty || saving}
+          style={[s.btn, { backgroundColor: '#fff', borderColor: '#fff', borderWidth: 1, shadowColor: '#000', shadowOffset: {width: 0, height: 6}, shadowOpacity: 0.5, shadowRadius: 8, elevation: 10, ...(Platform.OS === 'web' ? ({ boxShadow: '0 6px 16px rgba(0,0,0,0.4)' } as any) : {}) }, (!dirty || saving) && { opacity: 0.5 }]}
+          testID="profile-save"
+        >
+          <Text style={[s.btnPrimaryText, { color: '#8B5CF6' }]}>{saving ? 'Saving...' : 'Save Changes'}</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+export function PhoneField({ value, onChange, placeholder, testID }: {
+  value: string; onChange: (v: string) => void; placeholder?: string; testID?: string;
+}) {
+  const sortedCodes = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
+  
+  let code = '+91';
+  let num = value || '';
+  
+  if (value && value.startsWith('+')) {
+    const match = sortedCodes.find(c => value.startsWith(c.code));
+    if (match) {
+      code = match.code;
+      num = value.slice(match.code.length);
+    }
+  } else if (value && !value.startsWith('+')) {
+    num = value;
+  }
+
+  const handleCodeChange = (newDisplayVal: string) => {
+    const newCode = newDisplayVal.split(' ')[0];
+    onChange(newCode + num);
+  };
+
+  const handleNumChange = (t: string) => {
+    const digits = t.replace(/\D/g, '');
+    const config = COUNTRY_CODES.find(c => c.code === code);
+    if (config && digits.length > config.max) {
+      return; 
+    }
+    // If the user clears the number, we might just want to keep the code, or clear everything.
+    // Usually it's better to store code + digits. If digits is empty, maybe we just store the code.
+    onChange(digits ? code + digits : '');
+  };
+
+  const selectedDisplay = `${code} (${COUNTRY_CODES.find(c => c.code === code)?.name || ''})`;
+  const options = COUNTRY_CODES.map(c => `${c.code} (${c.name})`);
+
+  return (
+    <View style={[{ flexDirection: 'row', gap: 10 }, Platform.OS === 'web' ? { zIndex: 99 } : {}]}>
+      <View style={{ flex: 4, position: 'relative', zIndex: 99 }}>
+        <SSF 
+          value={selectedDisplay} 
+          onChange={handleCodeChange} 
+          options={options} 
+          placeholder="Code" 
+        />
+      </View>
+      <View style={{ flex: 7 }}>
+        <TF 
+          value={num} 
+          onChangeText={handleNumChange} 
+          placeholder={placeholder || 'Number...'} 
+          testID={testID} 
+        />
+      </View>
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  card: {
+    backgroundColor: C.card,
+    borderColor: C.border, borderWidth: 1, borderRadius: 16,
+    padding: 18, gap: 14,
+  },
+  cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  cardTitle: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 14.5 },
+  cardSub:   { color: C.text3, fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 2 },
+  label:     { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase' },
+  hint:      { color: C.text3, fontFamily: 'DMSans_400Regular', fontSize: 11, marginTop: 2 },
+  tfWrap: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: C.border, borderWidth: 1, borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: Platform.OS === 'web' ? 10 : 8,
+  },
+  tf: { flex: 1, color: C.text, fontFamily: 'DMSans_500Medium', fontSize: 13, ...({ outlineStyle: 'none' } as any) },
+  ta: { textAlignVertical: 'top', paddingTop: 8 },
+  ddMenu: {
+    position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
+    backgroundColor: '#FFFFFF', borderColor: C.border, borderWidth: 1, borderRadius: 10,
+    overflow: 'hidden', zIndex: 9999,
+    ...(Platform.OS === 'web' ? { boxShadow: '0 8px 32px rgba(0,0,0,0.4)' } as any : { elevation: 8 }),
+  },
+  ddItem: { paddingHorizontal: 12, paddingVertical: 10, borderBottomColor: 'rgba(0,0,0,0.06)', borderBottomWidth: 1 },
+  ddText: { color: C.text, fontFamily: 'DMSans_500Medium', fontSize: 13 },
+
+  toggle: {
+    width: 38, height: 22, borderRadius: 99,
+    backgroundColor: '#F1F5F9',
+    borderColor: C.border, borderWidth: 1,
+    padding: 2, ...({ cursor: 'pointer' } as any),
+  },
+  toggleThumb: {
+    width: 16, height: 16, borderRadius: 99, backgroundColor: '#fff',
+  },
+  toggleRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 10, borderBottomColor: 'rgba(0,0,0,0.06)', borderBottomWidth: 1,
+  },
+  trTitle: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 13 },
+  trDesc:  { color: C.text3, fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 2 },
+
+  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderColor: C.border, borderWidth: 1,
+    ...({ cursor: 'pointer' } as any),
+  },
+  chipActive: { backgroundColor: C.purple, borderColor: C.purple },
+  chipText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5 },
+
+  saveBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 18, paddingVertical: 14, marginTop: 4,
+    backgroundColor: '#8B5CF6',
+    borderColor: '#2563EB', borderWidth: 1, borderRadius: 14,
+    shadowColor: '#8B5CF6', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.3, shadowRadius: 8,
+  },
+  saveStatus: { color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 12, flexShrink: 1 },
+  btn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, height: 34, borderRadius: 9,
+    ...({ cursor: 'pointer' } as any),
+  },
+  btnGhost: { backgroundColor: '#FFFFFF', borderColor: C.border, borderWidth: 1 },
+  btnGhostText: { color: '#475569', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  btnPrimary: { backgroundColor: C.purple, borderColor: C.purple, borderWidth: 1 },
+  btnPrimaryText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+});

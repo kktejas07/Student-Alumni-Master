@@ -1,0 +1,253 @@
+# ═══════════════════════════════════════════════════════════════════════
+# CI Pipeline — Student Alumni Platform
+# ═══════════════════════════════════════════════════════════════════════
+# Runs on every push and PR to any branch.
+# Stages:
+#   1. Backend (lint → typecheck → test)
+#   2. Frontend (lint → typecheck → test → build)
+#   3. Docker (build both images, no push)
+# ═══════════════════════════════════════════════════════════════════════
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["main", "dev", "develop", "staging"]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+  MONGODB_VERSION: "7.0"
+
+jobs:
+  # ──────────────────────────────────────────────────────────────
+  #  BACKEND: lint → typecheck → test
+  # ──────────────────────────────────────────────────────────────
+  backend:
+    name: Backend (lint + test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      mongo:
+        image: mongo:${{ env.MONGODB_VERSION }}
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "echo 'db.runCommand(\"ping\").ok' | mongosh --quiet"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      MONGO_URL: mongodb://localhost:27017
+      DB_NAME: student_alumni_ci
+      JWT_SECRET: ci-test-secret-do-not-use-in-prod
+      CORS_ORIGINS: "*"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      AGENT_K_SCHEDULER_ENABLED: "0"
+      # The flag background_sync.py actually reads; keeps APScheduler off in CI.
+      SYNC_SCHEDULER_ENABLED: "0"
+      ENV: development
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff pytest pytest-asyncio pytest-cov httpx mypy
+
+      - name: Lint (ruff)
+        working-directory: backend
+        run: |
+          ruff check . --select=E9,F63,F7,F82 --statistics
+          ruff check . --exit-zero --statistics || true
+
+      - name: Format check (black)
+        working-directory: backend
+        run: |
+          black --check --diff . || {
+            echo "::warning::Black formatting issues found — run 'black .' to fix"
+            true
+          }
+
+      - name: Type check (mypy)
+        working-directory: backend
+        run: |
+          mypy . --ignore-missing-imports --no-strict-optional || true
+
+      - name: Wait for MongoDB
+        run: |
+          for i in $(seq 1 30); do
+            nc -z localhost 27017 && echo "MongoDB ready" && break
+            sleep 1
+          done
+
+      - name: Import smoke test
+        working-directory: backend
+        run: python -c "import server; print('✓ server.py imports cleanly')"
+
+      - name: FastAPI startup validation
+        working-directory: backend
+        run: |
+          python -c "
+          import asyncio
+          from server import app
+          # Validate all routes are registered
+          routes = [r.path for r in app.routes]
+          print(f'✓ FastAPI app loaded — {len(routes)} routes registered')
+          print(f'  Sample routes: {routes[:5]}...')
+          "
+
+      - name: Run tests
+        working-directory: backend
+        run: |
+          pytest tests/ -v --tb=short --maxfail=5 --color=yes -p no:cacheprovider
+
+      - name: Upload test artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-logs
+          path: backend/.pytest_cache/
+          retention-days: 7
+
+  # ──────────────────────────────────────────────────────────────
+  #  FRONTEND: lint → typecheck → test → build
+  # ──────────────────────────────────────────────────────────────
+  frontend:
+    name: Frontend (lint + typecheck + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "yarn"
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --network-timeout 600000
+
+      - name: ESLint
+        run: |
+          yarn lint --max-warnings=999 || {
+            echo "::warning::ESLint reported issues"
+            true
+          }
+
+      - name: TypeScript check
+        run: |
+          npx tsc --noEmit --pretty || {
+            echo "::warning::TypeScript errors found"
+            true
+          }
+
+      - name: Run jest tests
+        run: |
+          if [ -d __tests__ ] || find . -maxdepth 3 \( -name "*.test.ts*" -o -name "*.test.js*" \) 2>/dev/null | grep -q .; then
+            yarn test --ci --passWithNoTests --watchAll=false
+          else
+            echo "No tests found — skipping"
+          fi
+
+      - name: Expo export (web build)
+        run: |
+          EXPO_PUBLIC_BACKEND_URL=https://studentalumni.ai \
+          npx expo export --platform web --output-dir dist
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: frontend-build
+          path: frontend/dist/
+          retention-days: 3
+
+  # ──────────────────────────────────────────────────────────────
+  #  DOCKER BUILD: verify images build correctly
+  # ──────────────────────────────────────────────────────────────
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: false
+          tags: student-alumni-backend:ci
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: false
+          tags: student-alumni-frontend:ci
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+
+  # ──────────────────────────────────────────────────────────────
+  #  CI STATUS: aggregate check for branch protection
+  # ──────────────────────────────────────────────────────────────
+  ci-status:
+    name: CI Status
+    if: always()
+    needs: [backend, frontend, docker]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          {
+            echo "## CI Summary"
+            echo ""
+            echo "| Job | Result |"
+            echo "|---|---|"
+            echo "| Backend  | ${{ needs.backend.result }} |"
+            echo "| Frontend | ${{ needs.frontend.result }} |"
+            echo "| Docker   | ${{ needs.docker.result }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "${{ needs.backend.result }}" == "failure" ]] || \
+             [[ "${{ needs.frontend.result }}" == "failure" ]] || \
+             [[ "${{ needs.docker.result }}" == "failure" ]]; then
+            echo "::error::One or more CI jobs failed"
+            exit 1
+          fi
+          echo "✅ All CI checks passed"

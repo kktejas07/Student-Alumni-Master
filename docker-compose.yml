@@ -1,0 +1,111 @@
+# ─────────────────────────────────────────────────────────────────────
+# Student Alumni / NexusOS — local & Dokploy compose stack
+#
+#   docker compose up --build           # full stack
+#   docker compose up backend           # backend only
+#
+# All secrets are read from the project-root .env file (see .env.example).
+# ─────────────────────────────────────────────────────────────────────
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: studentalumni/backend:latest
+    container_name: studentalumni-backend
+    restart: unless-stopped
+    expose:
+      - "8000"
+    ports:
+      # Expose externally only when running locally.  In Dokploy the
+      # reverse-proxy will route to this port automatically.
+      - "${BACKEND_HOST_PORT:-8000}:8000"
+    volumes:
+      - uploads_data:/app/uploads
+    environment:
+      # ── Required ────────────────────────────────────────────────
+      MONGO_URL:        ${MONGO_URL}
+      DB_NAME:          ${DB_NAME:-studentalumniadmin}
+      JWT_SECRET:       ${JWT_SECRET}
+      # ── CORS ────────────────────────────────────────────────────
+      ALLOWED_ORIGINS:  ${ALLOWED_ORIGINS:-*}
+      FRONTEND_URL:     ${FRONTEND_URL:-*}
+      # ── Admin seed ──────────────────────────────────────────────
+      ADMIN_EMAIL:      ${ADMIN_EMAIL:-admin@studentalumni.ai}
+      ADMIN_PASSWORD:   ${ADMIN_PASSWORD:-ChangeMe@12345}
+      # ── Optional integrations ───────────────────────────────────
+      EMERGENT_LLM_KEY: ${EMERGENT_LLM_KEY:-}
+      FERNET_KEY:       ${FERNET_KEY:-}
+      UVICORN_WORKERS:  ${UVICORN_WORKERS:-2}
+      # ── Virus scanning (shared ClamAV container on the host) ────────
+      # Leave CLAMAV_HOST empty to disable scanning.
+      CLAMAV_HOST:      ${CLAMAV_HOST:-65.21.196.49}
+      CLAMAV_PORT:      ${CLAMAV_PORT:-3310}
+      CLAMAV_TIMEOUT:   ${CLAMAV_TIMEOUT:-10}
+      # ── Email delivery (Postal — postalserver.io) ───────────────
+      # POSTAL_API_URL / POSTAL_SERVER_API_KEY are the primary sender;
+      # SendGrid + Gmail (marketplace) remain as fallback providers.
+      POSTAL_API_URL:        ${POSTAL_API_URL:-}
+      POSTAL_SERVER_API_KEY: ${POSTAL_SERVER_API_KEY:-}
+      POSTAL_FROM_EMAIL:     ${POSTAL_FROM_EMAIL:-Student Alumni <noreply@studentalumni.ai>}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 8s
+      retries: 3
+      start_period: 25s
+    networks:
+      - studentalumni
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Backend origin is BAKED into the JS bundle at build-time.
+        BACKEND_HOST:                  ${BACKEND_HOST:-backend}
+        EXPO_PUBLIC_BACKEND_URL:               ${EXPO_PUBLIC_BACKEND_URL}
+        EXPO_PUBLIC_FIREBASE_API_KEY:          ${EXPO_PUBLIC_FIREBASE_API_KEY:-}
+        EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN:      ${EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN:-}
+        EXPO_PUBLIC_FIREBASE_PROJECT_ID:       ${EXPO_PUBLIC_FIREBASE_PROJECT_ID:-}
+        EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET:   ${EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET:-}
+        EXPO_PUBLIC_FIREBASE_SENDER_ID:        ${EXPO_PUBLIC_FIREBASE_SENDER_ID:-}
+        EXPO_PUBLIC_FIREBASE_APP_ID:           ${EXPO_PUBLIC_FIREBASE_APP_ID:-}
+        EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID:   ${EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID:-}
+        EXPO_PUBLIC_POSTHOG_KEY:               ${EXPO_PUBLIC_POSTHOG_KEY:-}
+        EXPO_PUBLIC_POSTHOG_HOST:              ${EXPO_PUBLIC_POSTHOG_HOST:-}
+        EXPO_PUBLIC_ANALYTICS_ENABLED:         ${EXPO_PUBLIC_ANALYTICS_ENABLED:-false}
+    image: studentalumni/frontend:latest
+    container_name: studentalumni-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_HOST_PORT:-80}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - studentalumni
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+networks:
+  studentalumni:
+    driver: bridge
+
+volumes:
+  uploads_data:

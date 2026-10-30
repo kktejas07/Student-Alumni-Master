@@ -1,0 +1,100 @@
+# ═══════════════════════════════════════════════════════════════════════
+# Dependabot — Automated dependency updates SA
+# ═══════════════════════════════════════════════════════════════════════
+# - Groups updates intelligently to reduce PR noise
+# - Security updates only for production deps
+# - Dev dependencies grouped into fewer PRs
+# ═══════════════════════════════════════════════════════════════════════
+
+version: 2
+updates:
+  # ─── Backend (Python/pip) ──────────────────────────────────
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python"
+    groups:
+      production-deps:
+        dependency-type: "production"
+        update-types:
+          - "patch"
+          - "minor"
+      dev-deps:
+        dependency-type: "development"
+        update-types:
+          - "patch"
+          - "minor"
+
+  # ─── Frontend (npm/yarn) ───────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "frontend"
+    versioning-strategy: increase
+    groups:
+      react:
+        patterns:
+          - "react*"
+          - "@types/react*"
+      expo:
+        patterns:
+          - "expo*"
+          - "@expo/*"
+      testing:
+        patterns:
+          - "*jest*"
+          - "@testing-library/*"
+      production-deps:
+        dependency-type: "production"
+        update-types:
+          - "patch"
+          - "minor"
+      dev-deps:
+        dependency-type: "development"
+        update-types:
+          - "patch"
+          - "minor"
+
+  # ─── Docker ────────────────────────────────────────────────
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  - package-ecosystem: "docker"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # ─── GitHub Actions ────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "ci"
+
