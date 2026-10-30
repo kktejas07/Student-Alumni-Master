@@ -33,7 +33,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [userPassword, setUserPassword] = useState('');
-  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+  const [isPasswordTyping, setIsPasswordTyping] = useState(false);
   const [userDob, setUserDob] = useState(''); // ISO YYYY-MM-DD — required by /auth/register
   const [showPwd, setShowPwd] = useState(false);
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
@@ -49,9 +49,27 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const nameInputRef = useRef<HTMLInputElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
+  const passwordFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dobInputRef = useRef<HTMLInputElement>(null);
   const passwordCheck = passwordStrength(userPassword);
-  const showPasswordRequirements = isPasswordFocused && userPassword.length > 0;
+  const showPasswordRequirements = userPassword.length > 0
+    && (isPasswordTyping || passwordCheck.score < passwordCheck.checks.length);
+
+  useEffect(() => () => {
+    if (passwordFeedbackTimerRef.current) clearTimeout(passwordFeedbackTimerRef.current);
+  }, []);
+
+  const handlePasswordChange = (password: string) => {
+    setUserPassword(password);
+    setIsPasswordTyping(true);
+    if (passwordFeedbackTimerRef.current) clearTimeout(passwordFeedbackTimerRef.current);
+    passwordFeedbackTimerRef.current = setTimeout(() => setIsPasswordTyping(false), 1000);
+  };
+
+  const handlePasswordBlur = () => {
+    setIsPasswordTyping(false);
+    if (passwordFeedbackTimerRef.current) clearTimeout(passwordFeedbackTimerRef.current);
+  };
 
   const setUser = useAuthStore((s) => s.setUser);
   const setTokens = useAuthStore((s) => s.setTokens);
@@ -925,9 +943,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
                         aria-label="Password"
                         type={showPwd ? 'text' : 'password'}
                         value={userPassword}
-                        onChange={(e) => setUserPassword(e.target.value)}
-                        onFocus={() => setIsPasswordFocused(true)}
-                        onBlur={() => setIsPasswordFocused(false)}
+                        onChange={(e) => handlePasswordChange(e.target.value)}
+                        onBlur={handlePasswordBlur}
                         aria-describedby={showPasswordRequirements ? 'password-requirements' : undefined}
                         placeholder="••••••••••"
                         style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', paddingRight: '55px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
