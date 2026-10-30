@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { getBaseUrl } from '@/src/lib/env';
+import { passwordStrength } from '@/src/lib/authAnalytics';
 import { initFirebaseAuth, signInWithGoogle } from '@/src/lib/firebaseAuth';
 
 export function OnboardingShellRN() {
@@ -32,6 +33,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [userPassword, setUserPassword] = useState('');
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [userDob, setUserDob] = useState(''); // ISO YYYY-MM-DD — required by /auth/register
   const [showPwd, setShowPwd] = useState(false);
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
@@ -48,6 +50,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
   const dobInputRef = useRef<HTMLInputElement>(null);
+  const passwordCheck = passwordStrength(userPassword);
+  const showPasswordRequirements = isPasswordFocused || userPassword.length > 0;
 
   const setUser = useAuthStore((s) => s.setUser);
   const setTokens = useAuthStore((s) => s.setTokens);
@@ -922,6 +926,9 @@ function WebOnboardingEngine({ router }: { router: any }) {
                         type={showPwd ? 'text' : 'password'}
                         value={userPassword}
                         onChange={(e) => setUserPassword(e.target.value)}
+                        onFocus={() => setIsPasswordFocused(true)}
+                        onBlur={() => setIsPasswordFocused(false)}
+                        aria-describedby={showPasswordRequirements ? 'password-requirements' : undefined}
                         placeholder="••••••••••"
                         style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', paddingRight: '55px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
                       />
@@ -934,15 +941,45 @@ function WebOnboardingEngine({ router }: { router: any }) {
                         {showPwd ? 'Hide' : 'Show'}
                       </button>
                     </div>
-                    <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
-                      <span style={{ flex: 1, height: '3px', borderRadius: '2px', background: 'var(--ind)' }} />
-                      <span style={{ flex: 1, height: '3px', borderRadius: '2px', background: 'var(--ind)' }} />
-                      <span style={{ flex: 1, height: '3px', borderRadius: '2px', background: 'var(--ind)' }} />
-                      <span style={{ flex: 1, height: '3px', borderRadius: '2px', background: 'var(--line2)' }} />
-                    </div>
-                    <div style={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '8px' }}>
-                      Strong password ready for account registration.
-                    </div>
+                    {showPasswordRequirements && (
+                      <div
+                        id="password-requirements"
+                        aria-live="polite"
+                        style={{ marginTop: '12px', padding: '12px', border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)' }}
+                      >
+                        <div style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
+                          {passwordCheck.checks.map((check, index) => (
+                            <span
+                              key={check.key}
+                              style={{
+                                flex: 1,
+                                height: '4px',
+                                borderRadius: '2px',
+                                background: index < passwordCheck.score ? 'var(--ind)' : 'var(--line2)',
+                              }}
+                            />
+                          ))}
+                        </div>
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)', marginBottom: '7px' }}>
+                          Password requirements
+                        </div>
+                        <div style={{ display: 'grid', gap: '5px' }}>
+                          {passwordCheck.checks.map((check) => (
+                            <div
+                              key={check.key}
+                              style={{ fontSize: '12px', color: check.met ? 'var(--ind-lt)' : 'var(--muted)' }}
+                            >
+                              {check.met ? '✓' : '○'} {check.label}
+                            </div>
+                          ))}
+                        </div>
+                        {passwordCheck.score === passwordCheck.checks.length && (
+                          <div style={{ fontSize: '12px', color: 'var(--ind-lt)', marginTop: '8px' }}>
+                            Password meets all requirements.
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {/* Date of Birth — required by platform age policy */}
                   <div>

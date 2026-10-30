@@ -130,7 +130,7 @@ export function passwordStrength(pwd: string): { score: number; label: string; t
     { key: 'uppercase',label: 'One uppercase letter',                            met: /[A-Z]/.test(pwd) },
     { key: 'lowercase',label: 'One lowercase letter',                            met: /[a-z]/.test(pwd) },
     { key: 'digit',    label: 'One digit (0–9)',                                 met: /\d/.test(pwd) },
-    { key: 'special',  label: 'One special character (!@#$%^&*…)',               met: /[!@#$%^&*()\-_=+[\]{}|;:,.<>?/]/.test(pwd) },
+    { key: 'special',  label: 'One special character (!@#$%^&*…)',               met: /[!@#$%^&*(),.?":{}|<>]/.test(pwd) },
   ];
 
   const passed = checks.filter(c => c.met).length;
