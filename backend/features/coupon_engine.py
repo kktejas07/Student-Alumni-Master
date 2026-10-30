@@ -35,7 +35,6 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
 from core.db import db as _db
