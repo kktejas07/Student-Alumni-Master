@@ -71,6 +71,11 @@ type Deal = {
   card_type?: string;
   code_verified?: boolean;
   success_rate?: number;
+  // D3 crowdsourced verification
+  verification_count?: number;
+  status?: string;
+  expired_at?: string;
+  staleness_flag?: boolean;
 };
 
 type DealsResponse = {
@@ -122,7 +127,32 @@ const TAG_META: Record<string, { label: string; icon: IconName; bg: string; fg: 
   INDIA_EXCLUSIVE:  { label: 'India Exclusive',  icon: 'map-marker',            bg: '#E0E7FF', fg: '#4338CA' },
   NO_EXPIRY:        { label: 'No Expiry',        icon: 'infinity',              bg: '#E2E8F0', fg: '#475569' },
   BEST_VALUE:       { label: 'Best Value',       icon: 'medal',                 bg: '#D1FAE5', fg: '#047857' },
+  UNRELIABLE:       { label: 'Unreliable',       icon: 'alert-outline',         bg: '#FEE2E2', fg: '#B91C1C' },
+  STALE:            { label: 'Stale',            icon: 'timer-sand',            bg: '#FEF3C7', fg: '#B45309' },
 };
+
+// ─── D3: crowdsourced "did it work?" badge ─────────────────────────────
+type CrowdBadge = {
+  label: string;
+  bg: string;
+  fg: string;
+  icon: IconName;
+};
+function crowdBadge(d: Deal): CrowdBadge | null {
+  // expired deals get a muted red badge regardless of rate
+  if (d.status === 'expired') {
+    return { label: 'Expired', bg: '#FEE2E2', fg: '#B91C1C', icon: 'close-circle' };
+  }
+  const count = d.verification_count || 0;
+  if (!d.success_rate && count === 0) {
+    return { label: 'Unverified', bg: '#FEF3C7', fg: '#B45309', icon: 'help' };
+  }
+  const pct = Math.round((d.success_rate || 0) * 100);
+  if (pct >= 70) {
+    return { label: `${pct}% work`, bg: '#D1FAE5', fg: '#047857', icon: 'check-decagram' };
+  }
+  return { label: `${pct}% work`, bg: '#FEE2E2', fg: '#B91C1C', icon: 'alert-circle' };
+}
 
 // ─── Utils ─────────────────────────────────────────────────────────────
 function fmtINR(n: number): string {
@@ -178,6 +208,10 @@ export default function DealsScreen() {
   const [claimDeal, setClaimDeal] = useState<Deal | null>(null);
   const [claimResult, setClaimResult] = useState<any | null>(null);
   const [claimBusy, setClaimBusy] = useState(false);
+  // D3: "did it work?" quick-yes/no prompts (claims 24h+ old, no report yet —
+  // same data the hourly 24h push notification points at)
+  const [pendingVerify, setPendingVerify] = useState<{ deal_id: string; brand: string; title: string; claimed_at: string | null }[]>([]);
+  const [verifyBusy, setVerifyBusy] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isEmbedded && initialized && user) {
@@ -193,14 +227,17 @@ export default function DealsScreen() {
     setError(null);
     try {
       const path = `/deals/all?category=all&country=IN${opts?.refresh ? '&refresh=true' : ''}`;
-      const [r, s] = await Promise.all([
+      const [r, s, pv] = await Promise.all([
         request<DealsResponse>(path),
         request<Stats>('/deals/stats').catch(() => null as any),
+        request<{ pending: any[] }>('/deals/verify-pending').catch(() => ({ pending: [] })),
       ]);
       setDeals(r.deals || []);
       setLastUpdated(r.last_updated || null);
       setSources(r.sources || []);
       if (s) setStats(s);
+      const unreported = (pv?.pending || []).filter((x: any) => !x.reported);
+      setPendingVerify(unreported);
     } catch (e: any) {
       setError(e?.message || 'Failed to load deals');
     } finally {
@@ -244,6 +281,21 @@ export default function DealsScreen() {
     } catch (e: any) {
       setClaimResult({ ok: false, error: e?.message || 'Claim failed' });
     } finally { setClaimBusy(false); }
+  };
+
+  const submitVerification = async (deal: { deal_id: string; brand: string }, worked: boolean) => {
+    const key = `${deal.deal_id}:${worked}`;
+    if (verifyBusy) return;
+    setVerifyBusy(key);
+    try {
+      await request<any>(`/deals/verify/${deal.deal_id}`, { method: 'POST', body: { worked } });
+      setPendingVerify((cur) => cur.filter((x) => x.deal_id !== deal.deal_id));
+      setDeals((cur) => cur && cur.map((x) =>
+        x.deal_id === deal.deal_id
+          ? { ...x, success_rate: worked ? 1 : 0, verification_count: (x.verification_count || 0) + 1 }
+          : x));
+    } catch {}
+    finally { setVerifyBusy(null); }
   };
 
   // ─── Derived, client-side pipeline: type → category → search → bank ──
@@ -496,6 +548,42 @@ export default function DealsScreen() {
           )}
 
           {/* ── 6. Responsive grid ── */}
+          {pendingVerify.length > 0 && !loading && (
+            <View style={s.verifyCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <MaterialCommunityIcons name="vote" size={15} color={L.accent} />
+                <Text style={s.verifyCardTitle}>Did it work?</Text>
+              </View>
+              <Text style={s.verifyCardSub}>
+                {pendingVerify.length} claim{pendingVerify.length > 1 ? 's' : ''} from the last day need a quick heads-up:
+              </Text>
+              {pendingVerify.slice(0, 3).map((p) => (
+                <View key={p.deal_id} style={s.verifyRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.verifyRowTitle} numberOfLines={1}>
+                      {(p.brand || 'Deal').toUpperCase()} — {p.title || p.deal_id}
+                    </Text>
+                    <Text style={s.verifyRowSub}>Claimed {relTime(p.claimed_at)}</Text>
+                  </View>
+                  <Pressable
+                    style={[s.verifyBtn, s.verifyYes]}
+                    onPress={() => submitVerification(p, true)}
+                    disabled={verifyBusy !== null}>
+                    <MaterialCommunityIcons name="check" size={12} color="#047857" />
+                    <Text style={{ color: '#047857', fontSize: 11, fontWeight: '700' }}>Yes</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[s.verifyBtn, s.verifyNo]}
+                    onPress={() => submitVerification(p, false)}
+                    disabled={verifyBusy !== null}>
+                    <MaterialCommunityIcons name="close" size={12} color="#B91C1C" />
+                    <Text style={{ color: '#B91C1C', fontSize: 11, fontWeight: '700' }}>No</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          )}
+
           {loading && !deals ? (
             <View style={s.centerBlock}>
               <ActivityIndicator color={L.accent} size="large" />
@@ -720,6 +808,15 @@ export function DealCard({ d, onClaim, cardStyle }: { d: Deal; onClaim: (d: Deal
               <Text style={s.hotChipText}>HOT</Text>
             </View>
           )}
+          {(() => {
+            const cb = crowdBadge(d);
+            return cb ? (
+              <View style={[s.typeBadge, { backgroundColor: cb.bg }]}>
+                <MaterialCommunityIcons name={cb.icon} size={9} color={cb.fg} />
+                <Text style={[s.typeBadgeText, { color: cb.fg }]}>{cb.label}</Text>
+              </View>
+            ) : null;
+          })()}
         </View>
 
         {/* Description */}
@@ -991,6 +1088,40 @@ const s = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   hotChipText: { color: '#fff', fontSize: 9, fontWeight: '900', letterSpacing: 0.4 },
+
+  // D3 verify card
+  verifyCard: {
+    gap: 4,
+    marginBottom: 6,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: L.card,
+    borderWidth: 1,
+    borderColor: L.accentBorder,
+    ...({ boxShadow: '0 10px 28px rgba(124,92,252,0.10)' } as any),
+  },
+  verifyCardTitle: { fontSize: 12, fontWeight: '800', color: L.text, letterSpacing: 0.2 },
+  verifyCardSub: { fontSize: 11, color: L.text2 },
+  verifyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: L.border,
+  },
+  verifyRowTitle: { fontSize: 12, fontWeight: '700', color: L.text, flex: 1 },
+  verifyRowSub: { fontSize: 10, color: L.text3 },
+  verifyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  verifyYes: { backgroundColor: '#D1FAE5' },
+  verifyNo: { backgroundColor: '#FEE2E2' },
 
   cardDesc: { fontSize: 12, lineHeight: 17, color: L.text2 },
 
