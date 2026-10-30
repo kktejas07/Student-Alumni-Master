@@ -745,6 +745,13 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
 
 
 # ─── 4. SUPER ADMIN OVERVIEW ─────────────────────────────────────
+@router.get("/admin/system-health")
+async def system_health_endpoint(user: dict = Depends(require_role('admin'))):
+    """SA2 — live system health snapshot for the Overview widget (read-only)."""
+    from services.system_health import collect_system_health
+    return await collect_system_health()
+
+
 @router.get("/admin/super-overview")
 async def super_admin_overview(user: dict = Depends(require_role('admin'))):
     """Real platform-wide overview."""

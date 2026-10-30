@@ -6,7 +6,8 @@ import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, Image
 import {
   Building2, GraduationCap, UserCheck, Users, CreditCard, Calendar,
   CheckCircle, BarChart3, Sparkles,
-  Image as ImageIcon, Save, X, Upload, Trash2, TrendingUp, RefreshCw
+  Image as ImageIcon, Save, X, Upload, Trash2, TrendingUp, RefreshCw,
+  Activity, Server, Database, HardDrive, Timer, ChevronDown
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, FONTS, useSAC, resolveColors } from '../tokens';
@@ -53,6 +54,22 @@ type SuperOverview = {
   revenueBreakdown: { source: string; amount: string; pct: number; color: string }[];
 };
 
+// GET /api/admin/system-health  (backend/portals.py::system_health_endpoint)
+type SystemHealth = {
+  api: {
+    avg_response_ms: number; p50_response_ms: number; p95_response_ms: number;
+    error_rate_pct: number; requests_24h: number;
+  };
+  database: { status: string; connections_active: number; connections_max: number; slow_queries_24h: number };
+  background_jobs: {
+    [key: string]: { last_run_at: string | null; items_processed: number | null } | {
+      pending: number; sent_24h: number; failed_24h: number;
+    };
+  };
+  storage: { uploads_size_mb: number; db_size_mb: number };
+  uptime_seconds: number;
+};
+
 type ActivityItem = { id: string; text: string; sub: string; at: string };
 
 const EMPTY_REVENUE_PLACEHOLDER = 'No paid registrations yet';
@@ -76,6 +93,23 @@ function titleCase(v?: string | null): string {
   return v.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function formatUptime(totalSeconds: number): string {
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+  const m = Math.floor(totalSeconds / 60);
+  if (m < 60) return `${m}m ${totalSeconds % 60}s`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ${m % 60}m`;
+  const d = Math.floor(h / 24);
+  return `${d}d ${h % 24}h`;
+}
+
+// Green / amber / red for a named status dot
+function statusColor(kind: string, T: any): string {
+  if (kind === 'up') return T.ok;
+  if (kind === 'down') return T.danger;
+  return T.amber;
+}
+
 export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void }) {
   const T = useSAC();
   Object.assign(s, resolveColors(s, T));
@@ -90,6 +124,10 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   const {
     data: overview, loading: overviewLoading, error: overviewError, refresh: refreshOverview,
   } = usePortalData<SuperOverview | null>('/admin/super-overview', null, 60_000);
+  const {
+    data: health, loading: healthLoading, error: healthError,
+  } = usePortalData<SystemHealth | null>('/admin/system-health', null, 60_000);
+  const [healthExpanded, setHealthExpanded] = useState(true);
 
   const k = analytics?.kpis;
   const realStudents = k?.students ?? 0;
@@ -647,6 +685,114 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
         })}
       </View>
 
+      {/* System Health widget (SA2) */}
+      {healthError && !health ? (
+        <View style={[s.card, s.stateRow]}>
+          <Text style={s.stateText}>System health could not be loaded.</Text>
+        </View>
+      ) : health || healthLoading ? (
+        <View style={[s.card, { width: '100%' }]} className="db-tile sa-stat-card">
+          <Pressable onPress={() => setHealthExpanded((v) => !v)} style={s.cardHead}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Activity size={16} color={T.accent} />
+              <Text style={s.cardTitle}>System Health</Text>
+              {health && (
+                <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                  <View style={{ backgroundColor: statusColor(health.database.status, T), width: 7, height: 7, borderRadius: 4 }} />
+                  <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: T.muted }}>
+                    {health.database.status === 'up' ? 'all systems normal' : 'database down'}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={s.linkRight}>{healthExpanded ? 'Collapse' : 'Expand'}</Text>
+              <ChevronDown size={14} color={T.dim} style={{ transform: [{ rotate: healthExpanded ? '0deg' : '-90deg' }] }} />
+            </View>
+          </Pressable>
+          {healthLoading && !health ? (
+            <View style={s.stateRow}><ActivityIndicator size="small" color={T.dim} /><Text style={s.stateText}>Loading system health...</Text></View>
+          ) : health && healthExpanded ? (
+            <View style={{ marginTop: 14, gap: 14 }}>
+              {/* Status row */}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                <View style={[s.healthChip, { backgroundColor: T.bg2 }]}>
+                  <Server size={13} color={T.dim} />
+                  <View style={{ gap: 2 }}>
+                    <Text style={s.healthChipText}>API</Text>
+                    <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: T.text }}>{health.api.requests_24h.toLocaleString()} req/24h</Text>
+                    <Text style={s.healthChipSub}>avg {health.api.avg_response_ms}ms · p95 {health.api.p95_response_ms}ms</Text>
+                  </View>
+                </View>
+                <View style={[s.healthChip, { backgroundColor: T.bg2 }]}>
+                  <Database size={13} color={statusColor(health.database.status, T)} />
+                  <View style={{ gap: 2 }}>
+                    <Text style={s.healthChipText}>Database</Text>
+                    <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: health.database.status === 'up' ? T.text : T.danger }}>
+                      {health.database.status === 'up' ? 'up' : 'down'}
+                    </Text>
+                    <Text style={s.healthChipSub}>{health.database.connections_active} connections</Text>
+                  </View>
+                </View>
+                <View style={[s.healthChip, { backgroundColor: T.bg2 }]}>
+                  <HardDrive size={13} color={T.dim} />
+                  <View style={{ gap: 2 }}>
+                    <Text style={s.healthChipText}>Storage</Text>
+                    <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: T.text }}>{health.storage.db_size_mb} MB db</Text>
+                    <Text style={s.healthChipSub}>{health.storage.uploads_size_mb} MB uploads</Text>
+                  </View>
+                </View>
+                <View style={[s.healthChip, { backgroundColor: T.bg2 }]}>
+                  <Timer size={13} color={T.dim} />
+                  <View style={{ gap: 2 }}>
+                    <Text style={s.healthChipText}>Uptime</Text>
+                    <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: T.text }}>{formatUptime(health.uptime_seconds)}</Text>
+                  </View>
+                </View>
+              </View>
+              {/* Background jobs */}
+              <View>
+                <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: T.muted, marginBottom: 8 }}>Background jobs</Text>
+                <View style={{ gap: 6 }}>
+                  {(['aggregator_deals', 'aggregator_rentals', 'aggregator_courses', 'aggregator_higher_ed', 'aggregator_financial'] as const).map((key) => {
+                    const job: any = health.background_jobs[key];
+                    const lastAt = job?.last_run_at ? relativeTime(job.last_run_at) : null;
+                    const stale = lastAt ? /day|week|month/.test(lastAt) : true;
+                    return (
+                      <View key={key} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: !job?.last_run_at ? T.muted : (stale ? T.amber : T.ok) }} />
+                          <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: T.text }}>{titleCase(key)}</Text>
+                        </View>
+                        <Text style={{ fontFamily: FONTS.reg, fontSize: 11, color: T.muted }}>
+                          {job?.items_processed != null ? `${job.items_processed} items · ` : ''}{lastAt ?? 'never run'}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                  {(() => {
+                    const eq: any = health.background_jobs.email_queue;
+                    if (!eq) return null;
+                    const failed = eq.failed_24h;
+                    return (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: failed > 0 ? T.danger : T.ok }} />
+                          <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: T.text }}>Email queue</Text>
+                        </View>
+                        <Text style={{ fontFamily: FONTS.reg, fontSize: 11, color: T.muted }}>
+                          {eq.sent_24h} sent · {failed} failed (24h)
+                        </Text>
+                      </View>
+                    );
+                  })()}
+                </View>
+              </View>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
       {/* Recent Activity + Platform Users */}
       <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
         {/* Recent Activity */}
@@ -828,6 +974,15 @@ const s = StyleSheet.create({
   cardTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15, letterSpacing: -0.2 },
   cardSub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
   linkRight: { color: SAC.accentBright, fontFamily: FONTS.bold, fontSize: 11.5 },
+
+  // System Health widget
+  healthChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10,
+    borderColor: SAC.border, borderWidth: 1,
+  },
+  healthChipText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
+  healthChipSub: { color: SAC.dim, fontFamily: FONTS.reg, fontSize: 10.5 },
 
   activityRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   activityIcon: { width: 34, height: 34, borderRadius: 9, backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },

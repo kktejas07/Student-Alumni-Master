@@ -34,6 +34,13 @@ class AppLoggingMiddleware(BaseHTTPMiddleware):
             duration_ms = round((time.time() - start_time) * 1000, 2)
             status_code = response.status_code
 
+            # SA2: feed the in-memory ring buffer behind GET /api/admin/system-health
+            try:
+                from core.api_metrics import record_request
+                record_request(duration_ms, status_code)
+            except Exception:  # metric must never break the request path
+                pass
+
             log_level = logging.INFO
             if status_code >= 500:
                 log_level = logging.ERROR
