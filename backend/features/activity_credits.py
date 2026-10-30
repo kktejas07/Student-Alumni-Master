@@ -687,7 +687,7 @@ async def _upi_vpa() -> Optional[str]:
         if (doc or {}).get("value"):
             return str(doc["value"]).strip()
     except Exception:
-        pass
+        logger.warning("Failed to read wallet UPI VPA from sa_settings; trying next source", exc_info=True)
     try:
         tool = await _db.installed_tools.find_one(
             {"tool_id": "upi", "status": "connected"})
@@ -695,7 +695,7 @@ async def _upi_vpa() -> Optional[str]:
         if vpa:
             return vpa
     except Exception:
-        pass
+        logger.warning("Failed to read wallet UPI VPA from installed_tools; trying env fallback", exc_info=True)
     return os.environ.get("SA_WALLET_UPI_VPA", "").strip() or None
 
 
