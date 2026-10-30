@@ -548,6 +548,12 @@ async def refresh_token(request: Request, payload: dict):
         data = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         if data.get("type") != "refresh":
             raise HTTPException(401, "Invalid token type")
+        # Check if refresh token has been revoked
+        r_jti = data.get("jti")
+        if r_jti:
+            blacklisted = await db.token_blacklist.find_one({"jti": r_jti})
+            if blacklisted:
+                raise HTTPException(401, "Refresh token has been revoked")
         user = await db.users.find_one({"_id": ObjectId(data["sub"])})
         if not user:
             raise HTTPException(401, "User not found")

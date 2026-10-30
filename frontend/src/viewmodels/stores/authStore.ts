@@ -172,11 +172,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         extra: { reason: 'user_logout' },
       });
     } catch {}
+    // Call backend to blacklist tokens before clearing locally
+    try {
+      const accessToken = await tokenStore.getAccess();
+      const refreshToken = await tokenStore.getRefresh();
+      if (accessToken) {
+        await fetch(`${(await import('@/src/lib/env')).getBaseUrl()}/api/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ refresh_token: refreshToken || '' }),
+        });
+      }
+    } catch {}
     await tokenStore.clear();
     try {
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.localStorage.removeItem('sa.consent.v1');
     } catch {}
-    set({ user: null });
+    set({ user: null, initialized: false });
   },
 
   setUser: (user) => set({ user }),
