@@ -241,7 +241,7 @@ async def contact_analytics(user: dict = Depends(get_current_user)):
 
     # Top organizations
     top_orgs = await col.aggregate([
-        {"$match": {"created_at": {"$gte": start}, "organization": {"$ne": "", "$ne": None}}},
+        {"$match": {"created_at": {"$gte": start}, "organization": {"$nin": ["", None]}}},
         {"$group": {"_id": "$organization", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}},
         {"$limit": 10},
