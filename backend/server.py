@@ -2171,9 +2171,15 @@ api_router.include_router(community_router)
 from features.routers.careers import router as careers_router
 api_router.include_router(careers_router)
 
-# Public website contact form (POST /api/contact)
-from features.routers.public_contact import router as public_contact_router
+# Public website contact form (POST /api/contact) + admin contact analytics
+from features.routers.public_contact import router as public_contact_router, admin_router as public_contact_admin_router
 api_router.include_router(public_contact_router)
+api_router.include_router(public_contact_admin_router)
+
+# Public AXISS-ecosystem promo coupons (contact-form welcome codes)
+from features.routers.coupons_public import router as coupons_public_router, admin_router as coupons_public_admin_router
+api_router.include_router(coupons_public_router)
+api_router.include_router(coupons_public_admin_router)
 
 # Alumni Referrals (GET /api/jobs/{job_id}/alumni, /api/referrals, ...)
 from features.routers.referrals import router as referrals_router

@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, useWindowDimensions, Platform } from 'react-native';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
 import { useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTheme } from '@/src/theme/ThemeContext';
 import CommonFooter from '@/src/views/components/CommonFooter';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
@@ -119,7 +122,89 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
   const [contactOrg, setContactOrg] = useState('');
   const [contactMessage, setContactMessage] = useState('');
   const [contactSent, setContactSent] = useState(false);
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [contactError, setContactError] = useState<string | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // Purpose display label -> backend topic key
+  const PURPOSE_TOPIC: Record<string, string> = {
+    'General Inquiry': 'general',
+    'HR & Careers': 'hr',
+    'College Partnerships': 'colleges',
+    'Mentor Network': 'mentors',
+    'Podcast Collaboration': 'podcast',
+    'Product Interest': 'product_interest',
+    'Campus Ambassador': 'ambassador',
+    'ECHO Event Partnership': 'echo_event',
+    'Visa & Study Abroad': 'visa_abroad',
+    'Staffing & Recruitment': 'staffing',
+  };
+  const CONTACT_PURPOSES = Object.keys(PURPOSE_TOPIC);
+
+  // CT3 — AXISS product cards
+  const AXISS_PRODUCTS = [
+    { key: 'studentkare', name: 'StudentKare.co', url: 'studentkare.co', color: '#EC4899', desc: 'Student welfare & wellness platform' },
+    { key: 'studentalumni', name: 'StudentAlumni.ai', url: 'studentalumni.ai', color: '#7C3AED', desc: 'AI career & alumni engagement network' },
+    { key: 'hyra', name: 'Hyra.org.in', url: 'hyra.org.in', color: '#3B82F6', desc: 'AI-first HRMS & applicant tracking' },
+    { key: 'wehive', name: 'WeHive.co.in', url: 'wehive.co.in', color: '#10B981', desc: 'Visa, study abroad & travel services' },
+    { key: 'codespectra', name: 'CodeSpectra.ai', url: 'codespectra.ai', color: '#F59E0B', desc: 'Technical assessment & coding platform' },
+    { key: 'outpass', name: 'Outpass.StudentAlumni.ai', url: 'outpass.studentalumni.ai', color: '#06B6D4', desc: 'Campus outpass management system' },
+  ];
+  const toggleProduct = (k: string) =>
+    setSelectedProducts((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]));
+
+  // CT1/CT4 — real submission to POST /api/contact
+  const submitContact = async () => {
+    if (contactSubmitting || contactSent) return;
+    setContactError(null);
+    if (!contactName.trim() || !contactEmail.trim() || !contactMessage.trim()) {
+      setContactError('Please fill your name, email, and a message (min 10 characters).');
+      return;
+    }
+    if (contactMessage.trim().length < 10) {
+      setContactError('Your message must be at least 10 characters.');
+      return;
+    }
+    setContactSubmitting(true);
+    try {
+      await request('/contact', {
+        method: 'POST',
+        auth: false,
+        body: {
+          full_name: contactName.trim(),
+          email: contactEmail.trim(),
+          phone: contactPhone || null,
+          organization: contactOrg.trim() || null,
+          topic: PURPOSE_TOPIC[contactPurpose] || 'general',
+          segment_detail: contactPurpose,
+          message: contactMessage.trim(),
+          interested_products: selectedProducts.length ? selectedProducts : undefined,
+          custom_fields: selectedProducts.length ? { interested_products: selectedProducts } : undefined,
+          website: null,
+        },
+      });
+      setContactSent(true);
+      setContactMessage('');
+      setSelectedProducts([]);
+    } catch (e: any) {
+      setContactError('We could not send your message. Please try again.');
+    } finally {
+      setContactSubmitting(false);
+    }
+  };
+
+  const resetContactForm = () => {
+    setContactSent(false);
+    setContactPurpose('General Inquiry');
+    setContactName('');
+    setContactEmail('');
+    setContactPhone('');
+    setContactOrg('');
+    setContactMessage('');
+    setContactError(null);
+    setSelectedProducts([]);
+  };
 
   const handleCopy = (text: string, key: string) => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
@@ -1084,14 +1169,14 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
             </View>
 
             {/* 2. Direct Inquiry & Support Form (Send Us a Message) */}
-            <View style={styles.inquiryCard}>
+            <View style={[styles.inquiryCard, contactSent && { display: 'none' }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>• DIRECT INQUIRY &amp; SUPPORT</Text></View>
               <Text style={styles.inquiryHeading}>Send Us a Message</Text>
               <Text style={styles.inquirySub}>Fill out the details below and our campus relations team will respond promptly.</Text>
 
               <Text style={styles.bgvSectionLabel}>SELECT PURPOSE</Text>
               <View style={styles.purposePillsRow}>
-                {['General Inquiry', 'HR & Careers', 'College Partnerships', 'Mentor Network'].map((p) => (
+                {CONTACT_PURPOSES.map((p) => (
                   <Pressable
                     key={p}
                     onPress={() => setContactPurpose(p)}
@@ -1101,6 +1186,47 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   </Pressable>
                 ))}
               </View>
+
+              {/* CT3 — AXISS product grid, shown only for "Product Interest" */}
+              {contactPurpose === 'Product Interest' && (
+                <Animated.View entering={FadeInDown.duration(260)} style={{ marginBottom: 22 }}>
+                  <Text style={styles.prodGridLabel}>Which AXISS products interest you? <Text style={{ color: T.dim }}>(select any)</Text></Text>
+                  <View style={[styles.prodGrid, isMobile && { flexDirection: 'column' }]}>
+                    {AXISS_PRODUCTS.map((prod) => {
+                      const on = selectedProducts.includes(prod.key);
+                      return (
+                        <Pressable
+                          key={prod.key}
+                          onPress={() => toggleProduct(prod.key)}
+                          style={[
+                            styles.prodCard,
+                            isMobile && { width: '100%', flexBasis: '100%' },
+                            on && { borderColor: prod.color, backgroundColor: T.tint },
+                          ]}
+                        >
+                          <View
+                            style={[styles.prodLogo, { backgroundColor: prod.color }, on && { borderWidth: 2, borderColor: prod.color }]}
+                          >
+                            <Text style={styles.prodLogoText}>{prod.name.slice(0, 2).toUpperCase()}</Text>
+                          </View>
+                          <View style={styles.prodMeta}>
+                            <Text style={styles.prodName}>{prod.name}</Text>
+                            <Text style={styles.prodUrl}>{prod.url}</Text>
+                            <Text style={styles.prodDesc}>{prod.desc}</Text>
+                          </View>
+                          <View style={[styles.prodCheck, on && styles.prodCheckOn]}>
+                            {on && (
+                              <Svg width="14" height="14" viewBox="0 0 24 24">
+                                <Path d="M5 12l4.5 4.5L19 7.5" stroke="#FFFFFF" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                              </Svg>
+                            )}
+                          </View>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </Animated.View>
+              )}
 
               {/* Form Grid */}
               <View style={[styles.formGrid2, isNarrow && { flexDirection: 'column' }]}>
@@ -1172,17 +1298,88 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 />
               </View>
 
+              {contactError ? (
+                <View style={styles.contactErrorBanner}>
+                  <Text style={styles.contactErrorText}>{contactError}</Text>
+                </View>
+              ) : null}
+
               <GlowButton
-                onPress={() => {
-                  setContactSent(true);
-                  setTimeout(() => setContactSent(false), 2500);
-                }}
-                style={styles.inquirySubmitBtn}
+                onPress={submitContact}
+                style={[styles.inquirySubmitBtn, contactSubmitting && { opacity: 0.6 }]}
                 textStyle={styles.inquirySubmitBtnText}
               >
-                {contactSent ? 'Message Transmitted Successfully' : 'Transmit Message →'}
+                {contactSubmitting ? 'Transmitting…' : 'Transmit Message →'}
               </GlowButton>
             </View>
+
+            {/* CT4 — success card with AXISS ecosystem welcome coupons */}
+            {contactSent && (
+              <Animated.View entering={FadeInDown.duration(300)} style={styles.successCard}>
+                <View style={styles.successCheckWrap}>
+                  <Svg width="30" height="30" viewBox="0 0 24 24">
+                    <Path d="M5 12.5l4.5 4.5L19 7.5" stroke="#34D399" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </Svg>
+                </View>
+                <Text style={styles.successTitle}>Message Transmitted Successfully!</Text>
+                <Text style={styles.successSub}>
+                  Our campus relations team will respond within 24 hours. A confirmation with your
+                  exclusive ecosystem offers is on its way to your inbox.
+                </Text>
+
+                <Text style={styles.couponSectionTitle}>Welcome to the AXISS Ecosystem! Exclusive offers for you:</Text>
+                <View style={[styles.couponRow, isMobile && { flexDirection: 'column' }]}>
+                  {/* CodeSpectra offer */}
+                  <View style={styles.couponCard}>
+                    <View style={[styles.couponBadgeWrap, { backgroundColor: '#5B4FE9' }]}>
+                      <Text style={styles.couponBadgeText}>FREE 3 MONTHS</Text>
+                    </View>
+                    <Text style={styles.couponName}>CodeSpectra.ai</Text>
+                    <Text style={styles.couponDesc}>Three months of our technical assessment & coding platform — free, to showcase your skills.</Text>
+                    <View style={styles.couponCodeBox}>
+                      <Text style={styles.couponCodeText}>SACODE3M</Text>
+                      <Pressable style={styles.couponCopyBtn} onPress={() => handleCopy('SACODE3M', 'coupon-cs')}>
+                        <Text style={styles.couponCopyText}>{copiedKey === 'coupon-cs' ? 'Copied' : 'Copy'}</Text>
+                      </Pressable>
+                    </View>
+                    <Pressable style={styles.couponCtaWrap} onPress={() => router.push('/register')}>
+                      <Text style={styles.couponCta}>Register on StudentAlumni.ai to claim →</Text>
+                    </Pressable>
+                  </View>
+                  {/* WeHive offer */}
+                  <View style={styles.couponCard}>
+                    <View style={[styles.couponBadgeWrap, { backgroundColor: '#10B981' }]}>
+                      <Text style={styles.couponBadgeText}>15% OFF</Text>
+                    </View>
+                    <Text style={styles.couponName}>WeHive.co.in</Text>
+                    <Text style={styles.couponDesc}>15% off visa, study-abroad & travel services for international students.</Text>
+                    <View style={styles.couponCodeBox}>
+                      <Text style={styles.couponCodeText}>SAWEHIVE15</Text>
+                      <Pressable style={styles.couponCopyBtn} onPress={() => handleCopy('SAWEHIVE15', 'coupon-wh')}>
+                        <Text style={styles.couponCopyText}>{copiedKey === 'coupon-wh' ? 'Copied' : 'Copy'}</Text>
+                      </Pressable>
+                    </View>
+                    <Pressable style={styles.couponCtaWrap} onPress={() => Linking.openURL('https://wehive.co.in')}>
+                      <Text style={styles.couponCta}>Visit wehive.co.in to redeem →</Text>
+                    </Pressable>
+                  </View>
+                </View>
+
+                <Pressable onPress={() => router.push('/register')} style={styles.successPrimaryCta}>
+                  <LinearGradient
+                    colors={['#5B4FE9', '#8B84FF']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.successPrimaryCta}
+                  >
+                    <Text style={styles.successPrimaryCtaText}>Create Your Free StudentAlumni Account</Text>
+                  </LinearGradient>
+                </Pressable>
+                <Pressable style={styles.submitAnother} onPress={resetContactForm}>
+                  <Text style={styles.submitAnotherText}>Submit another inquiry</Text>
+                </Pressable>
+              </Animated.View>
+            )}
 
             {/* 3. Three Trust Badges at Bottom */}
             <View style={[styles.contactBadgesRow, isNarrow && { flexDirection: 'column' }]}>
