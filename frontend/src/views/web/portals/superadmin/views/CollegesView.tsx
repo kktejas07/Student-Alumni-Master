@@ -17,7 +17,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
   Building2, Search, X, Check, Pencil, Trash2, ShieldCheck, ShieldOff, RefreshCw,
   AlertTriangle, ExternalLink, Sparkles, Award, MapPin, Users, Globe, BookOpen, Plus, Download,
-  ListChecks,
+  ListChecks, GitMerge,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
@@ -48,7 +48,50 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // ── Duplicates / merge ──
+  const [dedupOpen, setDedupOpen] = useState(false);
+  const [dedupLoading, setDedupLoading] = useState(false);
+  const [dedupErr, setDedupErr] = useState('');
+  const [groups, setGroups] = useState<any[]>([]);
+  const [primaryPick, setPrimaryPick] = useState<Record<number, string>>({});
+  const [merging, setMerging] = useState(false);
   const { toast, flash, hide } = useToast();
+
+  const loadDuplicates = useCallback(async () => {
+    setDedupLoading(true); setDedupErr('');
+    try {
+      const r: any = await request('/admin/colleges/duplicates');
+      setGroups((r?.groups || []).map((g: any, i: number) => ({ ...g, index: i })));
+      setPrimaryPick({});
+    } catch (e: any) {
+      setGroups([]);
+      setDedupErr(String(e?.message || 'Failed to load duplicates'));
+    } finally { setDedupLoading(false); }
+  }, []);
+
+  const openDedup = () => { setDedupOpen(true); loadDuplicates(); };
+  const closeDedup = () => { if (!merging) setDedupOpen(false); };
+
+  const mergeGroup = async (g: any) => {
+    const cols: any[] = g.colleges || [];
+    const pid = primaryPick[g.index] || cols[0]?.id;
+    if (!pid || merging) return;
+    setMerging(true);
+    try {
+      const r: any = await request('/admin/colleges/merge', {
+        method: 'POST',
+        body: { primary_id: pid, secondary_ids: cols.filter((c) => c.id !== pid).map((c) => c.id) },
+      });
+      const n = r?.archived?.length || 0;
+      const stu = r?.students_reassigned || 0;
+      flash(`Merged ${n} ${n === 1 ? 'college' : 'colleges'}${stu ? ` · ${stu} students re-pointed` : ''}`);
+      loadDuplicates();
+      setBump((b) => b + 1);
+    } catch {
+      flash('Merge failed', 'error');
+    } finally { setMerging(false); }
+  };
 
   const toggleSel = (id: string) =>
     setSelected((prev) => {
@@ -170,6 +213,10 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
               and queues it for super-admin verification.
             </Text>
           </View>
+          <SecondaryButton onPress={openDedup}>
+            <GitMerge size={13} color={T.muted} />
+            <Text style={s.secText}>Find duplicates</Text>
+          </SecondaryButton>
           <GradientButton onPress={() => setCreating(true)}>
             <Plus size={13} color="#fff" /><Text style={s.btnText}>Onboard college</Text>
           </GradientButton>
@@ -339,6 +386,106 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
                 </GradientButton>
               </View>
             </View>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      {/* Duplicates / merge modal */}
+      <Modal visible={dedupOpen} transparent animationType="fade" onRequestClose={closeDedup}>
+        <View style={s.modalBg}>
+          <Animated.View entering={FadeInDown.duration(200)} style={[s.modalCard, { maxWidth: 640 }]}>
+            <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
+              <IconBox size={36}><GitMerge size={16} color={GRAD.to} /></IconBox>
+              <View style={{ flex: 1 }}>
+                <Text style={s.modalTitle}>Merge duplicate colleges</Text>
+                <Text style={s.muted}>Similar names, grouped and scored. Pick the survivor for each group, then merge.</Text>
+              </View>
+              <Pressable onPress={closeDedup}><X size={16} color={T.muted} /></Pressable>
+            </LinearGradient>
+
+            <ScrollView style={{ maxHeight: '64%' }}>
+              <View style={{ padding: 16, gap: 14 }}>
+                {dedupLoading ? (
+                  <LoadingBox label="Scanning college names…" />
+                ) : dedupErr ? (
+                  <View style={s.warnBox}>
+                    <AlertTriangle size={13} color={T.danger} />
+                    <Text style={[s.muted, { color: T.danger, flex: 1 }]}>{dedupErr}</Text>
+                  </View>
+                ) : groups.length === 0 ? (
+                  <View style={{ gap: 6, paddingVertical: 12 }}>
+                    <Text style={[s.title, { fontSize: 14 }]}>No duplicates found</Text>
+                    <Text style={s.muted}>No two college names fuzzy-match (≥ 85% similar). Nothing to merge.</Text>
+                  </View>
+                ) : (
+                  groups.map((g: any) => {
+                    const cols = g.colleges || [];
+                    const pid = primaryPick[g.index] || cols[0]?.id;
+                    return (
+                      <View key={g.index} style={s.dupGroup}>
+                        <View style={s.dupGroupHead}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <GitMerge size={13} color={T.accentBright} />
+                            <Text style={s.dupTitle}>{cols.length} similar names</Text>
+                          </View>
+                          <View style={s.confPill}>
+                            <Text style={s.confPillText}>confidence {Math.round(g.confidence * 100)}%</Text>
+                          </View>
+                        </View>
+
+                        {cols.map((c: any) => {
+                          const isPrimary = pid === c.id;
+                          return (
+                            <Pressable
+                              key={c.id}
+                              onPress={() => setPrimaryPick((p) => ({ ...p, [g.index]: c.id }))}
+                              style={[s.dupRow, isPrimary && s.dupRowOn]}
+                            >
+                              <View style={[s.dupRadio, isPrimary && s.dupRadioOn]}>
+                                {isPrimary && <Check size={11} color="#fff" />}
+                              </View>
+                              <View style={{ flex: 1, minWidth: 0 }}>
+                                <Text style={s.dupName} numberOfLines={1}>
+                                  {c.name}{isPrimary ? ' · primary' : ''}
+                                </Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
+                                  <Text style={s.dupMeta} numberOfLines={1}>
+                                    {[c.city, c.state, c.country].filter(Boolean).join(', ') || 'location unknown'}
+                                  </Text>
+                                  <Text style={s.dupMeta}>
+                                    {c.status === 'active' ? 'Active' : c.status === 'paused' ? 'Paused' : 'Pending'}
+                                  </Text>
+                                  <Text style={s.dupMeta}>Enrichment: {c.enrichment_status || 'none'}</Text>
+                                  <Text style={s.dupMeta}>{c.student_count || 0} students</Text>
+                                </View>
+                              </View>
+                              {isPrimary ? (
+                                <Text style={[s.muted, { color: T.accentBright }]}>survives</Text>
+                              ) : (
+                                <Text style={s.muted}>→ merged in</Text>
+                              )}
+                            </Pressable>
+                          );
+                        })}
+
+                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                          <Pressable
+                            onPress={() => mergeGroup(g)}
+                            disabled={merging}
+                            style={[s.dupMergeBtn, merging && { opacity: 0.5 }]}
+                          >
+                            <GitMerge size={12} color={T.onAccent} />
+                            <Text style={s.btnText}>
+                              {merging ? 'Merging…' : `Merge ${cols.length - 1} into ${cols.find((c: any) => c.id === pid)?.name?.split(' ')[0] || 'primary'}`}
+                            </Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                    );
+                  })
+                )}
+              </View>
+            </ScrollView>
           </Animated.View>
         </View>
       </Modal>
@@ -841,6 +988,39 @@ const s = StyleSheet.create({
   destructiveBtn: { backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: SAC.dangerTint, borderWidth: 1, borderColor: SAC.danger },
 
+  /* duplicates / merge modal */
+  dupGroup: {
+    gap: 10, padding: 14, borderRadius: 14,
+    backgroundColor: SAC.panel2, borderWidth: 1, borderColor: SAC.line,
+  },
+  dupGroupHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  dupTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13 },
+  confPill: {
+    paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999,
+    backgroundColor: SAC.tint, borderWidth: 1, borderColor: SAC.accentLine,
+  },
+  confPillText: { color: SAC.onTint, fontFamily: FONTS.xbold, fontSize: 10.5 },
+  dupRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    padding: 10, borderRadius: 10,
+    backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.line,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  dupRowOn: { borderColor: SAC.accent, backgroundColor: SAC.tint },
+  dupRadio: {
+    width: 18, height: 18, borderRadius: 9, borderWidth: 1.5,
+    borderColor: SAC.line2, backgroundColor: SAC.panel2,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  dupRadioOn: { backgroundColor: GRAD.from, borderColor: GRAD.from },
+  dupName: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12.5 },
+  dupMeta: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 },
+  dupMergeBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9,
+    backgroundColor: SAC.primary,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
   skBox: { backgroundColor: SAC.dots, borderRadius: 6 },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, gap: 14 },
   pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.cardSolid, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
