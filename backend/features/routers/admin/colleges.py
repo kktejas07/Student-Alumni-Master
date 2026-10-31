@@ -809,6 +809,69 @@ async def reenrich_college(cid: str, authorization: Optional[str] = Header(None)
     return _serialize(fresh, 0)
 
 
+class BulkColleges(BaseModel):
+    action: str
+    ids: List[str]
+
+
+@router.post("/admin/colleges/bulk")
+async def bulk_colleges(body: BulkColleges, authorization: Optional[str] = Header(None)):
+    """Batch-apply a single action to many colleges at once.
+
+    Actions: 'approve' (→ active), 'disable' (→ paused), 'delete'
+    (soft-archive), or 'reenrich' (re-run enrichment). Processes ids
+    sequentially and reports per-id outcomes so the UI can surface
+    partial failures without aborting the whole batch.
+    """
+    user = await _require_admin(authorization)
+    action = (body.action or "").strip()
+    if action not in {"approve", "disable", "delete", "reenrich"}:
+        raise HTTPException(400, "Unknown action")
+    ids = [i for i in (body.ids or []) if i][:200]
+    if not ids:
+        raise HTTPException(400, "No college ids supplied")
+
+    succeeded: List[str] = []
+    failed: List[Dict[str, str]] = []
+    now = datetime.now(timezone.utc)
+    for cid in ids:
+        try:
+            oid = ObjectId(cid)
+        except Exception:
+            failed.append({"id": cid, "error": "Invalid id"})
+            continue
+        try:
+            c = await _db.colleges.find_one({"_id": oid})
+            if not c:
+                failed.append({"id": cid, "error": "Not found"})
+                continue
+            if action == "approve":
+                await _db.colleges.update_one(
+                    {"_id": oid},
+                    {"$set": {"status": "active", "approved_by": str(user["_id"]), "approved_at": now}},
+                )
+            elif action == "disable":
+                await _db.colleges.update_one(
+                    {"_id": oid},
+                    {"$set": {"status": "paused", "disabled_at": now}},
+                )
+            elif action == "delete":
+                c["archived_at"] = now
+                c["archived_by"] = str(user["_id"])
+                await _db.colleges_archive.insert_one(c)
+                await _db.colleges.delete_one({"_id": oid})
+            else:  # reenrich
+                data = await _enrich(c.get("name") or "")
+                for skip_field in ("status", "approved_by", "approved_at", "created_by", "created_at"):
+                    data.pop(skip_field, None)
+                await _db.colleges.update_one({"_id": oid}, {"$set": data})
+            succeeded.append(cid)
+        except Exception as e:
+            failed.append({"id": cid, "error": str(e)})
+
+    return {"ok": True, "action": action, "succeeded": succeeded, "failed": failed}
+
+
 # ─── BACKFILL: onboard colleges for every existing imported user ──
 @router.post("/admin/colleges/backfill")
 async def backfill_colleges(authorization: Optional[str] = Header(None)):

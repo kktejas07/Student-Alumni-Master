@@ -17,6 +17,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
   Building2, Search, X, Check, Pencil, Trash2, ShieldCheck, ShieldOff, RefreshCw,
   AlertTriangle, ExternalLink, Sparkles, Award, MapPin, Users, Globe, BookOpen, Plus, Download,
+  ListChecks,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
@@ -44,7 +45,40 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [backfilling, setBackfilling] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { toast, flash, hide } = useToast();
+
+  const toggleSel = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  const clearSel = () => setSelected(new Set());
+
+  const BULK_LABEL: Record<string, string> = { approve: 'Approved', disable: 'Disabled', reenrich: 'Re-enriched', delete: 'Deleted' };
+  const runBulk = async (action: 'approve' | 'disable' | 'reenrich' | 'delete') => {
+    const ids = [...selected];
+    if (!ids.length) return;
+    setBulkBusy(true);
+    try {
+      const r: any = await request('/admin/colleges/bulk', { method: 'POST', body: { action, ids } });
+      const ok = r?.succeeded?.length || 0;
+      const bad = r?.failed?.length || 0;
+      clearSel();
+      setBump((b) => b + 1);
+      if (bad) flash(`${BULK_LABEL[action]} ${ok} · ${bad} failed`, 'error');
+      else flash(`${BULK_LABEL[action]} ${ok}`);
+    } catch { flash(`Bulk ${action} failed`, 'error'); }
+    finally { setBulkBusy(false); }
+  };
+  const startBulk = (action: 'approve' | 'disable' | 'reenrich' | 'delete') => {
+    if (!selected.size || bulkBusy) return;
+    if (action === 'delete') { setConfirmDelete(true); return; }
+    runBulk(action);
+  };
 
   const backfill = async () => {
     setBackfilling(true);
@@ -82,6 +116,8 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
 
   const counts = data?.counts || {};
   const items: any[] = data?.items || [];
+  const allSelected = items.length > 0 && items.every((c) => selected.has(c.id));
+  const selectAll = () => setSelected(allSelected ? new Set() : new Set(items.map((c) => c.id)));
 
   const tabs = [
     { id: 'all',     label: 'All',                count: counts.all      || 0 },
@@ -152,11 +188,20 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
         <KpiTile Icon={ShieldOff}   label="PAUSED"            value={String(counts.paused  || 0)} />
       </View>
 
-      {/* Tabs + Search */}
+      {/* Tabs + Search + Select-all */}
       <Card>
         <View style={s.browseHead}>
           <TopTabs<Status> tabs={tabs as any} active={tab} onChange={setTab} />
-          <SearchField value={q} onChange={setQ} placeholder="Search colleges, cities…" width={300} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <Pressable
+              onPress={selectAll}
+              style={[s.checkToggle, allSelected && s.checkToggleOn]}
+            >
+              {allSelected ? <Check size={11} color="#fff" /> : <ListChecks size={13} color={T.muted} />}
+              <Text style={[s.checkToggleText, allSelected && { color: '#fff' }]}>Select all ({items.length})</Text>
+            </Pressable>
+            <SearchField value={q} onChange={setQ} placeholder="Search colleges, cities…" width={300} />
+          </View>
         </View>
       </Card>
 
@@ -175,6 +220,8 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
             <View key={c.id} style={s.gridCell}>
               <CollegeCard
                 college={c}
+                selected={selected.has(c.id)}
+                onToggleSelect={() => toggleSel(c.id)}
                 onOpen={() => setOpen(c)}
                 onApprove={approve} onDisable={disable} onRestore={restore} onRemove={remove}
                 onReenrich={reenrich}
@@ -183,6 +230,62 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
           ))}
         </View>
       )}
+
+      {/* Floating bulk action bar */}
+      {selected.size > 0 && !confirmDelete && (
+        <View style={s.bulkBar}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={s.bulkCount}>{selected.size} selected</Text>
+            <Pressable onPress={clearSel} style={s.bulkClear}><X size={12} color={T.muted} /></Pressable>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <Pressable onPress={() => startBulk('approve')} style={[s.bulkBtn, bulkBusy && { opacity: 0.5 }]}>
+              <ShieldCheck size={12} color={GRAD.from} /><Text style={s.bulkBtnText}>Approve ({selected.size})</Text>
+            </Pressable>
+            <Pressable onPress={() => startBulk('disable')} style={[s.bulkBtn, bulkBusy && { opacity: 0.5 }]}>
+              <ShieldOff size={12} color={T.muted} /><Text style={s.bulkBtnText}>Disable ({selected.size})</Text>
+            </Pressable>
+            <Pressable onPress={() => startBulk('reenrich')} style={[s.bulkBtn, bulkBusy && { opacity: 0.5 }]}>
+              <RefreshCw size={12} color={T.muted} /><Text style={s.bulkBtnText}>Re-enrich ({selected.size})</Text>
+            </Pressable>
+            <Pressable onPress={() => startBulk('delete')} style={[s.bulkBtn, s.bulkBtnDanger, bulkBusy && { opacity: 0.5 }]}>
+              <Trash2 size={12} color={T.danger} /><Text style={[s.bulkBtnText, { color: T.danger }]}>Delete ({selected.size})</Text>
+            </Pressable>
+            {bulkBusy && <Text style={s.muted}>Working…</Text>}
+          </View>
+        </View>
+      )}
+
+      {/* Bulk delete confirmation */}
+      <Modal visible={confirmDelete} transparent animationType="fade" onRequestClose={() => setConfirmDelete(false)}>
+        <View style={s.modalBg}>
+          <Animated.View entering={FadeInDown.duration(200)} style={[s.modalCard, { maxWidth: 420 }]}>
+            <View style={{ padding: 20, gap: 14 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <IconBox size={36}><AlertTriangle size={16} color={T.danger} /></IconBox>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.modalTitle}>Delete {selected.size} {selected.size === 1 ? 'college' : 'colleges'}?</Text>
+                  <Text style={s.muted}>They will be moved to the colleges archive, not wiped.</Text>
+                </View>
+              </View>
+              <View style={s.warnBox}>
+                <AlertTriangle size={13} color={T.danger} />
+                <Text style={[s.muted, { color: T.danger, flex: 1 }]}>{selected.size} selected</Text>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+                <SecondaryButton onPress={() => setConfirmDelete(false)}><Text style={s.secText}>Cancel</Text></SecondaryButton>
+                <Pressable
+                  onPress={() => { setConfirmDelete(false); runBulk('delete'); }}
+                  style={[s.destructiveBtn, bulkBusy && { opacity: 0.5 }]}
+                >
+                  <Text style={s.btnText}>Delete {selected.size}</Text>
+                </Pressable>
+              </View>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
+
       {items.length > 0 && (
         <Text style={[s.muted, { textAlign: 'center', paddingVertical: 6 }]}>
           Showing {items.length} of {data?.total || 0}
@@ -248,7 +351,7 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
 /* ════════════════════════════════════════════════════════════════════
  *  CollegeCard
  * ══════════════════════════════════════════════════════════════════ */
-function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRemove, onReenrich }: any) {
+function CollegeCard({ college: c, selected, onToggleSelect, onOpen, onApprove, onDisable, onRestore, onRemove, onReenrich }: any) {
   const T = useSAC();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -271,8 +374,15 @@ function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRe
       hovered && Platform.OS === 'web' ? s.cardHover : null,
     ]}>
       <View style={{ padding: 22 }}>
-        {/* Header — logo, name, location */}
+        {/* Header — checkbox, logo, name, location */}
         <View style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start' }}>
+          <Pressable
+            onPress={(e: any) => { e?.stopPropagation?.(); onToggleSelect?.(); }}
+            style={[s.checkbox, selected && s.checkboxOn]}
+            hitSlop={6}
+          >
+            {selected && <Check size={13} color="#fff" />}
+          </Pressable>
           {c.logo_url ? (
             <Image source={{ uri: resolveImageUrl(c.logo_url) }} style={s.logo} resizeMode="cover" />
           ) : (
@@ -596,6 +706,42 @@ const s = StyleSheet.create({
 
   kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
   browseHead: { flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: 'space-between', flexWrap: 'wrap' },
+  checkToggle: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999,
+    backgroundColor: SAC.panel2, borderWidth: 1, borderColor: SAC.line,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  checkToggleOn: { backgroundColor: GRAD.from, borderColor: GRAD.from },
+  checkToggleText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+  checkbox: {
+    width: 22, height: 22, borderRadius: 7, borderWidth: 1.5,
+    borderColor: SAC.line, backgroundColor: SAC.panel2,
+    alignItems: 'center', justifyContent: 'center', marginTop: 2,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  checkboxOn: { backgroundColor: GRAD.from, borderColor: GRAD.from },
+  bulkBar: {
+    alignSelf: 'stretch',
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+    marginHorizontal: 2, paddingVertical: 10, paddingHorizontal: 14,
+    borderRadius: 14, backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.line,
+    ...(Platform.OS === 'web' ? ({ position: 'sticky', bottom: 18, zIndex: 40, boxShadow: SAC.shadowMd } as any) : {}),
+  },
+  bulkCount: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12 },
+  bulkClear: {
+    width: 24, height: 24, borderRadius: 7, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: SAC.panel2,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  bulkBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9,
+    backgroundColor: SAC.panel2, borderWidth: 1, borderColor: SAC.line,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  bulkBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5 },
+  bulkBtnDanger: { backgroundColor: SAC.dangerTint, borderColor: SAC.danger },
   cardGrid: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 16,
     ...(Platform.OS === 'web' ? ({ display: 'grid' as any, gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))' as any, gap: 16 } as any) : {}),
