@@ -16,12 +16,14 @@ import {
   BarChart3, Users, TrendingUp, Activity, Calendar, Download, RefreshCw,
   Globe, Monitor, Smartphone, Sparkles, Eye,
   Clock, FileText, AlertTriangle, Zap, Timer, Target, Radar, Layers,
+  MessageSquare,
 } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import { Card, KpiTile, GRAD, SecondaryButton, StatusPill, LoadingBox, TopTabs } from '../applekit';
 import { usePortalData } from '@/src/lib/portalApi';
 import { WorldMap } from './WorldMap';
 import { VisitorIntelligenceView } from './VisitorIntelligenceView';
+import { ContactAnalyticsView } from './ContactAnalyticsView';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 type KPIs = {
@@ -101,7 +103,7 @@ const timeAgo = (iso: string) => { if (!iso) return ''; const diff = Date.now() 
 export function AnalyticsView() {
   const { width } = useWindowDimensions();
   const stack = width < 1100;
-  const [analyticsMode, setAnalyticsMode] = useState<'platform' | 'visitors'>('platform');
+  const [analyticsMode, setAnalyticsMode] = useState<'platform' | 'visitors' | 'contact'>('platform');
   const { data, loading, refresh } = usePortalData<AnalyticsData>('/admin/super/analytics', FALLBACK, 15_000);
   const d = data || FALLBACK;
   const fb = d.firebase || FALLBACK.firebase;
@@ -146,11 +148,14 @@ export function AnalyticsView() {
         tabs={[
           { id: 'platform', label: 'Platform Growth & System Metrics', icon: BarChart3 },
           { id: 'visitors', label: 'Live Visitor Telemetry & Modular Radar', icon: Radar },
+          { id: 'contact', label: 'Contact Analytics', icon: MessageSquare },
         ]}
       />
 
       {analyticsMode === 'visitors' ? (
         <VisitorIntelligenceView />
+      ) : analyticsMode === 'contact' ? (
+        <ContactAnalyticsView />
       ) : (
         <Animated.View entering={FadeIn.duration(200)} style={{ gap: 14 }}>
           {/* Header */}
