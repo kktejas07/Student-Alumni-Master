@@ -1,17 +1,18 @@
 // types BGVMainTab/VerticalType/LinkedInFilterType + the BGVAccountVerticalsView component (7 subsystem tabs: directory, scanner, fake-unis, visa-radar, enterprise-keys, api-register, claim-reminders) — split verbatim from BGVAccountVerticalsView.tsx (audit Step 6d).
 // @ts-nocheck
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Platform, Modal, ScrollView, TextInput, ActivityIndicator } from 'react-native';
-import { ShieldCheck, Users, UserCheck, Sparkles, Search, CheckCircle2, AlertTriangle, Trash2, RefreshCw, Copy, Check, ExternalLink, Award, Mail, Phone, Filter, Send, Download, Globe, Edit3, BellRing, PlayCircle, Layers, XCircle, AlertCircle, Zap, Key } from 'lucide-react-native';
+import { ShieldCheck, Users, UserCheck, Sparkles, Search, CheckCircle2, AlertTriangle, Trash2, RefreshCw, Copy, Check, ExternalLink, Award, Mail, Phone, Filter, Send, Download, Globe, Edit3, BellRing, PlayCircle, Layers, XCircle, AlertCircle, Zap, Key, History, FileSpreadsheet, Activity } from 'lucide-react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSAC, FONTS, resolveColors } from '@/src/views/web/portals/superadmin/tokens';
 import { Card, Toast, useToast } from '@/src/views/web/portals/superadmin/applekit';
-import { api, request } from '@/src/models/services/api';
+import { api, request, downloadFileAsBlob } from '@/src/models/services/api';
+import { getBaseUrl } from '@/src/lib/env';
 import { LinkedinGlyph } from './bgvGlyph';
 import { st } from './bgvStyles';
 
-export type BGVMainTab = 'directory' | 'scanner' | 'fake_unis' | 'api_register' | 'reminders';
+export type BGVMainTab = 'directory' | 'scanner' | 'fake_unis' | 'api_register' | 'reminders' | 'scan_history' | 'consent' | 'visa_radar' | 'enterprise_keys';
 export type VerticalType = 'all' | 'real' | 'test' | 'unregistered';
 export type LinkedInFilterType = 'all' | 'yes' | 'no';
 
@@ -106,6 +107,37 @@ export function BGVAccountVerticalsView() {
   const [genKeyOrgName, setGenKeyOrgName] = useState('');
   const [genKeyWebhook, setGenKeyWebhook] = useState('');
   const [newKeyModal, setNewKeyModal] = useState<any>(null);
+
+  // BV4 Bulk Batch Scan State
+  const [batchCsv, setBatchCsv] = useState('');
+  const [batchConsentGate, setBatchConsentGate] = useState(true);
+  const [batchJob, setBatchJob] = useState<any>(null);
+  const [batchBusy, setBatchBusy] = useState(false);
+  const [exportBusy, setExportBusy] = useState<string | null>(null);
+  const batchPollRef = useRef<any>(null);
+
+  // BV5 Scan History State
+  const [history, setHistory] = useState<any>(null);
+  const [historyStats, setHistoryStats] = useState<any>(null);
+  const [historyBusy, setHistoryBusy] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyFilters, setHistoryFilters] = useState({ status: '', name: '', email: '', scan_type: '' });
+  const [rescanBusy, setRescanBusy] = useState<string | null>(null);
+  const [historyDetail, setHistoryDetail] = useState<any>(null);
+
+  // BV7 Integration Health-check State
+  const [healthData, setHealthData] = useState<any>(null);
+  const [healthBusy, setHealthBusy] = useState(false);
+
+  // BV8 Consent Dashboard State
+  const [consentData, setConsentData] = useState<any>(null);
+  const [consentBusy, setConsentBusy] = useState(false);
+  const [consentRequestEmail, setConsentRequestEmail] = useState('');
+  const [consentRequestName, setConsentRequestName] = useState('');
+  const [consentRequestBusy, setConsentRequestBusy] = useState(false);
+  const [consentRevokeEmail, setConsentRevokeEmail] = useState('');
+  const [consentRevokeBusy, setConsentRevokeBusy] = useState(false);
+  const [consentCopied, setConsentCopied] = useState(false);
 
   const fetchApiKeys = useCallback(async () => {
     setApiKeysBusy(true);
@@ -542,6 +574,243 @@ export function BGVAccountVerticalsView() {
   const total = data?.total || 0;
   const pages = data?.pages || 1;
 
+  // ── BV4: Bulk Batch Scan ──────────────────────────────────────────────────
+  const stopBatchPolling = useCallback(() => {
+    if (batchPollRef.current) {
+      clearInterval(batchPollRef.current);
+      batchPollRef.current = null;
+    }
+  }, []);
+
+  const startBatchPolling = useCallback((jobId: string) => {
+    stopBatchPolling();
+    const poll = async () => {
+      try {
+        const res = await api.getBatchScanStatus(jobId);
+        setBatchJob(res);
+        if (res.status === 'COMPLETED' || res.status === 'FAILED') stopBatchPolling();
+      } catch (e) {
+        console.warn('Batch scan poll failed', e);
+      }
+    };
+    poll();
+    batchPollRef.current = setInterval(poll, 4000);
+  }, [stopBatchPolling]);
+
+  useEffect(() => stopBatchPolling, [stopBatchPolling]);
+
+  const handleStartBatchScan = async () => {
+    if (!batchCsv.trim()) {
+      flash('Paste a CSV (name,email,college,degree,country,pan,uan,dob) or upload a file', 'error');
+      return;
+    }
+    setBatchBusy(true);
+    stopBatchPolling();
+    try {
+      const res = await api.createBatchScan({ csv: batchCsv, consent_gate: batchConsentGate });
+      setBatchJob(res);
+      flash(`Batch scan queued — ${res.total} candidates`, 'success');
+      startBatchPolling(res.job_id);
+    } catch (e: any) {
+      flash(e?.message || 'Failed to queue batch scan', 'error');
+    } finally {
+      setBatchBusy(false);
+    }
+  };
+
+  const handleBatchFileUpload = (event: any) => {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setBatchCsv(String(reader.result || ''));
+    reader.readAsText(file);
+  };
+
+  const handleDownloadBatchReport = async (format: 'xlsx' | 'pdf' | 'csv') => {
+    if (!batchJob?.job_id) return;
+    const fid = batchJob.job_id;
+    const ext = format === 'xlsx' ? 'xlsx' : format;
+    try {
+      await downloadFileAsBlob(
+        api.batchScanReportPath(fid, ext),
+        `bgv-batch-report-${fid}.${ext}`,
+      );
+      flash(`Batch report downloaded (${ext.toUpperCase()})`, 'success');
+    } catch (e: any) {
+      flash(e?.message || 'Failed to download batch report', 'error');
+    }
+  };
+
+  // ── BV6: Directory Export (CSV / XLSX) ───────────────────────────────────
+  const handleExportDirectory = async (format: 'csv' | 'xlsx') => {
+    setExportBusy(format);
+    try {
+      await downloadFileAsBlob(
+        api.exportDirectory({ vertical, country: countryFilter, has_linkedin: linkedInFilter, q, format }),
+        `bgv-directory-${format}.${format}`,
+      );
+      flash(`Directory exported as ${format.toUpperCase()} (current filters applied)`, 'success');
+    } catch (e: any) {
+      flash(e?.message || `Failed to export directory (${format.toUpperCase()})`, 'error');
+    } finally {
+      setExportBusy(null);
+    }
+  };
+
+  // ── BV5: Scan History ────────────────────────────────────────────────────
+  const loadHistory = useCallback(async (p = 1, filters = historyFilters) => {
+    setHistoryBusy(true);
+    try {
+      const res = await api.listScanHistory({
+        page: p,
+        page_size: 10,
+        status: filters.status || undefined,
+        name: filters.name || undefined,
+        email: filters.email || undefined,
+        scan_type: filters.scan_type || undefined,
+      });
+      setHistory(res);
+      setHistoryPage(p);
+    } catch (e: any) {
+      console.warn('Failed to load scan history', e);
+    } finally {
+      setHistoryBusy(false);
+    }
+  }, [historyFilters]);
+
+  const loadHistoryStats = useCallback(async () => {
+    try {
+      setHistoryStats(await api.getScanHistoryStats());
+    } catch (e) {
+      console.warn('Failed to load scan history stats', e);
+    }
+  }, []);
+
+  const handleApplyHistoryFilters = () => loadHistory(1, historyFilters);
+
+  const handleOpenHistoryDossier = async (row: any) => {
+    try {
+      setHistoryDetail(await api.getScanHistoryDossier(row.dossier_id));
+    } catch (e: any) {
+      flash(e?.message || 'Failed to load dossier details', 'error');
+    }
+  };
+
+  const handleRescanRow = async (row: any) => {
+    if (!row.candidate_name && !row.candidate_email) {
+      flash('This row has no candidate details to re-scan', 'error');
+      return;
+    }
+    setRescanBusy(row.dossier_id);
+    try {
+      await api.runComprehensiveBGVScan({
+        name: row.candidate_name || '',
+        email: row.candidate_email || undefined,
+      });
+      flash(`Re-scan complete for ${row.candidate_name || row.candidate_email}`, 'success');
+      loadHistory(historyPage, historyFilters);
+      loadHistoryStats();
+    } catch (e: any) {
+      flash(e?.message || 'Re-scan failed', 'error');
+    } finally {
+      setRescanBusy(null);
+    }
+  };
+
+  // ── BV7: Integration Health-check ────────────────────────────────────────
+  const loadHealthCheck = useCallback(async () => {
+    setHealthBusy(true);
+    try {
+      setHealthData(await api.runIntegrationHealthCheck());
+    } catch (e: any) {
+      console.warn('Failed to run health check', e);
+      flash(e?.message || 'Health check failed', 'error');
+    } finally {
+      setHealthBusy(false);
+    }
+  }, []);
+
+  // ── BV8: Consent Dashboard ───────────────────────────────────────────────
+  const loadConsentDashboard = useCallback(async () => {
+    setConsentBusy(true);
+    try {
+      setConsentData(await api.getConsentDashboard());
+    } catch (e: any) {
+      console.warn('Failed to load consent dashboard', e);
+    } finally {
+      setConsentBusy(false);
+    }
+  }, []);
+
+  const handleRequestConsent = async () => {
+    const email = consentRequestEmail.trim().toLowerCase();
+    if (!email) {
+      flash('Enter the candidate email', 'error');
+      return;
+    }
+    setConsentRequestBusy(true);
+    try {
+      const res = await api.requestConsent({ email, candidate_name: consentRequestName.trim() || undefined });
+      const link = `${getBaseUrl()}/api/bgv/consent/${encodeURIComponent(res.token)}/confirm`;
+      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(link).catch(() => {});
+      }
+      setConsentCopied(true);
+      setTimeout(() => setConsentCopied(false), 2000);
+      setConsentRequestEmail('');
+      setConsentRequestName('');
+      flash('Consent link generated and copied to clipboard', 'success');
+      loadConsentDashboard();
+    } catch (e: any) {
+      flash(e?.message || 'Failed to request consent', 'error');
+    } finally {
+      setConsentRequestBusy(false);
+    }
+  };
+
+  const handleRevokeConsent = async () => {
+    const email = consentRevokeEmail.trim().toLowerCase();
+    if (!email) {
+      flash('Enter the email to revoke consent for', 'error');
+      return;
+    }
+    setConsentRevokeBusy(true);
+    try {
+      await api.revokeConsent({ email, reason: 'admin' });
+      flash(`Consent revoked for ${email}`, 'success');
+      setConsentRevokeEmail('');
+      loadConsentDashboard();
+    } catch (e: any) {
+      flash(e?.message || 'Failed to revoke consent', 'error');
+    } finally {
+      setConsentRevokeBusy(false);
+    }
+  };
+
+  const handleRevokeConsentFor = async (record: any) => {
+    if (!record?.email) return;
+    setConsentRevokeBusy(true);
+    try {
+      await api.revokeConsent({ email: record.email, reason: 'admin' });
+      flash(`Consent revoked for ${record.email}`, 'success');
+      loadConsentDashboard();
+    } catch (e: any) {
+      flash(e?.message || 'Failed to revoke consent', 'error');
+    } finally {
+      setConsentRevokeBusy(false);
+    }
+  };
+
+  // Tab-driven data loads
+  useEffect(() => {
+    if (bgvTab === 'scan_history') {
+      loadHistory(1, historyFilters);
+      loadHistoryStats();
+    }
+    if (bgvTab === 'api_register') loadHealthCheck();
+    if (bgvTab === 'consent') loadConsentDashboard();
+  }, [bgvTab, loadHistory, loadHistoryStats, loadHealthCheck, loadConsentDashboard]);
+
   return (
     <View style={st.container}>
       <Toast toast={toast} onHide={hide} />
@@ -561,19 +830,19 @@ export function BGVAccountVerticalsView() {
             onPress={handleAutoEnrich}
             disabled={enrichBusy}
           >
-            <Sparkles size={15} color="#A78BFA" />
-            <Text style={[st.btnSecondaryText, { color: '#C4B5FD' }]}>
+            <Sparkles size={15} color={T.ev1} />
+            <Text style={[st.btnSecondaryText, { color: T.b25 }]}>
               {enrichBusy ? 'Enriching...' : 'Auto-Enrich Geolocation'}
             </Text>
           </Pressable>
 
           <Pressable
-            style={[st.btnSecondary, { borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.1)' }, claimCampaignBusy && { opacity: 0.6 }]}
+            style={[st.btnSecondary, { borderColor: T.b8, backgroundColor: T.b2S01 }, claimCampaignBusy && { opacity: 0.6 }]}
             onPress={handleLaunchClaimCampaign}
             disabled={claimCampaignBusy}
           >
-            <Send size={15} color="#10B981" />
-            <Text style={{ color: '#10B981', fontSize: 13, fontWeight: '700' }}>
+            <Send size={15} color={T.b8} />
+            <Text style={{ color: T.b8, fontSize: 13, fontWeight: '700' }}>
               {claimCampaignBusy ? 'Dispatching...' : 'Launch Claim Campaign'}
             </Text>
           </Pressable>
@@ -583,7 +852,7 @@ export function BGVAccountVerticalsView() {
             onPress={handleBackfill}
             disabled={backfillBusy}
           >
-            <RefreshCw size={15} color="#93C5FD" style={backfillBusy ? { transform: [{ rotate: '45deg' }] } : {}} />
+            <RefreshCw size={15} color={T.b6} style={backfillBusy ? { transform: [{ rotate: '45deg' }] } : {}} />
             <Text style={st.btnSecondaryText}>
               {backfillBusy ? 'Backfilling...' : 'Sync BGV IDs'}
             </Text>
@@ -594,7 +863,7 @@ export function BGVAccountVerticalsView() {
             onPress={() => handlePurgeTestAccounts(true)}
             disabled={purgeBusy}
           >
-            <Trash2 size={15} color="#FCA5A5" />
+            <Trash2 size={15} color={T.b7} />
             <Text style={st.btnDangerText}>
               {purgeBusy ? 'Scanning...' : 'Clean Sandbox Data'}
             </Text>
@@ -610,6 +879,8 @@ export function BGVAccountVerticalsView() {
           { id: 'enterprise_keys', label: 'Enterprise API Keys & Webhooks', icon: Key, badge: 'Webhooks' },
           { id: 'scanner', label: '5-Tier BGV Scanner', icon: Zap, badge: 'Live' },
           { id: 'fake_unis', label: 'UGC Fake Uni Blacklist', icon: AlertCircle, badge: `${fakeUnisList.length || 22}` },
+          { id: 'scan_history', label: 'Scan History & Audit', icon: History, badge: `${historyStats?.total_scans ?? '—'}` },
+          { id: 'consent', label: 'Consent & Privacy (DPDP)', icon: ShieldCheck, badge: `${consentData?.totals?.active ?? '—'} Active` },
           { id: 'api_register', label: 'API Register & Tiers', icon: Layers, badge: 'Tier 0/1/2' },
           { id: 'reminders', label: 'Claim Automation', icon: BellRing, badge: `${analytics?.monthly_reminders?.due_for_monthly_reminder || 0} Due` },
         ].map((tab) => {
@@ -621,7 +892,7 @@ export function BGVAccountVerticalsView() {
               style={[st.mainSubNavBtn, isActive && st.mainSubNavBtnActive]}
               onPress={() => setBgvTab(tab.id as BGVMainTab)}
             >
-              <IconComponent size={16} color={isActive ? '#FFFFFF' : '#94A3B8'} />
+              <IconComponent size={16} color={isActive ? '#FFFFFF' : T.b12} />
               <Text style={[st.mainSubNavText, isActive && st.mainSubNavTextActive]}>
                 {tab.label}
               </Text>
@@ -644,13 +915,13 @@ export function BGVAccountVerticalsView() {
         <View>
           {/* KPI Analytics Cards */}
           <View style={st.kpiGrid}>
-            <Card style={[st.kpiCard, { borderColor: 'rgba(16, 185, 129, 0.35)' }]}>
+            <Card style={[st.kpiCard, { borderColor: T.b2S035 }]}>
               <View style={st.kpiTop}>
-                <View style={[st.kpiIconWrap, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-                  <UserCheck size={20} color="#34D399" />
+                <View style={[st.kpiIconWrap, { backgroundColor: T.b2S015 }]}>
+                  <UserCheck size={20} color={T.b2} />
                 </View>
-                <View style={[st.kpiBadge, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
-                  <Text style={[st.kpiBadgeText, { color: '#34D399' }]}>
+                <View style={[st.kpiBadge, { backgroundColor: T.b2S02sp }]}>
+                  <Text style={[st.kpiBadgeText, { color: T.b2 }]}>
                     {analytics?.real_accounts?.percentage || 0}% of Total
                   </Text>
                 </View>
@@ -660,13 +931,13 @@ export function BGVAccountVerticalsView() {
               <Text style={st.kpiDesc}>Registered platform students, alumni & mentors with credentials</Text>
             </Card>
 
-            <Card style={[st.kpiCard, { borderColor: 'rgba(245, 158, 11, 0.35)' }]}>
+            <Card style={[st.kpiCard, { borderColor: T.b3S035 }]}>
               <View style={st.kpiTop}>
-                <View style={[st.kpiIconWrap, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
-                  <AlertTriangle size={20} color="#FBBF24" />
+                <View style={[st.kpiIconWrap, { backgroundColor: T.b3S015sp }]}>
+                  <AlertTriangle size={20} color={T.b3} />
                 </View>
-                <View style={[st.kpiBadge, { backgroundColor: 'rgba(245, 158, 11, 0.2)' }]}>
-                  <Text style={[st.kpiBadgeText, { color: '#FBBF24' }]}>
+                <View style={[st.kpiBadge, { backgroundColor: T.b3S02 }]}>
+                  <Text style={[st.kpiBadgeText, { color: T.b3 }]}>
                     {analytics?.test_accounts?.percentage || 0}% Sandbox
                   </Text>
                 </View>
@@ -676,13 +947,13 @@ export function BGVAccountVerticalsView() {
               <Text style={st.kpiDesc}>Mock profiles, @test.com accounts, & sandbox seed entries</Text>
             </Card>
 
-            <Card style={[st.kpiCard, { borderColor: 'rgba(99, 102, 241, 0.35)' }]}>
+            <Card style={[st.kpiCard, { borderColor: T.b10S035 }]}>
               <View style={st.kpiTop}>
-                <View style={[st.kpiIconWrap, { backgroundColor: 'rgba(99, 102, 241, 0.15)' }]}>
-                  <Users size={20} color="#818CF8" />
+                <View style={[st.kpiIconWrap, { backgroundColor: T.b10S015 }]}>
+                  <Users size={20} color={T.b21} />
                 </View>
-                <View style={[st.kpiBadge, { backgroundColor: 'rgba(99, 102, 241, 0.2)' }]}>
-                  <Text style={[st.kpiBadgeText, { color: '#818CF8' }]}>
+                <View style={[st.kpiBadge, { backgroundColor: T.b10S02 }]}>
+                  <Text style={[st.kpiBadgeText, { color: T.b21 }]}>
                     {analytics?.unregistered_records?.percentage || 0}% Claimable
                   </Text>
                 </View>
@@ -694,13 +965,13 @@ export function BGVAccountVerticalsView() {
               </Text>
             </Card>
 
-            <Card style={[st.kpiCard, { borderColor: 'rgba(167, 139, 250, 0.35)' }]}>
+            <Card style={[st.kpiCard, { borderColor: T.b25S035 }]}>
               <View style={st.kpiTop}>
-                <View style={[st.kpiIconWrap, { backgroundColor: 'rgba(167, 139, 250, 0.15)' }]}>
-                  <ShieldCheck size={20} color="#A78BFA" />
+                <View style={[st.kpiIconWrap, { backgroundColor: T.b9S015 }]}>
+                  <ShieldCheck size={20} color={T.ev1} />
                 </View>
-                <View style={[st.kpiBadge, { backgroundColor: 'rgba(167, 139, 250, 0.2)' }]}>
-                  <Text style={[st.kpiBadgeText, { color: '#C4B5FD' }]}>8 Verifiers Active</Text>
+                <View style={[st.kpiBadge, { backgroundColor: T.b9S02 }]}>
+                  <Text style={[st.kpiBadgeText, { color: T.b25 }]}>8 Verifiers Active</Text>
                 </View>
               </View>
               <Text style={st.kpiValue}>Tier 0 / 1 / 2</Text>
@@ -716,7 +987,7 @@ export function BGVAccountVerticalsView() {
             <Card style={st.countryDistCard}>
               <View style={st.countryDistTop}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Globe size={18} color="#60A5FA" />
+                  <Globe size={18} color={T.holoEmail} />
                   <Text style={st.countryDistTitle}>Country & Geographic Profile Segregation</Text>
                 </View>
                 <Text style={st.countryDistSub}>Live multi-country directory telemetry</Text>
@@ -750,7 +1021,7 @@ export function BGVAccountVerticalsView() {
           <Card style={st.bgvSearchWidget}>
             <View style={st.bgvWidgetTop}>
               <View style={st.bgvWidgetIcon}>
-                <ShieldCheck size={26} color="#A78BFA" />
+                <ShieldCheck size={26} color={T.ev1} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={st.bgvWidgetTitle}>Universal BGV (Background Verification) Lookup</Text>
@@ -762,13 +1033,13 @@ export function BGVAccountVerticalsView() {
 
             <View style={st.bgvInputRow}>
               <View style={st.bgvInputWrap}>
-                <Search size={18} color="#94A3B8" style={{ marginLeft: 14 }} />
+                <Search size={18} color={T.b12} style={{ marginLeft: 14 }} />
                 <TextInput
                   style={st.bgvTextInput}
                   value={lookupQuery}
                   onChangeText={setLookupQuery}
                   placeholder="Enter BGV ID, SA ID, Certificate Series ID, Roll No, or Email..."
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={T.b19}
                   onSubmitEditing={() => handleLookup()}
                 />
               </View>
@@ -830,7 +1101,7 @@ export function BGVAccountVerticalsView() {
                   style={[st.liFilterBtn, linkedInFilter === 'yes' && st.liFilterBtnActive]}
                   onPress={() => { setLinkedInFilter('yes'); setPage(1); }}
                 >
-                  <LinkedinGlyph size={12} color={linkedInFilter === 'yes' ? '#38BDF8' : '#64748B'} />
+                  <LinkedinGlyph size={12} color={linkedInFilter === 'yes' ? T.b1 : T.b19} />
                   <Text style={[st.liFilterText, linkedInFilter === 'yes' && st.liFilterTextActive]}>Has LinkedIn</Text>
                 </Pressable>
                 <Pressable
@@ -843,7 +1114,7 @@ export function BGVAccountVerticalsView() {
 
               {/* Quick Search in table */}
               <View style={st.tableSearchWrap}>
-                <Search size={16} color="#64748B" style={{ marginLeft: 12 }} />
+                <Search size={16} color={T.b19} style={{ marginLeft: 12 }} />
                 <TextInput
                   style={st.tableSearchInput}
                   value={q}
@@ -852,13 +1123,35 @@ export function BGVAccountVerticalsView() {
                     setPage(1);
                   }}
                   placeholder="Search table by name, email, roll no, college, country..."
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={T.b19}
                 />
                 {q ? (
                   <Pressable onPress={() => setQ('')} style={{ padding: 8 }}>
-                    <Text style={{ color: '#94A3B8', fontSize: 12 }}>Clear</Text>
+                    <Text style={{ color: T.b12, fontSize: 12 }}>Clear</Text>
                   </Pressable>
                 ) : null}
+              </View>
+
+              {/* BV6: Export current filter view */}
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <Pressable
+                  style={[st.btnSecondary, { paddingVertical: 6, paddingHorizontal: 12 }, exportBusy === 'csv' && { opacity: 0.6 }]}
+                  onPress={() => handleExportDirectory('csv')}
+                  disabled={!!exportBusy}
+                >
+                  <FileSpreadsheet size={13} color={T.b2} />
+                  <Text style={st.btnSecondaryText}>Export CSV</Text>
+                </Pressable>
+                <Pressable
+                  style={[st.btnSecondary, { paddingVertical: 6, paddingHorizontal: 12 }, exportBusy === 'xlsx' && { opacity: 0.6 }]}
+                  onPress={() => handleExportDirectory('xlsx')}
+                  disabled={!!exportBusy}
+                >
+                  <Download size={13} color={T.holoEmail} />
+                  <Text style={st.btnSecondaryText}>
+                    {exportBusy === 'xlsx' ? 'Exporting...' : 'Export Excel'}
+                  </Text>
+                </Pressable>
               </View>
             </View>
 
@@ -875,14 +1168,14 @@ export function BGVAccountVerticalsView() {
 
               {busy ? (
                 <View style={{ padding: 40, alignItems: 'center' }}>
-                  <ActivityIndicator size="large" color="#818CF8" />
-                  <Text style={{ color: '#94A3B8', marginTop: 12, fontSize: 13 }}>Loading accounts data...</Text>
+                  <ActivityIndicator size="large" color={T.b21} />
+                  <Text style={{ color: T.b12, marginTop: 12, fontSize: 13 }}>Loading accounts data...</Text>
                 </View>
               ) : items.length === 0 ? (
                 <View style={{ padding: 50, alignItems: 'center' }}>
-                  <Users size={40} color="#475569" />
-                  <Text style={{ color: '#E2E8F0', marginTop: 12, fontSize: 15, fontWeight: '600' }}>No records found</Text>
-                  <Text style={{ color: '#64748B', marginTop: 4, fontSize: 13 }}>Try adjusting your vertical filter, country, or search term</Text>
+                  <Users size={40} color={T.b20} />
+                  <Text style={{ color: T.b14, marginTop: 12, fontSize: 15, fontWeight: '600' }}>No records found</Text>
+                  <Text style={{ color: T.b19, marginTop: 4, fontSize: 13 }}>Try adjusting your vertical filter, country, or search term</Text>
                 </View>
               ) : (
                 items.map((item: any, idx: number) => {
@@ -910,15 +1203,15 @@ export function BGVAccountVerticalsView() {
                       <View style={{ flex: 1.3, justifyContent: 'center' }}>
                         <View style={[
                           st.verticalBadge,
-                          isReal && { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.3)' },
-                          isTest && { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.3)' },
-                          isUnreg && { backgroundColor: 'rgba(99, 102, 241, 0.15)', borderColor: 'rgba(99, 102, 241, 0.3)' },
+                          isReal && { backgroundColor: T.b2S015, borderColor: T.b2S03 },
+                          isTest && { backgroundColor: T.b3S015sp, borderColor: T.b3S03 },
+                          isUnreg && { backgroundColor: T.b10S015, borderColor: T.b10S03 },
                         ]}>
                           <Text style={[
                             st.verticalBadgeText,
-                            isReal && { color: '#34D399' },
-                            isTest && { color: '#FBBF24' },
-                            isUnreg && { color: '#818CF8' },
+                            isReal && { color: T.b2 },
+                            isTest && { color: T.b3 },
+                            isUnreg && { color: T.b21 },
                           ]}>
                             {isReal ? 'Real Member' : (isTest ? 'Sandbox Test' : 'Unregistered')}
                           </Text>
@@ -934,16 +1227,16 @@ export function BGVAccountVerticalsView() {
                         >
                           <Text style={st.idChipLabel}>SA:</Text>
                           <Text style={st.idChipValue}>{item.sa_id}</Text>
-                          {copiedKey === `sa-${item.id}` ? <Check size={12} color="#10B981" /> : <Copy size={11} color="#64748B" />}
+                          {copiedKey === `sa-${item.id}` ? <Check size={12} color={T.b8} /> : <Copy size={11} color={T.b19} />}
                         </Pressable>
 
                         <Pressable
                           style={[st.idChip, { marginTop: 4 }]}
                           onPress={() => copyToClipboard(item.bgv_id, `bgv-${item.id}`)}
                         >
-                          <Text style={[st.idChipLabel, { color: '#F472B6' }]}>BGV:</Text>
-                          <Text style={[st.idChipValue, { color: '#FBCFE8' }]}>{item.bgv_id}</Text>
-                          {copiedKey === `bgv-${item.id}` ? <Check size={12} color="#10B981" /> : <Copy size={11} color="#64748B" />}
+                          <Text style={[st.idChipLabel, { color: T.b5 }]}>BGV:</Text>
+                          <Text style={[st.idChipValue, { color: T.b29 }]}>{item.bgv_id}</Text>
+                          {copiedKey === `bgv-${item.id}` ? <Check size={12} color={T.b8} /> : <Copy size={11} color={T.b19} />}
                         </Pressable>
                       </View>
 
@@ -958,18 +1251,18 @@ export function BGVAccountVerticalsView() {
                               }
                             }}
                           >
-                            <LinkedinGlyph size={12} color="#38BDF8" />
+                            <LinkedinGlyph size={12} color={T.b1} />
                             <Text style={st.linkedInChipText} numberOfLines={1}>
                               {item.linkedin_handle || 'LinkedIn Profile'}
                             </Text>
-                            <ExternalLink size={11} color="#38BDF8" />
+                            <ExternalLink size={11} color={T.b1} />
                           </Pressable>
                         ) : (
                           <Pressable
                             style={st.addLinkedInChip}
                             onPress={() => openEditModal(item)}
                           >
-                            <LinkedinGlyph size={11} color="#64748B" />
+                            <LinkedinGlyph size={11} color={T.b19} />
                             <Text style={st.addLinkedInChipText}>+ Add LinkedIn</Text>
                           </Pressable>
                         )}
@@ -986,7 +1279,7 @@ export function BGVAccountVerticalsView() {
                         </Text>
                         {item.certificates_count > 0 ? (
                           <View style={st.certPill}>
-                            <Award size={11} color="#FBBF24" />
+                            <Award size={11} color={T.b3} />
                             <Text style={st.certPillText}>{item.certificates_count} Certs</Text>
                           </View>
                         ) : null}
@@ -999,7 +1292,7 @@ export function BGVAccountVerticalsView() {
                           style={st.scanBtn}
                           onPress={() => openScanForCandidate(item)}
                         >
-                          <Zap size={11} color="#FBBF24" />
+                          <Zap size={11} color={T.b3} />
                           <Text style={st.scanBtnText}>Scan</Text>
                         </Pressable>
 
@@ -1008,7 +1301,7 @@ export function BGVAccountVerticalsView() {
                           style={st.pdfBtn}
                           onPress={() => handleDownloadPdf(item.bgv_id || item.sa_id || item.email)}
                         >
-                          <Download size={11} color="#34D399" />
+                          <Download size={11} color={T.b2} />
                           <Text style={st.pdfBtnText}>PDF</Text>
                         </Pressable>
 
@@ -1019,10 +1312,10 @@ export function BGVAccountVerticalsView() {
                             disabled={isSendingThis}
                           >
                             {isSendingThis ? (
-                              <ActivityIndicator size="small" color="#F472B6" />
+                              <ActivityIndicator size="small" color={T.b5} />
                             ) : (
                               <>
-                                <Mail size={11} color="#F472B6" />
+                                <Mail size={11} color={T.b5} />
                                 <Text style={st.claimEmailBtnText}>
                                   {item.claim_reminders_count > 0 ? `#${item.claim_reminders_count}` : 'Claim'}
                                 </Text>
@@ -1035,7 +1328,7 @@ export function BGVAccountVerticalsView() {
                           style={st.verifyBtn}
                           onPress={() => handleLookup(item.bgv_id || item.sa_id || item.email)}
                         >
-                          <ShieldCheck size={11} color="#93C5FD" />
+                          <ShieldCheck size={11} color={T.b6} />
                           <Text style={st.verifyBtnText}>Dossier</Text>
                         </Pressable>
 
@@ -1043,14 +1336,14 @@ export function BGVAccountVerticalsView() {
                           style={st.editBtn}
                           onPress={() => openEditModal(item)}
                         >
-                          <Edit3 size={11} color="#CBD5E1" />
+                          <Edit3 size={11} color={T.b13} />
                         </Pressable>
 
                         <Pressable
-                          style={[st.testToggleBtn, isTest && { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}
+                          style={[st.testToggleBtn, isTest && { backgroundColor: T.b4S015 }]}
                           onPress={() => handleToggleTest(item)}
                         >
-                          <Text style={[st.testToggleBtnText, isTest && { color: '#F87171' }]}>
+                          <Text style={[st.testToggleBtnText, isTest && { color: T.b27 }]}>
                             {isTest ? 'Real' : 'Test'}
                           </Text>
                         </Pressable>
@@ -1095,7 +1388,7 @@ export function BGVAccountVerticalsView() {
           <Card style={st.workbenchCard}>
             <View style={st.workbenchHeader}>
               <View style={st.workbenchIcon}>
-                <Zap size={24} color="#FBBF24" />
+                <Zap size={24} color={T.b3} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={st.workbenchTitle}>Automated 5-Tier BGV Verification Workbench</Text>
@@ -1113,7 +1406,7 @@ export function BGVAccountVerticalsView() {
                   value={scanForm.name}
                   onChangeText={(v) => setScanForm({ ...scanForm, name: v })}
                   placeholder="e.g. Rahul Sharma"
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={T.b19}
                 />
               </View>
               <View style={[st.formGroup, { flex: 1 }]}>
@@ -1123,7 +1416,7 @@ export function BGVAccountVerticalsView() {
                   value={scanForm.college}
                   onChangeText={(v) => setScanForm({ ...scanForm, college: v })}
                   placeholder="e.g. SNIST or Commercial University"
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={T.b19}
                 />
               </View>
             </View>
@@ -1136,7 +1429,7 @@ export function BGVAccountVerticalsView() {
                   value={scanForm.pan}
                   onChangeText={(v) => setScanForm({ ...scanForm, pan: v })}
                   placeholder="ABCDE1234F"
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={T.b19}
                 />
               </View>
               <View style={[st.formGroup, { flex: 1 }]}>
@@ -1146,7 +1439,7 @@ export function BGVAccountVerticalsView() {
                   value={scanForm.uan}
                   onChangeText={(v) => setScanForm({ ...scanForm, uan: v })}
                   placeholder="100123456789"
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={T.b19}
                 />
               </View>
               <View style={[st.formGroup, { flex: 1 }]}>
@@ -1156,7 +1449,7 @@ export function BGVAccountVerticalsView() {
                   value={scanForm.country}
                   onChangeText={(v) => setScanForm({ ...scanForm, country: v })}
                   placeholder="India"
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={T.b19}
                 />
               </View>
             </View>
@@ -1181,9 +1474,9 @@ export function BGVAccountVerticalsView() {
               <View style={st.scanResultsSection}>
                 <View style={[
                   st.scanResultHeaderBox,
-                  scanResult.overall_status === 'VERIFIED' && { borderColor: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.15)' },
-                  scanResult.overall_status === 'FLAGGED_FOR_HUMAN_REVIEW' && { borderColor: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.15)' },
-                  scanResult.overall_status === 'CRITICAL_FAILED' && { borderColor: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.15)' },
+                  scanResult.overall_status === 'VERIFIED' && { borderColor: T.b8, backgroundColor: T.b2S015 },
+                  scanResult.overall_status === 'FLAGGED_FOR_HUMAN_REVIEW' && { borderColor: T.amber, backgroundColor: T.b3S015sp },
+                  scanResult.overall_status === 'CRITICAL_FAILED' && { borderColor: T.b4, backgroundColor: T.b4S015 },
                 ]}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Text style={st.scanResultDossierId}>{scanResult.dossier_id}</Text>
@@ -1208,9 +1501,9 @@ export function BGVAccountVerticalsView() {
                   <View style={st.checkRow}>
                     <View style={st.checkIconBox}>
                       {scanResult.verifiers_breakdown.tier_0_education_and_degree_mill.status === 'PASSED' ? (
-                        <CheckCircle2 size={20} color="#34D399" />
+                        <CheckCircle2 size={20} color={T.b2} />
                       ) : (
-                        <XCircle size={20} color="#EF4444" />
+                        <XCircle size={20} color={T.b4} />
                       )}
                     </View>
                     <View style={{ flex: 1 }}>
@@ -1222,9 +1515,9 @@ export function BGVAccountVerticalsView() {
                   <View style={st.checkRow}>
                     <View style={st.checkIconBox}>
                       {scanResult.verifiers_breakdown.tier_0_sanctions_and_pep.status === 'CLEAR' ? (
-                        <CheckCircle2 size={20} color="#34D399" />
+                        <CheckCircle2 size={20} color={T.b2} />
                       ) : (
-                        <AlertTriangle size={20} color="#F59E0B" />
+                        <AlertTriangle size={20} color={T.amber} />
                       )}
                     </View>
                     <View style={{ flex: 1 }}>
@@ -1240,9 +1533,9 @@ export function BGVAccountVerticalsView() {
                   <View style={st.checkRow}>
                     <View style={st.checkIconBox}>
                       {scanResult.verifiers_breakdown.tier_0_court_litigation.status === 'CLEAR' ? (
-                        <CheckCircle2 size={20} color="#34D399" />
+                        <CheckCircle2 size={20} color={T.b2} />
                       ) : (
-                        <AlertCircle size={20} color="#F59E0B" />
+                        <AlertCircle size={20} color={T.amber} />
                       )}
                     </View>
                     <View style={{ flex: 1 }}>
@@ -1253,7 +1546,7 @@ export function BGVAccountVerticalsView() {
 
                   <View style={st.checkRow}>
                     <View style={st.checkIconBox}>
-                      <CheckCircle2 size={20} color="#60A5FA" />
+                      <CheckCircle2 size={20} color={T.holoEmail} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={st.checkTitle}>Tier 1: NSDL / ITD PAN Verifier</Text>
@@ -1265,7 +1558,7 @@ export function BGVAccountVerticalsView() {
 
                   <View style={st.checkRow}>
                     <View style={st.checkIconBox}>
-                      <CheckCircle2 size={20} color="#60A5FA" />
+                      <CheckCircle2 size={20} color={T.holoEmail} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={st.checkTitle}>Tier 1: EPFO UAN Passbook History</Text>
@@ -1280,6 +1573,117 @@ export function BGVAccountVerticalsView() {
               </View>
             )}
           </Card>
+
+          {/* BV4: Bulk BGV Scan (CSV batch pipeline) */}
+          <Card style={[st.workbenchCard, { marginTop: 16 }]}>
+            <View style={st.workbenchHeader}>
+              <View style={[st.workbenchIcon, { backgroundColor: T.b1S015sp }]}>
+                <FileSpreadsheet size={24} color={T.b1} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={st.workbenchTitle}>Bulk BGV Scan — CSV Batch Pipeline</Text>
+                <Text style={st.workbenchDesc}>
+                  Queue up to 2,500 candidates. Headers: name,email,college,degree,country,pan,uan,dob.
+                </Text>
+              </View>
+            </View>
+
+            <View style={st.formGroup}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={st.formLabel}>Paste CSV or Upload File:</Text>
+                <Pressable style={st.btnSecondary} onPress={() => document.getElementById('bgv-batch-csv-file')?.click()}>
+                  <Download size={13} color={T.b1} />
+                  <Text style={st.btnSecondaryText}>Upload .csv</Text>
+                </Pressable>
+              </View>
+              <input
+                id="bgv-batch-csv-file"
+                type="file"
+                accept=".csv,text/csv"
+                style={{ display: 'none' }}
+                onChange={handleBatchFileUpload}
+              />
+              <TextInput
+                style={[st.formInput, { height: 96, paddingTop: 10 }]}
+                multiline
+                value={batchCsv}
+                onChangeText={setBatchCsv}
+                placeholder={'name,email,college,degree,country,pan,uan,dob\nJane Doe,jane@example.com,SNIST,B.Tech CSE,India,,123456789012,'}
+                placeholderTextColor={T.b19}
+              />
+            </View>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Pressable
+                  onPress={() => setBatchConsentGate(!batchConsentGate)}
+                  style={{
+                    width: 40,
+                    height: 22,
+                    borderRadius: 11,
+                    backgroundColor: batchConsentGate ? T.b2S03 : T.ns16,
+                    padding: 3,
+                    justifyContent: 'center',
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: 8,
+                      backgroundColor: batchConsentGate ? T.b8 : T.b12,
+                      marginLeft: batchConsentGate ? 20 : 0,
+                    }}
+                  />
+                </Pressable>
+                <Text style={{ color: T.b12, fontSize: 12 }}>
+                  Consent gate (DPDP): rows without active consent are parked in gated queue
+                </Text>
+              </View>
+              <Pressable
+                style={[st.runScanBtn, { background: 'none', backgroundColor: T.b22 }, batchBusy && { opacity: 0.6 }]}
+                onPress={handleStartBatchScan}
+                disabled={batchBusy}
+              >
+                {batchBusy ? <ActivityIndicator size="small" color="#FFFFFF" /> : <PlayCircle size={16} color="#FFFFFF" />}
+                <Text style={st.runScanBtnText}>{batchBusy ? 'Queuing...' : 'Queue Batch Scan'}</Text>
+              </Pressable>
+            </View>
+
+            {batchJob && (
+              <View style={{ marginTop: 14, padding: 14, borderRadius: 12, backgroundColor: T.ns7, gap: 10 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={{ color: T.text, fontSize: 13, fontFamily: FONTS.bold }}>
+                    Job {String(batchJob.job_id).slice(0, 12)}… — {batchJob.status}
+                  </Text>
+                  <Text style={{ color: T.b12, fontSize: 12 }}>
+                    {batchJob.completed}/{batchJob.total} processed · {batchJob.flagged || 0} flagged · {batchJob.failed || 0} failed{batchJob.gated !== undefined ? ` · ${batchJob.gated} gated` : ''}
+                  </Text>
+                </View>
+                <View style={{ width: '100%', height: 6, borderRadius: 3, backgroundColor: T.ns19, overflow: 'hidden' }}>
+                  <View
+                    style={{
+                      width: batchJob.total ? `${Math.round(((batchJob.completed || 0) / batchJob.total) * 100)}%` : '0%',
+                      height: '100%',
+                      backgroundColor: batchJob.status === 'FAILED' ? T.b4 : T.b22,
+                      borderRadius: 3,
+                    }}
+                  />
+                </View>
+                {batchJob.status === 'COMPLETED' || batchJob.status === 'FAILED' ? (
+                  <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                    {['xlsx', 'csv', 'pdf'].map((fmt) => (
+                      <Pressable key={fmt} style={st.btnSecondary} onPress={() => handleDownloadBatchReport(fmt as any)}>
+                        <Download size={13} color={T.b2} />
+                        <Text style={st.btnSecondaryText}>Report {fmt.toUpperCase()}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+                {batchJob.error ? <Text style={{ color: T.b27, fontSize: 12 }}>{batchJob.error}</Text> : null}
+              </View>
+            )}
+          </Card>
         </View>
       )}
 
@@ -1290,8 +1694,8 @@ export function BGVAccountVerticalsView() {
         <View>
           <Card style={st.workbenchCard}>
             <View style={st.workbenchHeader}>
-              <View style={[st.workbenchIcon, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
-                <AlertCircle size={24} color="#EF4444" />
+              <View style={[st.workbenchIcon, { backgroundColor: T.b4S015 }]}>
+                <AlertCircle size={24} color={T.b4} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={st.workbenchTitle}>UGC Fake Universities & Degree-Mill Blacklist</Text>
@@ -1302,7 +1706,7 @@ export function BGVAccountVerticalsView() {
             </View>
 
             <View style={[st.tableSearchWrap, { marginBottom: 14, minWidth: '100%' }]}>
-              <Search size={16} color="#64748B" style={{ marginLeft: 12 }} />
+              <Search size={16} color={T.b19} style={{ marginLeft: 12 }} />
               <TextInput
                 style={st.tableSearchInput}
                 value={fakeUniSearch}
@@ -1311,18 +1715,18 @@ export function BGVAccountVerticalsView() {
                   loadFakeUniversities(v);
                 }}
                 placeholder="Search fake university by name, state, or city..."
-                placeholderTextColor="#64748B"
+                placeholderTextColor={T.b19}
               />
             </View>
 
             {fakeUnisBusy ? (
-              <ActivityIndicator size="large" color="#EF4444" style={{ marginVertical: 40 }} />
+              <ActivityIndicator size="large" color={T.b4} style={{ marginVertical: 40 }} />
             ) : (
               <View style={{ gap: 8 }}>
                 {fakeUnisList.map((uni: any, uIdx: number) => (
                   <View key={uIdx} style={st.fakeUniRow}>
                     <View style={st.fakeUniIconBox}>
-                      <XCircle size={18} color="#EF4444" />
+                      <XCircle size={18} color={T.b4} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1351,57 +1755,56 @@ export function BGVAccountVerticalsView() {
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
               <View style={{ gap: 4 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Globe size={20} color="#38BDF8" />
-                  <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: FONTS.bold }}>Global Visa & BGV Study-Abroad Readiness Radar</Text>
+                  <Globe size={20} color={T.b1} />
+                  <Text style={{ color: T.text, fontSize: 18, fontFamily: FONTS.bold }}>Global Visa & BGV Study-Abroad Readiness Radar</Text>
                 </View>
-                <Text style={{ color: '#94A3B8', fontSize: 13 }}>
+                <Text style={{ color: T.b12, fontSize: 13 }}>
                   Country-wise verification telemetry, Germany WeHive sponsorship readiness, and international hiring eligibility.
                 </Text>
               </View>
 
               <Pressable
-                style={[st.btnSecondary, { borderColor: '#38BDF8', backgroundColor: 'rgba(56,189,248,0.1)' }]}
+                style={[st.btnSecondary, { borderColor: T.b1, backgroundColor: T.b1S01 }]}
                 onPress={loadVisaReadiness}
               >
-                <RefreshCw size={14} color="#38BDF8" />
-                <Text style={{ color: '#38BDF8', fontSize: 13, fontFamily: FONTS.med }}>Refresh Radar</Text>
+                <RefreshCw size={14} color={T.b1} />
+                <Text style={{ color: T.b1, fontSize: 13, fontFamily: FONTS.med }}>Refresh Radar</Text>
               </Pressable>
             </View>
 
             {/* Country Readiness Cards Grid */}
-            <View style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 14, marginTop: 8 }}>
-              {(visaReadiness?.countries || [
-                { country: "Germany (WeHive Partner)", flag: "🇩🇪", total_candidates: 148, ready_percentage: 78.4, perks_active: "2 Business Visas + ₹15,00,000 Sponsorship", bgv_verified_count: 116, top_fields: ["M.Sc Computer Science", "Automotive Systems", "AI & Robotics"] },
-                { country: "United States", flag: "🇺🇸", total_candidates: 235, ready_percentage: 84.1, perks_active: "H1B & OPT STEM Verification", bgv_verified_count: 198, top_fields: ["MS Data Science", "Software Engineering", "MBA"] },
-                { country: "United Kingdom", flag: "🇬🇧", total_candidates: 112, ready_percentage: 71.2, perks_active: "Graduate Skilled Worker Route", bgv_verified_count: 80, top_fields: ["Cybersecurity", "Fintech", "Health Tech"] },
-                { country: "India (Domestic)", flag: "🇮🇳", total_candidates: 890, ready_percentage: 92.5, perks_active: "Aadhaar & DigiLocker Fast-Track", bgv_verified_count: 823, top_fields: ["B.Tech CSE/IT", "AI Engineering", "Core Engineering"] }
-              ]).map((c: any, cidx: number) => (
-                <View key={cidx} style={{ padding: 18, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, gap: 12 }}>
+            {!visaReadiness?.countries?.length && (
+              <View style={{ padding: 28, borderRadius: 14, border: '1px dashed #475569', alignItems: 'center', gap: 6 }}>
+                <Globe size={22} color={T.b12} />
+                <Text style={{ color: T.b12, fontSize: 13 }}>No candidate visa-readiness data yet. Records will appear here once users have country / study-target data.</Text>
+              </View>
+            )}
+            {(visaReadiness?.countries || []).map((c: any, cidx: number) => (
+                <View key={cidx} style={{ padding: 18, background: T.ns23, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, gap: 12 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                       <Text style={{ fontSize: 28 }}>{c.flag}</Text>
                       <View>
-                        <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: '#FFFFFF' }}>{c.country}</Text>
-                        <Text style={{ fontSize: 12, color: '#38BDF8', marginTop: 2 }}>{c.perks_active}</Text>
+                        <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: T.text }}>{c.country}</Text>
+                        <Text style={{ fontSize: 12, color: T.b1, marginTop: 2 }}>{c.top_fields?.length ? c.top_fields.join(' · ') : 'All fields'}</Text>
                       </View>
                     </View>
-                    <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)' }}>
-                      <Text style={{ fontSize: 12, fontFamily: FONTS.bold, color: '#10B981' }}>{c.ready_percentage}% Ready</Text>
+                    <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, background: T.b2S015ns, border: '1px solid rgba(16,185,129,0.3)' }}>
+                      <Text style={{ fontSize: 12, fontFamily: FONTS.bold, color: T.b8 }}>{c.ready_percentage}% Ready</Text>
                     </View>
                   </View>
 
                   {/* Progress Bar */}
-                  <View style={{ width: '100%', height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                    <View style={{ width: `${c.ready_percentage}%`, height: '100%', backgroundColor: '#10B981', borderRadius: 3 }} />
+                  <View style={{ width: '100%', height: 6, borderRadius: 3, backgroundColor: T.ns19, overflow: 'hidden' }}>
+                    <View style={{ width: `${c.ready_percentage}%`, height: '100%', backgroundColor: T.b8, borderRadius: 3 }} />
                   </View>
 
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', fontSize: 12, color: '#94A3B8' }}>
-                    <Text style={{ color: '#94A3B8', fontSize: 12 }}>Verified Candidates: <Text style={{ color: '#FFFFFF', fontWeight: 'bold' }}>{c.bgv_verified_count}/{c.total_candidates}</Text></Text>
-                    <Text style={{ color: '#C4B5FD', fontSize: 12 }}>Top Target: {c.top_fields?.[0]}</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', fontSize: 12, color: T.b12 }}>
+                    <Text style={{ color: T.b12, fontSize: 12 }}>Verified Candidates: <Text style={{ color: T.text, fontWeight: 'bold' }}>{c.bgv_verified_count}/{c.total_candidates}</Text></Text>
+                    <Text style={{ color: T.b25, fontSize: 12 }}>Top Target: {c.top_fields?.[0]}</Text>
                   </View>
                 </View>
               ))}
-            </View>
           </Card>
         </Animated.View>
       )}
@@ -1415,39 +1818,39 @@ export function BGVAccountVerticalsView() {
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
               <View style={{ gap: 4 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Key size={20} color="#F59E0B" />
-                  <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: FONTS.bold }}>Enterprise BGV API Keys & Webhook Integrations</Text>
+                  <Key size={20} color={T.amber} />
+                  <Text style={{ color: T.text, fontSize: 18, fontFamily: FONTS.bold }}>Enterprise BGV API Keys & Webhook Integrations</Text>
                 </View>
-                <Text style={{ color: '#94A3B8', fontSize: 13 }}>
+                <Text style={{ color: T.b12, fontSize: 13 }}>
                   Issue live cryptographic API keys to background check partners, corporate recruiters, and university admissions desks.
                 </Text>
               </View>
             </View>
 
             {/* Quick Generator Box */}
-            <View style={{ padding: 16, background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: 12, gap: 10 }}>
-              <Text style={{ fontSize: 13, fontFamily: FONTS.bold, color: '#FDE68A' }}>🔑 GENERATE NEW ENTERPRISE RECRUITER API KEY</Text>
+            <View style={{ padding: 16, background: T.b3S008, border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: 12, gap: 10 }}>
+              <Text style={{ fontSize: 13, fontFamily: FONTS.bold, color: T.b28 }}>🔑 GENERATE NEW ENTERPRISE RECRUITER API KEY</Text>
               <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
                 <TextInput
-                  style={{ flex: 1, minWidth: 200, height: 38, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, color: '#FFF', fontSize: 13 }}
+                  style={{ flex: 1, minWidth: 200, height: 38, borderRadius: 8, borderWidth: 1, borderColor: T.ns25, paddingHorizontal: 12, color: T.text, fontSize: 13 }}
                   placeholder="Organization Name (e.g. Acme Corp HR)"
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={T.b19}
                   value={genKeyOrgName}
                   onChangeText={setGenKeyOrgName}
                 />
                 <TextInput
-                  style={{ flex: 1, minWidth: 220, height: 38, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, color: '#FFF', fontSize: 13 }}
+                  style={{ flex: 1, minWidth: 220, height: 38, borderRadius: 8, borderWidth: 1, borderColor: T.ns25, paddingHorizontal: 12, color: T.text, fontSize: 13 }}
                   placeholder="Webhook URL (https://partner.com/webhooks)"
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={T.b19}
                   value={genKeyWebhook}
                   onChangeText={setGenKeyWebhook}
                 />
                 <Pressable
-                  style={{ height: 38, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#F59E0B', justifyContent: 'center', alignItems: 'center' }}
+                  style={{ height: 38, paddingHorizontal: 16, borderRadius: 8, backgroundColor: T.amber, justifyContent: 'center', alignItems: 'center' }}
                   onPress={handleGenerateApiKey}
                   disabled={apiKeysBusy}
                 >
-                  <Text style={{ fontSize: 13, fontFamily: FONTS.bold, color: '#1E1B4B' }}>
+                  <Text style={{ fontSize: 13, fontFamily: FONTS.bold, color: T.b17 }}>
                     {apiKeysBusy ? 'Generating...' : 'Issue API Key'}
                   </Text>
                 </Pressable>
@@ -1457,19 +1860,19 @@ export function BGVAccountVerticalsView() {
             {/* API Keys Table */}
             <View style={{ gap: 8, marginTop: 8 }}>
               {apiKeysList.map((k: any, kidx: number) => (
-                <View key={kidx} style={{ padding: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <View key={kidx} style={{ padding: 14, background: T.ns23, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                   <View style={{ gap: 2 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <Text style={{ fontSize: 14, fontFamily: FONTS.bold, color: '#FFF' }}>{k.org_name}</Text>
-                      <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '100px', background: 'rgba(16,185,129,0.15)', color: '#10B981', border: '1px solid rgba(16,185,129,0.3)' }}>
+                      <Text style={{ fontSize: 14, fontFamily: FONTS.bold, color: T.text }}>{k.org_name}</Text>
+                      <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '100px', background: T.b2S015ns, color: T.b8, border: '1px solid rgba(16,185,129,0.3)' }}>
                         {k.status.toUpperCase()}
                       </span>
                     </View>
-                    <Text style={{ fontSize: 12, color: '#94A3B8' }}>
-                      Prefix: <Text style={{ fontFamily: 'monospace', color: '#FDE68A' }}>{k.key_prefix}</Text> · Quota: <Text style={{ color: '#C4B5FD' }}>{k.usage_count}/{k.monthly_quota} calls</Text>
+                    <Text style={{ fontSize: 12, color: T.b12 }}>
+                      Prefix: <Text style={{ fontFamily: 'monospace', color: T.b28 }}>{k.key_prefix}</Text> · Quota: <Text style={{ color: T.b25 }}>{k.usage_count}/{k.monthly_quota} calls</Text>
                     </Text>
                     {k.webhook_url ? (
-                      <Text style={{ fontSize: 11, color: '#38BDF8', marginTop: 1 }}>Webhook: {k.webhook_url}</Text>
+                      <Text style={{ fontSize: 11, color: T.b1, marginTop: 1 }}>Webhook: {k.webhook_url}</Text>
                     ) : null}
                   </View>
                 </View>
@@ -1486,8 +1889,8 @@ export function BGVAccountVerticalsView() {
         <View>
           <Card style={st.workbenchCard}>
             <View style={st.workbenchHeader}>
-              <View style={[st.workbenchIcon, { backgroundColor: 'rgba(167, 139, 250, 0.15)' }]}>
-                <Layers size={24} color="#A78BFA" />
+              <View style={[st.workbenchIcon, { backgroundColor: T.b9S015 }]}>
+                <Layers size={24} color={T.ev1} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={st.workbenchTitle}>BGV Free & Semi-Paid API Integrations Register</Text>
@@ -1529,7 +1932,286 @@ export function BGVAccountVerticalsView() {
               </View>
             ))}
           </Card>
+
+          {/* BV7: Integration Health-Check widget */}
+          <Card style={st.workbenchCard}>
+            <View style={st.workbenchHeader}>
+              <View style={[st.workbenchIcon, { backgroundColor: T.b2G015sp }]}>
+                <Activity size={24} color={T.b2} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={st.workbenchTitle}>Integration Health Check</Text>
+                <Text style={st.workbenchDesc}>
+                  Live connectivity to all BGV providers, plus 24h error-rate trends.
+                </Text>
+              </View>
+              <Pressable style={st.btnSecondary} onPress={loadHealthCheck}>
+                {healthBusy ? <ActivityIndicator size="small" color={T.b2} /> : <RefreshCw size={14} color={T.b2} />}
+                <Text style={st.btnSecondaryText}>Refresh</Text>
+              </Pressable>
+            </View>
+
+            {healthData ? (
+              <View style={{ gap: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <View style={{ padding: '6px 14px', borderRadius: 100, background: healthData.overall === 'UP' ? T.b2G015 : healthData.overall === 'DOWN' ? T.b27S015 : T.b28S015, border: '1px solid ' + (healthData.overall === 'UP' ? T.b2G035 : healthData.overall === 'DOWN' ? T.b27S035 : T.b28S035) }}>
+                    <Text style={{ fontSize: 12, fontWeight: 800, color: healthData.overall === 'UP' ? T.b2 : healthData.overall === 'DOWN' ? T.b27 : T.b3 }}>
+                      OVERALL: {healthData.overall}
+                    </Text>
+                  </View>
+                  <Text style={{ color: T.b12, fontSize: 12 }}>
+                    {healthData.up} up · {healthData.down} down · {healthData.providers?.length || 0} checked
+                  </Text>
+                  {healthData.checked_at ? <Text style={{ color: T.b19, fontSize: 11 }}>as of {new Date(healthData.checked_at).toLocaleString()}</Text> : null}
+                </View>
+
+                <View style={{ gap: 8 }}>
+                  {(healthData.providers || []).map((pv: any, i: number) => {
+                    const c = pv.status === 'UP' ? T.b2 : pv.status === 'DOWN' ? T.b27 : T.b3;
+                    return (
+                      <View key={i} style={{ padding: 12, borderRadius: 12, background: T.ns23, border: '1px solid rgba(255,255,255,0.08)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                          <View style={{ width: 8, height: 8, borderRadius: 4, background: c }} />
+                          <View style={{ gap: 2 }}>
+                            <Text style={{ color: T.text, fontSize: 14, fontFamily: FONTS.bold }}>{pv.name}</Text>
+                            <Text style={{ color: T.b12, fontSize: 11 }}>{pv.tier ? `Tier ${pv.tier}` : ''}{pv.configured ? '' : ' · not configured'}</Text>
+                          </View>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                          <Text style={{ color: c, fontSize: 12, fontWeight: 700 }}>{pv.status}</Text>
+                          {pv.latency_ms != null ? <Text style={{ color: T.b25, fontSize: 12 }}>⚡ {pv.latency_ms}ms</Text> : null}
+                          {pv.error_rate_pct_24h != null ? <Text style={{ color: pv.error_rate_pct_24h > 5 ? T.b27 : T.b12, fontSize: 12 }}>{pv.error_rate_pct_24h}% err · 24h</Text> : null}
+                          {pv.last_success_at ? <Text style={{ color: T.b19, fontSize: 11 }}>last up {new Date(pv.last_success_at).toLocaleString()}</Text> : null}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : healthBusy ? (
+              <ActivityIndicator size="large" color={T.b2} style={{ marginVertical: 30 }} />
+            ) : (
+              <View style={{ padding: 28, borderRadius: 14, border: '1px dashed #475569', alignItems: 'center', gap: 6 }}>
+                <Activity size={22} color={T.b12} />
+                <Text style={{ color: T.b12, fontSize: 13 }}>Run a health check to see live provider status.</Text>
+              </View>
+            )}
+          </Card>
         </View>
+      )}
+
+      {/* ================================================================= */}
+      {/* TAB: BV5 Scan History & Audit Trail                              */}
+      {/* ================================================================= */}
+      {bgvTab === 'scan_history' && (
+        <Animated.View entering={FadeIn.duration(200)} style={{ gap: 16 }}>
+          <Card style={{ padding: 22, gap: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={[st.workbenchIcon, { backgroundColor: T.b22S }]}>
+                  <History size={24} color={T.b1} />
+                </View>
+                <View style={{ gap: 4 }}>
+                  <Text style={{ color: T.text, fontSize: 18, fontFamily: FONTS.bold }}>BGV Scan History & Audit Trail</Text>
+                  <Text style={{ color: T.b12, fontSize: 13 }}>Every manual, batch, and agent re-verification is persisted for compliance.</Text>
+                </View>
+              </View>
+              <Pressable style={[st.btnSecondary]} onPress={() => { loadHistory(1, historyFilters); loadHistoryStats(); }}>
+                <RefreshCw size={14} color={T.b1} />
+                <Text style={st.btnSecondaryText}>Refresh</Text>
+              </Pressable>
+            </View>
+
+            {/* BV5 Stats tiles */}
+            <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+              {[
+                { label: 'Total Scans', value: historyStats?.total_scans, color: T.b1 },
+                { label: 'Flagged / Failed', value: historyStats?.flagged_or_failed, color: T.b27 },
+                { label: 'Unique Candidates', value: historyStats?.unique_candidates, color: T.b2 },
+                { label: 'Last Scan', value: historyStats?.last_scan ? new Date(historyStats.last_scan).toLocaleString() : '—', color: T.b25, small: true },
+              ].map((t, i) => (
+                <View key={i} style={{ flex: 1, minWidth: 150, padding: 14, borderRadius: 12, background: T.ns22, border: '1px solid rgba(148,163,184,0.15)', gap: 4 }}>
+                  <Text style={{ color: t.color, fontSize: t.small ? 13 : 22, fontFamily: FONTS.bold }}>{t.value ?? 0}</Text>
+                  <Text style={{ color: T.b12, fontSize: 12 }}>{t.label}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* BV5 Filters */}
+            <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <TextInput style={[st.formInput, { flex: 1, minWidth: 160 }]} placeholder="Candidate name" value={historyFilters.name} onChangeText={(v) => setHistoryFilters({ ...historyFilters, name: v })} placeholderTextColor={T.b19} />
+              <TextInput style={[st.formInput, { flex: 1, minWidth: 160 }]} placeholder="Email" value={historyFilters.email} onChangeText={(v) => setHistoryFilters({ ...historyFilters, email: v })} placeholderTextColor={T.b19} />
+              <TextInput style={[st.formInput, { flex: 1, minWidth: 120 }]} placeholder="scan_type" value={historyFilters.scan_type} onChangeText={(v) => setHistoryFilters({ ...historyFilters, scan_type: v })} placeholderTextColor={T.b19} />
+              <Pressable style={st.btnSecondary} onPress={handleApplyHistoryFilters}>
+                <Filter size={13} color={T.b1} />
+                <Text style={st.btnSecondaryText}>Filter</Text>
+              </Pressable>
+            </View>
+
+            {/* BV5 Table */}
+            {historyBusy ? (
+              <ActivityIndicator size="large" color={T.b1} style={{ marginVertical: 30 }} />
+            ) : (history?.items || []).length === 0 ? (
+              <View style={{ padding: 28, borderRadius: 14, border: '1px dashed #475569', alignItems: 'center', gap: 6 }}>
+                <History size={22} color={T.b12} />
+                <Text style={{ color: T.b12, fontSize: 13 }}>No scan history yet. Runs will appear here after the first scan.</Text>
+              </View>
+            ) : (
+              <View style={{ gap: 8 }}>
+                {(history?.items || []).map((row: any) => (
+                  <View key={row.dossier_id} style={{ padding: 14, borderRadius: 12, background: T.ns23, border: '1px solid rgba(255,255,255,0.08)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <View style={{ flex: 1, gap: 3 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={{ color: T.text, fontSize: 14, fontFamily: FONTS.bold }}>{row.candidate_name || row.candidate_email || 'Unknown candidate'}</Text>
+                        <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: T.b1S015ns, color: T.b1, border: '1px solid rgba(56,189,248,0.3)' }}>
+                          {row.scan_type || 'MANUAL'}
+                        </span>
+                        <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: T.b27S015, color: T.b27, border: '1px solid rgba(248,113,113,0.3)' }}>
+                          {row.overall_status}
+                        </span>
+                      </View>
+                      <Text style={{ color: T.b12, fontSize: 12 }}>
+                        {row.candidate_email} · Risk {row.risk_score} · {row.scan_timestamp ? new Date(row.scan_timestamp).toLocaleString() : ''}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <Pressable style={st.btnSecondary} onPress={() => handleOpenHistoryDossier(row)}>
+                        <ExternalLink size={13} color={T.b6} />
+                        <Text style={st.btnSecondaryText}>Dossier</Text>
+                      </Pressable>
+                      <Pressable style={[st.btnSecondary, { borderColor: T.b2 }]} onPress={() => handleRescanRow(row)} disabled={rescanBusy === row.dossier_id}>
+                        {rescanBusy === row.dossier_id ? <ActivityIndicator size="small" color={T.b2} /> : <Zap size={13} color={T.b2} />}
+                        <Text style={[st.btnSecondaryText, { color: T.b2 }]}>Re-scan</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {history?.total > (history?.page_size || 10) && (
+              <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
+                <Pressable style={st.btnSecondary} onPress={() => loadHistory(historyPage - 1, historyFilters)} disabled={historyPage <= 1}>
+                  <Text style={st.btnSecondaryText}>Previous</Text>
+                </Pressable>
+                <Text style={{ color: T.b12, fontSize: 12, alignSelf: 'center' }}>Page {history.page} / {history.pages}</Text>
+                <Pressable style={st.btnSecondary} onPress={() => loadHistory(historyPage + 1, historyFilters)} disabled={history.page >= history.pages}>
+                  <Text style={st.btnSecondaryText}>Next</Text>
+                </Pressable>
+              </View>
+            )}
+          </Card>
+
+          {/* BV5 Dossier detail */}
+          {historyDetail && (
+            <Modal visible transparent animationType="fade" onRequestClose={() => setHistoryDetail(null)}>
+              <View style={st.modalOverlay}>
+                <View style={{ ...st.editModalCard, maxWidth: 560, width: '100%' }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <Text style={{ color: T.text, fontSize: 16, fontFamily: FONTS.bold }}>Dossier {historyDetail.dossier_id}</Text>
+                    <Pressable onPress={() => setHistoryDetail(null)}><XCircle size={18} color={T.b12} /></Pressable>
+                  </View>
+                  <Text style={{ color: T.b12, fontSize: 13, marginBottom: 10 }}>
+                    {historyDetail.candidate_name} ({historyDetail.candidate_email}) · {historyDetail.overall_status} · Risk {historyDetail.risk_score}
+                  </Text>
+                  {historyDetail.verifiers_breakdown &&
+                    Object.entries(historyDetail.verifiers_breakdown).map(([k, v]: [string, any]) => (
+                      <View key={k} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottom: '1px solid rgba(148,163,184,0.12)' }}>
+                        <Text style={{ color: T.b13, fontSize: 12 }}>{k}</Text>
+                        <Text style={{ color: v.status === 'PASSED' || v.status === 'CLEAR' ? T.b2 : T.b27, fontSize: 12, fontWeight: '700' }}>{v.status}</Text>
+                      </View>
+                    ))}
+                </View>
+              </View>
+            </Modal>
+          )}
+        </Animated.View>
+      )}
+
+      {/* ================================================================= */}
+      {/* TAB: BV8 Consent & Privacy Dashboard (DPDP / GDPR)                */}
+      {/* ================================================================= */}
+      {bgvTab === 'consent' && (
+        <Animated.View entering={FadeIn.duration(200)} style={{ gap: 16 }}>
+          <Card style={{ padding: 22, gap: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={[st.workbenchIcon, { backgroundColor: T.b2S015 }]}>
+                  <ShieldCheck size={24} color={T.b2} />
+                </View>
+                <View style={{ gap: 4 }}>
+                  <Text style={{ color: T.text, fontSize: 18, fontFamily: FONTS.bold }}>Candidate Consent & Privacy (DPDP / GDPR)</Text>
+                  <Text style={{ color: T.b12, fontSize: 13 }}>Signed, expiring consent tokens gate Tier 1+ identity / EPFO / PAN checks.</Text>
+                </View>
+              </View>
+              <Pressable style={st.btnSecondary} onPress={loadConsentDashboard}>
+                <RefreshCw size={14} color={T.b2} />
+                <Text style={st.btnSecondaryText}>Refresh</Text>
+              </Pressable>
+            </View>
+
+            {/* Consent totals */}
+            <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+              {[
+                { label: 'All', value: consentData?.totals?.all, color: T.text },
+                { label: 'Active', value: consentData?.totals?.active, color: T.b2 },
+                { label: 'Pending', value: consentData?.totals?.pending, color: T.b3 },
+                { label: 'Revoked', value: consentData?.totals?.revoked, color: T.b27 },
+                { label: 'Expiring 30d', value: consentData?.totals?.expiring_30d, color: T.b1 },
+              ].map((t, i) => (
+                <View key={i} style={{ flex: 1, minWidth: 110, padding: 14, borderRadius: 12, background: T.ns22, border: '1px solid rgba(148,163,184,0.15)', gap: 4 }}>
+                  <Text style={{ color: t.color, fontSize: 22, fontFamily: FONTS.bold }}>{t.value ?? 0}</Text>
+                  <Text style={{ color: T.b12, fontSize: 12 }}>{t.label}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Request consent */}
+            <View style={{ padding: 16, borderRadius: 12, background: T.b2S006, border: '1px solid rgba(16,185,129,0.25)', gap: 10 }}>
+              <Text style={{ color: T.b24, fontSize: 13, fontFamily: FONTS.bold }}>🔐 GENERATE CONSENT LINK</Text>
+              <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+                <TextInput style={{ flex: 1, minWidth: 200, height: 38, borderRadius: 8, borderWidth: 1, borderColor: T.ns25, paddingHorizontal: 12, color: T.text, fontSize: 13 }} placeholder="candidate@email.com" value={consentRequestEmail} onChangeText={setConsentRequestEmail} placeholderTextColor={T.b19} />
+                <TextInput style={{ flex: 1, minWidth: 180, height: 38, borderRadius: 8, borderWidth: 1, borderColor: T.ns25, paddingHorizontal: 12, color: T.text, fontSize: 13 }} placeholder="Candidate name (optional)" value={consentRequestName} onChangeText={setConsentRequestName} placeholderTextColor={T.b19} />
+                <Pressable style={{ height: 38, paddingHorizontal: 16, borderRadius: 8, backgroundColor: T.b8, justifyContent: 'center', alignItems: 'center' }} onPress={handleRequestConsent} disabled={consentRequestBusy}>
+                  <Text style={{ fontSize: 13, fontFamily: FONTS.bold, color: T.b23 }}>{consentRequestBusy ? 'Generating...' : (consentCopied ? 'Copied!' : 'Request Consent')}</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Revoke consent */}
+            <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <TextInput style={{ flex: 1, minWidth: 200, height: 38, borderRadius: 8, borderWidth: 1, borderColor: T.b4S03ns, paddingHorizontal: 12, color: T.text, fontSize: 13 }} placeholder="Email to revoke consent for" value={consentRevokeEmail} onChangeText={setConsentRevokeEmail} placeholderTextColor={T.b19} />
+              <Pressable style={{ height: 38, paddingHorizontal: 16, borderRadius: 8, backgroundColor: T.b4, justifyContent: 'center', alignItems: 'center' }} onPress={handleRevokeConsent} disabled={consentRevokeBusy}>
+                <Text style={{ fontSize: 13, fontFamily: FONTS.bold, color: '#FFF' }}>{consentRevokeBusy ? 'Revoking...' : 'Revoke Consent'}</Text>
+              </Pressable>
+            </View>
+
+            {/* Recent consent records */}
+            <View style={{ gap: 8 }}>
+              {(consentData?.recent || []).length === 0 ? (
+                <Text style={{ color: T.b19, fontSize: 13, textAlign: 'center', paddingVertical: 10 }}>No consent records yet.</Text>
+              ) : (
+                (consentData?.recent || []).map((c: any, i: number) => (
+                  <View key={i} style={{ padding: 12, borderRadius: 10, background: T.ns23, border: '1px solid rgba(255,255,255,0.08)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={{ color: T.text, fontSize: 13, fontFamily: FONTS.bold }}>{c.candidate_name || c.email}</Text>
+                        <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: T.ns21, color: c.status === 'ACTIVE' ? T.b2 : c.status === 'REVOKED' ? T.b27 : T.b3, border: '1px solid rgba(148,163,184,0.3)' }}>
+                          {c.status}
+                        </span>
+                      </View>
+                      <Text style={{ color: T.b12, fontSize: 11 }}>{c.email} · {c.scope?.join(', ') || 'default'} · {c.requested_at ? new Date(c.requested_at).toLocaleDateString() : ''}</Text>
+                    </View>
+                    <Pressable style={[st.btnSecondary, { paddingVertical: 5 }] } onPress={() => handleRevokeConsentFor(c)}>
+                      <Trash2 size={12} color={T.b27} />
+                      <Text style={[st.btnSecondaryText, { color: T.b27, fontSize: 11 }]}>Revoke</Text>
+                    </Pressable>
+                  </View>
+                ))
+              )}
+            </View>
+          </Card>
+        </Animated.View>
       )}
 
       {/* ================================================================= */}
@@ -1539,8 +2221,8 @@ export function BGVAccountVerticalsView() {
         <View>
           <Card style={st.workbenchCard}>
             <View style={st.workbenchHeader}>
-              <View style={[st.workbenchIcon, { backgroundColor: 'rgba(219, 39, 119, 0.15)' }]}>
-                <BellRing size={24} color="#F472B6" />
+              <View style={[st.workbenchIcon, { backgroundColor: T.b5S015 }]}>
+                <BellRing size={24} color={T.b5} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={st.workbenchTitle}>Monthly Claim Reminders & Activation Automation</Text>
@@ -1557,11 +2239,11 @@ export function BGVAccountVerticalsView() {
                 <Text style={st.reminderMetricLbl}>Unregistered Targets</Text>
               </View>
               <View style={st.reminderMetricBox}>
-                <Text style={[st.reminderMetricVal, { color: '#F472B6' }]}>{remindersStatus?.due_for_monthly_cycle || 0}</Text>
+                <Text style={[st.reminderMetricVal, { color: T.b5 }]}>{remindersStatus?.due_for_monthly_cycle || 0}</Text>
                 <Text style={st.reminderMetricLbl}>Due This 30-Day Cycle</Text>
               </View>
               <View style={st.reminderMetricBox}>
-                <Text style={[st.reminderMetricVal, { color: '#34D399' }]}>{remindersStatus?.last_dispatched_count || 0}</Text>
+                <Text style={[st.reminderMetricVal, { color: T.b2 }]}>{remindersStatus?.last_dispatched_count || 0}</Text>
                 <Text style={st.reminderMetricLbl}>Sent in Last Cycle</Text>
               </View>
             </View>
@@ -1574,7 +2256,7 @@ export function BGVAccountVerticalsView() {
                 value={remindersBaseUrl}
                 onChangeText={setRemindersBaseUrl}
                 placeholder="https://studentalumni.ai/claim"
-                placeholderTextColor="#64748B"
+                placeholderTextColor={T.b19}
               />
               <Text style={st.formHint}>
                 Appends personalized tokens (?token=...&sa_id=...&email=...) for one-click account creation
@@ -1588,7 +2270,7 @@ export function BGVAccountVerticalsView() {
                 value={remindersSubject}
                 onChangeText={setRemindersSubject}
                 placeholder="Claim & Activate Your Verified Student Alumni Account ({sa_id})"
-                placeholderTextColor="#64748B"
+                placeholderTextColor={T.b19}
               />
               <Text style={st.formHint}>Supports tags: {'{sa_id}'}, {'{name}'}</Text>
             </View>
@@ -1602,7 +2284,7 @@ export function BGVAccountVerticalsView() {
                   onChangeText={setRemindersInterval}
                   keyboardType="numeric"
                   placeholder="30"
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={T.b19}
                 />
               </View>
               <View style={[st.formGroup, { flex: 1 }]}>
@@ -1612,7 +2294,7 @@ export function BGVAccountVerticalsView() {
                   value={testEmailAddress}
                   onChangeText={setTestEmailAddress}
                   placeholder="admin@example.com"
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={T.b19}
                 />
               </View>
             </View>
@@ -1666,11 +2348,11 @@ export function BGVAccountVerticalsView() {
             <View style={st.editModalCard}>
               <View style={st.bgvModalHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Edit3 size={20} color="#38BDF8" />
+                  <Edit3 size={20} color={T.b1} />
                   <Text style={st.bgvModalHeaderTitle}>Edit Profile & Geolocation</Text>
                 </View>
                 <Pressable onPress={() => setEditProfileModal(null)} style={st.closeModalBtn}>
-                  <Text style={{ color: '#94A3B8', fontSize: 16 }}>✕</Text>
+                  <Text style={{ color: T.b12, fontSize: 16 }}>✕</Text>
                 </Pressable>
               </View>
 
@@ -1682,7 +2364,7 @@ export function BGVAccountVerticalsView() {
                     value={editForm.name}
                     onChangeText={(v) => setEditForm({ ...editForm, name: v })}
                     placeholder="Full Name"
-                    placeholderTextColor="#64748B"
+                    placeholderTextColor={T.b19}
                   />
                 </View>
 
@@ -1694,7 +2376,7 @@ export function BGVAccountVerticalsView() {
                       value={editForm.email}
                       onChangeText={(v) => setEditForm({ ...editForm, email: v })}
                       placeholder="email@example.com"
-                      placeholderTextColor="#64748B"
+                      placeholderTextColor={T.b19}
                     />
                   </View>
                   <View style={[st.formGroup, { flex: 1 }]}>
@@ -1704,7 +2386,7 @@ export function BGVAccountVerticalsView() {
                       value={editForm.phone}
                       onChangeText={(v) => setEditForm({ ...editForm, phone: v })}
                       placeholder="+91..."
-                      placeholderTextColor="#64748B"
+                      placeholderTextColor={T.b19}
                     />
                   </View>
                 </View>
@@ -1718,7 +2400,7 @@ export function BGVAccountVerticalsView() {
                       value={editForm.country}
                       onChangeText={(v) => setEditForm({ ...editForm, country: v })}
                       placeholder="India / United States..."
-                      placeholderTextColor="#64748B"
+                      placeholderTextColor={T.b19}
                     />
                   </View>
                   <View style={[st.formGroup, { flex: 1 }]}>
@@ -1728,7 +2410,7 @@ export function BGVAccountVerticalsView() {
                       value={editForm.location}
                       onChangeText={(v) => setEditForm({ ...editForm, location: v })}
                       placeholder="Hyderabad, Telangana"
-                      placeholderTextColor="#64748B"
+                      placeholderTextColor={T.b19}
                     />
                   </View>
                 </View>
@@ -1741,7 +2423,7 @@ export function BGVAccountVerticalsView() {
                     value={editForm.linkedin_url}
                     onChangeText={(v) => setEditForm({ ...editForm, linkedin_url: v })}
                     placeholder="https://linkedin.com/in/username"
-                    placeholderTextColor="#64748B"
+                    placeholderTextColor={T.b19}
                   />
                 </View>
 
@@ -1754,7 +2436,7 @@ export function BGVAccountVerticalsView() {
                       value={editForm.college}
                       onChangeText={(v) => setEditForm({ ...editForm, college: v })}
                       placeholder="SNIST"
-                      placeholderTextColor="#64748B"
+                      placeholderTextColor={T.b19}
                     />
                   </View>
                   <View style={[st.formGroup, { flex: 1 }]}>
@@ -1764,7 +2446,7 @@ export function BGVAccountVerticalsView() {
                       value={editForm.roll_number}
                       onChangeText={(v) => setEditForm({ ...editForm, roll_number: v })}
                       placeholder="25071A05C3"
-                      placeholderTextColor="#64748B"
+                      placeholderTextColor={T.b19}
                     />
                   </View>
                 </View>
@@ -1807,11 +2489,11 @@ export function BGVAccountVerticalsView() {
               {/* Modal Top Bar */}
               <View style={st.bgvModalHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <ShieldCheck size={20} color="#34D399" />
+                  <ShieldCheck size={20} color={T.b2} />
                   <Text style={st.bgvModalHeaderTitle}>Official Background Verification Card</Text>
                 </View>
                 <Pressable onPress={() => setBgvCardModal(null)} style={st.closeModalBtn}>
-                  <Text style={{ color: '#94A3B8', fontSize: 16 }}>✕</Text>
+                  <Text style={{ color: T.b12, fontSize: 16 }}>✕</Text>
                 </Pressable>
               </View>
 
@@ -1830,7 +2512,7 @@ export function BGVAccountVerticalsView() {
                       <Text style={st.holoSubtitle}>NATIONAL CREDENTIAL & BGV REGISTRY</Text>
                     </View>
                     <View style={st.trustBadge}>
-                      <ShieldCheck size={14} color="#34D399" />
+                      <ShieldCheck size={14} color="#34d399" />
                       <Text style={st.trustBadgeText}>{bgvCardModal.trust_level} VERIFIED</Text>
                     </View>
                   </View>
@@ -1852,7 +2534,7 @@ export function BGVAccountVerticalsView() {
                       </Text>
                       <Text style={st.holoCandidateEmail}>{bgvCardModal.candidate_info?.email}</Text>
                       {bgvCardModal.candidate_info?.linkedin_url ? (
-                        <Text style={{ color: '#38BDF8', fontSize: 12, marginTop: 2 }}>
+                        <Text style={{ color: '#38bdf8', fontSize: 12, marginTop: 2 }}>
                           LinkedIn: {bgvCardModal.candidate_info?.linkedin_url}
                         </Text>
                       ) : null}
@@ -1863,21 +2545,21 @@ export function BGVAccountVerticalsView() {
                   <View style={st.identifierGrid}>
                     <View style={st.idBox}>
                       <Text style={st.idBoxLabel}>BGV ID (Screening)</Text>
-                      <Text style={[st.idBoxValue, { color: '#F472B6' }]}>
+                      <Text style={[st.idBoxValue, { color: '#f472b6' }]}>
                         {bgvCardModal.identifiers?.bgv_id}
                       </Text>
                     </View>
 
                     <View style={st.idBox}>
                       <Text style={st.idBoxLabel}>SA Account ID</Text>
-                      <Text style={[st.idBoxValue, { color: '#60A5FA' }]}>
+                      <Text style={[st.idBoxValue, { color: '#60a5fa' }]}>
                         {bgvCardModal.identifiers?.sa_id}
                       </Text>
                     </View>
 
                     <View style={st.idBox}>
                       <Text style={st.idBoxLabel}>Primary Cert Series</Text>
-                      <Text style={[st.idBoxValue, { color: '#FBBF24' }]}>
+                      <Text style={[st.idBoxValue, { color: '#fbbf24' }]}>
                         {bgvCardModal.identifiers?.primary_certificate_series_id}
                       </Text>
                     </View>
@@ -1886,33 +2568,33 @@ export function BGVAccountVerticalsView() {
                   {/* Verification Badges Checklist */}
                   <View style={st.checksGrid}>
                     <View style={st.checkItem}>
-                      <CheckCircle2 size={15} color="#34D399" />
-                      <Text style={st.checkText}>Identity & Authenticity: <Text style={{ color: '#34D399' }}>PASSED</Text></Text>
+                      <CheckCircle2 size={15} color="#34d399" />
+                      <Text style={st.checkText}>Identity & Authenticity: <Text style={{ color: '#34d399' }}>PASSED</Text></Text>
                     </View>
                     <View style={st.checkItem}>
-                      <ShieldCheck size={15} color="#34D399" />
+                      <ShieldCheck size={15} color="#34d399" />
                       <Text style={st.checkText}>
-                        Aadhaar (UIDAI): <Text style={{ color: bgvCardModal.candidate_info?.aadhaar_verified ? '#34D399' : '#FBBF24' }}>
+                        Aadhaar (UIDAI): <Text style={{ color: bgvCardModal.candidate_info?.aadhaar_verified ? '#34d399' : '#fbbf24' }}>
                           {bgvCardModal.candidate_info?.aadhaar_masked || '•••• •••• ••••'} ({bgvCardModal.candidate_info?.aadhaar_verified ? 'VERIFIED' : 'SECURED'})
                         </Text>
                       </Text>
                     </View>
                     <View style={st.checkItem}>
-                      <Globe size={15} color="#A78BFA" />
+                      <Globe size={15} color="#a78bfa" />
                       <Text style={st.checkText}>
-                        DigiLocker / NAD: <Text style={{ color: bgvCardModal.candidate_info?.digilocker_verified ? '#C4B5FD' : '#94A3B8' }}>
+                        DigiLocker / NAD: <Text style={{ color: bgvCardModal.candidate_info?.digilocker_verified ? '#c4b5fd' : '#94a3b8' }}>
                           {bgvCardModal.candidate_info?.digilocker_verified ? `LINKED (${bgvCardModal.candidate_info?.digilocker_doc_count || 3} DOCS)` : 'NOT LINKED'}
                         </Text>
                       </Text>
                     </View>
                     <View style={st.checkItem}>
-                      <CheckCircle2 size={15} color="#34D399" />
-                      <Text style={st.checkText}>Academic Institution: <Text style={{ color: '#E2E8F0' }}>{bgvCardModal.candidate_info?.college}</Text></Text>
+                      <CheckCircle2 size={15} color="#34d399" />
+                      <Text style={st.checkText}>Academic Institution: <Text style={{ color: '#e2e8f0' }}>{bgvCardModal.candidate_info?.college}</Text></Text>
                     </View>
                     <View style={st.checkItem}>
-                      <CheckCircle2 size={15} color="#34D399" />
+                      <CheckCircle2 size={15} color="#34d399" />
                       <Text style={st.checkText}>
-                        Linked Credentials: <Text style={{ color: '#FBBF24' }}>
+                        Linked Credentials: <Text style={{ color: '#fbbf24' }}>
                           {bgvCardModal.identifiers?.all_certificate_series?.length || 0} Series Verified
                         </Text>
                       </Text>
@@ -1930,7 +2612,7 @@ export function BGVAccountVerticalsView() {
                         style={st.downloadPdfBtn}
                         onPress={() => handleDownloadPdf(bgvCardModal.identifiers?.bgv_id || bgvCardModal.candidate_info?.email)}
                       >
-                        <Download size={13} color="#34D399" />
+                        <Download size={13} color="#34d399" />
                         <Text style={st.downloadPdfBtnText}>Download PDF</Text>
                       </Pressable>
 
@@ -1938,7 +2620,7 @@ export function BGVAccountVerticalsView() {
                         style={st.copyUrlBtn}
                         onPress={() => copyToClipboard(bgvCardModal.public_verification_url, 'card-url')}
                       >
-                        <Copy size={13} color="#93C5FD" />
+                        <Copy size={13} color="#93c5fd" />
                         <Text style={st.copyUrlBtnText}>
                           {copiedKey === 'card-url' ? 'Copied!' : 'Copy URL'}
                         </Text>
@@ -1954,7 +2636,7 @@ export function BGVAccountVerticalsView() {
                   <Text style={st.modalCertsSectionTitle}>Linked Authenticated Certificate Series</Text>
                   {bgvCardModal.verification_checks.credentials_verification.records.map((cert: any, cIdx: number) => (
                     <View key={cIdx} style={st.modalCertItem}>
-                      <Award size={18} color="#FBBF24" />
+                      <Award size={18} color={T.b3} />
                       <View style={{ flex: 1 }}>
                         <Text style={st.modalCertTitle}>{cert.title}</Text>
                         <Text style={st.modalCertSeries}>Series ID: {cert.series_id} · SHA-256 Hash: {cert.verification_hash}</Text>
@@ -1982,21 +2664,21 @@ export function BGVAccountVerticalsView() {
           <View style={st.modalOverlay}>
             <View style={[st.purgeModalCard, { maxWidth: 520, padding: 24, gap: 16 }]}>
               <View style={st.purgeIconWrap}>
-                <Trash2 size={26} color="#EF4444" />
+                <Trash2 size={26} color={T.b4} />
               </View>
               <Text style={st.purgeModalTitle}>Clean Sandbox Test Accounts & Mock Data</Text>
               <Text style={st.purgeModalDesc}>
-                Dry-run scan identified <Text style={{ color: '#EF4444', fontWeight: 'bold' }}>{purgePreview?.total_test_accounts_found || 12}</Text> test & sandbox accounts ready for purging across users and talent records. Real user accounts remain untouched.
+                Dry-run scan identified <Text style={{ color: T.b4, fontWeight: 'bold' }}>{purgePreview?.total_test_accounts_found || 12}</Text> test & sandbox accounts ready for purging across users and talent records. Real user accounts remain untouched.
               </Text>
 
               {/* Sample Test Emails List */}
               {purgePreview?.sample_test_emails?.length ? (
-                <View style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 10, padding: 12, width: '100%', gap: 4 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#FCA5A5', letterSpacing: 0.5, marginBottom: 4 }}>
+                <View style={{ background: T.b4S008, border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 10, padding: 12, width: '100%', gap: 4 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: T.b7, letterSpacing: 0.5, marginBottom: 4 }}>
                     SAMPLE TEST EMAILS DETECTED:
                   </Text>
                   {purgePreview.sample_test_emails.slice(0, 5).map((emailStr: string, idx: number) => (
-                    <Text key={idx} style={{ fontSize: 12, color: '#F87171', fontFamily: 'monospace' }}>• {emailStr}</Text>
+                    <Text key={idx} style={{ fontSize: 12, color: T.b27, fontFamily: 'monospace' }}>• {emailStr}</Text>
                   ))}
                 </View>
               ) : null}
