@@ -551,3 +551,193 @@ async def stop_cicd_loop(
     stopped = cicd_loop_agent.stop_loop()
     return {"status": "success" if stopped else "not_running", "agent": cicd_loop_agent.get_status()}
 
+
+# ── BGV Autonomous Agents (BV9–BV14) ─────────────────────────────────────
+from services.agents.bgv_reverification_agent import bgv_reverify_agent, BGVRereviewResult
+from services.agents.degree_mill_intelligence_agent import degree_mill_intelligence_agent, DegreeMillResult
+from services.agents.linkedin_validator_agent import linkedin_validator_agent, LinkedInValidationRunResult
+from services.agents.bgv_compliance_agent import bgv_compliance_agent, BGVRTRTBFResult
+from services.agents.bgv_anomaly_agent import bgv_anomaly_agent, BGVAnomalyRunResult
+from services.agents.bgv_partner_onboarding_agent import (
+    bgv_partner_onboarding_agent,
+    PartnerOnboardingResult,
+)
+
+
+class ReverifyRunRequest(BaseModel):
+    force: bool = False
+    limit: int = 200
+
+class DegreeMillRunRequest(BaseModel):
+    force: bool = False
+    limit: int = 500
+
+class LinkedInValidatorRunRequest(BaseModel):
+    force: bool = False
+    limit: int = 200
+
+class ComplianceRunRequest(BaseModel):
+    force: bool = False
+    retention_years: Optional[int] = None
+
+class AnomalyRunRequest(BaseModel):
+    force: bool = False
+
+class AnomalyResolveRequest(BaseModel):
+    resolution: str  # INVESTIGATED | CONFIRMED_FRAUD | FALSE_POSITIVE
+    note: Optional[str] = ""
+
+class PartnerTransitionRequest(BaseModel):
+    partner_id: str
+    lifecycle: str
+
+
+# ── BV9: Weekly Re-Verification ──────────────────────────────────────────
+@router.get("/bgv-reverify/status")
+async def get_bgv_reverify_status(user=Depends(require_role("admin", "superadmin", "super_admin"))):
+    """Telemetry for the weekly BGV re-verification agent."""
+    from db import db
+    return await bgv_reverify_agent.get_status(db)
+
+@router.post("/bgv-reverify/run", response_model=BGVRereviewResult)
+async def trigger_bgv_reverify(
+    req: ReverifyRunRequest = Body(default_factory=ReverifyRunRequest),
+    user=Depends(require_role("admin", "superadmin", "super_admin")),
+):
+    """Re-scans candidates last scanned >180 days ago (weekly; force for now)."""
+    from db import db
+    return await bgv_reverify_agent.run(db, force=req.force, limit=req.limit)
+
+
+# ── BV10: Degree-Mill Intelligence ───────────────────────────────────────
+@router.get("/degree-mill-intel/status")
+async def get_degree_mill_intel_status(user=Depends(require_role("admin", "superadmin", "super_admin"))):
+    """Telemetry for the daily degree-mill intelligence agent."""
+    from db import db
+    return await degree_mill_intelligence_agent.get_status(db)
+
+@router.post("/degree-mill-intel/run", response_model=DegreeMillResult)
+async def trigger_degree_mill_intel(
+    req: DegreeMillRunRequest = Body(default_factory=DegreeMillRunRequest),
+    user=Depends(require_role("admin", "superadmin", "super_admin")),
+):
+    """Cross-references platform users against the UGC/AICTE fake-university registry."""
+    from db import db
+    return await degree_mill_intelligence_agent.run(db, force=req.force, limit=req.limit)
+
+
+# ── BV11: LinkedIn Profile Validator ─────────────────────────────────────
+@router.get("/linkedin-validator/status")
+async def get_linkedin_validator_status(user=Depends(require_role("admin", "superadmin", "super_admin"))):
+    """Telemetry for the weekly LinkedIn profile validator."""
+    from db import db
+    return await linkedin_validator_agent.get_status(db)
+
+@router.post("/linkedin-validator/run", response_model=LinkedInValidationRunResult)
+async def trigger_linkedin_validator(
+    req: LinkedInValidatorRunRequest = Body(default_factory=LinkedInValidatorRunRequest),
+    user=Depends(require_role("admin", "superadmin", "super_admin")),
+):
+    """Validates up to 200 user LinkedIn profiles per run (proposes for admin review)."""
+    from db import db
+    return await linkedin_validator_agent.run(db, force=req.force, limit=req.limit)
+
+@router.get("/linkedin-validator/proposed")
+async def list_proposed_linkedin_validations(
+    limit: int = 50,
+    user=Depends(require_role("admin", "superadmin", "super_admin")),
+):
+    """Pending admin-review LinkedIn validation proposals."""
+    from db import db
+    docs = await db.linkedin_validations.find({"status": "PROPOSED"}).sort("validated_at", -1).limit(limit).to_list(length=limit)
+    return {"count": len(docs), "items": docs}
+
+
+# ── BV12: BGV Compliance (DPDP retention / consent / RTBF) ──────────────
+@router.get("/bgv-compliance/status")
+async def get_bgv_compliance_status(user=Depends(require_role("admin", "superadmin", "super_admin"))):
+    """Telemetry for the daily BGV compliance agent."""
+    from db import db
+    return await bgv_compliance_agent.get_status(db)
+
+@router.post("/bgv-compliance/run", response_model=BGVRTRTBFResult)
+async def trigger_bgv_compliance(
+    req: ComplianceRunRequest = Body(default_factory=ComplianceRunRequest),
+    user=Depends(require_role("admin", "superadmin", "super_admin")),
+):
+    """Consent-expiry scan, retention enforcement, RTBF processing, monthly report."""
+    from db import db
+    return await bgv_compliance_agent.run(db, force=req.force, retention_years=req.retention_years)
+
+
+# ── BV13: BGV Anomaly Detection ──────────────────────────────────────────
+@router.get("/bgv-anomaly/status")
+async def get_bgv_anomaly_status(user=Depends(require_role("admin", "superadmin", "super_admin"))):
+    """Telemetry for the 6-hour BGV anomaly-detection agent."""
+    from db import db
+    return await bgv_anomaly_agent.get_status(db)
+
+@router.post("/bgv-anomaly/run", response_model=BGVAnomalyRunResult)
+async def trigger_bgv_anomaly(
+    req: AnomalyRunRequest = Body(default_factory=AnomalyRunRequest),
+    user=Depends(require_role("admin", "superadmin", "super_admin")),
+):
+    """Runs the 24h-window anomaly detection pass (z-score, dup-PAN, volume, geo, clustering)."""
+    from db import db
+    return await bgv_anomaly_agent.run(db, force=req.force)
+
+@router.get("/bgv-anomaly/alerts")
+async def list_bgv_anomaly_alerts(
+    status: str = "OPEN",
+    limit: int = 100,
+    user=Depends(require_role("admin", "superadmin", "super_admin")),
+):
+    """Lists BGV anomaly alerts (default: open only)."""
+    from db import db
+    return await bgv_anomaly_agent.list_alerts(db, status=status, limit=limit)
+
+@router.post("/bgv-anomaly/alerts/{anomaly_id}/resolve")
+async def resolve_bgv_anomaly_alert(
+    anomaly_id: str,
+    req: AnomalyResolveRequest,
+    user=Depends(require_role("admin", "superadmin", "super_admin")),
+):
+    """Admin triage: Investigated / Confirmed Fraud / False Positive."""
+    from db import db
+    return await bgv_anomaly_agent.resolve_alert(db, anomaly_id, req.resolution, req.note or "")
+
+
+# ── BV14: Enterprise Partner Onboarding ──────────────────────────────────
+@router.get("/bgv-partner-onboarding/status")
+async def get_bgv_partner_onboarding_status(user=Depends(require_role("admin", "superadmin", "super_admin"))):
+    """Telemetry for the BGV enterprise partner onboarding agent."""
+    from db import db
+    return await bgv_partner_onboarding_agent.get_status(db)
+
+@router.post("/bgv-partner-onboarding/run", response_model=PartnerOnboardingResult)
+async def trigger_bgv_partner_onboarding(
+    user=Depends(require_role("admin", "superadmin", "super_admin")),
+):
+    """Issues sandbox keys, nudges idle partners, promotes VALIDATED, raises quota alerts."""
+    from db import db
+    return await bgv_partner_onboarding_agent.run(db)
+
+@router.post("/bgv-partner-onboarding/transition")
+async def transition_bgv_partner(
+    req: PartnerTransitionRequest,
+    user=Depends(require_role("admin", "superadmin", "super_admin")),
+):
+    """Moves a partner to a lifecycle stage (APPLIED→SANDBOX→VALIDATED→PRODUCTION→SUSPENDED)."""
+    from db import db
+    return await bgv_partner_onboarding_agent.transition(db, req.partner_id, req.lifecycle)
+
+@router.get("/bgv-partner-onboarding/partners")
+async def list_bgv_partners(
+    lifecycle: Optional[str] = None,
+    limit: int = 200,
+    user=Depends(require_role("admin", "superadmin", "super_admin")),
+):
+    """Lists BGV enterprise partners, optionally filtered by lifecycle stage."""
+    from db import db
+    return await bgv_partner_onboarding_agent.list_partners(db, lifecycle=lifecycle, limit=limit)
+

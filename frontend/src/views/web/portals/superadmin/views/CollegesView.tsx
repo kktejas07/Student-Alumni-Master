@@ -26,13 +26,17 @@ import {
   TopTabs, SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox, KpiTile,
 } from '../applekit';
 import { request, resolveImageUrl } from '@/src/models/services/api';
-import { useSubTab } from '@/src/views/web/portals/portalUrl';
+import { useSubTab, usePortalUrl } from '@/src/views/web/portals/portalUrl';
 
 type Status = 'all' | 'pending' | 'active' | 'paused';
 
 export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const T = useSAC();
   Object.assign(s, resolveColors(s, T));
+  const { go } = usePortalUrl();
+  const goStudentsProfile = (uid: string) => {
+    try { go('students', uid); } catch { go('students'); }
+  };
   const [tab, setTab] = useSubTab<Status>(['all', 'pending', 'active', 'paused'], 'all', { sub, onSub });
   const [q, setQ] = useState('');
   const [data, setData] = useState<any>(null);
@@ -105,6 +109,8 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
 
   const counts = data?.counts || {};
   const items: any[] = data?.items || [];
+  const allSelected = items.length > 0 && items.every((c) => selected.has(c.id));
+  const selectAll = () => setSelected(allSelected ? new Set() : new Set(items.map((c) => c.id)));
 
   const tabs = [
     { id: 'all',     label: 'All',                count: counts.all      || 0 },
@@ -157,6 +163,10 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
               and queues it for super-admin verification.
             </Text>
           </View>
+          <SecondaryButton onPress={openDedup}>
+            <GitMerge size={13} color={T.muted} />
+            <Text style={s.secText}>Find duplicates</Text>
+          </SecondaryButton>
           <GradientButton onPress={() => setCreating(true)}>
             <Plus size={13} color="#fff" /><Text style={s.btnText}>Onboard college</Text>
           </GradientButton>
@@ -175,7 +185,7 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
         <KpiTile Icon={ShieldOff}   label="PAUSED"            value={String(counts.paused  || 0)} />
       </View>
 
-      {/* Tabs + Search */}
+      {/* Tabs + Search + Select-all */}
       <Card>
         <View style={s.browseHead}>
           <TopTabs<Status> tabs={tabs as any} active={tab} onChange={setTab} />
@@ -206,6 +216,8 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
             <View key={c.id} style={s.gridCell}>
               <CollegeCard
                 college={c}
+                selected={selected.has(c.id)}
+                onToggleSelect={() => toggleSel(c.id)}
                 onOpen={() => setOpen(c)}
                 onApprove={approve} onDisable={disable} onRestore={restore} onRemove={remove}
                 onReenrich={reenrich}
@@ -214,6 +226,62 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
           ))}
         </View>
       )}
+
+      {/* Floating bulk action bar */}
+      {selected.size > 0 && !confirmDelete && (
+        <View style={s.bulkBar}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={s.bulkCount}>{selected.size} selected</Text>
+            <Pressable onPress={clearSel} style={s.bulkClear}><X size={12} color={T.muted} /></Pressable>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <Pressable onPress={() => startBulk('approve')} style={[s.bulkBtn, bulkBusy && { opacity: 0.5 }]}>
+              <ShieldCheck size={12} color={GRAD.from} /><Text style={s.bulkBtnText}>Approve ({selected.size})</Text>
+            </Pressable>
+            <Pressable onPress={() => startBulk('disable')} style={[s.bulkBtn, bulkBusy && { opacity: 0.5 }]}>
+              <ShieldOff size={12} color={T.muted} /><Text style={s.bulkBtnText}>Disable ({selected.size})</Text>
+            </Pressable>
+            <Pressable onPress={() => startBulk('reenrich')} style={[s.bulkBtn, bulkBusy && { opacity: 0.5 }]}>
+              <RefreshCw size={12} color={T.muted} /><Text style={s.bulkBtnText}>Re-enrich ({selected.size})</Text>
+            </Pressable>
+            <Pressable onPress={() => startBulk('delete')} style={[s.bulkBtn, s.bulkBtnDanger, bulkBusy && { opacity: 0.5 }]}>
+              <Trash2 size={12} color={T.danger} /><Text style={[s.bulkBtnText, { color: T.danger }]}>Delete ({selected.size})</Text>
+            </Pressable>
+            {bulkBusy && <Text style={s.muted}>Working…</Text>}
+          </View>
+        </View>
+      )}
+
+      {/* Bulk delete confirmation */}
+      <Modal visible={confirmDelete} transparent animationType="fade" onRequestClose={() => setConfirmDelete(false)}>
+        <View style={s.modalBg}>
+          <Animated.View entering={FadeInDown.duration(200)} style={[s.modalCard, { maxWidth: 420 }]}>
+            <View style={{ padding: 20, gap: 14 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <IconBox size={36}><AlertTriangle size={16} color={T.danger} /></IconBox>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.modalTitle}>Delete {selected.size} {selected.size === 1 ? 'college' : 'colleges'}?</Text>
+                  <Text style={s.muted}>They will be moved to the colleges archive, not wiped.</Text>
+                </View>
+              </View>
+              <View style={s.warnBox}>
+                <AlertTriangle size={13} color={T.danger} />
+                <Text style={[s.muted, { color: T.danger, flex: 1 }]}>{selected.size} selected</Text>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+                <SecondaryButton onPress={() => setConfirmDelete(false)}><Text style={s.secText}>Cancel</Text></SecondaryButton>
+                <Pressable
+                  onPress={() => { setConfirmDelete(false); runBulk('delete'); }}
+                  style={[s.destructiveBtn, bulkBusy && { opacity: 0.5 }]}
+                >
+                  <Text style={s.btnText}>Delete {selected.size}</Text>
+                </Pressable>
+              </View>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
+
       {items.length > 0 && (
         <Text style={[s.muted, { textAlign: 'center', paddingVertical: 6 }]}>
           Showing {items.length} of {data?.total || 0}
@@ -239,6 +307,7 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
         onClose={() => setOpen(null)}
         onSaved={() => { flash('Updated'); setBump((b) => b + 1); }}
         onError={(msg: string) => flash(msg, 'error')}
+        onOpenStudent={(uid: string) => { setOpen(null); goStudentsProfile(uid); }}
       />
 
       {/* New college modal */}
@@ -271,6 +340,106 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
         </View>
       </Modal>
 
+      {/* Duplicates / merge modal */}
+      <Modal visible={dedupOpen} transparent animationType="fade" onRequestClose={closeDedup}>
+        <View style={s.modalBg}>
+          <Animated.View entering={FadeInDown.duration(200)} style={[s.modalCard, { maxWidth: 640 }]}>
+            <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
+              <IconBox size={36}><GitMerge size={16} color={GRAD.to} /></IconBox>
+              <View style={{ flex: 1 }}>
+                <Text style={s.modalTitle}>Merge duplicate colleges</Text>
+                <Text style={s.muted}>Similar names, grouped and scored. Pick the survivor for each group, then merge.</Text>
+              </View>
+              <Pressable onPress={closeDedup}><X size={16} color={T.muted} /></Pressable>
+            </LinearGradient>
+
+            <ScrollView style={{ maxHeight: '64%' }}>
+              <View style={{ padding: 16, gap: 14 }}>
+                {dedupLoading ? (
+                  <LoadingBox label="Scanning college names…" />
+                ) : dedupErr ? (
+                  <View style={s.warnBox}>
+                    <AlertTriangle size={13} color={T.danger} />
+                    <Text style={[s.muted, { color: T.danger, flex: 1 }]}>{dedupErr}</Text>
+                  </View>
+                ) : groups.length === 0 ? (
+                  <View style={{ gap: 6, paddingVertical: 12 }}>
+                    <Text style={[s.title, { fontSize: 14 }]}>No duplicates found</Text>
+                    <Text style={s.muted}>No two college names fuzzy-match (≥ 85% similar). Nothing to merge.</Text>
+                  </View>
+                ) : (
+                  groups.map((g: any) => {
+                    const cols = g.colleges || [];
+                    const pid = primaryPick[g.index] || cols[0]?.id;
+                    return (
+                      <View key={g.index} style={s.dupGroup}>
+                        <View style={s.dupGroupHead}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <GitMerge size={13} color={T.accentBright} />
+                            <Text style={s.dupTitle}>{cols.length} similar names</Text>
+                          </View>
+                          <View style={s.confPill}>
+                            <Text style={s.confPillText}>confidence {Math.round(g.confidence * 100)}%</Text>
+                          </View>
+                        </View>
+
+                        {cols.map((c: any) => {
+                          const isPrimary = pid === c.id;
+                          return (
+                            <Pressable
+                              key={c.id}
+                              onPress={() => setPrimaryPick((p) => ({ ...p, [g.index]: c.id }))}
+                              style={[s.dupRow, isPrimary && s.dupRowOn]}
+                            >
+                              <View style={[s.dupRadio, isPrimary && s.dupRadioOn]}>
+                                {isPrimary && <Check size={11} color="#fff" />}
+                              </View>
+                              <View style={{ flex: 1, minWidth: 0 }}>
+                                <Text style={s.dupName} numberOfLines={1}>
+                                  {c.name}{isPrimary ? ' · primary' : ''}
+                                </Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
+                                  <Text style={s.dupMeta} numberOfLines={1}>
+                                    {[c.city, c.state, c.country].filter(Boolean).join(', ') || 'location unknown'}
+                                  </Text>
+                                  <Text style={s.dupMeta}>
+                                    {c.status === 'active' ? 'Active' : c.status === 'paused' ? 'Paused' : 'Pending'}
+                                  </Text>
+                                  <Text style={s.dupMeta}>Enrichment: {c.enrichment_status || 'none'}</Text>
+                                  <Text style={s.dupMeta}>{c.student_count || 0} students</Text>
+                                </View>
+                              </View>
+                              {isPrimary ? (
+                                <Text style={[s.muted, { color: T.accentBright }]}>survives</Text>
+                              ) : (
+                                <Text style={s.muted}>→ merged in</Text>
+                              )}
+                            </Pressable>
+                          );
+                        })}
+
+                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                          <Pressable
+                            onPress={() => mergeGroup(g)}
+                            disabled={merging}
+                            style={[s.dupMergeBtn, merging && { opacity: 0.5 }]}
+                          >
+                            <GitMerge size={12} color={T.onAccent} />
+                            <Text style={s.btnText}>
+                              {merging ? 'Merging…' : `Merge ${cols.length - 1} into ${cols.find((c: any) => c.id === pid)?.name?.split(' ')[0] || 'primary'}`}
+                            </Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                    );
+                  })
+                )}
+              </View>
+            </ScrollView>
+          </Animated.View>
+        </View>
+      </Modal>
+
       <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
     </View>
   );
@@ -279,7 +448,7 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
 /* ════════════════════════════════════════════════════════════════════
  *  CollegeCard
  * ══════════════════════════════════════════════════════════════════ */
-function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRemove, onReenrich }: any) {
+function CollegeCard({ college: c, selected, onToggleSelect, onOpen, onApprove, onDisable, onRestore, onRemove, onReenrich }: any) {
   const T = useSAC();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -302,8 +471,15 @@ function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRe
       hovered && Platform.OS === 'web' ? s.cardHover : null,
     ]}>
       <View style={{ padding: 22 }}>
-        {/* Header — logo, name, location */}
+        {/* Header — checkbox, logo, name, location */}
         <View style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start' }}>
+          <Pressable
+            onPress={(e: any) => { e?.stopPropagation?.(); onToggleSelect?.(); }}
+            style={[s.checkbox, selected && s.checkboxOn]}
+            hitSlop={6}
+          >
+            {selected && <Check size={13} color="#fff" />}
+          </Pressable>
           {c.logo_url ? (
             <Image source={{ uri: resolveImageUrl(c.logo_url) }} style={s.logo} resizeMode="cover" />
           ) : (
@@ -447,11 +623,29 @@ function CollegeCardSkeleton() {
 /* ════════════════════════════════════════════════════════════════════
  *  Detail modal
  * ══════════════════════════════════════════════════════════════════ */
-function CollegeDetail({ college, onClose, onSaved, onError }: any) {
+function CollegeDetail({ college, onClose, onSaved, onError, onOpenStudent }: any) {
   const T = useSAC();
   const [edit, setEdit] = useState(false);
   const [draft, setDraft] = useState<any>({});
   const [confirmDel, setConfirmDel] = useState(false);
+  const [dtab, setDtab] = useState<'overview' | 'students'>('overview');
+  const [stu, setStu] = useState<any>(null);
+  const [stuBusy, setStuBusy] = useState(false);
+  const [stuPage, setStuPage] = useState(1);
+
+  useEffect(() => {
+    if (dtab !== 'students' || !college?.id) return;
+    let on = true;
+    setStuBusy(true);
+    (async () => {
+      try {
+        const r: any = await request(`/admin/colleges/${college.id}/students?page=${stuPage}&limit=20`);
+        if (on) setStu(r);
+      } catch { if (on) setStu({ items: [], total: 0, pages: 1, page: stuPage }); }
+      finally { if (on) setStuBusy(false); }
+    })();
+    return () => { on = false; };
+  }, [college?.id, dtab, stuPage]);
 
   if (!college) return null;
   const c = { ...college, ...draft };
@@ -477,7 +671,7 @@ function CollegeDetail({ college, onClose, onSaved, onError }: any) {
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={s.modalBg}>
-        <Animated.View entering={FadeInDown.duration(220)} style={s.modalCard}>
+        <Animated.View entering={FadeInDown.duration(220)} style={[s.modalCard, dtab === 'students' ? { maxWidth: 780 } : null]}>
           <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
             {c.logo_url ? (
               <Image source={{ uri: resolveImageUrl(c.logo_url) }} style={[s.logo, { width: 48, height: 48 }]} />
@@ -496,7 +690,23 @@ function CollegeDetail({ college, onClose, onSaved, onError }: any) {
           </LinearGradient>
 
           <ScrollView style={{ maxHeight: 560 }} contentContainerStyle={{ padding: 20, gap: 16 }}>
-            {!!c.description && (
+          <TopTabs
+            tabs={[
+              { id: 'overview', label: 'Overview', icon: Building2 },
+              { id: 'students', label: `Students (${stu?.total ?? c.student_count ?? 0})`, icon: Users },
+            ] as any}
+            active={dtab}
+            onChange={(t) => setDtab(t as any)}
+          />
+
+          {dtab === 'students' ? (
+            <StudentTable collegeId={college.id} stu={stu} busy={stuBusy} page={stuPage}
+              onPrev={() => stuPage > 1 && setStuPage(stuPage - 1)}
+              onNext={() => stuPage < (stu?.pages || 1) && setStuPage(stuPage + 1)}
+              onOpenStudent={onOpenStudent} />
+          ) : (
+          <>
+          {!!c.description && (
               <View>
                 <SectionLabel>ABOUT</SectionLabel>
                 <Text style={[s.muted, { marginTop: 6, lineHeight: 18, color: T.muted }]} numberOfLines={6}>{c.description}</Text>
@@ -590,6 +800,8 @@ function CollegeDetail({ college, onClose, onSaved, onError }: any) {
                 <Pressable onPress={del} style={s.destructiveBtn}><Text style={s.btnText}>Yes, archive</Text></Pressable>
               </View>
             )}
+          </>
+          )}
           </ScrollView>
         </Animated.View>
       </View>
@@ -616,6 +828,76 @@ function EditRow({ label, value, onChange }: any) {
   );
 }
 
+/* ════════════════════════════════════════════════════════════════════
+ *  Students tab — paginated table inside the detail modal
+ * ══════════════════════════════════════════════════════════════════ */
+function StudentTable({ collegeId, stu, busy, page, onPrev, onNext, onOpenStudent }: any) {
+  const T = useSAC();
+  const items: any[] = stu?.items || [];
+  const stuKind = (st: string) => st === 'active' ? 'success' : st === 'archived' ? 'danger' : 'warn';
+  return (
+    <View style={{ gap: 8 }}>
+      {busy && !stu ? (
+        <LoadingBox label="Loading students…" />
+      ) : items.length === 0 ? (
+        <EmptyState icon={Users} title="No linked students"
+          sub="Students whose college matches this name will appear here as they are imported." />
+      ) : (
+        <>
+          <View style={s.stuHeadRow}>
+            <View style={{ flex: 1.4, minWidth: 0 }}><Text style={s.stuTh}>NAME</Text></View>
+            <View style={{ flex: 1.2, minWidth: 0 }}><Text style={s.stuTh}>EMAIL</Text></View>
+            <View style={{ flex: 0.7, minWidth: 0 }}><Text style={s.stuTh}>ROLL NO.</Text></View>
+            <View style={{ width: 72 }}><Text style={s.stuTh}>STATUS</Text></View>
+            <View style={{ width: 104 }}><Text style={s.stuTh}>JOINED</Text></View>
+            <View style={{ width: 34 }} />
+          </View>
+          <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
+            {items.map((u) => (
+              <View key={u.id} style={s.stuRow}>
+                <View style={{ flex: 1.4, minWidth: 0, gap: 1 }}>
+                  <Text style={s.stuName} numberOfLines={1}>{u.name || '—'}</Text>
+                  <Text style={s.stuSub} numberOfLines={1}>{u.college || '—'}</Text>
+                </View>
+                <View style={{ flex: 1.2, minWidth: 0, justifyContent: 'center' }}>
+                  <Text style={s.stuCell} numberOfLines={1}>{u.email || '—'}</Text>
+                </View>
+                <View style={{ flex: 0.7, minWidth: 0, justifyContent: 'center' }}>
+                  <Text style={s.stuCell} numberOfLines={1}>{u.roll_number || '—'}</Text>
+                </View>
+                <View style={{ width: 72, justifyContent: 'center' }}>
+                  <StatusPill kind={stuKind(u.status)} label={u.status ? u.status.toUpperCase() : '—'} />
+                </View>
+                <View style={{ width: 104, justifyContent: 'center' }}>
+                  <Text style={s.stuCell} numberOfLines={1}>
+                    {u.created_at ? new Date(u.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityLabel={`Open ${u.name || 'student'} profile in Students`}
+                  onPress={() => onOpenStudent?.(u.id)}
+                  style={({ hovered }: any) => [s.stuViewBtn, hovered && Platform.OS === 'web' ? { backgroundColor: T.okTint } : null]}
+                >
+                  <Eye size={12} color={T.muted} />
+                </Pressable>
+              </View>
+            ))}
+          </ScrollView>
+          <View style={s.stuPager}>
+            <Pressable style={[s.pageBtn, page <= 1 && { opacity: 0.4 }]} onPress={onPrev}>
+              <Text style={s.pageBtnText}>Prev</Text>
+            </Pressable>
+            <Text style={s.pageInfo}>{page} / {stu?.pages || 1}</Text>
+            <Pressable style={[s.pageBtn, page >= (stu?.pages || 1) && { opacity: 0.4 }]} onPress={onNext}>
+              <Text style={s.pageBtnText}>Next</Text>
+            </Pressable>
+          </View>
+        </>
+      )}
+    </View>
+  );
+}
+
 /* ─── Styles ─────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
@@ -627,6 +909,42 @@ const s = StyleSheet.create({
 
   kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
   browseHead: { flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: 'space-between', flexWrap: 'wrap' },
+  checkToggle: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999,
+    backgroundColor: SAC.panel2, borderWidth: 1, borderColor: SAC.line,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  checkToggleOn: { backgroundColor: GRAD.from, borderColor: GRAD.from },
+  checkToggleText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+  checkbox: {
+    width: 22, height: 22, borderRadius: 7, borderWidth: 1.5,
+    borderColor: SAC.line, backgroundColor: SAC.panel2,
+    alignItems: 'center', justifyContent: 'center', marginTop: 2,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  checkboxOn: { backgroundColor: GRAD.from, borderColor: GRAD.from },
+  bulkBar: {
+    alignSelf: 'stretch',
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+    marginHorizontal: 2, paddingVertical: 10, paddingHorizontal: 14,
+    borderRadius: 14, backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.line,
+    ...(Platform.OS === 'web' ? ({ position: 'sticky', bottom: 18, zIndex: 40, boxShadow: SAC.shadowMd } as any) : {}),
+  },
+  bulkCount: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12 },
+  bulkClear: {
+    width: 24, height: 24, borderRadius: 7, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: SAC.panel2,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  bulkBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9,
+    backgroundColor: SAC.panel2, borderWidth: 1, borderColor: SAC.line,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  bulkBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5 },
+  bulkBtnDanger: { backgroundColor: SAC.dangerTint, borderColor: SAC.danger },
   cardGrid: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 16,
     ...(Platform.OS === 'web' ? ({ display: 'grid' as any, gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))' as any, gap: 16 } as any) : {}),
@@ -726,9 +1044,63 @@ const s = StyleSheet.create({
   destructiveBtn: { backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: SAC.dangerTint, borderWidth: 1, borderColor: SAC.danger },
 
+  /* duplicates / merge modal */
+  dupGroup: {
+    gap: 10, padding: 14, borderRadius: 14,
+    backgroundColor: SAC.panel2, borderWidth: 1, borderColor: SAC.line,
+  },
+  dupGroupHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  dupTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13 },
+  confPill: {
+    paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999,
+    backgroundColor: SAC.tint, borderWidth: 1, borderColor: SAC.accentLine,
+  },
+  confPillText: { color: SAC.onTint, fontFamily: FONTS.xbold, fontSize: 10.5 },
+  dupRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    padding: 10, borderRadius: 10,
+    backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.line,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  dupRowOn: { borderColor: SAC.accent, backgroundColor: SAC.tint },
+  dupRadio: {
+    width: 18, height: 18, borderRadius: 9, borderWidth: 1.5,
+    borderColor: SAC.line2, backgroundColor: SAC.panel2,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  dupRadioOn: { backgroundColor: GRAD.from, borderColor: GRAD.from },
+  dupName: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12.5 },
+  dupMeta: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 },
+  dupMergeBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9,
+    backgroundColor: SAC.primary,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
   skBox: { backgroundColor: SAC.dots, borderRadius: 6 },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, gap: 14 },
   pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.cardSolid, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   pageBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
   pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
+
+  stuHeadRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 10, paddingVertical: 7,
+    backgroundColor: SAC.panel2, borderRadius: 10, borderWidth: 1, borderColor: SAC.line,
+  },
+  stuTh: { color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
+  stuRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 10, paddingVertical: 8,
+    borderRadius: 10, backgroundColor: SAC.panel2, borderWidth: 1, borderColor: SAC.line,
+  },
+  stuName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5 },
+  stuSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 },
+  stuCell: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
+  stuViewBtn: {
+    width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.line,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  stuPager: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 },
 });

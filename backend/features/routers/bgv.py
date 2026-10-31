@@ -21,7 +21,7 @@ import secrets
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 
-from fastapi import APIRouter, HTTPException, Query, Body, Header, Depends
+from fastapi import APIRouter, HTTPException, Query, Body, Header, Depends, Request
 
 from core.deps import require_admin_role, bearer_token, decode_payload_silent
 from pydantic import BaseModel
@@ -555,18 +555,15 @@ async def get_accounts_analytics():
 # Accounts Listing with Country & LinkedIn Filters
 # =========================================================================
 
-@router.get("/admin/list", dependencies=[Depends(require_admin_role)])
-async def list_accounts_by_vertical(
-    vertical: str = Query("all", regex="^(all|real|test|unregistered)$"),
-    country: str = Query("all", description="Filter by Country name (e.g. India, United States, or all)"),
-    has_linkedin: str = Query("all", regex="^(all|yes|no)$"),
-    q: str = Query("", description="Search term for name, email, roll number, sa_id, bgv_id, country"),
-    page: int = Query(1, ge=1),
-    limit: int = Query(25, ge=1, le=100)
-):
+async def collect_directory_rows(
+    vertical: str = "all",
+    country: str = "all",
+    has_linkedin: str = "all",
+    q: str = "",
+) -> List[Dict[str, Any]]:
     """
-    Returns enriched account list with SA ID, BGV ID, LinkedIn URLs, Country Geolocation,
-    and Monthly Claim reminder status, filtered by vertical, country, and LinkedIn presence.
+    Builds the enriched, deduplicated, filtered directory rows shared by the
+    admin listing endpoint and the directory export (BV6). No pagination.
     """
     query_str = _clean_str(q).lower()
     norm_country_filter = normalize_country_name(country).lower() if country != "all" else "all"
@@ -795,11 +792,28 @@ async def list_accounts_by_vertical(
                 "status": "Event Attendee (Unregistered)"
             })
 
+    return items
+
+
+@router.get("/admin/list", dependencies=[Depends(require_admin_role)])
+async def list_accounts_by_vertical(
+    vertical: str = Query("all", regex="^(all|real|test|unregistered)$"),
+    country: str = Query("all", description="Filter by Country name (e.g. India, United States, or all)"),
+    has_linkedin: str = Query("all", regex="^(all|yes|no)$"),
+    q: str = Query("", description="Search term for name, email, roll number, sa_id, bgv_id, country"),
+    page: int = Query(1, ge=1),
+    limit: int = Query(25, ge=1, le=100)
+):
+    """
+    Returns enriched account list with SA ID, BGV ID, LinkedIn URLs, Country Geolocation,
+    and Monthly Claim reminder status, filtered by vertical, country, and LinkedIn presence.
+    """
+    items = await collect_directory_rows(vertical=vertical, country=country, has_linkedin=has_linkedin, q=q)
     total_count = len(items)
     start_idx = (page - 1) * limit
     end_idx = start_idx + limit
     paginated_items = items[start_idx:end_idx]
-    
+
     for item in paginated_items:
         certs = await resolve_user_certificate_series(
             email=item["email"],
@@ -810,7 +824,7 @@ async def list_accounts_by_vertical(
         item["certificate_series"] = [c["series_id"] for c in certs]
         item["certificates_count"] = len(certs)
         item["certificates_detail"] = certs
-    
+
     return {
         "items": paginated_items,
         "total": total_count,
@@ -818,6 +832,93 @@ async def list_accounts_by_vertical(
         "pages": max(1, (total_count + limit - 1) // limit),
         "limit": limit
     }
+
+
+# =========================================================================
+# BV6 — Directory Export (CSV / Excel) respecting active filters
+# =========================================================================
+_EXPORT_COLUMNS = [
+    ("Name", "name"),
+    ("Email", "email"),
+    ("Phone", "phone"),
+    ("Country", "country"),
+    ("SA ID", "sa_id"),
+    ("BGV ID", "bgv_id"),
+    ("College", "college"),
+    ("Degree", "degree"),
+    ("Graduation Year", "graduation_year"),
+    ("LinkedIn URL", "linkedin_url"),
+    ("Vertical", "vertical"),
+    ("Role", "role"),
+    ("Certificates Count", "certificates_count"),
+    ("Last Claim Reminder Date", "last_claim_reminder_at"),
+]
+
+
+@router.get("/admin/export", dependencies=[Depends(require_admin_role)])
+async def export_directory(
+    vertical: str = Query("all", regex="^(all|real|test|unregistered)$"),
+    country: str = Query("all"),
+    has_linkedin: str = Query("all", regex="^(all|yes|no)$"),
+    q: str = Query(""),
+    format: str = Query("csv", regex="^(csv|xlsx)$"),
+):
+    """Exports the current filtered directory view to CSV or Excel (.xlsx)."""
+    from fastapi.responses import StreamingResponse
+    items = await collect_directory_rows(vertical=vertical, country=country, has_linkedin=has_linkedin, q=q)
+
+    # Attach certificate counts to every row (cap at 1000 to bound the export).
+    export_items = items[:1000]
+    for item in export_items:
+        certs = await resolve_user_certificate_series(
+            email=item["email"], roll_no=item["roll_number"], sa_id=item["sa_id"], user_id=item["id"]
+        )
+        item["certificates_count"] = len(certs)
+
+    headers = [label for label, _ in _EXPORT_COLUMNS]
+    rows = []
+    for item in export_items:
+        rows.append([item.get(col_key, "") for _, col_key in _EXPORT_COLUMNS])
+
+    if format == "xlsx":
+        import openpyxl
+        import io as _io
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "BGV Directory Export"
+        ws.append(headers)
+        for r in rows:
+            ws.append(r)
+        # basic header styling + autofilter
+        from openpyxl.styles import Font, PatternFill, Alignment
+        for cell in ws[1]:
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill("solid", fgColor="334155")
+            cell.alignment = Alignment(horizontal="left")
+        ws.auto_filter.ref = ws.dimensions
+        for i, (label, _) in enumerate(_EXPORT_COLUMNS, start=1):
+            ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = max(12, len(label) + 4)
+        buffer = _io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+        return StreamingResponse(
+            buffer,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=bgv-directory-{datetime.now(timezone.utc).strftime('%Y%m%d')}.xlsx"},
+        )
+
+    import csv
+    import io as _io
+    buf = _io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(headers)
+    for r in rows:
+        writer.writerow(r)
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=bgv-directory-{datetime.now(timezone.utc).strftime('%Y%m%d')}.csv"},
+    )
 
 
 # =========================================================================
@@ -2110,52 +2211,58 @@ async def purge_test_accounts(body: PurgeAccountsRequest):
 
 @router.get("/admin/visa-readiness", dependencies=[Depends(require_admin_role)])
 async def get_visa_readiness_radar():
-    """Returns country-wise visa and BGV readiness metrics for study-abroad and international hiring."""
-    germany_users = await db.users.count_documents({"$or": [{"target_country": "Germany"}, {"country": "Germany"}]}) or 148
-    us_users = await db.users.count_documents({"$or": [{"target_country": "United States"}, {"country": "United States"}]}) or 235
-    uk_users = await db.users.count_documents({"$or": [{"target_country": "United Kingdom"}, {"country": "United Kingdom"}]}) or 112
-    india_users = await db.users.count_documents({"$or": [{"target_country": "India"}, {"country": "India"}]}) or 890
-    
-    return {
-        "countries": [
-            {
-                "country": "Germany (WeHive Partner)",
-                "flag": "🇩🇪",
-                "total_candidates": germany_users,
-                "ready_percentage": 78.4,
-                "perks_active": "2 Business Visas + ₹15,00,000 Sponsorship",
-                "bgv_verified_count": int(germany_users * 0.78),
-                "top_fields": ["M.Sc Computer Science", "Automotive Systems", "AI & Robotics"]
-            },
-            {
-                "country": "United States",
-                "flag": "🇺🇸",
-                "total_candidates": us_users,
-                "ready_percentage": 84.1,
-                "perks_active": "H1B & OPT STEM Verification",
-                "bgv_verified_count": int(us_users * 0.84),
-                "top_fields": ["MS Data Science", "Software Engineering", "MBA"]
-            },
-            {
-                "country": "United Kingdom",
-                "flag": "🇬🇧",
-                "total_candidates": uk_users,
-                "ready_percentage": 71.2,
-                "perks_active": "Graduate Skilled Worker Route",
-                "bgv_verified_count": int(uk_users * 0.71),
-                "top_fields": ["Cybersecurity", "Fintech", "Health Tech"]
-            },
-            {
-                "country": "India (Domestic)",
-                "flag": "🇮🇳",
-                "total_candidates": india_users,
-                "ready_percentage": 92.5,
-                "perks_active": "Aadhaar & DigiLocker Fast-Track",
-                "bgv_verified_count": int(india_users * 0.92),
-                "top_fields": ["B.Tech CSE/IT", "AI Engineering", "Core Engineering"]
-            }
-        ]
+    """Aggregates real users data by target/origin country for visa & BGV readiness."""
+    proj = {
+        "email": 1, "name": 1, "role": 1, "is_test": 1, "unregistered": 1,
+        "is_imported_contact": 1, "bgv_id": 1, "is_bgv_verified": 1,
+        "country": 1, "target_country": 1, "location": 1, "city": 1, "state": 1,
+        "phone": 1, "mobile": 1, "whatsapp": 1,
+        "field_of_study": 1, "degree": 1, "stream": 1, "domain": 1
     }
+    all_users = await db.users.find({}, proj).to_list(length=10000)
+
+    stats: Dict[str, Dict[str, Any]] = {}
+    for u in all_users:
+        # Prefer the country the candidate is targeting; fall back to their origin country.
+        raw_target = _clean_str(u.get("target_country"))
+        if raw_target:
+            c_name = normalize_country_name(raw_target)
+            c_code = COUNTRY_CODES.get(c_name, "XX")
+            c_flag = COUNTRY_FLAGS.get(c_name, "🌐")
+        else:
+            c_name, c_code, c_flag = infer_country(u)
+
+        bucket = stats.setdefault(c_name, {
+            "country": c_name,
+            "flag": c_flag,
+            "total_candidates": 0,
+            "bgv_verified_count": 0,
+            "fields": {}
+        })
+        bucket["total_candidates"] += 1
+        if u.get("bgv_id") or u.get("is_bgv_verified"):
+            bucket["bgv_verified_count"] += 1
+        for key in ("field_of_study", "degree", "stream", "domain"):
+            field = _clean_str(u.get(key))
+            if field:
+                bucket["fields"][field] = bucket["fields"].get(field, 0) + 1
+                break
+
+    countries = []
+    for bucket in sorted(stats.values(), key=lambda b: b["total_candidates"], reverse=True):
+        total = bucket["total_candidates"]
+        verified = bucket["bgv_verified_count"]
+        top_fields = [f for f, _ in sorted(bucket["fields"].items(), key=lambda x: x[1], reverse=True)[:3]]
+        countries.append({
+            "country": "India (Domestic)" if bucket["country"] == "India" else bucket["country"],
+            "flag": bucket["flag"],
+            "total_candidates": total,
+            "ready_percentage": round((verified / total * 100) if total else 0, 1),
+            "bgv_verified_count": verified,
+            "top_fields": top_fields
+        })
+
+    return {"countries": countries}
 
 
 class SendClaimInvitesRequest(BaseModel):
@@ -2247,4 +2354,57 @@ async def revoke_enterprise_bgv_api_key(key_id: str):
     """Revokes an enterprise API key immediately."""
     await db.bgv_api_keys.update_one({"_id": ObjectId(key_id)}, {"$set": {"status": "revoked"}})
     return {"status": "revoked", "key_id": key_id}
+
+
+# =============================================================================
+# BV8 — Candidate Consent (DPDP / GDPR) Endpoints
+# Public token verify/confirm routes need no auth (candidate flows);
+# admin request/status/dashboard routes are role-gated.
+# =============================================================================
+from services.bgv_consent_service import bgv_consent_service
+
+
+class _ConsentRequestIn(BaseModel):
+    email: str
+    candidate_name: str = ""
+    scope: Optional[List[str]] = None
+
+
+@router.post("/consent/request", dependencies=[Depends(require_admin_role)])
+async def request_bgv_consent(body: _ConsentRequestIn):
+    res = await bgv_consent_service.request_consent(body.email, body.candidate_name, body.scope, requested_by="admin-ui")
+    if not res.get("ok"):
+        raise HTTPException(status_code=400, detail=res.get("error", "consent request failed"))
+    return res
+
+
+@router.get("/consent/verify/{token}")
+async def verify_bgv_consent_token(token: str):
+    """Public: validates a consent link before the candidate confirms."""
+    return await bgv_consent_service.verify_consent_token(token)
+
+
+@router.post("/consent/{token}/confirm")
+async def confirm_bgv_consent(token: str, request: Request):
+    """Public: candidate confirms consent by hitting their signed link."""
+    return await bgv_consent_service.mark_consented(
+        token,
+        ip=request.client.host if request.client else "",
+        user_agent=str(request.headers.get("user-agent", "")),
+    )
+
+
+@router.get("/consent/status/{email}", dependencies=[Depends(require_admin_role)])
+async def get_bgv_consent_status(email: str):
+    return await bgv_consent_service.get_status(email)
+
+
+@router.post("/consent/revoke", dependencies=[Depends(require_admin_role)])
+async def revoke_bgv_consent(body: Dict[str, Any] = Body(...)):
+    return await bgv_consent_service.revoke_consent(body.get("email", ""), body.get("token", ""), body.get("reason", ""))
+
+
+@router.get("/consent/dashboard", dependencies=[Depends(require_admin_role)])
+async def get_bgv_consent_dashboard():
+    return await bgv_consent_service.dashboard()
 

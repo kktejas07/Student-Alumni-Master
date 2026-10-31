@@ -26,11 +26,12 @@ import urllib.request
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 
-from fastapi import APIRouter, HTTPException, Query, Body, Header
+from fastapi import APIRouter, HTTPException, Query, Body, Header, Depends
 from pydantic import BaseModel, Field
 from bson import ObjectId
 
 from core.db import db
+from core.deps import require_admin_role
 
 router = APIRouter(prefix="/bgv/integrations", tags=["BGV Integrations & Registers"])
 
@@ -49,9 +50,12 @@ API_SETU_API_KEY = os.environ.get("API_SETU_API_KEY", "")
 
 # =============================================================================
 # Tier 0: UGC Fake Universities Blacklist (Degree-Mill Detection)
-# Highest value per line of code in the BGV stack
+# Highest value per line of code in the BGV stack.
+# Seed data only — the live registry now lives in the `ugc_fake_universities`
+# Mongo collection (admin-managed via /bgv/integrations/fake-universities CRUD
+# and auto-populated by the daily UGC Notifications Scraper agent).
 # =============================================================================
-UGC_FAKE_UNIVERSITIES_REGISTRY = [
+UGC_FAKE_UNIVERSITIES_SEED = [
     {
         "id": "UGC-FAKE-01",
         "name": "Commercial University Ltd.",
@@ -361,44 +365,69 @@ def _similarity(s1: str, s2: str) -> float:
 # =============================================================================
 # Tier 0 Verifiers
 # =============================================================================
-def check_ugc_fake_universities(candidate_college: str) -> Dict[str, Any]:
+async def ensure_ugc_registry_seeded() -> None:
+    """First-run migration: seeds the ugc_fake_universities collection from the embedded registry."""
+    existing = await db.ugc_fake_universities.count_documents({})
+    if existing:
+        return
+    docs = []
+    for entry in UGC_FAKE_UNIVERSITIES_SEED:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        docs.append({
+            **entry,
+            "status": "ACTIVE",
+            "source": "seed",
+            "created_at": now_iso,
+            "updated_at": now_iso,
+        })
+    if docs:
+        await db.ugc_fake_universities.insert_many(docs)
+
+
+def _serialize_ugc_entry(doc: Dict[str, Any]) -> Dict[str, Any]:
+    doc = dict(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+def _match_ugc_entry(candidate_college: str, fake: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Fuzzy-matches a candidate institution string against one registry entry (name + aliases)."""
+    sim = _similarity(candidate_college, fake.get("name", ""))
+    if sim >= 0.82:
+        return {"sim": sim, "alias": None}
+    for alias in fake.get("aliases") or []:
+        alias_sim = _similarity(candidate_college, alias)
+        if alias_sim >= 0.85:
+            return {"sim": alias_sim, "alias": alias}
+    return None
+
+
+async def check_ugc_fake_universities(candidate_college: str) -> Dict[str, Any]:
     """
-    Checks candidate's educational institution against UGC Fake Universities registry.
+    Checks candidate's educational institution against the ugc_fake_universities
+    Mongo collection (seeded + admin-managed + scraper-enriched).
     Returns match details and risk rating.
     """
     if not candidate_college:
         return {"is_fake": False, "confidence": 0.0, "reason": "No college provided"}
 
-    norm_college = _normalize_text(candidate_college)
-    for fake in UGC_FAKE_UNIVERSITIES_REGISTRY:
-        # Check main name
-        sim = _similarity(candidate_college, fake["name"])
-        if sim >= 0.82:
-            return {
+    entries = await db.ugc_fake_universities.find({"status": "ACTIVE"}).to_list(5000)
+    for fake in entries:
+        m = _match_ugc_entry(candidate_college, fake)
+        if m:
+            result = {
                 "is_fake": True,
-                "confidence": round(sim, 2),
-                "matched_entry": fake["name"],
-                "state": fake["state"],
-                "reason": fake["reason"],
-                "risk_level": "CRITICAL",
-                "registry_id": fake["id"],
+                "confidence": round(m["sim"], 2),
+                "matched_entry": fake.get("name"),
+                "state": fake.get("state"),
+                "reason": fake.get("reason"),
+                "risk_level": fake.get("risk_level", "CRITICAL"),
+                "registry_id": fake.get("id"),
                 "action": "BLOCK_CREDENTIAL_ISSUANCE",
             }
-        # Check aliases
-        for alias in fake.get("aliases", []):
-            alias_sim = _similarity(candidate_college, alias)
-            if alias_sim >= 0.85:
-                return {
-                    "is_fake": True,
-                    "confidence": round(alias_sim, 2),
-                    "matched_entry": fake["name"],
-                    "alias_matched": alias,
-                    "state": fake["state"],
-                    "reason": fake["reason"],
-                    "risk_level": "CRITICAL",
-                    "registry_id": fake["id"],
-                    "action": "BLOCK_CREDENTIAL_ISSUANCE",
-                }
+            if m.get("alias"):
+                result["alias_matched"] = m["alias"]
+            return result
 
     return {
         "is_fake": False,
@@ -633,6 +662,8 @@ async def get_bgv_providers_registry():
     """
     Returns the comprehensive BGV Free and Semi-Paid API Register with tier status and latency.
     """
+    await ensure_ugc_registry_seeded()
+    ugc_records = await db.ugc_fake_universities.count_documents({})
     return {
         "tiers": [
             {
@@ -653,9 +684,9 @@ async def get_bgv_providers_registry():
                         "name": "UGC Fake Universities Registry",
                         "category": "Degree-Mill & Counterfeit College Detection",
                         "status": "ACTIVE",
-                        "cost_model": "Zero Marginal Cost (Cached Registry)",
-                        "records_count": len(UGC_FAKE_UNIVERSITIES_REGISTRY),
-                        "refresh_cycle": "Quarterly",
+                        "cost_model": "Zero Marginal Cost (Mongo-Backed Live Registry)",
+                        "records_count": ugc_records,
+                        "refresh_cycle": "Daily (UGC Notifications Scraper)",
                         "latency_ms": 2,
                     },
                     {
@@ -728,7 +759,7 @@ async def get_bgv_providers_registry():
         ],
         "summary": {
             "active_verifiers_count": 8,
-            "degree_mills_blocked": len(UGC_FAKE_UNIVERSITIES_REGISTRY),
+            "degree_mills_blocked": ugc_records,
             "watchlist_entities_count": len(CURATED_WATCHLIST_RECORDS),
             "embedded_watchlist_only": True,
             "human_review_queue_active": True,
@@ -736,25 +767,92 @@ async def get_bgv_providers_registry():
     }
 
 
+class UGCUniversityIn(BaseModel):
+    name: str
+    state: Optional[str] = None
+    city: Optional[str] = None
+    aliases: Optional[List[str]] = []
+    reason: Optional[str] = None
+    listed_date: Optional[str] = None
+    risk_level: Optional[str] = "CRITICAL"
+    status: Optional[str] = "ACTIVE"
+    source: Optional[str] = "admin"
+
+
 @router.get("/fake-universities")
 async def list_fake_universities(q: str = Query("", description="Search term")):
     """
-    Search or retrieve the cached UGC Fake Universities Blacklist.
+    Search or retrieve the live UGC Fake Universities Blacklist (Mongo-backed).
     """
+    await ensure_ugc_registry_seeded()
     if not q:
-        return {
-            "total": len(UGC_FAKE_UNIVERSITIES_REGISTRY),
-            "items": UGC_FAKE_UNIVERSITIES_REGISTRY,
-        }
+        items = [ _serialize_ugc_entry(d) for d in await db.ugc_fake_universities.find({}).to_list(5000) ]
+        return {"total": len(items), "items": items}
     clean_q = _normalize_text(q)
+    items = [ _serialize_ugc_entry(d) for d in await db.ugc_fake_universities.find({}).to_list(5000) ]
     matched = []
-    for u in UGC_FAKE_UNIVERSITIES_REGISTRY:
-        if clean_q in _normalize_text(u["name"]) or clean_q in _normalize_text(u["state"]) or clean_q in _normalize_text(u["city"]):
+    for u in items:
+        haystack = " ".join(filter(None, [u.get("name"), u.get("state"), u.get("city"), " ".join(u.get("aliases") or [])])).lower()
+        if clean_q in _normalize_text(haystack):
             matched.append(u)
     return {
         "total": len(matched),
         "items": matched,
     }
+
+
+@router.post("/fake-universities", dependencies=[Depends(require_admin_role)])
+async def create_fake_university(body: UGCUniversityIn):
+    """Admin: add a new institution to the UGC fake-universities blacklist."""
+    if not body.name or not body.name.strip():
+        raise HTTPException(status_code=400, detail="Institution name is required")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    # generate next UGC-FAKE-NN id
+    seq = await db.ugc_fake_universities.count_documents({}) + 1
+    doc_id = f"UGC-FAKE-{seq:02d}"
+    doc = {
+        "id": doc_id,
+        "name": body.name.strip(),
+        "state": body.state,
+        "city": body.city,
+        "aliases": body.aliases or [],
+        "reason": body.reason or "Admin-listed fake institution",
+        "listed_date": body.listed_date or now_iso[:10],
+        "risk_level": body.risk_level or "CRITICAL",
+        "status": body.status or "ACTIVE",
+        "source": body.source or "admin",
+        "created_at": now_iso,
+        "updated_at": now_iso,
+    }
+    res = await db.ugc_fake_universities.insert_one(doc)
+    doc["_id"] = str(res.inserted_id)
+    return {"status": "created", "entry": doc}
+
+
+@router.put("/fake-universities/{entry_id}", dependencies=[Depends(require_admin_role)])
+async def update_fake_university(entry_id: str, body: UGCUniversityIn):
+    """Admin: update an existing blacklist entry (e.g. mark DISCARDED, adjust reason/aliases)."""
+    now_iso = datetime.now(timezone.utc).isoformat()
+    update: Dict[str, Any] = {"updated_at": now_iso}
+    for field in ("name", "state", "city", "aliases", "reason", "listed_date", "risk_level", "status", "source"):
+        v = getattr(body, field)
+        if field in ("aliases",):
+            update[field] = v or []
+        elif v is not None:
+            update[field] = v
+    res = await db.ugc_fake_universities.update_one({"id": entry_id}, {"$set": update})
+    if not res.matched_count:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return {"status": "updated", "id": entry_id}
+
+
+@router.delete("/fake-universities/{entry_id}", dependencies=[Depends(require_admin_role)])
+async def delete_fake_university(entry_id: str):
+    """Admin: permanently remove an entry from the blacklist (preferred: set status=DISCARDED via PUT)."""
+    res = await db.ugc_fake_universities.delete_one({"id": entry_id})
+    if not res.deleted_count:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return {"status": "deleted", "id": entry_id}
 
 
 @router.post("/verify-degree-institution")
@@ -763,7 +861,7 @@ async def verify_degree_institution(payload: Dict[str, Any] = Body(...)):
     Instant check for an institution against UGC Blacklist and validity criteria.
     """
     college_name = str(payload.get("college") or payload.get("institution") or "").strip()
-    res = check_ugc_fake_universities(college_name)
+    res = await check_ugc_fake_universities(college_name)
     return res
 
 
@@ -781,12 +879,28 @@ async def screen_watchlist(payload: Dict[str, Any] = Body(...)):
 @router.post("/scan")
 async def run_comprehensive_bgv_scan(payload: Dict[str, Any] = Body(...)):
     """
-    Executes a multi-tier comprehensive BGV scan on a candidate record:
-      1. Identity Verification (PAN / DigiLocker format check)
-      2. Education & Degree-Mill Screening (UGC Fake Universities + AICTE)
-      3. Sanctions, PEP & Global Watchlist Screening (yente / OpenSanctions)
-      4. Employment History & Integrity (EPFO UAN passbook timeline)
-      5. Safe Litigation / Court Records Check with Discriminator validation
+    Executes a multi-tier comprehensive BGV scan on a candidate record and
+    persists an audit row to `bgv_scan_history` (BV5). Reused per-row by the
+    batch pipeline and the weekly re-verification agent.
+    """
+    scanner_user_id = str(payload.get("scanner_user_id") or "")
+    return await run_bgv_scan_engine(payload, scanner_user_id=scanner_user_id, scan_type="manual")
+
+
+# =============================================================================
+# BV5 — Shared Scan Engine + Scan History (audit trail)
+# =============================================================================
+async def run_bgv_scan_engine(payload: Dict[str, Any], scanner_user_id: str = "", scan_type: str = "manual", db=None, persist_history: bool = True, consent_gate: bool = False) -> Dict[str, Any]:
+    """
+    Runs the multi-tier BGV scan and (by default) persists a row to
+    `bgv_scan_history` for the audit trail. Reused by:
+      • POST /bgv/integrations/scan
+      • POST /bgv/integrations/batch-scan (per row)
+      • the weekly re-verification agent (scan_type='re-verification')
+
+    With `consent_gate=True` (BV8), the candidate's DPDP consent record is
+    checked before any tier runs; without an active consent the scan is
+    short-circuited with overall_status='NO_CONSENT'.
     """
     name = str(payload.get("name") or "").strip()
     email = str(payload.get("email") or "").strip()
@@ -798,10 +912,34 @@ async def run_comprehensive_bgv_scan(payload: Dict[str, Any] = Body(...)):
     dob = payload.get("dob")
 
     if not name:
-        raise HTTPException(status_code=400, detail="Candidate name is required for BGV scan")
+        return {
+            "dossier_id": None,
+            "overall_status": "INCOMPLETE",
+            "risk_score": 0,
+            "candidate": {"name": "", "email": email},
+            "skipped": True,
+            "skip_reason": "Candidate name is required for BGV scan",
+            "verifiers_breakdown": {},
+        }
+
+    # BV8 — DPDP/GDPR consent pre-gate: no active consent → no scan.
+    if consent_gate and email:
+        from services.bgv_consent_service import bgv_consent_service
+        consent_ok = await bgv_consent_service.has_active_consent(email)
+        if not consent_ok:
+            return {
+                "dossier_id": None,
+                "overall_status": "NO_CONSENT",
+                "risk_score": 0,
+                "candidate": {"name": name, "email": email, "college": college, "degree": degree, "country": country},
+                "skipped": True,
+                "skip_reason": "No active DPDP consent on file for this candidate — scan gated per consent policy",
+                "consent_gate": True,
+                "verifiers_breakdown": {},
+            }
 
     # Step 1: Degree Mill & UGC Check
-    education_check = check_ugc_fake_universities(college)
+    education_check = await check_ugc_fake_universities(college)
 
     # Step 2: Sanctions & PEP Watchlist Screening
     watchlist_check = screen_yente_watchlist(name, dob, country)
@@ -823,7 +961,6 @@ async def run_comprehensive_bgv_scan(payload: Dict[str, Any] = Body(...)):
     # Step 5: Safe Litigation Check with Discriminator Guard
     court_check = evaluate_court_records_with_discriminators(name, dob=dob, district=payload.get("location"))
 
-    # Determine Overall Trust Level & Risk Rating
     overall_status = "INCOMPLETE"
     risk_score = 0  # 0 to 100
     unavailable_tiers: List[str] = []
@@ -845,17 +982,12 @@ async def run_comprehensive_bgv_scan(payload: Dict[str, Any] = Body(...)):
         risk_score += 40
 
     dossier_id = f"DOSSIER-{datetime.now(timezone.utc).strftime('%Y%m')}-{secrets.token_hex(4).upper()}"
+    scan_timestamp = datetime.now(timezone.utc).isoformat()
 
     dossier = {
         "dossier_id": dossier_id,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "candidate": {
-            "name": name,
-            "email": email,
-            "college": college,
-            "degree": degree,
-            "country": country,
-        },
+        "timestamp": scan_timestamp,
+        "candidate": {"name": name, "email": email, "college": college, "degree": degree, "country": country},
         "overall_status": overall_status,
         "risk_score": risk_score,
         "verifiers_breakdown": {
@@ -900,4 +1032,478 @@ async def run_comprehensive_bgv_scan(payload: Dict[str, Any] = Body(...)):
         ),
     }
 
+    if persist_history:
+        try:
+            await db.bgv_scan_history.insert_one({
+                "dossier_id": dossier_id,
+                "candidate_name": name,
+                "candidate_email": email,
+                "scanner_user_id": scanner_user_id,
+                "scan_type": scan_type,
+                "scan_timestamp": scan_timestamp,
+                "overall_status": overall_status,
+                "risk_score": risk_score,
+                "verifiers_breakdown": dossier["verifiers_breakdown"],
+                "recommendation": dossier["recommendation"],
+            })
+        except Exception:
+            # History persistence must never break the scan response.
+            pass
+
     return dossier
+
+
+@router.get("/scan-history", dependencies=[Depends(require_admin_role)])
+async def list_scan_history(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    status: str = Query("", description="Filter: VERIFIED|FLAGGED_FOR_HUMAN_REVIEW|CRITICAL_FAILED|INCOMPLETE"),
+    email: str = Query("", description="Filter by candidate email (substring)"),
+    name: str = Query("", description="Filter by candidate name (substring)"),
+    scan_type: str = Query("", description="Filter: manual|batch|re-verification"),
+    scanner_user_id: str = Query(""),
+    from_date: str = Query("", description="YYYY-MM-DD"),
+    to_date: str = Query("", description="YYYY-MM-DD"),
+):
+    query: Dict[str, Any] = {}
+    if status:
+        query["overall_status"] = status
+    if email:
+        query["candidate_email"] = {"$regex": email, "$options": "i"}
+    if name:
+        query["candidate_name"] = {"$regex": name, "$options": "i"}
+    if scan_type:
+        query["scan_type"] = scan_type
+    if scanner_user_id:
+        query["scanner_user_id"] = scanner_user_id
+    if from_date or to_date:
+        ts_range: Dict[str, Any] = {}
+        if from_date:
+            ts_range["$gte"] = from_date
+        if to_date:
+            ts_range["$lte"] = to_date + "T23:59:59.999Z"
+        if ts_range:
+            query["scan_timestamp"] = ts_range
+
+    total = await db.bgv_scan_history.count_documents(query)
+    rows = []
+    skip = (page - 1) * page_size
+    async for doc in db.bgv_scan_history.find(query).sort("scan_timestamp", -1).skip(skip).limit(page_size):
+        doc.pop("_id", None)
+        rows.append(doc)
+    return {"total": total, "page": page, "page_size": page_size, "items": rows}
+
+
+@router.get("/scan-history/stats", dependencies=[Depends(require_admin_role)])
+async def get_scan_history_stats():
+    coll = db.bgv_scan_history
+    total = await coll.count_documents({})
+    by_status: Dict[str, int] = {}
+    async for r in coll.aggregate([
+        {"$group": {"_id": "$overall_status", "count": {"$sum": 1}}},
+    ]):
+        by_status[r["_id"] or "UNKNOWN"] = r["count"]
+    flagged = by_status.get("FLAGGED_FOR_HUMAN_REVIEW", 0) + by_status.get("CRITICAL_FAILED", 0)
+    unique_candidates = await coll.distinct("candidate_email")
+    unique_candidates = [c for c in unique_candidates if c]
+    last_scan = (await coll.find({}).sort("scan_timestamp", -1).limit(1).to_list(1))
+    last_scan = last_scan[0].get("scan_timestamp") if last_scan else None
+    return {
+        "total_scans": total,
+        "by_status": by_status,
+        "flagged_or_failed": flagged,
+        "unique_candidates": len(unique_candidates),
+        "last_scan": last_scan,
+    }
+
+
+@router.get("/scan-history/{dossier_id}", dependencies=[Depends(require_admin_role)])
+async def get_scan_history_dossier(dossier_id: str):
+    doc = await db.bgv_scan_history.find_one({"dossier_id": dossier_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Dossier not found")
+    doc.pop("_id", None)
+    return doc
+
+
+# =============================================================================
+# BV4 — Bulk BGV Scan (CSV batch pipeline + job queue + report download)
+# =============================================================================
+BATCH_JOB_COLLECTION = "bgv_batch_jobs"
+BATCH_MAX_ROWS = 2500
+
+
+async def _batch_jobs_init(db):
+    """Ensure the job collection has its lookup index."""
+    if getattr(_batch_jobs_state, "indexed", False):
+        return
+    await db[BATCH_JOB_COLLECTION].create_index("job_id")
+    _batch_jobs_state.indexed = True
+
+
+class _BatchJobsState:
+    indexed = False
+
+
+_batch_jobs_state = _BatchJobsState()
+
+
+@router.post("/batch-scan", dependencies=[Depends(require_admin_role)])
+async def create_batch_scan_job(
+    user: dict = Depends(require_admin_role),
+    raw: Dict[str, Any] = Body(...),
+):
+    """
+    Enqueue a bulk BGV scan. Accepts either:
+      • {"candidates": [{name, email, college, degree, country, pan, uan, dob}, ...]}
+      • {"csv": "<csv text>"} — header row of name,email,college,degree,country,pan,uan,dob
+    The job runs in the background; poll GET /batch-scan/{job_id}/status and
+    download the report via GET /batch-scan/{job_id}/report?format=xlsx|csv|pdf.
+    """
+    await _batch_jobs_init(db)
+    consent_gate = bool(raw.get("consent_gate", True))
+    candidates = raw.get("candidates")
+    if not candidates and raw.get("csv"):
+        import csv
+        import io as _io
+        reader = csv.DictReader(_io.StringIO(raw["csv"]))
+        candidates = [
+            {
+                "name": (r.get("name") or "").strip(),
+                "email": (r.get("email") or "").strip(),
+                "college": (r.get("college") or r.get("institution") or "").strip(),
+                "degree": (r.get("degree") or "").strip(),
+                "country": (r.get("country") or "").strip(),
+                "pan": (r.get("pan") or "").strip(),
+                "uan": (r.get("uan") or "").strip(),
+                "dob": (r.get("dob") or "").strip() or None,
+            }
+            for r in reader
+            if (r.get("name") or "").strip()
+        ]
+    if not candidates:
+        raise HTTPException(status_code=400, detail="Provide `candidates` array or `csv` text")
+    if len(candidates) > BATCH_MAX_ROWS:
+        raise HTTPException(status_code=400, detail=f"Batch limit is {BATCH_MAX_ROWS} rows; got {len(candidates)}")
+
+    job_id = f"BATCH-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{secrets.token_hex(3).upper()}"
+    now_iso = datetime.now(timezone.utc).isoformat()
+    doc = {
+        "job_id": job_id,
+        "created_at": now_iso,
+        "created_by": str(user.get("id") or user.get("sub") or ""),
+        "status": "QUEUED",
+        "total": len(candidates),
+        "completed": 0,
+        "flagged": 0,
+        "failed": 0,
+        "results": [],
+        "error": None,
+    }
+    await db[BATCH_JOB_COLLECTION].insert_one(doc)
+
+    async def _run_batch():
+        try:
+            await db[BATCH_JOB_COLLECTION].update_one({"job_id": job_id}, {"$set": {"status": "RUNNING"}})
+            for i, cand in enumerate(candidates):
+                payload = {k: v for k, v in cand.items() if v not in (None, "")}
+                try:
+                    res = await run_bgv_scan_engine(payload, scanner_user_id=doc["created_by"], scan_type="batch", consent_gate=consent_gate)
+                except Exception as exc:
+                    res = {"dossier_id": None, "overall_status": "ERROR", "risk_score": 0, "skip_reason": str(exc), "candidate": cand}
+                if res.get("overall_status") in ("FLAGGED_FOR_HUMAN_REVIEW", "CRITICAL_FAILED"):
+                    doc["flagged"] += 1
+                if res.get("overall_status") == "NO_CONSENT":
+                    doc["gated"] = doc.get("gated", 0) + 1
+                if res.get("overall_status") == "ERROR" or res.get("skipped"):
+                    doc["failed"] += 1
+                doc["results"].append({
+                    "row": i + 1,
+                    "name": cand.get("name"),
+                    "email": cand.get("email"),
+                    "dossier_id": res.get("dossier_id"),
+                    "overall_status": res.get("overall_status"),
+                    "risk_score": res.get("risk_score", 0),
+                    "recommendation": res.get("recommendation"),
+                })
+                doc["completed"] = i + 1
+                if (i + 1) % 10 == 0:
+                    await db[BATCH_JOB_COLLECTION].update_one({"job_id": job_id}, {"$set": {
+                        "completed": doc["completed"], "flagged": doc["flagged"], "failed": doc["failed"],
+                    }})
+            await db[BATCH_JOB_COLLECTION].update_one({"job_id": job_id}, {"$set": {
+                "status": "COMPLETED",
+                "completed": doc["completed"],
+                "flagged": doc["flagged"],
+                "failed": doc["failed"],
+                "results": doc["results"],
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+            }})
+        except Exception as exc:
+            await db[BATCH_JOB_COLLECTION].update_one({"job_id": job_id}, {"$set": {
+                "status": "FAILED", "error": str(exc)[:500],
+            }})
+
+    import asyncio
+    asyncio.get_event_loop().create_task(_run_batch())
+    return {"job_id": job_id, "status": "QUEUED", "total": len(candidates)}
+
+
+@router.get("/batch-scan/{job_id}/status", dependencies=[Depends(require_admin_role)])
+async def get_batch_scan_status(job_id: str):
+    doc = await db[BATCH_JOB_COLLECTION].find_one({"job_id": job_id}, {"results": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Batch job not found")
+    doc.pop("_id", None)
+    return doc
+
+
+@router.get("/batch-scan/{job_id}/report", dependencies=[Depends(require_admin_role)])
+async def get_batch_scan_report(
+    job_id: str,
+    user: dict = Depends(require_admin_role),
+    format: str = Query("xlsx", description="xlsx | csv | pdf"),
+):
+    from fastapi.responses import StreamingResponse
+    doc = await db[BATCH_JOB_COLLECTION].find_one({"job_id": job_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Batch job not found")
+
+    results = doc.get("results") or []
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    title = f"Student Alumni — BGV Batch Scan Report ({job_id})"
+
+    if format == "csv":
+        import csv
+        import io as _io
+        buf = _io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(["Row", "Name", "Email", "Dossier ID", "Overall Status", "Risk Score", "Recommendation"])
+        for r in results:
+            writer.writerow([r.get("row"), r.get("name"), r.get("email"), r.get("dossier_id"), r.get("overall_status"), r.get("risk_score"), r.get("recommendation")])
+        return StreamingResponse(
+            iter([buf.getvalue().encode()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=bgv-batch-{job_id}.csv"},
+        )
+
+    if format == "pdf":
+        try:
+            from services.bgv_pdf_service import generate_bgv_report_pdf
+            pdf = generate_bgv_report_pdf({
+                "name": f"Batch BGV Scan Report — {job_id}",
+                "bgv_id": job_id,
+                "sa_id": doc.get("created_by") or "SYSTEM",
+                "email": doc.get("created_by", ""),
+                "candidate_info": {
+                    "name": f"{doc.get('total', 0)} candidates · flagged {doc.get('flagged', 0)} · failed {doc.get('failed', 0)}",
+                    "email": "",
+                    "phone": "",
+                    "country": "India",
+                    "college": f"Batch scan {job_id}",
+                    "degree": f"Completed {now_str}",
+                    "graduation_year": now_str,
+                },
+            })
+            return StreamingResponse(
+                iter([pdf]),
+                media_type="application/pdf",
+                headers={"Content-Disposition": f"attachment; filename=bgv-batch-{job_id}.pdf"},
+            )
+        except Exception:
+            format = "xlsx"  # fall through to xlsx if PDF tooling is unavailable
+
+    # xlsx
+    import openpyxl
+    import io as _io
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "BGV Batch Report"
+    ws.append([title])
+    ws.append([f"Job: {job_id}  ·  Created by: {doc.get('created_by')}  ·  Completed: {doc.get('completed_at') or 'in progress'}"])
+    ws.append([f"Total: {doc.get('total')}  ·  Flagged: {doc.get('flagged')}  ·  Failed: {doc.get('failed')}"])
+    ws.append([])
+    ws.append(["Row", "Name", "Email", "Dossier ID", "Overall Status", "Risk Score", "Recommendation"])
+    for r in results:
+        ws.append([r.get("row"), r.get("name"), r.get("email"), r.get("dossier_id"), r.get("overall_status"), r.get("risk_score"), r.get("recommendation")])
+    buffer = _io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=bgv-batch-{job_id}.xlsx"},
+    )
+
+
+# =============================================================================
+# BV7 — Integration Health-Check (API Register widget)
+# Pings each provider, persists the result, and reports 24h error rate.
+# =============================================================================
+import asyncio
+
+HEALTH_PROVIDER_DEFS: List[Dict[str, Any]] = [
+    {
+        "id": "opensesa-yente",
+        "name": "OpenSanctions / yente (Watchlist & PEP)",
+        "tier": "Tier 0",
+        "base_url": YENTE_API_URL,
+        "configured": True,  # default local URL always present
+        "config_key": "YENTE_API_URL",
+    },
+    {
+        "id": "surepass",
+        "name": "Surepass (Aggregator Wallet — PAN / EPFO)",
+        "tier": "Tier 1",
+        "base_url": "https://api.surepass.in",
+        "configured": bool(SUREPASS_API_TOKEN),
+        "config_key": "SUREPASS_API_TOKEN",
+    },
+    {
+        "id": "epfo",
+        "name": "EPFO UAN Passbook (via Surepass/Setu)",
+        "tier": "Tier 1",
+        "base_url": "https://uan.epfindia.gov.in",
+        "configured": bool(SUREPASS_API_TOKEN or SETU_API_KEY),
+        "config_key": "SUREPASS_API_TOKEN / SETU_API_KEY",
+    },
+    {
+        "id": "digilocker",
+        "name": "DigiLocker / NAD (Deepvue / Setu)",
+        "tier": "Tier 2",
+        "base_url": "https://api.digilocker.gov.in",
+        "configured": bool(DEEPVUE_CLIENT_ID or API_SETU_CLIENT_ID),
+        "config_key": "DEEPVUE_CLIENT_ID / API_SETU_CLIENT_ID",
+    },
+    {
+        "id": "data-gov-in",
+        "name": "data.gov.in Open Data Bridge",
+        "tier": "Tier 0",
+        "base_url": "https://api.data.gov.in",
+        "configured": bool(DATA_GOV_IN_API_KEY),
+        "config_key": "DATA_GOV_IN_API_KEY",
+    },
+    {
+        "id": "api-setu",
+        "name": "API Setu / DigiLocker Direct",
+        "tier": "Tier 2",
+        "base_url": "https://api.api-setu.in",
+        "configured": bool(API_SETU_CLIENT_ID or API_SETU_API_KEY),
+        "config_key": "API_SETU_CLIENT_ID / API_SETU_API_KEY",
+    },
+]
+
+
+def _ping_http(base_url: str, timeout: float = 3.0) -> Dict[str, Any]:
+    """Synchronous HTTP reachability check (runs off the event loop via to_thread)."""
+    import time as _time
+    import urllib.error
+    url = base_url.rstrip("/")
+    if not url:
+        return {"ok": False, "latency_ms": None, "error": "no_url"}
+    started = _time.monotonic()
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "StudentAlumni-HealthCheck/2.0"}, method="GET")
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            code = getattr(resp, "status", 200)
+            latency_ms = int((_time.monotonic() - started) * 1000)
+            ok = 200 <= code < 400
+            return {"ok": ok, "latency_ms": latency_ms, "http_status": code}
+    except urllib.error.HTTPError as e:
+        latency_ms = int((_time.monotonic() - started) * 1000)
+        # A 4xx/5xx means the host is reachable (network UP) but unhappy.
+        return {"ok": e.code >= 500, "latency_ms": latency_ms, "http_status": e.code, "error": "http_error"}
+    except Exception as e:
+        latency_ms = int((_time.monotonic() - started) * 1000)
+        return {"ok": False, "latency_ms": latency_ms, "error": str(e)[:120]}
+
+
+async def _provider_24h_stats(provider_id: str) -> Dict[str, Any]:
+    """24h error rate + last success from the persisted health-check log."""
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    coll = db[BGV_HEALTH_COLLECTION]
+    window = await coll.count_documents({"provider_id": provider_id, "checked_at": {"$gte": since.isoformat()}})
+    failed = await coll.count_documents({
+        "provider_id": provider_id, "checked_at": {"$gte": since.isoformat()}, "status": {"$in": ["DOWN"]},
+    })
+    last_success_doc = await coll.find_one(
+        {"provider_id": provider_id, "status": "UP"},
+        projection={}, sort=None,
+    )
+    # latest check (any status) for the "last_success_at" when UP
+    last_check = await coll.find_one({"provider_id": provider_id}, sort=[("checked_at", -1)])
+    error_rate = round((failed / window * 100.0), 2) if window else 0.0
+    return {
+        "checks_24h": window,
+        "failed_24h": failed,
+        "error_rate_pct_24h": error_rate,
+    }
+
+
+BGV_HEALTH_COLLECTION = "bgv_health_checks"
+
+
+async def _run_provider_check(provider: Dict[str, Any]) -> Dict[str, Any]:
+    pid = provider["id"]
+    if not provider.get("configured"):
+        # Not configured → cannot call; report DEGRADED (network not the issue).
+        status = "DEGRADED"
+        latency_ms = None
+        ping: Dict[str, Any] = {"ok": None, "error": "provider_not_configured"}
+    else:
+        ping = await asyncio.to_thread(_ping_http, provider["base_url"], 3.0)
+        latency_ms = ping.get("latency_ms")
+        if ping.get("ok"):
+            status = "UP"
+        elif ping.get("http_status") is not None:
+            # Host reachable but returned an error code → degraded, not down.
+            status = "DEGRADED"
+        else:
+            status = "DOWN"
+
+    await db[BGV_HEALTH_COLLECTION].insert_one({
+        "provider_id": pid,
+        "status": status,
+        "latency_ms": latency_ms,
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+    })
+    stats = await _provider_24h_stats(pid)
+    last_up = await db[BGV_HEALTH_COLLECTION].find_one(
+        {"provider_id": pid, "status": "UP"}, sort=[("checked_at", -1)],
+    )
+    return {
+        "provider_id": pid,
+        "name": provider["name"],
+        "tier": provider.get("tier"),
+        "configured": bool(provider.get("configured")),
+        "config_key": provider.get("config_key"),
+        "status": status,
+        "latency_ms": latency_ms,
+        "last_success_at": last_up.get("checked_at") if last_up else None,
+        **stats,
+    }
+
+
+@router.get("/health-check", dependencies=[Depends(require_admin_role)])
+async def run_integration_health_check():
+    """Live health-check across all BGV integration providers + 24h error rates."""
+    providers = [await _run_provider_check(p) for p in HEALTH_PROVIDER_DEFS]
+    up = sum(1 for p in providers if p["status"] == "UP")
+    down = sum(1 for p in providers if p["status"] == "DOWN")
+    overall = "UP" if down == 0 else ("DEGRADED" if up > 0 else "DOWN")
+    return {
+        "overall": overall,
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "up": up,
+        "down": down,
+        "providers": providers,
+    }
+
+
+@router.get("/health-check/{provider_id}", dependencies=[Depends(require_admin_role)])
+async def run_single_provider_health_check(provider_id: str):
+    provider = next((p for p in HEALTH_PROVIDER_DEFS if p["id"] == provider_id), None)
+    if not provider:
+        raise HTTPException(status_code=404, detail="Unknown provider")
+    result = await _run_provider_check(provider)
+    return result
