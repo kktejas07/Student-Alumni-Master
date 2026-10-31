@@ -5,11 +5,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Platform, ActivityIndicator, Linking, Image, Modal } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Search, Trash2, CheckCircle, XCircle, MapPin, Briefcase, GraduationCap, Star, X, Mail, Building2, ExternalLink, Calendar, UserPlus, Send, Sparkles } from 'lucide-react-native';
+import { Search, Trash2, CheckCircle, XCircle, MapPin, Briefcase, GraduationCap, Star, X, Mail, Building2, ExternalLink, Calendar, UserPlus, Send, Sparkles, Cpu, Copy, BarChart3, Zap, TrendingUp, Tags, Shield, Database, RefreshCw, ClipboardCheck } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { request, tokenStore, resolveImageUrl } from '@/src/models/services/api';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { GRAD } from '../applekit';
+import { useSubTab } from '@/src/views/web/portals/portalUrl';
 
 interface TalentProfile {
   id: string;
@@ -58,9 +59,28 @@ interface TalentProfile {
   match_opening?: string;
 }
 
-export function TalentPoolView() {
+// TP agent suite sub-tabs (URL-driven via useSubTab)
+const TAB_IDS = ['profiles', 'agents', 'duplicates', 'quality', 'activity', 'insights', 'drip', 'external-jobs', 'ranker', 'interviews', 'skills', 'compliance'] as const;
+type TabId = (typeof TAB_IDS)[number];
+const TAB_LABELS: Record<TabId, string> = {
+  profiles: 'Profiles',
+  agents: 'AI Agents',
+  duplicates: 'Duplicates',
+  quality: 'Quality',
+  activity: 'Activity',
+  insights: 'Insights',
+  drip: 'Drip Campaigns',
+  'external-jobs': 'External Jobs',
+  ranker: 'Ranker',
+  interviews: 'Interviews',
+  skills: 'Skills',
+  compliance: 'Compliance & ATS',
+};
+
+export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const T = useSAC();
   Object.assign(s, resolveColors(s, T));
+  const [tab, setTab] = useSubTab<TabId>(TAB_IDS, 'profiles', { sub, onSub });
   const [profiles, setProfiles] = useState<TalentProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -331,6 +351,20 @@ export function TalentPoolView() {
         </View>
       </View>
 
+      {/* Sub-tabs (TP agent suite) */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }} contentContainerStyle={{ gap: 6 }}>
+        {TAB_IDS.map((id) => (
+          <Pressable
+            key={id}
+            onPress={() => setTab(id)}
+            style={[s.filterChip, tab === id && s.filterChipActive]}
+          >
+            <Text style={[s.filterChipText, tab === id && s.filterChipTextActive]}>{TAB_LABELS[id]}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      {tab === 'profiles' ? (<>
       {/* Bulk bar */}
       {selected.size > 0 && (
         <View style={s.bulkBar}>
@@ -368,6 +402,7 @@ export function TalentPoolView() {
               <View style={s.tableHead}>
                 <Text style={[s.th, { width: 36 }]}>#</Text>
                 <Text style={[s.th, { width: 110 }]}>SA-ID</Text>
+                <Text style={[s.th, { width: 110 }]}>QUALITY</Text>
                 <Text style={[s.th, { width: 120 }]}>ACCOUNT</Text>
                 <Text style={[s.th, { width: 110 }]}>CERT / BGV</Text>
                 <Text style={[s.th, { width: 220 }]}>NAME & CANDIDATE</Text>
@@ -802,6 +837,12 @@ export function TalentPoolView() {
           </Pressable>
         </View>
       )}
+      </>) : (
+        <PanelSwitch
+          tab={tab}
+          notify={setMessage}
+        />
+      )}
 
       {/* Profile Detail Modal */}
       <ProfileDetailModal
@@ -977,6 +1018,1094 @@ export function TalentPoolView() {
   );
 }
 
+/* ── TP Agent Suite Sub-Tab Panels ────────────────────────────────── */
+
+// shared panel shell + kpi helpers
+function PanelShell({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+  return (
+    <View style={s.panelCard}>
+      <View style={s.panelHeader}>
+        <Cpu size={16} color="#8B5CF6" />
+        <View>
+          <Text style={s.panelTitle}>{title}</Text>
+          {subtitle ? <Text style={s.panelSub}>{subtitle}</Text> : null}
+        </View>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function KpiRow({ items }: { items: { label: string; value: string | number; accent?: string }[] }) {
+  return (
+    <View style={s.kpiRow}>
+      {items.map((k, i) => (
+        <View key={i} style={s.kpiTile}>
+          <Text style={[s.kpiValue, k.accent ? { color: k.accent } : null]}>{k.value}</Text>
+          <Text style={s.kpiLabel}>{k.label}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function BusyMsg({ loading, error }: { loading: boolean; error?: string }) {
+  if (loading) return <View style={s.centered}><ActivityIndicator size="small" color="#8B5CF6" /></View>;
+  if (error) return <View style={s.msgBar}><Text style={s.msgText}>{error}</Text></View>;
+  return null;
+}
+
+// ── Agents Panel ─────────────────────────────────────────────────────
+function AgentsPanel({ notify }: { notify: (m: string) => void }) {
+  const [agents, setAgents] = useState<Record<string, any>>({});
+  const [sched, setSched] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true); setErr('');
+    try {
+      const [a, s] = await Promise.all([
+        request<any>('/admin/talent-pool/agents/status'),
+        request<any>('/admin/talent-pool/agents/scheduler-status'),
+      ]);
+      setAgents(a?.agents ?? a ?? {});
+      setSched(s);
+    } catch (e: any) { setErr(e?.message || 'Failed to load agent status'); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const agentList = Object.values(agents) as any[];
+  const steps: any[] = sched?.steps ?? [];
+
+  return (
+    <PanelShell
+      title="Talent Pool AI Agents"
+      subtitle={`${agentList.length} autonomous agents · in-process asyncio scheduler (not Celery Beat) · fastembed/numpy hybrid embeddings`}
+    >
+      <BusyMsg loading={loading} error={err} />
+      {!loading && (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 14, paddingBottom: 20 }}>
+          {/* Master gate badge */}
+          {sched && (
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+              <View style={[s.kpiTile, { backgroundColor: sched.master_enabled ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)' }]}>
+                <Text style={[s.kpiValue, { color: sched.master_enabled ? '#10B981' : '#EF4444' }]}>{sched.master_enabled ? 'ENABLED' : 'DISABLED'}</Text>
+                <Text style={s.kpiLabel}>TP_SCHEDULER_ENABLED</Text>
+              </View>
+              <View style={s.kpiTile}>
+                <Text style={s.kpiValue}>{sched.settings_id || 'tp23_scheduler'}</Text>
+                <Text style={s.kpiLabel}>scheduler doc</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Agent card grid */}
+          {agentList.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                {agentList.map((a: any, i: number) => {
+                  const st = a.status;
+                  const stText = typeof st === 'object' ? Object.values(st).join(' · ') : (st || 'ok');
+                  return (
+                    <View key={i} style={s.agentCard}>
+                      <View style={s.agentCardTop}>
+                        <Text style={s.agentCardName}>{a.name}</Text>
+                        <View style={[s.pill, a.priority === 'P1' ? { backgroundColor: 'rgba(239,68,68,0.15)', borderColor: 'rgba(239,68,68,0.4)' } : { backgroundColor: 'rgba(148,163,184,0.12)', borderColor: 'rgba(148,163,184,0.3)' }]}>
+                          <Text style={[s.pillText, { color: a.priority === 'P1' ? '#EF4444' : '#94A3B8' }]}>{a.priority}</Text>
+                        </View>
+                      </View>
+                      <Text style={s.agentCardMeta}>group: {a.group}</Text>
+                      <Text style={s.agentCardMeta} numberOfLines={2}>{stText}</Text>
+                      {a.est_cost_per_month ? <Text style={[s.agentCardMeta, { color: '#10B981' }]}>{a.est_cost_per_month}</Text> : null}
+                      {a.last_run_at ? <Text style={[s.agentCardMeta, { fontSize: 10 }]}>{new Date(a.last_run_at).toLocaleString()}</Text> : null}
+                    </View>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          )}
+
+          {/* Scheduler step registry */}
+          {steps.length > 0 && (
+            <View>
+              <Text style={s.sectionLabel}>SCHEDULER STEP REGISTRY</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+                <View>
+                  <View style={s.dataTableHead}>
+                    <Text style={[s.dataTh, { width: 160 }]}>STEP</Text>
+                    <Text style={[s.dataTh, { width: 70 }]}>CADENCE</Text>
+                    <Text style={[s.dataTh, { width: 140 }]}>GATE</Text>
+                    <Text style={[s.dataTh, { width: 260 }]}>MODULE</Text>
+                    <Text style={[s.dataTh, { width: 160 }]}>LAST RUN</Text>
+                  </View>
+                  {steps.map((st: any, i: number) => (
+                    <View key={i} style={s.dataTableRow}>
+                      <Text style={[s.dataTd, { width: 160, fontFamily: FONTS.bold, color: '#C4B5FD' }]}>{st.key}</Text>
+                      <Text style={[s.dataTd, { width: 70 }]}>{st.cadence_hours === 0 ? 'every cycle' : `${st.cadence_hours}h`}</Text>
+                      <Text style={[s.dataTd, { width: 140, fontSize: 10.5 }]}>{st.gate}</Text>
+                      <Text style={[s.dataTd, { width: 260, fontSize: 10.5 }]} numberOfLines={1}>{st.module}</Text>
+                      <Text style={[s.dataTd, { width: 160, fontSize: 10.5 }]}>
+                        {st.last_run_at ? new Date(st.last_run_at).toLocaleString() : '— never'}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+          )}
+
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+            <Pressable style={[s.btn, s.btnOutline]} onPress={load}>
+              <RefreshCw size={13} color="#C4B5FD" />
+              <Text style={s.btnText}>Refresh</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      )}
+    </PanelShell>
+  );
+}
+
+// ── Duplicates Panel ─────────────────────────────────────────────────
+function DuplicatesPanel({ notify }: { notify: (m: string) => void }) {
+  const [groups, setGroups] = useState<any[]>([]);
+  const [openGroups, setOpenGroups] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [scanning, setScanning] = useState(false);
+  const [merging, setMerging] = useState(false);
+  const [selKeepers, setSelKeepers] = useState<Record<string, string>>({});
+  const [err, setErr] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true); setErr('');
+    try {
+      const res = await request<any>('/admin/talent-pool/duplicates');
+      setGroups(res?.groups ?? []);
+      setOpenGroups(res?.open_groups ?? 0);
+      // default keeper = suggested_keeper
+      const init: Record<string, string> = {};
+      (res?.groups ?? []).forEach((g: any) => {
+        if (g.suggested_keeper) init[g.group_id] = String(g.suggested_keeper);
+      });
+      setSelKeepers(init);
+    } catch (e: any) { setErr(e?.message || 'Failed to load duplicates'); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const rescan = async () => {
+    setScanning(true);
+    try {
+      const res = await request<any>('/admin/talent-pool/duplicates/rescan', { method: 'POST' });
+      notify(`Rescan complete: ${res?.groups_found ?? 0} groups from ${res?.pairs_checked ?? 0} pairs checked`);
+      load();
+    } catch (e: any) { notify('Rescan failed: ' + (e?.message || '')); }
+    finally { setScanning(false); }
+  };
+
+  const mergeGroup = async (g: any) => {
+    const keeper = selKeepers[g.group_id];
+    if (!keeper) { notify('Select a keeper profile for this group'); return; }
+    setMerging(true);
+    try {
+      const dropRefs = (g.members ?? []).filter((m: any) => String(m.id) !== keeper && m.collection !== 'talent_pool');
+      const dropTalent = (g.members ?? []).filter((m: any) => String(m.id) !== keeper && m.collection === 'talent_pool').map((m: any) => m.id);
+      const dropContacts = dropRefs.map((m: any) => `contacts:${m.id}`);
+      const res = await request<any>('/admin/talent-pool/duplicates/merge', {
+        method: 'POST',
+        body: { group_id: g.group_id, keep_ref: keeper, drop_refs: [...dropTalent, ...dropContacts], reasons: [g.reasons?.join?.(', ') || 'manual merge'] },
+      });
+      notify(`Merged ${res?.merged ?? 0} duplicate profiles`);
+      load();
+    } catch (e: any) { notify('Merge failed: ' + (e?.message || '')); }
+    finally { setMerging(false); }
+  };
+
+  const memberKey = (m: any) => `${m.collection}:${m.id}`;
+
+  return (
+    <PanelShell title="Duplicate Groups" subtitle={`${openGroups} open groups · entity resolution across talent_pool + contacts`}>
+      <BusyMsg loading={loading} error={err} />
+      {!loading && groups.length === 0 && (
+        <View style={s.centered}>
+          <CheckCircle size={24} color="#10B981" />
+          <Text style={s.emptyTitle}>No open duplicate groups</Text>
+        </View>
+      )}
+      {groups.length > 0 && (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 12, paddingBottom: 16 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Pressable style={[s.btn, s.btnOutline]} onPress={rescan} disabled={scanning}>
+              {scanning ? <ActivityIndicator size="small" color="#C4B5FD" /> : <Search size={13} color="#C4B5FD" />}
+              <Text style={s.btnText}>{scanning ? 'Scanning…' : 'Rescan Pool'}</Text>
+            </Pressable>
+          </View>
+          {groups.map((g: any) => (
+            <View key={g.group_id} style={s.dedupGroupCard}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text style={s.sectionLabel}>GROUP · {(g.reasons || []).join(', ') || g.group_id}</Text>
+                <Text style={{ color: SAC.muted, fontSize: 10 }}>{new Date(g.found_at || g.updated_at || 0).toLocaleDateString()}</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {(g.members ?? []).map((m: any) => {
+                    const isKeeper = selKeepers[g.group_id] === String(m.id);
+                    return (
+                      <Pressable key={memberKey(m)} onPress={() => setSelKeepers(prev => ({ ...prev, [g.group_id]: String(m.id) }))}
+                        style={[s.dedupMemberCard, isKeeper && s.dedupMemberCardKeeper]}>
+                        {isKeeper && <View style={{ ...s.dedupKeeperDot }} />}
+                        <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 11 }} numberOfLines={1}>{m.full_name || m.id}</Text>
+                        <Text style={{ color: SAC.muted, fontSize: 10, fontFamily: FONTS.med }} numberOfLines={1}>{m.email || m.collection}</Text>
+                        {isKeeper && <Text style={{ color: '#10B981', fontSize: 10, fontFamily: FONTS.bold }}>KEEPER</Text>}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
+                <Pressable style={[s.btn, s.btnPrimary]} onPress={() => mergeGroup(g)} disabled={merging}>
+                  {merging ? <ActivityIndicator size="small" color="#fff" /> : <Copy size={12} color="#fff" />}
+                  <Text style={s.btnText}>Merge Group</Text>
+                </Pressable>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      )}
+    </PanelShell>
+  );
+}
+
+// ── Quality Panel ────────────────────────────────────────────────────
+function QualityPanel({ notify }: { notify: (m: string) => void }) {
+  const [report, setReport] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
+  const [err, setErr] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true); setErr('');
+    try { setReport(await request<any>('/admin/talent-pool/quality/report')); }
+    catch (e: any) { setErr(e?.message || 'Failed to load quality report'); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const runScanner = async () => {
+    setRunning(true);
+    try {
+      const res = await request<any>('/admin/talent-pool/quality/run', { method: 'POST' });
+      notify(`Quality scanner: scored ${res?.scored} profiles, ${res?.changed} changed, ${res?.needs_attention} need attention`);
+      load();
+    } catch (e: any) { notify('Scanner failed: ' + (e?.message || '')); }
+    finally { setRunning(false); }
+  };
+
+  const dims: [string, number][] = report?.avg_per_dimension ? Object.entries(report.avg_per_dimension) as [string, number][] : [];
+  const lowScoring: any[] = report?.low_scoring ?? [];
+
+  return (
+    <PanelShell title="Data Quality (TP24)" subtitle="Deterministic 100-point rubric · runs every 6 hours via TP23 scheduler">
+      <BusyMsg loading={loading} error={err} />
+      {!loading && report && (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 14, paddingBottom: 16 }}>
+          <KpiRow items={[
+            { label: 'Total Profiles', value: report.total },
+            { label: 'Scored', value: report.scored },
+            { label: 'Mean Score', value: `${report.mean_score ?? 0}%`, accent: (report.mean_score ?? 0) >= 60 ? '#10B981' : '#F59E0B' },
+            { label: 'Needs Attention', value: report.needs_attention, accent: report.needs_attention > 0 ? '#EF4444' : '#10B981' },
+          ]} />
+          {/* Distribution buckets */}
+          {report.buckets && (
+            <View>
+              <Text style={s.sectionLabel}>SCORE DISTRIBUTION</Text>
+              <View style={{ flexDirection: 'row', gap: 6, marginTop: 8 }}>
+                {Object.entries(report.buckets as Record<string, number>).map(([range, count]) => (
+                  <View key={range} style={s.kpiTile}>
+                    <Text style={s.kpiValue}>{count}</Text>
+                    <Text style={s.kpiLabel}>{range}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+          {/* Dimension pass rates */}
+          {dims.length > 0 && (
+            <View>
+              <Text style={s.sectionLabel}>DIMENSION PASS RATES</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                  {dims.map(([k, v]) => (
+                    <View key={k} style={[s.kpiTile, { backgroundColor: v >= 80 ? 'rgba(16,185,129,0.1)' : v >= 50 ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)' }]}>
+                      <Text style={[s.kpiValue, { color: v >= 80 ? '#10B981' : v >= 50 ? '#F59E0B' : '#EF4444' }]}>{v}%</Text>
+                      <Text style={s.kpiLabel}>{k}</Text>
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+          )}
+          {/* Low-scoring queue */}
+          {lowScoring.length > 0 && (
+            <View>
+              <Text style={s.sectionLabel}>LOW-SCORING QUEUE (bottom {lowScoring.length})</Text>
+              <ScrollView style={{ marginTop: 8, maxHeight: 200 }} contentContainerStyle={{ gap: 6 }}>
+                {lowScoring.map((p: any, i: number) => (
+                  <View key={i} style={s.listRow}>
+                    <Text style={[s.listRowTitle, { color: '#F59E0B' }]}>{p.full_name || p.id}</Text>
+                    <Text style={s.listRowSub}>{p.quality_score}% · missing: {(p.missing || []).join(', ') || 'n/a'}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+            <Pressable style={[s.btn, s.btnPrimary]} onPress={runScanner} disabled={running}>
+              {running ? <ActivityIndicator size="small" color="#fff" /> : <Zap size={13} color="#fff" />}
+              <Text style={s.btnText}>{running ? 'Scoring…' : 'Run Scanner Now'}</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      )}
+    </PanelShell>
+  );
+}
+
+// ── Activity Panel ───────────────────────────────────────────────────
+function ActivityPanel({ notify }: { notify: (m: string) => void }) {
+  const [events, setEvents] = useState<any[]>([]);
+  const [profileId, setProfileId] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true); setErr('');
+    try {
+      const params = new URLSearchParams({ limit: '50' });
+      if (profileId.trim()) params.set('profile_id', profileId.trim());
+      const res = await request<any>(`/admin/talent-pool/activity?${params.toString()}`);
+      setEvents(res?.events ?? []);
+    } catch (e: any) { setErr(e?.message || 'Failed to load activity'); }
+    finally { setLoading(false); }
+  }, [profileId]);
+  useEffect(() => { load(); }, [load]);
+
+  return (
+    <PanelShell title="Activity Log" subtitle="Unified event stream from agent runs, promotions, syncs and manual edits">
+      <BusyMsg loading={loading} error={err} />
+      {!loading && (
+        <View style={{ gap: 10 }}>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <TextInput style={[s.formInput, { flex: 1 }]} value={profileId} onChangeText={setProfileId}
+              placeholder="Filter by profile ID (optional)" placeholderTextColor={SAC.muted} />
+            <Pressable style={[s.btn, s.btnOutline]} onPress={load}><Text style={s.btnText}>Filter</Text></Pressable>
+          </View>
+          {events.length === 0 ? <Text style={{ color: SAC.muted, fontSize: 12, fontFamily: FONTS.med }}>No events yet</Text> : null}
+          <ScrollView style={{ flex: 1, maxHeight: 400 }} contentContainerStyle={{ gap: 6 }}>
+            {events.map((ev: any, i: number) => (
+              <View key={i} style={s.listRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.listRowTitle}>{ev.action || ev.type}</Text>
+                  <Text style={s.listRowSub} numberOfLines={2}>
+                    {[ev.actor, ev.object_type, ev.summary].filter(Boolean).join(' · ')}
+                  </Text>
+                </View>
+                <Text style={{ color: SAC.muted, fontSize: 10, fontFamily: FONTS.med }}>{ev.created_at ? new Date(ev.created_at).toLocaleString() : ''}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+    </PanelShell>
+  );
+}
+
+// ── Insights Panel ───────────────────────────────────────────────────
+function InsightsPanel({ notify }: { notify: (m: string) => void }) {
+  const [insights, setInsights] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [genBusy, setGenBusy] = useState(false);
+  const [err, setErr] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true); setErr('');
+    try {
+      const res = await request<any>('/admin/talent-pool/insights?limit=4');
+      setInsights(res?.insights ?? []);
+    } catch (e: any) { setErr(e?.message || 'Failed to load insights'); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const generate = async () => {
+    setGenBusy(true);
+    try {
+      const res = await request<any>('/admin/talent-pool/insights/generate', { method: 'POST' });
+      notify('Insights regenerated: ' + JSON.stringify(res?.summary ?? res ?? ''));
+      load();
+    } catch (e: any) { notify('Generate failed: ' + (e?.message || '')); }
+    finally { setGenBusy(false); }
+  };
+
+  const latest = insights[0];
+
+  return (
+    <PanelShell title="Pool Insights (TP27)" subtitle="Weekly cohort analytics · source effectiveness, skill trends, geo, pipeline velocity, conversion funnel">
+      <BusyMsg loading={loading} error={err} />
+      {!loading && !latest && <Text style={{ color: SAC.muted, fontSize: 12, fontFamily: FONTS.med }}>No insights yet — run the generator or wait for the weekly scheduler step.</Text>}
+      {!loading && latest && (
+        <View style={{ gap: 12 }}>
+          <Text style={s.sectionLabel}>WEEK OF {new Date(latest.week_start).toLocaleDateString()} · computed {new Date(latest.computed_at).toLocaleString()}</Text>
+          {latest.payload && (
+            <View style={{ gap: 10 }}>
+              {latest.payload.source_effectiveness && (
+                <View>
+                  <Text style={s.sectionLabel}>SOURCE EFFECTIVENESS</Text>
+                  <View style={{ flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                    {Object.entries(latest.payload.source_effectiveness).map(([src, v]: [string, any]) => (
+                      <View key={src} style={s.kpiTile}>
+                        <Text style={s.kpiValue}>{typeof v === 'number' ? v : JSON.stringify(v)}</Text>
+                        <Text style={s.kpiLabel}>{src}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+              {latest.payload.skill_trends && (
+                <View>
+                  <Text style={s.sectionLabel}>SKILL TRENDS</Text>
+                  <Text style={{ color: SAC.muted, fontSize: 11, fontFamily: FONTS.med, marginTop: 4 }}>
+                    {JSON.stringify(latest.payload.skill_trends, null, 0)}
+                  </Text>
+                </View>
+              )}
+              {latest.payload.pipeline_velocity && (
+                <View>
+                  <Text style={s.sectionLabel}>PIPELINE VELOCITY</Text>
+                  <Text style={{ color: SAC.muted, fontSize: 11, fontFamily: FONTS.med, marginTop: 4 }}>
+                    {JSON.stringify(latest.payload.pipeline_velocity, null, 0)}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+            <Pressable style={[s.btn, s.btnPrimary]} onPress={generate} disabled={genBusy}>
+              {genBusy ? <ActivityIndicator size="small" color="#fff" /> : <TrendingUp size={13} color="#fff" />}
+              <Text style={s.btnText}>{genBusy ? 'Generating…' : 'Generate Now'}</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+    </PanelShell>
+  );
+}
+
+// ── Drip Campaigns Panel ─────────────────────────────────────────────
+function DripPanel({ notify }: { notify: (m: string) => void }) {
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [campaignName, setCampaignName] = useState('');
+  const [openingRef, setOpeningRef] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true); setErr('');
+    try {
+      const res = await request<any>('/admin/talent-pool/drips');
+      setCampaigns(res?.campaigns ?? []);
+    } catch (e: any) { setErr(e?.message || 'Failed to load drips'); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const createCampaign = async () => {
+    if (!campaignName.trim()) { notify('Campaign name required'); return; }
+    setBusy(true);
+    try {
+      await request('/admin/talent-pool/drips/create', {
+        method: 'POST', body: { name: campaignName.trim(), opening_ref: openingRef.trim() || undefined },
+      });
+      notify(`Created drip campaign "${campaignName.trim()}"`);
+      setCampaignName(''); setOpeningRef('');
+      load();
+    } catch (e: any) { notify('Create failed: ' + (e?.message || '')); }
+    finally { setBusy(false); }
+  };
+
+  const runCampaign = async (id: string) => {
+    setBusy(true);
+    try {
+      const res = await request<any>(`/admin/talent-pool/drips/run?campaign_id=${id}`, { method: 'POST' });
+      notify(`Drip run: ${JSON.stringify(res ?? '')}`);
+      load();
+    } catch (e: any) { notify('Run failed: ' + (e?.message || '')); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <PanelShell title="Email Drip Campaigns (TP21)" subtitle="Gated by TP_DRIP_ENABLED · real email sends only after explicit deploy opt-in">
+      <BusyMsg loading={loading} error={err} />
+      {!loading && (
+        <View style={{ gap: 12 }}>
+          {/* Create form */}
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <TextInput style={[s.formInput, { flex: 1, minWidth: 160 }]} value={campaignName} onChangeText={setCampaignName}
+              placeholder="Campaign name" placeholderTextColor={SAC.muted} />
+            <TextInput style={[s.formInput, { flex: 1, minWidth: 140 }]} value={openingRef} onChangeText={setOpeningRef}
+              placeholder="Opening ref (optional)" placeholderTextColor={SAC.muted} />
+            <Pressable style={[s.btn, s.btnPrimary]} onPress={createCampaign} disabled={busy}>
+              <UserPlus size={12} color="#fff" /><Text style={s.btnText}>Create</Text>
+            </Pressable>
+          </View>
+          {/* Campaign list */}
+          {campaigns.length === 0 && <Text style={{ color: SAC.muted, fontSize: 12, fontFamily: FONTS.med }}>No drip campaigns yet.</Text>}
+          <ScrollView style={{ flex: 1, maxHeight: 300 }} contentContainerStyle={{ gap: 8 }}>
+            {campaigns.map((c: any) => (
+              <View key={c.id} style={s.listRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.listRowTitle}>{c.name}</Text>
+                  <Text style={s.listRowSub}>
+                    status: {c.status} · {c.recipients ?? 0} recipients · {c.created_at ? new Date(c.created_at).toLocaleDateString() : ''}
+                    {c.stats ? ` · sent: ${c.stats.sent ?? 0} / open: ${c.stats.open_rate_pct ?? 0}% / click: ${c.stats.click_rate_pct ?? 0}%` : ''}
+                  </Text>
+                </View>
+                <Pressable style={[s.btn, s.btnOutline]} onPress={() => runCampaign(c.id)} disabled={busy}>
+                  <Zap size={11} color="#C4B5FD" /><Text style={s.btnText}>Run</Text>
+                </Pressable>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+    </PanelShell>
+  );
+}
+
+// ── External Jobs Panel ──────────────────────────────────────────────
+function ExternalJobsPanel({ notify }: { notify: (m: string) => void }) {
+  const [listings, setListings] = useState<any[]>([]);
+  const [deadlines, setDeadlines] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetching, setFetching] = useState(false);
+  const [err, setErr] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true); setErr('');
+    try {
+      const [j, d] = await Promise.all([
+        request<any>('/admin/talent-pool/external-jobs?limit=30'),
+        request<any>('/admin/talent-pool/external-jobs/deadlines?days=7').catch(() => ({ alerts: [] })),
+      ]);
+      setListings(j?.listings ?? []);
+      setDeadlines(d?.alerts ?? d ?? []);
+    } catch (e: any) { setErr(e?.message || 'Failed to load external jobs'); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const refetch = async () => {
+    setFetching(true);
+    try {
+      const res = await request<any>('/admin/talent-pool/external-jobs/fetch?limit=50', { method: 'POST' });
+      notify(`Fetched ${res?.listings?.length ?? 0} new listings`);
+      load();
+    } catch (e: any) { notify('Fetch failed: ' + (e?.message || '')); }
+    finally { setFetching(false); }
+  };
+
+  return (
+    <PanelShell title="External Job Boards (TP28/TP29)" subtitle="Naukri + Internshala spider · fetched every 12h · matched to pool skills">
+      <BusyMsg loading={loading} error={err} />
+      {!loading && (
+        <View style={{ gap: 12 }}>
+          {/* Deadline alerts */}
+          {deadlines.length > 0 && (
+            <View>
+              <Text style={s.sectionLabel}>DEADLINE ALERTS (next 7 days)</Text>
+              <ScrollView style={{ maxHeight: 150, marginTop: 8 }} contentContainerStyle={{ gap: 6 }}>
+                {deadlines.map((d: any, i: number) => (
+                  <View key={i} style={[s.listRow, { backgroundColor: 'rgba(239,68,68,0.08)' }]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.listRowTitle}>{d.title} — {d.company}</Text>
+                      <Text style={s.listRowSub}>
+                        {d.location ? `${d.location} · ` : ''}{d.salary_text || ''} · deadline in {d.days_left}d
+                      </Text>
+                    </View>
+                    {d.url ? <ExternalLink size={13} color="#EF4444" /> : null}
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+          {/* Listings */}
+          {listings.length > 0 && (
+            <View>
+              <Text style={s.sectionLabel}>RECENT LISTINGS ({listings.length})</Text>
+              <ScrollView style={{ marginTop: 8, maxHeight: 300 }} contentContainerStyle={{ gap: 6 }}>
+                {listings.map((l: any, i: number) => (
+                  <View key={i} style={s.listRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.listRowTitle} numberOfLines={1}>{l.title} {l.company ? `— ${l.company}` : ''}</Text>
+                      <Text style={s.listRowSub} numberOfLines={1}>
+                        {[l.board, l.location, l.salary_text, l.matched ? `matched: ${l.matched}` : ''].filter(Boolean).join(' · ')}
+                      </Text>
+                    </View>
+                    <Text style={{ color: '#10B981', fontSize: 10, fontFamily: FONTS.bold }}>{l.status || 'active'}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+          {listings.length === 0 && deadlines.length === 0 && (
+            <Text style={{ color: SAC.muted, fontSize: 12, fontFamily: FONTS.med }}>No listings fetched yet.</Text>
+          )}
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+            <Pressable style={[s.btn, s.btnPrimary]} onPress={refetch} disabled={fetching}>
+              {fetching ? <ActivityIndicator size="small" color="#fff" /> : <Database size={13} color="#fff" />}
+              <Text style={s.btnText}>{fetching ? 'Fetching…' : 'Fetch Now'}</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+    </PanelShell>
+  );
+}
+
+// ── Ranker Panel ─────────────────────────────────────────────────────
+function RankerPanel({ notify }: { notify: (m: string) => void }) {
+  const [results, setResults] = useState<any[]>([]);
+  const [meta, setMeta] = useState<any>(null);
+  const [jobTitle, setJobTitle] = useState('');
+  const [skills, setSkills] = useState('');
+  const [minExp, setMinExp] = useState('');
+  const [maxExp, setMaxExp] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+
+  const runRanker = async () => {
+    setLoading(true); setErr('');
+    try {
+      const p = new URLSearchParams();
+      p.set('k', '10');
+      if (jobTitle.trim()) p.set('title', jobTitle.trim());
+      if (skills.trim()) p.set('skills', skills.trim());
+      if (minExp.trim()) p.set('min_experience', minExp.trim());
+      if (maxExp.trim()) p.set('max_experience', maxExp.trim());
+      const res = await request<any>(`/admin/talent-pool/ranker?${p.toString()}`);
+      setResults(res?.results ?? []);
+      setMeta({ model: res?.model_used, labels: res?.label_count, health: res?.health, topFactors: res?.top_factors_global });
+    } catch (e: any) { setErr(e?.message || 'Ranker failed'); }
+    finally { setLoading(false); }
+  };
+
+  const retrain = async () => {
+    setLoading(true);
+    try {
+      const res = await request<any>('/admin/talent-pool/ranker/retrain', { method: 'POST' });
+      notify(`Ranker retrained: ${JSON.stringify(res ?? '')}`);
+      runRanker();
+    } catch (e: any) { notify('Retrain failed: ' + (e?.message || '')); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <PanelShell title="Candidate Ranker (TP19)" subtitle="ML model · daily retrain via TP23 scheduler · fallback: cold-start cosine scoring">
+      <BusyMsg loading={loading} error={err} />
+      <View style={{ gap: 10, marginBottom: 12 }}>
+        <TextInput style={s.formInput} value={jobTitle} onChangeText={setJobTitle} placeholder="Job title (e.g. Full Stack Developer)" placeholderTextColor={SAC.muted} />
+        <TextInput style={s.formInput} value={skills} onChangeText={setSkills} placeholder="Comma-separated skills (e.g. React, Node, PostgreSQL)" placeholderTextColor={SAC.muted} />
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TextInput style={[s.formInput, { flex: 1 }]} value={minExp} onChangeText={setMinExp} placeholder="Min years" placeholderTextColor={SAC.muted} keyboardType="numeric" />
+          <TextInput style={[s.formInput, { flex: 1 }]} value={maxExp} onChangeText={setMaxExp} placeholder="Max years" placeholderTextColor={SAC.muted} keyboardType="numeric" />
+        </View>
+        <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end' }}>
+          <Pressable style={[s.btn, s.btnOutline]} onPress={retrain} disabled={loading}>
+            <RefreshCw size={12} color="#C4B5FD" /><Text style={s.btnText}>Retrain Model</Text>
+          </Pressable>
+          <Pressable style={[s.btn, s.btnPrimary]} onPress={runRanker} disabled={loading}>
+            {loading ? <ActivityIndicator size="small" color="#fff" /> : <BarChart3 size={13} color="#fff" />}
+            <Text style={s.btnText}>Rank</Text>
+          </Pressable>
+        </View>
+      </View>
+      {meta && (
+        <Text style={{ color: SAC.muted, fontSize: 11, fontFamily: FONTS.med, marginBottom: 8 }}>
+          model: {meta.model} · labels: {meta.labels} · health: {JSON.stringify(meta.health)}
+        </Text>
+      )}
+      {results.length > 0 && (
+        <ScrollView style={{ flex: 1, maxHeight: 360 }} contentContainerStyle={{ gap: 6 }}>
+          {results.map((r: any, i: number) => (
+            <View key={i} style={s.listRow}>
+              <View style={[s.rankBadge, { backgroundColor: r.score >= 0.8 ? 'rgba(16,185,129,0.15)' : r.score >= 0.5 ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)' }]}>
+                <Text style={{ color: r.score >= 0.8 ? '#10B981' : r.score >= 0.5 ? '#F59E0B' : '#EF4444', fontFamily: FONTS.bold, fontSize: 13 }}>
+                  {Math.round((r.score ?? 0) * 100)}%
+                </Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.listRowTitle}>{r.full_name || r.candidate_id}</Text>
+                <Text style={s.listRowSub} numberOfLines={1}>
+                  {((r.matched_skills || []).slice(0, 4).join(', ')) || 'no skill match'}
+                  {r.missing_skills?.length ? ` · missing: ${r.missing_skills.slice(0, 3).join(', ')}` : ''}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      )}
+    </PanelShell>
+  );
+}
+
+// ── Interviews Panel ─────────────────────────────────────────────────
+function InterviewsPanel({ notify }: { notify: (m: string) => void }) {
+  const [interviews, setInterviews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [schedBusy, setSchedBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [schedProfile, setSchedProfile] = useState('');
+  const [schedStart, setSchedStart] = useState('');
+  const [schedInvitee, setSchedInvitee] = useState('');
+  const [schedCal, setSchedCal] = useState('auto');
+  const [fbInterview, setFbInterview] = useState<any>(null);
+  const [fbDecision, setFbDecision] = useState('');
+  const [fbNotes, setFbNotes] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true); setErr('');
+    try {
+      const res = await request<any>('/admin/talent-pool/interviews?limit=30');
+      setInterviews(res?.interviews ?? []);
+    } catch (e: any) { setErr(e?.message || 'Failed to load interviews'); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const schedule = async () => {
+    if (!schedProfile.trim()) { notify('Profile ID required'); return; }
+    setSchedBusy(true);
+    try {
+      const res = await request<any>('/admin/talent-pool/interviews', {
+        method: 'POST',
+        body: {
+          profile_id: schedProfile.trim(),
+          start: schedStart.trim() || new Date(Date.now() + 2 * 3600_000).toISOString(),
+          duration_min: 45,
+          invitee_email: schedInvitee.trim() || undefined,
+          calendar: schedCal,
+        },
+      });
+      if (res?.error) notify(`Schedule: ${res.error}`);
+      else notify(`Interview ${res?.interview_id || ''} created via ${res?.backend || 'calendar'}`);
+      load();
+    } catch (e: any) { notify('Schedule failed: ' + (e?.message || '')); }
+    finally { setSchedBusy(false); }
+  };
+
+  const submitFeedback = async () => {
+    if (!fbInterview || !fbDecision) { notify('Select a decision'); return; }
+    setSchedBusy(true);
+    try {
+      await request('/admin/talent-pool/interviews/' + fbInterview.interview_id + '/feedback', {
+        method: 'POST', body: { decision: fbDecision, notes: fbNotes.trim() || undefined },
+      });
+      notify('Feedback recorded');
+      setFbInterview(null); setFbDecision(''); setFbNotes('');
+      load();
+    } catch (e: any) { notify('Feedback failed: ' + (e?.message || '')); }
+    finally { setSchedBusy(false); }
+  };
+
+  return (
+    <PanelShell title="Interviews & Calendar (TP32)" subtitle="Auto / Google / MS365 / ICS backends · syncs via TP23 calendar_sync step">
+      <BusyMsg loading={loading} error={err} />
+      {!loading && (
+        <View style={{ gap: 10 }}>
+          {/* Schedule form */}
+          <View>
+            <Text style={s.sectionLabel}>SCHEDULE NEW INTERVIEW</Text>
+            <View style={{ gap: 8, marginTop: 8, flexWrap: 'wrap', flexDirection: 'row' }}>
+              <TextInput style={[s.formInput, { flex: 1, minWidth: 120 }]} value={schedProfile} onChangeText={setSchedProfile} placeholder="Profile ID" placeholderTextColor={SAC.muted} />
+              <TextInput style={[s.formInput, { flex: 1, minWidth: 160 }]} value={schedStart} onChangeText={setSchedStart} placeholder="Start (ISO or blank = 2h)" placeholderTextColor={SAC.muted} />
+              <TextInput style={[s.formInput, { flex: 1, minWidth: 140 }]} value={schedInvitee} onChangeText={setSchedInvitee} placeholder="Invitee email" placeholderTextColor={SAC.muted} />
+              <View style={{ flexDirection: 'row', gap: 4 }}>
+                {(['auto', 'gcal', 'ms365', 'ics'] as const).map(c => (
+                  <Pressable key={c} style={[s.filterChip, schedCal === c && s.filterChipActive]} onPress={() => setSchedCal(c)}>
+                    <Text style={[s.filterChipText, schedCal === c && s.filterChipTextActive]}>{c.toUpperCase()}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Pressable style={[s.btn, s.btnPrimary]} onPress={schedule} disabled={schedBusy}>
+                <Calendar size={12} color="#fff" /><Text style={s.btnText}>Schedule</Text>
+              </Pressable>
+            </View>
+          </View>
+          {/* Feedback modal */}
+          {fbInterview && (
+            <View style={{ backgroundColor: 'rgba(139,92,246,0.08)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.3)', borderRadius: 10, padding: 12, gap: 8 }}>
+              <Text style={s.sectionLabel}>FEEDBACK FOR {fbInterview.interview_id}</Text>
+              <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                {['strong_yes', 'yes', 'neutral', 'no', 'strong_no'].map(d => (
+                  <Pressable key={d} style={[s.filterChip, fbDecision === d && s.filterChipActive]} onPress={() => setFbDecision(d)}>
+                    <Text style={[s.filterChipText, fbDecision === d && s.filterChipTextActive]}>{d.toUpperCase()}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <TextInput style={s.formInput} value={fbNotes} onChangeText={setFbNotes} placeholder="Notes (optional)" placeholderTextColor={SAC.muted} />
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 6 }}>
+                <Pressable style={[s.btn, s.btnOutline]} onPress={() => { setFbInterview(null); setFbDecision(''); }}><Text style={s.btnText}>Cancel</Text></Pressable>
+                <Pressable style={[s.btn, s.btnPrimary]} onPress={submitFeedback} disabled={schedBusy}><Text style={s.btnText}>Submit</Text></Pressable>
+              </View>
+            </View>
+          )}
+          {/* List */}
+          {interviews.length === 0 && <Text style={{ color: SAC.muted, fontSize: 12, fontFamily: FONTS.med }}>No interviews yet.</Text>}
+          <ScrollView style={{ flex: 1, maxHeight: 300 }} contentContainerStyle={{ gap: 6 }}>
+            {interviews.map((iv: any, i: number) => (
+              <View key={i} style={s.listRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.listRowTitle}>{iv.full_name || iv.profile_id}</Text>
+                  <Text style={s.listRowSub}>
+                    {iv.start_at ? new Date(iv.start_at).toLocaleString() : ''} · {iv.status || 'scheduled'} · {iv.sync_status || '—'}
+                  </Text>
+                </View>
+                <Pressable style={[s.btn, s.btnOutline]} onPress={() => setFbInterview(iv)}>
+                  <ClipboardCheck size={11} color="#C4B5FD" /><Text style={s.btnText}>Feedback</Text>
+                </Pressable>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+    </PanelShell>
+  );
+}
+
+// ── Skills Panel ─────────────────────────────────────────────────────
+function SkillsPanel({ notify }: { notify: (m: string) => void }) {
+  const [taxonomy, setTaxonomy] = useState<any>(null);
+  const [status, setStatus] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+  const [canonInput, setCanonInput] = useState('');
+  const [aliasInput, setAliasInput] = useState('');
+  const [canonTest, setCanonTest] = useState('');
+  const [canonResult, setCanonResult] = useState<string[]>([]);
+
+  const load = useCallback(async () => {
+    setLoading(true); setErr('');
+    try {
+      const [t, st] = await Promise.all([
+        request<any>('/admin/talent-pool/skills/taxonomy'),
+        request<any>('/admin/talent-pool/skills/status'),
+      ]);
+      setTaxonomy(t); setStatus(st);
+    } catch (e: any) { setErr(e?.message || 'Failed to load skills'); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const promote = async () => {
+    if (!canonInput.trim()) { notify('Canonical skill name required'); return; }
+    try {
+      const aliases = aliasInput.split(',').map(a => a.trim()).filter(Boolean);
+      const res = await request<any>('/admin/talent-pool/skills/promote', {
+        method: 'POST', body: { canonical: canonInput.trim(), aliases },
+      });
+      notify(`Promoted "${canonInput.trim()}" · backfilled ${res?.backfilled ?? 0} profiles`);
+      load();
+    } catch (e: any) { notify('Promote failed: ' + (e?.message || '')); }
+  };
+
+  const canonicalize = async () => {
+    if (!canonTest.trim()) return;
+    try {
+      const aliases = canonTest.split(',').map(a => a.trim()).filter(Boolean);
+      const res = await request<any>('/admin/talent-pool/skills/canonicalize', {
+        method: 'POST', body: aliases,
+      });
+      setCanonResult(res?.canonical ?? []);
+    } catch (e: any) { notify('Canonicalize failed: ' + (e?.message || '')); }
+  };
+
+  const top: any[] = taxonomy?.top_used ?? [];
+
+  return (
+    <PanelShell title="Skill Taxonomy (TP22)" subtitle="rapidfuzz token_set matching · local only · seeded daily via TP23 scheduler">
+      <BusyMsg loading={loading} error={err} />
+      {!loading && taxonomy && (
+        <View style={{ gap: 12 }}>
+          <KpiRow items={[
+            { label: 'Canonical Skills', value: taxonomy.total_canonical ?? 0 },
+            { label: 'Aliases Loaded', value: status?.aliases_loaded ?? 0 },
+            { label: 'Pending Review', value: taxonomy.pending_review ?? 0, accent: (taxonomy.pending_review ?? 0) > 0 ? '#F59E0B' : undefined },
+          ]} />
+          {/* Top skills */}
+          {top.length > 0 && (
+            <View>
+              <Text style={s.sectionLabel}>TOP SKILLS BY USAGE</Text>
+              <ScrollView style={{ maxHeight: 200, marginTop: 8 }} contentContainerStyle={{ gap: 6 }}>
+                {top.slice(0, 20).map((sk: any, i: number) => (
+                  <View key={i} style={s.listRow}>
+                    <Text style={[s.listRowTitle, { flex: 1 }]} numberOfLines={1}>{sk.canonical}</Text>
+                    <Text style={{ color: SAC.muted, fontSize: 11 }}>{sk.usage_count} uses</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+          {/* Promote form */}
+          <View>
+            <Text style={s.sectionLabel}>PROMOTE TO CANONICAL</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+              <TextInput style={[s.formInput, { flex: 1, minWidth: 120 }]} value={canonInput} onChangeText={setCanonInput} placeholder="Canonical name" placeholderTextColor={SAC.muted} />
+              <TextInput style={[s.formInput, { flex: 1, minWidth: 140 }]} value={aliasInput} onChangeText={setAliasInput} placeholder="Comma-separated aliases" placeholderTextColor={SAC.muted} />
+              <Pressable style={[s.btn, s.btnPrimary]} onPress={promote}><Tags size={12} color="#fff" /><Text style={s.btnText}>Promote</Text></Pressable>
+            </View>
+          </View>
+          {/* Canonicalize test */}
+          <View>
+            <Text style={s.sectionLabel}>CANONICALIZE TEST (raw alias → canonical)</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, alignItems: 'flex-start' }}>
+              <View style={{ flex: 1, gap: 6 }}>
+                <TextInput style={s.formInput} value={canonTest} onChangeText={setCanonTest} placeholder="e.g. react, nodejs, typescript" placeholderTextColor={SAC.muted} />
+                {canonResult.length > 0 && (
+                  <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap' }}>
+                    {canonResult.map((c, i) => (
+                      <View key={i} style={s.skillChip}><Text style={s.skillChipText}>{c}</Text></View>
+                    ))}
+                  </View>
+                )}
+              </View>
+              <Pressable style={[s.btn, s.btnOutline]} onPress={canonicalize}><Text style={s.btnText}>Run</Text></Pressable>
+            </View>
+          </View>
+        </View>
+      )}
+    </PanelShell>
+  );
+}
+
+// ── Compliance / ATS / WhatsApp Panel ────────────────────────────────
+function CompliancePanel({ notify }: { notify: (m: string) => void }) {
+  const [report, setReport] = useState<any>(null);
+  const [ats, setAts] = useState<any>(null);
+  const [wapp, setWapp] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true); setErr('');
+    try {
+      const [r, a, w] = await Promise.all([
+        request<any>('/admin/talent-pool/compliance/report'),
+        request<any>('/admin/talent-pool/ats/status').catch(() => null),
+        request<any>('/admin/talent-pool/whatsapp/usage-alert').catch(() => null),
+      ]);
+      setReport(r); setAts(a); setWapp(w);
+    } catch (e: any) { setErr(e?.message || 'Failed to load compliance'); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const encryptPii = async () => {
+    try {
+      await request('/admin/talent-pool/compliance/encrypt-pii', { method: 'POST' });
+      notify('PII encryption triggered');
+      load();
+    } catch (e: any) { notify('Encrypt PII failed: ' + (e?.message || '')); }
+  };
+
+  const atsPush = async () => {
+    try {
+      const res = await request<any>('/admin/talent-pool/ats/push', { method: 'POST' });
+      notify(`ATS push: ${JSON.stringify(res ?? '')}`);
+      load();
+    } catch (e: any) { notify('ATS push failed: ' + (e?.message || '')); }
+  };
+
+  return (
+    <PanelShell title="Compliance, ATS & WhatsApp" subtitle="DPDP posture · PII Fernet encryption · Zoho/FreshTeam/webhook push · Meta Cloud API free-tier">
+      <BusyMsg loading={loading} error={err} />
+      {!loading && report && (
+        <View style={{ gap: 14 }}>
+          {/* KPI row */}
+          <KpiRow items={[
+            { label: 'Active Profiles', value: report.active_profiles ?? 0 },
+            { label: 'PII Encrypted', value: `${report.pii_encryption_coverage_pct ?? 0}%`, accent: (report.pii_encryption_coverage_pct ?? 0) >= 90 ? '#10B981' : '#F59E0B' },
+            { label: 'Consent Records', value: report.consent_records_active ?? 0 },
+            { label: 'DPDP Posture', value: report.dpdp_posture || '—', accent: '#10B981' },
+          ]} />
+
+          {/* Erasure / opt-outs */}
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <KpiRow items={[
+              { label: 'Outreach Opt-outs', value: report.outreach_opt_outs ?? 0, accent: (report.outreach_opt_outs ?? 0) > 0 ? '#F59E0B' : undefined },
+              { label: 'Erasure Events', value: report.erasure_events_total ?? 0 },
+            ]} />
+          </View>
+
+          {/* ATS status */}
+          {ats && (
+            <View>
+              <Text style={s.sectionLabel}>ATS / CRM PUSH (TP31)</Text>
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <Text style={{ color: SAC.muted, fontSize: 11, fontFamily: FONTS.med }}>
+                  Enabled: {ats.enabled_ats?.length || 0} · Last push: {ats.last_push_at ? new Date(ats.last_push_at).toLocaleString() : '—'}
+                </Text>
+                <Pressable style={[s.btn, s.btnOutline]} onPress={atsPush}>
+                  <Send size={11} color="#C4B5FD" /><Text style={s.btnText}>Push Now</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
+
+          {/* WhatsApp */}
+          {wapp && (
+            <View>
+              <Text style={s.sectionLabel}>WHATSAPP FREE-TIER USAGE (TP30)</Text>
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                <KpiRow items={[
+                  { label: `Used / ${wapp.free_tier} msgs`, value: wapp.used, accent: (wapp.pct ?? 0) >= 90 ? '#EF4444' : (wapp.pct ?? 0) >= 70 ? '#F59E0B' : '#10B981' },
+                  { label: 'Alert', value: wapp.alert ? 'ALERT' : 'OK', accent: wapp.alert ? '#EF4444' : '#10B981' },
+                ]} />
+              </View>
+            </View>
+          )}
+
+          <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end' }}>
+            <Pressable style={[s.btn, s.btnOutline]} onPress={encryptPii}><Shield size={12} color="#C4B5FD" /><Text style={s.btnText}>Encrypt PII Now</Text></Pressable>
+            <Pressable style={[s.btn, s.btnOutline]} onPress={load}><RefreshCw size={12} color="#C4B5FD" /><Text style={s.btnText}>Refresh</Text></Pressable>
+          </View>
+        </View>
+      )}
+    </PanelShell>
+  );
+}
+
+// ── Panel Switch ─────────────────────────────────────────────────────
+function PanelSwitch({ tab, notify }: { tab: TabId; notify: (m: string) => void }) {
+  switch (tab) {
+    case 'agents':        return <AgentsPanel notify={notify} />;
+    case 'duplicates':    return <DuplicatesPanel notify={notify} />;
+    case 'quality':       return <QualityPanel notify={notify} />;
+    case 'activity':      return <ActivityPanel notify={notify} />;
+    case 'insights':      return <InsightsPanel notify={notify} />;
+    case 'drip':          return <DripPanel notify={notify} />;
+    case 'external-jobs': return <ExternalJobsPanel notify={notify} />;
+    case 'ranker':        return <RankerPanel notify={notify} />;
+    case 'interviews':    return <InterviewsPanel notify={notify} />;
+    case 'skills':        return <SkillsPanel notify={notify} />;
+    case 'compliance':    return <CompliancePanel notify={notify} />;
+    default:             return null;
+  }
+}
+
+/* ── Profile Detail Modal ─────────────────────────────────────────── */
 function ProfileDetailModal({
   visible,
   profile,
@@ -1264,4 +2393,74 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
   td: { color: SAC.text, fontFamily: FONTS.med, fontSize: 11.5, paddingRight: 10 },
+  // ── TP agent suite panel styles ──
+  panelCard: {
+    flex: 1, backgroundColor: SAC.card, borderRadius: 14, borderWidth: 1, borderColor: SAC.border,
+    padding: 18, gap: 14, overflow: 'hidden',
+  },
+  panelHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  panelTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
+  panelSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
+  kpiRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  kpiTile: {
+    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 12,
+    borderWidth: 1, borderColor: SAC.border, minWidth: 100, flex: 1, gap: 4,
+  },
+  kpiValue: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 18 },
+  kpiLabel: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 },
+  sectionLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.8 },
+  formInput: {
+    flex: 1, color: SAC.text, fontSize: 12, fontFamily: FONTS.med,
+    backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: SAC.border,
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+  agentCard: {
+    width: 190, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 12,
+    borderWidth: 1, borderColor: SAC.border, padding: 12, gap: 5,
+  },
+  agentCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6 },
+  agentCardName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12, flex: 1, flexShrink: 1 },
+  agentCardMeta: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
+  pill: {
+    paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 4, borderWidth: 1,
+  },
+  pillText: { fontFamily: FONTS.bold, fontSize: 9.5 },
+  dataTableHead: {
+    flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.04)', borderTopLeftRadius: 10, borderTopRightRadius: 10,
+    borderBottomWidth: 1, borderBottomColor: SAC.border,
+  },
+  dataTh: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.6 },
+  dataTableRow: {
+    flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 8,
+    borderBottomWidth: 0.5, borderBottomColor: SAC.border,
+  },
+  dataTd: { color: SAC.text, fontFamily: FONTS.med, fontSize: 11 },
+  dedupGroupCard: {
+    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, borderWidth: 1,
+    borderColor: SAC.border, padding: 14, gap: 10,
+  },
+  dedupMemberCard: {
+    width: 140, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8,
+    borderWidth: 1, borderColor: SAC.border, padding: 10, gap: 3, position: 'relative',
+  },
+  dedupMemberCardKeeper: {
+    borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.08)',
+  },
+  dedupKeeperDot: {
+    position: 'absolute', top: 6, right: 6, width: 6, height: 6,
+    borderRadius: 3, backgroundColor: '#10B981',
+  },
+  listRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8,
+    borderWidth: 1, borderColor: SAC.border, padding: 10,
+  },
+  listRowTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
+  listRowSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 2 },
+  rankBadge: {
+    width: 48, height: 48, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
+  },
 });
