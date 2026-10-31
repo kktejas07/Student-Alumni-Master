@@ -16,7 +16,7 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
   Building2, Search, X, Check, Pencil, Trash2, ShieldCheck, ShieldOff, RefreshCw,
-  AlertTriangle, ExternalLink, Sparkles, Award, MapPin, Users, Globe, BookOpen, Plus, Download,
+  AlertTriangle, ExternalLink, Sparkles, Award, MapPin, Users, Globe, BookOpen, Plus, Download, FileDown,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
@@ -44,7 +44,30 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [backfilling, setBackfilling] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const { toast, flash, hide } = useToast();
+
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      const r: any = await request(`/admin/colleges/export?status=${tab}&q=${encodeURIComponent(q)}`);
+      const csvText = typeof r?.raw === 'string' ? r.raw : JSON.stringify(r ?? '');
+      const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `colleges_export_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      flash('Export started');
+    } catch {
+      flash('Export failed', 'error');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const backfill = async () => {
     setBackfilling(true);
@@ -156,7 +179,15 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
       <Card>
         <View style={s.browseHead}>
           <TopTabs<Status> tabs={tabs as any} active={tab} onChange={setTab} />
-          <SearchField value={q} onChange={setQ} placeholder="Search colleges, cities…" width={300} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <SearchField value={q} onChange={setQ} placeholder="Search colleges, cities…" width={300} />
+            {Platform.OS === 'web' && (
+              <SecondaryButton onPress={exportCsv} disabled={exporting}>
+                <FileDown size={12} color={T.muted} />
+                <Text style={s.secText}>{exporting ? 'Exporting…' : 'Export CSV'}</Text>
+              </SecondaryButton>
+            )}
+          </View>
         </View>
       </Card>
 

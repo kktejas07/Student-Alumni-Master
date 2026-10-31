@@ -669,6 +669,90 @@ async def list_colleges(
     return {"items": items, "total": total, "page": page, "limit": limit, "pages": max(1, (total + limit - 1) // limit), "counts": counts}
 
 
+@router.get("/admin/colleges/export")
+async def export_colleges_csv(
+    status: Optional[str] = None,
+    q: Optional[str] = None,
+    authorization: Optional[str] = Header(None),
+):
+    """Export the filtered college directory as CSV (all matching rows, no pagination).
+
+    Mirrors the /admin/colleges/list filters so the export always matches
+    what the admin is looking at in the UI.
+    """
+    await _require_admin(authorization)
+
+    import csv
+    import io
+    from fastapi.responses import Response
+
+    match: Dict[str, Any] = {}
+    if status and status != "all":
+        match["status"] = status
+    if q:
+        match["name"] = {"$regex": re.escape(q), "$options": "i"}
+
+    cur = _db.colleges.find(match).sort([("created_at", -1), ("_id", -1)])
+
+    docs: List[dict] = []
+    name_to_norm: Dict[str, str] = {}
+    async for c in cur:
+        docs.append(c)
+        name_to_norm[str(c["_id"])] = c.get("normalized_name") or _normalize(c.get("name", ""))
+
+    # Same student-count aggregation as the list endpoint
+    counts_pipeline = [
+        {"$match": {"college": nonempty()}},
+        {"$group": {"_id": {"$toLower": "$college"}, "n": {"$sum": 1}}},
+    ]
+    counts_map: Dict[str, int] = {}
+    try:
+        async for r in _db.users.aggregate(counts_pipeline):
+            n = _normalize(r.get("_id") or "")
+            if n:
+                counts_map[n] = counts_map.get(n, 0) + int(r.get("n", 0))
+    except Exception:
+        counts_map = {}
+
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow([
+        "Name", "City", "State", "Country", "Type", "Status",
+        "Enrichment Status", "Student Count", "NAAC Grade", "NIRF Rank",
+        "Website", "LinkedIn", "Domains", "Created At",
+    ])
+    for c in docs:
+        norm = name_to_norm.get(str(c["_id"]), "")
+        accreditation = c.get("accreditation") or []
+        ranking = c.get("ranking") or []
+        naac = next((a for a in accreditation if "naac" in a.lower()), "")
+        nirf = next((r for r in ranking if "nirf" in r.lower()), "")
+        created = c.get("created_at")
+        writer.writerow([
+            c.get("name") or "",
+            c.get("city") or "",
+            c.get("state") or "",
+            c.get("country") or "",
+            c.get("type") or "",
+            c.get("status") or "pending",
+            c.get("enrichment_status") or "failed",
+            counts_map.get(norm, 0),
+            naac,
+            nirf,
+            c.get("website") or "",
+            c.get("linkedin_url") or "",
+            "; ".join(c.get("domains") or []),
+            created.strftime("%Y-%m-%d %H:%M UTC") if isinstance(created, datetime) else "",
+        ])
+
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    return Response(
+        content=out.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=colleges_export_{stamp}.csv"},
+    )
+
+
 @router.get("/admin/colleges/{cid}")
 async def get_college(cid: str, authorization: Optional[str] = Header(None)):
     await _require_admin(authorization)
