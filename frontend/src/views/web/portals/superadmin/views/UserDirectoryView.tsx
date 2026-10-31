@@ -49,11 +49,13 @@ export function UserDirectoryView({
   title,
   subtitle,
   showCategoryTabs = false,
+  openUserId = null,
 }: {
   category?: Cat;
   title?: string;
   subtitle?: string;
   showCategoryTabs?: boolean;
+  openUserId?: string | null;
 }) {
   const T = useSAC();
   Object.assign(st, resolveColors(st, T));
@@ -67,9 +69,11 @@ export function UserDirectoryView({
   const [busy, setBusy] = useState(false);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
-  const [profileId, setProfileId] = useState<string | null>(null);
+  const [profileId, setProfileId] = useState<string | null>(openUserId);
   const [pendingOnly, setPendingOnly] = useState(false);
   const [bump, setBump] = useState(0);
+
+  useEffect(() => { if (openUserId) setProfileId(openUserId); }, [openUserId]);
 
   /* Bulk selection */
   const [selectMode, setSelectMode] = useState(false);

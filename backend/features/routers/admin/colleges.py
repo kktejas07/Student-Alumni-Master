@@ -685,6 +685,45 @@ async def get_college(cid: str, authorization: Optional[str] = Header(None)):
     return _serialize(c, sc)
 
 
+@router.get("/admin/colleges/{cid}/students")
+async def college_students(
+    cid: str,
+    page: int = 1,
+    limit: int = 20,
+    authorization: Optional[str] = Header(None),
+):
+    await _require_admin(authorization)
+    try: oid = ObjectId(cid)
+    except Exception: raise HTTPException(400, "Invalid id")
+    c = await _db.colleges.find_one({"_id": oid})
+    if not c:
+        raise HTTPException(404, "College not found")
+
+    name = c.get("name", "")
+    match = {"college": {"$regex": f"^{re.escape(name)}$", "$options": "i"}}
+    total = await _db.users.count_documents(match)
+    page = max(1, page)
+    limit = min(max(1, limit), 100)
+    skip = (page - 1) * limit
+    cur = _db.users.find(match, {
+        "full_name": 1, "first_name": 1, "last_name": 1, "email": 1, "phone": 1,
+        "roll_number": 1, "sa_id": 1, "college": 1, "approved": 1, "disabled": 1,
+        "created_at": 1,
+    }).sort([("created_at", -1), ("_id", -1)]).skip(skip).limit(limit)
+    items = []
+    async for u in cur:
+        items.append({
+            "id": str(u.get("_id")),
+            "name": u.get("full_name") or " ".join(x for x in [u.get("first_name"), u.get("last_name")] if x),
+            "email": u.get("email", ""),
+            "roll_number": u.get("roll_number") or u.get("sa_id") or "",
+            "college": u.get("college", ""),
+            "status": "archived" if u.get("disabled") else ("active" if u.get("approved") else "inactive"),
+            "created_at": u.get("created_at"),
+        })
+    return {"items": items, "total": total, "page": page, "limit": limit, "pages": max(1, (total + limit - 1) // limit)}
+
+
 class PatchCollege(BaseModel):
     name: Optional[str] = None
     city: Optional[str] = None

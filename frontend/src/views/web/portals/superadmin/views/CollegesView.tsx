@@ -17,7 +17,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
   Building2, Search, X, Check, Pencil, Trash2, ShieldCheck, ShieldOff, RefreshCw,
   AlertTriangle, ExternalLink, Sparkles, Award, MapPin, Users, Globe, BookOpen, Plus, Download,
-  ListChecks,
+  ListChecks, Eye,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
@@ -27,13 +27,17 @@ import {
   TopTabs, SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox, KpiTile,
 } from '../applekit';
 import { request, resolveImageUrl } from '@/src/models/services/api';
-import { useSubTab } from '@/src/views/web/portals/portalUrl';
+import { useSubTab, usePortalUrl } from '@/src/views/web/portals/portalUrl';
 
 type Status = 'all' | 'pending' | 'active' | 'paused';
 
 export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const T = useSAC();
   Object.assign(s, resolveColors(s, T));
+  const { go } = usePortalUrl();
+  const goStudentsProfile = (uid: string) => {
+    try { go('students', uid); } catch { go('students'); }
+  };
   const [tab, setTab] = useSubTab<Status>(['all', 'pending', 'active', 'paused'], 'all', { sub, onSub });
   const [q, setQ] = useState('');
   const [data, setData] = useState<any>(null);
@@ -311,6 +315,7 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
         onClose={() => setOpen(null)}
         onSaved={() => { flash('Updated'); setBump((b) => b + 1); }}
         onError={(msg: string) => flash(msg, 'error')}
+        onOpenStudent={(uid: string) => { setOpen(null); goStudentsProfile(uid); }}
       />
 
       {/* New college modal */}
@@ -526,11 +531,29 @@ function CollegeCardSkeleton() {
 /* ════════════════════════════════════════════════════════════════════
  *  Detail modal
  * ══════════════════════════════════════════════════════════════════ */
-function CollegeDetail({ college, onClose, onSaved, onError }: any) {
+function CollegeDetail({ college, onClose, onSaved, onError, onOpenStudent }: any) {
   const T = useSAC();
   const [edit, setEdit] = useState(false);
   const [draft, setDraft] = useState<any>({});
   const [confirmDel, setConfirmDel] = useState(false);
+  const [dtab, setDtab] = useState<'overview' | 'students'>('overview');
+  const [stu, setStu] = useState<any>(null);
+  const [stuBusy, setStuBusy] = useState(false);
+  const [stuPage, setStuPage] = useState(1);
+
+  useEffect(() => {
+    if (dtab !== 'students' || !college?.id) return;
+    let on = true;
+    setStuBusy(true);
+    (async () => {
+      try {
+        const r: any = await request(`/admin/colleges/${college.id}/students?page=${stuPage}&limit=20`);
+        if (on) setStu(r);
+      } catch { if (on) setStu({ items: [], total: 0, pages: 1, page: stuPage }); }
+      finally { if (on) setStuBusy(false); }
+    })();
+    return () => { on = false; };
+  }, [college?.id, dtab, stuPage]);
 
   if (!college) return null;
   const c = { ...college, ...draft };
@@ -556,7 +579,7 @@ function CollegeDetail({ college, onClose, onSaved, onError }: any) {
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={s.modalBg}>
-        <Animated.View entering={FadeInDown.duration(220)} style={s.modalCard}>
+        <Animated.View entering={FadeInDown.duration(220)} style={[s.modalCard, dtab === 'students' ? { maxWidth: 780 } : null]}>
           <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
             {c.logo_url ? (
               <Image source={{ uri: resolveImageUrl(c.logo_url) }} style={[s.logo, { width: 48, height: 48 }]} />
@@ -575,7 +598,23 @@ function CollegeDetail({ college, onClose, onSaved, onError }: any) {
           </LinearGradient>
 
           <ScrollView style={{ maxHeight: 560 }} contentContainerStyle={{ padding: 20, gap: 16 }}>
-            {!!c.description && (
+          <TopTabs
+            tabs={[
+              { id: 'overview', label: 'Overview', icon: Building2 },
+              { id: 'students', label: `Students (${stu?.total ?? c.student_count ?? 0})`, icon: Users },
+            ] as any}
+            active={dtab}
+            onChange={(t) => setDtab(t as any)}
+          />
+
+          {dtab === 'students' ? (
+            <StudentTable collegeId={college.id} stu={stu} busy={stuBusy} page={stuPage}
+              onPrev={() => stuPage > 1 && setStuPage(stuPage - 1)}
+              onNext={() => stuPage < (stu?.pages || 1) && setStuPage(stuPage + 1)}
+              onOpenStudent={onOpenStudent} />
+          ) : (
+          <>
+          {!!c.description && (
               <View>
                 <SectionLabel>ABOUT</SectionLabel>
                 <Text style={[s.muted, { marginTop: 6, lineHeight: 18, color: T.muted }]} numberOfLines={6}>{c.description}</Text>
@@ -669,6 +708,8 @@ function CollegeDetail({ college, onClose, onSaved, onError }: any) {
                 <Pressable onPress={del} style={s.destructiveBtn}><Text style={s.btnText}>Yes, archive</Text></Pressable>
               </View>
             )}
+          </>
+          )}
           </ScrollView>
         </Animated.View>
       </View>
@@ -691,6 +732,76 @@ function EditRow({ label, value, onChange }: any) {
     <View style={s.detailRow}>
       <Text style={[s.detailLabel, { width: 120 }]}>{label}</Text>
       <TextInput value={value || ''} onChangeText={onChange} placeholderTextColor={T.dim} style={s.input} />
+    </View>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ *  Students tab — paginated table inside the detail modal
+ * ══════════════════════════════════════════════════════════════════ */
+function StudentTable({ collegeId, stu, busy, page, onPrev, onNext, onOpenStudent }: any) {
+  const T = useSAC();
+  const items: any[] = stu?.items || [];
+  const stuKind = (st: string) => st === 'active' ? 'success' : st === 'archived' ? 'danger' : 'warn';
+  return (
+    <View style={{ gap: 8 }}>
+      {busy && !stu ? (
+        <LoadingBox label="Loading students…" />
+      ) : items.length === 0 ? (
+        <EmptyState icon={Users} title="No linked students"
+          sub="Students whose college matches this name will appear here as they are imported." />
+      ) : (
+        <>
+          <View style={s.stuHeadRow}>
+            <View style={{ flex: 1.4, minWidth: 0 }}><Text style={s.stuTh}>NAME</Text></View>
+            <View style={{ flex: 1.2, minWidth: 0 }}><Text style={s.stuTh}>EMAIL</Text></View>
+            <View style={{ flex: 0.7, minWidth: 0 }}><Text style={s.stuTh}>ROLL NO.</Text></View>
+            <View style={{ width: 72 }}><Text style={s.stuTh}>STATUS</Text></View>
+            <View style={{ width: 104 }}><Text style={s.stuTh}>JOINED</Text></View>
+            <View style={{ width: 34 }} />
+          </View>
+          <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
+            {items.map((u) => (
+              <View key={u.id} style={s.stuRow}>
+                <View style={{ flex: 1.4, minWidth: 0, gap: 1 }}>
+                  <Text style={s.stuName} numberOfLines={1}>{u.name || '—'}</Text>
+                  <Text style={s.stuSub} numberOfLines={1}>{u.college || '—'}</Text>
+                </View>
+                <View style={{ flex: 1.2, minWidth: 0, justifyContent: 'center' }}>
+                  <Text style={s.stuCell} numberOfLines={1}>{u.email || '—'}</Text>
+                </View>
+                <View style={{ flex: 0.7, minWidth: 0, justifyContent: 'center' }}>
+                  <Text style={s.stuCell} numberOfLines={1}>{u.roll_number || '—'}</Text>
+                </View>
+                <View style={{ width: 72, justifyContent: 'center' }}>
+                  <StatusPill kind={stuKind(u.status)} label={u.status ? u.status.toUpperCase() : '—'} />
+                </View>
+                <View style={{ width: 104, justifyContent: 'center' }}>
+                  <Text style={s.stuCell} numberOfLines={1}>
+                    {u.created_at ? new Date(u.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityLabel={`Open ${u.name || 'student'} profile in Students`}
+                  onPress={() => onOpenStudent?.(u.id)}
+                  style={({ hovered }: any) => [s.stuViewBtn, hovered && Platform.OS === 'web' ? { backgroundColor: T.okTint } : null]}
+                >
+                  <Eye size={12} color={T.muted} />
+                </Pressable>
+              </View>
+            ))}
+          </ScrollView>
+          <View style={s.stuPager}>
+            <Pressable style={[s.pageBtn, page <= 1 && { opacity: 0.4 }]} onPress={onPrev}>
+              <Text style={s.pageBtnText}>Prev</Text>
+            </Pressable>
+            <Text style={s.pageInfo}>{page} / {stu?.pages || 1}</Text>
+            <Pressable style={[s.pageBtn, page >= (stu?.pages || 1) && { opacity: 0.4 }]} onPress={onNext}>
+              <Text style={s.pageBtnText}>Next</Text>
+            </Pressable>
+          </View>
+        </>
+      )}
     </View>
   );
 }
@@ -846,4 +957,25 @@ const s = StyleSheet.create({
   pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.cardSolid, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   pageBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
   pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
+
+  stuHeadRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 10, paddingVertical: 7,
+    backgroundColor: SAC.panel2, borderRadius: 10, borderWidth: 1, borderColor: SAC.line,
+  },
+  stuTh: { color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
+  stuRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 10, paddingVertical: 8,
+    borderRadius: 10, backgroundColor: SAC.panel2, borderWidth: 1, borderColor: SAC.line,
+  },
+  stuName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5 },
+  stuSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 },
+  stuCell: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
+  stuViewBtn: {
+    width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.line,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  stuPager: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 },
 });
