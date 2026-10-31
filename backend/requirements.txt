@@ -130,6 +130,15 @@ rapidfuzz
 cleanco
 fpdf2
 langchain-text-splitters
+# Talent Pool agents & OSS expansion (TP15-TP32)
+PyGithub
+spacy
+en_core_web_sm
+skillNer
+dateparser
+scikit-learn
+recordlinkage
+msal
 tzlocal==5.3.1
 uritemplate==4.2.0
 urllib3==2.7.0

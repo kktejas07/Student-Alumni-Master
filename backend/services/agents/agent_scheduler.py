@@ -103,6 +103,11 @@ class AgentSchedulerService:
                 description="Sandbox keys, idle nudges, VALIDATED promotion, quota alerts.",
                 cadence_minutes=60,
             ),
+            "talent_suite": SchedulerAgentTask(
+                agent_id="talent_suite",
+                name="Talent Pool Agent Suite Scheduler (TP23)",
+                description="Self-gating runs of TP15-TP32 sub-agents (quality, taxonomy, PII, drips, dedup, insights, external jobs, WhatsApp, ATS, calendar).",
+            ),
         }
 
     async def run_cycle(self, db=None) -> Dict[str, Any]:
@@ -203,7 +208,35 @@ class AgentSchedulerService:
         # cadence (weekly / daily / 6h), so calling every 30-min cycle is safe.
         await self._run_bgv_agents(db, now_iso, cycle_results)
 
+        # 12. Talent Pool agent suite (TP23). The registry self-gates each
+        # step on cadence + env flags; missing/optional modules skip cleanly.
+        await self._run_talent_suite(db, now_iso, cycle_results)
+
         return cycle_results
+
+    async def _run_talent_suite(self, db, now_iso, cycle_results):
+        """Drives the TP15-TP32 sub-agent registry from the house cycle.
+        Never raises — a single agent's failure must not take down the cycle."""
+        task = self._tasks.get("talent_suite")
+        if task:
+            task.status = "RUNNING"
+        try:
+            from services.agents.talent_scheduler import talent_scheduler_agent
+            out = await talent_scheduler_agent.run(db)
+            if task:
+                task.status = "SUCCESS"
+                task.total_runs += 1
+                task.last_run_at = now_iso
+                task.next_run_at = self._next_cycle_at
+                task.last_summary = f"Talent suite: {len(out.get('ran', []))} steps ran, " \
+                                    f"{len(out.get('skipped', {}))} gated/skipped."
+            cycle_results["talent_suite"] = {"ok": True, "ran": out.get("ran", []),
+                                             "skipped": out.get("skipped", {})}
+        except Exception as e:
+            if task:
+                task.status = "FAILED"
+                task.last_error = str(e)
+            cycle_results["talent_suite"] = {"ok": False, "error": str(e)}
 
     async def _run_bgv_agents(self, db, now_iso, cycle_results):
         """Runs the six BGV agents; each no-ops (not-due) until its cadence elapses."""
