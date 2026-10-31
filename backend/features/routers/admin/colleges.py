@@ -669,6 +669,307 @@ async def list_colleges(
     return {"items": items, "total": total, "page": page, "limit": limit, "pages": max(1, (total + limit - 1) // limit), "counts": counts}
 
 
+# ─── DEDUP: fuzzy duplicate detection & merge ─────────────────────
+# Students are linked to colleges by the `users.college` string (matched
+# case-insensitively against the college name), so a merge must also
+# re-point those rows onto the surviving (primary) name.
+
+_MERGE_FILL_FIELDS = (
+    "city", "state", "country", "type", "website", "linkedin_url",
+    "logo_url", "wiki_url", "description", "enrichment_status",
+)
+_MERGE_LIST_FIELDS = ("accreditation", "ranking", "specialties", "domains", "enrichment_sources")
+
+
+def _levenshtein_capped(a: str, b: str, cap: int = 3) -> int:
+    """Bounded Levenshtein distance. Returns cap+1 when the distance is
+    known to exceed `cap` (early exit keeps it cheap on long names)."""
+    if a == b:
+        return 0
+    if abs(len(a) - len(b)) > cap:
+        return cap + 1
+    if not a:
+        return len(b)
+    if not b:
+        return len(a)
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        row_min = i
+        for j, cb in enumerate(b, 1):
+            cost = 0 if ca == cb else 1
+            v = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost)
+            cur.append(v)
+            row_min = min(row_min, v)
+        if row_min > cap:
+            return cap + 1
+        prev = cur
+    return prev[-1] if prev[-1] <= cap else cap + 1
+
+
+def _jaro_winkler(a: str, b: str) -> float:
+    """Jaro-Winkler similarity on lowercased strings (0..1)."""
+    a, b = (a or "").lower(), (b or "").lower()
+    if a == b:
+        return 1.0
+    la, lb = len(a), len(b)
+    if la < 2 or lb < 2:
+        return 1.0 if a == b else 0.0
+    match_dist = max(la, lb) // 2 - 1
+    match_dist = max(match_dist, 0)
+    a_match = [False] * la
+    b_match = [False] * lb
+    matches = 0
+    for i in range(la):
+        lo = max(0, i - match_dist)
+        hi = min(i + match_dist + 1, lb)
+        for j in range(lo, hi):
+            if b[j] == a[i] and not b_match[j]:
+                a_match[i] = True
+                b_match[j] = True
+                matches += 1
+                break
+    if matches < 2:
+        return 0.0
+    trans = 0
+    k = 0
+    for i in range(la):
+        if a_match[i]:
+            while k < lb and not b_match[k]:
+                k += 1
+            if k < lb and a[i] != b[k]:
+                trans += 1
+            k += 1
+    jaro = (matches / la + matches / lb + (matches - trans / 2) / matches) / 3
+    prefix = 0
+    for i in range(min(4, la, lb)):
+        if a[i] == b[i]:
+            prefix += 1
+        else:
+            break
+    return jaro + 0.1 * prefix * (1 - jaro)
+
+
+def _pair_confidence(a: str, b: str) -> float:
+    """Score a pair of college names: 1.0 for exact normalized matches,
+    else the Jaro-Winkler similarity, with a Levenshtein ≤ 3 floor so
+    short typo-variants still qualify."""
+    na, nb = _normalize(a), _normalize(b)
+    if na and na == nb:
+        return 1.0
+    sim = _jaro_winkler(na, nb)
+    lev = _levenshtein_capped(na, nb, cap=3)
+    if lev <= 3 and sim < 0.92:
+        sim = max(sim, 0.85 + (3 - lev) * 0.02)
+    return round(sim, 4)
+
+
+@router.get("/admin/colleges/duplicates")
+async def find_duplicate_colleges(authorization: Optional[str] = Header(None)):
+    """Group colleges whose names fuzzy-match (Jaro-Winkler ≥ 0.85 or
+    Levenshtein ≤ 3 on the normalized name). Groups are returned sorted
+    by confidence (highest first) so the likeliest duplicates lead.
+
+    Pairwise comparison is bucketed by the first 4 normalized
+    characters (with a full pass for names ≤ 6 chars) to keep it fast on
+    large collections.
+    """
+    await _require_admin(authorization)
+
+    docs: List[dict] = []
+    async for c in _db.colleges.find({}):
+        docs.append(c)
+
+    parent: Dict[str, str] = {}
+
+    def union(x: str, y: str) -> None:
+        rx, ry = x, y
+        while parent.get(rx, rx) != rx:
+            rx = parent[rx]
+        while parent.get(ry, ry) != ry:
+            ry = parent[ry]
+        if rx != ry:
+            parent[rx] = ry
+
+    by_id: Dict[str, dict] = {}
+    for c in docs:
+        cid = str(c["_id"])
+        by_id[cid] = c
+
+    def same_group(a: str, b: str) -> None:
+        if _pair_confidence(by_id[a].get("name") or "", by_id[b].get("name") or "") >= 0.85:
+            union(a, b)
+
+    # Small collections: exact O(n²) pass so no candidate pair is missed.
+    # Large collections: bucket by 4-char normalized prefix (+ cross pass
+    # for short names ≤ 6 chars) to keep runtime bounded.
+    ids_all = [str(c["_id"]) for c in docs]
+    if len(docs) <= 1500:
+        for i in range(len(ids_all)):
+            for j in range(i + 1, len(ids_all)):
+                same_group(ids_all[i], ids_all[j])
+    else:
+        buckets: Dict[str, List[str]] = {}
+        short_norm: Dict[str, str] = {}
+        for c in docs:
+            cid = str(c["_id"])
+            n = _normalize(c.get("name") or "")
+            if len(n) > 6:
+                buckets.setdefault(n[:4], []).append(cid)
+            elif n:
+                short_norm[cid] = n
+        for ids in buckets.values():
+            for i in range(len(ids)):
+                for j in range(i + 1, len(ids)):
+                    same_group(ids[i], ids[j])
+        sids = list(short_norm)
+        for i in range(len(sids)):
+            for j in range(i + 1, len(sids)):
+                same_group(sids[i], sids[j])
+        for cid, n in short_norm.items():
+            for key, b in buckets.items():
+                if key.startswith(n):
+                    for other in b:
+                        same_group(cid, other)
+
+    groups: List[Dict[str, Any]] = []
+    grouped: Dict[str, List[str]] = {}
+    for cid, root in parent.items():
+        grouped.setdefault(root, []).append(cid)
+
+    # student counts for every college in every group
+    all_ids = [cid for cids in grouped.values() if len(cids) >= 2 for cid in cids]
+    counts_map: Dict[str, int] = {}
+    if all_ids:
+        name_to_id: Dict[str, str] = {}
+        for cid in all_ids:
+            c = by_id[cid]
+            nn = c.get("normalized_name") or _normalize(c.get("name", ""))
+            if nn:
+                name_to_id[nn] = cid
+        try:
+            cur = _db.users.aggregate([
+                {"$match": {"college": nonempty()}},
+                {"$group": {"_id": {"$toLower": "$college"}, "n": {"$sum": 1}}},
+            ])
+            async for r in cur:
+                n = _normalize(r.get("_id") or "")
+                if n in name_to_id:
+                    counts_map[name_to_id[n]] = counts_map.get(name_to_id[n], 0) + int(r.get("n", 0))
+        except Exception:
+            counts_map = {}
+
+    for cids in grouped.values():
+        if len(cids) < 2:
+            continue
+        members = [by_id[i] for i in cids]
+        # group confidence = weakest pair link
+        confs = [
+            _pair_confidence(m1.get("name") or "", m2.get("name") or "")
+            for i, m1 in enumerate(members) for m2 in members[i + 1:]
+        ]
+        groups.append({
+            "confidence": round(min(confs), 2),
+            "colleges": [
+                {**_serialize(m, counts_map.get(str(m["_id"]), 0)), "in_group": len(cids)}
+                for m in members
+            ],
+        })
+    groups.sort(key=lambda g: -g["confidence"])
+    total = len(groups)
+    groups = groups[:50]
+    return {"ok": True, "total_groups": total, "groups": groups, "truncated": total > 50}
+
+
+class MergeColleges(BaseModel):
+    primary_id: str
+    secondary_ids: List[str]
+
+
+@router.post("/admin/colleges/merge")
+async def merge_colleges(body: MergeColleges, authorization: Optional[str] = Header(None)):
+    """Merge secondary college entries into a primary one.
+
+    - Field fill: empty primary fields are backfilled from the
+      secondaries (primary wins on conflicts); list fields
+      (accreditation, ranking, specialties, domains, sources) are
+      unioned, keeping the primary's order.
+    - Students: users.college rows pointing at a secondary name are
+      re-pointed at the primary name.
+    - Secondaries are soft-archived to colleges_archive tagged
+      `merged_into`, then removed from colleges.
+    - Every merge is recorded in colleges_merge_audit.
+    """
+    user = await _require_admin(authorization)
+    primary_id = (body.primary_id or "").strip()
+    secondary_ids = [i for i in dict.fromkeys(body.secondary_ids or []) if i and i != primary_id][:25]
+    if not primary_id or not secondary_ids:
+        raise HTTPException(400, "primary_id and at least one secondary_id required")
+    try:
+        primary_oid = ObjectId(primary_id)
+        oids = [ObjectId(i) for i in secondary_ids]
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    primary = await _db.colleges.find_one({"_id": primary_oid})
+    if not primary:
+        raise HTTPException(404, "Primary college not found")
+
+    now = datetime.now(timezone.utc)
+    archived: List[Dict[str, str]] = []
+    moved_students = 0
+    for oid in oids:
+        sec = await _db.colleges.find_one({"_id": oid})
+        if not sec:
+            continue
+        fill: Dict[str, Any] = {}
+        for f in _MERGE_FILL_FIELDS:
+            if not primary.get(f) and sec.get(f):
+                fill[f] = sec[f]
+        for f in _MERGE_LIST_FIELDS:
+            if not isinstance(sec.get(f), list):
+                continue
+            merged = list(dict.fromkeys((primary.get(f) or []) + [x for x in sec[f] if x]))
+            if len(merged) > len(primary.get(f) or []):
+                fill[f] = merged
+        if fill:
+            await _db.colleges.update_one({"_id": primary_oid}, {"$set": fill})
+        variants = [v for v in (sec.get("name"), sec.get("normalized_name")) if v]
+        if variants:
+            try:
+                res = await _db.users.update_many(
+                    {"college": {"$in": variants}},
+                    {"$set": {"college": primary.get("name") or ""}},
+                )
+                moved_students += int(res.get("modified_count") or 0)
+            except Exception:
+                pass
+        sec["archived_at"] = now
+        sec["archived_by"] = str(user["_id"])
+        sec["merged_into"] = primary_id
+        await _db.colleges_archive.insert_one(sec)
+        await _db.colleges.delete_one({"_id": oid})
+        archived.append({"id": str(oid), "name": sec.get("name") or ""})
+
+    try:
+        await _db.colleges_merge_audit.insert_one({
+            "merged_at": now,
+            "merged_by": str(user["_id"]),
+            "primary_id": primary_id,
+            "primary_name": primary.get("name") or "",
+            "secondary": archived,
+            "students_reassigned": moved_students,
+        })
+    except Exception:
+        pass
+
+    return {
+        "ok": True,
+        "primary_id": primary_id,
+        "archived": archived,
+        "students_reassigned": moved_students,
+    }
+
+
 @router.get("/admin/colleges/{cid}")
 async def get_college(cid: str, authorization: Optional[str] = Header(None)):
     await _require_admin(authorization)
