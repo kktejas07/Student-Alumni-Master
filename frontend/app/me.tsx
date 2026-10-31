@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { portalPathForRole } from '@/src/lib/portalHome';
@@ -13,6 +14,11 @@ export default function MeRedirectPage() {
     if (!initialized) return;
     if (!user) {
       router.replace('/login');
+      return;
+    }
+    // Native has no web portals — "me" is the Profile tab.
+    if (Platform.OS !== 'web') {
+      router.replace('/(tabs)/profile' as any);
       return;
     }
     const home = portalPathForRole(user.role);

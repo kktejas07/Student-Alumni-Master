@@ -5,10 +5,9 @@ from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorClient
 
 async def export_hackwave_registrations():
-    mongo_url = os.environ.get(
-        'MONGO_URL',
-        'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin'
-    )
+    mongo_url = os.environ.get('MONGO_URL')
+    if not mongo_url:
+        raise SystemExit("MONGO_URL is not set. Export this script's connection string via the environment; never hardcode credentials.")
     db_name = os.environ.get('DB_NAME', 'studentalumniadmin')
     
     client = AsyncIOMotorClient(mongo_url)

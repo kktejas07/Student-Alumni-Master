@@ -1,4 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
+import { ShieldCheck, Zap, Play, Pause, Circle, Sparkles, UserCheck, ExternalLink } from "lucide-react-native";
+import { SAC, useSAC, FONTS, resolveColors } from "../tokens";
+import { Card } from "../applekit";
+import { request } from "@/src/models/services/api";
 
 // Analytics instrumentation per standards §3
 const trackScreen = (screenName: string, meta: Record<string, any>) => {
@@ -14,6 +19,9 @@ const trackClick = (actionName: string, meta?: Record<string, any>) => {
 };
 
 export const CodeHealthView: React.FC = () => {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
+
   const [loading, setLoading] = useState<boolean>(true);
   const [metrics, setMetrics] = useState<any>(null);
   const [status, setStatus] = useState<any>(null);
@@ -39,10 +47,10 @@ export const CodeHealthView: React.FC = () => {
     setLoading(true);
     try {
       const [resStatus, resMetrics, resFindings, resAutofixes] = await Promise.all([
-        fetch("/api/admin/code-health/status").then((r) => r.json()).catch(() => null),
-        fetch("/api/admin/code-health/metrics?range=30d").then((r) => r.json()).catch(() => null),
-        fetch("/api/admin/code-health/findings?status=open&limit=100").then((r) => r.json()).catch(() => null),
-        fetch("/api/admin/code-health/autofixes?limit=50").then((r) => r.json()).catch(() => null),
+        request<any>("/admin/code-health/status").catch(() => null),
+        request<any>("/admin/code-health/metrics?range=30d").catch(() => null),
+        request<any>("/admin/code-health/findings?status=open&limit=100").catch(() => null),
+        request<any>("/admin/code-health/autofixes?limit=50").catch(() => null),
       ]);
 
       if (resStatus) setStatus(resStatus);
@@ -61,12 +69,10 @@ export const CodeHealthView: React.FC = () => {
     setRunningCycle(true);
     setActionMsg("Running full codebase audit...");
     try {
-      const res = await fetch("/api/admin/code-health/run", {
+      const data = await request<any>("/admin/code-health/run", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scope: "repo", autofix: false }),
+        body: { scope: "repo", autofix: false },
       });
-      const data = await res.json();
       setActionMsg(`Audit complete! Score: ${data.health_score}/100, Open Findings: ${data.total_findings}`);
       fetchData();
     } catch (e: any) {
@@ -79,10 +85,9 @@ export const CodeHealthView: React.FC = () => {
   const handleStartLoop = async () => {
     trackClick("code_health_start_loop");
     try {
-      await fetch("/api/admin/code-health/loop-agent/start", {
+      await request("/admin/code-health/loop-agent/start", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ interval_seconds: 86400 }),
+        body: { interval_seconds: 86400 },
       });
       setActionMsg("24h Loop worker started.");
       fetchData();
@@ -94,7 +99,7 @@ export const CodeHealthView: React.FC = () => {
   const handleStopLoop = async () => {
     trackClick("code_health_stop_loop");
     try {
-      await fetch("/api/admin/code-health/loop-agent/stop", { method: "POST" });
+      await request("/admin/code-health/loop-agent/stop", { method: "POST" });
       setActionMsg("Loop worker stopped.");
       fetchData();
     } catch (e: any) {
@@ -105,10 +110,9 @@ export const CodeHealthView: React.FC = () => {
   const handlePatchStatus = async (fingerprint: string, newStatus: string) => {
     trackClick("code_health_patch_status", { fingerprint, newStatus });
     try {
-      await fetch(`/api/admin/code-health/findings/${fingerprint}`, {
+      await request(`/admin/code-health/findings/${fingerprint}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus, admin_note: "Updated from SuperAdmin UI" }),
+        body: { status: newStatus, admin_note: "Updated from SuperAdmin UI" },
       });
       setActionMsg(`Finding updated to ${newStatus}`);
       fetchData();
@@ -124,130 +128,157 @@ export const CodeHealthView: React.FC = () => {
     return true;
   });
 
+  const p0p1 = (metrics?.counts_by_severity?.P0 || 0) + (metrics?.counts_by_severity?.P1 || 0);
+
+  const sevColor = (sev: string) =>
+    sev === "P0" ? T.danger : sev === "P1" ? T.amber : T.blue;
+  const sevBg = (sev: string) =>
+    sev === "P0" ? T.dangerTint : sev === "P1" ? T.warnTint : T.tint;
+  const tierColor = (tier: string) =>
+    tier === "Tier A" ? T.ok : tier === "Tier B" ? T.amber : T.danger;
+  const tierBg = (tier: string) =>
+    tier === "Tier A" ? T.okTint : tier === "Tier B" ? T.warnTint : T.dangerTint;
+
+  const td: Record<string, any> = { padding: 12 };
+
+  const loopPill = {
+    backgroundColor: status?.is_running ? T.okTint : T.dangerTint,
+    borderColor: status?.is_running ? T.okLine : T.danger,
+  };
+  const autofixPill = {
+    backgroundColor: status?.autofix_enabled_env ? T.okTint : T.warnTint,
+    borderColor: status?.autofix_enabled_env ? T.okLine : T.amber,
+  };
+
+  const selectStyle: Record<string, any> = {
+    backgroundColor: s.sel.backgroundColor,
+    color: s.sel.color,
+    borderWidth: 1,
+    borderColor: s.sel.borderColor,
+    borderRadius: 9,
+    padding: "8px 12px",
+    fontSize: 12.5,
+    fontFamily: FONTS.regular,
+    outline: "none",
+  };
+
   return (
-    <div style={{ padding: 24, background: "#0A0A12", color: "#F4F4FA", minHeight: "100vh", fontFamily: "'Outfit', sans-serif" }}>
+    <ScrollView style={s.root} contentContainerStyle={s.rootPad} showsVerticalScrollIndicator={false}>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, borderBottom: "1px solid #1F1F30", paddingBottom: 16 }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, color: "#FFF", display: "flex", alignItems: "center", gap: 10 }}>
-            <span>🛡️</span> CodeHealthAgent — Autonomous Auditor & Auto-Fix Control Plane
-          </h1>
-          <p style={{ margin: "4px 0 0 0", color: "#9095A8", fontSize: 13.5 }}>
-            Continuous auditing against <code>.agents/rules/development_standards.md</code> · Gate-based Tier A remediation
-          </p>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700, background: status?.is_running ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)", color: status?.is_running ? "#10B981" : "#EF4444", border: `1px solid ${status?.is_running ? "#10B981" : "#EF4444"}` }}>
-            {status?.is_running ? "🟢 LOOP 24H ACTIVE" : "⏸️ LOOP PAUSED"}
-          </span>
-          <span style={{ padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700, background: status?.autofix_enabled_env ? "rgba(16, 185, 129, 0.15)" : "rgba(245, 158, 11, 0.15)", color: status?.autofix_enabled_env ? "#10B981" : "#F59E0B", border: `1px solid ${status?.autofix_enabled_env ? "#10B981" : "#F59E0B"}` }}>
-            AUTOFIX: {status?.autofix_enabled_env ? "ON" : "OFF (SAFE)"}
-          </span>
-        </div>
-      </div>
+      <View style={s.headerRow}>
+        <View>
+          <View style={s.titleRow}>
+            <ShieldCheck size={24} color={T.violet} />
+            <Text style={s.title}>CodeHealthAgent — Autonomous Auditor & Auto-Fix Control Plane</Text>
+          </View>
+          <Text style={s.subtitle}>
+            Continuous auditing against <Text style={s.codeInline}>.agents/rules/development_standards.md</Text> · Gate-based Tier A remediation
+          </Text>
+        </View>
+        <View style={s.headerPills}>
+          <View style={[s.pill, loopPill]}>
+            {status?.is_running ? <Circle size={10} color={T.ok} /> : <Pause size={10} color={T.danger} />}
+            <Text style={[s.pillText, { color: status?.is_running ? T.ok : T.danger }]}>{status?.is_running ? "24H LOOP ACTIVE" : "LOOP PAUSED"}</Text>
+          </View>
+          <View style={[s.pill, autofixPill]}>
+            <Text style={[s.pillText, { color: status?.autofix_enabled_env ? T.ok : T.amber }]}>
+              AUTOFIX: {status?.autofix_enabled_env ? "ON" : "OFF (SAFE)"}
+            </Text>
+          </View>
+        </View>
+      </View>
 
       {actionMsg && (
-        <div style={{ padding: "12px 16px", borderRadius: 10, background: "rgba(124, 92, 252, 0.15)", border: "1px solid #7C5CFC", color: "#D8B4FE", marginBottom: 20, fontSize: 13.5, fontWeight: 600 }}>
-          {actionMsg}
-        </div>
+        <View style={s.banner}>
+          <Text style={s.bannerText}>{actionMsg}</Text>
+        </View>
       )}
 
       {/* KPI Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 24 }}>
-        <div style={{ background: "#141424", border: "1px solid #232338", borderRadius: 14, padding: 18 }}>
-          <div style={{ fontSize: 12, color: "#9095A8", textTransform: "uppercase", fontWeight: 700 }}>Code Health Score</div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: (metrics?.health_score || 100) >= 90 ? "#10B981" : "#F59E0B", marginTop: 4 }}>
-            {metrics?.health_score ?? "100.0"}<span style={{ fontSize: 16 }}>/100</span>
-          </div>
-          <div style={{ fontSize: 11, color: "#7E7E92", marginTop: 4 }} title={metrics?.score_formula}>
-            Formula: 100 − penalty/KLOC
-          </div>
-        </div>
+      <View style={s.kpiGrid}>
+        <Card style={s.kpiCard}>
+          <Text style={s.kpiLabel}>Code Health Score</Text>
+          <View style={s.kpiValueRow}>
+            <Text style={[s.kpiValue, { color: (metrics?.health_score || 100) >= 90 ? T.ok : T.amber }]}>{metrics?.health_score ?? "100.0"}</Text>
+            <Text style={s.kpiUnit}>/100</Text>
+          </View>
+          <Text style={s.kpiSub}>Formula: 100 − penalty/KLOC</Text>
+        </Card>
 
-        <div style={{ background: "#141424", border: "1px solid #232338", borderRadius: 14, padding: 18 }}>
-          <div style={{ fontSize: 12, color: "#9095A8", textTransform: "uppercase", fontWeight: 700 }}>Open P0 / P1 Findings</div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: (metrics?.counts_by_severity?.P0 || 0) + (metrics?.counts_by_severity?.P1 || 0) > 0 ? "#EF4444" : "#10B981", marginTop: 4 }}>
-            {(metrics?.counts_by_severity?.P0 || 0) + (metrics?.counts_by_severity?.P1 || 0)}
-          </div>
-          <div style={{ fontSize: 11, color: "#7E7E92", marginTop: 4 }}>
-            P0: {metrics?.counts_by_severity?.P0 || 0} · P1: {metrics?.counts_by_severity?.P1 || 0}
-          </div>
-        </div>
+        <Card style={s.kpiCard}>
+          <Text style={s.kpiLabel}>Open P0 / P1 Findings</Text>
+          <Text style={[s.kpiValue, { color: p0p1 > 0 ? T.danger : T.ok }]}>{p0p1}</Text>
+          <Text style={s.kpiSub}>P0: {metrics?.counts_by_severity?.P0 || 0} · P1: {metrics?.counts_by_severity?.P1 || 0}</Text>
+        </Card>
 
-        <div style={{ background: "#141424", border: "1px solid #232338", borderRadius: 14, padding: 18 }}>
-          <div style={{ fontSize: 12, color: "#9095A8", textTransform: "uppercase", fontWeight: 700 }}>Total Open Findings</div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: "#FFF", marginTop: 4 }}>
-            {metrics?.total_open_findings ?? 0}
-          </div>
-          <div style={{ fontSize: 11, color: "#7E7E92", marginTop: 4 }}>
-            P2: {metrics?.counts_by_severity?.P2 || 0} · P3: {metrics?.counts_by_severity?.P3 || 0}
-          </div>
-        </div>
+        <Card style={s.kpiCard}>
+          <Text style={s.kpiLabel}>Total Open Findings</Text>
+          <Text style={s.kpiValue}>{metrics?.total_open_findings ?? 0}</Text>
+          <Text style={s.kpiSub}>P2: {metrics?.counts_by_severity?.P2 || 0} · P3: {metrics?.counts_by_severity?.P3 || 0}</Text>
+        </Card>
 
-        <div style={{ background: "#141424", border: "1px solid #232338", borderRadius: 14, padding: 18 }}>
-          <div style={{ fontSize: 12, color: "#9095A8", textTransform: "uppercase", fontWeight: 700 }}>Auto-Fix Rate</div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: "#7C5CFC", marginTop: 4 }}>
-            {autofixes.length > 0 ? "100%" : "0%"}
-          </div>
-          <div style={{ fontSize: 11, color: "#7E7E92", marginTop: 4 }}>
-            {autofixes.length} PRs opened by agent
-          </div>
-        </div>
-      </div>
+        <Card style={s.kpiCard}>
+          <Text style={s.kpiLabel}>Auto-Fix Rate</Text>
+          <Text style={[s.kpiValue, { color: T.violet }]}>{autofixes.length > 0 ? "100%" : "0%"}</Text>
+          <Text style={s.kpiSub}>{autofixes.length} PRs opened by agent</Text>
+        </Card>
+      </View>
 
       {/* Compliance Pillars */}
-      <div style={{ background: "#141424", border: "1px solid #232338", borderRadius: 14, padding: 20, marginBottom: 24 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 16px 0", color: "#FFF" }}>Standards Compliance Pillars (.agents/rules/development_standards.md)</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+      <Card style={s.complianceCard}>
+        <Text style={s.complianceTitle}>Standards Compliance Pillars (.agents/rules/development_standards.md)</Text>
+        <View style={s.pillarGrid}>
           {[
             { label: "Unit Test Coverage (§1)", val: metrics?.compliance_pillars?.test_coverage_pct ?? 100, target: ">80%" },
             { label: "Named Loggers (§2)", val: metrics?.compliance_pillars?.logging_compliance_pct ?? 100, target: ">95%" },
             { label: "Analytics Views (§3)", val: metrics?.compliance_pillars?.analytics_compliance_pct ?? 100, target: ">90%" },
             { label: "Fallback Guards (§4)", val: metrics?.compliance_pillars?.fallback_compliance_pct ?? 100, target: ">85%" },
           ].map((pillar, i) => (
-            <div key={i} style={{ background: "#0A0A12", padding: 14, borderRadius: 10, border: "1px solid #1F1F30" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
-                <span>{pillar.label}</span>
-                <span style={{ color: pillar.val >= 80 ? "#10B981" : "#F59E0B" }}>{pillar.val}%</span>
-              </div>
-              <div style={{ width: "100%", height: 6, background: "#1F1F30", borderRadius: 3, overflow: "hidden" }}>
-                <div style={{ width: `${pillar.val}%`, height: "100%", background: pillar.val >= 80 ? "linear-gradient(90deg, #10B981, #059669)" : "linear-gradient(90deg, #F59E0B, #D97706)" }} />
-              </div>
-              <div style={{ fontSize: 10.5, color: "#7E7E92", marginTop: 6 }}>Target: {pillar.target}</div>
-            </div>
+            <View key={i} style={s.pillarCard}>
+              <View style={s.pillarHead}>
+                <Text style={s.pillarLabel}>{pillar.label}</Text>
+                <Text style={[s.pillarVal, { color: pillar.val >= 80 ? T.ok : T.amber }]}>{pillar.val}%</Text>
+              </View>
+              <View style={s.barTrack}>
+                <View style={[s.barFill, { width: `${pillar.val}%`, backgroundColor: pillar.val >= 80 ? T.ok : T.amber }]} />
+              </View>
+              <Text style={s.pillarTarget}>Target: {pillar.target}</Text>
+            </View>
           ))}
-        </div>
-      </div>
+        </View>
+      </Card>
 
       {/* Control Buttons */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-        <button onClick={handleRunAudit} disabled={runningCycle} style={{ padding: "10px 20px", borderRadius: 10, background: "linear-gradient(135deg, #7C5CFC, #5B3FD9)", color: "#FFF", border: "none", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}>
-          {runningCycle ? "Scanning..." : "⚡ Run Audit Now"}
-        </button>
-        <button onClick={handleStartLoop} style={{ padding: "10px 20px", borderRadius: 10, background: "#141424", color: "#10B981", border: "1px solid #10B981", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}>
-          ▶️ Enable 24h Loop
-        </button>
-        <button onClick={handleStopLoop} style={{ padding: "10px 20px", borderRadius: 10, background: "#141424", color: "#EF4444", border: "1px solid #EF4444", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}>
-          ⏸️ Pause Loop
-        </button>
-      </div>
+      <View style={s.controlRow}>
+        <Pressable onPress={handleRunAudit} disabled={runningCycle} style={[s.runBtn, runningCycle ? s.btnDisabled : null]}>
+          <Zap size={14} color="#FFF" />
+          <Text style={s.runBtnText}>{runningCycle ? "Scanning..." : "Run Audit Now"}</Text>
+        </Pressable>
+        <Pressable onPress={handleStartLoop} style={[s.loopBtn, { borderColor: T.ok }]}>
+          <Play size={14} color={T.ok} />
+          <Text style={[s.loopBtnText, { color: T.ok }]}>Enable 24h Loop</Text>
+        </Pressable>
+        <Pressable onPress={handleStopLoop} style={[s.loopBtn, { borderColor: T.danger }]}>
+          <Pause size={14} color={T.danger} />
+          <Text style={[s.loopBtnText, { color: T.danger }]}>Pause Loop</Text>
+        </Pressable>
+      </View>
 
       {/* Navigation Tabs */}
-      <div style={{ display: "flex", gap: 16, borderBottom: "1px solid #1F1F30", marginBottom: 20 }}>
-        <button onClick={() => setActiveTab("findings")} style={{ padding: "10px 16px", background: "none", border: "none", borderBottom: activeTab === "findings" ? "2px solid #7C5CFC" : "none", color: activeTab === "findings" ? "#7C5CFC" : "#9095A8", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-          Audit Findings ({filteredFindings.length})
-        </button>
-        <button onClick={() => setActiveTab("autofixes")} style={{ padding: "10px 16px", background: "none", border: "none", borderBottom: activeTab === "autofixes" ? "2px solid #7C5CFC" : "none", color: activeTab === "autofixes" ? "#7C5CFC" : "#9095A8", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-          Auto-Fix Audit Trail ({autofixes.length})
-        </button>
-      </div>
+      <View style={s.tabsRow}>
+        <Pressable style={[s.tabPress, { borderBottomColor: activeTab === "findings" ? T.violet : "transparent" }]} onPress={() => setActiveTab("findings")}>
+          <Text style={[s.tabLabel, { color: activeTab === "findings" ? T.violet : T.muted }]}>Audit Findings ({filteredFindings.length})</Text>
+        </Pressable>
+        <Pressable style={[s.tabPress, { borderBottomColor: activeTab === "autofixes" ? T.violet : "transparent" }]} onPress={() => setActiveTab("autofixes")}>
+          <Text style={[s.tabLabel, { color: activeTab === "autofixes" ? T.violet : T.muted }]}>Auto-Fix Audit Trail ({autofixes.length})</Text>
+        </Pressable>
+      </View>
 
       {/* Tab 1: Findings Table */}
       {activeTab === "findings" && (
-        <div style={{ background: "#141424", border: "1px solid #232338", borderRadius: 14, padding: 20 }}>
-          {/* Filters */}
-          <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-            <select value={familyFilter} onChange={(e) => setFamilyFilter(e.target.value)} style={{ padding: "8px 12px", background: "#0A0A12", border: "1px solid #232338", borderRadius: 8, color: "#FFF", fontSize: 12.5 }}>
+        <Card style={s.panelPad}>
+          <View style={s.filterRow}>
+            <select value={familyFilter} onChange={(e) => setFamilyFilter(e.target.value)} style={selectStyle}>
               <option value="ALL">All Families</option>
               <option value="DEAD">DEAD</option>
               <option value="FAKE">FAKE</option>
@@ -257,32 +288,32 @@ export const CodeHealthView: React.FC = () => {
               <option value="FALLBACK">FALLBACK</option>
             </select>
 
-            <select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)} style={{ padding: "8px 12px", background: "#0A0A12", border: "1px solid #232338", borderRadius: 8, color: "#FFF", fontSize: 12.5 }}>
+            <select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)} style={selectStyle}>
               <option value="ALL">All Severities</option>
               <option value="P0">P0 (Critical)</option>
               <option value="P1">P1 (High)</option>
               <option value="P2">P2 (Medium)</option>
               <option value="P3">P3 (Low)</option>
             </select>
-          </div>
+          </View>
 
           {filteredFindings.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 40, color: "#9095A8" }}>
-              <div style={{ fontSize: 24, marginBottom: 8 }}>✨</div>
-              No open findings matching selected filters. Codebase is clean!
-            </div>
+            <View style={s.emptyBox}>
+              <Sparkles size={24} color={T.violet} />
+              <Text style={s.emptyText}>No open findings matching selected filters. Codebase is clean!</Text>
+            </View>
           ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <View style={{ overflowX: "auto" } as any}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, color: T.text } as any}>
                 <thead>
-                  <tr style={{ borderBottom: "1px solid #232338", color: "#9095A8", textAlign: "left" }}>
-                    <th style={{ padding: "10px 12px" }}>Sev</th>
-                    <th style={{ padding: "10px 12px" }}>Family</th>
-                    <th style={{ padding: "10px 12px" }}>File & Line</th>
-                    <th style={{ padding: "10px 12px" }}>Rule ID</th>
-                    <th style={{ padding: "10px 12px" }}>Tier</th>
-                    <th style={{ padding: "10px 12px" }}>Status</th>
-                    <th style={{ padding: "10px 12px" }}>Action</th>
+                  <tr style={{ borderBottomWidth: 1, borderBottomColor: T.line, color: T.muted, textAlign: "left" } as any}>
+                    <th style={{ padding: "10px 12px", textAlign: "left" } as any}>Sev</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left" } as any}>Family</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left" } as any}>File & Line</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left" } as any}>Rule ID</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left" } as any}>Tier</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left" } as any}>Status</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left" } as any}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -290,54 +321,64 @@ export const CodeHealthView: React.FC = () => {
                     <React.Fragment key={i}>
                       <tr
                         onClick={() => setExpandedFingerprint(expandedFingerprint === f.fingerprint ? null : f.fingerprint)}
-                        style={{ borderBottom: "1px solid #1F1F30", cursor: "pointer", background: expandedFingerprint === f.fingerprint ? "#1A1A2E" : "transparent" }}
+                        style={{ borderBottomWidth: 1, borderBottomColor: T.line, cursor: "pointer", backgroundColor: expandedFingerprint === f.fingerprint ? T.panel2 : "transparent" } as any}
                       >
-                        <td style={{ padding: "12px" }}>
-                          <span style={{ padding: "3px 8px", borderRadius: 4, fontSize: 11, fontWeight: 800, background: f.severity === "P0" ? "rgba(239, 68, 68, 0.2)" : f.severity === "P1" ? "rgba(245, 158, 11, 0.2)" : "rgba(59, 130, 246, 0.2)", color: f.severity === "P0" ? "#EF4444" : f.severity === "P1" ? "#F59E0B" : "#3B82F6" }}>
+                        <td style={td}>
+                          <span style={{ padding: "3px 8px", borderRadius: 4, fontSize: 11, fontWeight: 800, display: "inline-block", backgroundColor: sevBg(f.severity), color: sevColor(f.severity) } as any}>
                             {f.severity}
                           </span>
                         </td>
-                        <td style={{ padding: "12px", fontWeight: 700, color: "#D8B4FE" }}>{f.family}</td>
-                        <td style={{ padding: "12px", color: "#FFF", fontFamily: "monospace" }}>
-                          {f.file}:{f.line}
-                        </td>
-                        <td style={{ padding: "12px", color: "#9095A8" }}>{f.rule_id}</td>
-                        <td style={{ padding: "12px" }}>
-                          <span style={{ padding: "3px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700, background: f.tier === "Tier A" ? "rgba(16, 185, 129, 0.15)" : f.tier === "Tier B" ? "rgba(245, 158, 11, 0.15)" : "rgba(239, 68, 68, 0.2)", color: f.tier === "Tier A" ? "#10B981" : f.tier === "Tier B" ? "#F59E0B" : "#EF4444" }}>
+                        <td style={{ ...td, fontWeight: 700, color: T.violetLt } as any}>{f.family}</td>
+                        <td style={{ ...td, color: T.text, fontFamily: FONTS.mono } as any}>{f.file}:{f.line}</td>
+                        <td style={{ ...td, color: T.muted } as any}>{f.rule_id}</td>
+                        <td style={td}>
+                          <span style={{ padding: "3px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700, display: "inline-block", backgroundColor: tierBg(f.tier), color: tierColor(f.tier) } as any}>
                             {f.tier}
                           </span>
                         </td>
-                        <td style={{ padding: "12px", color: "#9095A8" }}>{f.status}</td>
-                        <td style={{ padding: "12px" }}>
+                        <td style={{ ...td, color: T.muted } as any}>{f.status}</td>
+                        <td style={td}>
                           {f.tier === "Tier A" ? (
-                            <button onClick={(e) => { e.stopPropagation(); handlePatchStatus(f.fingerprint, "fixed_manual"); }} style={{ padding: "4px 10px", borderRadius: 6, background: "#10B981", color: "#FFF", border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handlePatchStatus(f.fingerprint, "fixed_manual"); }}
+                              style={{ padding: "4px 10px", borderRadius: 6, backgroundColor: T.ok, color: "#FFF", border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer" } as any}
+                            >
                               Approve Fix
                             </button>
                           ) : (
-                            <span style={{ fontSize: 11, color: "#7E7E92" }} title="Tier B & C require human review & decision">
-                              🛑 Human Review
+                            <span style={{ fontSize: 11, color: T.dim, display: "inline-flex", alignItems: "center", gap: 4 } as any} title="Tier B & C require human review & decision">
+                              <UserCheck size={12} color={T.dim} /> Human Review
                             </span>
                           )}
                         </td>
                       </tr>
 
                       {expandedFingerprint === f.fingerprint && (
-                        <tr style={{ background: "#0F0F1A" }}>
-                          <td colSpan={7} style={{ padding: 16, borderBottom: "1px solid #232338" }}>
-                            <div style={{ display: "grid", gap: 8, fontSize: 12.5 }}>
-                              <div><strong style={{ color: "#7C5CFC" }}>Evidence:</strong> <code style={{ color: "#F5B342", background: "#1A1A29", padding: "2px 6px", borderRadius: 4 }}>{f.evidence}</code></div>
-                              <div><strong style={{ color: "#7C5CFC" }}>Blast Radius:</strong> {f.blast_radius}</div>
-                              <div><strong style={{ color: "#7C5CFC" }}>Proposed Fix:</strong> {f.proposed_fix}</div>
-                              <div><strong style={{ color: "#7C5CFC" }}>Verification Method:</strong> {f.verification_method}</div>
-                              <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-                                <button onClick={() => handlePatchStatus(f.fingerprint, "wont_fix")} style={{ padding: "4px 10px", borderRadius: 6, background: "#232338", color: "#FFF", border: "none", fontSize: 11, cursor: "pointer" }}>
-                                  Mark Won't Fix
-                                </button>
-                                <button onClick={() => handlePatchStatus(f.fingerprint, "false_positive")} style={{ padding: "4px 10px", borderRadius: 6, background: "#232338", color: "#EF4444", border: "none", fontSize: 11, cursor: "pointer" }}>
-                                  Mark False Positive
-                                </button>
-                              </div>
-                            </div>
+                        <tr style={{ backgroundColor: T.panel2 } as any}>
+                          <td colSpan={7} style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: T.line } as any}>
+                            <View style={{ gap: 8 }}>
+                              <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: T.text }}>
+                                <Text style={{ fontFamily: FONTS.semi, fontSize: 12.5, color: T.violet }}>Evidence: </Text>
+                                <Text style={{ fontFamily: FONTS.mono, fontSize: 12, color: T.accentBright, backgroundColor: T.cardSolid, padding: "2px 6px", borderRadius: 4 } as any}>{f.evidence}</Text>
+                              </Text>
+                              <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: T.text }}>
+                                <Text style={{ fontFamily: FONTS.semi, fontSize: 12.5, color: T.violet }}>Blast Radius: </Text>{f.blast_radius}
+                              </Text>
+                              <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: T.text }}>
+                                <Text style={{ fontFamily: FONTS.semi, fontSize: 12.5, color: T.violet }}>Proposed Fix: </Text>{f.proposed_fix}
+                              </Text>
+                              <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: T.text }}>
+                                <Text style={{ fontFamily: FONTS.semi, fontSize: 12.5, color: T.violet }}>Verification Method: </Text>{f.verification_method}
+                              </Text>
+                              <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
+                                <Pressable onPress={() => handlePatchStatus(f.fingerprint, "wont_fix")} style={[s.tinyBtn, { backgroundColor: T.line2 }]}>
+                                  <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: T.text }}>Mark Won't Fix</Text>
+                                </Pressable>
+                                <Pressable onPress={() => handlePatchStatus(f.fingerprint, "false_positive")} style={[s.tinyBtn, { backgroundColor: T.line2 }]}>
+                                  <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: T.danger }}>Mark False Positive</Text>
+                                </Pressable>
+                              </View>
+                            </View>
                           </td>
                         </tr>
                       )}
@@ -345,50 +386,103 @@ export const CodeHealthView: React.FC = () => {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </View>
           )}
-        </div>
+        </Card>
       )}
 
       {/* Tab 2: Auto-Fix Audit Trail */}
       {activeTab === "autofixes" && (
-        <div style={{ background: "#141424", border: "1px solid #232338", borderRadius: 14, padding: 20 }}>
+        <Card style={s.panelPad}>
           {autofixes.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 40, color: "#9095A8" }}>
-              Zero auto-fixes applied yet. Enable <code>CODE_HEALTH_AUTOFIX_ENABLED=true</code> for Tier A PR automation.
-            </div>
+            <View style={s.emptyBox}>
+              <Text style={s.emptyText}>
+                Zero auto-fixes applied yet. Enable <Text style={s.codeInline}>CODE_HEALTH_AUTOFIX_ENABLED=true</Text> for Tier A PR automation.
+              </Text>
+            </View>
           ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <View style={{ overflowX: "auto" } as any}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, color: T.text } as any}>
                 <thead>
-                  <tr style={{ borderBottom: "1px solid #232338", color: "#9095A8", textAlign: "left" }}>
-                    <th style={{ padding: "10px 12px" }}>Applied At</th>
-                    <th style={{ padding: "10px 12px" }}>Rule ID</th>
-                    <th style={{ padding: "10px 12px" }}>Files Changed</th>
-                    <th style={{ padding: "10px 12px" }}>PR URL</th>
-                    <th style={{ padding: "10px 12px" }}>Applied By</th>
+                  <tr style={{ borderBottomWidth: 1, borderBottomColor: T.line, color: T.muted, textAlign: "left" } as any}>
+                    <th style={{ padding: "10px 12px", textAlign: "left" } as any}>Applied At</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left" } as any}>Rule ID</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left" } as any}>Files Changed</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left" } as any}>PR URL</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left" } as any}>Applied By</th>
                   </tr>
                 </thead>
                 <tbody>
                   {autofixes.map((fix, i) => (
-                    <tr key={i} style={{ borderBottom: "1px solid #1F1F30" }}>
-                      <td style={{ padding: "12px", color: "#FFF" }}>{fix.applied_at}</td>
-                      <td style={{ padding: "12px", color: "#D8B4FE", fontWeight: 700 }}>{fix.rule_id}</td>
-                      <td style={{ padding: "12px", fontFamily: "monospace", color: "#9095A8" }}>{fix.files_changed?.join(", ")}</td>
-                      <td style={{ padding: "12px" }}>
-                        {fix.pr_url ? <a href={fix.pr_url} target="_blank" rel="noreferrer" style={{ color: "#7C5CFC", fontWeight: 700 }}>View PR →</a> : "Shadow Mode"}
+                    <tr key={i} style={{ borderBottomWidth: 1, borderBottomColor: T.line } as any}>
+                      <td style={{ ...td, color: T.text } as any}>{fix.applied_at}</td>
+                      <td style={{ ...td, color: T.violetLt, fontWeight: 700 } as any}>{fix.rule_id}</td>
+                      <td style={{ ...td, fontFamily: FONTS.mono, color: T.muted } as any}>{fix.files_changed?.join(", ")}</td>
+                      <td style={td}>
+                        {fix.pr_url ? (
+                          <a href={fix.pr_url} target="_blank" rel="noreferrer" style={{ color: T.violet, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 } as any}>
+                            <ExternalLink size={12} color={T.violet} /><Text style={{ fontFamily: FONTS.semi, fontSize: 13, color: T.violet }}>View PR</Text>
+                          </a>
+                        ) : "Shadow Mode"}
                       </td>
-                      <td style={{ padding: "12px", color: "#10B981", fontWeight: 700 }}>{fix.applied_by}</td>
+                      <td style={{ ...td, color: T.ok, fontWeight: 700 } as any}>{fix.applied_by}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+            </View>
           )}
-        </div>
+        </Card>
       )}
-    </div>
+    </ScrollView>
   );
 };
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: SAC.bgPage, width: "100%", minHeight: "100%" },
+  rootPad: { padding: 24 },
+  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: SAC.border, flexWrap: "wrap", gap: 12 },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  title: { fontFamily: FONTS.xbold, fontSize: 24, color: SAC.text },
+  subtitle: { fontFamily: FONTS.med, fontSize: 13.5, color: SAC.muted, marginTop: 4 },
+  codeInline: { fontFamily: FONTS.mono, fontSize: 12.5, color: SAC.violet },
+  headerPills: { flexDirection: "row", gap: 12, alignItems: "center", flexWrap: "wrap" },
+  pill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1 },
+  pillText: { fontFamily: FONTS.bold, fontSize: 12 },
+  banner: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 10, backgroundColor: SAC.tint, borderWidth: 1, borderColor: SAC.accentLine, marginBottom: 20 },
+  bannerText: { fontFamily: FONTS.semi, fontSize: 13.5, color: SAC.onTint },
+  kpiGrid: { flexDirection: "row", flexWrap: "wrap", gap: 16, marginBottom: 24 },
+  kpiCard: { flex: 1, minWidth: 220, padding: 18, backgroundColor: SAC.card },
+  kpiLabel: { fontFamily: FONTS.semi, fontSize: 12, color: SAC.muted, textTransform: "uppercase" },
+  kpiValueRow: { flexDirection: "row", alignItems: "baseline", gap: 2, marginTop: 4 },
+  kpiValue: { fontFamily: FONTS.xbold, fontSize: 32, color: SAC.text },
+  kpiUnit: { fontFamily: FONTS.xbold, fontSize: 16, color: SAC.muted },
+  kpiSub: { fontFamily: FONTS.med, fontSize: 11, color: SAC.dim, marginTop: 4 },
+  complianceCard: { borderRadius: 14, padding: 20, marginBottom: 24, backgroundColor: SAC.card },
+  complianceTitle: { fontFamily: FONTS.bold, fontSize: 15, color: SAC.text, marginBottom: 16 },
+  pillarGrid: { flexDirection: "row", flexWrap: "wrap", gap: 16 },
+  pillarCard: { flex: 1, minWidth: 220, backgroundColor: SAC.bg, padding: 14, borderRadius: 10, borderWidth: 1, borderColor: SAC.line, gap: 6 },
+  pillarHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+  pillarLabel: { fontFamily: FONTS.bold, fontSize: 12.5, color: SAC.text },
+  pillarVal: { fontFamily: FONTS.bold, fontSize: 12.5 },
+  barTrack: { width: "100%", height: 6, backgroundColor: SAC.line, borderRadius: 3, overflow: "hidden" },
+  barFill: { height: "100%", borderRadius: 3 },
+  pillarTarget: { fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim, marginTop: 6 },
+  controlRow: { flexDirection: "row", gap: 12, marginBottom: 20, flexWrap: "wrap" },
+  runBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: SAC.violet },
+  runBtnText: { color: "#FFF", fontFamily: FONTS.bold, fontSize: 13.5 },
+  btnDisabled: { opacity: 0.6 },
+  loopBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.line },
+  loopBtnText: { fontFamily: FONTS.bold, fontSize: 13.5 },
+  tabsRow: { flexDirection: "row", gap: 16, borderBottomWidth: 1, borderBottomColor: SAC.border, marginBottom: 20, flexWrap: "wrap" },
+  tabPress: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 2 },
+  tabLabel: { fontFamily: FONTS.bold, fontSize: 14 },
+  filterRow: { flexDirection: "row", gap: 12, marginBottom: 16, flexWrap: "wrap" },
+  sel: { backgroundColor: SAC.cardSolid, color: SAC.text, borderColor: SAC.border, borderRadius: 9 },
+  panelPad: { borderRadius: 14, padding: 20, backgroundColor: SAC.card },
+  emptyBox: { padding: 40, alignItems: "center", gap: 8 },
+  emptyText: { fontFamily: FONTS.med, fontSize: 13, color: SAC.muted, textAlign: "center" },
+  tinyBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+});
 
 export default CodeHealthView;

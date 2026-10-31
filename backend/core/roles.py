@@ -13,15 +13,13 @@ Usage:
 
 from typing import Dict, List, Optional, Literal, Set
 from fastapi import HTTPException, Header
-import jwt as _jwt
 import os
 from datetime import datetime, timezone
+from core.deps import bearer_token, decode_payload_silent
+
 def _get_db():
     from core.db import db
     return db
-
-_JWT_SECRET = os.environ.get("JWT_SECRET", "")
-_JWT_ALG = os.environ.get("JWT_ALGORITHM", "HS256")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -225,15 +223,14 @@ def user_portal_route(user: dict) -> str:
 
 async def _resolve_user(authorization: Optional[str]) -> Optional[dict]:
     """Decode JWT and return user doc from DB."""
-    if not authorization:
+    payload = decode_payload_silent(bearer_token(authorization))
+    if not payload:
         return None
-    token = authorization.replace("Bearer ", "")
+    user_id = payload.get("sub")
+    if not user_id:
+        return None
+    from bson.objectid import ObjectId
     try:
-        payload = _jwt.decode(token, _JWT_SECRET, algorithms=[_JWT_ALG])
-        user_id = payload.get("sub")
-        if not user_id:
-            return None
-        from bson.objectid import ObjectId
         return await _get_db().users.find_one({"_id": ObjectId(user_id)})
     except Exception:
         return None
@@ -270,7 +267,7 @@ async def seed_admin_roles(db=None):
     """Ensure all system roles exist in admin_roles collection.
     Call on startup or via migration. Uses $setOnInsert for idempotency.
     If db is provided, uses it; otherwise creates its own connection."""
-    target_db = db or _get_db()
+    target_db = db if db is not None else _get_db()
     for role_def in SYSTEM_ROLES:
         await target_db.admin_roles.update_one(
             {"key": role_def["key"]},
@@ -284,4 +281,4 @@ async def seed_admin_roles(db=None):
             }},
             upsert=True,
         )
-    print(f"✅ Seeded {len(SYSTEM_ROLES)} system roles to admin_roles collection")
+    print(f"[Roles] Seeded {len(SYSTEM_ROLES)} system roles to admin_roles collection")

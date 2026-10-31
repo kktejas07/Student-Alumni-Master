@@ -29,6 +29,7 @@ import {
   LoadingBox,
 } from '../applekit';
 import { request, tokenStore } from '@/src/models/services/api';
+import { getBaseUrl } from '@/src/lib/env';
 import * as Linking from 'expo-linking';
 import { ProfileCard, ProfileCardSkeleton } from './ProfileCard';
 import type { ProfileCardCategory, ProfileCardStatus } from './ProfileCard';
@@ -206,7 +207,7 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
     try {
       const form = new FormData();
       form.append('file', file);
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const token = (await tokenStore.getAccess()) || '';
       const resp = await fetch(base + '/api/admin/imports/upload', {
         method: 'POST',
@@ -235,7 +236,7 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
       try {
         const form = new FormData();
         form.append('file', file);
-        const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+        const base = getBaseUrl();
         const token = (await tokenStore.getAccess()) || '';
         const resp = await fetch(base + '/api/admin/imports/upload', {
           method: 'POST',
@@ -1996,7 +1997,7 @@ const s = StyleSheet.create({
 
   mapRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
   mapSrc: { color: SAC.text, fontFamily: FONTS.med, fontSize: 12, width: 220,
-    ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}) },
+    ...(Platform.OS === 'web' ? ({ fontFamily: 'SpaceMono, "SF Mono", monospace' } as any) : {}) },
   mapUnused: { backgroundColor: 'rgba(255,255,255,0.04)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, borderWidth: 1, borderColor: SAC.border },
   mapUnusedText: { color: SAC.dim, fontFamily: FONTS.bold, fontSize: 10.5 },
 

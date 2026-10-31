@@ -48,3 +48,27 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+## Native builds (EAS)
+
+`eas.json` defines three build profiles:
+
+| Profile       | Purpose                                   | `EXPO_PUBLIC_BACKEND_URL`                                   |
+| ------------- | ----------------------------------------- | ----------------------------------------------------------- |
+| `development` | Dev client, internal distribution         | `http://192.168.1.10:8002` — **LAN placeholder**: replace with your machine's IP, or delete the `env` block to let `src/lib/env.ts` auto-detect the Metro host |
+| `preview`     | Internal testers, Android builds an `.apk` | `https://studentalumni.ai`                                  |
+| `production`  | Store builds, auto-increments build number | `https://studentalumni.ai`                                  |
+
+Before the first build, link the project to EAS and replace the placeholder
+`extra.eas.projectId` (`REPLACE_WITH_EAS_PROJECT_ID`) in `app.json` with the real
+project ID — `eas init` prints it, or copy it from the project page on expo.dev.
+
+```bash
+npx eas build --profile preview --platform android
+```
+
+Known asset issue: `assets/images/sa-icon.png` and `sa-adaptive-icon.png` are
+1024x1229 (not square). Expo requires a square 1024x1024 icon; regenerate them
+before a store submission.
+
+`app.json` (`expo.version`) and `package.json` (`version`) are kept in sync.

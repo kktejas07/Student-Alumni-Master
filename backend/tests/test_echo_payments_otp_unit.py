@@ -14,7 +14,7 @@ from datetime import datetime, timezone, timedelta
 
 import pytest
 
-import echo_showcase as es
+import features.echo_showcase as es
 import server as srv
 
 
@@ -340,9 +340,11 @@ async def test_verify_and_checkin(patch_deps, fake_db):
     db.echo_registrations.docs = [{
         "_id": "r2", "id": "reg2", "slug": "echo-tech-2026", "payment": {"status": "pending"}, "status": "pending",
     }]
-    from fastapi import HTTPException
-    with pytest.raises(HTTPException):
-        await es.check_in_attendee(es.TicketVerifySchema(ticket="reg2"), FakeRequest())
+    # The scanner expects a structured refusal (so the venue UI can show the
+    # reason), not an exception.
+    c3 = await es.check_in_attendee(es.TicketVerifySchema(ticket="reg2"), FakeRequest())
+    assert c3["ok"] is False and c3["status"] == "unconfirmed"
+    assert db.echo_registrations.docs[0].get("checked_in_at") is None
 
 
 # ── 7. Signature verification (HMAC) ────────────────────────────────────────
@@ -625,7 +627,9 @@ async def test_get_ticket_endpoint(patch_deps, fake_db):
     # wired in the fake, so an anonymous call must 403 (no token / no user).
     req = FakeRequest()
     try:
-        await es.get_ticket("tkt1", req)
+        # Call with explicit keyword defaults: invoking the handler directly
+        # bypasses FastAPI's Query() resolution.
+        await es.get_ticket("tkt1", req, email=None, format=None)
         raised = False
     except HTTPException as e:
         raised = True

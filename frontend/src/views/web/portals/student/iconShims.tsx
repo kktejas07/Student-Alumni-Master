@@ -103,6 +103,15 @@ export const Camera          = make('camera-outline');
 export const Keyboard        = make('keyboard-outline');
 export const Menu            = make('menu');
 export const Logout          = make('logout');
+export const ArrowUpDown     = make('swap-vertical');
+export const Share2          = make('share-variant-outline');
+export const Filter          = make('filter-outline');
+export const Copy            = make('content-copy');
+export const Shield          = make('shield-outline');
+export const Play            = make('play');
+export const FastForward     = make('fast-forward');
+export const Rocket          = make('rocket-launch-outline');
+export const CheckCheck      = make('check-all');
 
 // ── Type alias replacement for lucide's `LucideIcon` type ─────────────────
 export type LucideIcon = React.FC<IconProps>;

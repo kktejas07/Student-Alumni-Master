@@ -1,6 +1,6 @@
 import React from 'react';
-import { OnboardingShellRN } from '@/src/views/web/OnboardingShellRN';
+import DigitalIDScreen from '../id-card';
 
 export default function MemberId() {
-  return <OnboardingShellRN />;
+  return <DigitalIDScreen />;
 }

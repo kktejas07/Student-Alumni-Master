@@ -2,8 +2,8 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 export function getBaseUrl() {
-  const envUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
-  
+  const envUrl = process.env.EXPO_PUBLIC_BACKEND_URL?.replace(/\/+$/, '');
+
   if (envUrl) {
     return envUrl;
   }

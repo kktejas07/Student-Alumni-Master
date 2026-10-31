@@ -27,6 +27,7 @@ load_dotenv(ROOT_DIR / '.env')
 
 import os
 import socket
+import logging
 
 # --- GLOBALLY PATCH DNS TO PREVENT 34-SECOND IPv6 HANGS ON WINDOWS ---
 import sys
@@ -41,6 +42,7 @@ if sys.platform == "win32" and not getattr(socket, "_ipv4_patched", False):
     socket.getaddrinfo = _ipv4_getaddrinfo
     socket._ipv4_patched = True  # type: ignore[attr-defined]
 # ---------------------------------------------------------------------
+logger = logging.getLogger(__name__)
 import re
 import uuid
 import io
@@ -55,6 +57,7 @@ from typing import List, Optional, Literal, Dict, Any
 
 import bcrypt
 import jwt
+import httpx
 import pyotp
 import qrcode
 from bson import ObjectId
@@ -65,16 +68,15 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from fastapi.middleware.gzip import GZipMiddleware
 
-# Rate limiting — uses real client IP (proxy-aware, not raw REMOTE_ADDR)
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from core.middleware import get_real_ip, register_security_middleware
-from core.deps import get_current_user as _deps_get_current_user
+from core.deps import get_current_user as _deps_get_current_user, bearer_token, decode_payload, decode_payload_silent
 
-limiter = Limiter(key_func=get_real_ip, default_limits=["200/minute"])
+from core.config import limiter, JWT_SECRET, JWT_ALGORITHM, frontend_base_url
 
 # Content prioritization engine — implements interest + edu-level + deadline + frequency scoring
-from personalization import (
+from features.personalization import (
     build_personalized_dashboard,
     track_module_click,
     transition_to_alumni,
@@ -82,30 +84,30 @@ from personalization import (
 )
 
 # Multi-role badge engine
-from badges import (
+from features.badges import (
     compute_badges, refresh_user_badges, compute_all_users_badges, get_tier_theme,
 )
 
 # Role-based analytics + external API integrations
-from analytics import get_analytics_for, super_admin_analytics, college_analytics, mentor_analytics
-from integrations_base import (
+from features.analytics import get_analytics_for, super_admin_analytics, college_analytics, mentor_analytics
+from features.integrations_base import (
     fetch_coursera_courses, fetch_udemy_courses, fetch_adzuna_internships,
     sync_courses_to_db, sync_internships_to_db, integrations_status,
 )
 
 # Mentor reviews/ratings + Push notifications
-from reviews import (
+from features.reviews import (
     create_review, list_mentor_reviews, get_mentor_rating_stats,
     seed_sample_reviews, refresh_mentor_rating,
 )
-from notifications import (
+from features.notifications import (
     register_push_token, deregister_push_token, send_push, list_inbox,
     mark_inbox_read, unread_count, notify_booking_created, notify_booking_confirmed,
     notify_event_registered, notify_mentor_approved, notify_review_received,
 )
 
 # Services -- single source of truth for business logic
-from services.career_intelligence_service import compute_full_intelligence, invalidate_intel_cache
+from services.career_ai.skill_intelligence_service import compute_full_intelligence, invalidate_intel_cache
 from services.profile_service import compute_profile_completion
 from services.career_roadmap_service import get_roadmap_summary
 
@@ -129,10 +131,7 @@ from db import client, db as _db_default, fetch_users_with_mock_limit
 db = _db_default
 
 # JWT configuration — REQUIRED from environment (never hardcode).
-JWT_SECRET = os.environ.get('JWT_SECRET')
-if not JWT_SECRET:
-    raise RuntimeError("JWT_SECRET is not set. Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\" and add it to backend/.env")
-JWT_ALGORITHM = "HS256"
+# Using JWT secrets from core.config
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour — short-lived; use refresh token for re-auth
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 
@@ -224,6 +223,37 @@ async def _lifespan(application):
         _safe_create_index(db.echo_discount_coupons, "code", unique=True, sparse=True),
         _safe_create_index(db.echo_orders, [("user_id", 1), ("created_at", -1)]),
         _safe_create_index(db.echo_orders, [("status", 1)]),
+        # First-Party Careers & Opportunities indexes
+        _safe_create_index(db.career_openings, [("status", 1), ("published_at", -1)]),
+        _safe_create_index(db.career_openings, [("featured", -1), ("published_at", -1)]),
+        _safe_create_index(db.career_openings, [("created_at", -1)]),
+        _safe_create_index(db.career_applications, [("career_opening_id", 1), ("student_id", 1)], unique=True),
+        _safe_create_index(db.career_applications, [("student_id", 1), ("created_at", -1)]),
+        _safe_create_index(db.career_applications, [("career_opening_id", 1), ("status", 1)]),
+        _safe_create_index(db.career_application_history, [("application_id", 1), ("changed_at", -1)]),
+        # Wallet coupon engine (W1) — partner catalog + per-user claims
+        _safe_create_index(db.sa_coupons, "slug", unique=True),
+        _safe_create_index(db.sa_user_coupons, [("user_id", 1), ("status", 1)]),
+        _safe_create_index(db.sa_user_coupons, [("status", 1), ("expires_at", 1)]),
+        # Wallet referral engine (W5) + badges (W6)
+        _safe_create_index(db.sa_referrals, "referrer_id", unique=True),
+        _safe_create_index(db.sa_referrals, "referral_code", unique=True),
+        _safe_create_index(db.sa_referrals, "referred_users"),
+        _safe_create_index(db.sa_badges, [("user_id", 1), ("slug", 1)], unique=True),
+        _safe_create_index(db.sa_challenges, [("user_id", 1), ("week", 1)], unique=True),
+        _safe_create_index(db.sa_wallet_audit, [("user_id", 1), ("ts", -1)]),
+        # Wallet notifications (W9) — wallet-scoped in-app feed + weekly digest sweep
+        _safe_create_index(db.notifications, [("user_id", 1), ("type", 1), ("created_at", -1)]),
+        _safe_create_index(db.wallet_transactions, [("user_id", 1), ("ts", -1)]),
+        _safe_create_index(db.users, [("wallet.last_credited_at", -1)]),
+        _safe_create_index(db.users, [("wallet.last_used_at", -1)]),
+        # Wallet reward marketplace (W2) — catalog + redemptions
+        _safe_create_index(db.sa_rewards, "title"),
+        _safe_create_index(db.sa_redemptions, [("user_id", 1), ("ts", -1)]),
+        _safe_create_index(db.sa_redemptions, [("user_id", 1), ("reward_id", 1), ("ts", 1)]),
+        _safe_create_index(db.sa_ai_resume_reviews, [("user_id", 1), ("status", 1)]),
+        _safe_create_index(db.sa_marketplace_purchases, [("user_id", 1), ("ts", -1)]),
+        _safe_create_index(db.sa_marketplace_purchases, [("user_id", 1), ("service", 1), ("ts", 1)]),
     ]
     await asyncio.gather(*index_tasks, return_exceptions=True)
 
@@ -234,7 +264,7 @@ async def _lifespan(application):
     except Exception as e:
         logger.warning(f"Auto certificate seeding skipped: {e}")
     try:
-        from echo_showcase import seed_echo_showcase
+        from features.echo_showcase import seed_echo_showcase
         await seed_echo_showcase(db)
     except Exception as _e:
         logger.warning("Could not seed ECHO showcases: %s", _e)
@@ -246,45 +276,10 @@ async def _lifespan(application):
 
     # Start Agent K systems
     try:
-        from agent_k.rag.store import init_collection
+        from features.agent_k.rag.store import init_collection
         init_collection() # Ensure Qdrant collection is ready
     except Exception as _e:
         logger.warning("Could not init Agent K collection: %s", _e)
-
-    # Start the hourly content sync scheduler.
-    try:
-        from background_sync import start_sync_scheduler, check_dependencies
-        check_dependencies()
-        start_sync_scheduler()
-    except Exception as _e:
-        logger.warning("Could not start background sync scheduler: %s", _e)
-
-    # Start the workflow automation cron tick (60s polling).
-    try:
-        from workflow_automation import run_cron_workflows as _run_cron
-        from newsletter import process_scheduled_campaigns as _process_sched
-        from echo_showcase import sweep_expired_echo_payments as _sweep_echo_pay
-
-        async def _wf_cron_tick():
-            while True:
-                try:
-                    await _run_cron()
-                except Exception:
-                    pass
-                try:
-                    await _process_sched(db)
-                except Exception:
-                    pass
-                try:
-                    sweep_summary = await _sweep_echo_pay(db)
-                    if sweep_summary.get("failed") or sweep_summary.get("reminded"):
-                        logger.info("ECHO payment sweep: %s", sweep_summary)
-                except Exception:
-                    pass
-                await asyncio.sleep(60)
-        asyncio.create_task(_wf_cron_tick())
-    except Exception as _e:
-        logger.warning("Could not start Workflow cron: %s", _e)
 
     try:
         from core.email_quality import warmup as _email_warmup
@@ -292,23 +287,97 @@ async def _lifespan(application):
     except Exception as _e:
         logger.warning("Could not warm email quality list: %s", _e)
 
-    # Start the 30-minute recurring multi-agent scheduler worker
-    try:
-        from services.agents.agent_scheduler import agent_scheduler
-        agent_scheduler.start(db=db)
-    except Exception as _e:
-        logger.warning("Could not start 30-minute Agent Scheduler: %s", _e)
+    # Background schedulers run in exactly ONE worker. With UVICORN_WORKERS>1
+    # every process used to start them, so crons, payment sweeps and
+    # newsletter sends ran N times. core.leader hands out a Mongo lease.
+    async def _start_background_jobs():
+        # Start the hourly content sync scheduler.
+        try:
+            from background_sync import start_sync_scheduler, check_dependencies
+            check_dependencies()
+            start_sync_scheduler()
+        except Exception as _e:
+            logger.warning("Could not start background sync scheduler: %s", _e)
 
-    # Start the 24-hour autonomous operations & audit swarm
+        # Start the workflow automation cron tick (60s polling).
+        try:
+            from features.workflow_automation import run_cron_workflows as _run_cron
+            from features.newsletter import process_scheduled_campaigns as _process_sched
+            from features.echo_showcase import sweep_expired_echo_payments as _sweep_echo_pay
+
+            async def _wf_cron_tick():
+                while True:
+                    try:
+                        await _run_cron()
+                    except Exception as _ce:
+                        logger.exception("workflow cron tick failed: %s", _ce)
+                    try:
+                        await _process_sched(db)
+                    except Exception as _ce:
+                        logger.exception("scheduled newsletter processing failed: %s", _ce)
+                    try:
+                        sweep_summary = await _sweep_echo_pay(db)
+                        if sweep_summary.get("failed") or sweep_summary.get("reminded"):
+                            logger.info("ECHO payment sweep: %s", sweep_summary)
+                    except Exception as _ce:
+                        logger.exception("ECHO payment sweep failed: %s", _ce)
+                    await asyncio.sleep(60)
+            asyncio.create_task(_wf_cron_tick())
+        except Exception as _e:
+            logger.warning("Could not start Workflow cron: %s", _e)
+
+        # Start the 30-minute recurring multi-agent scheduler worker
+        try:
+            from services.agents.agent_scheduler import agent_scheduler
+            agent_scheduler.start(db=db)
+        except Exception as _e:
+            logger.warning("Could not start 30-minute Agent Scheduler: %s", _e)
+
+        # Start the 24-hour autonomous operations & audit swarm
+        try:
+            from services.agents.daily_audit_agents import daily_audit_service
+            daily_audit_service.start(db=db)
+        except Exception as _e:
+            logger.warning("Could not start 24-hour Daily Audit Swarm: %s", _e)
+
+        # Start the 24-hour course aggregator cron (daily 02:00 UTC + startup catch-up)
+        try:
+            from services.course_aggregator import start_course_aggregator_scheduler
+            start_course_aggregator_scheduler()
+        except Exception as _e:
+            logger.warning("Could not start Course Aggregator scheduler: %s", _e)
+
+        # Start the staggered deals aggregator crons (banks 01:00, coupons 02:00,
+        # cashback 02:30, community 6h, APIs 03:00, student/airlines weekly,
+        # affiliate 6h — all UTC + startup catch-up)
+        try:
+            from services.deals_aggregator import start_deals_aggregator_scheduler
+            start_deals_aggregator_scheduler()
+        except Exception as _e:
+            logger.warning("Could not start Deals Aggregator scheduler: %s", _e)
+
+
     try:
-        from services.agents.daily_audit_agents import daily_audit_service
-        daily_audit_service.start(db=db)
+        from core.leader import run_as_leader
+        _leader_task = asyncio.create_task(run_as_leader(db, _start_background_jobs))
+        application.state.leader_task = _leader_task
     except Exception as _e:
-        logger.warning("Could not start 24-hour Daily Audit Swarm: %s", _e)
+        logger.warning("Could not start scheduler leader supervisor: %s", _e)
 
     yield  # ← application runs here
 
     # ── SHUTDOWN ─────────────────────────────────────────────────────────────
+
+    try:
+        _lt = getattr(application.state, "leader_task", None)
+        if _lt and not _lt.done():
+            _lt.cancel()
+            try:
+                await _lt
+            except (asyncio.CancelledError, Exception):
+                pass
+    except Exception:
+        pass
 
     try:
         from services.agents.daily_audit_agents import daily_audit_service
@@ -327,6 +396,18 @@ async def _lifespan(application):
         stop_sync_scheduler()
     except Exception:
         pass
+
+    try:
+        from services.course_aggregator import stop_course_aggregator_scheduler
+        stop_course_aggregator_scheduler()
+    except Exception:
+        pass
+
+    try:
+        from services.deals_aggregator import stop_deals_aggregator_scheduler
+        stop_deals_aggregator_scheduler()
+    except Exception:
+        pass
     client.close()
 
 
@@ -338,28 +419,37 @@ app.add_middleware(AppLoggingMiddleware)
 
 # SECURITY: CORSMiddleware is registered once at the bottom of this file,
 # configured from env vars (ALLOWED_ORIGINS). Do NOT add a second registration here.
+def _custom_rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> Response:
+    from fastapi.responses import JSONResponse
+    retry_after = getattr(exc, "retry_after", 60) or 60
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Too many requests. Please try again later.", "retry_after": int(retry_after)},
+        headers={"Retry-After": str(int(retry_after))}
+    )
+
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
+app.add_exception_handler(RateLimitExceeded, _custom_rate_limit_exceeded_handler)
 api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernetes ingress requirement)
 
 # ECHO Showcase sub-router
-from echo_showcase import router as echo_router
-from routers.vendors import router as vendors_router
-from routers.marketplace import router as marketplace_router
+from features.echo_showcase import router as echo_router
+from features.routers.vendors import router as vendors_router
+from features.routers.marketplace import router as marketplace_router
 app.include_router(echo_router)
 app.include_router(vendors_router)
 app.include_router(marketplace_router)
 
 # Newsletter sub-router
-from newsletter import router as newsletter_router
+from features.newsletter import router as newsletter_router
 app.include_router(newsletter_router)
 
 # Contacts sub-router
-from routers.contacts import router as contacts_router
+from features.routers.contacts import router as contacts_router
 app.include_router(contacts_router)
 
 # Student Perks sub-router
-from routers.student_perks import router as student_perks_router
+from features.routers.student_perks import router as student_perks_router
 app.include_router(student_perks_router)
 
 from core.email_quality import router as email_quality_router
@@ -401,6 +491,8 @@ async def upload_file(
         contents = await file.read()
     except Exception as e:
         raise HTTPException(500, f"Failed to read uploaded file: {e}")
+    from security_scanner import scan_file_for_viruses_async
+    await scan_file_for_viruses_async(contents)
     max_size = 5 * 1024 * 1024  # 5 MB
     if len(contents) > max_size:
         raise HTTPException(413, "File too large. Maximum 5 MB allowed.")
@@ -425,7 +517,9 @@ async def upload_file(
         import subprocess
         try:
             subprocess.run(["chmod", "-R", "777", str(ROOT_DIR / "uploads")], check=False, timeout=5)
-            subprocess.run(["chown", "-R", f"{os.getuid()}:{os.getgid()}", str(ROOT_DIR / "uploads")], check=False, timeout=5)
+            uid = getattr(os, "getuid", lambda: 1000)()
+            gid = getattr(os, "getgid", lambda: 1000)()
+            subprocess.run(["chown", "-R", f"{uid}:{gid}", str(ROOT_DIR / "uploads")], check=False, timeout=5)
         except Exception:
             pass
         try:
@@ -1099,106 +1193,100 @@ def serialize_user(user: dict) -> dict | None:
 
 
 async def get_current_user(request: Request) -> dict:
-    """JWT auth dependency. Reads `Authorization: Bearer <token>` header."""
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(401, "Not authenticated")
-    try:
-        payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        if payload.get("type") != "access":
-            raise HTTPException(401, "Invalid token type")
-        # Check token blacklist (logout revocation)
-        jti = payload.get("jti")
-        if jti:
-            blacklisted = await db.token_blacklist.find_one({"jti": jti})
-            if blacklisted:
-                raise HTTPException(401, "Token has been revoked")
-        user = await db.users.find_one(
-            {"_id": ObjectId(payload["sub"])}
-        )
-        if not user:
-            raise HTTPException(401, "User not found")
+    """JWT auth dependency. Reads `Authorization: Bearer <token>` header.
 
-        # ── Schema Unification Migration Helper ──
-        needs_migration = False
-        updates = {"$set": {}, "$unset": {}}
+    Shared decode + blacklist checks live in core.deps; the schema-migration
+    block below is kept here because it mutates the user document.
+    """
+    payload = decode_payload(bearer_token(request.headers.get("Authorization", "")), token_type="access")
+    # Check token blacklist (logout revocation)
+    jti = payload.get("jti")
+    if jti:
+        blacklisted = await db.token_blacklist.find_one({"jti": jti})
+        if blacklisted:
+            raise HTTPException(401, "Token has been revoked")
+    user = await db.users.find_one(
+        {"_id": ObjectId(payload["sub"])}
+    )
+    if not user:
+        raise HTTPException(401, "User not found")
 
-        # 1. Image Schema
-        if not user.get("photo_data") and (user.get("photo_data")):
-            user["photo_data"] = user.get("photo_data")
-            updates["$set"]["photo_data"] = user["photo_data"]
-            if "face_image_base64" in user: updates["$unset"]["face_image_base64"] = ""
-            if "photo" in user: updates["$unset"]["photo"] = ""
-            needs_migration = True
+    # ── Schema Unification Migration Helper ──
+    needs_migration = False
+    updates = {"$set": {}, "$unset": {}}
 
-        # 2. Career Goal
-        si = user.get("student_info") or {}
-        if not si.get("career_goal") and (user.get("career_goal") or user.get("career_path")):
-            si["career_goal"] = user.get("career_goal") or user.get("career_path")
-            user["student_info"] = si
-            updates["$set"]["student_info"] = si
-            if "career_goal" in user: updates["$unset"]["career_goal"] = ""
-            if "career_path" in user: updates["$unset"]["career_path"] = ""
-            needs_migration = True
+    # 1. Image Schema
+    if not user.get("photo_data") and (user.get("photo_data")):
+        user["photo_data"] = user.get("photo_data")
+        updates["$set"]["photo_data"] = user["photo_data"]
+        if "face_image_base64" in user: updates["$unset"]["face_image_base64"] = ""
+        if "photo" in user: updates["$unset"]["photo"] = ""
+        needs_migration = True
 
-        # 3. Education
-        s_info = user.get("school_info") or {}
-        has_edu_legacy = False
-        for legacy_key, target_key in [
-            ("branch", "branch_or_stream"),
-            ("cgpa", "cgpa"),
-            ("graduation_year", "graduation_year"),
-            ("class_or_year", "class_or_year"),
-            ("department", "branch_or_stream")
-        ]:
-            if legacy_key in user:
-                if target_key not in s_info or not s_info[target_key]:
-                    s_info[target_key] = user[legacy_key]
-                updates["$unset"][legacy_key] = ""
-                has_edu_legacy = True
-        if has_edu_legacy:
-            user["school_info"] = s_info
-            updates["$set"]["school_info"] = s_info
-            needs_migration = True
+    # 2. Career Goal
+    si = user.get("student_info") or {}
+    if not si.get("career_goal") and (user.get("career_goal") or user.get("career_path")):
+        si["career_goal"] = user.get("career_goal") or user.get("career_path")
+        user["student_info"] = si
+        updates["$set"]["student_info"] = si
+        if "career_goal" in user: updates["$unset"]["career_goal"] = ""
+        if "career_path" in user: updates["$unset"]["career_path"] = ""
+        needs_migration = True
 
-        # 4. Resume
-        if user.get("resume_url"):
-            legacy_url = user.get("resume_url")
-            new_doc = {
-                "id": "legacy_migrated",
-                "name": "Legacy_Resume.pdf",
-                "size": 0,
-                "data_url": legacy_url,
-                "uploaded_at": datetime.now(timezone.utc).isoformat(),
-                "active": True
-            }
-            updates["$push"] = {"resume_documents": new_doc}
-            if not user.get("resume_documents"):
-                user["resume_documents"] = []
-            user["resume_documents"].append(new_doc)
-            if "resume_url" in user: updates["$unset"]["resume_url"] = ""
-            if "resume_data" in user: updates["$unset"]["resume_data"] = ""
-            needs_migration = True
+    # 3. Education
+    s_info = user.get("school_info") or {}
+    has_edu_legacy = False
+    for legacy_key, target_key in [
+        ("branch", "branch_or_stream"),
+        ("cgpa", "cgpa"),
+        ("graduation_year", "graduation_year"),
+        ("class_or_year", "class_or_year"),
+        ("department", "branch_or_stream")
+    ]:
+        if legacy_key in user:
+            if target_key not in s_info or not s_info[target_key]:
+                s_info[target_key] = user[legacy_key]
+            updates["$unset"][legacy_key] = ""
+            has_edu_legacy = True
+    if has_edu_legacy:
+        user["school_info"] = s_info
+        updates["$set"]["school_info"] = s_info
+        needs_migration = True
 
-        if needs_migration:
-            try:
-                if not updates["$unset"]: del updates["$unset"]
-                if not updates["$set"]: del updates["$set"]
-                if not updates.get("$push"): updates.pop("$push", None)
-                if updates:
-                    await db.users.update_one({"_id": user["_id"]}, updates)
-            except Exception as e:
-                print(f"Migration error: {e}", flush=True)
-        
-        # Remove large binary fields from response to match legacy behavior
-        if "resume_documents" in user:
-            del user["resume_documents"]
-            
-        return user
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(401, "Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(401, "Invalid token")
+    # 4. Resume
+    if user.get("resume_url"):
+        legacy_url = user.get("resume_url")
+        new_doc = {
+            "id": "legacy_migrated",
+            "name": "Legacy_Resume.pdf",
+            "size": 0,
+            "data_url": legacy_url,
+            "uploaded_at": datetime.now(timezone.utc).isoformat(),
+            "active": True
+        }
+        updates["$push"] = {"resume_documents": new_doc}
+        if not user.get("resume_documents"):
+            user["resume_documents"] = []
+        user["resume_documents"].append(new_doc)
+        if "resume_url" in user: updates["$unset"]["resume_url"] = ""
+        if "resume_data" in user: updates["$unset"]["resume_data"] = ""
+        needs_migration = True
+
+    if needs_migration:
+        try:
+            if not updates["$unset"]: del updates["$unset"]
+            if not updates["$set"]: del updates["$set"]
+            if not updates.get("$push"): updates.pop("$push", None)
+            if updates:
+                await db.users.update_one({"_id": user["_id"]}, updates)
+        except Exception as e:
+            print(f"Migration error: {e}", flush=True)
+
+    # Remove large binary fields from response to match legacy behavior
+    if "resume_documents" in user:
+        del user["resume_documents"]
+
+    return user
 
 
 def validate_student_class(school_info: SchoolInfo, age: Optional[int] = None) -> None:
@@ -1663,1258 +1751,37 @@ async def student_dashboard_summary(user: dict = Depends(get_current_user)):
 
 
 
-# ----------------------------------------------------------------------------
-# Coupon System — CRUD + redemption
-# ----------------------------------------------------------------------------
-def _coupon_fields(d: dict) -> dict:
-    """Whitelist of coupon fields returned to clients (never leaks internals).
-    When locked, the code, description, and instructions are masked."""
-    locked = bool(d.get("locked", False))
-    return {
-        "id": str(d["_id"]),
-        "code": "****" if locked else d.get("code", ""),
-        "description": "" if locked else d.get("description", ""),
-        "discount_type": d.get("discount_type", "percentage"),
-        "discount_pct": 0 if locked else d.get("discount_pct", 0),
-        "max_uses": d.get("max_uses", 0),
-        "used_count": d.get("used_count", 0),
-        "active": bool(d.get("active", True)),
-        "expires_at": d.get("expires_at"),
-        "image_url": d.get("image_url"),
-        "partner_name": "" if locked else d.get("partner_name"),
-        "partner_website_url": "" if locked else d.get("partner_website_url"),
-        "instructions": "" if locked else d.get("instructions", ""),
-        "audience": d.get("audience") or ["all"],
-        "display_order": int(d.get("display_order", 0)),
-        "created_at": d.get("created_at"),
-        "locked": locked,
-    }
+from features.coupons_api import router as coupons_api_router
+api_router.include_router(coupons_api_router)
 
 
-@api_router.get("/coupons")
-async def list_coupons():
-    """Public — list active coupons for display."""
-    docs = await db.coupons.find({"active": True}).sort("display_order", 1).to_list(100)
-    return {"coupons": [_coupon_fields(d) for d in docs]}
+from features.auth_verify_api import router as auth_verify_api_router
+api_router.include_router(auth_verify_api_router)
 
 
-@api_router.get("/coupons/active")
-async def list_active_coupons_for_me(user: dict = Depends(get_current_user)):
-    """Role-targeted coupons for the logged-in user's dashboard."""
-    role = (user.get("role") or "student").lower()
-    role_map = {"superadmin": "super_admin", "admin": "super_admin"}
-    role = role_map.get(role, role)
-    docs = await db.coupons.find({
-        "active": True,
-        "$or": [{"audience": "all"}, {"audience": role}],
-    }).sort("display_order", 1).to_list(100)
-    return {"coupons": [_coupon_fields(d) for d in docs], "role": role}
+from features.media_api import router as media_api_router
+api_router.include_router(media_api_router)
 
 
-@api_router.post("/admin/coupons")
-async def create_coupon(payload: dict, user: dict = Depends(get_current_user)):
-    """Admin — create a new coupon."""
-    role = (user.get("role") or "").lower()
-    if role not in ("admin", "superadmin", "super_admin"):
-        raise HTTPException(403, "Only admins can manage coupons")
-    code = (payload.get("code") or "").strip().upper()
-    if not code:
-        raise HTTPException(400, "Coupon code is required")
-    existing = await db.coupons.find_one({"code": code})
-    if existing:
-        raise HTTPException(409, "Coupon code already exists")
-    audience = payload.get("audience") or ["all"]
-    if not isinstance(audience, list) or not audience:
-        audience = ["all"]
-    doc = {
-        "code": code,
-        "description": (payload.get("description") or "").strip(),
-        "discount_type": payload.get("discount_type", "percentage"),
-        "discount_pct": max(0, int(payload.get("discount_pct", 0) or 0)),
-        "max_uses": max(1, int(payload.get("max_uses", 1))),
-        "used_count": 0,
-        "active": True,
-        "expires_at": payload.get("expires_at"),
-        "image_url": payload.get("image_url") or None,
-        "partner_name": (payload.get("partner_name") or "").strip() or None,
-        "partner_website_url": (payload.get("partner_website_url") or "").strip() or None,
-        "instructions": (payload.get("instructions") or "").strip(),
-        "audience": list(dict.fromkeys(audience)),
-        "display_order": int(payload.get("display_order", 0) or 0),
-        "created_by": str(user.get("_id")),
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    }
-    res = await db.coupons.insert_one(doc)
-    doc["id"] = str(res.inserted_id)
-    return {"status": "ok", "coupon": doc}
 
+from features.analytics_api import router as analytics_api_router
+api_router.include_router(analytics_api_router)
 
-@api_router.get("/admin/coupons")
-async def admin_list_coupons(user: dict = Depends(get_current_user)):
-    """Admin — list all coupons (active + inactive)."""
-    role = (user.get("role") or "").lower()
-    if role not in ("admin", "superadmin", "super_admin"):
-        raise HTTPException(403, "Only admins can manage coupons")
-    docs = await db.coupons.find().sort("created_at", -1).to_list(200)
-    return {"coupons": [_coupon_fields(d) for d in docs]}
 
+from features.integrations_api import router as integrations_api_router
+api_router.include_router(integrations_api_router)
 
-@api_router.patch("/admin/coupons/{coupon_id}")
-async def update_coupon(coupon_id: str, payload: dict, user: dict = Depends(get_current_user)):
-    """Admin — toggle active or update coupon fields."""
-    role = (user.get("role") or "").lower()
-    if role not in ("admin", "superadmin", "super_admin"):
-        raise HTTPException(403, "Only admins can manage coupons")
-    from bson import ObjectId
-    try:
-        oid = ObjectId(coupon_id)
-    except Exception:
-        raise HTTPException(400, "Invalid coupon ID")
-    existing = await db.coupons.find_one({"_id": oid})
-    if not existing:
-        raise HTTPException(404, "Coupon not found")
-    update = {}
-    for k in ("description", "discount_pct", "discount_type", "max_uses", "active", "expires_at",
-              "image_url", "partner_name", "partner_website_url", "instructions",
-              "audience", "display_order", "locked"):
-        if k in payload:
-            update[k] = payload[k]
-    if not update:
-        raise HTTPException(400, "No fields to update")
-    result = await db.coupons.update_one({"_id": oid}, {"$set": update})
-    if result.modified_count == 0:
-        # Even if nothing changed, return success (values may be the same)
-        pass
-    updated = await db.coupons.find_one({"_id": oid})
-    return {"status": "ok", "coupon": _coupon_fields(updated) if updated else None}
 
+from features.teams_api import router as teams_api_router
+api_router.include_router(teams_api_router)
 
-@api_router.delete("/admin/coupons/{coupon_id}")
-async def delete_coupon(coupon_id: str, user: dict = Depends(get_current_user)):
-    """Admin — delete a coupon."""
-    role = (user.get("role") or "").lower()
-    if role not in ("admin", "superadmin", "super_admin"):
-        raise HTTPException(403, "Only admins can manage coupons")
-    from bson import ObjectId
-    await db.coupons.delete_one({"_id": ObjectId(coupon_id)})
-    return {"status": "ok"}
 
+from features.reviews_api import router as reviews_api_router
+api_router.include_router(reviews_api_router)
 
-@api_router.post("/admin/coupons/upload")
-async def upload_coupon_image(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
-    """Admin — upload coupon image. Returns the static URL."""
-    role = (user.get("role") or "").lower()
-    if role not in ("admin", "superadmin", "super_admin"):
-        raise HTTPException(403, "Only admins can manage coupons")
-    from pathlib import Path
-    from datetime import datetime, timezone
-    upload_dir = Path("uploads/coupons")
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    ext = Path(file.filename).suffix.lower() if file.filename else ".png"
-    allowed = {".jpg", ".jpeg", ".png", ".webp", ".svg", ".gif"}
-    if ext not in allowed:
-        raise HTTPException(400, f"File type {ext} not allowed")
-    contents = await file.read()
-    max_size = 5 * 1024 * 1024
-    if len(contents) > max_size:
-        raise HTTPException(413, "File too large. Maximum 5 MB allowed")
-    ts = int(datetime.now(timezone.utc).timestamp())
-    stem = Path(file.filename).stem.replace(" ", "_") if file.filename else "coupon"
-    safe_name = f"{ts}_{stem}{ext}"
-    out_path = upload_dir / safe_name
-    with open(out_path, "wb") as f:
-        f.write(contents)
-    url = f"/uploads/coupons/{safe_name}"
-    return {"status": "ok", "url": url}
 
-
-@api_router.post("/coupons/redeem")
-async def redeem_coupon(payload: dict, user: dict = Depends(get_current_user)):
-    """Redeem a coupon code — increments used_count if valid."""
-    code = (payload.get("code") or "").strip().upper()
-    if not code:
-        raise HTTPException(400, "Coupon code is required")
-    coupon = await db.coupons.find_one({"code": code, "active": True})
-    if not coupon:
-        raise HTTPException(404, "Invalid or expired coupon code")
-    if coupon.get("used_count", 0) >= coupon.get("max_uses", 1):
-        raise HTTPException(400, "Coupon has reached its usage limit")
-    if coupon.get("expires_at"):
-        from datetime import datetime as _dt
-        try:
-            expires = _dt.fromisoformat(coupon["expires_at"].replace("Z", "+00:00"))
-            if expires < _dt.now(timezone.utc):
-                raise HTTPException(400, "Coupon has expired")
-        except ValueError:
-            pass
-    await db.coupons.update_one(
-        {"_id": coupon["_id"]},
-        {"$inc": {"used_count": 1}}
-    )
-    return {"status": "ok", "discount_pct": coupon.get("discount_pct", 0), "code": code}
-
-
-# ----------------------------------------------------------------------------
-# Email Verification
-# ----------------------------------------------------------------------------
-@api_router.post("/auth/send-verification")
-async def send_verification_email(payload: dict):
-    """Send email verification link to the user's email address."""
-    from core.email_quality import require_ok
-    email = require_ok(payload.get("email") or "")
-    if not email:
-        raise HTTPException(400, "Email is required")
-    user = await db.users.find_one({"email": email})
-    if not user:
-        raise HTTPException(404, "User not found")
-    if user.get("email_verified"):
-        return {"status": "ok", "message": "Email already verified"}
-
-    token = secrets.token_urlsafe(32)
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
-    await db.email_verifications.update_one(
-        {"email": email},
-        {"$set": {
-            "email": email,
-            "token": token,
-            "expires_at": expires_at,
-            "created_at": datetime.now(timezone.utc),
-        }},
-        upsert=True,
-    )
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
-    verify_link = f"{frontend_url}/verify-email?token={token}&email={email}"
-    body = f"""
-    <h2>Verify your email address</h2>
-    <p>Click the link below to verify your email:</p>
-    <p><a href="{verify_link}" style="display:inline-block;padding:12px 24px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:8px;">Verify Email</a></p>
-    <p>Or copy this link: {verify_link}</p>
-    <p>This link expires in 24 hours.</p>
-    """
-    sent = await send_email(email, "Verify your email - Student Alumni", body)
-    if not sent:
-        # fallback — store as console log; user can still use OTP flow
-        print(f"[EMAIL] Verification token for {email}: {token}")
-    # Best-effort WhatsApp with the verification link
-    try:
-        from core.whatsapp import send_wa_message as _wa
-        phone = (user.get("phone") or "").strip()
-        if phone:
-            await _wa(phone=phone, text=f"🔐 *Verify your email*\n\nClick to verify your Student Alumni account:\n{verify_link}\n\nThis link expires in 24 hours.", kind="email_verification")
-    except Exception:
-        pass
-    return {"status": "ok", "message": "Verification email sent" if sent else "Token generated (email service not configured)"}
-
-
-@api_router.post("/auth/verify-email")
-async def verify_email_endpoint(payload: dict):
-    """Verify email using token or OTP code."""
-    token = (payload.get("token") or "").strip()
-    email = (payload.get("email") or "").strip().lower()
-    if not token or not email:
-        raise HTTPException(400, "Token and email are required")
-    record = await db.email_verifications.find_one({"email": email, "token": token})
-    if not record:
-        raise HTTPException(400, "Invalid verification token")
-    if record.get("expires_at") and record["expires_at"] < datetime.now(timezone.utc):
-        raise HTTPException(400, "Verification token has expired")
-    await db.users.update_one({"email": email}, {"$set": {"email_verified": True}})
-    await db.email_verifications.delete_one({"email": email, "token": token})
-    return {"status": "ok", "message": "Email verified successfully"}
-
-
-@api_router.post("/auth/email-otp/send")
-async def send_email_otp(payload: dict):
-    """Send a 6-digit one-time code to the user's email for passwordless sign-in
-    or email verification. Stores a SHA-256 hash of the code (never plaintext)
-    with a 10-minute expiry on the user record + email_verifications doc.
-    """
-    from core.email_quality import require_ok
-    email = require_ok(payload.get("email") or "")
-    if not email or "@" not in email:
-        raise HTTPException(400, "A valid email is required")
-
-    import random as _random
-    import hashlib as _hashlib
-
-    otp = str(_random.randint(100000, 999999))
-    otp_hash = _hashlib.sha256(otp.encode()).hexdigest()
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
-
-    await db.email_verifications.update_one(
-        {"email": email},
-        {"$set": {
-            "email": email,
-            "otp_hash": otp_hash,
-            "otp_expires_at": expires_at,
-            "otp_attempts": 0,
-            "expires_at": expires_at,  # TTL index on this field purges stale docs
-            "created_at": datetime.now(timezone.utc),
-        }},
-        upsert=True,
-    )
-
-    body = f"""
-    <h2 style="margin:0 0 14px 0;color:#111827;">Your one-time sign-in code</h2>
-    <p style="margin:0 0 8px 0;color:#374151;">Use the code below to continue. It expires in 10 minutes.</p>
-    <p style="margin:0 0 20px 0;color:#374151;"><strong style="font-size:28px;letter-spacing:4px;color:#7C3AED;">{otp}</strong></p>
-    <p style="margin:0;color:#9ca3af;font-size:12px;">If you didn't request this code, you can safely ignore this email.</p>
-    """
-    sent = await send_email(email, "Your Student Alumni sign-in code", body)
-    if not sent:
-        # Don't leak the code — only log to server for ops debugging.
-        print(f"[EMAIL-OTP] OTP generated for {email} (delivery pending provider config)")
-    # Best-effort WhatsApp with the OTP code
-    try:
-        from core.whatsapp import send_wa_message as _wa
-        user_doc = await db.users.find_one({"email": email}, {"phone": 1})
-        phone = (user_doc or {}).get("phone") or ""
-        if phone:
-            await _wa(phone=phone, text=f"🔐 *Your sign-in code*\n\nYour one-time code is: *{otp}*\n\nExpires in 10 minutes. If you didn't request this, ignore this message.", kind="email_otp")
-    except Exception:
-        pass
-    return {"status": "ok", "message": "OTP sent successfully", "otp_code": otp}
-
-
-@api_router.post("/auth/verify-email-otp")
-async def verify_email_otp(payload: dict):
-    """Verify a 6-digit email OTP (sent via /auth/email-otp/send). On success,
-    marks the email verified and returns a short-lived auth token for
-    passwordless sign-in (or a plain success for pure verification).
-    """
-    email = (payload.get("email") or "").strip().lower()
-    otp = (payload.get("otp") or "").strip()
-    if not email or not otp:
-        raise HTTPException(400, "Email and OTP are required")
-
-    import hashlib as _hashlib
-
-    record = await db.email_verifications.find_one({"email": email})
-    if not record or not record.get("otp_hash"):
-        raise HTTPException(400, "No OTP found for this email — request a new code")
-
-    if record.get("otp_attempts", 0) >= 5:
-        await db.email_verifications.delete_one({"email": email})
-        raise HTTPException(429, "Too many attempts. Please request a new code.")
-
-    expires_at = record.get("otp_expires_at")
-    now_utc = datetime.now(timezone.utc)
-    if expires_at:
-        if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
-        if now_utc > expires_at:
-            await db.email_verifications.delete_one({"email": email})
-            raise HTTPException(400, "OTP has expired — request a new code")
-
-    if record["otp_hash"] != _hashlib.sha256(otp.encode()).hexdigest():
-        await db.email_verifications.update_one(
-            {"email": email}, {"$inc": {"otp_attempts": 1}}
-        )
-        raise HTTPException(400, "Invalid OTP")
-
-    user = await db.users.find_one({"email": email})
-    if user:
-        await db.users.update_one({"email": email}, {"$set": {"email_verified": True}})
-    await db.email_verifications.delete_one({"email": email})
-
-    result: dict[str, Any] = {"status": "ok", "message": "Email verified successfully"}
-    if user:
-        # Use the platform's standard access-token factory so the token carries
-        # the required `type: "access"` + `exp` claims (get_current_user rejects
-        # anything without them).
-        token = create_access_token(str(user["_id"]), email, user.get("role"))
-        result["token"] = token
-        result["user"] = {
-            "id": str(user["_id"]),
-            "email": email,
-            "full_name": user.get("full_name"),
-            "role": user.get("role"),
-        }
-        try:
-            await db.auth_events.insert_one({
-                "event": "email_otp_login",
-                "email": email,
-                "user_id": str(user["_id"]),
-                "success": True,
-                "timestamp": datetime.now(timezone.utc),
-            })
-        except Exception:
-            pass
-    return result
-
-
-# ----------------------------------------------------------------------------
-# Logo serving — sa-icon.png
-# ----------------------------------------------------------------------------
-import os as _os
-_STATIC_DIR = Path(__file__).parent / "static"
-_STATIC_DIR.mkdir(exist_ok=True)
-
-
-@api_router.get("/static/logo")
-async def serve_logo():
-    """Return the platform logo (sa-icon.png) for email templates and UI."""
-    logo_path = _STATIC_DIR / "sa-icon.png"
-    if not logo_path.exists():
-        raise HTTPException(404, "Logo not found")
-    from fastapi.responses import FileResponse
-    return FileResponse(str(logo_path), media_type="image/png")
-
-
-# ----------------------------------------------------------------------------
-# Advertisement — cross-portal sidebar banner
-# ----------------------------------------------------------------------------
-# A single active "ad" (label + image_url + redirect_url) set by admin that
-# appears at the bottom of every portal sidebar. All users (no auth) can
-# fetch the active ad to display it.
-
-@api_router.get("/ad/image")
-async def get_ad_images():
-    """Return all active advertisements as an array.
-    Supports both legacy format (flat label/image_url/redirect_url fields)
-    and new format (items array).
-    """
-    doc = await db.site_config.find_one({"_key": "advertisement"})
-    if not doc:
-        return {"ads": []}
-    # New format: { items: [...] }
-    if doc.get("items") and isinstance(doc["items"], list):
-        return {"ads": doc["items"]}
-    # Legacy format: { label, image_url, redirect_url }
-    if doc.get("image_url"):
-        return {"ads": [{
-            "label": doc.get("label", ""),
-            "image_url": doc.get("image_url", ""),
-            "redirect_url": doc.get("redirect_url", ""),
-        }]}
-    return {"ads": []}
-
-
-@api_router.post("/admin/ad/image")
-async def set_ad_images(payload: dict, user: dict = Depends(get_current_user)):
-    """Save all ads at once (admin only). Body: { items: [{ label, image_url, redirect_url }] }.
-    Also accepts legacy single-ad format: { label, image_url, redirect_url }."""
-    role = (user.get("role") or "").lower()
-    if role not in ("admin", "superadmin", "super_admin"):
-        raise HTTPException(403, "Only admins can set advertisements")
-    # Support new items array format
-    items = payload.get("items")
-    if items is not None:
-        if not isinstance(items, list):
-            raise HTTPException(400, "items must be an array")
-        if len(items) == 0:
-            await db.site_config.update_one(
-                {"_key": "advertisement"},
-                {"$set": {
-                    "_key": "advertisement",
-                    "items": [],
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
-                    "updated_by": str(user.get("_id")),
-                }},
-                upsert=True,
-            )
-            return {"status": "ok", "items": []}
-        for item in items:
-            item["label"] = (item.get("label") or "").strip()
-            item["image_url"] = (item.get("image_url") or "").strip()
-            item["redirect_url"] = (item.get("redirect_url") or "").strip()
-        await db.site_config.update_one(
-            {"_key": "advertisement"},
-            {"$set": {
-                "_key": "advertisement",
-                "items": items,
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-                "updated_by": str(user.get("_id")),
-            }},
-            upsert=True,
-        )
-        return {"status": "ok", "items": items}
-    # Legacy single-ad format
-    label = (payload.get("label") or "").strip()
-    image_url = (payload.get("image_url") or "").strip()
-    redirect_url = (payload.get("redirect_url") or "").strip()
-    if not label or not image_url or not redirect_url:
-        raise HTTPException(400, "items array or (label, image_url, redirect_url) are required")
-    await db.site_config.update_one(
-        {"_key": "advertisement"},
-        {"$set": {
-            "_key": "advertisement",
-            "label": label,
-            "image_url": image_url,
-            "redirect_url": redirect_url,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "updated_by": str(user.get("_id")),
-        }},
-        upsert=True,
-    )
-    return {"status": "ok", "label": label, "image_url": image_url, "redirect_url": redirect_url}
-
-
-
-# ----------------------------------------------------------------------------
-# Analytics — role-aware dashboards
-# ----------------------------------------------------------------------------
-@api_router.get("/analytics")
-async def analytics_dispatcher(user: dict = Depends(get_current_user)):
-    """Returns the analytics payload appropriate for the caller's role.
-    Admin/super_admin -> platform-wide. College -> their institution. Mentor -> their bookings."""
-    return await get_analytics_for(db, user)
-
-
-@api_router.get("/analytics/super-admin")
-async def analytics_super_admin(user: dict = Depends(get_current_user)):
-    if user["role"] not in ("admin", "super_admin"):
-        raise HTTPException(403, "Super admin access required")
-    return await super_admin_analytics(db, include_revenue=True)
-
-
-@api_router.get("/analytics/admin")
-async def analytics_admin_endpoint(user: dict = Depends(get_current_user)):
-    if user["role"] not in ("admin", "super_admin"):
-        raise HTTPException(403, "Admin access required")
-    return await super_admin_analytics(db, include_revenue=False)
-
-
-@api_router.get("/analytics/college")
-async def analytics_college_endpoint(user: dict = Depends(get_current_user),
-                                      institution_name: Optional[str] = None):
-    if user["role"] not in ("college", "admin", "super_admin"):
-        raise HTTPException(403, "College / admin access required")
-    inst = institution_name or (user.get("school_info") or {}).get("institution_name") or user.get("full_name") or ""
-    return await college_analytics(db, inst)
-
-
-@api_router.get("/analytics/mentor")
-async def analytics_mentor_endpoint(user: dict = Depends(get_current_user),
-                                     mentor_id: Optional[str] = None):
-    if user["role"] in ("admin", "super_admin") and mentor_id:
-        return await mentor_analytics(db, mentor_id)
-    if user["role"] != "mentor":
-        raise HTTPException(403, "Mentor access required")
-    return await mentor_analytics(db, str(user["_id"]))
-
-
-# ----------------------------------------------------------------------------
-# External API Integrations — Coursera / Udemy / Adzuna
-# Mock-mode by default; real-mode activates when env vars are set.
-# ----------------------------------------------------------------------------
-@api_router.get("/integrations/status")
-async def get_integrations_status():
-    """Returns which integrations are running in 'live' vs 'mock' mode."""
-    return integrations_status()
-
-
-@api_router.get("/integrations/courses")
-async def integrations_courses(query: str = "computer science", limit: int = 10):
-    """Live fetch of courses from Coursera + Udemy (mock fallback if no keys)."""
-    coursera = await fetch_coursera_courses(query, limit)
-    udemy = await fetch_udemy_courses(query, limit)
-    return {"items": coursera + udemy, "status": integrations_status()}
-
-
-@api_router.get("/integrations/internships")
-async def integrations_internships(query: str = "internship", country: str = "in", limit: int = 10):
-    items = await fetch_adzuna_internships(query, country, limit)
-    return {"items": items, "status": integrations_status()}
-
-
-@api_router.post("/integrations/sync/courses")
-async def sync_courses(user: dict = Depends(get_current_user)):
-    """Admin-only: pull Coursera + Udemy data into our courses collection."""
-    if user["role"] not in ("admin", "super_admin"):
-        raise HTTPException(403, "Admin access required")
-    res = await sync_courses_to_db(db)
-    return {"synced": res, "status": integrations_status()}
-
-
-@api_router.post("/integrations/sync/internships")
-async def sync_internships(user: dict = Depends(get_current_user)):
-    """Admin-only: pull Adzuna data into our internships collection."""
-    if user["role"] not in ("admin", "super_admin"):
-        raise HTTPException(403, "Admin access required")
-    res = await sync_internships_to_db(db)
-    return {"synced": res, "status": integrations_status()}
-
-
-# ── Microsoft Teams Meeting Endpoints ─────────────────────────────────────────
-from integrations.teams import (
-    teams_status as _teams_status, create_teams_meeting as _create_teams_meeting,
-    get_meeting_attendance as _get_attendance, create_meeting_registration as _register,
-    build_oauth_url as _oauth_url, exchange_code_for_token as _exchange_code,
-    _get_app_token as _get_teams_token, _get_creds as _get_teams_creds,
-)
-
-class TeamsMeetingCreate(BaseModel):
-    title: str
-    start_time: str
-    duration_minutes: int = 60
-    attendee_emails: Optional[List[str]] = None
-    seat_limit: Optional[int] = None
-    description: Optional[str] = ""
-    lobby_bypass: str = "everyone"
-    allow_external: bool = True
-    event_slug: Optional[str] = None
-    organizer_email: Optional[str] = None
-    manual_join_url: Optional[str] = None
-
-class TeamsMeetingRegister(BaseModel):
-    full_name: str
-    email: str
-    phone: Optional[str] = None
-
-@api_router.post("/integrations/teams/oauth-url")
-async def teams_oauth_url():
-    """Get OAuth URL + state for Microsoft OAuth2 flow."""
-    import secrets as _secrets
-    creds = await _get_teams_creds()
-    if not (creds.get("tenant_id") and creds.get("client_id")):
-        raise HTTPException(400, "Microsoft Teams integration not configured. Install it from the marketplace first.")
-    state = _secrets.token_urlsafe(32)
-    redirect_uri = os.environ.get("MS_TEAMS_REDIRECT_URI", "https://studentalumni.ai/api/integrations/teams/callback")
-    auth_url = await _oauth_url(redirect_uri, state)
-    return {"auth_url": auth_url, "state": state, "redirect_uri": redirect_uri}
-
-
-@api_router.get("/integrations/teams/callback")
-async def teams_oauth_callback(code: Optional[str] = None, state: Optional[str] = None, error: Optional[str] = None):
-    """Handle the Microsoft OAuth2 authorization-code callback (browser redirect).
-
-    Note: Teams meeting creation uses app-only client-credentials auth and does not
-    require this code exchange, but the URL must exist so Azure's redirect doesn't 404.
-    """
-    if error:
-        return {"error": f"OAuth error: {error}"}
-    if not code:
-        return {"error": "Missing authorization code"}
-    redirect_uri = os.environ.get("MS_TEAMS_REDIRECT_URI", "https://studentalumni.ai/api/integrations/teams/callback")
-    try:
-        token = await _exchange_code(code, redirect_uri)
-    except Exception as e:  # noqa: BLE001
-        token = None
-        logger.warning(f"[teams] OAuth token exchange failed: {e}")
-    return {"status": "connected" if token else "error", "state": state}
-
-
-@api_router.post("/integrations/teams/meetings")
-async def create_teams_meeting_endpoint(payload: TeamsMeetingCreate, user: dict = Depends(get_current_user)):
-    """Create a Microsoft Teams meeting with seat limits and registration support."""
-    if user.get("role") not in ("admin", "super_admin", "organizer"):
-        raise HTTPException(403, "Access required")
-    from datetime import datetime as _dt
-    from zoneinfo import ZoneInfo
-    IST = ZoneInfo("Asia/Kolkata")
-    raw = (payload.start_time or "").strip()
-    try:
-        if raw:
-            # Frontend sends a "wall clock" time in IST (e.g. "2026-09-01T09:00")
-            parsed = _dt.fromisoformat(raw.replace("Z", "+00:00"))
-            if parsed.tzinfo is None:
-                parsed = parsed.replace(tzinfo=IST)
-            else:
-                parsed = parsed.astimezone(IST)
-            start_dt = parsed
-        else:
-            start_dt = _dt.now(IST)
-    except (ValueError, AttributeError):
-        start_dt = _dt.now(IST)
-
-    manual_join_url = (payload.manual_join_url or "").strip()
-
-    if manual_join_url:
-        # Admin supplies a pre-created Teams/Skype join link manually, so no
-        # Microsoft Graph call is needed (avoids the OnlineMeeting application
-        # access policy requirement). Store the meeting directly with that link.
-        meeting = {
-            "success": True,
-            "meeting_id": f"teams-manual-{secrets.token_hex(6)}",
-            "subject": payload.title,
-            "join_url": manual_join_url,
-            "start": start_dt.isoformat(),
-            "end": (start_dt + timedelta(minutes=payload.duration_minutes)).isoformat(),
-            "attendees": payload.attendee_emails or [],
-            "seat_limit": payload.seat_limit,
-            "registrations": [],
-            "manual": True,
-        }
-    else:
-        try:
-            meeting = await _create_teams_meeting(
-                title=payload.title,
-                start_time=start_dt,
-                duration_minutes=payload.duration_minutes,
-                attendee_emails=payload.attendee_emails or [],
-                seat_limit=payload.seat_limit,
-                description=payload.description or "",
-                lobby_bypass=payload.lobby_bypass,
-                allow_external=payload.allow_external,
-                organizer_email=(payload.organizer_email or "").strip() or None,
-            )
-        except RuntimeError as e:
-            logger.error(f"[teams] create endpoint: {e}")
-            raise HTTPException(502, f"Could not create Teams meeting: {str(e)}")
-
-    meeting_doc = {
-        "meeting_id": meeting["meeting_id"],
-        "subject": meeting["subject"],
-        "join_url": meeting.get("join_url"),
-        "start_time": start_dt.isoformat(),
-        "duration_minutes": payload.duration_minutes,
-        "seat_limit": payload.seat_limit,
-        "attendee_emails": payload.attendee_emails or [],
-        "event_slug": (payload.event_slug or "").strip() or None,
-        "organizer_email": (payload.organizer_email or "").strip() or None,
-        "description": payload.description or "",
-        "created_by": str(user.get("_id", "")),
-        "created_at": _dt.now(timezone.utc).isoformat(),
-        "is_mock": meeting.get("mock", False),
-        "manual": meeting.get("manual", False),
-        "registrations": [],
-    }
-    await db.teams_meetings.insert_one(meeting_doc)
-    return meeting
-
-
-@api_router.get("/integrations/teams/meetings")
-async def list_teams_meetings(user: dict = Depends(get_current_user), event_slug: str = None):
-    """List all Teams meetings (admin only). Optionally filter by event_slug."""
-    if user.get("role") not in ("admin", "super_admin", "organizer"):
-        raise HTTPException(403, "Access required")
-    query = {}
-    if event_slug:
-        query["event_slug"] = event_slug
-    cursor = db.teams_meetings.find(query).sort("created_at", -1)
-    meetings = []
-    async for m in cursor:
-        m["_id"] = str(m["_id"])
-        meetings.append(m)
-    return {"meetings": meetings, "status": await _teams_status()}
-
-
-@api_router.get("/integrations/teams/meetings/event/{event_slug}")
-async def get_teams_meetings_for_event(event_slug: str):
-    """Get Teams meetings associated with a specific event (public)."""
-    cursor = db.teams_meetings.find({"event_slug": event_slug}).sort("start_time", 1)
-    meetings = []
-    async for m in cursor:
-        m["_id"] = str(m["_id"])
-        meetings.append(m)
-    return {"meetings": meetings}
-
-
-async def _add_teams_attendee(meeting: dict, attendee_email: str, display_name: str = ""):
-    """Best-effort add of an attendee to the real Teams meeting via Graph.
-
-    App-only tokens have no "me" calendar, so if an organizer email is known the
-    attendee is added against that user's event. Failures are logged, never thrown.
-    """
-    if not attendee_email or meeting.get("is_mock"):
-        return
-    org = (meeting.get("organizer_email") or "").strip()
-    if not org:
-        return
-    try:
-        creds = await _get_teams_creds()
-        token = await _get_teams_token(creds)
-        if not token:
-            return
-        event_id = meeting.get("meeting_id") or ""
-        url = f"https://graph.microsoft.com/v1.0/users/{org}/events/{event_id}"
-        existing = meeting.get("attendee_emails") or []
-        payload = {
-            "attendees": [
-                {"emailAddress": {"address": a, "name": a}, "type": "required"}
-                for a in list(existing) + [attendee_email]
-            ]
-        }
-        async with httpx.AsyncClient(timeout=15) as c:
-            r = await c.patch(url, headers={"Authorization": f"Bearer {token}"}, json=payload)
-            if not r.is_success:
-                logger.warning(f"[teams] add attendee failed {r.status_code}: {r.text[:300]}")
-    except Exception as e:
-        logger.warning(f"[teams] add attendee error for {attendee_email}: {e}")
-
-
-def _format_ics_datetime(dt_str: str) -> str:
-    """Format an ISO datetime for an .ics file as a UTC (Z) timestamp."""
-    try:
-        from datetime import datetime as _pdt
-        dt = _pdt.fromisoformat(dt_str.replace("Z", "+00:00"))
-        if dt.tzinfo is None:
-            from zoneinfo import ZoneInfo
-            dt = dt.replace(tzinfo=ZoneInfo("Asia/Kolkata"))
-        dt_utc = dt.astimezone(timezone.utc)
-        return dt_utc.strftime("%Y%m%dT%H%M%SZ")
-    except (ValueError, TypeError):
-        return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-
-
-def _build_meeting_ics(meeting: dict) -> str:
-    """Build an RFC-5545 .ics calendar invitation for a Teams meeting."""
-    subject = (meeting.get("subject") or "Teams Meeting").replace("\\", "\\\\").replace("\n", "\\n")
-    desc = (meeting.get("description") or "").replace("\\", "\\\\").replace("\n", "\\n")
-    start = _format_ics_datetime(meeting.get("start_time", ""))
-    end = _format_ics_datetime(meeting.get("_ics_end", "")) or _format_ics_datetime(meeting.get("start_time", ""))
-    join_url = meeting.get("join_url") or ""
-    meeting_id = meeting.get("meeting_id") or "teams-meeting"
-    now = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    organizer = meeting.get("organizer_email") or "meetings@studentalumni.ai"
-    body = desc
-    if join_url:
-        body = (body + ("\n\n" if body else "") + f"Join the meeting: {join_url}")
-    _escaped_body = body.replace("\r\n", "\\n").replace("\n", "\\n")
-    _escaped_desc = _escaped_body
-    lines = [
-        "BEGIN:VCALENDAR",
-        "VERSION:2.0",
-        "PRODID:-//Student Alumni//Teams Meeting//EN",
-        "CALSCALE:GREGORIAN",
-        "METHOD:REQUEST",
-        "BEGIN:VEVENT",
-        f"UID:{meeting_id}@studentalumni.ai",
-        f"DTSTAMP:{now}",
-        f"DTSTART:{start}",
-        f"DTEND:{end}",
-        f"SUMMARY:{subject}",
-        f"DESCRIPTION:{_escaped_desc}",
-        "LOCATION:Microsoft Teams",
-        f"ORGANIZER;CN={organizer}:mailto:{organizer}",
-        "ATTENDEE;CN=Participant;RSVP=TRUE:mailto:",
-        "STATUS:CONFIRMED",
-        "SEQUENCE:0",
-        "BEGIN:VALARM",
-        "TRIGGER:-PT15M",
-        "ACTION:DISPLAY",
-        f"DESCRIPTION:Reminder: {subject}",
-        "END:VALARM",
-        "END:VEVENT",
-        "END:VCALENDAR",
-    ]
-    return "\r\n".join(lines) + "\r\n"
-
-
-@api_router.post("/integrations/teams/meetings/{meeting_id}/register")
-async def register_for_teams_meeting(meeting_id: str, payload: dict):
-    """Register a user for a Teams meeting and return the join URL.
-
-    On successful registration the attendee is added to the meeting's attendee
-    list in Microsoft and emailed an .ics calendar invitation so the meeting
-    appears in their calendar with the join link.
-    """
-    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
-    if not meeting:
-        raise HTTPException(404, "Meeting not found")
-    full_name = payload.get("full_name", "")
-    email = payload.get("email", "")
-    phone = payload.get("phone", "")
-    if not full_name or not email:
-        raise HTTPException(400, "Full name and email are required")
-    registrations = meeting.get("registrations", [])
-    existing = next((r for r in registrations if r.get("email") == email), None)
-    if existing:
-        return {"success": True, "join_url": meeting.get("join_url"), "already_registered": True, "ics_url": meeting.get("ics_url")}
-    seat_limit = meeting.get("seat_limit", 0)
-    if seat_limit and len(registrations) >= seat_limit:
-        raise HTTPException(400, "Meeting is full")
-    registrations.append({
-        "full_name": full_name,
-        "email": email,
-        "phone": phone,
-        "registered_at": datetime.now(timezone.utc).isoformat(),
-    })
-    await db.teams_meetings.update_one({"meeting_id": meeting_id}, {"$set": {"registrations": registrations}})
-
-    # 1. Add attendee to the real Teams meeting (best-effort, non-blocking)
-    await _add_teams_attendee(meeting, email, full_name)
-
-    # 2. Build + serve an .ics invite and email it to the attendee
-    try:
-        from datetime import datetime as _edt
-        _st = _edt.fromisoformat(meeting.get("start_time", "").replace("Z", "+00:00"))
-        if _st.tzinfo is None:
-            from zoneinfo import ZoneInfo as _ZI
-            _st = _st.replace(tzinfo=_ZI("Asia/Kolkata"))
-        _end = _st + timedelta(minutes=int(meeting.get("duration_minutes") or 60))
-        meeting = dict(meeting, _ics_end=_end.isoformat())
-    except (ValueError, TypeError, AttributeError):
-        pass
-    ics = _build_meeting_ics(meeting)
-    ics_filename = f"teams-meeting-{meeting_id}.ics"
-    ics_content = base64.b64encode(ics.encode("utf-8")).decode("utf-8")
-
-    # Email the .ics to the attendee (best-effort)
-    email_sent = False
-    try:
-        subject_line = f"Meeting Invitation: {meeting.get('subject') or 'Teams Meeting'}"
-        join_line = f'<a href="{meeting.get("join_url")}">Join the meeting</a>' if meeting.get("join_url") else ""
-        body_html = (
-            f"<p>Hi {full_name},</p>"
-            f"<p>You are registered for <b>{meeting.get('subject') or 'this Teams meeting'}</b>.</p>"
-            f"<p>The calendar invitation is attached. Add it to your calendar to see the event and join link.</p>"
-            f"{join_line and ('<p>' + join_line + '</p>') or ''}"
-        )
-        email_sent = await send_email(
-            to_email=email,
-            subject=subject_line,
-            body_html=body_html,
-            attachments=[{"filename": ics_filename, "content": ics.encode("utf-8")}],
-        )
-    except Exception as e:
-        logger.warning(f"[teams] Could not email calendar invite to {email}: {e}")
-
-    ics_url = f"/api/integrations/teams/meetings/{meeting_id}/calendar.ics?u={secrets.token_urlsafe(6)}"
-    return {
-        "success": True,
-        "join_url": meeting.get("join_url"),
-        "ics": ics_content,
-        "ics_filename": ics_filename,
-        "ics_url": ics_url,
-        "email_sent": email_sent,
-    }
-
-
-@api_router.get("/integrations/teams/meetings/{meeting_id}/calendar.ics")
-async def get_teams_meeting_ics(meeting_id: str):
-    """Return the .ics calendar invite for a Teams meeting (for adding to a calendar)."""
-    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
-    if not meeting:
-        raise HTTPException(404, "Meeting not found")
-    try:
-        from datetime import datetime as _edt
-        _st = _edt.fromisoformat(meeting.get("start_time", "").replace("Z", "+00:00"))
-        if _st.tzinfo is None:
-            from zoneinfo import ZoneInfo as _ZI
-            _st = _st.replace(tzinfo=_ZI("Asia/Kolkata"))
-        _end = _st + timedelta(minutes=int(meeting.get("duration_minutes") or 60))
-        meeting = dict(meeting, _ics_end=_end.isoformat())
-    except (ValueError, TypeError, AttributeError):
-        pass
-    ics = _build_meeting_ics(meeting)
-    return Response(
-        content=ics,
-        media_type="text/calendar",
-        headers={
-            "Content-Disposition": f'attachment; filename="teams-meeting-{meeting_id}.ics"',
-        },
-    )
-
-
-@api_router.get("/integrations/teams/meetings/{meeting_id}")
-async def get_teams_meeting(meeting_id: str):
-    """Get a Teams meeting by ID."""
-    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
-    if not meeting:
-        raise HTTPException(404, "Meeting not found")
-    meeting["_id"] = str(meeting["_id"])
-    return meeting
-
-
-@api_router.delete("/integrations/teams/meetings/{meeting_id}")
-async def delete_teams_meeting(meeting_id: str, user: dict = Depends(get_current_user)):
-    """Delete a Teams meeting (admin only)."""
-    if user.get("role") not in ("admin", "super_admin"):
-        raise HTTPException(403, "Admin access required")
-    result = await db.teams_meetings.delete_one({"meeting_id": meeting_id})
-    if result.deleted_count == 0:
-        raise HTTPException(404, "Meeting not found")
-    return {"ok": True, "message": "Meeting deleted"}
-
-
-@api_router.patch("/integrations/teams/meetings/{meeting_id}")
-async def update_teams_meeting(meeting_id: str, payload: TeamsMeetingCreate, user: dict = Depends(get_current_user)):
-    """Update a Teams meeting (admin only). Only updates DB metadata — the Teams
-    meeting itself is not synced to Microsoft unless a live token is available."""
-    if user.get("role") not in ("admin", "super_admin", "organizer"):
-        raise HTTPException(403, "Admin access required")
-    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
-    if not meeting:
-        raise HTTPException(404, "Meeting not found")
-
-    try:
-        from datetime import datetime as _dt
-        from zoneinfo import ZoneInfo
-        IST = ZoneInfo("Asia/Kolkata")
-        raw = (payload.start_time or "").strip()
-        parsed = _dt.fromisoformat(raw.replace("Z", "+00:00")) if raw else _dt.now(IST)
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=IST)
-        else:
-            parsed = parsed.astimezone(IST)
-        start_dt = parsed
-    except (ValueError, AttributeError):
-        start_dt = _dt.now(timezone.utc)
-
-    update_data = {
-        "subject": payload.title,
-        "start_time": start_dt.isoformat(),
-        "duration_minutes": payload.duration_minutes,
-        "seat_limit": payload.seat_limit,
-        "attendee_emails": payload.attendee_emails or [],
-        "description": payload.description,
-        "event_slug": (payload.event_slug or "").strip() or None,
-        "organizer_email": (payload.organizer_email or "").strip() or None,
-        "updated_at": _dt.now(timezone.utc).isoformat(),
-        "updated_by": str(user.get("_id", "")),
-    }
-
-    manual_join_url = (payload.manual_join_url or "").strip()
-    if manual_join_url:
-        update_data["join_url"] = manual_join_url
-        update_data["manual"] = True
-        update_data["is_mock"] = False
-
-    # If Teams API is live, also update the meeting in Microsoft
-    creds = await _get_teams_creds()
-    if creds.get("tenant_id") and creds.get("client_id") and creds.get("client_secret") and meeting.get("meeting_id") and not meeting.get("is_mock"):
-        try:
-            async with httpx.AsyncClient(timeout=15) as c:
-                token = await _get_teams_token(creds)
-                if token:
-                    org = (payload.organizer_email or meeting.get("organizer_email") or "").strip()
-                    event_url = f"https://graph.microsoft.com/v1.0/users/{org}/events/{meeting['meeting_id']}" if org else f"https://graph.microsoft.com/v1.0/me/events/{meeting['meeting_id']}"
-                    await c.patch(
-                        event_url,
-                        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-                        json={
-                            "subject": payload.title,
-                            "body": {"contentType": "HTML", "content": payload.description or ""},
-                            "start": {"dateTime": start_dt.strftime("%Y-%m-%dT%H:%M:%S"), "timeZone": "Asia/Kolkata"},
-                            "end": {"dateTime": (start_dt + timedelta(minutes=payload.duration_minutes)).strftime("%Y-%m-%dT%H:%M:%S"), "timeZone": "Asia/Kolkata"},
-                        },
-                    )
-        except Exception:
-            pass  # Don't fail the local update if Graph API call fails
-
-    await db.teams_meetings.update_one(
-        {"meeting_id": meeting_id},
-        {"$set": update_data},
-    )
-
-    updated = await db.teams_meetings.find_one({"meeting_id": meeting_id})
-    updated["_id"] = str(updated["_id"])
-    return updated
-
-
-@api_router.post("/integrations/teams/meetings/{meeting_id}/register", include_in_schema=False)
-async def register_for_teams_meeting(meeting_id: str, payload: TeamsMeetingRegister):
-    """Public registration endpoint for non-logged-in users."""
-    result = await _register(
-        meeting_id=meeting_id,
-        db=db,
-        full_name=payload.full_name,
-        email=payload.email,
-        phone=payload.phone,
-        seat_limit=None,
-    )
-    if not result["success"]:
-        raise HTTPException(400, result["error"])
-    return result
-
-
-@api_router.get("/integrations/teams/meetings/{meeting_id}/attendance")
-async def get_teams_attendance(meeting_id: str, email: Optional[str] = None):
-    """Get attendance for a Teams meeting."""
-    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
-    if not meeting:
-        raise HTTPException(404, "Meeting not found")
-    records = await _get_attendance(meeting_id, email)
-    return {"meeting_id": meeting_id, "attendance": records}
-
-
-@api_router.get("/integrations/teams/webhook")
-async def teams_webhook_verify(request: Request, validationToken: Optional[str] = None):
-    """Microsoft Graph change-notification handshake verification.
-
-    When you set this URL as a Graph subscription notification endpoint, Microsoft
-    calls it with ``?validationToken=...`` first. Return the token verbatim to
-    confirm ownership of the URL.
-    """
-    if validationToken:
-        return Response(content=validationToken, media_type="text/plain")
-    return {"status": "ok"}
-
-
-@api_router.post("/integrations/teams/webhook")
-async def teams_webhook(request: Request):
-    """Receive Microsoft Graph change notifications (e.g. meeting attendance).
-
-    Graph expects a 202 response quickly. We log the notification for later
-    processing; attendee records are pulled on demand via the attendance endpoint.
-    """
-    try:
-        body = await request.json()
-    except Exception:
-        body = {}
-    logger.info(f"[teams] webhook notification: {body.get('value') if isinstance(body, dict) else body}")
-    return Response(status_code=202)
-
-
-@api_router.get("/integrations/teams/status")
-async def teams_integration_status():
-    """Check if Microsoft Teams integration is configured."""
-    return await _teams_status()
-
-
-# ----------------------------------------------------------------------------
-# Mentor Reviews — students rate completed sessions
-# ----------------------------------------------------------------------------
-class ReviewIn(BaseModel):
-    mentor_id: str
-    rating: int = Field(..., ge=1, le=5)
-    comment: Optional[str] = ""
-    booking_id: Optional[str] = None
-
-
-@api_router.post("/reviews")
-async def post_review(req: ReviewIn, user: dict = Depends(get_current_user)):
-    """Submit a review — only students can review mentors. One review per booking_id."""
-    if user["role"] not in ("student", "alumni"):
-        raise HTTPException(403, "Only students/alumni can review mentors")
-    mentor_id = req.mentor_id
-    if mentor_id == "auto-resolved" and req.booking_id:
-        b_id = req.booking_id
-        booking = None
-        try:
-            if ObjectId.is_valid(b_id):
-                booking = await db.bookings.find_one({"_id": ObjectId(b_id)})
-                if not booking:
-                    booking = await db.sessions.find_one({"_id": ObjectId(b_id)})
-        except Exception:
-            pass
-        if not booking:
-            import re
-            booking_rx = f"{re.escape(b_id)}$"
-            
-            bookings_matches = []
-            async for b in db.bookings.find({"$expr": {"$regexMatch": {"input": {"$toString": "$_id"}, "regex": booking_rx, "options": "i"}}}, {"mentor_id": 1}):
-                bookings_matches.append(b)
-                
-            sessions_matches = []
-            async for s in db.sessions.find({"$expr": {"$regexMatch": {"input": {"$toString": "$_id"}, "regex": booking_rx, "options": "i"}}}, {"mentor_id": 1}):
-                sessions_matches.append(s)
-                
-            total_matches = len(bookings_matches) + len(sessions_matches)
-            if total_matches == 1:
-                booking = bookings_matches[0] if bookings_matches else sessions_matches[0]
-
-        if booking and "mentor_id" in booking:
-            mentor_id = str(booking["mentor_id"])
-
-    review = await create_review(
-        db,
-        mentor_id=mentor_id,
-        student_id=str(user["_id"]),
-        student_name=user.get("full_name", "Student"),
-        rating=req.rating,
-        comment=req.comment or "",
-        booking_id=req.booking_id,
-    )
-    # Best-effort notify mentor
-    try:
-        await notify_review_received(db, mentor_id=req.mentor_id,
-                                      rating=req.rating,
-                                      student_name=user.get("full_name", "Student"))
-    except Exception:
-        pass
-    if isinstance(review.get("created_at"), datetime):
-        review["created_at"] = review["created_at"].isoformat()
-    if "_id" in review:
-        if isinstance(review["_id"], ObjectId):
-            review["_id"] = str(review["_id"])
-        review["id"] = review["_id"]
-    return review
-
-
-class ReviewReplyIn(BaseModel):
-    reply: str
-
-
-@api_router.post("/reviews/{review_id}/reply")
-async def reply_to_review(review_id: str, req: ReviewReplyIn, user: dict = Depends(get_current_user)):
-    """Mentor replies to a review."""
-    if user["role"] != "mentor":
-        raise HTTPException(403, "Only mentors can reply to reviews")
-    
-    review = await db.reviews.find_one({"id": review_id})
-    if not review:
-        raise HTTPException(404, "Review not found")
-        
-    if str(review["mentor_id"]) != str(user["_id"]):
-        raise HTTPException(403, "You can only reply to your own reviews")
-        
-    await db.reviews.update_one(
-        {"id": review_id},
-        {"$set": {"mentor_reply": req.reply, "mentor_reply_at": datetime.now(timezone.utc)}}
-    )
-    return {"ok": True}
-
-
-@api_router.get("/mentors/{mentor_id}/reviews")
-async def get_reviews(mentor_id: str, limit: int = 20):
-    """Public — returns review list + aggregate stats for a mentor."""
-    items = await list_mentor_reviews(db, mentor_id, limit)
-    stats = await get_mentor_rating_stats(db, mentor_id)
-    return {"items": items, "stats": stats}
-
-
-# ----------------------------------------------------------------------------
-# Push Notifications — register tokens, fetch in-app inbox
-# ----------------------------------------------------------------------------
-class PushTokenRegister(BaseModel):
-    token: str
-    platform: Optional[str] = "unknown"
-
-
-@api_router.post("/notifications/register")
-async def notifications_register(req: PushTokenRegister, user: dict = Depends(get_current_user)):
-    """Save the device's Expo push token. Called from client on first launch."""
-    return await register_push_token(db, str(user["_id"]), req.token, req.platform or "unknown")
-
-
-@api_router.delete("/notifications/register")
-async def notifications_deregister(req: PushTokenRegister, user: dict = Depends(get_current_user)):
-    """Remove a push token (e.g. on logout)."""
-    n = await deregister_push_token(db, req.token)
-    return {"removed": n}
-
-
-@api_router.get("/notifications")
-async def notifications_inbox(user: dict = Depends(get_current_user), limit: int = 30):
-    """Returns the in-app notification inbox + unread count."""
-    items = await list_inbox(db, str(user["_id"]), limit)
-    unread = await unread_count(db, str(user["_id"]))
-    return {"items": items, "unread": unread}
-
-
-@api_router.post("/notifications/mark-read")
-async def notifications_mark_read(payload: Optional[dict] = None,
-                                   user: dict = Depends(get_current_user)):
-    ids = (payload or {}).get("ids") if payload else None
-    n = await mark_inbox_read(db, str(user["_id"]), ids)
-    return {"updated": n}
-
-
-@api_router.post("/notifications/dismiss")
-async def notifications_dismiss(payload: Optional[dict] = None,
-                                user: dict = Depends(get_current_user)):
-    from notifications import dismiss_inbox
-    ids = (payload or {}).get("ids") if payload else None
-    n = await dismiss_inbox(db, str(user["_id"]), ids)
-    return {"deleted": n}
-
-
-# Admin-only: send a manual broadcast (for announcements)
-class ManualPushIn(BaseModel):
-    user_id: str
-    title: str
-    body: str
-    data: Optional[Dict[str, Any]] = None
-
-
-@api_router.post("/notifications/send")
-async def notifications_send_manual(req: ManualPushIn, user: dict = Depends(get_current_user)):
-    if user["role"] not in ("admin", "super_admin"):
-        raise HTTPException(403, "Admin only")
-    return await send_push(db, user_id=req.user_id, title=req.title, body=req.body, data=req.data)
+from features.notifications_api import router as notifications_api_router
+api_router.include_router(notifications_api_router)
 
 
 # ----------------------------------------------------------------------------
@@ -3046,8 +1913,8 @@ async def seed_data():
         )
         await db.resources.insert_many(legacy)
 
-    from routers.blog import seed_blog_posts_if_empty
-    from routers.community import seed_community_data_if_empty
+    from features.routers.blog import seed_blog_posts_if_empty
+    from features.routers.community import seed_community_data_if_empty
     await seed_blog_posts_if_empty()
     await seed_community_data_if_empty()
 
@@ -3078,7 +1945,7 @@ async def seed_admin():
 
     existing = await db.users.find_one({"email": admin_email})
     if not existing:
-        frontend_url_env = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        frontend_url_env = frontend_base_url()
         await db.users.insert_one({
             "email": admin_email,
             "password_hash": hash_password(admin_password),
@@ -3117,9 +1984,9 @@ async def logout(request: Request, user: dict = Depends(get_current_user)):
     The blacklist entry auto-expires via MongoDB TTL index when the token
     itself would have expired, so the collection stays bounded.
     """
-    auth = request.headers.get("Authorization", "")
-    try:
-        payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    token = bearer_token(request.headers.get("Authorization", ""))
+    payload = decode_payload_silent(token) if token else None
+    if payload:
         jti = payload.get("jti")
         exp = payload.get("exp")
         if jti:
@@ -3135,8 +2002,6 @@ async def logout(request: Request, user: dict = Depends(get_current_user)):
                 })
             except Exception:
                 pass  # Duplicate JTI insert is fine — token already revoked
-    except Exception:
-        pass  # Token already invalid; logout is still successful
     return {"status": "logged_out"}
 
 
@@ -3146,71 +2011,97 @@ async def logout(request: Request, user: dict = Depends(get_current_user)):
 from portals import router as portals_router
 api_router.include_router(portals_router)
 
-from career_intel import router as career_intel_router
-api_router.include_router(career_intel_router)
-from jobs_feed import router as jobs_feed_router  # live job aggregator (7 free APIs + tier filter)
+from features.jobs_feed import router as jobs_feed_router  # live job aggregator (7 free APIs + tier filter)
 api_router.include_router(jobs_feed_router)
-from mentor_ai import router as mentor_ai_router  # mentor AI studio (mentee pulse, skill gaps, impact, session prep)
+from features.mentor_ai import router as mentor_ai_router  # mentor AI studio (mentee pulse, skill gaps, impact, session prep)
 api_router.include_router(mentor_ai_router)
-from wallet_and_availability import router as wallet_router  # SA Credits + mentor availability + demo seed
+from features.wallet_and_availability import router as wallet_router  # SA Credits + mentor availability + demo seed
 api_router.include_router(wallet_router)
-from activity_credits import router as activity_credits_router  # Activity-based earnings + Wallet summary/topup/withdraw
+from features.reward_marketplace import router as reward_marketplace_router  # Reward marketplace (W2): sa_rewards catalog + fulfillment engine
+api_router.include_router(reward_marketplace_router)
+from features.activity_credits import router as activity_credits_router  # Activity-based earnings + Wallet summary/topup/withdraw
 api_router.include_router(activity_credits_router)
-from deals_aggregator import router as deals_aggregator_router  # SA Member Deals + Tag Engine + AI generator
+from features.coupon_engine import router as coupon_engine_router  # Wallet coupons (W1): partner catalog, claims, expiry
+api_router.include_router(coupon_engine_router)
+from features.referral_engine import router as referral_engine_router  # Wallet referrals (W5): code, milestones, leaderboard
+api_router.include_router(referral_engine_router)
+from features.gamification_engine import router as gamification_engine_router  # Wallet streaks, wallet badges, weekly challenges, leaderboard (W6)
+api_router.include_router(gamification_engine_router)
+from features.wallet_security import router as wallet_security_router  # Wallet security: rate limits, audit log, KYC-lite (W8)
+api_router.include_router(wallet_security_router)
+from features.wallet_notifications import router as wallet_notifications_router  # Wallet notifications: inbox feed, prefs, weekly digest (W9)
+api_router.include_router(wallet_notifications_router)
+from features.wallet_transfer import router as wallet_transfer_router  # Wallet-to-wallet transfers (W11): 10-500cr, 3/day, both notified
+api_router.include_router(wallet_transfer_router)
+from features.credit_marketplace import router as credit_marketplace_router  # SA credit marketplace (W12): buy platform services with credits
+api_router.include_router(credit_marketplace_router)
+from features.wallet_analytics import router as wallet_analytics_router  # Wallet spending analytics (W3): donut/bars/trend/milestones/projection
+api_router.include_router(wallet_analytics_router)
+from features.deals_aggregator import router as deals_aggregator_router  # SA Member Deals + Tag Engine + AI generator
 api_router.include_router(deals_aggregator_router)
-from higher_ed_platform import router as higher_ed_router  # SA Higher Education programmes/scholarships/tracker/AI tools
+from features.higher_ed_platform import router as higher_ed_router  # SA Higher Education programmes/scholarships/tracker/AI tools
 api_router.include_router(higher_ed_router)
-from events_aggregator import router as events_aggregator_router  # Events v2: aggregator + RSVP + waitlist + AI recs + host flow
+from features.events_aggregator import router as events_aggregator_router  # Events v2: aggregator + RSVP + waitlist + AI recs + host flow
 api_router.include_router(events_aggregator_router)
-from financial_services import router as financial_router  # Financial v2: scholarships, loans, startup_funding, insurance, venture_capital + match score + AI helper + EMI
+from features.financial_services import router as financial_router  # Financial v2: scholarships, loans, startup_funding, insurance, venture_capital + match score + AI helper + EMI
 api_router.include_router(financial_router)
-from rentals_marketplace import router as rentals_router  # SA Stay: housing, vehicles, hotels, coworking + bookings + AI recommend
+from features.rentals_marketplace import router as rentals_router  # SA Stay: housing, vehicles, hotels, coworking + bookings + AI recommend
 api_router.include_router(rentals_router)
-from courses_marketplace import router as courses_router  # SA Courses: catalog + tracks + enrollments + AI advisor
+from features.courses_marketplace import router as courses_router  # SA Courses: catalog + tracks + enrollments + AI advisor
 api_router.include_router(courses_router)
-from college_portal import router as college_router  # College admin Phase 3: roster + analytics
+# Course Aggregator (C1) — 24h external course bot: admin status / source toggle / manual run
+from services.course_aggregator import admin_router as course_aggregator_admin_router
+api_router.include_router(course_aggregator_admin_router)
+# Deals Aggregator (D1) — universal deal bot: admin status / source toggle / manual run
+from services.deals_aggregator import admin_router as deals_aggregator_admin_router
+api_router.include_router(deals_aggregator_admin_router)
+from features.college_portal import router as college_router  # College admin Phase 3: roster + analytics
 api_router.include_router(college_router)
 
 # Auth analytics & session tracking
-from auth_analytics import router as auth_analytics_router
+from features.auth_analytics import router as auth_analytics_router
 api_router.include_router(auth_analytics_router)
 
 # Visitor analytics & telemetry engine (Unregistered + Registered visitors)
-from visitor_analytics import router as visitor_analytics_router
+from features.visitor_analytics import router as visitor_analytics_router
 api_router.include_router(visitor_analytics_router)
 
+# Visitor Radar real-time WebSocket hub (VR7) — /api/ws/visitor-radar
+from websocket_hub import router as visitor_radar_ws_router
+api_router.include_router(visitor_radar_ws_router)
+
 # PostHog analytics proxy
-from posthog_proxy import router as posthog_proxy_router
+from features.posthog_proxy import router as posthog_proxy_router
 api_router.include_router(posthog_proxy_router)
 
 # AI Daily Brief (on-demand Claude integration)
-from ai_briefs import router as ai_briefs_router
+from features.ai_briefs import router as ai_briefs_router
 api_router.include_router(ai_briefs_router)
 
 # Agent K — automation operator (Claude tool-use loop)
-from agent_k.api.routes import router as agent_k_router
+from features.agent_k.api.routes import router as agent_k_router
 api_router.include_router(agent_k_router)
 
 # Agent K — provider configurations
-from agent_k.api.provider_routes import router as agent_k_provider_router
+from features.agent_k.api.provider_routes import router as agent_k_provider_router
 api_router.include_router(agent_k_provider_router)
 
 # Agent K — RAG routes
-from agent_k.api.rag_routes import router as agent_k_rag_router
+from features.agent_k.api.rag_routes import router as agent_k_rag_router
 api_router.include_router(agent_k_rag_router)
 
 # Admin settings — Roles & Permissions + Marketplace
-from routers.admin.settings import router as admin_settings_router
+from features.routers.admin.settings import router as admin_settings_router
 api_router.include_router(admin_settings_router)
 
 # Admin imports — bulk-upload + categorization (Students / Alumni / Mentors)
-from routers.admin.imports import router as admin_imports_router
+from features.routers.admin.imports import router as admin_imports_router
 api_router.include_router(admin_imports_router)
-from routers.admin.colleges import router as admin_colleges_router
+from features.routers.admin.colleges import router as admin_colleges_router
 api_router.include_router(admin_colleges_router)
 
 # Talent Pool — searchable candidate profiles (LinkedIn, CSV, platform opt-in)
-from talent_pool import router as talent_pool_router
+from features.talent_pool import router as talent_pool_router
 api_router.include_router(talent_pool_router)
 
 # CRUD endpoints — append-only mutations (book, RSVP, enroll, apply)
@@ -3218,63 +2109,75 @@ from crud_endpoints import router as crud_router
 api_router.include_router(crud_router)
 
 # Collaboration partners (Phase A) — public landing strip + admin CRUD
-from routers.partners import router as partners_router
+from features.routers.partners import router as partners_router
 app.include_router(partners_router)
 
 # Phase B — consent (privacy/cookies) + product tour status
-from routers.consent import router as consent_router
-from routers.tour import router as tour_router
+from features.routers.consent import router as consent_router
+from features.routers.tour import router as tour_router
 app.include_router(consent_router)
 app.include_router(tour_router)
 
 # Phase C — promotional banners (cross-portal)
-from routers.promotions import router as promotions_router
+from features.routers.promotions import router as promotions_router
 app.include_router(promotions_router)
 
-from routers.auth import router as auth_router
+from features.routers.auth import router as auth_router
 api_router.include_router(auth_router)
 
-from routers.users import router as users_router
+from features.routers.users import router as users_router
 api_router.include_router(users_router)
 
 # Career AI — skill intelligence, roadmaps, simulator, predictions, suggestions
-from routers.career_ai import router as career_ai_router
+from features.routers.career_ai import router as career_ai_router
 api_router.include_router(career_ai_router)
 
 # Certificates & SA ID Verification
-from routers.certificates import router as certificates_router
+from features.routers.certificates import router as certificates_router
 api_router.include_router(certificates_router)
 
 # AI Platform Services — Platform RAG Semantic Search & Automated AI Agents
-from routers.ai_platform_services import router as ai_platform_services_router
+from features.routers.ai_platform_services import router as ai_platform_services_router
 api_router.include_router(ai_platform_services_router)
 
 # Autonomous Agent Ecosystem (MetaGPT Swarm, AutoGPT Autopilot, QA & Security Agents)
-from routers.admin.agents import router as admin_agents_router
+from features.routers.admin.agents import router as admin_agents_router
 api_router.include_router(admin_agents_router)
 
 # CodeHealthAgent Autonomous Auditor & Auto-Fix Router
-from routers.code_health import router as code_health_router
+from features.routers.code_health import router as code_health_router
 api_router.include_router(code_health_router)
 
 # PDF Document Generation & Download Router
-from routers.pdf_routes import router as pdf_routes_router
+from features.routers.pdf_routes import router as pdf_routes_router
 api_router.include_router(pdf_routes_router)
 
 # SuperAdmin Account Verticals & Background Verification (BGV) Router
-from routers.bgv import router as bgv_router
+from features.routers.bgv import router as bgv_router
 api_router.include_router(bgv_router)
 
 # BGV Free & Semi-Paid API Integrations Register Router
-from routers.bgv_integrations import router as bgv_integrations_router
+from features.routers.bgv_integrations import router as bgv_integrations_router
 api_router.include_router(bgv_integrations_router)
 
 # Blog & Community Routers
-from routers.blog import router as blog_router
+from features.routers.blog import router as blog_router
 api_router.include_router(blog_router)
 
-from routers.community import router as community_router
+from features.routers.community import router as community_router
 api_router.include_router(community_router)
+
+# First-Party Careers & Opportunities Router (Dedicated, isolated from jobs_feed)
+from features.routers.careers import router as careers_router
+api_router.include_router(careers_router)
+
+# Public website contact form (POST /api/contact)
+from features.routers.public_contact import router as public_contact_router
+api_router.include_router(public_contact_router)
+
+# Alumni Referrals (GET /api/jobs/{job_id}/alumni, /api/referrals, ...)
+from features.routers.referrals import router as referrals_router
+api_router.include_router(referrals_router)
 
 app.include_router(api_router)
 

@@ -9,7 +9,6 @@ manually and must NOT be auto-populated by this agent.
 """
 
 import sys
-import os
 import re
 import ssl
 import json
@@ -217,16 +216,11 @@ async def run_global_event_agent(db_client=None) -> int:
 
 
 if __name__ == "__main__":
-    from motor.motor_asyncio import AsyncIOMotorClient
-    mongo_url = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
-    db_name = os.environ.get("DB_NAME", "studentalumniadmin")
-    client = AsyncIOMotorClient(mongo_url)
-    db = client[db_name]
-    
+    from core.db import db
+
     async def main():
         agent = GlobalEventAgent()
         res = await agent.sync_to_db(db)
         print(f"Synced {res} events successfully.")
-        client.close()
 
     asyncio.run(main())

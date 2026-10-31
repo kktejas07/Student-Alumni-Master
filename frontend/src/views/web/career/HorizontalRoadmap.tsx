@@ -8,10 +8,11 @@
  *   Step 4: Upcoming (Grey '4') | Network with Alumni | Locked
  *   Step 5: Upcoming (Grey '5') | Practice Interviews | Locked
  */
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
-import { CircleCheck as CheckCircle2, ChevronRight, Lock } from 'lucide-react-native';
+import { CircleCheck as CheckCircle2, ChevronRight, Circle } from 'lucide-react-native';
 import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 interface MilestoneItem {
   id: string;
@@ -31,6 +32,19 @@ interface Props {
 export const HorizontalRoadmap = memo(function HorizontalRoadmap({
   milestones, targetRole = 'your goal', onSelectMilestone, onViewAll,
 }: Props) {
+  const { isDark } = useTheme();
+  const s = useMemo(() => makeStyles(isDark), [isDark]);
+
+  // Light-theme variants for the neon status colors (wash out on white)
+  const green  = isDark ? COLORS.green   : '#059669';
+  const purple = isDark ? COLORS.purple   : '#4F46E5';
+  const purpleL = isDark ? COLORS.purpleL : '#4338CA';
+  const textSub = isDark ? COLORS.textSub : 'rgba(15,23,42,0.85)';
+  const text2   = isDark ? COLORS.text2   : 'rgba(15,23,42,0.8)';
+  const dim     = isDark ? COLORS.dim     : 'rgba(15,23,42,0.5)';
+  const nodeBgDefault     = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)';
+  const nodeBorderDefault = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.15)';
+
   // Standard 5-step milestone defaults
   const DEFAULT_STEPS = [
     { id: 'step-1', title: 'Complete Profile', progress: '+5%', completed: true },
@@ -66,9 +80,18 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
       <View style={s.headerRow}>
         <Text style={s.headerTitle}>YOUR CAREER JOURNEY</Text>
         <View style={s.subHeaderLegend}>
-          <Text style={[s.legendItem, { color: COLORS.green }]}>Completed ●</Text>
-          <Text style={[s.legendItem, { color: COLORS.purpleL }]}>Current Step →</Text>
-          <Text style={[s.legendItem, { color: COLORS.text2 }]}>Next Step →</Text>
+          <View style={s.legendRow}>
+            <Circle size={9} color={green} fill={green} />
+            <Text style={[s.legendItem, { color: green }]}>Completed</Text>
+          </View>
+          <View style={s.legendRow}>
+            <ChevronRight size={11} color={purpleL} />
+            <Text style={[s.legendItem, { color: purpleL }]}>Current Step</Text>
+          </View>
+          <View style={s.legendRow}>
+            <ChevronRight size={11} color={text2} />
+            <Text style={[s.legendItem, { color: text2 }]}>Next Step</Text>
+          </View>
           <Text style={s.legendItem}>Upcoming</Text>
         </View>
       </View>
@@ -89,28 +112,28 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
             const defaultStep = DEFAULT_STEPS[idx] || DEFAULT_STEPS[4];
 
             let statusLabel = 'Upcoming';
-            let statusColor = COLORS.dim;
-            let nodeBg = 'rgba(255,255,255,0.06)';
-            let nodeBorder = 'rgba(255,255,255,0.12)';
+            let statusColor = dim;
+            let nodeBg = nodeBgDefault;
+            let nodeBorder = nodeBorderDefault;
             let progressBadge = defaultStep.progress || 'Locked';
 
             if (isCompleted) {
               statusLabel = 'Completed';
-              statusColor = COLORS.green;
-              nodeBg = COLORS.green;
-              nodeBorder = COLORS.green;
+              statusColor = green;
+              nodeBg = green;
+              nodeBorder = green;
               progressBadge = '+5%';
             } else if (isCurrent) {
               statusLabel = 'Current Step';
-              statusColor = COLORS.purpleL;
-              nodeBg = COLORS.purple;
-              nodeBorder = COLORS.purpleL;
+              statusColor = purpleL;
+              nodeBg = purple;
+              nodeBorder = purpleL;
               progressBadge = '60%';
             } else if (isNext) {
               statusLabel = 'Next Step';
-              statusColor = COLORS.text2;
-              nodeBg = 'rgba(79, 70, 229, 0.20)';
-              nodeBorder = 'rgba(129, 140, 248, 0.40)';
+              statusColor = text2;
+              nodeBg = isDark ? 'rgba(79, 70, 229, 0.20)' : 'rgba(79, 70, 229, 0.15)';
+              nodeBorder = isDark ? 'rgba(129, 140, 248, 0.40)' : 'rgba(99, 102, 241, 0.35)';
               progressBadge = '0%';
             }
 
@@ -128,7 +151,7 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
                   {isCompleted ? (
                     <CheckCircle2 size={16} color="#FFF" />
                   ) : (
-                    <Text style={[s.nodeNumber, { color: isCurrent ? '#FFF' : COLORS.text2 }]}>
+                    <Text style={[s.nodeNumber, { color: isCurrent ? '#FFF' : text2 }]}>
                       {stepNum}
                     </Text>
                   )}
@@ -140,7 +163,7 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
                 </Text>
 
                 {/* Progress / Gain Badge */}
-                <Text style={[s.progressBadge, { color: isCompleted ? COLORS.green : isCurrent ? COLORS.purpleL : COLORS.dim }]}>
+                <Text style={[s.progressBadge, { color: isCompleted ? green : isCurrent ? purpleL : dim }]}>
                   {progressBadge}
                 </Text>
               </Pressable>
@@ -152,22 +175,24 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
       {/* Bottom Action Link */}
       <Pressable onPress={onViewAll} style={s.bottomLinkRow}>
         <Text style={s.bottomLinkText}>View Complete Roadmap</Text>
-        <ChevronRight size={14} color={COLORS.purpleL} />
+        <ChevronRight size={14} color={purpleL} />
       </Pressable>
     </View>
   );
 });
 
-const s = StyleSheet.create({
+const makeStyles = (dark: boolean) => StyleSheet.create({
   card: {
-    backgroundColor: '#0A0A2A',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: dark ? '#0A0A2A' : '#FFFFFF',
+    borderColor: dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15,23,42,0.08)',
     borderWidth: 1,
     borderRadius: RADIUS.card,
     padding: SPACING.lg,
     gap: SPACING.lg,
     width: '100%',
-    ...(Platform.OS === 'web' ? { boxShadow: '0 4px 20px rgba(0,0,0,0.35)' } as any : {}),
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: dark ? '0 4px 20px rgba(0,0,0,0.35)' : '0 4px 20px rgba(15,23,42,0.08)' } as any)
+      : {}),
   },
   headerRow: {
     flexDirection: 'row',
@@ -177,7 +202,7 @@ const s = StyleSheet.create({
     gap: SPACING.xs,
   },
   headerTitle: {
-    color: 'rgba(238,240,255,0.45)',
+    color: dark ? 'rgba(238,240,255,0.45)' : 'rgba(15,23,42,0.45)',
     fontFamily: FONT_FAMILIES.bold,
     fontSize: 18,
     letterSpacing: 1.2,
@@ -188,10 +213,15 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.md,
   },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   legendItem: {
     fontFamily: FONT_FAMILIES.med,
     fontSize: 11,
-    color: COLORS.dim,
+    color: dark ? COLORS.dim : 'rgba(15,23,42,0.5)',
   },
   stepperContainer: {
     position: 'relative',
@@ -203,7 +233,7 @@ const s = StyleSheet.create({
     right: '10%',
     top: 54,
     height: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: dark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(15, 23, 42, 0.15)',
     zIndex: 0,
   },
   stepsRow: {
@@ -236,14 +266,14 @@ const s = StyleSheet.create({
     fontSize: 14,
   },
   stepTitle: {
-    color: COLORS.text2,
+    color: dark ? COLORS.text2 : 'rgba(15,23,42,0.8)',
     fontFamily: FONT_FAMILIES.med,
     fontSize: 13,
     textAlign: 'center',
     maxWidth: 110,
   },
   stepTitleCurrent: {
-    color: '#FFF',
+    color: dark ? '#FFF' : '#0F172A',
     fontFamily: FONT_FAMILIES.bold,
   },
   progressBadge: {
@@ -257,7 +287,7 @@ const s = StyleSheet.create({
     gap: 4,
   },
   bottomLinkText: {
-    color: COLORS.purpleL,
+    color: dark ? COLORS.purpleL : '#4338CA',
     fontFamily: FONT_FAMILIES.bold,
     fontSize: 13,
   },

@@ -2,17 +2,15 @@
  * Super Admin Portal — Overview/Dashboard view (true RN port).
  */
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, Image, TextInput, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, Image, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import {
   Building2, GraduationCap, UserCheck, Users, CreditCard, Calendar,
-  CheckCircle, BarChart3, Sparkles, AlertTriangle, FileText, Eye,
-  Image as ImageIcon, Link, Save, X, Upload, Trash2, Plus, Megaphone, TrendingUp
+  CheckCircle, BarChart3, Sparkles,
+  Image as ImageIcon, Save, X, Upload, Trash2, TrendingUp, RefreshCw
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, FONTS, useSAC, resolveColors } from '../tokens';
-import { Av } from '../atoms';
-import { GRAD, GradientButton, SecondaryButton, KpiTile, IconBox, useToast, Toast } from '../applekit';
-import * as MOCK from '../data';
+import { GRAD, useToast, Toast } from '../applekit';
 import { usePortalData, postPortal, fetchPortal } from '@/src/lib/portalApi';
 import { resolveImageUrl } from '@/src/models/services/api';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
@@ -24,9 +22,6 @@ import { useConfirm } from '@/src/views/components';
 const KPI_ICONS: Record<string, any> = {
   Building2, GraduationCap, UserCheck, Users, CreditCard, Calendar, CheckCircle, BarChart3,
 };
-const ACT_ICONS: Record<string, any> = {
-  Building2, Sparkles, Users, CreditCard, AlertTriangle,
-};
 
 type AdDraft = {
   label: string;
@@ -35,53 +30,125 @@ type AdDraft = {
   key: string;
 };
 
-const SUPER_MOCK = {
-  admin: MOCK.ADMIN,
-  kpis: MOCK.KPIS,
-  recentActivity: MOCK.RECENT_ACTIVITY,
-  platformUsers: MOCK.PLATFORM_USERS,
-  monthlyEnrollments: MOCK.MONTHLY_ENROLLMENTS,
-  revenueBreakdown: MOCK.REVENUE_BREAKDOWN,
+// ── Response shapes ────────────────────────────────────────────────────
+// GET /api/analytics/super-admin  (backend/analytics.py::super_admin_analytics)
+type SuperAdminAnalytics = {
+  kpis: {
+    total_users: number; students: number; alumni: number; mentors: number; colleges: number;
+    pending_mentors: number; total_bookings: number; total_events: number;
+    total_courses: number; total_internships: number;
+  };
+  role_distribution: { label: string; value: number; color: string }[];
+  recent_bookings: { type: 'booking'; topic?: string | null; status?: string | null; at: string }[];
+  recent_signups: { type: 'signup'; name?: string | null; role?: string | null; at: string }[];
+  monthly_enrollments: { month: string; value: number }[];
+  // `revenue` is intentionally NOT used: the backend estimates it from booking counts
+  // when no payments exist, which is not a real figure.
 };
+
+// GET /api/admin/super-overview  (backend/portals.py::super_admin_overview)
+// Only the revenue pieces are used here: they are summed from paid ECHO registrations.
+type SuperOverview = {
+  kpis: { id: string; value: string }[];
+  revenueBreakdown: { source: string; amount: string; pct: number; color: string }[];
+};
+
+type ActivityItem = { id: string; text: string; sub: string; at: string };
+
+const EMPTY_REVENUE_PLACEHOLDER = 'No paid registrations yet';
+
+function relativeTime(iso: string): string {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return '';
+  const diff = Math.max(0, Date.now() - t);
+  const m = Math.floor(diff / 60_000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m} min ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} hr ago`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d} day${d === 1 ? '' : 's'} ago`;
+  return new Date(t).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+function titleCase(v?: string | null): string {
+  if (!v) return '';
+  return v.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void }) {
   const T = useSAC();
   Object.assign(s, resolveColors(s, T));
-  const user = useAuthStore((s) => s.user);
-  const firstName = (user?.full_name || 'ADMIN').split(' ')[0];
+  const user = useAuthStore((st) => st.user);
+  const firstName = (user?.full_name || 'Admin').split(' ')[0];
 
   const [checkedTasks, setCheckedTasks] = useState<string[]>([]);
 
-  const { data: analytics } = usePortalData<any>('/analytics/super-admin', {}, 30_000);
-  
-  const realStudents = analytics?.kpis?.students || 0;
-  const realMentors = analytics?.kpis?.mentors || 0;
-  const realEvents = analytics?.kpis?.total_events || 0;
-  const realBookings = analytics?.kpis?.total_bookings || 0;
-  const realColleges = analytics?.kpis?.colleges || 0;
-  const realAlumni = analytics?.kpis?.alumni || 0;
-  const realPending = analytics?.kpis?.pending_mentors || 0;
-  const mtd = analytics?.revenue?.mtd || 0;
-  const revenueFormatted = mtd > 0 ? `₹${(mtd/100000).toFixed(1)}L` : '₹0';
-  
+  const {
+    data: analytics, loading: analyticsLoading, error: analyticsError, refresh: refreshAnalytics,
+  } = usePortalData<SuperAdminAnalytics | null>('/analytics/super-admin', null, 30_000);
+  const {
+    data: overview, loading: overviewLoading, error: overviewError, refresh: refreshOverview,
+  } = usePortalData<SuperOverview | null>('/admin/super-overview', null, 60_000);
+
+  const k = analytics?.kpis;
+  const realStudents = k?.students ?? 0;
+  const realMentors = k?.mentors ?? 0;
+  const realEvents = k?.total_events ?? 0;
+  const realBookings = k?.total_bookings ?? 0;
+  const realColleges = k?.colleges ?? 0;
+  const realAlumni = k?.alumni ?? 0;
+  const realPending = k?.pending_mentors ?? 0;
+  const realCourses = k?.total_courses ?? 0;
+
+  // Revenue comes from /admin/super-overview (sum of paid registrations this month).
+  const revenueKpi = overview?.kpis?.find((x) => x.id === 'revenue')?.value;
+  const revenueValue = overviewError && !overview ? 'Unavailable' : (revenueKpi ?? (overviewLoading ? '...' : '₹0'));
+
   const KPIS_MAPPED = [
-    { id: 'colleges',    icon: 'Building2',     label: 'Total Colleges',         value: String(realColleges),    delta: '↑ verified',     color: 'amber'  as const },
-    { id: 'students',    icon: 'GraduationCap', label: 'Total Students',         value: String(realStudents),    delta: '↑ active',       color: 'amber'  as const },
-    { id: 'mentors',     icon: 'UserCheck',     label: 'Active Mentors',         value: String(realMentors),     delta: `↑ ${realPending} pending`,  color: 'amber'  as const },
-    { id: 'alumni',      icon: 'Users',         label: 'Alumni Network',         value: String(realAlumni),      delta: '↑ joined',       color: 'amber'  as const },
-    { id: 'revenue',     icon: 'CreditCard',    label: 'Revenue This Month',     value: revenueFormatted,        delta: '↑ MTD',          color: 'amber'  as const },
-    { id: 'events',      icon: 'Calendar',      label: 'Active Events',          value: String(realEvents),      delta: `↑ ${realBookings} bookings`, color: 'amber'  as const },
-    { id: 'approvals',   icon: 'CheckCircle',   label: 'Pending Approvals',      value: String(realPending),     delta: '↑ review needed',color: 'amber'  as const },
-    { id: 'engagement',  icon: 'BarChart3',     label: 'Platform Engagement',    value: '0%',                    delta: '↑ ratio',        color: 'amber'  as const },
+    { id: 'colleges',    icon: 'Building2',     label: 'Total Colleges',       value: String(realColleges), delta: 'registered' },
+    { id: 'students',    icon: 'GraduationCap', label: 'Total Students',       value: String(realStudents), delta: 'accounts' },
+    { id: 'mentors',     icon: 'UserCheck',     label: 'Mentors',              value: String(realMentors),  delta: `${realPending} pending` },
+    { id: 'alumni',      icon: 'Users',         label: 'Alumni Network',       value: String(realAlumni),   delta: 'accounts' },
+    { id: 'revenue',     icon: 'CreditCard',    label: 'Revenue This Month',   value: revenueValue,         delta: 'paid registrations' },
+    { id: 'events',      icon: 'Calendar',      label: 'Events',               value: String(realEvents),   delta: `${realBookings} bookings` },
+    { id: 'approvals',   icon: 'CheckCircle',   label: 'Pending Approvals',    value: String(realPending),  delta: realPending > 0 ? 'review needed' : 'all clear' },
+    { id: 'courses',     icon: 'BarChart3',     label: 'Courses Listed',       value: String(realCourses),  delta: 'in catalog' },
   ];
 
-  const recentAct = analytics?.recent_bookings?.length ? analytics.recent_bookings.map(b => ({
-    id: b.id, text: `New booking: ${b.event?.title}`, sub: b.mentor?.full_name, time: 'Just now'
-  })) : MOCK.RECENT_ACTIVITY;
+  // Recent activity: real bookings + signups with real timestamps, newest first.
+  const recentAct: ActivityItem[] = [
+    ...(analytics?.recent_bookings ?? []).map((b, i) => ({
+      id: `b-${i}-${b.at}`,
+      text: `New booking: ${b.topic || 'Mentor session'}`,
+      sub: b.status ? `Status: ${titleCase(b.status)}` : 'Booking',
+      at: b.at,
+    })),
+    ...(analytics?.recent_signups ?? []).map((u, i) => ({
+      id: `u-${i}-${u.at}`,
+      text: `${u.name || 'New user'} joined${u.role ? ` as ${titleCase(u.role)}` : ''}`,
+      sub: 'User onboarded',
+      at: u.at,
+    })),
+  ].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
 
-  const PLATFORM_USERS = analytics?.role_distribution || MOCK.PLATFORM_USERS;
-  const MONTHLY_ENROLLMENTS = analytics?.monthly_enrollments?.length ? analytics.monthly_enrollments : MOCK.MONTHLY_ENROLLMENTS;
-  const REVENUE_BREAKDOWN = analytics?.revenue?.by_source || MOCK.REVENUE_BREAKDOWN;
+  // Role distribution: compute percentages from real counts.
+  const roleRows = analytics?.role_distribution ?? [];
+  const roleTotal = roleRows.reduce((acc, r) => acc + (r.value || 0), 0);
+  const PLATFORM_USERS = roleRows.map((r) => ({
+    label: r.label,
+    count: r.value || 0,
+    pct: roleTotal > 0 ? Math.round(((r.value || 0) / roleTotal) * 100) : 0,
+    color: r.color,
+  }));
+
+  const MONTHLY_ENROLLMENTS = analytics?.monthly_enrollments ?? [];
+  const enrollTotal = MONTHLY_ENROLLMENTS.reduce((acc, m) => acc + (m.value || 0), 0);
+
+  // Revenue breakdown: drop the backend's placeholder row so an empty state renders instead.
+  const REVENUE_BREAKDOWN = (overview?.revenueBreakdown ?? []).filter(
+    (r) => r.source !== EMPTY_REVENUE_PLACEHOLDER,
+  );
 
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -134,7 +201,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
 
   const { width } = useWindowDimensions();
   const stack = width < 1100;
-  const maxEnroll = Math.max(...MONTHLY_ENROLLMENTS.map((m) => m.value));
+  const maxEnroll = Math.max(1, ...MONTHLY_ENROLLMENTS.map((m) => m.value || 0));
 
   // ── Ad Manager state (multi-ad) ──────────────────────────────────────
   const { flash: flashToast, toast, hide } = useToast();
@@ -283,38 +350,44 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
           <View style={{ flex: 1 }}>
             <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(75,63,168,.10)', borderRadius: 100, paddingVertical: 7, paddingHorizontal: 13 }}>
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#3B2FA8' }} />
-              <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1.5, color: '#3B2FA8' }}>THIS WEEK</Text>
+              <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1.5, color: '#3B2FA8' }}>PLATFORM OVERVIEW</Text>
             </View>
             <View style={{ marginTop: 16, marginBottom: 10 }}>
-              <Text style={{ fontSize: 33, fontFamily: FONTS.bold, letterSpacing: -1.4, lineHeight: 38, color: '#141726' }}>You're 8% closer than last Monday.</Text>
+              <Text style={{ fontSize: 33, fontFamily: FONTS.bold, letterSpacing: -1.4, lineHeight: 38, color: '#141726' }}>Welcome back, {firstName}.</Text>
             </View>
-            <Text style={{ fontSize: 15.5, lineHeight: 24, color: '#4A4F63', maxWidth: 520 }}>Three actions left before Friday's referral window closes. Agent K has ordered them by impact.</Text>
+            <Text style={{ fontSize: 15.5, lineHeight: 24, color: '#4A4F63', maxWidth: 520 }}>
+              {analyticsLoading && !analytics
+                ? 'Loading live platform numbers...'
+                : realPending > 0
+                  ? `${realPending} mentor application${realPending === 1 ? '' : 's'} awaiting your review.`
+                  : 'No mentor applications are waiting for review.'}
+            </Text>
             <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: 22 }}>
-               <Pressable style={{ backgroundColor: '#4B3FD6', borderRadius: 11, paddingVertical: 13, paddingHorizontal: 22 }}>
-                  <Text style={{ fontSize: 14, fontFamily: FONTS.bold, color: '#FFFFFF' }}>Open today's plan</Text>
+               <Pressable onPress={() => onNavigate?.('users')} style={{ backgroundColor: '#4B3FD6', borderRadius: 11, paddingVertical: 13, paddingHorizontal: 22 }}>
+                  <Text style={{ fontSize: 14, fontFamily: FONTS.bold, color: '#FFFFFF' }}>Review approvals</Text>
                </Pressable>
-               <Pressable style={{ borderColor: '#CFC9F3', borderWidth: 1, borderRadius: 11, paddingVertical: 13, paddingHorizontal: 22 }}>
-                  <Text style={{ fontSize: 14, fontFamily: FONTS.semi, color: '#2E2A55' }}>See what changed</Text>
+               <Pressable onPress={() => onNavigate?.('analytics')} style={{ borderColor: '#CFC9F3', borderWidth: 1, borderRadius: 11, paddingVertical: 13, paddingHorizontal: 22 }}>
+                  <Text style={{ fontSize: 14, fontFamily: FONTS.semi, color: '#2E2A55' }}>Open analytics</Text>
                </Pressable>
             </View>
           </View>
-          
-          {!stack && (
+
+          {!stack && analytics && (
             <View style={{ flexDirection: 'row', gap: 26 }}>
               <View>
-                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: '#5F6474', marginBottom: 8 }}>READINESS</Text>
-                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: '#4B3FD6' }}>36%</Text>
-                <Text style={{ fontSize: 12, color: '#047857', marginTop: 5 }}>↗ +8 pts</Text>
+                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: '#5F6474', marginBottom: 8 }}>USERS</Text>
+                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: '#4B3FD6' }}>{k?.total_users ?? 0}</Text>
+                <Text style={{ fontSize: 12, color: '#6B7080', marginTop: 5 }}>all roles</Text>
               </View>
               <View>
-                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: '#5F6474', marginBottom: 8 }}>MATCHES</Text>
-                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: '#0E6E8C' }}>267</Text>
-                <Text style={{ fontSize: 12, color: '#6B7080', marginTop: 5 }}>12 new</Text>
+                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: '#5F6474', marginBottom: 8 }}>BOOKINGS</Text>
+                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: '#0E6E8C' }}>{realBookings}</Text>
+                <Text style={{ fontSize: 12, color: '#6B7080', marginTop: 5 }}>all time</Text>
               </View>
               <View>
-                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: '#5F6474', marginBottom: 8 }}>SESSIONS</Text>
-                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: '#A21C63' }}>1</Text>
-                <Text style={{ fontSize: 12, color: '#6B7080', marginTop: 5 }}>Thu 6pm</Text>
+                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: '#5F6474', marginBottom: 8 }}>INTERNSHIPS</Text>
+                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: '#A21C63' }}>{k?.total_internships ?? 0}</Text>
+                <Text style={{ fontSize: 12, color: '#6B7080', marginTop: 5 }}>listed</Text>
               </View>
             </View>
           )}
@@ -524,29 +597,48 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
         </View>
       )}
 
+      {/* Platform analytics load error (KPIs, activity, users, enrollments) */}
+      {analyticsError && !analytics && (
+        <View style={[s.card, s.stateRow]}>
+          <Text style={s.stateText}>Could not load platform analytics: {analyticsError}</Text>
+          <Pressable onPress={refreshAnalytics} style={s.retryBtn}>
+            <RefreshCw size={12} color={T.accentBright} />
+            <Text style={s.retryText}>Retry</Text>
+          </Pressable>
+        </View>
+      )}
+
       {/* 8 KPI tiles in 2 rows */}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-        {KPIS_MAPPED.map((k) => {
-          const Icon = KPI_ICONS[k.icon] || Building2;
-          const isUp = (k.delta || '').includes('↑');
+        {KPIS_MAPPED.map((kpi) => {
+          const Icon = KPI_ICONS[kpi.icon] || Building2;
+          const isRevenue = kpi.id === 'revenue';
+          const tileLoading = isRevenue ? (overviewLoading && !overview) : (analyticsLoading && !analytics);
+          const tileError = isRevenue ? (overviewError && !overview) : (analyticsError && !analytics);
+          const highlight = kpi.id === 'approvals' && realPending > 0;
           return (
             <View
-              key={k.id}
+              key={kpi.id}
               className="db-tile sa-stat-card"
               style={[s.card, { width: stack ? '100%' : '23.5%', minWidth: 200, padding: 18, overflow: 'hidden' }]}
             >
               <View style={{ position: 'relative', zIndex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                    <Icon size={18} color={T.dim} />
+                   {tileLoading && <ActivityIndicator size="small" color={T.dim} />}
                 </View>
                 <View style={{ marginTop: 14 }}>
-                   <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: T.muted }}>{k.label}</Text>
+                   <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: T.muted }}>{kpi.label}</Text>
                    <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 4 }}>
-                      <Text style={{ fontFamily: FONTS.bold, fontSize: 24, letterSpacing: -0.5, color: T.text }}>{k.value}</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isUp ? T.okTint : T.bg2, paddingHorizontal: 6, paddingVertical: 4, borderRadius: 6 }}>
-                         {isUp && <TrendingUp size={12} color={T.ok} style={{ marginRight: 4 }} />}
-                         <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: isUp ? T.ok : T.dim }}>{k.delta.replace('↑ ', '')}</Text>
-                      </View>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: tileError ? 16 : 24, letterSpacing: -0.5, color: tileError ? T.muted : T.text }}>
+                        {tileError ? 'Unavailable' : tileLoading ? '...' : kpi.value}
+                      </Text>
+                      {!tileError && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: highlight ? T.okTint : T.bg2, paddingHorizontal: 6, paddingVertical: 4, borderRadius: 6 }}>
+                           {highlight && <TrendingUp size={12} color={T.ok} style={{ marginRight: 4 }} />}
+                           <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: highlight ? T.ok : T.dim }}>{kpi.delta}</Text>
+                        </View>
+                      )}
                    </View>
                 </View>
               </View>
@@ -561,10 +653,22 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
         <View style={[s.card, { flex: stack ? undefined : 1.7, overflow: 'hidden' }]} className="db-tile sa-stat-card">
           <View style={s.cardHead}>
             <Text style={s.cardTitle}>Recent Activity</Text>
-            <Pressable onPress={() => onNavigate?.('analytics')}><Text style={s.linkRight}>View all →</Text></Pressable>
+            <Pressable onPress={() => onNavigate?.('analytics')}><Text style={s.linkRight}>View all</Text></Pressable>
           </View>
-          <View style={{ gap: 9 }}>
-            {recentAct.slice(0, 3).map((a: any) => {
+          <View style={{ gap: 9, marginTop: 12 }}>
+            {analyticsLoading && !analytics ? (
+              <View style={s.stateRow}><ActivityIndicator size="small" color={T.dim} /><Text style={s.stateText}>Loading activity...</Text></View>
+            ) : analyticsError && !analytics ? (
+              <View style={s.stateRow}>
+                <Text style={s.stateText}>Activity could not be loaded.</Text>
+                <Pressable onPress={refreshAnalytics} style={s.retryBtn}>
+                  <RefreshCw size={12} color={T.accentBright} />
+                  <Text style={s.retryText}>Retry</Text>
+                </Pressable>
+              </View>
+            ) : recentAct.length === 0 ? (
+              <Text style={s.emptyText}>No activity yet. New bookings and sign-ups will appear here.</Text>
+            ) : recentAct.slice(0, 5).map((a) => {
               const isChecked = checkedTasks.includes(a.id);
               return (
                 <Pressable
@@ -578,23 +682,37 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                    </View>
                    <View style={{ flex: 1, minWidth: 0 }}>
                      <Text style={{ fontFamily: FONTS.semi, fontSize: 14, lineHeight: 20, color: T.text }} numberOfLines={2}>{a.text}</Text>
-                     <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.dim, marginTop: 4 }}>{a.sub} · {a.time}</Text>
+                     <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.dim, marginTop: 4 }}>{a.sub}{relativeTime(a.at) ? ` · ${relativeTime(a.at)}` : ''}</Text>
                    </View>
                 </Pressable>
               );
             })}
           </View>
-          <Pressable onPress={() => onNavigate?.('users')} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 }}>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: T.amber }}>{realPending} pending approvals</Text>
-            <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: T.muted }}>awaiting review</Text>
-          </Pressable>
+          {analytics && (
+            <Pressable onPress={() => onNavigate?.('users')} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 }}>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: T.amber }}>{realPending} pending approval{realPending === 1 ? '' : 's'}</Text>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: T.muted }}>awaiting review</Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Platform Users distribution */}
         <View style={[s.card, { flex: stack ? undefined : 1, overflow: 'hidden' }]} className="db-tile sa-stat-card">
           <Text style={s.cardTitle}>Platform Users</Text>
           <View style={{ gap: 14, marginTop: 14 }}>
-            {PLATFORM_USERS.map((u) => (
+            {analyticsLoading && !analytics ? (
+              <View style={s.stateRow}><ActivityIndicator size="small" color={T.dim} /><Text style={s.stateText}>Loading...</Text></View>
+            ) : analyticsError && !analytics ? (
+              <View style={s.stateRow}>
+                <Text style={s.stateText}>Could not load user counts.</Text>
+                <Pressable onPress={refreshAnalytics} style={s.retryBtn}>
+                  <RefreshCw size={12} color={T.accentBright} />
+                  <Text style={s.retryText}>Retry</Text>
+                </Pressable>
+              </View>
+            ) : roleTotal === 0 ? (
+              <Text style={s.emptyText}>No users yet.</Text>
+            ) : PLATFORM_USERS.map((u) => (
               <View key={u.label}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
                   <Text style={s.distLabel}>{u.label}</Text>
@@ -603,7 +721,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                 <View style={s.distTrack}>
                   <View style={[s.distFill, { width: `${u.pct}%` as any, backgroundColor: u.color }]} />
                 </View>
-                <Text style={s.distCount}>{u.count}</Text>
+                <Text style={s.distCount}>{u.count.toLocaleString('en-IN')}</Text>
               </View>
             ))}
           </View>
@@ -615,39 +733,71 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
         {/* Bar chart */}
         <View style={[s.card, { flex: stack ? undefined : 1.5 }]}>
           <Text style={s.cardTitle}>Monthly Enrollments</Text>
-          <Text style={s.cardSub}>New students / month</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, height: 130, marginTop: 22, paddingHorizontal: 4 }}>
-            {MONTHLY_ENROLLMENTS.map((m, i) => {
-              const isLast = i === MONTHLY_ENROLLMENTS.length - 1;
-              const h = Math.round((m.value / maxEnroll) * 110);
-              return (
-                <View key={m.month} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
-                  <Text style={[s.barValue, { color: isLast ? T.accentBright : T.dim }]}>{(m.value / 1000).toFixed(1)}k</Text>
-                  <LinearGradient
-                    colors={[isLast ? T.accentBright : T.primary, isLast ? T.accent : T.primaryD] as any}
-                    start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
-                    style={{ width: '100%', height: h, borderTopLeftRadius: 5, borderTopRightRadius: 5, opacity: isLast ? 1 : 0.7 }}
-                  />
-                  <Text style={[s.barMonth, isLast && { color: '#F4F4FA', fontFamily: FONTS.bold }]}>{m.month}</Text>
-                </View>
-              );
-            })}
-          </View>
+          <Text style={s.cardSub}>New student accounts per month, last 6 months</Text>
+          {analyticsLoading && !analytics ? (
+            <View style={[s.stateRow, { height: 130, marginTop: 22 }]}><ActivityIndicator size="small" color={T.dim} /><Text style={s.stateText}>Loading...</Text></View>
+          ) : analyticsError && !analytics ? (
+            <View style={[s.stateRow, { marginTop: 22 }]}>
+              <Text style={s.stateText}>Could not load enrollments.</Text>
+              <Pressable onPress={refreshAnalytics} style={s.retryBtn}>
+                <RefreshCw size={12} color={T.accentBright} />
+                <Text style={s.retryText}>Retry</Text>
+              </Pressable>
+            </View>
+          ) : MONTHLY_ENROLLMENTS.length === 0 || enrollTotal === 0 ? (
+            <View style={{ height: 130, marginTop: 22, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={s.emptyText}>No student enrollments in the last 6 months.</Text>
+            </View>
+          ) : (
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, height: 130, marginTop: 22, paddingHorizontal: 4 }}>
+              {MONTHLY_ENROLLMENTS.map((m, i) => {
+                const isLast = i === MONTHLY_ENROLLMENTS.length - 1;
+                const h = Math.max(2, Math.round(((m.value || 0) / maxEnroll) * 110));
+                return (
+                  <View key={`${m.month}-${i}`} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+                    <Text style={[s.barValue, { color: isLast ? T.accentBright : T.dim }]}>{(m.value || 0).toLocaleString('en-IN')}</Text>
+                    <LinearGradient
+                      colors={[isLast ? T.accentBright : T.primary, isLast ? T.accent : T.primaryD] as any}
+                      start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+                      style={{ width: '100%', height: h, borderTopLeftRadius: 5, borderTopRightRadius: 5, opacity: isLast ? 1 : 0.7 }}
+                    />
+                    <Text style={[s.barMonth, isLast && { color: '#F4F4FA', fontFamily: FONTS.bold }]}>{m.month}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          )}
         </View>
 
         {/* Revenue Breakdown */}
         <View style={[s.card, { flex: stack ? undefined : 1 }]}>
           <Text style={s.cardTitle}>Revenue Breakdown</Text>
-          <Text style={s.cardSub}>Revenue by event · {REVENUE_BREAKDOWN.length} sources</Text>
+          <Text style={s.cardSub}>
+            {REVENUE_BREAKDOWN.length > 0
+              ? `Paid registrations by event · ${REVENUE_BREAKDOWN.length} source${REVENUE_BREAKDOWN.length === 1 ? '' : 's'}`
+              : 'Paid registrations by event'}
+          </Text>
           <View style={{ gap: 12, marginTop: 16 }}>
-            {REVENUE_BREAKDOWN.map((r) => (
-              <View key={r.source}>
+            {overviewLoading && !overview ? (
+              <View style={s.stateRow}><ActivityIndicator size="small" color={T.dim} /><Text style={s.stateText}>Loading...</Text></View>
+            ) : overviewError && !overview ? (
+              <View style={s.stateRow}>
+                <Text style={s.stateText}>Could not load revenue: {overviewError}</Text>
+                <Pressable onPress={refreshOverview} style={s.retryBtn}>
+                  <RefreshCw size={12} color={T.accentBright} />
+                  <Text style={s.retryText}>Retry</Text>
+                </Pressable>
+              </View>
+            ) : REVENUE_BREAKDOWN.length === 0 ? (
+              <Text style={s.emptyText}>No paid registrations yet.</Text>
+            ) : REVENUE_BREAKDOWN.map((r, i) => (
+              <View key={`${r.source}-${i}`}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
-                  <Text style={s.distLabel}>{r.source}</Text>
+                  <Text style={s.distLabel} numberOfLines={1}>{r.source}</Text>
                   <Text style={s.revAmount}>{r.amount}</Text>
                 </View>
                 <View style={s.distTrack}>
-                  <View style={[s.distFill, { width: `${r.pct}%` as any, backgroundColor: r.color }]} />
+                  <View style={[s.distFill, { width: `${Math.min(100, Math.max(0, r.pct))}%` as any, backgroundColor: r.color }]} />
                 </View>
               </View>
             ))}
@@ -695,6 +845,18 @@ const s = StyleSheet.create({
 
   barValue: { fontFamily: FONTS.bold, fontSize: 10 },
   barMonth: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 },
+
+  // Loading / empty / error states
+  stateRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10 },
+  stateText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, flexShrink: 1 },
+  emptyText: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center', paddingVertical: 12 },
+  retryBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+    borderColor: SAC.border, borderWidth: 1, backgroundColor: SAC.bg2,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  retryText: { color: SAC.accentBright, fontFamily: FONTS.bold, fontSize: 11.5 },
 
   // Ad Manager
   adManagerWrap: {

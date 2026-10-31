@@ -1,30 +1,16 @@
 /**
- * MentorPortalRN — the true React Native implementation of the Mentor
- * Portal HTML spec. Replaces the iframe approach on web.
- *
- * Currently fully ported:
- *   • Sidebar (with collapse, mentor mini-profile, nav, sign-out)
- *   • TopBar (page title, search, notifications, avatar)
- *   • Dashboard view (AI briefing, 4 stats, today's sessions, connections,
- *     earnings, feedback summary, upcoming)
- *
- * Stubbed (next ports):
- *   • My Connections, Sessions, Session Requests, Network, Earnings,
- *     Feedback, Create Event, Profile
+ * Mentor Portal — view switch inside the shared <PortalShell>.
+ * Live sidebar counts (connections / sessions / requests) and the
+ * notifications panel are fetched here and handed to the shell.
  */
-import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
+import { request, api } from '@/src/models/services/api';
+import { PortalShell } from '@/src/ui/shell/PortalShell';
 
-import { MC } from './tokens';
-import { Sidebar, NavId } from './Sidebar';
-import { TopBar } from './TopBar';
-import { LinearGradient } from 'expo-linear-gradient';
-import { StarryBackground } from '@/src/views/web/nexus-glow-landing/StarryBackground';
-import { DashboardFooter } from '../../components/SponsorStrip';
-import { PromoBanner } from '../../components/PromoBanner';
+import { MENTOR_PORTAL, PAGE_TITLES, type NavId } from './nav';
 import { DashboardView } from './views/DashboardView';
 import { ConnectionsView } from './views/ConnectionsView';
 import { SessionsView } from './views/SessionsView';
@@ -34,30 +20,11 @@ import { EarningsView } from './views/EarningsView';
 import { FeedbackView } from './views/FeedbackView';
 import { CreateEventView } from './views/CreateEventView';
 import { AvailabilityView } from './views/AvailabilityView';
-import { ProfileView } from './views/ProfileView';
 import { MentorProfileSettingsView } from './views/MentorProfileSettingsView';
 import { MentorAIStudioView } from './views/MentorAIStudioView';
 import { NotificationsPanel } from './views/NotificationsPanel';
-// Shared role-aware comprehensive profile view (purple theme, identical to student).
-import { ProfileSettingsView as SharedProfileSettingsView } from '../student/views/ProfileSettingsView';
-import { STUDENTS, SESSION_REQUESTS } from './data';
-import { request, api } from '@/src/models/services/api';
-import { UniversalMotionTransition } from '@/src/views/web/components/UniversalMotionTransition';
-import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 
-const PAGE_TITLES: Record<NavId, string> = {
-  dashboard:    'Dashboard',
-  'ai-studio':  'AI Studio',
-  students:     'My Connections',
-  sessions:     'Sessions',
-  requests:     'Session Requests',
-  network:      'Network',
-  earnings:     'Earnings',
-  feedback:     'Feedback',
-  event:        'Create Event',
-  profile:      'Profile',
-  availability: 'Availability',
-};
+type ProfileTab = 'manage' | 'digital-id' | 'notifications';
 
 export default function MentorPortalRN() {
   const router = useRouter();
@@ -66,143 +33,87 @@ export default function MentorPortalRN() {
   const user = useAuthStore((st) => st.user) as any;
 
   const [active, setActive] = useState<NavId>('dashboard');
+  useEffect(() => { if (tab && PAGE_TITLES[tab as NavId]) setActive(tab as NavId); }, [tab]);
 
-  useEffect(() => {
-    if (tab && PAGE_TITLES[tab as NavId]) {
-      setActive(tab as NavId);
-    }
-  }, [tab]);
-
-  const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState('');
-  const [showNotifs, setShowNotifs] = useState(false);
-  const [profileTab, setProfileTab] = useState<'manage' | 'digital-id' | 'notifications'>(
+  const [profileTab, setProfileTab] = useState<ProfileTab>(
     sub === 'digital-id' ? 'digital-id' : sub === 'notifications' ? 'notifications' : 'manage'
   );
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  // useAutoTour('mentor');
+  const [counts, setCounts] = useState({ students: 0, sessions: 0, requests: 0 });
+  const [decisions, setDecisions] = useState<Record<number, 'pending' | 'accepted' | 'declined'>>({});
 
-  const [liveCounts, setLiveCounts] = useState({ students: 0, sessions: 0, requests: 0 });
-
-  // Fetch real-time notifications, connections, and requests for the sidebar
-  const fetchDashboardData = async () => {
+  const refresh = useCallback(async () => {
     try {
       const [notifRes, connectionsRes, bookingsRes] = await Promise.all([
         request<{ items?: any[]; unread?: number }>('/notifications'),
         user?.email ? api.mentorConnections(user.email) : Promise.resolve({ items: [] }),
-        api.myBookings()
+        api.myBookings(),
       ]);
-
       if (notifRes) {
         if (Array.isArray(notifRes.items)) setNotifications(notifRes.items);
         if (typeof notifRes.unread === 'number') setUnreadCount(notifRes.unread);
       }
-
-      const connections = connectionsRes?.items || [];
       const bookings = bookingsRes?.bookings || [];
-      
-      const pendingRequests = bookings.filter((b: any) => b.status === 'pending').length;
-      const upcomingSessions = bookings.filter((b: any) => b.status === 'confirmed' || b.status === 'accepted').length;
-
-      setLiveCounts({
-        students: connections.length,
-        sessions: upcomingSessions,
-        requests: pendingRequests,
+      setCounts({
+        students: (connectionsRes?.items || []).length,
+        sessions: bookings.filter((b: any) => b.status === 'confirmed' || b.status === 'accepted').length,
+        requests: bookings.filter((b: any) => b.status === 'pending').length,
       });
     } catch (e) {
-      console.warn('Failed to fetch dashboard data:', e);
+      console.warn('Failed to fetch mentor dashboard data:', e);
     }
-  };
-
-  useEffect(() => {
-    fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 5000);
-    return () => clearInterval(interval);
   }, [user?.email]);
 
-  const [decisions, setDecisions] = useState<Record<number, 'pending' | 'accepted' | 'declined'>>({});
+  useEffect(() => {
+    refresh();
+    const id = setInterval(refresh, 30000);
+    return () => clearInterval(id);
+  }, [refresh]);
 
   const onLogout = async () => {
     router.replace('/welcome');
     try { await logout(); } catch {}
   };
 
-  const navigate = (id: NavId, pt?: 'manage' | 'digital-id' | 'notifications') => {
+  const navigate = (id: NavId, pt?: ProfileTab) => {
     if (pt) setProfileTab(pt);
-    if (id === 'profile' && pt) {
-      go(id, pt);
-      return;
-    }
+    if (id === 'profile' && pt) { go(id, pt); return; }
     if (String(id) !== tab) go(id); else setActive(id);
   };
 
   return (
-    <View style={s.shell}>
-      <LinearGradient
-        pointerEvents="none"
-        colors={['#030614', '#040816']}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject as any}
-      />
-      <SAWatermark size={850} top={30} right={-30} opacity={0.16} />
-
-      <Sidebar
-        active={active}
-        onNav={(id) => navigate(id as NavId)}
-        collapsed={collapsed}
-        onToggle={() => setCollapsed((c) => !c)}
-        onLogout={onLogout}
-        counts={liveCounts}
-      />
-
-      <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <TopBar
-            title={PAGE_TITLES[active]}
-            query={query}
-            setQuery={setQuery}
-            notifCount={unreadCount}
-            onBellPress={() => setShowNotifs(!showNotifs)}
-            onAvatarPress={() => navigate('profile', 'manage')}
-          />
-
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
-            <View style={{ flex: 1, padding: 20 }}>
-              <PromoBanner portal="mentor" />
-              <UniversalMotionTransition deps={[active]}>
-                {active === 'dashboard' && <DashboardView onNav={(id) => navigate(id as NavId)} />}
-                {active === 'ai-studio' && <MentorAIStudioView />}
-                {active === 'students'  && <ConnectionsView />}
-                {active === 'sessions'  && <SessionsView />}
-                {active === 'requests'  && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions(prev => ({ ...prev, [id]: d }))} />}
-                {active === 'network'   && <NetworkView />}
-                {active === 'earnings'  && <EarningsView />}
-                {active === 'feedback'  && <FeedbackView />}
-                {active === 'event'     && <CreateEventView />}
-                {active === 'profile'   && <MentorProfileSettingsView initialTab={profileTab} />}
-              </UniversalMotionTransition>
-            </View>
-            <DashboardFooter portal="mentor" />
-          </ScrollView>
-        </View>
-        {showNotifs && (
-          <NotificationsPanel
-            onClose={() => setShowNotifs(false)}
-            onOpenSettings={() => {
-              navigate('profile', 'notifications');
-              setShowNotifs(false);
-            }}
-            onNav={(id) => navigate(id as NavId)}
-            notifications={notifications}
-            onRefresh={fetchDashboardData}
-          />
-        )}
-      </View>
-    </View>
+    <PortalShell
+      config={MENTOR_PORTAL}
+      active={active}
+      title={PAGE_TITLES[active]}
+      onNav={(id) => navigate(id as NavId, id === 'profile' ? 'manage' : undefined)}
+      onLogout={onLogout}
+      counts={counts}
+      unread={unreadCount}
+      search={{ value: query, onChange: setQuery, onSubmit: () => {} }}
+      notifications={(close) => (
+        <NotificationsPanel
+          onClose={close}
+          onOpenSettings={() => { navigate('profile', 'notifications'); close(); }}
+          onNav={(id) => navigate(id as NavId)}
+          notifications={notifications}
+          onRefresh={refresh}
+        />
+      )}
+    >
+      {active === 'dashboard'    && <DashboardView onNav={(id) => navigate(id as NavId)} />}
+      {active === 'ai-studio'    && <MentorAIStudioView />}
+      {active === 'students'     && <ConnectionsView />}
+      {active === 'sessions'     && <SessionsView />}
+      {active === 'requests'     && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions((prev) => ({ ...prev, [id]: d }))} />}
+      {active === 'availability' && <AvailabilityView />}
+      {active === 'network'      && <NetworkView />}
+      {active === 'earnings'     && <EarningsView />}
+      {active === 'feedback'     && <FeedbackView />}
+      {active === 'event'        && <CreateEventView />}
+      {active === 'profile'      && <MentorProfileSettingsView initialTab={profileTab} />}
+    </PortalShell>
   );
 }
-
-const s = StyleSheet.create({
-  shell: { flex: 1, flexDirection: 'row', backgroundColor: MC.bg, height: '100%' as any },
-});

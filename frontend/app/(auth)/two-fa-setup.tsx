@@ -3,7 +3,7 @@
  *
  * Steps:
  *   0 = Choose method  (Authenticator / SMS / Email)
- *   1 = Setup          (QR code | phone number | confirm email)
+ *   1 = Setup          (QR code + manual key from /auth/2fa/setup)
  *   2 = Verify         (6-digit OTP entry)
  *   3 = Backup codes   (6 codes to save)
  *   4 = Done           (success summary + go to dashboard)
@@ -11,7 +11,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Animated, ActivityIndicator,
-  TextInput as RNTextInput, Platform, ScrollView,
+  TextInput as RNTextInput, Platform, ScrollView, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -19,22 +19,21 @@ import { ArrowLeft, Copy, Download, ShieldCheck } from 'lucide-react-native';
 import { useToast } from '@/src/views/components';
 import { AuthShell } from '@/src/views/auth/AuthShell';
 import {
-  WebPrimaryBtn, WebGhostBtn, WebStepBar, WebOptionRow, WebField,
+  WebPrimaryBtn, WebGhostBtn, WebStepBar, WebOptionRow,
 } from '@/src/views/web/AuthWebControls';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { api } from '@/src/models/services/api';
 
 const IS_WEB = Platform.OS === 'web';
 
-type Method = 'authenticator' | 'sms' | 'email';
+type Method = 'authenticator';
 type Step = 0 | 1 | 2 | 3 | 4;
 
+// The backend implements TOTP (authenticator-app) 2FA only. SMS and email
+// factors were listed here before but had no server implementation.
 const METHODS: { id: Method; emoji: string; title: string; sub: string; rec?: boolean }[] = [
-  { id: 'authenticator', emoji: '📱', title: 'Authenticator App', sub: 'Google Authenticator, Authy, etc.', rec: true },
-  { id: 'sms',           emoji: '💬', title: 'SMS / WhatsApp',    sub: 'Send code to your mobile number' },
-  { id: 'email',         emoji: '📧', title: 'Email OTP',         sub: 'Send code to your verified email' },
+  { id: 'authenticator', emoji: '📱', title: 'Authenticator App', sub: 'Google Authenticator, Authy, 1Password, etc.', rec: true },
 ];
-
-const BACKUP_CODES = ['8F2K-4X9P', '3J7N-2M1Q', '6R4H-8T5W', '1Y3C-9L6E', '5B8D-7A2V', '4G6F-1N3K'];
 
 export default function TwoFASetup() {
   const router = useRouter();
@@ -42,19 +41,38 @@ export default function TwoFASetup() {
   const role = useAuthStore((u) => u.user?.role) as any;
   const [step, setStep] = useState<Step>(0);
   const [method, setMethod] = useState<Method | null>(null);
-  const [phone, setPhone] = useState('98765 43210');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [otpState, setOtpState] = useState<'idle' | 'success' | 'error'>('idle');
+  const [busy, setBusy] = useState(false);
+  const [setup, setSetupData] = useState<{ secret: string; otpauth_uri: string; qr_code_base64: string } | null>(null);
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+
+  const startSetup = async () => {
+    setBusy(true);
+    try {
+      const res = await api.twoFASetup();
+      setSetupData(res);
+      setStep(1);
+    } catch (e: any) {
+      toast.error('Could not start setup', e?.message || 'Please sign in again and retry.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const onContinue = () => {
-    if (step === 0 && !method) {
-      toast.error('Pick a method', 'Choose one of the available options to continue.');
+    if (step === 0) {
+      if (!method) {
+        toast.error('Pick a method', 'Choose one of the available options to continue.');
+        return;
+      }
+      void startSetup();
       return;
     }
     setStep((s) => Math.min(4, (s + 1) as Step) as Step);
   };
 
-  const verifyOTP = () => {
+  const verifyOTP = async () => {
     const code = otp.join('');
     if (code.length !== 6) {
       toast.error('Incomplete code', 'Please enter all 6 digits.');
@@ -62,9 +80,50 @@ export default function TwoFASetup() {
       setTimeout(() => setOtpState('idle'), 1500);
       return;
     }
-    setOtpState('success');
-    toast.success('Code verified', 'Two-factor authentication enabled.');
-    setTimeout(() => setStep(3), 700);
+    setBusy(true);
+    try {
+      const res = await api.twoFAEnable(code);
+      setBackupCodes(res.backup_codes || []);
+      setOtpState('success');
+      toast.success('Code verified', 'Two-factor authentication enabled.');
+      setTimeout(() => setStep(3), 700);
+    } catch (e: any) {
+      setOtpState('error');
+      toast.error('Code not accepted', e?.message || 'Check the code in your authenticator app and try again.');
+      setTimeout(() => setOtpState('idle'), 1500);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copyCodes = async () => {
+    const text = backupCodes.join('\n');
+    try {
+      if (IS_WEB && typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const { Share } = require('react-native');
+        await Share.share({ message: text });
+      }
+      toast.success('Codes copied', 'Backup codes copied to clipboard.');
+    } catch {
+      toast.error('Copy failed', 'Select the codes and copy them manually.');
+    }
+  };
+
+  const downloadCodes = () => {
+    if (!IS_WEB || typeof document === 'undefined') {
+      void copyCodes();
+      return;
+    }
+    const blob = new Blob([`Student Alumni backup codes\n\n${backupCodes.join('\n')}\n`], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'studentalumni-backup-codes.txt';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast.success('Codes downloaded', 'A .txt file has been saved.');
   };
 
   const goBackInternal = () => {
@@ -111,58 +170,34 @@ export default function TwoFASetup() {
               />
             ))}
           </View>
-          <WebPrimaryBtn label="Continue →" onPress={onContinue} testID="twofa-continue-btn" />
+          <WebPrimaryBtn label={busy ? 'Preparing…' : 'Continue →'} onPress={onContinue} testID="twofa-continue-btn" />
           <View style={{ height: 10 }} />
           <WebGhostBtn label="Skip for now" onPress={finish} testID="twofa-skip-btn" />
         </View>
       )}
 
       {/* STEP 1 — Setup */}
-      {step === 1 && method === 'authenticator' && (
+      {step === 1 && setup && (
         <View>
           <Text style={styles.h2}>Scan QR Code 📱</Text>
           <Text style={styles.sub}>Open your authenticator app and scan this code, or enter the key manually.</Text>
           <View style={{ alignItems: 'center', marginBottom: 16 }}>
             <View style={styles.qrFrame}>
-              <FakeQR />
-              <View style={styles.qrLogo}>
-                <Text style={{ color: '#2563EB', fontFamily: 'DMSans_700Bold', fontSize: 11 }}>SA</Text>
-              </View>
+              <Image
+                source={{ uri: `data:image/png;base64,${setup.qr_code_base64}` }}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="contain"
+                accessibilityLabel="Authenticator QR code"
+              />
             </View>
           </View>
           <View style={styles.manualKeyBox}>
             <Text style={styles.manualKeyLabel}>MANUAL KEY</Text>
-            <Text style={styles.manualKeyVal}>JBSWY3DPEHPK3PXP{'\n'}QRST UVWX YZAB 2345</Text>
+            <Text style={styles.manualKeyVal} selectable>
+              {(setup.secret.match(/.{1,4}/g) || [setup.secret]).join(' ')}
+            </Text>
           </View>
           <WebPrimaryBtn label="I've scanned the code →" onPress={onContinue} testID="twofa-scanned-btn" />
-        </View>
-      )}
-
-      {step === 1 && method === 'sms' && (
-        <View>
-          <Text style={styles.h2}>Add your number 💬</Text>
-          <Text style={styles.sub}>We'll send you a verification code via SMS or WhatsApp.</Text>
-          <WebField label="Country code" value="🇮🇳 +91" onChangeText={() => {}} />
-          <WebField label="Mobile number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="98765 43210" />
-          <WebPrimaryBtn label="Send code" onPress={onContinue} testID="twofa-sms-send-btn" />
-        </View>
-      )}
-
-      {step === 1 && method === 'email' && (
-        <View>
-          <Text style={styles.h2}>Email verification 📧</Text>
-          <Text style={styles.sub}>We'll send a 6-digit code to your verified email whenever you log in.</Text>
-          <View style={styles.verifiedEmailCard}>
-            <Text style={styles.verifiedEmailLabel}>VERIFIED EMAIL</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Text style={{ fontSize: 18 }}>✉️</Text>
-              <Text style={styles.verifiedEmailVal}>rahul@alumni.edu</Text>
-              <View style={styles.smallBadge}>
-                <Text style={styles.smallBadgeText}>✓ Verified</Text>
-              </View>
-            </View>
-          </View>
-          <WebPrimaryBtn label="Enable email 2FA" onPress={onContinue} testID="twofa-email-enable-btn" />
         </View>
       )}
 
@@ -170,18 +205,12 @@ export default function TwoFASetup() {
       {step === 2 && (
         <View>
           <Text style={styles.h2}>Enter verification code 🔢</Text>
-          <Text style={styles.sub}>
-            {method === 'authenticator'
-              ? 'Enter the 6-digit code from your authenticator app.'
-              : method === 'sms'
-              ? `Enter the code sent to +91 ${phone}.`
-              : 'Enter the code sent to your email.'}
-          </Text>
+          <Text style={styles.sub}>Enter the 6-digit code from your authenticator app.</Text>
           <OTPInput value={otp} onChange={setOtp} state={otpState} />
           {otpState === 'success' && (
             <Text style={styles.otpSuccess}>✓ Code verified!</Text>
           )}
-          <WebPrimaryBtn label="Verify & enable" onPress={verifyOTP} testID="twofa-verify-btn" />
+          <WebPrimaryBtn label={busy ? 'Verifying…' : 'Verify & enable'} onPress={verifyOTP} testID="twofa-verify-btn" />
         </View>
       )}
 
@@ -191,7 +220,7 @@ export default function TwoFASetup() {
           <Text style={styles.h2}>Save backup codes 📋</Text>
           <Text style={styles.sub}>Keep these somewhere safe. Each code can only be used once if you lose access to your 2FA device.</Text>
           <View style={styles.codesGrid}>
-            {BACKUP_CODES.map((code, i) => (
+            {backupCodes.map((code, i) => (
               <View key={i} style={styles.codeBox}>
                 <Text style={styles.codeText}>{code}</Text>
               </View>
@@ -199,14 +228,14 @@ export default function TwoFASetup() {
           </View>
           <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
             <Pressable
-              onPress={() => toast.success('Codes copied', 'Backup codes copied to clipboard.')}
+              onPress={copyCodes}
               style={({ hovered }: any) => [styles.actionBtn, { flex: 1 }, hovered && styles.actionBtnHover]}
             >
               <Copy size={15} color="#FFFFFF" />
               <Text style={styles.actionText}>Copy codes</Text>
             </Pressable>
             <Pressable
-              onPress={() => toast.success('Codes downloaded', 'A .txt file has been saved.')}
+              onPress={downloadCodes}
               style={({ hovered }: any) => [styles.actionBtn, { flex: 1 }, hovered && styles.actionBtnHover]}
             >
               <Download size={15} color="#FFFFFF" />
@@ -336,27 +365,6 @@ function OTPInput({
   );
 }
 
-// ─── Fake QR (decorative) ────────────────────────────────────────────────────
-function FakeQR() {
-  const onCells = new Set([
-    0,1,2,3,4,5,6,9,15,18,24,30,27,28,29,30,31,32,33,36,42,45,46,47,48,49,50,51,
-    54,60,63,69,72,73,74,75,76,77,78,40,41,55,56,57,38,44,64,65,67,68,
-  ]);
-  return (
-    <View style={{ width: '100%', height: '100%', flexDirection: 'row', flexWrap: 'wrap' }}>
-      {Array.from({ length: 81 }).map((_, i) => (
-        <View
-          key={i}
-          style={{
-            width: '11.11%',
-            height: '11.11%',
-            backgroundColor: onCells.has(i) ? '#0F0820' : 'transparent',
-          }}
-        />
-      ))}
-    </View>
-  );
-}
 
 // ─── styles ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({

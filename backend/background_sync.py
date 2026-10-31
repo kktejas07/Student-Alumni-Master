@@ -6,9 +6,10 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 import pytz
 
-from jobs_feed import fetch_and_cache_all
-from events_aggregator import _aggregate_and_store
-from integrations_base import sync_courses_to_db, sync_internships_to_db
+from features.jobs_feed import fetch_and_cache_all
+from features.events_aggregator import _aggregate_and_store
+from features.integrations_base import sync_courses_to_db, sync_internships_to_db
+from core.query_helpers import nonempty
 
 logger = logging.getLogger("background_sync")
 
@@ -123,13 +124,20 @@ async def run_unified_sync_task():
     except Exception as e:
         logger.error(f"Error in Platform RAG background sync: {e}")
 
+    try:
+        from jobs_feed import enrich_all_skill_ids
+        enriched = await enrich_all_skill_ids()
+        logger.info(f"Sync completed: Jobs skill_ids enrichment ({enriched} jobs).")
+    except Exception as e:
+        logger.error(f"Error enriching jobs with skill_ids: {e}")
+
     logger.info("Completed unified background sync task.")
 
 
 async def _sync_talent_pool_profiles():
     """Periodically enrich talent pool profiles via LinkedIn/Proxycurl."""
     try:
-        from linkedin_sync import enrich_profiles_batch, _get_proxycurl_key, _get_linkedin_api_creds
+        from features.linkedin_sync import enrich_profiles_batch, _get_proxycurl_key, _get_linkedin_api_creds
 
         proxycurl_key = await _get_proxycurl_key()
         linkedin_creds = await _get_linkedin_api_creds()
@@ -138,12 +146,12 @@ async def _sync_talent_pool_profiles():
             logger.info("Talent pool sync skipped — no LinkedIn credentials configured")
             return
 
-        from talent_pool import _db as tp_db
+        from features.talent_pool import _db as tp_db
         from datetime import datetime, timezone, timedelta
 
         stale_threshold = datetime.now(timezone.utc) - timedelta(hours=24)
         cursor = tp_db.talent_pool.find({
-            "linkedin_url": {"$exists": True, "$ne": None, "$ne": ""},
+            "linkedin_url": nonempty(),
             "is_active": True,
             "$or": [
                 {"last_synced_at": {"$exists": False}},
@@ -181,6 +189,25 @@ async def _sync_talent_pool_profiles():
         logger.warning(f"Talent pool sync error (non-fatal): {e}")
 
 
+async def run_company_key_backfill():
+    """Nightly: normalize company_key on users (alumni_info) and jobs_cache.
+
+    - users: sets alumni_info.company_key from the best-available company field
+    - jobs_cache: sets company_key from the cached company name
+    """
+    try:
+        from services.company_norm import backfill_company_keys
+
+        db = _get_db()
+        counters = await backfill_company_keys(db)
+        logger.info(
+            "Company key backfill complete: %d users, %d jobs",
+            counters.get("users", 0), counters.get("jobs", 0),
+        )
+    except Exception as e:
+        logger.warning("Company key backfill error (non-fatal): %s", e)
+
+
 def start_sync_scheduler():
     enabled = (os.environ.get("SYNC_SCHEDULER_ENABLED") or "1").strip().lower()
     if enabled in {"0", "false", "off", "no"}:
@@ -216,6 +243,18 @@ def start_sync_scheduler():
             coalesce=True,
             next_run_time=next_run if next_run else None,
         )
+
+        # Nightly company-key backfill for alumni referrals matching
+        from apscheduler.triggers.cron import CronTrigger
+        _sync_scheduler.add_job(
+            run_company_key_backfill,
+            CronTrigger(hour=3, minute=0),
+            id="nightly_company_key_backfill",
+            replace_existing=True,
+            max_instances=1,
+            coalesce=True,
+        )
+
         _sync_scheduler.start()
         logger.info("Unified sync scheduler started (interval=10m/30m AI Event Agent)")
     except Exception as e:

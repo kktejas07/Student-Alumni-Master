@@ -6,15 +6,17 @@
  * Seat limits are enforced server-side.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, TextInput, useWindowDimensions } from 'react-native';
+import { WebOnlyRoute } from '@/src/lib/nativeGuard';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, TextInput, useWindowDimensions, Platform } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Video, Clock, Users, Check, AlertCircle } from 'lucide-react-native';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
+import { getBaseUrl } from '@/src/lib/env';
 
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://studentalumni.ai';
+const API_BASE = getBaseUrl();
 
-export default function TeamsMeetingRegisterPage() {
+function TeamsMeetingRegisterPage() {
   const { meetingId } = useLocalSearchParams<{ meetingId: string }>();
   const [meeting, setMeeting] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -349,3 +351,12 @@ const s = StyleSheet.create({
   calHint: { color: 'rgba(255,255,255,0.45)', fontFamily: 'DMSans_500Medium', fontSize: 11.5, lineHeight: 17, textAlign: 'center', marginTop: 8, paddingHorizontal: 10 },
   centerText2: { color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_500Medium', fontSize: 13 },
 });
+
+/**
+ * Native guard — this route renders web-only UI. On iOS/Android show a
+ * placeholder that opens the page on studentalumni.ai instead of crashing.
+ */
+export default function TeamsMeetingRegisterPageRoute() {
+  if (Platform.OS !== 'web') return <WebOnlyRoute />;
+  return <TeamsMeetingRegisterPage />;
+}

@@ -9,7 +9,7 @@ export default function EchoRegisterSlugPage() {
 
   return (
     <View style={s.container}>
-      <EchoEventsPage initialView="reg" initialSlug={slug || 'snist'} />
+      <EchoEventsPage initialView="reg" initialSlug={slug} />
     </View>
   );
 }

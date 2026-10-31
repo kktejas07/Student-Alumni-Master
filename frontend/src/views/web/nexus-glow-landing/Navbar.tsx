@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useTheme } from '@/src/theme/ThemeContext';
+import { getBaseUrl } from '@/src/lib/env';
 
 interface NavbarProps {
-  activeTab?: 'home' | 'echo' | 'marketplace' | 'verify' | 'contact';
-  onTabChange?: (tab: 'home' | 'echo' | 'marketplace' | 'verify' | 'contact') => void;
+  activeTab?: 'home' | 'echo' | 'careers' | 'marketplace' | 'verify' | 'contact';
+  onTabChange?: (tab: 'home' | 'echo' | 'careers' | 'marketplace' | 'verify' | 'contact') => void;
 }
 
 export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
@@ -17,6 +18,29 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showMarketplace, setShowMarketplace] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchFlags = async () => {
+      try {
+        const base = getBaseUrl();
+        const res = await fetch(`${base}/api/public/feature-flags`);
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data?.feature_flags) {
+            setShowMarketplace(Boolean(data.feature_flags.show_marketplace));
+          }
+        }
+      } catch (err) {
+        // Fallback gracefully
+      }
+    };
+    fetchFlags();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -31,8 +55,9 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
   }, [pathname]);
 
   // Track active tab state
-  const [selectedTab, setSelectedTab] = useState<'home' | 'echo' | 'marketplace' | 'verify' | 'contact'>(() => {
-    if (propActiveTab) return propActiveTab;
+  const [selectedTab, setSelectedTab] = useState<'home' | 'echo' | 'careers' | 'marketplace' | 'verify' | 'contact'>(() => {
+    if (propActiveTab) return propActiveTab as any;
+    if (pathname?.includes('/careers')) return 'careers';
     if (pathname?.includes('/marketplace')) return 'marketplace';
     if (pathname?.includes('/echo')) return 'echo';
     if (pathname?.includes('/verify')) return 'verify';
@@ -42,9 +67,10 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
 
   useEffect(() => {
     if (propActiveTab) {
-      setSelectedTab(propActiveTab);
+      setSelectedTab(propActiveTab as any);
     } else {
-      if (pathname?.includes('/marketplace')) setSelectedTab('marketplace');
+      if (pathname?.includes('/careers')) setSelectedTab('careers');
+      else if (pathname?.includes('/marketplace')) setSelectedTab('marketplace');
       else if (pathname?.includes('/echo')) setSelectedTab('echo');
       else if (pathname?.includes('/verify')) setSelectedTab('verify');
       else if (pathname?.includes('/contact')) setSelectedTab('contact');
@@ -52,16 +78,23 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
     }
   }, [propActiveTab, pathname]);
 
-  const handleTabClick = (tabKey: 'home' | 'echo' | 'marketplace' | 'verify' | 'contact') => {
+  const handleTabClick = (tabKey: 'home' | 'echo' | 'careers' | 'marketplace' | 'verify' | 'contact') => {
     setSelectedTab(tabKey);
     setMenuOpen(false);
+    if (tabKey === 'careers') {
+      router.push('/careers' as any);
+      return;
+    }
+    if (tabKey === 'marketplace') {
+      router.push('/marketplace' as any);
+      return;
+    }
     if (typeof onTabChange === 'function') {
-      onTabChange(tabKey);
+      onTabChange(tabKey as any);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       if (tabKey === 'home') router.push('/');
       else if (tabKey === 'echo') router.push('/echo');
-      else if (tabKey === 'marketplace') router.push('/marketplace' as any);
       else if (tabKey === 'verify') router.push('/certificates/verify' as any);
       else if (tabKey === 'contact') router.push('/contact' as any);
     }
@@ -74,7 +107,8 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
   const tabs = [
     { key: 'home' as const, label: 'Home' },
     { key: 'echo' as const, label: 'ECHO' },
-    { key: 'marketplace' as const, label: 'Marketplace' },
+    { key: 'careers' as const, label: 'Careers' },
+    ...(showMarketplace ? [{ key: 'marketplace' as const, label: 'Marketplace' }] : []),
     { key: 'verify' as const, label: 'Verify' },
     { key: 'contact' as const, label: 'Contact Us' },
   ];
@@ -132,7 +166,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                 y="214"
                 textAnchor="middle"
                 style={{
-                  fontFamily: "'Outfit', 'Manrope', -apple-system, sans-serif",
+                  fontFamily: "'Outfit', 'DM Sans', -apple-system, sans-serif",
                   fontSize: '124px',
                   fontWeight: 800,
                   fill: '#FFFFFF',
@@ -142,7 +176,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
               </text>
             </svg>
             {!isMobile && (
-              <span style={{ fontSize: '17px', fontWeight: 700, letterSpacing: '-0.3px', color: theme.text, fontFamily: "'Outfit', 'Manrope', sans-serif", transition: 'color 0.3s ease' }}>
+              <span style={{ fontSize: '17px', fontWeight: 700, letterSpacing: '-0.3px', color: theme.text, fontFamily: "'Outfit', 'DM Sans', sans-serif", transition: 'color 0.3s ease' }}>
                 StudentAlumni
               </span>
             )}
@@ -173,7 +207,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                       padding: '6px 2px',
                       cursor: 'pointer',
                       transition: 'color 0.2s ease',
-                      fontFamily: "'Outfit', 'Manrope', sans-serif",
+                      fontFamily: "'Outfit', 'DM Sans', sans-serif",
                     }}
                   >
                     <span>{tab.label}</span>
@@ -258,7 +292,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                     padding: '9px 24px',
                     border: 'none',
                     cursor: 'pointer',
-                    fontFamily: "'Outfit', 'Manrope', sans-serif",
+                    fontFamily: "'Outfit', 'DM Sans', sans-serif",
                     boxShadow: '0 4px 14px rgba(91,79,233,0.35)',
                     transition: 'transform 0.2s ease, filter 0.2s ease',
                   }}
@@ -278,7 +312,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                       cursor: 'pointer',
                       padding: '6px 4px',
                       transition: 'color 0.2s ease',
-                      fontFamily: "'Outfit', 'Manrope', sans-serif",
+                      fontFamily: "'Outfit', 'DM Sans', sans-serif",
                     }}
                   >
                     Sign in
@@ -295,7 +329,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                       border: 'none',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
-                      fontFamily: "'Outfit', 'Manrope', sans-serif",
+                      fontFamily: "'Outfit', 'DM Sans', sans-serif",
                       boxShadow: '0 4px 14px rgba(91,79,233,0.35)',
                       transition: 'transform 0.2s ease, filter 0.2s ease',
                     }}
@@ -380,7 +414,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                   borderRadius: '10px',
                   padding: '10px 14px',
                   cursor: 'pointer',
-                  fontFamily: "'Outfit', 'Manrope', sans-serif",
+                  fontFamily: "'Outfit', 'DM Sans', sans-serif",
                 }}
               >
                 {tab.label}
@@ -412,7 +446,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                   padding: '10px 20px',
                   border: 'none',
                   cursor: 'pointer',
-                  fontFamily: "'Outfit', 'Manrope', sans-serif",
+                  fontFamily: "'Outfit', 'DM Sans', sans-serif",
                 }}
               >
                 Dashboard
@@ -431,7 +465,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                     borderRadius: '100px',
                     padding: '10px 16px',
                     cursor: 'pointer',
-                    fontFamily: "'Outfit', 'Manrope', sans-serif",
+                    fontFamily: "'Outfit', 'DM Sans', sans-serif",
                   }}
                 >
                   Sign in
@@ -448,7 +482,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                     padding: '10px 16px',
                     border: 'none',
                     cursor: 'pointer',
-                    fontFamily: "'Outfit', 'Manrope', sans-serif",
+                    fontFamily: "'Outfit', 'DM Sans', sans-serif",
                   }}
                 >
                   Get Started

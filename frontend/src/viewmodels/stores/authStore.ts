@@ -2,6 +2,7 @@
  * VIEWMODEL LAYER - Auth Store (Zustand)
  * Owns authentication state and exposes actions consumed by Views via hooks.
  */
+import { Platform } from 'react-native';
 import { create } from 'zustand';
 import { api, tokenStore } from '@/src/models/services/api';
 import type { User } from '@/src/models/entities';
@@ -171,9 +172,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         extra: { reason: 'user_logout' },
       });
     } catch {}
+    try {
+      await api.logout();
+    } catch {}
     await tokenStore.clear();
     try {
-      window.localStorage.removeItem('sa.consent.v1');
+      if (Platform.OS === 'web' && typeof window !== 'undefined') window.localStorage.removeItem('sa.consent.v1');
     } catch {}
     set({ user: null });
   },

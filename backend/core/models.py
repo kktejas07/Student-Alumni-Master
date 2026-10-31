@@ -8,6 +8,10 @@ from datetime import datetime
 # UserRole: 3 primary user types + admin/college (managed roles)
 UserRole = Literal["student", "alumni", "mentor", "college", "admin", "super_admin"]
 
+# SelfServiceRole: the only roles a client may choose at signup / OAuth.
+# admin and super_admin are created by seeding or by an existing admin.
+SelfServiceRole = Literal["student", "alumni", "mentor", "college"]
+
 # CareerPath: Drives all personalization on the platform
 CareerPath = Literal["job", "higher_education", "startup", "business"]
 
@@ -171,6 +175,7 @@ class UserResponse(BaseModel):
     portfolio_url: Optional[str] = None
     primary_skill: Optional[str] = None
     profile_visibility: Optional[str] = None
+    accepts_referrals: Optional[bool] = None
     section_toggles: Optional[Dict[str, Any]] = None
     projects: Optional[List[Dict[str, Any]]] = None
     preferences: Optional[Dict[str, Any]] = None

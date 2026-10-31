@@ -1,60 +1,81 @@
 // @ts-nocheck
 /**
- * /deals — SA Member Deals (real-time + Tag Engine + AI accordions)
+ * /deals — Deals & Offers (D2 light-theme redesign)
  *
- * Wired to:
- *   GET  /api/deals/all?category=&country=IN
- *   GET  /api/deals/stats              — AI Savings Advisor + Smart Bundle
- *   POST /api/deals/refresh            — bypass cache
- *   POST /api/deals/claim/{deal_id}    — +20 SA credits, max 3/day
- *   POST /api/deals/ai-generate        — Claude trending generator
+ * Forces the light palette for this page only (#F8FAFC background, white
+ * cards, #7C5CFC accent). Layout:
+ *   1. Header "Deals & Offers" + "{count} deals · Updated {time}" + search + refresh
+ *   2. AI bar — 3 compact pills: Savings Calculator / Smart Bundle / AI Deals
+ *   3. Deal-type tabs (All | Student | Coupons | Cashback | Bank Offers | …)
+ *   4. Category chips auto-populated from the deal set (NOT hardcoded)
+ *   5. Bank card filter, visible when Bank Offers is active
+ *   6. Responsive grid — 4-col desktop / 2-col tablet / 1-col phone
+ *   7. Card: brand logo (fallback circle) + type badge + verification +
+ *      prices + "Claim Deal"
+ *   8. Phone bottom nav: Home · Career AI · Deals · Network · Courses
  *
- * Adapts the user's web spec strictly to React Native primitives.
+ * API:
+ *   GET  /api/deals/all?category=all&country=IN   (client-side filtering)
+ *   GET  /api/deals/stats                          (AI advisor + smart bundle)
+ *   POST /api/deals/claim/{deal_id}
+ *   POST /api/deals/ai-generate
+ *
+ * Pure filtering logic lives in ./dealsFilters (unit-tested).
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator,
-  Image, Linking, Modal, Platform,
+  View, Text, TextInput, StyleSheet, Pressable, ScrollView, ActivityIndicator,
+  Image, Linking, Modal, Platform, useWindowDimensions,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import { request, resolveImageUrl } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useRouter } from 'expo-router';
+import { ForceLightTheme } from '@/src/theme/ThemeContext';
+import {
+  DEAL_TYPE_TABS, DEAL_TYPE_META, BANK_CARDS,
+  buildAutoCategories, filterDealsByType, filterDealsSearch,
+  filterBankOffers, inferDealType, categoryLabel,
+} from './dealsFilters';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-
-// ─── Types ───────────────────────────────────────────────────────────────
-type Tag =
-  | 'HOT' | 'OFF_30' | 'STUDENT_VERIFIED' | 'INSTANT'
-  | 'ENDING_SOON' | 'NEW' | 'TRENDING' | 'INDIA_EXCLUSIVE'
-  | 'NO_EXPIRY' | 'BEST_VALUE';
 
 type Deal = {
   deal_id: string;
   brand: string;
-  provider: string;
+  provider?: string;
   title: string;
-  category: string;
-  description: string;
+  category?: string;
+  description?: string;
   price_inr: number;
-  price_unit: string;
-  price_label: string;
-  original_inr: number;
-  original_label: string;
-  discount_pct: number;
-  discount_label: string;
-  absolute_savings_inr: number;
-  affiliate_url: string;
-  code: string;
+  price_unit?: string;
+  price_label?: string;
+  original_inr?: number;
+  original_label?: string;
+  discount_pct?: number;
+  discount_label?: string;
+  absolute_savings_inr?: number;
+  affiliate_url?: string;
+  code?: string;
   logo_url?: string;
-  accent: string;
-  student_only: boolean;
-  auto_apply: boolean;
-  country: 'IN' | 'GLOBAL';
-  available_globally: boolean;
-  source: string;
-  tags: Tag[];
+  accent?: string;
+  student_only?: boolean;
+  auto_apply?: boolean;
+  country?: string;
+  available_globally?: boolean;
+  source?: string;
+  tags?: string[];
+  deal_type?: string;
+  bank_name?: string;
+  card_type?: string;
+  code_verified?: boolean;
+  success_rate?: number;
+  // D3 crowdsourced verification
+  verification_count?: number;
+  status?: string;
+  expired_at?: string;
+  staleness_flag?: boolean;
 };
 
 type DealsResponse = {
@@ -68,57 +89,72 @@ type DealsResponse = {
 
 type Stats = {
   total_deals: number;
-  free_deals: number;
-  hot_deals: number;
   total_savings_inr: number;
   yearly_savings_inr: number;
   top_category: { id: string; savings: number };
   best_roi: { brand: string; title: string; savings_inr: number } | null;
   smart_bundle: { deal_id: string; title: string; brand: string;
-                  savings_inr: number; price_label: string;
-                  logo_url?: string; accent: string }[];
+                 savings_inr: number; price_label: string;
+                 logo_url?: string; accent: string }[];
   smart_bundle_total_savings_inr: number;
 };
 
-// ─── Tag styling ─────────────────────────────────────────────────────────
-const TAG_META: Record<Tag, { label: string; icon: IconName; bg: string; fg: string; solid?: boolean }> = {
-  HOT:              { label: 'HOT',              icon: 'fire',                  bg: '#EF4444',  fg: '#fff', solid: true },
-  OFF_30:           { label: '30%+ OFF',         icon: 'sale',                  bg: '#F97316',  fg: '#fff', solid: true },
-  STUDENT_VERIFIED: { label: 'Student Verified', icon: 'school',                bg: '#7C3AED',  fg: '#fff' },
-  INSTANT:          { label: 'Instant',          icon: 'flash',                 bg: '#06B6D4',  fg: '#fff' },
-  ENDING_SOON:      { label: 'Ending Soon',      icon: 'clock-alert-outline',   bg: '#F59E0B',  fg: '#1A1410' },
-  NEW:              { label: 'New',              icon: 'sparkles',              bg: '#10B981',  fg: '#fff' },
-  TRENDING:         { label: 'Trending',         icon: 'trending-up',           bg: '#EC4899',  fg: '#fff' },
-  INDIA_EXCLUSIVE:  { label: 'India Exclusive',  icon: 'map-marker',            bg: '#6366F1',  fg: '#fff' },
-  NO_EXPIRY:        { label: 'No Expiry',        icon: 'infinity',              bg: '#64748B',  fg: '#fff' },
-  BEST_VALUE:       { label: 'Best Value',       icon: 'medal',                 bg: '#059669',  fg: '#fff' },
+// ─── Light palette (D2) ────────────────────────────────────────────────
+const L = {
+  bg: '#F8FAFC',
+  card: '#FFFFFF',
+  text: '#0F172A',
+  text2: '#64748B',
+  text3: '#94A3B8',
+  accent: '#7C5CFC',
+  accentBg: '#F3EEFF',
+  accentBorder: '#D6CCFA',
+  border: '#E2E8F0',
+  chipBg: '#FFFFFF',
+  chipBorder: '#CBD5E1',
+  priceFree: '#059669',
+  pricePaid: '#D97706',
 };
 
-const CATEGORY_META: Record<string, { label: string; icon: IconName; color: string }> = {
-  all:           { label: 'All',           icon: 'view-grid',                color: '#A78BFA' },
-  tech:          { label: 'Tech & Tools',  icon: 'laptop',                   color: '#3B82F6' },
-  food:          { label: 'Food',          icon: 'food',                     color: '#FC8019' },
-  learning:      { label: 'Learning',      icon: 'school',                   color: '#8B5CF6' },
-  entertainment: { label: 'Entertainment', icon: 'play-circle',              color: '#1DB954' },
-  insurance:     { label: 'Insurance',     icon: 'shield-check',             color: '#EF4444' },
-  transport:     { label: 'Transport',     icon: 'bus',                      color: '#22C55E' },
-  travel:        { label: 'Travel',        icon: 'airplane',                 color: '#06B6D4' },
-  fashion:       { label: 'Fashion',       icon: 'tshirt-crew',              color: '#F472B6' },
-  grocery:       { label: 'Grocery',       icon: 'basket',                   color: '#84C225' },
+const TAG_META: Record<string, { label: string; icon: IconName; bg: string; fg: string; solid?: boolean }> = {
+  HOT:              { label: 'HOT',              icon: 'fire',                  bg: '#EF4444', fg: '#fff', solid: true },
+  OFF_30:           { label: '30%+ OFF',         icon: 'sale',                  bg: '#F97316', fg: '#fff', solid: true },
+  STUDENT_VERIFIED: { label: 'Student Verified', icon: 'school',                bg: '#EDE9FE', fg: '#5B21B6' },
+  INSTANT:          { label: 'Instant',          icon: 'flash',                 bg: '#CFFAFE', fg: '#0E7490' },
+  ENDING_SOON:      { label: 'Ending Soon',      icon: 'clock-alert-outline',   bg: '#FEF3C7', fg: '#B45309' },
+  NEW:              { label: 'New',              icon: 'sparkles',              bg: '#D1FAE5', fg: '#047857' },
+  TRENDING:         { label: 'Trending',         icon: 'trending-up',           bg: '#FCE7F3', fg: '#BE185D' },
+  INDIA_EXCLUSIVE:  { label: 'India Exclusive',  icon: 'map-marker',            bg: '#E0E7FF', fg: '#4338CA' },
+  NO_EXPIRY:        { label: 'No Expiry',        icon: 'infinity',              bg: '#E2E8F0', fg: '#475569' },
+  BEST_VALUE:       { label: 'Best Value',       icon: 'medal',                 bg: '#D1FAE5', fg: '#047857' },
+  UNRELIABLE:       { label: 'Unreliable',       icon: 'alert-outline',         bg: '#FEE2E2', fg: '#B91C1C' },
+  STALE:            { label: 'Stale',            icon: 'timer-sand',            bg: '#FEF3C7', fg: '#B45309' },
 };
 
-const CATEGORY_ORDER = ['all', 'tech', 'food', 'learning', 'entertainment',
-                        'insurance', 'transport', 'travel', 'fashion', 'grocery'];
-
-const C = {
-  text: '#fff',
-  text2: 'rgba(255,255,255,0.72)',
-  text3: 'rgba(255,255,255,0.46)',
-  border: 'rgba(255,255,255,0.10)',
-  card: 'rgba(255,255,255,0.04)',
+// ─── D3: crowdsourced "did it work?" badge ─────────────────────────────
+type CrowdBadge = {
+  label: string;
+  bg: string;
+  fg: string;
+  icon: IconName;
 };
+function crowdBadge(d: Deal): CrowdBadge | null {
+  // expired deals get a muted red badge regardless of rate
+  if (d.status === 'expired') {
+    return { label: 'Expired', bg: '#FEE2E2', fg: '#B91C1C', icon: 'close-circle' };
+  }
+  const count = d.verification_count || 0;
+  if (!d.success_rate && count === 0) {
+    return { label: 'Unverified', bg: '#FEF3C7', fg: '#B45309', icon: 'help' };
+  }
+  const pct = Math.round((d.success_rate || 0) * 100);
+  if (pct >= 70) {
+    return { label: `${pct}% work`, bg: '#D1FAE5', fg: '#047857', icon: 'check-decagram' };
+  }
+  return { label: `${pct}% work`, bg: '#FEE2E2', fg: '#B91C1C', icon: 'alert-circle' };
+}
 
-// ─── Utils ───────────────────────────────────────────────────────────────
+// ─── Utils ─────────────────────────────────────────────────────────────
 function fmtINR(n: number): string {
   if (!isFinite(n) || n === 0) return '₹0';
   if (n >= 10000000) return `₹${(n / 10000000).toFixed(1)}Cr`;
@@ -137,12 +173,45 @@ function relTime(iso?: string | null): string {
   } catch { return '—'; }
 }
 
-// ─── Component ───────────────────────────────────────────────────────────
+const BOTTOM_NAV: { icon: IconName; label: string; route: string; active?: boolean }[] = [
+  { icon: 'home-variant',  label: 'Home',      route: '/platform' },
+  { icon: 'brain',         label: 'Career AI', route: '/career-ai' },
+  { icon: 'gift',          label: 'Deals',     route: '/deals', active: true },
+  { icon: 'account-group', label: 'Network',   route: '/network' },
+  { icon: 'school',        label: 'Courses',   route: '/explore-courses' },
+];
+
+// ─── Component ─────────────────────────────────────────────────────────
 export default function DealsScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const initialized = useAuthStore((s) => s.initialized);
   const isEmbedded = React.useContext(EmbeddedShellContext);
+  const { width } = useWindowDimensions();
+  const isMobile = width > 0 && width < 640;
+  const isDesktop = width >= 1024;
+  const cols = isDesktop ? 4 : isMobile ? 1 : 2;
+
+  const [deals, setDeals] = useState<Deal[] | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [sources, setSources] = useState<{ name: string; status: string; deals: number }[]>([]);
+  const [typeTab, setTypeTab] = useState<string>('all');
+  const [catTab, setCatTab] = useState<string>('all');
+  const [cardSel, setCardSel] = useState<string[]>([]);
+  const [search, setSearch] = useState('');
+  const [aiPanel, setAiPanel] = useState<'calc' | 'bundle' | 'ai' | 'none'>('none');
+  const [aiBusy, setAiBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [claimDeal, setClaimDeal] = useState<Deal | null>(null);
+  const [claimResult, setClaimResult] = useState<any | null>(null);
+  const [claimBusy, setClaimBusy] = useState(false);
+  // D3: "did it work?" quick-yes/no prompts (claims 24h+ old, no report yet —
+  // same data the hourly 24h push notification points at)
+  const [pendingVerify, setPendingVerify] = useState<{ deal_id: string; brand: string; title: string; claimed_at: string | null }[]>([]);
+  const [verifyBusy, setVerifyBusy] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isEmbedded && initialized && user) {
@@ -154,33 +223,21 @@ export default function DealsScreen() {
     }
   }, [isEmbedded, initialized, user, router]);
 
-  const [deals, setDeals] = useState<Deal[] | null>(null);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [sources, setSources] = useState<{ name: string; status: string; deals: number }[]>([]);
-  const [tab, setTab] = useState<string>('all');
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [advisorOpen, setAdvisorOpen] = useState(false);
-  const [bundleOpen, setBundleOpen] = useState(false);
-  const [aiBusy, setAiBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [claimDeal, setClaimDeal] = useState<Deal | null>(null);
-  const [claimResult, setClaimResult] = useState<any | null>(null);
-  const [claimBusy, setClaimBusy] = useState(false);
-
-  const load = useCallback(async (cat: string, opts?: { refresh?: boolean }) => {
+  const load = useCallback(async (opts?: { refresh?: boolean }) => {
     setError(null);
     try {
-      const path = `/deals/all?category=${cat}&country=IN${opts?.refresh ? '&refresh=true' : ''}`;
-      const [r, s] = await Promise.all([
+      const path = `/deals/all?category=all&country=IN${opts?.refresh ? '&refresh=true' : ''}`;
+      const [r, s, pv] = await Promise.all([
         request<DealsResponse>(path),
         request<Stats>('/deals/stats').catch(() => null as any),
+        request<{ pending: any[] }>('/deals/verify-pending').catch(() => ({ pending: [] })),
       ]);
       setDeals(r.deals || []);
       setLastUpdated(r.last_updated || null);
       setSources(r.sources || []);
       if (s) setStats(s);
+      const unreported = (pv?.pending || []).filter((x: any) => !x.reported);
+      setPendingVerify(unreported);
     } catch (e: any) {
       setError(e?.message || 'Failed to load deals');
     } finally {
@@ -189,15 +246,15 @@ export default function DealsScreen() {
     }
   }, []);
 
-  useEffect(() => { load(tab); }, [tab, load]);
+  useEffect(() => { load(); }, [load]);
 
-  const onRefresh = () => { setRefreshing(true); load(tab, { refresh: true }); };
+  const onRefresh = () => { setRefreshing(true); load({ refresh: true }); };
 
   const onAiTrending = async () => {
     setAiBusy(true);
     try {
       await request<any>('/deals/ai-generate', { method: 'POST', body: { refresh: false } });
-      await load(tab, { refresh: true });
+      await load({ refresh: true });
     } catch (e: any) {
       setError(e?.message || 'AI generator failed');
     } finally { setAiBusy(false); }
@@ -212,7 +269,6 @@ export default function DealsScreen() {
     try {
       const r = await request<any>(`/deals/claim/${claimDeal.deal_id}`, { method: 'POST', body: {} });
       setClaimResult(r);
-      // Open the affiliate URL in a new tab/external browser
       try {
         if (r?.affiliate_url) {
           if (Platform.OS === 'web') {
@@ -227,371 +283,546 @@ export default function DealsScreen() {
     } finally { setClaimBusy(false); }
   };
 
-  const hotDeals = useMemo(() => (deals || []).filter((d) => d.tags?.includes('HOT')), [deals]);
-  const otherDeals = useMemo(() => (deals || []).filter((d) => !d.tags?.includes('HOT')), [deals]);
+  const submitVerification = async (deal: { deal_id: string; brand: string }, worked: boolean) => {
+    const key = `${deal.deal_id}:${worked}`;
+    if (verifyBusy) return;
+    setVerifyBusy(key);
+    try {
+      await request<any>(`/deals/verify/${deal.deal_id}`, { method: 'POST', body: { worked } });
+      setPendingVerify((cur) => cur.filter((x) => x.deal_id !== deal.deal_id));
+      setDeals((cur) => cur && cur.map((x) =>
+        x.deal_id === deal.deal_id
+          ? { ...x, success_rate: worked ? 1 : 0, verification_count: (x.verification_count || 0) + 1 }
+          : x));
+    } catch {}
+    finally { setVerifyBusy(null); }
+  };
 
-  // ─── Render ────────────────────────────────────────────────────────────
+  // ─── Derived, client-side pipeline: type → category → search → bank ──
+  const allDeals = useMemo(() => deals || [], [deals]);
+
+  const typeDeals = useMemo(
+    () => filterDealsByType(allDeals, typeTab as any),
+    [allDeals, typeTab],
+  );
+
+  const autoCats = useMemo(() => buildAutoCategories(typeDeals), [typeDeals]);
+
+  const catDeals = useMemo(() => {
+    if (catTab === 'all') return typeDeals;
+    return typeDeals.filter((d) => (d.category || 'other') === catTab);
+  }, [typeDeals, catTab]);
+
+  const searched = useMemo(() => filterDealsSearch(catDeals, search), [catDeals, search]);
+
+  const shown = useMemo(() => {
+    if (typeTab !== 'bank_offer') return searched;
+    const chosen = cardSel
+      .map((k) => BANK_CARDS.find((c) => `${c.bank}|${c.name}` === k))
+      .filter(Boolean) as any[];
+    return filterBankOffers(searched, chosen);
+  }, [typeTab, searched, cardSel]);
+
+  const dealById = useMemo(() => new Map(allDeals.map((d) => [d.deal_id, d])), [allDeals]);
+
+  const pickType = (id: string) => {
+    setTypeTab(id);
+    setCatTab('all');
+    setCardSel([]);
+  };
+
+  const toggleCard = (k: string) =>
+    setCardSel((cur) => (cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k]));
+
+  const bankGroups = useMemo(() => {
+    const m: Record<string, { bank: string; name: string }[]> = {};
+    for (const c of BANK_CARDS) (m[c.bank] = m[c.bank] || []).push(c);
+    return Object.entries(m);
+  }, []);
+
+  // ─── Render ──────────────────────────────────────────────────────────
   return (
-    <FeaturePageShell
-      title="Exclusive SA Member Deals"
-      subtitle={`${deals?.length || 0} active deals · Verified for ${user?.full_name || 'You'} · SA-ID: ${user ? formatSAID(user) : '—'}`}
-      heroEmoji="🎁"
-      accent="#F59E0B"
-      rightSlot={
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <View style={s.savePill}>
-            <MaterialCommunityIcons name="star-four-points" size={12} color="#FCD34D" />
-            <Text style={s.savePillText}>SA Exclusive</Text>
+    <ForceLightTheme>
+      <FeaturePageShell
+        title="Deals & Offers"
+        subtitle={`${allDeals.length || 0} deals · Updated ${relTime(lastUpdated)}`}
+        heroEmoji="🎁"
+        accent="#7C5CFC"
+        rightSlot={
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            <TextInput
+              placeholder="Search deals, brands, codes…"
+              placeholderTextColor="#94A3B8"
+              value={search}
+              onChangeText={setSearch}
+              style={s.searchInput}
+            />
+            <Pressable style={s.refreshBtn} onPress={onRefresh} disabled={refreshing}>
+              {refreshing
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <MaterialCommunityIcons name="refresh" size={14} color="#fff" />}
+              <Text style={s.refreshText}>Refresh</Text>
+            </Pressable>
           </View>
-          <Pressable style={s.refreshBtn} onPress={onRefresh} disabled={refreshing}>
-            {refreshing ? <ActivityIndicator color="#fff" size="small" /> :
-              <MaterialCommunityIcons name="refresh" size={14} color="#fff" />}
-            <Text style={s.refreshText}>Refresh</Text>
-          </Pressable>
-        </View>
-      }
-    >
-      {/* Last updated */}
-      {lastUpdated && (
-        <Text style={s.lastUpdated}>
-          Last updated {relTime(lastUpdated)} · Sources: {sources.length || 1}
-        </Text>
-      )}
-
-      {error ? (
-        <View style={s.errBox}>
-          <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#F87171" />
-          <Text style={s.errText}>{error}</Text>
-        </View>
-      ) : null}
-
-      {/* AI Savings Advisor (amber) */}
-      <Accordion
-        open={advisorOpen}
-        onToggle={() => setAdvisorOpen(!advisorOpen)}
-        title="AI Savings Advisor — How much can you save?"
-        icon="auto-fix"
-        tint="#F59E0B"
-        bg="rgba(245,158,11,0.10)"
-        border="rgba(245,158,11,0.40)"
+        }
       >
-        {!stats ? (
-          <ActivityIndicator color="#F59E0B" />
-        ) : (
-          <View style={{ gap: 12 }}>
-            <View style={s.advisorRow}>
-              <AdvisorMetric label="Estimated yearly savings" value={fmtINR(stats.yearly_savings_inr)} icon="cash-multiple" tint="#34D399" />
-              <AdvisorMetric label="Top category" value={CATEGORY_META[stats.top_category.id]?.label || stats.top_category.id} icon="trophy" tint="#FCD34D" />
-              <AdvisorMetric label="Best ROI" value={stats.best_roi ? fmtINR(stats.best_roi.savings_inr) : '—'} icon="medal" tint="#A78BFA" />
+        <View style={s.panel}>
+          {error ? (
+            <View style={s.errBox}>
+              <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#EF4444" />
+              <Text style={s.errText}>{error}</Text>
             </View>
-            {stats.best_roi && (
-              <Text style={s.advisorSummary}>
-                You can save up to <Text style={{ color: '#FCD34D', fontWeight: '700' }}>{fmtINR(stats.total_savings_inr)}</Text> across{' '}
-                <Text style={{ color: '#FCD34D', fontWeight: '700' }}>{stats.total_deals}</Text> active deals.
-                Your biggest single saving: <Text style={{ color: '#FCD34D', fontWeight: '700' }}>{stats.best_roi.brand}</Text> — {stats.best_roi.title} ({fmtINR(stats.best_roi.savings_inr)}).
-                Top category by savings: <Text style={{ color: '#FCD34D', fontWeight: '700' }}>{CATEGORY_META[stats.top_category.id]?.label || stats.top_category.id}</Text>.
-              </Text>
-            )}
-          </View>
-        )}
-      </Accordion>
+          ) : null}
 
-      {/* AI Smart Bundle (pink) */}
-      <Accordion
-        open={bundleOpen}
-        onToggle={() => setBundleOpen(!bundleOpen)}
-        title="AI Smart Bundle — Best deals combo for me"
-        icon="cube-outline"
-        tint="#EC4899"
-        bg="rgba(236,72,153,0.10)"
-        border="rgba(236,72,153,0.40)"
-      >
-        {!stats ? (
-          <ActivityIndicator color="#EC4899" />
-        ) : (
-          <View style={{ gap: 12 }}>
-            <Text style={s.bundleSummary}>
-              These 4 deals together save you{' '}
-              <Text style={{ color: '#FBCFE8', fontWeight: '800' }}>{fmtINR(stats.smart_bundle_total_savings_inr)}</Text>.
-            </Text>
-            <View style={s.bundleGrid}>
-              {stats.smart_bundle.map((b) => (
-                <View key={b.deal_id} style={[s.bundleItem, { borderColor: b.accent + '55' }]}>
-                  {b.logo_url ? (
-                    <Image source={{ uri: resolveImageUrl(b.logo_url) }} style={s.bundleLogo} resizeMode="contain" />
-                  ) : (
-                    <View style={[s.bundleLogoFallback, { backgroundColor: b.accent + '33' }]}>
-                      <Text style={{ color: b.accent, fontSize: 14, fontWeight: '800' }}>{b.brand?.[0] || '?'}</Text>
-                    </View>
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.bundleBrand}>{b.brand}</Text>
-                    <Text style={s.bundleTitle} numberOfLines={1}>{b.title}</Text>
-                    <Text style={[s.bundleSavings, { color: '#FBCFE8' }]}>save {fmtINR(b.savings_inr)}</Text>
+          {/* ── 2. AI bar — 3 compact pills ── */}
+          <View style={s.aiBar}>
+            <AiPill
+              icon="calculator-variant" label="Savings Calculator"
+              active={aiPanel === 'calc'}
+              onPress={() => setAiPanel(aiPanel === 'calc' ? 'none' : 'calc')}
+            />
+            <AiPill
+              icon="cube-outline" label="Smart Bundle"
+              active={aiPanel === 'bundle'}
+              onPress={() => setAiPanel(aiPanel === 'bundle' ? 'none' : 'bundle')}
+            />
+            <AiPill
+              icon="auto-fix" label="AI Deals"
+              active={aiPanel === 'ai'}
+              busy={aiBusy}
+              onPress={() => { setAiPanel(aiPanel === 'ai' ? 'none' : 'ai'); onAiTrending(); }}
+            />
+          </View>
+
+          {aiPanel === 'calc' && (
+            <View style={s.aiPanelBox}>
+              {!stats ? (
+                <ActivityIndicator color={L.accent} />
+              ) : (
+                <>
+                  <View style={s.advisorRow}>
+                    <AdvisorMetric label="Estimated yearly savings" value={fmtINR(stats.yearly_savings_inr)} icon="cash-multiple" />
+                    <AdvisorMetric label="Top category" value={categoryLabel(stats.top_category?.id || 'other')} icon="trophy" />
+                    <AdvisorMetric label="Best ROI" value={stats.best_roi ? fmtINR(stats.best_roi.savings_inr) : '—'} icon="medal" />
                   </View>
+                  {stats.best_roi && (
+                    <Text style={s.advisorSummary}>
+                      You can save up to <Text style={{ color: L.accent, fontWeight: '700' }}>{fmtINR(stats.total_savings_inr)}</Text> across{' '}
+                      <Text style={{ color: L.accent, fontWeight: '700' }}>{stats.total_deals}</Text> deals.
+                      Best single save: <Text style={{ color: L.accent, fontWeight: '700' }}>{stats.best_roi.brand}</Text> — {stats.best_roi.title}.
+                    </Text>
+                  )}
+                </>
+              )}
+            </View>
+          )}
+
+          {aiPanel === 'bundle' && (
+            <View style={s.aiPanelBox}>
+              {!stats ? (
+                <ActivityIndicator color={L.accent} />
+              ) : (
+                <>
+                  <Text style={s.advisorSummary}>
+                    These {stats.smart_bundle?.length || 0} deals together save you{' '}
+                    <Text style={{ color: L.accent, fontWeight: '800' }}>{fmtINR(stats.smart_bundle_total_savings_inr)}</Text>.
+                  </Text>
+                  <View style={s.bundleGrid}>
+                    {(stats.smart_bundle || []).map((b: any) => (
+                      <View key={b.deal_id} style={s.bundleItem}>
+                        {b.logo_url ? (
+                          <Image source={{ uri: resolveImageUrl(b.logo_url) }} style={s.bundleLogo} resizeMode="contain" />
+                        ) : (
+                          <View style={[s.bundleLogoFallback, { backgroundColor: (b.accent || L.accent) + '22' }]}>
+                            <Text style={{ color: b.accent || L.accent, fontSize: 14, fontWeight: '800' }}>{b.brand?.[0] || '?'}</Text>
+                          </View>
+                        )}
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.bundleBrand}>{b.brand}</Text>
+                          <Text style={s.bundleTitle} numberOfLines={1}>{b.title}</Text>
+                          <Text style={s.bundleSavings}>save {fmtINR(b.savings_inr)}</Text>
+                        </View>
+                        <Pressable style={s.bundleClaimBtn} onPress={() => {
+                          const d = dealById.get(b.deal_id);
+                          if (d) openClaim(d);
+                        }}>
+                          <Text style={s.bundleClaimText}>Claim</Text>
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                </>
+              )}
+            </View>
+          )}
+
+          {aiPanel === 'ai' && (
+            <View style={s.aiPanelBox}>
+              {aiBusy ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <ActivityIndicator color={L.accent} />
+                  <Text style={s.advisorSummary}>Generating trending deals…</Text>
+                </View>
+              ) : (
+                <Text style={s.advisorSummary}>
+                  Trending deals refreshed — {shown.length} matching offers above.
+                </Text>
+              )}
+            </View>
+          )}
+
+          {/* ── 3. Deal-type tabs ── */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabRow}>
+            {DEAL_TYPE_TABS.map((t) => {
+              const active = typeTab === t.id;
+              return (
+                <Pressable
+                  key={t.id}
+                  accessibilityLabel={`deal type ${t.label}`}
+                  onPress={() => pickType(t.id)}
+                  style={[s.tab, { backgroundColor: active ? L.accent : L.chipBg, borderColor: active ? L.accent : L.chipBorder }]}
+                >
+                  <Text style={[s.tabText, { color: active ? '#fff' : L.text2 }]}>{t.label}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          {/* ── 4. Auto-populated category chips ── */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabRow}>
+            {autoCats.map((c) => {
+              const active = catTab === c.id;
+              return (
+                <Pressable
+                  key={c.id}
+                  accessibilityLabel={`category ${c.label}`}
+                  onPress={() => setCatTab(c.id)}
+                  style={[s.chip, { backgroundColor: active ? L.accentBg : L.chipBg, borderColor: active ? L.accentBorder : L.chipBorder }]}
+                >
+                  <Text style={[s.chipText, { color: active ? '#5B21B6' : L.text2 }]}>
+                    {c.label} <Text style={{ opacity: 0.65 }}>{c.count}</Text>
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          {/* ── 5. Bank card filter (Bank Offers active only) ── */}
+          {typeTab === 'bank_offer' && (
+            <View style={s.bankFilter}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <MaterialCommunityIcons name="credit-card-outline" size={14} color={L.accent} />
+                <Text style={s.bankFilterTitle}>Your cards — offers that work with them</Text>
+                {cardSel.length > 0 && (
+                  <Pressable onPress={() => setCardSel([])}>
+                    <Text style={s.bankFilterClear}>Clear</Text>
+                  </Pressable>
+                )}
+              </View>
+              {bankGroups.map(([bank, opts]) => (
+                <View key={bank} style={{ gap: 6 }}>
+                  <Text style={s.bankGroupLabel}>{bank}</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabRow}>
+                    {opts.map((c) => {
+                      const k = `${c.bank}|${c.name}`;
+                      const on = cardSel.includes(k);
+                      return (
+                        <Pressable
+                          key={k}
+                          accessibilityLabel={`card ${bank} ${c.name}`}
+                          onPress={() => toggleCard(k)}
+                          style={[s.chip, { backgroundColor: on ? L.accentBg : L.chipBg, borderColor: on ? L.accent : L.chipBorder }]}
+                        >
+                          <MaterialCommunityIcons
+                            name={on ? 'check' : 'plus'} size={11}
+                            color={on ? L.accent : L.text3}
+                          />
+                          <Text style={[s.chipText, { color: on ? '#5B21B6' : L.text2 }]}>{c.name}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
                 </View>
               ))}
             </View>
-            <Pressable style={s.claimAllBtn}>
-              <MaterialCommunityIcons name="auto-fix" size={14} color="#3F0518" />
-              <Text style={s.claimAllText}>Claim all 4</Text>
-            </Pressable>
-          </View>
-        )}
-      </Accordion>
+          )}
 
-      {/* AI Trending button */}
-      <Pressable style={s.aiTrendBtn} onPress={onAiTrending} disabled={aiBusy}>
-        {aiBusy ? <ActivityIndicator color="#A78BFA" /> :
-          <MaterialCommunityIcons name="auto-fix" size={14} color="#A78BFA" />}
-        <Text style={s.aiTrendText}>
-          {aiBusy ? 'Generating…' : 'AI · Refresh trending hot deals (Claude)'}
-        </Text>
-      </Pressable>
-
-      {/* Category chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 12 }}>
-        {CATEGORY_ORDER.map((id) => {
-          const meta = CATEGORY_META[id];
-          const active = tab === id;
-          return (
-            <Pressable
-              key={id}
-              onPress={() => setTab(id)}
-              style={[s.tab, active && { backgroundColor: meta.color + '22', borderColor: meta.color + '66' }]}
-            >
-              <MaterialCommunityIcons name={meta.icon} size={14} color={active ? meta.color : 'rgba(255,255,255,0.65)'} />
-              <Text style={[s.tabText, active && { color: meta.color }]}>{meta.label}</Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-
-      {/* Loading */}
-      {loading && !deals ? (
-        <View style={{ paddingVertical: 60, alignItems: 'center' }}>
-          <ActivityIndicator color="#FCD34D" size="large" />
-          <Text style={{ color: C.text2, marginTop: 8 }}>Loading deals…</Text>
-        </View>
-      ) : (
-        <>
-          {/* Hot Deals */}
-          {hotDeals.length > 0 && (
-            <View style={s.section}>
-              <View style={s.sectionHead}>
-                <MaterialCommunityIcons name="fire" size={18} color="#EF4444" />
-                <Text style={s.sectionTitle}>Hot Deals</Text>
-                <Text style={s.sectionSub}>Limited time — grab these before they expire!</Text>
+          {/* ── 6. Responsive grid ── */}
+          {pendingVerify.length > 0 && !loading && (
+            <View style={s.verifyCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <MaterialCommunityIcons name="vote" size={15} color={L.accent} />
+                <Text style={s.verifyCardTitle}>Did it work?</Text>
               </View>
-              <View style={s.grid}>
-                {hotDeals.map((d) => <DealCard key={d.deal_id} d={d} onClaim={openClaim} />)}
-              </View>
+              <Text style={s.verifyCardSub}>
+                {pendingVerify.length} claim{pendingVerify.length > 1 ? 's' : ''} from the last day need a quick heads-up:
+              </Text>
+              {pendingVerify.slice(0, 3).map((p) => (
+                <View key={p.deal_id} style={s.verifyRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.verifyRowTitle} numberOfLines={1}>
+                      {(p.brand || 'Deal').toUpperCase()} — {p.title || p.deal_id}
+                    </Text>
+                    <Text style={s.verifyRowSub}>Claimed {relTime(p.claimed_at)}</Text>
+                  </View>
+                  <Pressable
+                    style={[s.verifyBtn, s.verifyYes]}
+                    onPress={() => submitVerification(p, true)}
+                    disabled={verifyBusy !== null}>
+                    <MaterialCommunityIcons name="check" size={12} color="#047857" />
+                    <Text style={{ color: '#047857', fontSize: 11, fontWeight: '700' }}>Yes</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[s.verifyBtn, s.verifyNo]}
+                    onPress={() => submitVerification(p, false)}
+                    disabled={verifyBusy !== null}>
+                    <MaterialCommunityIcons name="close" size={12} color="#B91C1C" />
+                    <Text style={{ color: '#B91C1C', fontSize: 11, fontWeight: '700' }}>No</Text>
+                  </Pressable>
+                </View>
+              ))}
             </View>
           )}
 
-          {/* All Deals */}
-          {otherDeals.length > 0 && (
-            <View style={s.section}>
-              <View style={s.sectionHead}>
-                <MaterialCommunityIcons name="view-grid" size={18} color="#A78BFA" />
-                <Text style={s.sectionTitle}>All Deals</Text>
-                <Text style={s.sectionSub}>Curated for SA members across {CATEGORY_META[tab]?.label || 'all'} categories</Text>
-              </View>
+          {loading && !deals ? (
+            <View style={s.centerBlock}>
+              <ActivityIndicator color={L.accent} size="large" />
+              <Text style={s.centerText}>Loading deals…</Text>
+            </View>
+          ) : (
+            <>
+              {shown.length === 0 && (
+                <View style={s.centerBlock}>
+                  <MaterialCommunityIcons name="package-variant" size={32} color={L.text3} />
+                  <Text style={s.centerText}>No deals match these filters yet.</Text>
+                </View>
+              )}
               <View style={s.grid}>
-                {otherDeals.map((d) => <DealCard key={d.deal_id} d={d} onClaim={openClaim} />)}
+                {shown.map((d) => (
+                  <DealCard key={d.deal_id} d={d} onClaim={openClaim} cardStyle={s.cardCell(cols)} />
+                ))}
               </View>
-            </View>
-          )}
-
-          {(!hotDeals.length && !otherDeals.length) && (
-            <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-              <MaterialCommunityIcons name="package-variant" size={32} color={C.text3} />
-              <Text style={{ color: C.text3, marginTop: 8 }}>No deals in this category yet.</Text>
-            </View>
+            </>
           )}
 
           {/* Sources strip */}
           <View style={s.sourcesStrip}>
-            <MaterialCommunityIcons name="api" size={12} color={C.text3} />
+            <MaterialCommunityIcons name="api" size={12} color={L.text3} />
             <Text style={s.sourcesText}>
-              Sourced from: {sources.map(s => s.name).join(' · ') || 'curated'} · Cache 60 min
+              Sourced from: {sources.map((x) => x.name).join(' · ') || 'curated'}
             </Text>
           </View>
-        </>
-      )}
+        </View>
 
-      {/* Claim Modal */}
-      <Modal visible={!!claimDeal} animationType="fade" transparent onRequestClose={closeClaim}>
-        <View style={s.modalBackdrop}>
-          <View style={s.modalCard}>
-            {claimDeal && (
-              <>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  {claimDeal.logo_url ? (
-                    <Image source={{ uri: resolveImageUrl(claimDeal.logo_url) }} style={s.modalLogo} resizeMode="contain" />
-                  ) : (
-                    <View style={[s.modalLogoFallback, { backgroundColor: claimDeal.accent + '33' }]}>
-                      <Text style={{ color: claimDeal.accent, fontSize: 18, fontWeight: '800' }}>{claimDeal.brand[0]}</Text>
-                    </View>
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.modalBrand}>{claimDeal.brand}</Text>
-                    <Text style={s.modalTitle}>{claimDeal.title}</Text>
-                  </View>
-                  <Pressable onPress={closeClaim} hitSlop={8}>
-                    <MaterialCommunityIcons name="close" size={20} color={C.text2} />
-                  </Pressable>
-                </View>
-
-                <View style={s.modalSavingsBox}>
-                  <Text style={s.modalSavingsLabel}>You save</Text>
-                  <Text style={[s.modalSavingsValue, { color: claimDeal.accent }]}>
-                    {fmtINR(claimDeal.absolute_savings_inr)}
-                  </Text>
-                  <Text style={s.modalSavingsSub}>
-                    {claimDeal.original_label} → {claimDeal.price_label} ({claimDeal.discount_label})
-                  </Text>
-                </View>
-
-                {claimDeal.code ? (
-                  <View style={s.codeBox}>
-                    <Text style={s.codeLabel}>Code</Text>
-                    <Text style={s.codeValue}>{claimDeal.code}</Text>
-                    <MaterialCommunityIcons name="content-copy" size={14} color="#A78BFA" />
-                  </View>
-                ) : (
-                  <Text style={s.modalNote}>No code needed — discount applied automatically at checkout.</Text>
-                )}
-
-                {claimResult?.ok && (
-                  <View style={s.claimSuccess}>
-                    <MaterialCommunityIcons name="check-decagram" size={16} color="#34D399" />
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.claimSuccessTitle}>
-                        {claimResult.credits_awarded > 0
-                          ? `+${claimResult.credits_awarded} SA points earned!`
-                          : 'Daily quota reached — redirecting'}
-                      </Text>
-                      <Text style={s.claimSuccessSub}>
-                        Today {claimResult.todays_claims || 0}/{claimResult.max_per_day || 3} claims used
-                      </Text>
-                    </View>
-                  </View>
-                )}
-                {claimResult && !claimResult.ok && (
-                  <View style={[s.claimSuccess, { backgroundColor: 'rgba(248,113,113,0.10)', borderColor: 'rgba(248,113,113,0.45)' }]}>
-                    <MaterialCommunityIcons name="alert-circle" size={16} color="#F87171" />
-                    <Text style={[s.claimSuccessSub, { color: '#FCA5A5' }]}>{claimResult.error}</Text>
-                  </View>
-                )}
-
+        {/* ── 8. Phone bottom nav ── */}
+        {isMobile && !isEmbedded && Platform.OS === 'web' && (
+          <View style={s.bottomNav} pointerEvents="box-none">
+            <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', flex: 1 }}>
+              {BOTTOM_NAV.map((n) => (
                 <Pressable
-                  style={[s.modalCTA, { backgroundColor: claimDeal.accent }]}
-                  disabled={claimBusy}
-                  onPress={onClaimConfirm}
+                  key={n.route}
+                  onPress={() => !n.active && router.replace(n.route as any)}
+                  style={s.bottomNavItem}
                 >
-                  {claimBusy ? <ActivityIndicator color="#fff" /> : (
-                    <>
-                      <MaterialCommunityIcons name="open-in-new" size={14} color="#fff" />
-                      <Text style={s.modalCTAText}>Continue to {claimDeal.brand}</Text>
-                    </>
-                  )}
+                  <MaterialCommunityIcons
+                    name={n.icon} size={20}
+                    color={n.active ? L.accent : L.text3}
+                  />
+                  <Text style={[s.bottomNavLabel, { color: n.active ? L.accent : L.text3 }]}>
+                    {n.label}
+                  </Text>
                 </Pressable>
-                <Text style={s.modalNote}>+20 SA points earned per claim · max 3 claims/day</Text>
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
-    </FeaturePageShell>
-  );
-}
-
-function formatSAID(user: any): string {
-  const id = String(user?.id || user?._id || user?.user_id || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
-  if (!id) return '—';
-  return `SA-26-${id.slice(0, 6).padStart(6, '0')}`;
-}
-
-// ─── Sub-components ──────────────────────────────────────────────────────
-function Accordion({ open, onToggle, title, icon, tint, bg, border, children }: {
-  open: boolean; onToggle: () => void; title: string; icon: IconName;
-  tint: string; bg: string; border: string; children: React.ReactNode;
-}) {
-  return (
-    <View style={[s.accordion, { backgroundColor: bg, borderColor: border }]}>
-      <Pressable onPress={onToggle} style={s.accordionHead}>
-        <MaterialCommunityIcons name={icon} size={18} color={tint} />
-        <Text style={[s.accordionTitle, { color: tint }]}>{title}</Text>
-        <MaterialCommunityIcons
-          name={open ? 'chevron-up' : 'chevron-down'}
-          size={18} color={tint}
-          style={{ marginLeft: 'auto' }}
-        />
-      </Pressable>
-      {open && <View style={s.accordionBody}>{children}</View>}
-    </View>
-  );
-}
-
-function AdvisorMetric({ label, value, icon, tint }: { label: string; value: string; icon: IconName; tint: string }) {
-  return (
-    <View style={[s.advisorMetric, { borderColor: tint + '44' }]}>
-      <MaterialCommunityIcons name={icon} size={14} color={tint} />
-      <Text style={s.advisorMetricLabel}>{label}</Text>
-      <Text style={[s.advisorMetricValue, { color: tint }]}>{value}</Text>
-    </View>
-  );
-}
-
-function DealCard({ d, onClaim }: { d: Deal; onClaim: (d: Deal) => void }) {
-  const visible = (d.tags || []).filter((t) => t !== 'HOT').slice(0, 3);
-  const overflow = (d.tags || []).filter((t) => t !== 'HOT').length - visible.length;
-  return (
-    <View style={[s.card, { borderColor: d.accent + '44' }]}>
-      {/* Wrap top details in a flex: 1 view to push CTA to the bottom */}
-      <View style={{ flex: 1, gap: 8 }}>
-        {/* Top: Logo + title/brand + prices */}
-        <View style={s.cardTop}>
-          {/* Col 1: Logo */}
-          <View style={s.cardLogoWrap}>
-            {d.logo_url ? (
-              <Image source={{ uri: resolveImageUrl(d.logo_url) }} style={s.cardLogo} resizeMode="contain" />
-            ) : (
-              <View style={[s.cardLogoFallback, { backgroundColor: d.accent + '33' }]}>
-                <Text style={{ color: d.accent, fontSize: 18, fontWeight: '800' }}>{d.brand[0]}</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Col 2: Brand + Title */}
-          <View style={{ flex: 1, marginLeft: 10, justifyContent: 'center' }}>
-            <Text style={s.cardTitle} numberOfLines={1}>{d.title}</Text>
-            <Text style={s.cardBrand}>{d.brand}</Text>
-          </View>
-
-          {/* Col 3: Prices */}
-          <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
-            <Text style={[s.cardPrice, { color: '#86EFAC' }]}>{d.price_label}</Text>
-            {d.original_inr > d.price_inr && (
-              <Text style={s.cardOrig}>{d.original_label}</Text>
-            )}
-            {d.discount_pct > 0 && (
-              <Text style={[s.cardPct, { color: '#FCD34D' }]}>{d.discount_pct}% off</Text>
-            )}
-          </View>
-        </View>
-
-        {/* HOT badge (rendered completely inline right above the description) */}
-        {d.tags?.includes('HOT') && (
-          <View style={s.hotChip}>
-            <MaterialCommunityIcons name="fire" size={10} color="#fff" />
-            <Text style={s.hotChipText}>HOT</Text>
+              ))}
+            </View>
           </View>
         )}
 
+        {/* ── 7. Claim modal ── */}
+        <Modal visible={!!claimDeal} animationType="fade" transparent onRequestClose={closeClaim}>
+          <View style={s.modalBackdrop}>
+            <View style={s.modalCard}>
+              {claimDeal && (
+                <>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    {claimDeal.logo_url ? (
+                      <Image source={{ uri: resolveImageUrl(claimDeal.logo_url) }} style={s.modalLogo} resizeMode="contain" />
+                    ) : (
+                      <View style={[s.modalLogoFallback, { backgroundColor: L.accentBg }]}>
+                        <Text style={{ color: L.accent, fontSize: 18, fontWeight: '800' }}>{(claimDeal.brand || '?')[0]}</Text>
+                      </View>
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.modalBrand}>{(claimDeal.brand || '').toUpperCase()}</Text>
+                      <Text style={s.modalTitle}>{claimDeal.title}</Text>
+                    </View>
+                    <Pressable onPress={closeClaim} hitSlop={8}>
+                      <MaterialCommunityIcons name="close" size={20} color={L.text2} />
+                    </Pressable>
+                  </View>
+
+                  <View style={s.modalSavingsBox}>
+                    <Text style={s.modalSavingsLabel}>You save</Text>
+                    <Text style={[s.modalSavingsValue, { color: L.accent }]}>
+                      {fmtINR(claimDeal.absolute_savings_inr || 0)}
+                    </Text>
+                    <Text style={s.modalSavingsSub}>
+                      {claimDeal.original_label || '—'} → {claimDeal.price_label || 'Free'}{claimDeal.discount_label ? ` (${claimDeal.discount_label})` : ''}
+                    </Text>
+                  </View>
+
+                  {claimDeal.code ? (
+                    <View style={s.codeBox}>
+                      <Text style={s.codeLabel}>Code</Text>
+                      <Text style={[s.codeValue, { color: '#5B21B6' }]}>{claimDeal.code}</Text>
+                      <MaterialCommunityIcons name="content-copy" size={14} color={L.accent} />
+                    </View>
+                  ) : (
+                    <Text style={s.modalNote}>No code needed — discount applied automatically at checkout.</Text>
+                  )}
+
+                  {claimResult?.ok && (
+                    <View style={s.claimSuccess}>
+                      <MaterialCommunityIcons name="check-decagram" size={16} color="#059669" />
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.claimSuccessTitle}>
+                          {claimResult.credits_awarded > 0
+                            ? `+${claimResult.credits_awarded} SA points earned!`
+                            : 'Daily quota reached — redirecting'}
+                        </Text>
+                        <Text style={s.claimSuccessSub}>
+                          Today {claimResult.todays_claims || 0}/{claimResult.max_per_day || 3} claims used
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                  {claimResult && !claimResult.ok && (
+                    <View style={s.claimFail}>
+                      <MaterialCommunityIcons name="alert-circle" size={16} color="#DC2626" />
+                      <Text style={s.claimFailText}>{claimResult.error}</Text>
+                    </View>
+                  )}
+
+                  <Pressable style={s.modalCTA} disabled={claimBusy} onPress={onClaimConfirm}>
+                    {claimBusy ? <ActivityIndicator color="#fff" /> : (
+                      <>
+                        <MaterialCommunityIcons name="open-in-new" size={14} color="#fff" />
+                        <Text style={s.modalCTAText}>Continue to {claimDeal.brand}</Text>
+                      </>
+                    )}
+                  </Pressable>
+                  <Text style={s.modalNote}>+20 SA points earned per claim · max 3 claims/day</Text>
+                </>
+              )}
+            </View>
+          </View>
+        </Modal>
+      </FeaturePageShell>
+    </ForceLightTheme>
+  );
+}
+
+// ─── Sub-components ────────────────────────────────────────────────────
+function AiPill({ icon, label, active, busy, onPress }: {
+  icon: IconName; label: string; active: boolean; busy?: boolean; onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      onPress={onPress}
+      disabled={busy}
+      style={[s.aiPill, { backgroundColor: active ? L.accent : L.chipBg, borderColor: active ? L.accent : L.chipBorder }]}
+    >
+      {busy ? <ActivityIndicator size="small" color={active ? '#fff' : L.accent} /> :
+        <MaterialCommunityIcons name={icon} size={13} color={active ? '#fff' : L.accent} />}
+      <Text style={[s.aiPillText, { color: active ? '#fff' : L.text }]}>
+        {busy ? 'Generating…' : label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function AdvisorMetric({ label, value, icon }: { label: string; value: string; icon: IconName }) {
+  return (
+    <View style={s.advisorMetric}>
+      <MaterialCommunityIcons name={icon} size={14} color={L.accent} />
+      <Text style={s.advisorMetricLabel}>{label}</Text>
+      <Text style={s.advisorMetricValue}>{value}</Text>
+    </View>
+  );
+}
+
+function TagPill({ tag }: { tag: string }) {
+  const meta = TAG_META[tag];
+  if (!meta) return null;
+  const solid = meta.solid;
+  return (
+    <View style={[s.tagPill, { backgroundColor: solid ? meta.bg : meta.bg, borderColor: solid ? meta.bg : meta.bg }]}
+      accessibilityLabel={`tag ${meta.label}`}>
+      <MaterialCommunityIcons name={meta.icon} size={10} color={meta.fg} />
+      <Text style={[s.tagText, { color: meta.fg }]}>{meta.label}</Text>
+    </View>
+  );
+}
+
+export function DealCard({ d, onClaim, cardStyle }: { d: Deal; onClaim: (d: Deal) => void; cardStyle?: object }) {
+  const dt = DEAL_TYPE_META[inferDealType(d as any)] || { label: 'Deal', bg: '#F1F5F9', fg: '#475569' };
+  const visible = (d.tags || []).filter((t) => t !== 'HOT' && t !== 'STUDENT_VERIFIED').slice(0, 3);
+  const overflow = (d.tags || []).filter((t) => t !== 'HOT' && t !== 'STUDENT_VERIFIED').length - visible.length;
+  const isFree = d.price_inr === 0 || (d.price_label || '').toUpperCase().includes('FREE');
+  const verified = d.tags?.includes('STUDENT_VERIFIED') || d.code_verified === true;
+
+  return (
+    <View style={[s.card, cardStyle]} accessibilityLabel={`deal ${d.brand} ${d.title}`}>
+      <View style={{ flex: 1, gap: 8 }}>
+        {/* Logo + brand/title + prices */}
+        <View style={s.cardTop}>
+          {d.logo_url ? (
+            <View style={s.cardLogoWrap}>
+              <Image source={{ uri: resolveImageUrl(d.logo_url) }} style={s.cardLogo} resizeMode="contain" />
+            </View>
+          ) : (
+            <View style={[s.cardLogoWrap, s.cardLogoFallback]}>
+              <Text style={s.cardLogoInitial}>{(d.brand || '?')[0]}</Text>
+            </View>
+          )}
+          <View style={{ flex: 1, marginLeft: 10, justifyContent: 'center' }}>
+            <Text style={s.cardTitle} numberOfLines={1}>{d.title}</Text>
+            <Text style={s.cardBrand}>{(d.brand || d.provider || '').toUpperCase()}</Text>
+          </View>
+        </View>
+
+        {/* Badges: deal type + verification + HOT */}
+        <View style={s.badgeRow}>
+          <View style={[s.typeBadge, { backgroundColor: dt.bg }]}>
+            <Text style={[s.typeBadgeText, { color: dt.fg }]}>{dt.label}</Text>
+          </View>
+          {verified && (
+            <View style={s.verifyBadge}>
+              <MaterialCommunityIcons name="check-decagram" size={10} color="#059669" />
+              <Text style={s.verifyBadgeText}>Verified</Text>
+            </View>
+          )}
+          {d.tags?.includes('HOT') && (
+            <View style={s.hotChip}>
+              <MaterialCommunityIcons name="fire" size={10} color="#fff" />
+              <Text style={s.hotChipText}>HOT</Text>
+            </View>
+          )}
+          {(() => {
+            const cb = crowdBadge(d);
+            return cb ? (
+              <View style={[s.typeBadge, { backgroundColor: cb.bg }]}>
+                <MaterialCommunityIcons name={cb.icon} size={9} color={cb.fg} />
+                <Text style={[s.typeBadgeText, { color: cb.fg }]}>{cb.label}</Text>
+              </View>
+            ) : null;
+          })()}
+        </View>
+
         {/* Description */}
-        <Text style={s.cardDesc} numberOfLines={2}>{d.description}</Text>
+        {!!d.description && (
+          <Text style={s.cardDesc} numberOfLines={2}>{d.description}</Text>
+        )}
 
         {/* Tag pills */}
         {visible.length > 0 && (
@@ -604,252 +835,464 @@ function DealCard({ d, onClaim }: { d: Deal; onClaim: (d: Deal) => void }) {
             )}
           </View>
         )}
+
+        {/* Price row */}
+        <View style={s.priceRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={[s.cardPrice, { color: isFree ? L.priceFree : L.pricePaid }]}>
+              {d.price_label || (d.price_inr ? fmtINR(d.price_inr) : 'Free')}
+            </Text>
+            {!!d.original_label && (d.original_inr || 0) > (d.price_inr || 0) && (
+              <Text style={s.cardOrig}>{d.original_label}</Text>
+            )}
+          </View>
+          {!!d.discount_pct && d.discount_pct > 0 && (
+            <View style={s.pctChip}>
+              <Text style={s.pctText}>{d.discount_pct}% off</Text>
+            </View>
+          )}
+        </View>
       </View>
 
-
-      {/* CTA */}
       <Pressable
-        style={[s.cardCTA, { backgroundColor: '#5D2EE6', marginTop: 'auto' }]}
+        accessibilityLabel={`claim deal ${d.brand}`}
+        style={s.cardCTA}
         onPress={() => onClaim(d)}
       >
+        <MaterialCommunityIcons name="open-in-new" size={13} color="#fff" />
         <Text style={s.cardCTAText}>Claim Deal</Text>
       </Pressable>
     </View>
   );
 }
 
-function TagPill({ tag }: { tag: Tag }) {
-  const meta = TAG_META[tag];
-  if (!meta) return null;
-  const solid = meta.solid;
-  return (
-    <View style={[
-      s.tagPill,
-      solid
-        ? { backgroundColor: meta.bg, borderColor: meta.bg }
-        : { backgroundColor: meta.bg + '22', borderColor: meta.bg + '66' },
-    ]}>
-      <MaterialCommunityIcons
-        name={meta.icon}
-        size={10}
-        color={solid ? meta.fg : meta.bg}
-      />
-      <Text style={[s.tagText, { color: solid ? meta.fg : meta.bg }]}>{meta.label}</Text>
-    </View>
-  );
-}
-
-// ─── Styles ──────────────────────────────────────────────────────────────
+// ─── Styles (light) ────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  savePill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(252,211,77,0.12)',
-    borderColor: 'rgba(252,211,77,0.35)', borderWidth: 1,
+  panel: {
+    flex: 1,
+    gap: 14,
+    backgroundColor: L.bg,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: L.border,
+    padding: 16,
+    paddingBottom: 72,
+    ...({ cursor: 'default' } as any),
   },
-  savePillText: { color: '#FCD34D', fontSize: 10.5, fontWeight: '800' },
 
+  searchInput: {
+    flex: 1,
+    minWidth: 200,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: L.border,
+    backgroundColor: L.card,
+    color: L.text,
+    fontSize: 12.5,
+  },
   refreshBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderColor: 'rgba(255,255,255,0.20)', borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: L.accent,
+    borderWidth: 1,
+    borderColor: L.accent,
+    ...({ cursor: 'pointer' } as any),
   },
   refreshText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 
-  lastUpdated: { color: C.text3, fontSize: 11, marginTop: -10 },
-
   errBox: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    padding: 12, borderRadius: 10,
-    backgroundColor: 'rgba(248,113,113,0.10)',
-    borderColor: 'rgba(248,113,113,0.40)', borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+    borderWidth: 1,
   },
-  errText: { color: '#FCA5A5', fontSize: 12.5, flex: 1 },
+  errText: { color: '#EF4444', fontSize: 12.5, flex: 1 },
 
-  // Accordion
-  accordion: {
+  // AI bar
+  aiBar: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  aiPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    ...({ cursor: 'pointer' } as any),
+  },
+  aiPillText: { fontSize: 11.5, fontWeight: '700' },
+  aiPanelBox: {
+    backgroundColor: L.card,
     borderRadius: 14,
     borderWidth: 1,
-    overflow: 'hidden',
-  },
-  accordionHead: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: 16, paddingVertical: 14,
-  },
-  accordionTitle: { fontSize: 13.5, fontWeight: '700', flex: 1 },
-  accordionBody: {
-    paddingHorizontal: 16, paddingBottom: 16,
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
-    paddingTop: 14,
+    borderColor: L.border,
+    padding: 14,
+    gap: 10,
   },
 
   advisorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   advisorMetric: {
-    flex: 1, minWidth: 130,
-    padding: 12, borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.20)',
-    borderWidth: 1, gap: 4,
+    flex: 1,
+    minWidth: 130,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: L.bg,
+    borderWidth: 1,
+    borderColor: L.border,
+    gap: 4,
   },
-  advisorMetricLabel: { color: C.text3, fontSize: 10.5, marginTop: 2 },
-  advisorMetricValue: { fontSize: 16, fontWeight: '800', marginTop: 2 },
-  advisorSummary: { color: C.text2, fontSize: 12.5, lineHeight: 18 },
+  advisorMetricLabel: { fontSize: 10.5, color: L.text2, marginTop: 2 },
+  advisorMetricValue: { fontSize: 16, fontWeight: '800', color: L.text },
+  advisorSummary: { fontSize: 12.5, lineHeight: 18, color: L.text2 },
 
-  bundleSummary: { color: C.text2, fontSize: 13 },
   bundleGrid: { gap: 8 },
   bundleItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 10, borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.20)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 10,
+    borderRadius: 12,
     borderWidth: 1,
+    borderColor: L.border,
+    backgroundColor: L.bg,
   },
   bundleLogo: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff' },
   bundleLogoFallback: {
-    width: 36, height: 36, borderRadius: 10,
-    alignItems: 'center', justifyContent: 'center',
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  bundleBrand: { color: C.text3, fontSize: 10.5 },
-  bundleTitle: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  bundleSavings: { fontSize: 12, fontWeight: '700' },
-  claimAllBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    backgroundColor: '#EC4899',
-    paddingVertical: 10, borderRadius: 10,
+  bundleBrand: { fontSize: 10.5, color: L.text3 },
+  bundleTitle: { fontSize: 13, fontWeight: '600', color: L.text },
+  bundleSavings: { fontSize: 12, fontWeight: '700', color: L.accent },
+  bundleClaimBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: L.accentBg,
+    borderWidth: 1,
+    borderColor: L.accentBorder,
+    ...({ cursor: 'pointer' } as any),
   },
-  claimAllText: { color: '#3F0518', fontSize: 12.5, fontWeight: '800' },
+  bundleClaimText: { fontSize: 11, fontWeight: '700', color: '#5B21B6' },
 
-  // AI trending button
-  aiTrendBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    paddingVertical: 11, borderRadius: 12,
-    backgroundColor: 'rgba(167,139,250,0.10)',
-    borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1,
-  },
-  aiTrendText: { color: '#A78BFA', fontSize: 12.5, fontWeight: '700' },
-
-  // Tabs
+  // Deal-type tabs + chips
+  tabRow: { gap: 8, paddingRight: 12, paddingVertical: 2 },
   tab: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.border, borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    ...({ cursor: 'pointer' } as any),
   },
-  tabText: { color: C.text2, fontSize: 12.5, fontWeight: '600' },
+  tabText: { fontSize: 12.5, fontWeight: '700' },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    ...({ cursor: 'pointer' } as any),
+  },
+  chipText: { fontSize: 12, fontWeight: '600' },
 
-  // Sections
-  section: { gap: 12 },
-  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  sectionTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  sectionSub: { color: C.text3, fontSize: 12, marginLeft: 4 },
+  // Bank filter
+  bankFilter: {
+    gap: 8,
+    backgroundColor: L.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: L.border,
+    padding: 12,
+  },
+  bankFilterTitle: { fontSize: 12.5, fontWeight: '800', color: L.text },
+  bankFilterClear: { fontSize: 11, fontWeight: '700', color: L.accent },
+  bankGroupLabel: { fontSize: 10, fontWeight: '800', color: L.text3, letterSpacing: 0.5 },
 
+  // Grid
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+  centerBlock: { paddingVertical: 40, alignItems: 'center', gap: 8 },
+  centerText: { color: L.text3, fontSize: 12.5 },
 
   // Card
   card: {
-    flexGrow: 1, flexBasis: 260, maxWidth: 340,
-    padding: 14, borderRadius: 16,
-    backgroundColor: C.card,
+    flex: 1,
+    minBasis: 0,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: L.card,
     borderWidth: 1,
+    borderColor: L.border,
     gap: 8,
-  },
-  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10, position: 'relative' },
-  cardLogoWrap: { width: 44, height: 44, borderRadius: 12, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.06)' },
+    ...({ boxShadow: '0 2px 8px rgba(15,23,42,0.04)', cursor: 'default' } as any),
+  } as any,
+  cardCell: (n: number) => ({
+    flexBasis: `${Math.max(100 / n - 1.5, 20).toFixed(2)}%`,
+    flexGrow: 1,
+    maxWidth: 380,
+  }),
+
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  cardLogoWrap: { width: 44, height: 44, borderRadius: 12, overflow: 'hidden' },
   cardLogo: { width: 44, height: 44, backgroundColor: '#fff' },
   cardLogoFallback: {
-    width: 44, height: 44, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: L.accentBg,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cardPrice: { fontSize: 18, fontWeight: '800', letterSpacing: -0.5 },
-  cardOrig: { color: C.text3, fontSize: 11, textDecorationLine: 'line-through' },
-  cardPct: { fontSize: 11, fontWeight: '700' },
+  cardLogoInitial: { color: L.accent, fontSize: 18, fontWeight: '800' },
+  cardTitle: { fontSize: 14, fontWeight: '800', color: L.text },
+  cardBrand: { fontSize: 10.5, color: L.text3, fontWeight: '600', letterSpacing: 0.4 },
+
+  badgeRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  typeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  typeBadgeText: { fontSize: 9.5, fontWeight: '800' },
+  verifyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: '#ECFDF5',
+    alignSelf: 'flex-start',
+  },
+  verifyBadgeText: { fontSize: 9.5, fontWeight: '800', color: '#059669' },
   hotChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     backgroundColor: '#EF4444',
-    paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
     alignSelf: 'flex-start',
   },
   hotChipText: { color: '#fff', fontSize: 9, fontWeight: '900', letterSpacing: 0.4 },
 
-  cardTitle: { color: '#fff', fontSize: 14.5, fontWeight: '800' },
-  cardBrand: { color: C.text3, fontSize: 11.5 },
-  cardDesc: { color: C.text2, fontSize: 12, lineHeight: 17 },
+  // D3 verify card
+  verifyCard: {
+    gap: 4,
+    marginBottom: 6,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: L.card,
+    borderWidth: 1,
+    borderColor: L.accentBorder,
+    ...({ boxShadow: '0 10px 28px rgba(124,92,252,0.10)' } as any),
+  },
+  verifyCardTitle: { fontSize: 12, fontWeight: '800', color: L.text, letterSpacing: 0.2 },
+  verifyCardSub: { fontSize: 11, color: L.text2 },
+  verifyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: L.border,
+  },
+  verifyRowTitle: { fontSize: 12, fontWeight: '700', color: L.text, flex: 1 },
+  verifyRowSub: { fontSize: 10, color: L.text3 },
+  verifyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  verifyYes: { backgroundColor: '#D1FAE5' },
+  verifyNo: { backgroundColor: '#FEE2E2' },
 
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+  cardDesc: { fontSize: 12, lineHeight: 17, color: L.text2 },
+
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 },
   tagPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
     borderWidth: 1,
   },
   tagText: { fontSize: 10, fontWeight: '700' },
   overflowPill: {
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderColor: 'rgba(255,255,255,0.15)', borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: L.border,
+    backgroundColor: L.bg,
   },
-  overflowText: { color: C.text2, fontSize: 10, fontWeight: '700' },
+  overflowText: { fontSize: 10, fontWeight: '700', color: L.text2 },
+
+  priceRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 },
+  cardPrice: { fontSize: 18, fontWeight: '800', letterSpacing: -0.5 },
+  cardOrig: { fontSize: 11, color: L.text3, textDecorationLine: 'line-through' },
+  pctChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: L.accentBg,
+  },
+  pctText: { fontSize: 11, fontWeight: '800', color: '#5B21B6' },
 
   cardCTA: {
-    paddingVertical: 11, borderRadius: 10,
-    alignItems: 'center', marginTop: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 11,
+    borderRadius: 10,
+    marginTop: 'auto',
+    backgroundColor: L.accent,
+    ...({ cursor: 'pointer' } as any),
   },
   cardCTAText: { color: '#fff', fontSize: 13, fontWeight: '800' },
 
   sourcesStrip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingTop: 16, paddingBottom: 8,
-    borderTopWidth: 1, borderTopColor: C.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: L.border,
   },
-  sourcesText: { color: C.text3, fontSize: 11 },
+  sourcesText: { fontSize: 11, color: L.text3 },
+
+  // Bottom nav (phone)
+  bottomNav: {
+    position: 'fixed',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 64,
+    backgroundColor: 'rgba(255,255,255,0.97)',
+    borderTopWidth: 1,
+    borderTopColor: L.border,
+    paddingHorizontal: 8,
+    ...({ backdropFilter: 'blur(12px)', zIndex: 60 } as any),
+  },
+  bottomNavItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    flex: 1,
+    ...({ cursor: 'pointer' } as any),
+  },
+  bottomNavLabel: { fontSize: 10, fontWeight: '700' },
 
   // Modal
   modalBackdrop: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
-    alignItems: 'center', justifyContent: 'center', padding: 16,
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
   },
   modalCard: {
-    width: '100%', maxWidth: 460,
-    borderRadius: 18, padding: 20, gap: 14,
-    backgroundColor: '#1A1626',
-    borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1,
+    width: '100%',
+    maxWidth: 460,
+    borderRadius: 18,
+    padding: 20,
+    gap: 14,
+    backgroundColor: L.card,
+    ...({ boxShadow: '0 24px 60px rgba(15,23,42,0.25)' } as any),
   },
   modalLogo: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#fff' },
-  modalLogoFallback: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  modalBrand: { color: C.text3, fontSize: 11 },
-  modalTitle: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  modalLogoFallback: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBrand: { fontSize: 11, color: L.text3, fontWeight: '700', letterSpacing: 0.4 },
+  modalTitle: { fontSize: 15, fontWeight: '700', color: L.text },
 
   modalSavingsBox: {
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    padding: 14, borderRadius: 12,
-    alignItems: 'center', gap: 4,
-    borderColor: C.border, borderWidth: 1,
+    padding: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: L.bg,
+    borderWidth: 1,
+    borderColor: L.border,
   },
-  modalSavingsLabel: { color: C.text3, fontSize: 11, letterSpacing: 0.5 },
+  modalSavingsLabel: { fontSize: 11, color: L.text2, letterSpacing: 0.5 },
   modalSavingsValue: { fontSize: 28, fontWeight: '800', letterSpacing: -1 },
-  modalSavingsSub: { color: C.text2, fontSize: 12 },
+  modalSavingsSub: { fontSize: 12, color: L.text2 },
 
   codeBox: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 11, borderRadius: 10,
-    backgroundColor: 'rgba(167,139,250,0.10)',
-    borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1, borderStyle: 'dashed',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 11,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: L.accentBorder,
+    backgroundColor: L.accentBg,
   },
-  codeLabel: { color: C.text3, fontSize: 11 },
-  codeValue: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 1, flex: 1 },
+  codeLabel: { fontSize: 11, color: L.text2 },
+  codeValue: { fontSize: 14, fontWeight: '800', letterSpacing: 1, flex: 1 },
 
-  modalNote: { color: C.text3, fontSize: 11, fontStyle: 'italic' },
+  modalNote: { fontSize: 11, color: L.text3, fontStyle: 'italic' },
 
   claimSuccess: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 12, borderRadius: 10,
-    backgroundColor: 'rgba(52,211,153,0.10)',
-    borderColor: 'rgba(52,211,153,0.45)', borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
   },
-  claimSuccessTitle: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  claimSuccessSub: { color: C.text2, fontSize: 11.5, marginTop: 2 },
+  claimSuccessTitle: { fontSize: 13, fontWeight: '700', color: L.text },
+  claimSuccessSub: { fontSize: 11.5, color: L.text2, marginTop: 2 },
+
+  claimFail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  claimFailText: { fontSize: 11.5, color: '#DC2626', flex: 1 },
 
   modalCTA: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingVertical: 13, borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 13,
+    borderRadius: 12,
+    backgroundColor: L.accent,
+    ...({ cursor: 'pointer' } as any),
   },
   modalCTAText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 });

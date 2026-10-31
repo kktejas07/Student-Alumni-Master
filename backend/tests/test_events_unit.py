@@ -17,7 +17,7 @@ from pathlib import Path
 # Ensure backend is importable
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from events_aggregator import (
+from features.events_aggregator import (
     EVENT_TYPES,
     EVENT_TYPE_TINTS,
     _dedup_hash,
@@ -258,8 +258,8 @@ def test_ics_helpers_basic(sample_event):
 @pytest.mark.asyncio
 async def test_create_event_all_types(mock_db):
     """Each of the 9 event types must be accepted by create_event."""
-    from events_aggregator import create_event
-    with patch("events_aggregator._db", mock_db):
+    from features.events_aggregator import create_event
+    with patch("features.events_aggregator._db", mock_db):
         for etype in EVENT_TYPES:
             user = {
                 "_id": MagicMock(),
@@ -283,9 +283,9 @@ async def test_create_event_all_types(mock_db):
 
 @pytest.mark.asyncio
 async def test_create_event_student_forbidden(mock_db):
-    from events_aggregator import create_event
+    from features.events_aggregator import create_event
     from fastapi import HTTPException
-    with patch("events_aggregator._db", mock_db):
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": MagicMock(), "role": "student", "email": "stu@test.com"}
         body = {
             "title": "Student Try",
@@ -301,8 +301,8 @@ async def test_create_event_student_forbidden(mock_db):
 
 @pytest.mark.asyncio
 async def test_create_event_college_needs_approval(mock_db):
-    from events_aggregator import create_event
-    with patch("events_aggregator._db", mock_db):
+    from features.events_aggregator import create_event
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": MagicMock(), "role": "college", "email": "college@test.com", "full_name": "College"}
         body = {
             "title": "College Tech Talk",
@@ -319,9 +319,9 @@ async def test_create_event_college_needs_approval(mock_db):
 
 @pytest.mark.asyncio
 async def test_create_event_duplicate(mock_db):
-    from events_aggregator import create_event
+    from features.events_aggregator import create_event
     from fastapi import HTTPException
-    with patch("events_aggregator._db", mock_db):
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": MagicMock(), "role": "mentor", "email": "mentor@test.com", "full_name": "Mentor"}
         body = {
             "title": "Dup Event",
@@ -345,9 +345,9 @@ async def test_create_event_duplicate(mock_db):
 
 @pytest.mark.asyncio
 async def test_create_event_missing_fields(mock_db):
-    from events_aggregator import create_event
+    from features.events_aggregator import create_event
     from fastapi import HTTPException
-    with patch("events_aggregator._db", mock_db):
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": MagicMock(), "role": "mentor", "email": "mentor@test.com"}
         body = {"event_type": "workshop", "location_city": "Delhi", "location_country": "India"}
         with pytest.raises(HTTPException) as exc_info:
@@ -358,9 +358,9 @@ async def test_create_event_missing_fields(mock_db):
 
 @pytest.mark.asyncio
 async def test_create_event_invalid_type(mock_db):
-    from events_aggregator import create_event
+    from features.events_aggregator import create_event
     from fastapi import HTTPException
-    with patch("events_aggregator._db", mock_db):
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": MagicMock(), "role": "mentor", "email": "mentor@test.com"}
         body = {
             "title": "Bad Type",
@@ -377,8 +377,8 @@ async def test_create_event_invalid_type(mock_db):
 
 @pytest.mark.asyncio
 async def test_update_event_by_host(mock_db, sample_event):
-    from events_aggregator import update_event
-    with patch("events_aggregator._db", mock_db):
+    from features.events_aggregator import update_event
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": sample_event["host_user_id"], "role": "mentor"}
         mock_db.events_v2.find_one = AsyncMock(return_value=sample_event)
         result = await update_event("evt-001", {"capacity": 200}, user)
@@ -388,9 +388,9 @@ async def test_update_event_by_host(mock_db, sample_event):
 
 @pytest.mark.asyncio
 async def test_update_event_by_non_host(mock_db, sample_event):
-    from events_aggregator import update_event
+    from features.events_aggregator import update_event
     from fastapi import HTTPException
-    with patch("events_aggregator._db", mock_db):
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": "other_user", "role": "student"}
         mock_db.events_v2.find_one = AsyncMock(return_value=sample_event)
         with pytest.raises(HTTPException) as exc_info:
@@ -400,8 +400,8 @@ async def test_update_event_by_non_host(mock_db, sample_event):
 
 @pytest.mark.asyncio
 async def test_delete_event_soft(mock_db, sample_event):
-    from events_aggregator import delete_event
-    with patch("events_aggregator._db", mock_db):
+    from features.events_aggregator import delete_event
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": sample_event["host_user_id"], "role": "mentor"}
         mock_db.events_v2.find_one = AsyncMock(return_value=sample_event)
         result = await delete_event("evt-001", user)
@@ -411,8 +411,8 @@ async def test_delete_event_soft(mock_db, sample_event):
 
 @pytest.mark.asyncio
 async def test_admin_approve_event(mock_db):
-    from events_aggregator import admin_approve_event
-    with patch("events_aggregator._db", mock_db):
+    from features.events_aggregator import admin_approve_event
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": MagicMock(), "role": "admin"}
         mock_db.events_v2.update_one = AsyncMock(return_value=MagicMock(matched_count=1))
         result = await admin_approve_event("evt-pending", user)
@@ -422,8 +422,8 @@ async def test_admin_approve_event(mock_db):
 
 @pytest.mark.asyncio
 async def test_admin_reject_event(mock_db):
-    from events_aggregator import admin_reject_event
-    with patch("events_aggregator._db", mock_db):
+    from features.events_aggregator import admin_reject_event
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": MagicMock(), "role": "admin"}
         mock_db.events_v2.update_one = AsyncMock(return_value=MagicMock(matched_count=1))
         result = await admin_reject_event("evt-pending", {"reason": "Not relevant"}, user)
@@ -433,9 +433,9 @@ async def test_admin_reject_event(mock_db):
 
 @pytest.mark.asyncio
 async def test_admin_approve_not_found(mock_db):
-    from events_aggregator import admin_approve_event
+    from features.events_aggregator import admin_approve_event
     from fastapi import HTTPException
-    with patch("events_aggregator._db", mock_db):
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": MagicMock(), "role": "admin"}
         mock_db.events_v2.update_one = AsyncMock(return_value=MagicMock(matched_count=0))
         with pytest.raises(HTTPException) as exc_info:
@@ -445,8 +445,8 @@ async def test_admin_approve_not_found(mock_db):
 
 @pytest.mark.asyncio
 async def test_admin_pending_events(mock_db):
-    from events_aggregator import admin_pending_events
-    with patch("events_aggregator._db", mock_db):
+    from features.events_aggregator import admin_pending_events
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": MagicMock(), "role": "admin"}
         it = AsyncIteratorMock([])
         find_mock = MagicMock()
@@ -459,8 +459,8 @@ async def test_admin_pending_events(mock_db):
 
 @pytest.mark.asyncio
 async def test_rsvp_free_no_credits(mock_db, sample_event):
-    from events_aggregator import rsvp_event
-    with patch("events_aggregator._db", mock_db):
+    from features.events_aggregator import rsvp_event
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": MagicMock(), "email": "user@test.com", "role": "student"}
         mock_db.events_v2.find_one = AsyncMock(return_value={**sample_event, "price_amount": 0})
         mock_db.event_registrations.find_one = AsyncMock(return_value=None)
@@ -472,24 +472,41 @@ async def test_rsvp_free_no_credits(mock_db, sample_event):
 
 @pytest.mark.asyncio
 async def test_rsvp_paid_with_credits(mock_db, sample_event):
-    from events_aggregator import rsvp_event
-    with patch("events_aggregator._db", mock_db):
-        user = {"_id": MagicMock(), "email": "user@test.com", "role": "student"}
+    from features.events_aggregator import rsvp_event
+    with patch("features.events_aggregator._db", mock_db):
+        # Paid events now require either payment or an explicit credits spend
+        # (PR #942); the wallet lives on the user document and the deduction is
+        # an atomic conditional update (PR #973).
+        user = {"_id": MagicMock(), "email": "user@test.com", "role": "student",
+                "wallet": {"balance_credits": 100}}
         paid_event = {**sample_event, "price_type": "paid", "price_amount": 50}
         mock_db.events_v2.find_one = AsyncMock(return_value=paid_event)
         mock_db.event_registrations.find_one = AsyncMock(return_value=None)
         mock_db.event_registrations.count_documents = AsyncMock(return_value=0)
-        # Enough credits
-        mock_db.users.find_one = AsyncMock(return_value={"sa_credits": 100})
-        result = await rsvp_event("evt-001", user=user)
+        mock_db.users.update_one = AsyncMock(return_value=MagicMock(matched_count=1))
+        mock_db.wallet_transactions.insert_one = AsyncMock()
+        mock_db.events_v2.update_one = AsyncMock(return_value=MagicMock(matched_count=1))
+        result = await rsvp_event("evt-001", body={"use_credits": True}, user=user)
         assert result["ok"] is True
         assert result["status"] == "registered"
 
 
 @pytest.mark.asyncio
+async def test_credit_deduction_rejects_stale_balance(mock_db):
+    from features.events_aggregator import _try_deduct_credits
+
+    with patch("features.events_aggregator._db", mock_db):
+        mock_db.users.update_one = AsyncMock(return_value=MagicMock(matched_count=0))
+        user = {"_id": "user-1", "wallet": {"balance_credits": 100}}
+
+        assert await _try_deduct_credits(user, 50, "test") is False
+        mock_db.wallet_transactions.insert_one.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_rsvp_waitlist_when_full(mock_db, sample_event):
-    from events_aggregator import rsvp_event
-    with patch("events_aggregator._db", mock_db):
+    from features.events_aggregator import rsvp_event
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": MagicMock(), "email": "user@test.com", "role": "student"}
         full_event = {**sample_event, "capacity": 2, "attendee_count": 2}
         mock_db.events_v2.find_one = AsyncMock(return_value=full_event)
@@ -502,8 +519,8 @@ async def test_rsvp_waitlist_when_full(mock_db, sample_event):
 
 @pytest.mark.asyncio
 async def test_cancel_rsvp_refund(mock_db, sample_event):
-    from events_aggregator import cancel_rsvp
-    with patch("events_aggregator._db", mock_db):
+    from features.events_aggregator import cancel_rsvp
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": MagicMock(), "email": "user@test.com", "role": "student"}
         reg = {
             "_id": "reg-001",
@@ -521,8 +538,8 @@ async def test_cancel_rsvp_refund(mock_db, sample_event):
 
 @pytest.mark.asyncio
 async def test_toggle_save(mock_db):
-    from events_aggregator import toggle_save
-    with patch("events_aggregator._db", mock_db):
+    from features.events_aggregator import toggle_save
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": MagicMock(), "email": "user@test.com"}
         mock_db.event_activity_log.find_one = AsyncMock(return_value=None)
         result = await toggle_save("evt-001", user)
@@ -532,8 +549,8 @@ async def test_toggle_save(mock_db):
 
 @pytest.mark.asyncio
 async def test_get_event_preferences(mock_db):
-    from events_aggregator import get_event_prefs
-    with patch("events_aggregator._db", mock_db):
+    from features.events_aggregator import get_event_prefs
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": MagicMock()}
         mock_db.user_event_preferences.find_one = AsyncMock(return_value={
             "user_id": str(user["_id"]),
@@ -547,8 +564,8 @@ async def test_get_event_preferences(mock_db):
 
 @pytest.mark.asyncio
 async def test_update_event_preferences(mock_db):
-    from events_aggregator import update_event_prefs
-    with patch("events_aggregator._db", mock_db):
+    from features.events_aggregator import update_event_prefs
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": MagicMock()}
         result = await update_event_prefs({"preferred_city": "Delhi", "price_preference": "free_only"}, user)
         assert result["ok"] is True
@@ -579,8 +596,8 @@ def _make_find_mock(items):
 
 @pytest.mark.asyncio
 async def test_hosted_events(mock_db, sample_event):
-    from events_aggregator import hosted_events
-    with patch("events_aggregator._db", mock_db):
+    from features.events_aggregator import hosted_events
+    with patch("features.events_aggregator._db", mock_db):
         user = {"_id": sample_event["host_user_id"]}
         mock_db.events_v2.find = MagicMock(return_value=_make_find_mock([sample_event]))
         result = await hosted_events(user)
@@ -590,8 +607,8 @@ async def test_hosted_events(mock_db, sample_event):
 
 @pytest.mark.asyncio
 async def test_search_events_basic(mock_db):
-    from events_aggregator import events_search
-    with patch("events_aggregator._db", mock_db):
+    from features.events_aggregator import events_search
+    with patch("features.events_aggregator._db", mock_db):
         evt = {
             "event_id": "evt-002",
             "title": "Code Fest",
@@ -626,8 +643,8 @@ async def test_search_events_basic(mock_db):
 
 @pytest.mark.asyncio
 async def test_search_events_filter_by_type(mock_db):
-    from events_aggregator import events_search
-    with patch("events_aggregator._db", mock_db):
+    from features.events_aggregator import events_search
+    with patch("features.events_aggregator._db", mock_db):
         evt_hack = {
             "event_id": "evt-hack", "title": "Hack", "event_type": "hackathon",
             "location_country": "India", "location_city": "BLR",
@@ -650,8 +667,8 @@ async def test_search_events_filter_by_type(mock_db):
 
 @pytest.mark.asyncio
 async def test_category_counts(mock_db):
-    from events_aggregator import events_category_counts
-    with patch("events_aggregator._db", mock_db):
+    from features.events_aggregator import events_category_counts
+    with patch("features.events_aggregator._db", mock_db):
         mock_db.events_v2.aggregate = MagicMock(return_value=AsyncIteratorMock([
             {"_id": "hackathon", "count": 5},
             {"_id": "workshop", "count": 3},
@@ -663,9 +680,9 @@ async def test_category_counts(mock_db):
 
 @pytest.mark.asyncio
 async def test_export_ics_endpoint(mock_db, sample_event):
-    from events_aggregator import event_ics
+    from features.events_aggregator import event_ics
     from fastapi import Response
-    with patch("events_aggregator._db", mock_db):
+    with patch("features.events_aggregator._db", mock_db):
         mock_db.events_v2.find_one = AsyncMock(return_value=sample_event)
         resp = await event_ics("evt-001")
         assert isinstance(resp, Response)
@@ -675,9 +692,9 @@ async def test_export_ics_endpoint(mock_db, sample_event):
 
 @pytest.mark.asyncio
 async def test_export_ics_not_found(mock_db):
-    from events_aggregator import event_ics
+    from features.events_aggregator import event_ics
     from fastapi import HTTPException
-    with patch("events_aggregator._db", mock_db):
+    with patch("features.events_aggregator._db", mock_db):
         mock_db.events_v2.find_one = AsyncMock(return_value=None)
         with pytest.raises(HTTPException) as exc_info:
             await event_ics("evt-missing")

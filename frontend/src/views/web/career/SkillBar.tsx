@@ -4,9 +4,10 @@
  * Renders: icon box → skill title → progress bar → percentage.
  * Matches Image 1 reference design.
  */
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
+import { FONT_FAMILIES, RADIUS, SPACING } from '@/src/lib/designTokens';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 interface Props {
   label: string;
@@ -17,8 +18,12 @@ interface Props {
 }
 
 export const SkillBar = memo(function SkillBar({ label, score, baseColor, icon: Icon, status }: Props) {
+  const { isDark } = useTheme();
+  const s = useMemo(() => makeStyles(isDark), [isDark]);
   const clampedScore = Math.min(100, Math.max(0, Number(score) || 0));
-  const statusColor = clampedScore >= 70 ? '#34D399' : clampedScore >= 40 ? '#F59E0B' : '#F87171';
+  const statusColor = isDark
+    ? (clampedScore >= 70 ? '#34D399' : clampedScore >= 40 ? '#F59E0B' : '#F87171')
+    : (clampedScore >= 70 ? '#059669' : clampedScore >= 40 ? '#D97706' : '#DC2626');
   const statusLabel = status || (clampedScore >= 70 ? 'Strong' : clampedScore >= 40 ? 'Developing' : 'Needs Work');
 
   return (
@@ -39,7 +44,7 @@ export const SkillBar = memo(function SkillBar({ label, score, baseColor, icon: 
       </View>
 
       {/* Score % */}
-      <Text style={[s.pct, { color: '#FFF' }]}>{clampedScore}%</Text>
+      <Text style={[s.pct, { color: isDark ? '#FFF' : '#0F172A' }]}>{clampedScore}%</Text>
 
       {/* Status chip */}
       <View style={[s.statusChip, { backgroundColor: statusColor + '18', borderColor: statusColor + '35' }]}>
@@ -49,7 +54,7 @@ export const SkillBar = memo(function SkillBar({ label, score, baseColor, icon: 
   );
 });
 
-const s = StyleSheet.create({
+const makeStyles = (dark: boolean) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -72,7 +77,7 @@ const s = StyleSheet.create({
     flexShrink: 0,
   },
   name: {
-    color: COLORS.text2,
+    color: dark ? 'rgba(255,255,255,0.95)' : 'rgba(15,23,42,0.8)',
     fontFamily: FONT_FAMILIES.med,
     fontSize: 12,
     flex: 1,
@@ -81,7 +86,7 @@ const s = StyleSheet.create({
   track: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: dark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.08)',
     overflow: 'hidden',
   },
   fill: {

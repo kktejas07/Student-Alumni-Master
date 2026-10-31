@@ -1,60 +1,35 @@
-// @ts-nocheck
 /**
- * /wallet — SA Rewards & Wallet (Career AI Visual Aesthetic & Coupon Engine)
+ * /wallet — SA Wallet (W10 light-theme redesign)
  *
- * Full visual re-theme matching Career AI design system (98%+ similarity target):
- *   - Deep navy canvas (#0B0D1A) + translucent glass cards (rgba(18, 22, 35, 0.75))
- *   - Gradient glowing borders, crisp typography (DMSans)
- *   - KPI Strip (4 cards: Balance, Rewards Level, Active Coupons, Lifetime Saved)
- *   - 5 Main Navigation Tabs: Overview · My Coupons · Add Funds · Redeem · History
- *   - Coupon Engine:
- *       • View active vs used coupons
- *       • Copy voucher code
- *       • Click "Use Now" (opens partner URL)
- *       • Click "Mark as Used" (one-time usage tracking)
- *       • Redeem new coupons using SA credits balance
+ * - Light #F8FAFC canvas, white cards (dark theme honored via useTheme)
+ * - KPI strip: Balance / Rewards Level / Active Coupons / Login Streak
+ * - 5 tabs: Overview, Coupons, Rewards, Analytics, History
+ * - Quick actions: UPI top-up (app grid, deep link, QR, status polling),
+ *   card top-up (Razorpay), withdraw, peer transfer
+ * - Money Coach lives in the floating bubble (MoneyCoach.tsx)
  */
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator,
-  TextInput, Platform, useWindowDimensions, Modal, Linking,
+  View, Text, StyleSheet, Pressable, ActivityIndicator,
+  TextInput, Platform, useWindowDimensions, Modal, Linking, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle, Rect, Line, Polyline, G, Text as SvgText } from 'react-native-svg';
+import QRCode from 'react-native-qrcode-svg';
 import {
-  Wallet, Sparkles, CircleCheck as CheckCircle2, Copy, ExternalLink, Clock,
-  Tag, TrendingUp, PlusCircle, ArrowUpRight, ArrowDownLeft, Shield, Award,
-  Check, Search, Filter, X, ChevronRight, Gift, Building2, Zap, RefreshCw,
-  CreditCard, DollarSign, Star, Lock, Info,
+  Wallet, CircleCheck as CheckCircle2, Copy, ExternalLink, Clock,
+  Tag, TrendingUp, ArrowUpRight, ArrowDownLeft, Award,
+  Check, Search, X, ChevronRight, Gift, Zap, RefreshCw,
+  CreditCard, Info, Send, QrCode, Target, Flame, Star,
 } from 'lucide-react-native';
-import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import MoneyCoach from '@/src/views/web/wallet/MoneyCoach';
 import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useRouter } from 'expo-router';
 import { useToast } from '@/src/views/components';
-
-/* ────────── Design Tokens (Navy Blue Palette) ────────── */
-const C = {
-  bg: '#0A1628',          // deep navy page background
-  bgCard: '#0F2347',      // navy card background
-  bgCardH: '#162E5A',     // navy card hover
-  border: '#1E3A6E',      // navy border
-  border2: '#2A4F8F',     // slightly lighter navy border
-  text: '#FFFFFF',
-  text2: '#E8F0FF',
-  textSub: '#94B4E0',     // muted blue-grey on navy
-  dim: '#6B8CC4',         // dimmed text on navy
-  purple: '#60A5FA',      // accent blue (kept vibrant)
-  purple2: '#3B82F6',     // primary action blue
-  purpleL: '#93C5FD',     // lighter accent
-  purpleXL: '#DBEAFE',    // very light for labels
-  teal: '#34D399',
-  blue: '#3B82F6',
-  amber: '#FBBF24',
-  red: '#F87171',
-  green: '#34D399',
-  pink: '#F472B6',
-};
+import { useTheme } from '@/src/theme/ThemeContext';
 
 const FT = {
   reg: 'DMSans_400Regular',
@@ -63,153 +38,25 @@ const FT = {
   xbold: 'DMSans_800ExtraBold',
 };
 
-/* ────────── Types ────────── */
-type CouponItem = {
-  id: string;
-  brand: string;
-  title: string;
-  discount: string;
-  code: string;
-  cost_credits: number;
-  url: string;
-  expiry: string;
-  status: 'active' | 'used' | 'locked';
-  used_at?: string;
-  category: string;
-  accent: string;
-  instructions?: string;
-  locked?: boolean;
-  partner_name?: string;
-  event_id?: string;
+/* Validated dataviz palette (CVD-safe fixed categorical order, light + dark). */
+const CHART_PALETTE = {
+  light: {
+    cat: ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6', '#e34948'],
+    ink: { primary: '#0b0b0b', secondary: '#52514e', muted: '#898781', grid: '#e1e0d9', baseline: '#c3c2b7' },
+  },
+  dark: {
+    cat: ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767'],
+    ink: { primary: '#f0efec', secondary: '#c3c2b7', muted: '#898781', grid: '#2c2c2a', baseline: '#383835' },
+  },
 };
-
-type Summary = {
-  user_id: string;
-  role: string;
-  full_name: string;
-  balance_credits: number;
-  balance_inr: number;
-  credits_per_inr: number;
-  lifetime_earned: number;
-  lifetime_spent: number;
-  history: any[];
-  earnings_by_category: any[];
-  level?: any;
-};
-
-// Default seed coupons for demo & initial state
-const INITIAL_COUPONS: CouponItem[] = [
-  {
-    id: 'coup-1',
-    brand: 'Featherless AI',
-    title: '50% Off Monthly API Pro Plan',
-    discount: '50% OFF',
-    code: 'SA-FEATHER-50PRO',
-    cost_credits: 100,
-    url: 'https://featherless.ai',
-    expiry: 'Valid till Dec 2026',
-    status: 'active',
-    category: 'tech',
-    accent: '#818CF8',
-  },
-  {
-    id: 'coup-2',
-    brand: 'SetupMark AI',
-    title: '100% Free AI Dev Environment Pass',
-    discount: '100% FREE',
-    code: 'SA-SETUPMARK-FREE',
-    cost_credits: 150,
-    url: 'https://setupmark.ai',
-    expiry: 'Valid till Nov 2026',
-    status: 'active',
-    category: 'tech',
-    accent: '#34D399',
-  },
-  {
-    id: 'coup-3',
-    brand: 'Bandiwala',
-    title: '30% Cashback on Campus Food Orders',
-    discount: '30% CASHBACK',
-    code: 'SA-BANDI-FOOD30',
-    cost_credits: 50,
-    url: 'https://bandiwala.com',
-    expiry: 'Valid till Sep 2026',
-    status: 'used',
-    used_at: '2 days ago',
-    category: 'food',
-    accent: '#F59E0B',
-  },
-  {
-    id: 'coup-4',
-    brand: 'CodeSpectra',
-    title: '₹500 Off Full-Stack Bootcamp Track',
-    discount: '₹500 OFF',
-    code: 'SA-CODESPEC-500',
-    cost_credits: 200,
-    url: 'https://codespectra.io',
-    expiry: 'Valid till Oct 2026',
-    status: 'active',
-    category: 'learning',
-    accent: '#60A5FA',
-  },
-  {
-    id: 'coup-5',
-    brand: 'WeHive',
-    title: 'Flat 25% Off Coworking Pass',
-    discount: '25% OFF',
-    code: 'SA-WEHIVE-25PASS',
-    cost_credits: 75,
-    url: 'https://wehive.com',
-    expiry: 'Valid till Jan 2027',
-    status: 'active',
-    category: 'other',
-    accent: '#F472B6',
-  },
-];
-
-const AVAILABLE_CATALOG_COUPONS: CouponItem[] = [
-  {
-    id: 'cat-1',
-    brand: 'Coursera',
-    title: 'Flat 40% Off Any Professional Certificate',
-    discount: '40% OFF',
-    code: 'SA-COURSERA-40',
-    cost_credits: 100,
-    url: 'https://coursera.org',
-    expiry: 'Valid 30 Days',
-    status: 'active',
-    category: 'learning',
-    accent: '#3B82F6',
-  },
-  {
-    id: 'cat-2',
-    brand: 'Uber India',
-    title: 'Flat ₹100 Off 3 Airport Rides',
-    discount: '₹100 OFF',
-    code: 'SA-UBER-RIDE100',
-    cost_credits: 60,
-    url: 'https://uber.com',
-    expiry: 'Valid 15 Days',
-    status: 'active',
-    category: 'transport',
-    accent: '#10B981',
-  },
-  {
-    id: 'cat-3',
-    brand: 'Notion Pro',
-    title: '6 Months Free Notion Plus Plan',
-    discount: '6 MO FREE',
-    code: 'SA-NOTION-6MO',
-    cost_credits: 120,
-    url: 'https://notion.so',
-    expiry: 'Valid till Dec 2026',
-    status: 'active',
-    category: 'tech',
-    accent: '#A78BFA',
-  },
-];
 
 const TOPUP_PRESETS = [100, 250, 500, 1000, 2500, 5000];
+const UPI_ICON_BY_APP: Record<string, string> = {
+  gpay: 'google-wallet',
+  phonepe: 'phone',
+  paytm: 'credit-card',
+  bhim: 'cash',
+};
 
 function fmtINR(n: number): string {
   if (!isFinite(n)) return '₹0';
@@ -221,15 +68,407 @@ function fmtCredits(n: number): string {
   return Math.round(n).toLocaleString('en-IN');
 }
 
+function fmtDate(ts?: string): string {
+  if (!ts) return '';
+  return new Date(ts).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function fmtDateTime(ts?: string): string {
+  if (!ts) return '';
+  return new Date(ts).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+function domainFrom(partner: string, logo?: string): string {
+  const src = logo?.trim();
+  if (src) {
+    try {
+      return new URL(src, 'https://x').hostname;
+    } catch { /* fall through to partner name */ }
+  }
+  return partner.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function brandInitials(partner: string): string {
+  const words = partner.split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  return partner.slice(0, 2).toUpperCase();
+}
+
+function BrandLogo({ partner, logo, size = 36 }: { partner: string; logo?: string; size?: number }) {
+  const { isDark } = useTheme();
+  const [failed, setFailed] = useState(false);
+  const domain = useMemo(() => domainFrom(partner, logo), [partner, logo]);
+  if (!domain || failed) {
+    return (
+      <View style={{
+        width: size, height: size, borderRadius: size / 4,
+        backgroundColor: isDark ? 'rgba(59,130,246,0.12)' : '#EFF6FF',
+        borderWidth: 1, borderColor: isDark ? 'rgba(59,130,246,0.35)' : '#BFDBFE',
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Text style={{ fontFamily: FT.xbold, fontSize: size / 3.2, color: isDark ? '#93C5FD' : '#1E40AF' }}>
+          {brandInitials(partner)}
+        </Text>
+      </View>
+    );
+  }
+  return (
+    <Image
+      source={{ uri: `https://logo.clearbit.com/${domain}` }}
+      style={{ width: size, height: size, borderRadius: size / 4, backgroundColor: isDark ? '#0F2347' : '#F8FAFC' }}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+/* ────────── Charts (react-native-svg, dataviz-validated palette) ────────── */
+
+function DonutChart({ slices, size = 180, trackColor, ink, centerLabel, centerValue }: {
+  slices: { label: string; value: number; color: string }[];
+  size?: number;
+  trackColor: string;
+  ink: { primary: string; secondary: string; muted: string };
+  centerLabel?: string;
+  centerValue?: string;
+}) {
+  const total = slices.reduce((a, s) => a + s.value, 0);
+  if (total <= 0) {
+    return (
+      <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ color: ink.muted, fontFamily: FT.med, fontSize: 12 }}>No earnings yet in this period</Text>
+      </View>
+    );
+  }
+  const cx = size / 2;
+  const radius = size / 2 - 16;
+  const C = 2 * Math.PI * radius;
+  let acc = 0;
+  const gap = slices.length > 1 ? 2 : 0;
+  return (
+    <View style={{ alignItems: 'center' }}>
+      <Svg width={size} height={size}>
+        <G rotation={-90} origin={`${cx} ${cx}`}>
+          <Circle cx={cx} cy={cx} r={radius} stroke={trackColor} strokeWidth={18} fill="none" />
+          {slices.map((s) => {
+            const frac = s.value / total;
+            const dash = Math.max(frac * C - gap, 0.5);
+            const seg = (
+              <Circle
+                key={s.label}
+                cx={cx}
+                cy={cx}
+                r={radius}
+                stroke={s.color}
+                strokeWidth={18}
+                fill="none"
+                strokeDasharray={`${dash} ${C - dash}`}
+                strokeDashoffset={-acc}
+              />
+            );
+            acc += frac * C;
+            return seg;
+          })}
+        </G>
+        <SvgText x={cx} y={cx - 4} textAnchor="middle" fontSize={19} fontWeight={800} fill={ink.primary}>{centerValue}</SvgText>
+        <SvgText x={cx} y={cx + 14} textAnchor="middle" fontSize={10} fontWeight={500} fill={ink.muted}>{centerLabel}</SvgText>
+      </Svg>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12, maxWidth: size + 80, alignItems: 'center', justifyContent: 'center' }}>
+        {slices.map((sl) => (
+          <View key={sl.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: sl.color }} />
+            <Text style={{ color: ink.secondary, fontSize: 10.5, fontFamily: FT.med }}>{sl.label}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function BarsChart({ items, width = 300, height = 190, barColor, ink }: {
+  items: { label: string; value: number }[];
+  width?: number;
+  height?: number;
+  barColor: string;
+  ink: { primary: string; secondary: string; muted: string; grid: string; baseline: string };
+}) {
+  const data = items.length > 6
+    ? [...items.slice(0, 5), { label: 'Other', value: items.slice(5).reduce((a, i) => a + i.value, 0) }]
+    : items;
+  if (!data.length || data.every((d) => d.value <= 0)) {
+    return (
+      <View style={{ height, alignItems: 'center', justifyContent: 'center', width }}>
+        <Text style={{ color: ink.muted, fontSize: 12, fontFamily: FT.med }}>No spending yet in this period</Text>
+      </View>
+    );
+  }
+  const padT = 18, padB = 26, padX = 4;
+  const plotH = height - padT - padB;
+  const max = Math.max(...data.map((d) => d.value), 1);
+  const step = (width - padX * 2) / data.length;
+  const barW = Math.max(Math.min(step - 8, 52), 14);
+  return (
+    <Svg width={width} height={height}>
+      {[0.25, 0.5, 0.75].map((f) => (
+        <Line key={f} x1={padX} x2={width - padX} y1={padT + plotH * (1 - f)} y2={padT + plotH * (1 - f)} stroke={ink.grid} strokeWidth={1} strokeDasharray="3 3" />
+      ))}
+      <Line x1={padX} x2={width - padX} y1={padT + plotH} y2={padT + plotH} stroke={ink.baseline} strokeWidth={1} />
+      {data.map((d, i) => {
+        const h = Math.max((d.value / max) * plotH, d.value > 0 ? 2 : 0);
+        const x = padX + i * step + (step - barW) / 2;
+        const y = padT + plotH - h;
+        const label = d.label.length > 12 ? `${d.label.slice(0, 11)}...` : d.label;
+        return (
+          <G key={`${d.label}-${i}`}>
+            {h > 0 && <Rect x={x} y={y} width={barW} height={h} rx={3} fill={barColor} />}
+            <SvgText x={x + barW / 2} y={y - 5} textAnchor="middle" fontSize={9.5} fontWeight={700} fill={ink.secondary}>{fmtCredits(d.value)}</SvgText>
+            <SvgText x={x + barW / 2} y={padT + plotH + 14} textAnchor="middle" fontSize={9} fontWeight={500} fill={ink.muted}>{label}</SvgText>
+          </G>
+        );
+      })}
+    </Svg>
+  );
+}
+
+function TrendLines({ points, width = 300, height = 190, colors, ink, gridColor }: {
+  points: { date: string; in: number; out: number; net: number }[];
+  width?: number;
+  height?: number;
+  colors: { in: string; out: string; net: string };
+  ink: { primary: string; secondary: string; muted: string; baseline: string };
+  gridColor?: string;
+}) {
+  if (!points.length) {
+    return (
+      <View style={{ height, alignItems: 'center', justifyContent: 'center', width }}>
+        <Text style={{ color: ink.muted, fontSize: 12, fontFamily: FT.med }}>No activity yet in this period</Text>
+      </View>
+    );
+  }
+  const padL = 10, padR = 10, padT = 12, padB = 22;
+  const plotW = width - padL - padR, plotH = height - padT - padB;
+  const vals = points.flatMap((p) => [p.in || 0, p.out || 0, p.net || 0]);
+  const maxV = Math.max(...vals, 1);
+  const minV = Math.min(...vals, 0);
+  const span = maxV - minV || 1;
+  const x = (i: number) => (points.length === 1 ? padL + plotW / 2 : padL + (i / (points.length - 1)) * plotW);
+  const y = (v: number) => padT + (1 - (v - minV) / span) * plotH;
+  const toPoly = (k: 'in' | 'out' | 'net') => points.map((p, i) => `${x(i).toFixed(1)},${y(p[k] || 0).toFixed(1)}`).join(' ');
+  const stride = Math.max(1, Math.ceil(points.length / 6));
+  const tickIdx = Array.from(new Set(
+    points.map((_, i) => i).filter((i) => i % stride === 0 || i === points.length - 1),
+  ));
+  return (
+    <Svg width={width} height={height}>
+      {[0, 0.5, 1].map((f) => {
+        const yy = padT + plotH * (1 - f);
+        return (
+          <Line
+            key={f}
+            x1={padL}
+            x2={width - padR}
+            y1={yy}
+            y2={yy}
+            stroke={f === 1 ? ink.baseline : (gridColor || ink.muted)}
+            strokeWidth={1}
+            strokeDasharray={f === 1 ? undefined : '3 3'}
+          />
+        );
+      })}
+      {(['in', 'out', 'net'] as const).map((k) => (
+        <Polyline key={k} points={toPoly(k)} fill="none" stroke={colors[k]} strokeWidth={2} />
+      ))}
+      {points.length <= 31 && points.map((p, i) => (
+        <G key={`pt-${i}`}>
+          {(['in', 'out', 'net'] as const).map((k) => (
+            <Circle key={k} cx={x(i)} cy={y(p[k] || 0)} r={4} fill={colors[k]} />
+          ))}
+        </G>
+      ))}
+      {tickIdx.map((i) => (
+        <SvgText
+          key={`tick-${i}`}
+          x={x(i)}
+          y={height - 6}
+          textAnchor={i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle'}
+          fontSize={8.5}
+          fontWeight={500}
+          fill={ink.muted}
+        >
+          {new Date(points[i].date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+        </SvgText>
+      ))}
+    </Svg>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Small presentational primitives (module-level, use theme directly)
+   ────────────────────────────────────────────────────────────────────────── */
+
+function KpiCard({ icon, label, value, sub, children, accent }: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  sub?: string;
+  children?: React.ReactNode;
+  accent?: boolean;
+}) {
+  const { isDark } = useTheme();
+  const card = isDark ? '#111B2E' : '#FFFFFF';
+  const border = isDark ? 'rgba(148,163,184,0.18)' : '#E2E8F0';
+  const textSub = isDark ? '#94A3B8' : '#64748B';
+  const text = isDark ? '#F8FAFC' : '#0F172A';
+  const iconBg = accent ? (isDark ? 'rgba(59,130,246,0.18)' : '#EFF6FF') : (isDark ? 'rgba(148,163,184,0.12)' : '#F1F5F9');
+  const iconColor = accent ? (isDark ? '#93C5FD' : '#2563EB') : (isDark ? '#CBD5E1' : '#475569');
+  return (
+    <View style={{
+      backgroundColor: card,
+      borderColor: border,
+      borderWidth: 1,
+      borderRadius: 14,
+      padding: 14,
+      flex: 1,
+      minWidth: 150,
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{
+          width: 30, height: 30, borderRadius: 9, backgroundColor: iconBg,
+          alignItems: 'center', justifyContent: 'center',
+        }}>
+          {React.cloneElement(icon as any, { size: 16, color: iconColor })}
+        </View>
+        <Text style={{ fontFamily: FT.med, fontSize: 11, color: textSub, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Text>
+      </View>
+      <Text style={{ fontFamily: FT.xbold, fontSize: 22, color: text, marginTop: 10, lineHeight: 24 }}>{value}</Text>
+      {sub ? <Text style={{ fontFamily: FT.reg, fontSize: 11, color: textSub, marginTop: 2 }}>{sub}</Text> : null}
+      {children ? <View style={{ marginTop: 10 }}>{children}</View> : null}
+    </View>
+  );
+}
+
+function SectionHeader({ title, right, sub }: { title: string; sub?: string; right?: React.ReactNode }) {
+  const { isDark } = useTheme();
+  const text = isDark ? '#F8FAFC' : '#0F172A';
+  const textSub = isDark ? '#94A3B8' : '#64748B';
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 }}>
+      <View style={{ flex: 1, paddingRight: 12 }}>
+        <Text style={{ fontFamily: FT.bold, fontSize: 15, color: text }}>{title}</Text>
+        {sub ? <Text style={{ fontFamily: FT.reg, fontSize: 11.5, color: textSub, marginTop: 2 }}>{sub}</Text> : null}
+      </View>
+      {right}
+    </View>
+  );
+}
+
+function Chip({ label, active, onPress, tone }: {
+  label: string;
+  active?: boolean;
+  onPress?: () => void;
+  tone?: 'blue' | 'green' | 'amber' | 'red' | 'neutral';
+}) {
+  const { isDark } = useTheme();
+  const bg = active
+    ? (isDark ? 'rgba(59,130,246,0.22)' : '#EFF6FF')
+    : (isDark ? 'rgba(148,163,184,0.10)' : '#F1F5F9');
+  const fg = active ? (isDark ? '#93C5FD' : '#1E40AF') : (isDark ? '#CBD5E1' : '#475569');
+  const ring = active ? 'rgba(59,130,246,0.4)' : 'transparent';
+  const toneFg: Record<string, string> = {
+    blue: isDark ? '#93C5FD' : '#1E40AF',
+    green: isDark ? '#4ADE80' : '#047857',
+    amber: isDark ? '#FBBF24' : '#B45309',
+    red: isDark ? '#F87171' : '#B91C1C',
+    neutral: fg,
+  };
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        backgroundColor: bg,
+        borderColor: ring,
+        borderWidth: ring !== 'transparent' ? 1 : 0,
+        borderRadius: 999,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      <Text style={{ fontFamily: FT.med, fontSize: 12, color: tone ? toneFg[tone] : fg }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function DashedCodeBox({ code, onCopy, isDark, codeBoxBorder }: {
+  code: string;
+  onCopy: () => void;
+  isDark: boolean;
+  codeBoxBorder: string;
+}) {
+  const codeBoxBg = isDark ? 'rgba(0,0,0,0.4)' : '#F8FAFC';
+  const codeBoxText = isDark ? '#DBEAFE' : '#1E40AF';
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Copy code ${code}`}
+      onPress={onCopy}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        borderWidth: 1.5,
+        borderStyle: 'dashed',
+        borderColor: codeBoxBorder,
+        backgroundColor: codeBoxBg,
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      <Text style={{ fontFamily: FT.bold, fontSize: 13, color: codeBoxText, letterSpacing: 1 }}>{code}</Text>
+      <Copy size={13} color={codeBoxText} />
+    </Pressable>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Main screen
+   ────────────────────────────────────────────────────────────────────────── */
+
 export default function WalletScreen() {
   const router = useRouter();
   const toast = useToast();
+  const { isDark } = useTheme();
   const user = useAuthStore((s) => s.user);
   const initialized = useAuthStore((s) => s.initialized);
   const isEmbedded = React.useContext(EmbeddedShellContext);
   const { width: winW } = useWindowDimensions();
   const isTablet = winW >= 680;
 
+  const colors = useMemo(() => ({
+    bg: isDark ? '#0B1220' : '#F8FAFC',
+    card: isDark ? '#111B2E' : '#FFFFFF',
+    cardHover: isDark ? '#17253A' : '#F1F5F9',
+    border: isDark ? 'rgba(148,163,184,0.18)' : '#E2E8F0',
+    border2: isDark ? 'rgba(148,163,184,0.28)' : '#CBD5E1',
+    text: isDark ? '#F8FAFC' : '#0F172A',
+    text2: isDark ? '#CBD5E1' : '#334155',
+    textSub: isDark ? '#94A3B8' : '#64748B',
+    dim: isDark ? '#64748B' : '#94A3B8',
+    accent: isDark ? '#93C5FD' : '#2563EB',
+    accentDeep: isDark ? '#DBEAFE' : '#1E40AF',
+    accentSoft: isDark ? 'rgba(59,130,246,0.14)' : '#EFF6FF',
+    success: isDark ? '#4ADE80' : '#059669',
+    danger: isDark ? '#F87171' : '#DC2626',
+    hero: ['#1E3A8A', '#1E40AF', '#2563EB'] as const,
+  }), [isDark]);
+
+  const ink = CHART_PALETTE[isDark ? 'dark' : 'light'].ink;
+  const cat = CHART_PALETTE[isDark ? 'dark' : 'light'].cat;
+
+  // Portal redirect
   useEffect(() => {
     if (!isEmbedded && initialized && user) {
       if (user.role === 'alumni') router.replace('/alumni-portal?tab=wallet' as any);
@@ -237,54 +476,83 @@ export default function WalletScreen() {
     }
   }, [isEmbedded, initialized, user, router]);
 
-  // Tab State
-  const [tab, setTab] = useState<'overview' | 'coupons' | 'topup' | 'withdraw' | 'history'>('overview');
-  const [data, setData] = useState<Summary | null>(null);
+  const [tab, setTab] = useState<'overview' | 'coupons' | 'rewards' | 'analytics' | 'history'>('overview');
+
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Coupon Engine State
-  const [myCoupons, setMyCoupons] = useState<CouponItem[]>(INITIAL_COUPONS);
-  const [couponFilter, setCouponFilter] = useState<'all' | 'active' | 'used' | 'locked'>('all');
+  // W1 coupons
+  const [mineCoupons, setMineCoupons] = useState<any[]>([]);
+  const [catalog, setCatalog] = useState<any[]>([]);
+  const [couponFilter, setCouponFilter] = useState<'all' | 'active' | 'used'>('active');
   const [couponSearch, setCouponSearch] = useState('');
-  const [selectedCouponModal, setSelectedCouponModal] = useState<CouponItem | null>(null);
-  const [instructionModal, setInstructionModal] = useState<{ title: string; instructions: string; website?: string } | null>(null);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [instructionModal, setInstructionModal] = useState<any>(null);
 
-  // Top-Up & Withdraw State
+  // W2 rewards
+  const [rewards, setRewards] = useState<any[]>([]);
+  const [redeemHistory, setRedeemHistory] = useState<any[]>([]);
+  const [redeemingId, setRedeemingId] = useState<string | null>(null);
+  const [redeemedCode, setRedeemedCode] = useState<{ title: string; code: string; ref: string } | null>(null);
+
+  // W3 analytics
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [period, setPeriod] = useState<'7d' | '30d' | '90d' | '365d'>('30d');
+
+  // W6 streak
+  const [streak, setStreak] = useState<any>(null);
+
+  // Modals
+  const [modal, setModal] = useState<null | 'upi' | 'card' | 'withdraw' | 'transfer'>(null);
   const [topupAmount, setTopupAmount] = useState<string>('500');
-  const [topupMethod, setTopupMethod] = useState<'upi' | 'card' | 'netbanking'>('upi');
-  const [topupSubmitting, setTopupSubmitting] = useState(false);
-  const [wdAmountInr, setWdAmountInr] = useState<string>('100');
+  const [upiPayment, setUpiPayment] = useState<any>(null);
+  const [upiBusy, setUpiBusy] = useState(false);
+  const [upiSettled, setUpiSettled] = useState(false);
+  const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const [cardSubmitting, setCardSubmitting] = useState(false);
+  const [wdAmountInr, setWdAmountInr] = useState<string>('');
   const [wdMethod, setWdMethod] = useState<'upi' | 'bank'>('upi');
   const [wdTarget, setWdTarget] = useState<string>('');
   const [wdSubmitting, setWdSubmitting] = useState(false);
 
-  // Fetch summary
-  const fetchSummary = useCallback(async (isSilent = false) => {
-    if (!isSilent) setLoading(true);
-    else setRefreshing(true);
+  const [xfRecipient, setXfRecipient] = useState<string>('');
+  const [xfAmount, setXfAmount] = useState<string>('');
+  const [xfNote, setXfNote] = useState<string>('');
+  const [xfSubmitting, setXfSubmitting] = useState(false);
+
+  // ── Summary (W0 backend) ──
+  const fetchSummary = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true); else setRefreshing(true);
     try {
-      const r = await request<Summary>('/wallet/summary').catch(() => null);
+      const r = await request<any>('/wallet/summary').catch(() => null);
       if (r) setData(r);
-      else {
-        // Fallback demo data
-        setData({
-          user_id: user?.id || 'demo',
-          role: user?.role || 'student',
-          full_name: user?.full_name || 'Krishna Ram',
-          balance_credits: 31250,
-          balance_inr: 1250,
-          credits_per_inr: 25,
-          lifetime_earned: 42500,
-          lifetime_spent: 11250,
-          earnings_by_category: [],
-          history: [
-            { id: 'tx-1', type: 'credit', amount: 50, reason: 'Daily Login Reward', balance_after: 31250, ts: new Date().toISOString() },
-            { id: 'tx-2', type: 'debit', amount: 100, reason: 'Redeemed Featherless AI Coupon', balance_after: 31200, ts: new Date(Date.now() - 86400000).toISOString() },
-            { id: 'tx-3', type: 'credit', amount: 500, reason: 'Wallet Topup via UPI', balance_after: 31300, ts: new Date(Date.now() - 172800000).toISOString() },
-          ],
-        });
-      }
+      else setData({
+        user_id: user?.id || 'demo',
+        role: user?.role || 'student',
+        full_name: user?.full_name || 'Your Wallet',
+        balance_credits: 31250,
+        balance_inr: 1250,
+        credits_per_inr: 25,
+        lifetime_earned: 42500,
+        lifetime_spent: 11250,
+        topup_bonus_pct: 5,
+        level: { level: 4, name: 'Elite', progress_pct: 62, next_level_name: 'Legend', credits_to_next: 4250 },
+        streak_days: 12,
+        earnings_by_category: [
+          { category: 'events', credits: 12500 },
+          { category: 'referrals', credits: 8200 },
+          { category: 'courses', credits: 5600 },
+          { category: 'daily', credits: 4950 },
+        ],
+        activity_breakdown: [],
+        history: [
+          { id: 'tx-1', type: 'credit', amount: 50, reason: 'Daily Login Reward', balance_after: 31250, ts: new Date().toISOString() },
+          { id: 'tx-2', type: 'debit', amount: 100, reason: 'Redeemed Featherless AI Coupon', balance_after: 31200, ts: new Date(Date.now() - 86400000).toISOString() },
+          { id: 'tx-3', type: 'credit', amount: 500, reason: 'Wallet Top-Up ₹20 via UPI', balance_after: 31300, ts: new Date(Date.now() - 172800000).toISOString() },
+        ],
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -293,138 +561,180 @@ export default function WalletScreen() {
 
   useEffect(() => { fetchSummary(); }, [fetchSummary]);
 
-  // Fetch real coupons from API
+  // ── W1 coupons ──
   const fetchCoupons = useCallback(async () => {
     try {
-      const r = await request<any>('/echo/coupons/by-category');
-      if (r?.success && r.data) {
-        const allCoupons: CouponItem[] = [];
-        const categories = Object.keys(r.data);
-        for (const cat of categories) {
-          for (const c of r.data[cat]) {
-            const discountLabel = c.discount_type === 'duration'
-              ? `${c.duration_months || '?'} Month${(c.duration_months || 0) !== 1 ? 's' : ''} Access`
-              : c.discount_type === 'percentage' ? `${c.discount_value}% OFF` : `₹${c.discount_value} OFF`;
-            const partnerLabel = c.partner_name || c.vendor_name || '';
-            const eventLabel = c.event_id ? c.event_id.toUpperCase() : '';
-            allCoupons.push({
-              id: `coup-${c.code}`,
-              brand: partnerLabel || 'Student Alumni',
-              title: c.description || discountLabel,
-              discount: discountLabel,
-              code: c.code,
-              cost_credits: 0,
-              url: c.website_url || '',
-              expiry: '',
-              status: c.locked ? 'locked' : 'active',
-              category: cat,
-              accent: cat === 'partner' ? '#3B82F6' : cat === 'event' ? '#10B981' : cat === 'promo' ? '#F59E0B' : '#8B5CF6',
-              instructions: c.instructions || '',
-              locked: c.locked || false,
-              partner_name: partnerLabel,
-              event_id: eventLabel,
-            });
-          }
-        }
-        setMyCoupons(allCoupons.length > 0 ? allCoupons : INITIAL_COUPONS);
-      }
-    } catch (e) {
-      // Keep demo coupons if API fails
-    }
-  }, []);
+      const mine = await request<any>('/wallet/coupons/mine?limit=100').catch(() => null);
+      setMineCoupons(mine?.coupons || []);
+    } catch { /* keep empty */ }
+    try {
+      const cat = await request<any>(`/wallet/coupons/catalog?role=${user?.role || 'student'}`).catch(() => null);
+      setCatalog((cat?.coupons || []).filter((c: any) => c.active !== false));
+    } catch { /* keep empty */ }
+  }, [user?.role]);
 
   useEffect(() => { fetchCoupons(); }, [fetchCoupons]);
 
-  // Copy coupon code
-  const copyCouponCode = (code: string) => {
-    if (Platform.OS === 'web' && navigator?.clipboard) {
-      navigator.clipboard.writeText(code);
+  const activeCouponCount = useMemo(() => mineCoupons.filter((c) => c.status === 'active').length, [mineCoupons]);
+
+  const claimCoupon = async (couponId: string) => {
+    setClaimingId(couponId);
+    try {
+      const r = await request<any>('/wallet/coupons/claim', { method: 'POST', body: { coupon_id: couponId } });
+      if (r?.ok) {
+        toast.success('Coupon Claimed!', `Code ${r.code} added — expires ${fmtDate(r.expires_at)}.`);
+        fetchCoupons();
+        fetchSummary(true);
+      } else {
+        toast.warning('Already Claimed', 'This coupon is already in your wallet.');
+      }
+    } catch (e: any) {
+      toast.error('Claim Failed', e?.message || 'Please try again.');
+    } finally {
+      setClaimingId(null);
+    }
+  };
+
+  const markCouponUsed = async (userCouponId: string) => {
+    try {
+      const r = await request<any>('/wallet/coupons/mark-used', { method: 'POST', body: { user_coupon_id: userCouponId } });
+      if (r?.ok) {
+        setMineCoupons((prev) => prev.map((c) => c.id === userCouponId ? { ...c, status: 'used', used_at: new Date().toISOString() } : c));
+        toast.success('Coupon Marked Used', 'Moved to your redeemed history.');
+      }
+    } catch (e: any) {
+      toast.error('Update Failed', e?.message || 'Please try again.');
+    }
+  };
+
+  const copyCode = (code: string) => {
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(code).catch(() => { /* noop */ });
     }
     toast.success('Code Copied!', `${code} copied to clipboard.`);
   };
 
-  // Mark coupon as used
-  const markCouponAsUsed = (couponId: string) => {
-    setMyCoupons((prev) =>
-      prev.map((c) =>
-        c.id === couponId
-          ? { ...c, status: 'used', used_at: 'Just now' }
-          : c
-      )
-    );
-    toast.info('Coupon Marked as Used', 'Status updated to Used.');
-    setSelectedCouponModal(null);
+  // ── W2 rewards ──
+  const fetchRewards = useCallback(async () => {
+    try {
+      const r = await request<any>('/wallet/rewards').catch(() => null);
+      if (r?.rewards) setRewards(r.rewards);
+    } catch { /* keep empty */ }
+    try {
+      const h = await request<any>('/wallet/redeem/history').catch(() => null);
+      if (h?.redemptions) setRedeemHistory(h.redemptions);
+    } catch { /* keep empty */ }
+  }, []);
+
+  useEffect(() => { fetchRewards(); }, [fetchRewards]);
+
+  const redeemReward = async (rewardId: string, title: string) => {
+    setRedeemingId(rewardId);
+    try {
+      const r = await request<any>('/wallet/redeem', { method: 'POST', body: { reward_id: rewardId } });
+      if (r?.ok) {
+        toast.success('Reward Redeemed!', `Your ${title} code is ready.`);
+        setRedeemedCode({ title, code: r.code || '—', ref: r.fulfillment_ref || '' });
+        fetchRewards();
+        fetchSummary(true);
+      } else {
+        toast.warning('Not available', 'This reward is out of stock or you hit the daily limit.');
+      }
+    } catch (e: any) {
+      const msg = e?.message || '';
+      if (msg.toLowerCase().includes('insufficient') || msg.toLowerCase().includes('balance')) {
+        toast.error('Insufficient Credits', 'Top up your wallet to redeem this reward.');
+      } else {
+        toast.error('Redemption Failed', msg || 'Please try again.');
+      }
+    } finally {
+      setRedeemingId(null);
+    }
   };
 
-  // Redeem catalog coupon
-  const redeemCatalogCoupon = (item: CouponItem) => {
-    const currentBal = data?.balance_credits || 31250;
-    if (currentBal < item.cost_credits) {
-      toast.error('Insufficient Credits', `You need ${item.cost_credits} pts to redeem this coupon.`);
-      return;
-    }
-    const newCoupon: CouponItem = {
-      ...item,
-      id: `coup-red-${Date.now()}`,
-      code: `SA-${item.brand.substring(0, 4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
-      status: 'active',
-    };
-    setMyCoupons((prev) => [newCoupon, ...prev]);
-    if (data) {
-      setData({
-        ...data,
-        balance_credits: data.balance_credits - item.cost_credits,
-        balance_inr: (data.balance_credits - item.cost_credits) / 25,
-      });
-    }
-    toast.success('Coupon Redeemed!', `Added ${item.title} to My Coupons.`);
+  // ── W3 analytics ──
+  const fetchAnalytics = useCallback(async (p: string) => {
+    try {
+      const r = await request<any>(`/wallet/analytics?period=${p}`).catch(() => null);
+      if (r) setAnalytics(r);
+    } catch { /* keep previous */ }
+  }, []);
+
+  useEffect(() => { fetchAnalytics(period); }, [fetchAnalytics, period]);
+
+  // ── W6 streak ──
+  useEffect(() => {
+    request<any>('/wallet/streak').then((r) => setStreak(r)).catch(() => setStreak(null));
+  }, [data?.streak_days]);
+
+  // ── UPI top-up polling (W7) ──
+  const stopPolling = () => {
+    if (pollTimer.current) { clearInterval(pollTimer.current); pollTimer.current = null; }
   };
+  useEffect(() => () => { stopPolling(); }, []);
 
-  // Filtered Coupons
-  const filteredMyCoupons = useMemo(() => {
-    return myCoupons.filter((c) => {
-      const matchesFilter =
-        couponFilter === 'all' ? true :
-        couponFilter === 'locked' ? c.locked :
-        c.status === couponFilter;
-      const matchesSearch =
-        c.brand.toLowerCase().includes(couponSearch.toLowerCase()) ||
-        c.title.toLowerCase().includes(couponSearch.toLowerCase()) ||
-        c.code.toLowerCase().includes(couponSearch.toLowerCase());
-      return matchesFilter && matchesSearch;
-    });
-  }, [myCoupons, couponFilter, couponSearch]);
-
-  // Used coupons (for "My Redeemed" section)
-  const usedCoupons = useMemo(() => myCoupons.filter((c) => c.status === 'used'), [myCoupons]);
-  // Available coupons (active + locked, for category grouping)
-  const availableCoupons = useMemo(() => myCoupons.filter((c) => c.status !== 'used'), [myCoupons]);
-
-  const activeCount = useMemo(() => myCoupons.filter((c) => c.status === 'active' && !c.locked).length, [myCoupons]);
-  const usedCount = useMemo(() => myCoupons.filter((c) => c.status === 'used').length, [myCoupons]);
-  const lockedCount = useMemo(() => myCoupons.filter((c) => c.locked).length, [myCoupons]);
-
-  // Handle Topup Submit — Razorpay payment
-  const handleTopupSubmit = async () => {
+  const startUpiPayment = async () => {
     const amt = parseFloat(topupAmount);
     if (isNaN(amt) || amt <= 0) {
       toast.error('Invalid Amount', 'Please enter a valid top-up amount.');
       return;
     }
-    setTopupSubmitting(true);
+    setUpiBusy(true);
+    setUpiSettled(false);
+    stopPolling();
     try {
-      // Step 1: Create Razorpay order
-      const orderRes = await request<any>('/wallet/topup/create-order', {
-        method: 'POST',
-        body: { amount_inr: amt },
-      });
-      if (!orderRes.ok) {
-        toast.error('Payment Failed', orderRes.detail || 'Could not create payment order.');
-        setTopupSubmitting(false);
+      const r = await request<any>(`/wallet/topup/upi?amount_inr=${amt}`);
+      if (!r?.ok) {
+        toast.error('UPI Not Available', r?.note || 'Could not start UPI payment.');
+        setUpiBusy(false);
         return;
       }
+      setUpiPayment({ ...r, ref: r.ref });
+      let tries = 0;
+      pollTimer.current = setInterval(async () => {
+        tries += 1;
+        if (tries > 40) { stopPolling(); setUpiBusy(false); return; }
+        try {
+          const s = await request<any>(`/wallet/topup/status/${r.ref}`);
+          if (s?.status === 'settled') {
+            stopPolling();
+            setUpiSettled(true);
+            setUpiBusy(false);
+            toast.success('Payment Settled!', `₹${amt} credited (+${fmtCredits(s.expected_credits || s.credits || 0)} SA pts).`);
+            fetchSummary(true);
+            setTimeout(() => { setModal(null); setUpiPayment(null); setUpiSettled(false); }, 900);
+          }
+        } catch { /* keep polling */ }
+      }, 3000);
+    } catch (e: any) {
+      toast.error('UPI Not Available', e?.message || 'Please try again.');
+      setUpiBusy(false);
+    }
+  };
 
-      // Step 2: Load Razorpay SDK
+  const cancelUpiPayment = () => {
+    stopPolling();
+    setModal(null);
+    setUpiPayment(null);
+    setUpiSettled(false);
+    setUpiBusy(false);
+  };
+
+  // ── Card top-up (Razorpay) ──
+  const handleCardTopup = async () => {
+    const amt = parseFloat(topupAmount);
+    if (isNaN(amt) || amt <= 0) {
+      toast.error('Invalid Amount', 'Please enter a valid top-up amount.');
+      return;
+    }
+    setCardSubmitting(true);
+    try {
+      const orderRes = await request<any>('/wallet/topup/create-order', { method: 'POST', body: { amount_inr: amt } });
+      if (!orderRes?.ok) {
+        toast.error('Payment Failed', orderRes?.detail || 'Could not create payment order.');
+        setCardSubmitting(false);
+        return;
+      }
       const loadSDK = (): Promise<boolean> => {
         if ((window as any).Razorpay) return Promise.resolve(true);
         return new Promise((resolve) => {
@@ -439,11 +749,9 @@ export default function WalletScreen() {
       const sdkLoaded = await loadSDK();
       if (!sdkLoaded) {
         toast.error('Payment Failed', 'Could not load payment gateway. Check your connection.');
-        setTopupSubmitting(false);
+        setCardSubmitting(false);
         return;
       }
-
-      // Step 3: Open Razorpay checkout
       const rzp = new (window as any).Razorpay({
         key: orderRes.key_id,
         amount: orderRes.amount * 100,
@@ -452,7 +760,6 @@ export default function WalletScreen() {
         description: `Wallet Top-Up ₹${amt}`,
         order_id: orderRes.order_id,
         handler: async (response: any) => {
-          // Step 4: Verify payment and credit wallet
           try {
             const verifyRes = await request<any>('/wallet/topup/verify', {
               method: 'POST',
@@ -463,1580 +770,998 @@ export default function WalletScreen() {
                 amount_inr: amt,
               },
             });
-            if (verifyRes.ok) {
-              // Update local state with real balance from backend
-              setData({
-                ...data!,
-                balance_credits: verifyRes.balance_credits,
-                balance_inr: verifyRes.balance_inr,
-                history: [
-                  {
-                    id: `tx-topup-${Date.now()}`,
-                    type: 'credit',
-                    amount: verifyRes.total_credits,
-                    reason: `Wallet Top-Up ₹${amt} via Razorpay (+${verifyRes.bonus_credits} bonus)`,
-                    balance_after: verifyRes.balance_credits,
-                    ts: new Date().toISOString(),
-                  },
-                  ...(data?.history || []),
-                ],
-              });
-              toast.success('Top-Up Successful!', `Added ₹${amt} (+${verifyRes.total_credits.toLocaleString()} pts) to your wallet.`);
-              setTab('overview');
+            if (verifyRes?.ok) {
+              toast.success('Top-Up Successful!', `Added ₹${amt} (+${fmtCredits(verifyRes.total_credits || 0)} SA pts).`);
+              setModal(null);
+              fetchSummary(true);
             } else {
-              toast.error('Verification Failed', 'Payment was received but verification failed. Contact support.');
+              toast.error('Verification Failed', 'Payment received but verification failed. Contact support.');
             }
-          } catch (e: any) {
-            toast.error('Verification Failed', 'Payment was received but verification failed. Contact support.');
+          } catch {
+            toast.error('Verification Failed', 'Payment received but verification failed. Contact support.');
           }
-          setTopupSubmitting(false);
+          setCardSubmitting(false);
         },
         prefill: { name: user?.full_name || user?.name || '', email: user?.email || '' },
-        theme: { color: '#7C5CFC' },
+        theme: { color: '#2563EB' },
       });
       rzp.on('payment.failed', () => {
         toast.error('Payment Failed', 'Payment was cancelled or failed. Please try again.');
-        setTopupSubmitting(false);
+        setCardSubmitting(false);
       });
       rzp.open();
     } catch (e: any) {
       toast.error('Payment Failed', e?.message || 'Something went wrong. Please try again.');
-      setTopupSubmitting(false);
+      setCardSubmitting(false);
     }
   };
 
-  // Handle Withdraw Submit
-  const handleWithdrawSubmit = async () => {
+  // ── Withdraw (W11 backend POST /wallet/withdraw) ──
+  const handleWithdraw = async () => {
     const amt = parseFloat(wdAmountInr);
     if (isNaN(amt) || amt < 100) {
       toast.error('Minimum ₹100', 'Minimum withdrawal amount is ₹100.');
       return;
     }
     if (!wdTarget.trim()) {
-      toast.error('Target Required', 'Please enter your UPI ID or Bank account details.');
+      toast.error('Target Required', 'Please enter your UPI ID or bank account details.');
       return;
     }
     setWdSubmitting(true);
     try {
-      await new Promise((r) => setTimeout(r, 1000));
-      const deductCredits = amt * 25;
-      if (data) {
-        setData({
-          ...data,
-          balance_credits: Math.max(0, data.balance_credits - deductCredits),
-          balance_inr: Math.max(0, data.balance_inr - amt),
-          history: [
-            {
-              id: `tx-wd-${Date.now()}`,
-              type: 'debit',
-              amount: deductCredits,
-              reason: `Cashout to ${wdMethod.toUpperCase()} (${wdTarget})`,
-              balance_after: Math.max(0, data.balance_credits - deductCredits),
-              ts: new Date().toISOString(),
-            },
-            ...data.history,
-          ],
-        });
+      const r = await request<any>('/wallet/withdraw', {
+        method: 'POST',
+        body: { amount_inr: amt, method: wdMethod, target: wdTarget.trim() },
+      });
+      if (r?.ok) {
+        toast.success('Withdrawal Requested', `₹${amt} is processing — expected in ${r.eta || '24-48h'}.`);
+        setModal(null);
+        setWdAmountInr('');
+        setWdTarget('');
+        fetchSummary(true);
+      } else {
+        toast.error('Withdrawal Failed', r?.detail || 'Please check your details.');
       }
-      toast.success('Withdrawal Initiated!', `${fmtINR(amt)} will be credited to ${wdTarget} within 2 hours.`);
-      setTab('overview');
+    } catch (e: any) {
+      const msg = e?.message || '';
+      if (msg.toLowerCase().includes('insufficient')) {
+        toast.error('Insufficient Balance', 'You do not have enough credits for this withdrawal.');
+      } else {
+        toast.error('Withdrawal Failed', msg || 'Please try again.');
+      }
     } finally {
       setWdSubmitting(false);
     }
   };
 
-  const studentName = user?.full_name?.split(' ')[0] || 'Krishna';
-  const balancePts = data?.balance_credits || 31250;
-  const balanceInr = data?.balance_inr || 1250;
+  // ── Transfer (W11 backend POST /wallet/transfer) ──
+  const handleTransfer = async () => {
+    const amt = parseFloat(xfAmount);
+    if (isNaN(amt) || amt < 10) {
+      toast.error('Minimum 10 SA pts', 'You can transfer a minimum of 10 SA points.');
+      return;
+    }
+    if (amt > 500) {
+      toast.error('Maximum 500 SA pts', 'You can transfer a maximum of 500 SA points per transfer.');
+      return;
+    }
+    if (!xfRecipient.trim()) {
+      toast.error('Recipient Required', 'Enter the recipient\'s name or user ID.');
+      return;
+    }
+    setXfSubmitting(true);
+    try {
+      const r = await request<any>('/wallet/transfer', {
+        method: 'POST',
+        body: { recipient: xfRecipient.trim(), amount: amt, note: xfNote.trim() || undefined },
+      });
+      if (r?.ok) {
+        toast.success('Transfer Sent', `${fmtCredits(amt)} SA pts sent to ${r.recipient?.name || xfRecipient}.`);
+        setModal(null);
+        setXfRecipient('');
+        setXfAmount('');
+        setXfNote('');
+        fetchSummary(true);
+      } else {
+        toast.error('Transfer Failed', r?.detail || 'Please check the recipient and amount.');
+      }
+    } catch (e: any) {
+      const msg = e?.message || '';
+      if (msg.includes('429') || msg.toLowerCase().includes('limit') || msg.toLowerCase().includes('per day')) {
+        toast.error('Daily Limit Reached', 'You can send up to 3 transfers per day. Try again tomorrow.');
+      } else if (msg.toLowerCase().includes('insufficient')) {
+        toast.error('Insufficient Credits', 'You do not have enough credits for this transfer.');
+      } else {
+        toast.error('Transfer Failed', msg || 'Please try again.');
+      }
+    } finally {
+      setXfSubmitting(false);
+    }
+  };
 
-  const Container: any = isEmbedded ? View : ScrollView;
-  const containerProps: any = isEmbedded
-    ? { style: s.embeddedShell }
-    : { style: s.shell, contentContainerStyle: s.contentContainer };
+  // ── Derived ──
+  const balanceInr = data?.balance_inr ?? 0;
+  const balanceCredits = data?.balance_credits ?? 0;
+  const bonusPct = data?.topup_bonus_pct ?? 5;
+  const level = data?.level;
 
-  return (
-    <Container {...containerProps}>
+  const filteredMine = useMemo(() => {
+    return mineCoupons.filter((c) => {
+      if (couponFilter !== 'all' && c.status !== couponFilter) return false;
+      const q = couponSearch.toLowerCase();
+      if (q && !`${c.coupon?.partner || ''} ${c.coupon?.title || ''} ${c.code || ''}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [mineCoupons, couponFilter, couponSearch]);
 
-      {/* ══════════════ 1. HEADER BANNER ══════════════ */}
-      <View style={s.headerBar}>
-        <View style={s.headerLeft}>
-          <Text style={s.greetingText}>
-            Welcome back, {studentName}! Manage your SA Credits, Deals & Cashouts.
-          </Text>
-        </View>
+  const donutSlices = useMemo(() => {
+    const src = analytics?.earnings_by_category || data?.earnings_by_category || [];
+    return src.map((s: any, i: number) => ({
+      label: s.category,
+      value: s.credits || 0,
+      color: cat[i % cat.length],
+    }));
+  }, [analytics, data, cat]);
 
-        <View style={s.headerActions}>
-          <Pressable
-            onPress={() => fetchSummary(true)}
-            disabled={refreshing}
-            style={({ pressed, hovered }: any) => [
-              s.regenBtn,
-              (pressed || hovered) && s.regenBtnHover,
-            ]}
-          >
-            {refreshing ? (
-              <ActivityIndicator size={13} color={C.purpleL} />
-            ) : (
-              <Text style={s.regenBtnText}>↺ Sync Balance</Text>
-            )}
-          </Pressable>
+  const barItems = useMemo(() => {
+    const src = analytics?.spending_by_type || [];
+    return src.map((s: any) => ({ label: s.type, value: s.credits || 0 }));
+  }, [analytics]);
 
-          <Pressable
-            onPress={() => setTab('topup')}
-            style={({ pressed, hovered }: any) => [
-              s.reportBtn,
-              (pressed || hovered) && s.reportBtnHover,
-            ]}
-          >
-            <PlusCircle size={14} color="#FFF" />
-            <Text style={s.reportBtnText}>Add Funds</Text>
-          </Pressable>
-        </View>
-      </View>
+  const trendPoints = useMemo(() => analytics?.trend || [], [analytics]);
 
-      {/* ══════════════ 2. KPI METRICS STRIP (4 Cards) ══════════════ */}
-      <View style={s.kpiRow}>
-        {/* Card 1: Balance */}
-        <View style={[s.kpiCard, { borderColor: 'rgba(96, 165, 250, 0.40)' }]}>
-          <View style={s.kpiTopRow}>
-            <Text style={s.kpiLabel}>WALLET BALANCE</Text>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(96, 165, 250, 0.15)' }]}>
-              <Wallet size={16} color={C.purpleL} />
-            </View>
+  const projection = analytics?.projection;
+  const milestones = analytics?.milestones || [];
+
+  // ── Tab bodies ──
+  const renderOverview = () => (
+    <View style={{ gap: 14 }}>
+      {/* Hero balance */}
+      <LinearGradient colors={[...colors.hero]} style={{ borderRadius: 18, padding: 18, overflow: 'hidden' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View>
+            <Text style={{ fontFamily: FT.med, fontSize: 11, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: 0.8 }}>SA Wallet Balance</Text>
+            <Text style={{ fontFamily: FT.xbold, fontSize: 30, color: '#FFFFFF', marginTop: 4, lineHeight: 34 }}>{fmtINR(balanceInr)}</Text>
+            <Text style={{ fontFamily: FT.reg, fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>{fmtCredits(balanceCredits)} SA points · 1 pt = ₹{(1 / (data?.credits_per_inr || 25)).toFixed(2)}</Text>
           </View>
-          <Text style={s.kpiValue}>{fmtINR(balanceInr)}</Text>
-          <Text style={s.kpiSubText}>✦ {fmtCredits(balancePts)} SA Credits</Text>
-        </View>
-
-        {/* Card 2: Rewards Level */}
-        <View style={[s.kpiCard, { borderColor: 'rgba(56, 189, 248, 0.40)' }]}>
-          <View style={s.kpiTopRow}>
-            <Text style={s.kpiLabel}>REWARDS TIER</Text>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
-              <Award size={16} color={C.amber} />
-            </View>
+          <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' }}>
+            <Wallet size={24} color="#FFFFFF" />
           </View>
-          <Text style={s.kpiValue}>Level 3 Cobalt</Text>
-          <Text style={s.kpiSubText}>7,500 pts to Sapphire</Text>
         </View>
-
-        {/* Card 3: Active Coupons */}
-        <Pressable onPress={() => setTab('coupons')} style={[s.kpiCard, { borderColor: 'rgba(96, 165, 250, 0.40)' }]}>
-          <View style={s.kpiTopRow}>
-            <Text style={s.kpiLabel}>MY COUPONS</Text>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(96, 165, 250, 0.15)' }]}>
-              <Tag size={16} color={C.purpleL} />
-            </View>
+        <View style={{ flexDirection: 'row', gap: 24, marginTop: 16 }}>
+          <View>
+            <Text style={{ fontFamily: FT.reg, fontSize: 10, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Lifetime Earned</Text>
+            <Text style={{ fontFamily: FT.bold, fontSize: 15, color: '#FFFFFF', marginTop: 2 }}>{fmtCredits(data?.lifetime_earned ?? 0)}</Text>
           </View>
-          <Text style={s.kpiValue}>{activeCount} Active</Text>
-          <Text style={s.kpiSubText}>{usedCount} Coupons Used</Text>
-        </Pressable>
-
-        {/* Card 4: Lifetime Savings */}
-        <View style={[s.kpiCard, { borderColor: 'rgba(56, 189, 248, 0.40)' }]}>
-          <View style={s.kpiTopRow}>
-            <Text style={s.kpiLabel}>TOTAL SAVED</Text>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
-              <Zap size={16} color={C.teal} />
-            </View>
+          <View>
+            <Text style={{ fontFamily: FT.reg, fontSize: 10, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Lifetime Spent</Text>
+            <Text style={{ fontFamily: FT.bold, fontSize: 15, color: '#FFFFFF', marginTop: 2 }}>{fmtCredits(data?.lifetime_spent ?? 0)}</Text>
           </View>
-          <Text style={s.kpiValue}>{fmtINR(4850)}</Text>
-          <Text style={s.kpiSubText}>Across 5 SA partner deals</Text>
+          {data?.withdraw_threshold_inr ? (
+            <View>
+              <Text style={{ fontFamily: FT.reg, fontSize: 10, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Withdraw At</Text>
+              <Text style={{ fontFamily: FT.bold, fontSize: 15, color: '#FFFFFF', marginTop: 2 }}>{fmtINR(data.withdraw_threshold_inr)}</Text>
+            </View>
+          ) : null}
         </View>
-      </View>
+      </LinearGradient>
 
-      {/* ══════════════ 3. NAVIGATION TAB STRIP ══════════════ */}
-      <View style={s.tabBarRow}>
-        {[
-          { id: 'overview', label: 'Overview', icon: Wallet },
-          { id: 'coupons', label: `My Coupons (${activeCount})`, icon: Tag },
-          { id: 'topup', label: 'Add Funds', icon: PlusCircle },
-          { id: 'withdraw', label: 'Redeem', icon: ArrowUpRight },
-          { id: 'history', label: 'History', icon: Clock },
-        ].map((t) => {
-          const isActive = tab === t.id;
-          const IconComp = t.icon;
-          return (
+      {/* Quick actions */}
+      <View>
+        <SectionHeader title="Quick Actions" sub="Top up, withdraw, or send to a friend" />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+          {[
+            { key: 'upi', label: 'UPI Top-Up', sub: `+${bonusPct}% bonus`, Icon: QrCode, tone: colors.accent },
+            { key: 'card', label: 'Card Top-Up', sub: 'Razorpay', Icon: CreditCard, tone: colors.success },
+            { key: 'withdraw', label: 'Withdraw', sub: 'To UPI / Bank', Icon: ArrowDownLeft, tone: colors.danger },
+            { key: 'transfer', label: 'Send to Friend', sub: '10-500 pts', Icon: Send, tone: '#7C3AED' },
+          ].map((a) => (
             <Pressable
-              key={t.id}
-              onPress={() => setTab(t.id as any)}
-              style={[s.tabItem, isActive && s.tabItemActive]}
+              key={a.key}
+              accessibilityRole="button"
+              accessibilityLabel={`${a.label} — ${a.sub}`}
+              onPress={() => { setModal(a.key as any); setUpiSettled(false); }}
+              style={({ pressed }) => ({
+                flex: isTablet ? 1 : 1,
+                minWidth: 130,
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                borderWidth: 1,
+                borderRadius: 14,
+                padding: 14,
+                opacity: pressed ? 0.9 : 1,
+              })}
             >
-              <IconComp size={15} color={isActive ? '#FFF' : '#64748B'} />
-              <Text style={[s.tabText, isActive && s.tabTextActive]}>{t.label}</Text>
+              <View style={{
+                width: 38, height: 38, borderRadius: 11,
+                backgroundColor: isDark ? 'rgba(148,163,184,0.12)' : colors.cardHover,
+                alignItems: 'center', justifyContent: 'center',
+              }}>
+                <a.Icon size={19} color={a.tone as any} />
+              </View>
+              <Text style={{ fontFamily: FT.bold, fontSize: 13, color: colors.text, marginTop: 10 }}>{a.label}</Text>
+              <Text style={{ fontFamily: FT.reg, fontSize: 11, color: colors.textSub, marginTop: 1 }}>{a.sub}</Text>
             </Pressable>
-          );
-        })}
+          ))}
+        </View>
       </View>
 
-      {/* ══════════════ 4. TAB CONTENTS ══════════════ */}
-
-      {/* ── TAB 1: OVERVIEW ── */}
-      {tab === 'overview' && (
-        <View style={{ gap: 24 }}>
-          {/* Top Hero Balance Card */}
-          <LinearGradient
-            colors={['rgba(30, 58, 110, 0.70)', 'rgba(15, 35, 71, 0.90)', 'rgba(10, 22, 40, 0.98)']}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={s.heroCard}
-          >
-            <View style={s.heroContentRow}>
-              <View style={{ flex: 1, gap: 8 }}>
-                <Text style={s.heroOverline}>AVAILABLE BALANCE</Text>
-                <Text style={s.heroBalanceBig}>{fmtINR(balanceInr)}</Text>
-                <Text style={s.heroBalanceSub}>Equal to {fmtCredits(balancePts)} SA Credits</Text>
-                
-                <View style={s.heroQuickRow}>
-                  <Pressable onPress={() => setTab('topup')} style={s.heroBtnPrimary}>
-                    <PlusCircle size={14} color="#FFF" />
-                    <Text style={s.heroBtnText}>Top-Up Wallet</Text>
-                  </Pressable>
-                  <Pressable onPress={() => setTab('coupons')} style={s.heroBtnSecondary}>
-                    <Tag size={14} color={C.purpleL} />
-                    <Text style={s.heroBtnTextSec}>View My Coupons</Text>
-                  </Pressable>
-                  <Pressable onPress={() => setTab('withdraw')} style={s.heroBtnSecondary}>
-                    <ArrowUpRight size={14} color={C.teal} />
-                    <Text style={s.heroBtnTextSec}>Redeem Cash</Text>
-                  </Pressable>
-                </View>
+      {/* Earnings breakdown + recent */}
+      <View style={{ flexDirection: 'row', gap: 14, flexWrap: 'wrap' }}>
+        <View style={{ flex: 1, minWidth: 280 }}>
+          <SectionHeader title="Earnings by Category" />
+          <View style={{ backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 14, padding: 14, alignItems: 'center' }}>
+            <DonutChart slices={donutSlices} trackColor={isDark ? '#17253A' : '#F1F5F9'} ink={ink} centerValue={fmtCredits(donutSlices.reduce((a, s) => a + s.value, 0))} centerLabel="Total pts" />
+          </View>
+        </View>
+        <View style={{ flex: 1, minWidth: 280 }}>
+          <SectionHeader title="Recent Activity" right={
+            <Pressable accessibilityRole="button" onPress={() => setTab('history')} style={{ padding: 4 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <Text style={{ fontFamily: FT.med, fontSize: 11.5, color: colors.accent }}>View all</Text>
+                <ChevronRight size={13} color={colors.accent} />
               </View>
-
-              {isTablet && (
-                <View style={s.heroRightTile}>
-                  <Text style={s.heroTileTitle}>CONVERSION RATE</Text>
-                  <Text style={s.heroTileVal}>25 Pts = ₹1 INR</Text>
-                  <Text style={s.heroTileDesc}>Earn SA credits by completing profile tasks, attending events & referring alumni.</Text>
-                </View>
-              )}
-            </View>
-          </LinearGradient>
-
-          {/* Money Coach & Recent Activity */}
-          <View style={s.twoColRow}>
-            {/* Money Coach Assistant — Inline Preview Panel */}
-            <View style={s.colCard}>
-              <View style={s.cardHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Sparkles size={16} color={C.purpleL} />
-                  <Text style={s.sectionTitle}>MONEY COACH AI</Text>
-                </View>
-                <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(52,211,153,0.15)' }}>
-                  <Text style={{ color: C.green, fontSize: 10, fontFamily: 'DMSans_700Bold' }}>● LIVE</Text>
-                </View>
-              </View>
-
-              {/* Greeting Banner */}
-              <View style={{
-                backgroundColor: 'rgba(59,130,246,0.10)',
-                borderColor: 'rgba(59,130,246,0.25)',
-                borderWidth: 1,
-                borderRadius: 12,
-                padding: 14,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 12,
+            </Pressable>
+          } />
+          <View style={{ backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 14, padding: 4 }}>
+            {(data?.history || []).slice(0, 5).map((t: any, i: number) => (
+              <View key={t.id || i} style={{
+                flexDirection: 'row', alignItems: 'center', gap: 10,
+                padding: 10,
+                borderTopWidth: i === 0 ? 0 : 1,
+                borderTopColor: colors.border,
               }}>
-                <View style={{ width: 40, height: 40, borderRadius: 999, backgroundColor: '#2563EB', alignItems: 'center', justifyContent: 'center' }}>
-                  <Sparkles size={18} color="#FFF" />
+                <View style={{
+                  width: 32, height: 32, borderRadius: 10,
+                  backgroundColor: t.type === 'credit' ? (isDark ? 'rgba(74,222,128,0.14)' : '#ECFDF5') : (isDark ? 'rgba(248,113,113,0.14)' : '#FEF2F2'),
+                  alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {t.type === 'credit' ? <ArrowUpRight size={16} color={colors.success} /> : <ArrowDownLeft size={16} color={colors.danger} />}
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#FFF', fontSize: 13, fontFamily: 'DMSans_700Bold' }}>
-                    Hi {studentName}! 👋 I'm your Money Coach.
-                  </Text>
-                  <Text style={{ color: C.textSub, fontSize: 11.5, fontFamily: 'DMSans_400Regular', marginTop: 2 }}>
-                    Ask me anything about your credits, savings, or spending patterns.
-                  </Text>
+                  <Text style={{ fontFamily: FT.med, fontSize: 12.5, color: colors.text, overflow: 'hidden' }}>{t.reason}</Text>
+                  <Text style={{ fontFamily: FT.reg, fontSize: 10.5, color: colors.textSub, marginTop: 1 }}>{fmtDateTime(t.ts)}</Text>
                 </View>
-              </View>
-
-              {/* Quick Insights */}
-              <View style={{ gap: 8 }}>
-                <Text style={{ color: C.purpleXL, fontSize: 10.5, fontFamily: 'DMSans_700Bold', letterSpacing: 0.8 }}>QUICK INSIGHTS</Text>
-                {[
-                  { icon: TrendingUp, color: '#34D399', text: `You've earned ${fmtCredits(data?.lifetime_earned || 42500)} total credits. Keep going!` },
-                  { icon: Star,       color: '#FBBF24', text: 'Complete your profile to unlock 500 bonus credits this week.' },
-                  { icon: Zap,        color: '#60A5FA', text: `You're ${7500} pts away from Sapphire tier — attend 1 event to fast-track.` },
-                ].map((tip, i) => (
-                  <View key={i} style={{
-                    flexDirection: 'row', alignItems: 'center', gap: 10,
-                    backgroundColor: 'rgba(255,255,255,0.03)',
-                    borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1,
-                    borderRadius: 10, padding: 10,
-                  }}>
-                    <tip.icon size={15} color={tip.color} />
-                    <Text style={{ flex: 1, color: C.text2, fontSize: 12, fontFamily: 'DMSans_400Regular', lineHeight: 17 }}>
-                      {tip.text}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-
-              {/* Slash Command Chips */}
-              <View style={{ gap: 6 }}>
-                <Text style={{ color: C.purpleXL, fontSize: 10.5, fontFamily: 'DMSans_700Bold', letterSpacing: 0.8 }}>TRY A COMMAND</Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {[
-                    { cmd: '/credit-plan', label: '🚀 Credit Plan' },
-                    { cmd: '/spend',       label: '📊 Spending' },
-                    { cmd: '/forecast',    label: '📅 Forecast' },
-                    { cmd: '/save 5000',   label: '🐷 Save ₹5K' },
-                    { cmd: '/cashback',    label: '💳 Cashback' },
-                    { cmd: '/tax',         label: '🧾 Tax Summary' },
-                  ].map((chip) => (
-                    <Pressable
-                      key={chip.cmd}
-                      onPress={() => {
-                        if (Platform.OS === 'web') {
-                          window.dispatchEvent(new CustomEvent('open-money-coach', { detail: { cmd: chip.cmd } }));
-                        }
-                      }}
-                      style={({ hovered }: any) => ({
-                        paddingHorizontal: 12, paddingVertical: 6,
-                        borderRadius: 999,
-                        backgroundColor: hovered ? 'rgba(59,130,246,0.18)' : 'rgba(59,130,246,0.08)',
-                        borderColor: 'rgba(59,130,246,0.30)', borderWidth: 1,
-                        cursor: 'pointer',
-                      } as any)}
-                    >
-                      <Text style={{ color: C.purpleL, fontSize: 11.5, fontFamily: 'DMSans_700Bold' }}>
-                        {chip.label}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-
-              {/* Open Coach CTA */}
-              <Pressable
-                onPress={() => {
-                  if (Platform.OS === 'web') {
-                    window.dispatchEvent(new CustomEvent('open-money-coach', { detail: {} }));
-                  }
-                }}
-                style={({ hovered }: any) => ({
-                  flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  backgroundColor: hovered ? '#2563EB' : '#1D4ED8',
-                  borderRadius: 12, paddingVertical: 12, marginTop: 4,
-                  cursor: 'pointer',
-                } as any)}
-              >
-                <Sparkles size={15} color="#FFF" />
-                <Text style={{ color: '#FFF', fontSize: 13, fontFamily: 'DMSans_700Bold' }}>
-                  Open Money Coach Chat
+                <Text style={{ fontFamily: FT.bold, fontSize: 13, color: t.type === 'credit' ? colors.success : colors.danger }}>
+                  {t.type === 'credit' ? '+' : '-'}{fmtCredits(t.amount)}
                 </Text>
-                <ChevronRight size={15} color="#FFF" />
-              </Pressable>
-              <MoneyCoach />
-            </View>
-
-            {/* Recent Activity */}
-            <View style={s.colCard}>
-              <View style={s.cardHeader}>
-                <Text style={s.sectionTitle}>RECENT ACTIVITY</Text>
-                <Pressable onPress={() => setTab('history')}>
-                  <Text style={s.cardBottomLinkText}>View All ➔</Text>
-                </Pressable>
               </View>
-
-              <View style={{ gap: 10 }}>
-                {(data?.history || []).slice(0, 4).map((tx, idx) => (
-                  <View key={tx.id || idx} style={s.txRow}>
-                    <View style={[s.txIconBox, { backgroundColor: tx.type === 'credit' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(248, 113, 113, 0.15)' }]}>
-                      {tx.type === 'credit' ? (
-                        <ArrowDownLeft size={16} color={C.green} />
-                      ) : (
-                        <ArrowUpRight size={16} color={C.red} />
-                      )}
-                    </View>
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Text style={s.txReason}>{tx.reason}</Text>
-                      <Text style={s.txDate}>{tx.ts ? new Date(tx.ts).toLocaleDateString() : 'Recent'}</Text>
-                    </View>
-                    <Text style={[s.txAmount, { color: tx.type === 'credit' ? C.green : C.red }]}>
-                      {tx.type === 'credit' ? '+' : '-'}{fmtCredits(tx.amount)} pts
-                    </Text>
-                  </View>
-                ))}
+            ))}
+            {(!data?.history || data.history.length === 0) ? (
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <Text style={{ fontFamily: FT.reg, fontSize: 12, color: colors.textSub }}>No activity yet. Start earning with events, referrals, and logins.</Text>
               </View>
-            </View>
+            ) : null}
           </View>
         </View>
-      )}
+      </View>
+    </View>
+  );
 
-      {/* ── TAB 2: MY COUPONS (COUPON & REWARDS ENGINE) ── */}
-      {tab === 'coupons' && (
-        <View style={{ gap: 24 }}>
-          {/* Sub-Header Controls */}
-          <View style={s.couponControlsRow}>
-            {/* Filter Pills */}
-            <View style={s.couponFilterGroup}>
-              {[
-                { id: 'all', label: `All (${myCoupons.length})` },
-                { id: 'active', label: `Active (${activeCount})` },
-                { id: 'used', label: `Used (${usedCount})` },
-                { id: 'locked', label: `Locked (${lockedCount})` },
-              ].map((f) => (
-                <Pressable
-                  key={f.id}
-                  onPress={() => setCouponFilter(f.id as any)}
-                  style={[s.filterChip, couponFilter === f.id && s.filterChipActive]}
-                >
-                  <Text style={[s.filterChipText, couponFilter === f.id && s.filterChipTextActive]}>
-                    {f.label}
-                  </Text>
-                </Pressable>
-              ))}
+  const renderCoupons = () => (
+    <View style={{ gap: 14 }}>
+      <View>
+        <SectionHeader title="My Coupons" sub={`${activeCouponCount} active`} right={
+          <Pressable accessibilityRole="button" onPress={() => setInstructionModal({ title: 'How to use coupons', instructions: 'Paste your code at the partner checkout. Codes are single-use and expire as listed. Open the partner website and apply the code in the discount field.' })} style={{ padding: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+              <Info size={13} color={colors.textSub} />
+              <Text style={{ fontFamily: FT.med, fontSize: 11.5, color: colors.textSub }}>How it works</Text>
             </View>
-
-            {/* Search Input */}
-            <View style={s.searchWrap}>
-              <Search size={15} color={C.purpleL} style={{ marginRight: 8 }} />
-              <TextInput
-                value={couponSearch}
-                onChangeText={setCouponSearch}
-                placeholder="Search by brand or code..."
-                placeholderTextColor="#94A3B8"
-                style={s.searchInput}
-              />
-              {!!couponSearch && (
-                <Pressable onPress={() => setCouponSearch('')}>
-                  <X size={15} color={C.purpleL} />
-                </Pressable>
-              )}
-            </View>
-          </View>
-
-          {/* Help Note */}
-          <View style={{ padding: 16, backgroundColor: 'rgba(59,130,246,0.08)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)', marginBottom: 16 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <Info size={16} color="#3B82F6" />
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#3B82F6' }}>How Coupons Work</Text>
-            </View>
-            <Text style={{ fontSize: 13, color: '#94A3B8', lineHeight: 20 }}>
-              • <Text style={{ fontWeight: '600', color: '#A78BFA' }}>Food & Beverages</Text> — Show the code at event stalls to get discounts on food orders.{'\n'}
-              • <Text style={{ fontWeight: '600', color: '#3B82F6' }}>Partner</Text> — Use these codes on partner websites (Coursera, Spotify, etc.) for free access or discounts.{'\n'}
-              • <Text style={{ fontWeight: '600', color: '#10B981' }}>Event</Text> — Apply at event registration checkout for discounts.{'\n'}
-              • <Text style={{ fontWeight: '600', color: '#F59E0B' }}>Promo</Text> — General platform promotions available to all users.{'\n\n'}
-              <Text style={{ fontWeight: '600', color: '#EF4444' }}>Locked coupons</Text> will become available during the event. Copy the code and use "Use Now" to visit the partner website.
-            </Text>
-          </View>
-
-{/* Coupons grouped by category */}
-          {(['marketplace', 'partner', 'event', 'promo'] as const).map(cat => {
-            const catCoupons = availableCoupons.filter(c => c.category === cat);
-            if (catCoupons.length === 0) return null;
-            const catLabel = cat === 'marketplace' ? 'Food & Beverages' : cat === 'partner' ? 'Partner Offers' : cat === 'event' ? 'Event Discounts' : 'Promotions';
-            const catColor = cat === 'marketplace' ? '#8B5CF6' : cat === 'partner' ? '#3B82F6' : cat === 'event' ? '#10B981' : '#F59E0B';
-            return (
-              <View key={cat} style={{ marginBottom: 24 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: catColor }}>{catLabel}</Text>
-                  <View style={{ flex: 1, height: 1, backgroundColor: catColor + '33' }} />
-                  <Text style={{ fontSize: 12, color: '#6B7280' }}>{catCoupons.length}</Text>
-                </View>
-                <View style={s.couponsGrid}>
-                  {catCoupons.map(c => (
-                    <View key={c.id} style={[s.couponCard, { borderColor: c.locked ? 'rgba(239,68,68,0.25)' : c.accent + '33', opacity: c.locked ? 0.8 : 1 }]}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                        {c.brand && !c.brand.includes('Student Alumni') ? (
-                          <View style={[s.couponBrandBadge, { backgroundColor: c.accent + '20', borderColor: c.accent + '40' }]}>
-                            <Text style={[s.couponBrandText, { color: c.accent }]}>{c.brand}</Text>
-                          </View>
-                        ) : null}
-                        {c.event_id ? (
-                          <View style={[s.statusPill, { backgroundColor: 'rgba(124,92,246,0.15)', paddingHorizontal: 8, paddingVertical: 3 }]}>
-                            <Text style={{ fontSize: 10, fontWeight: '700', color: '#A78BFA', letterSpacing: 0.3 }}>{c.event_id}</Text>
-                          </View>
-                        ) : null}
-                        <View style={[s.statusPill, { backgroundColor: c.locked ? 'rgba(239,68,68,0.12)' : c.status === 'active' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(240, 238, 255, 0.1)' }]}>
-                          {c.locked ? (
-                            <><Lock size={10} color="#EF4444" /><Text style={[s.statusPillText, { color: '#EF4444', marginLeft: 4 }]}>Locked</Text></>
-                          ) : (
-                            <Text style={[s.statusPillText, { color: c.status === 'active' ? C.green : C.dim }]}>{c.status === 'active' ? '● Ready' : '✓ Used'}</Text>
-                          )}
-                        </View>
-                      </View>
-
-                      <Text style={s.couponTitle}>{c.title}</Text>
-                      <Text style={{ fontSize: 12, color: C.textSub, marginTop: 2 }}>{c.discount}</Text>
-
-                      {c.instructions ? (
-                        <Pressable
-                          onPress={() => setInstructionModal({ title: c.brand || c.code, instructions: c.instructions || '', website: c.url })}
-                          style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, marginBottom: 4, paddingVertical: 2 }}
-                        >
-                          <Info size={11} color="#3B82F6" />
-                          <Text style={{ fontSize: 11, color: '#3B82F6', flex: 1 }} numberOfLines={2}>{c.instructions}</Text>
-                          <Text style={{ fontSize: 10, color: '#3B82F6', fontWeight: '700' }}>Details →</Text>
-                        </Pressable>
-                      ) : null}
-
-                      {!c.locked && (
-                        <View style={s.voucherCodeBox}>
-                          <Text style={s.voucherCodeText}>{c.code}</Text>
-                          <Pressable onPress={() => copyCouponCode(c.code)} style={s.copyBtn}>
-                            <Copy size={13} color={C.purpleL} />
-                            <Text style={s.copyBtnText}>Copy</Text>
-                          </Pressable>
-                        </View>
-                      )}
-
-                      {c.locked && (
-                        <View style={[s.voucherCodeBox, { backgroundColor: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.2)' }]}>
-                          <Lock size={13} color="#EF4444" />
-                          <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600' }}>Available during event</Text>
-                        </View>
-                      )}
-
-                      {!c.locked && (
-                        <View style={s.couponActionRow}>
-                          <Pressable onPress={() => { if (c.url) Linking.openURL(c.url); }} style={s.useNowBtn}>
-                            <Text style={s.useNowBtnText}>Use Now</Text>
-                            <ExternalLink size={12} color="#FFF" />
-                          </Pressable>
-                          {c.status === 'active' && (
-                            <Pressable onPress={() => markCouponAsUsed(c.id)} style={s.markUsedBtn}>
-                              <CheckCircle2 size={12} color={C.textSub} />
-                              <Text style={s.markUsedText}>Mark Used</Text>
-                            </Pressable>
-                          )}
-                        </View>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      )}
-
-{/* Section 1: My Redeemed Coupons Grid */}
-          <View>
-            <View style={s.couponSectionHeader}>
-              <Text style={s.couponSectionTitle}>MY REDEEMED COUPONS</Text>
-              <Text style={s.couponSectionSub}>
-                Coupons you've already used. Copy codes to reuse on partner websites.
-              </Text>
-            </View>
-
-            {usedCoupons.length === 0 ? (
-              <View style={s.emptyBox}>
-                <Tag size={40} color={C.dim} />
-                <Text style={s.emptyTitle}>No redeemed coupons yet</Text>
-                <Text style={s.emptySub}>Use a coupon code and it will appear here.</Text>
-              </View>
-            ) : (
-              <View style={s.couponsGrid}>
-                {usedCoupons.map((c) => (
-                  <View key={c.id} style={[s.couponCard, { borderColor: c.locked ? 'rgba(239,68,68,0.25)' : c.accent + '33', opacity: c.locked ? 0.8 : 1 }]}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
-                      {c.brand && !c.brand.includes('Student Alumni') ? (
-                        <View style={[s.couponBrandBadge, { backgroundColor: c.accent + '20', borderColor: c.accent + '40' }]}>
-                          <Text style={[s.couponBrandText, { color: c.accent }]}>{c.brand}</Text>
-                        </View>
-                      ) : null}
-                      {c.event_id ? (
-                        <View style={[s.statusPill, { backgroundColor: 'rgba(124,92,246,0.15)', paddingHorizontal: 8, paddingVertical: 3 }]}>
-                          <Text style={{ fontSize: 10, fontWeight: '700', color: '#A78BFA', letterSpacing: 0.3 }}>{c.event_id}</Text>
-                        </View>
-                      ) : null}
-                      <View style={[s.statusPill, { backgroundColor: c.locked ? 'rgba(239,68,68,0.12)' : c.status === 'active' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(240, 238, 255, 0.1)' }]}>
-                        {c.locked ? (
-                          <><Lock size={10} color="#EF4444" /><Text style={[s.statusPillText, { color: '#EF4444', marginLeft: 4 }]}>Locked</Text></>
-                        ) : (
-                          <Text style={[s.statusPillText, { color: c.status === 'active' ? C.green : C.dim }]}>{c.status === 'active' ? '● Ready' : '✓ Used'}</Text>
-                        )}
-                      </View>
-                    </View>
-
-                    <Text style={s.couponTitle}>{c.title}</Text>
-                    <Text style={{ fontSize: 12, color: C.textSub, marginTop: 2 }}>{c.discount}</Text>
-
-                    {c.instructions ? (
-                      <Pressable
-                        onPress={() => setInstructionModal({ title: c.brand || c.code, instructions: c.instructions || '', website: c.url })}
-                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, marginBottom: 4, paddingVertical: 2 }}
-                      >
-                        <Info size={11} color="#3B82F6" />
-                        <Text style={{ fontSize: 11, color: '#3B82F6', flex: 1 }} numberOfLines={2}>{c.instructions}</Text>
-                        <Text style={{ fontSize: 10, color: '#3B82F6', fontWeight: '700' }}>Details →</Text>
-                      </Pressable>
-                    ) : null}
-
-                    {/* Voucher Code Box */}
-                    {!c.locked && (
-                      <View style={s.voucherCodeBox}>
-                        <Text style={s.voucherCodeText}>{c.code}</Text>
-                        <Pressable onPress={() => copyCouponCode(c.code)} style={s.copyBtn}>
-                          <Copy size={13} color={C.purpleL} />
-                          <Text style={s.copyBtnText}>Copy</Text>
-                        </Pressable>
-                      </View>
-                    )}
-
-                    {c.locked && (
-                      <View style={[s.voucherCodeBox, { backgroundColor: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.2)' }]}>
-                        <Lock size={13} color="#EF4444" />
-                        <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600' }}>Available during event</Text>
-                      </View>
-                    )}
-
-                    {/* Action Buttons */}
-                    {!c.locked && (
-                      <View style={s.couponActionRow}>
-                        <Pressable
-                          onPress={() => {
-                            if (c.url) Linking.openURL(c.url);
-                          }}
-                          style={s.useNowBtn}
-                        >
-                          <Text style={s.useNowBtnText}>Use Now</Text>
-                          <ExternalLink size={12} color="#FFF" />
-                        </Pressable>
-
-                        {c.status === 'active' && (
-                          <Pressable
-                            onPress={() => markCouponAsUsed(c.id)}
-                            style={s.markUsedBtn}
-                          >
-                            <CheckCircle2 size={12} color={C.textSub} />
-                            <Text style={s.markUsedText}>Mark Used</Text>
-                          </Pressable>
-                        )}
-                      </View>
-                    )}
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-
-{/* ── TAB 3: ADD FUNDS ── */}
-      {tab === 'topup' && (
-        <View style={s.formColCard}>
-          <View style={s.cardHeader}>
-            <Text style={s.sectionTitle}>ADD FUNDS TO WALLET</Text>
-          </View>
-          <Text style={{ color: C.text2, fontSize: 14 }}>
-            Top up your SA Wallet using UPI, Card, or Netbanking. Get +10% bonus SA credits on every top-up!
-          </Text>
-
-          {/* Amount Presets */}
-          <View style={{ gap: 8, marginTop: 8 }}>
-            <Text style={s.inputLabel}>SELECT AMOUNT (INR)</Text>
-            <View style={s.presetsGrid}>
-              {TOPUP_PRESETS.map((amt) => (
-                <Pressable
-                  key={`top-preset-${amt}`}
-                  onPress={() => setTopupAmount(String(amt))}
-                  style={[s.presetChip, topupAmount === String(amt) && s.presetChipActive]}
-                >
-                  <Text style={[s.presetText, topupAmount === String(amt) && s.presetTextActive]}>
-                    ₹{amt}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
-          {/* Custom Input */}
-          <View style={{ gap: 6 }}>
-            <Text style={s.inputLabel}>CUSTOM AMOUNT (INR)</Text>
-            <TextInput
-              value={topupAmount}
-              onChangeText={setTopupAmount}
-              keyboardType="numeric"
-              placeholder="Enter amount in ₹"
-              placeholderTextColor={C.dim}
-              style={s.textInputCustom}
-            />
-          </View>
-
-          {/* Payment Method Selector */}
-          <View style={{ gap: 8 }}>
-            <Text style={s.inputLabel}>PAYMENT METHOD</Text>
-            <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
-              {[
-                { id: 'upi', label: 'UPI / GPay / PhonePe', icon: Zap },
-                { id: 'card', label: 'Credit / Debit Card', icon: CreditCard },
-                { id: 'netbanking', label: 'Netbanking', icon: Building2 },
-              ].map((m) => {
-                const isSel = topupMethod === m.id;
-                const IconC = m.icon;
-                return (
-                  <Pressable
-                    key={m.id}
-                    onPress={() => setTopupMethod(m.id as any)}
-                    style={[s.methodBox, isSel && s.methodBoxActive]}
-                  >
-                    <IconC size={16} color={isSel ? C.purpleL : C.textSub} />
-                    <Text style={[s.methodText, isSel && s.methodTextActive]}>{m.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* Calculation summary */}
-          <View style={s.calcSummaryBox}>
-            <View style={s.calcRow}>
-              <Text style={s.calcLabel}>Top-up Amount:</Text>
-              <Text style={s.calcVal}>{fmtINR(parseFloat(topupAmount) || 0)}</Text>
-            </View>
-            <View style={s.calcRow}>
-              <Text style={s.calcLabel}>Base SA Credits (25x):</Text>
-              <Text style={s.calcVal}>+{fmtCredits((parseFloat(topupAmount) || 0) * 25)} Pts</Text>
-            </View>
-            <View style={s.calcRow}>
-              <Text style={s.calcLabel}>10% Bonus Points:</Text>
-              <Text style={[s.calcVal, { color: C.green }]}>+{fmtCredits((parseFloat(topupAmount) || 0) * 2.5)} Pts</Text>
-            </View>
-          </View>
-
-          <Pressable
-            onPress={handleTopupSubmit}
-            disabled={topupSubmitting}
-            style={s.submitActionBtn}
-          >
-            {topupSubmitting ? (
-              <ActivityIndicator size={16} color="#FFF" />
-            ) : (
-              <Text style={s.submitActionText}>Proceed to Pay {fmtINR(parseFloat(topupAmount) || 0)}</Text>
-            )}
           </Pressable>
-        </View>
-      )}
-
-      {/* ── TAB 4: REDEEM / CASHOUT ── */}
-      {tab === 'withdraw' && (
-        <View style={s.formColCard}>
-          <View style={s.cardHeader}>
-            <Text style={s.sectionTitle}>REDEEM SA CREDITS FOR CASH</Text>
-          </View>
-          <Text style={{ color: C.text2, fontSize: 14 }}>
-            Convert your earned SA Credits back to real cash. Funds are transferred directly to your UPI ID or Bank account.
-          </Text>
-
-          {/* Custom Input */}
-          <View style={{ gap: 6 }}>
-            <Text style={s.inputLabel}>AMOUNT TO CASH OUT (INR)</Text>
+        } />
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+          {(['active', 'all', 'used'] as const).map((f) => (
+            <Chip key={f} label={f[0].toUpperCase() + f.slice(1)} active={couponFilter === f} onPress={() => setCouponFilter(f)} />
+          ))}
+          <View style={{ flex: 1, minWidth: 180, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, gap: 6 }}>
+            <Search size={15} color={colors.textSub} />
             <TextInput
-              value={wdAmountInr}
-              onChangeText={setWdAmountInr}
-              keyboardType="numeric"
-              placeholder="Minimum ₹100"
-              placeholderTextColor={C.dim}
-              style={s.textInputCustom}
+              value={couponSearch}
+              onChangeText={setCouponSearch}
+              placeholder="Search partner or code"
+              placeholderTextColor={colors.dim}
+              style={{ flex: 1, fontFamily: FT.reg, fontSize: 13, color: colors.text, paddingVertical: 8 }}
             />
+            {couponSearch ? (
+              <Pressable accessibilityRole="button" onPress={() => setCouponSearch('')}><X size={14} color={colors.textSub} /></Pressable>
+            ) : null}
           </View>
-
-          {/* Withdrawal Target Input */}
-          <View style={{ gap: 6 }}>
-            <Text style={s.inputLabel}>ENTER YOUR UPI ID OR BANK DETAILS</Text>
-            <TextInput
-              value={wdTarget}
-              onChangeText={setWdTarget}
-              placeholder="e.g. username@upi or Account Number & IFSC"
-              placeholderTextColor={C.dim}
-              style={s.textInputCustom}
-            />
-          </View>
-
-          <Pressable
-            onPress={handleWithdrawSubmit}
-            disabled={wdSubmitting}
-            style={s.submitActionBtn}
-          >
-            {wdSubmitting ? (
-              <ActivityIndicator size={16} color="#FFF" />
-            ) : (
-              <Text style={s.submitActionText}>Request Cashout ({fmtCredits((parseFloat(wdAmountInr) || 0) * 25)} Pts)</Text>
-            )}
-          </Pressable>
         </View>
-      )}
-
-      {/* ── TAB 5: HISTORY ── */}
-      {tab === 'history' && (
-        <View style={s.formColCard}>
-          <View style={s.cardHeader}>
-            <Text style={s.sectionTitle}>TRANSACTION HISTORY</Text>
+        {filteredMine.length === 0 ? (
+          <View style={{ backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 14, padding: 24, alignItems: 'center' }}>
+            <Tag size={28} color={colors.dim} />
+            <Text style={{ fontFamily: FT.med, fontSize: 13, color: colors.text2, marginTop: 8 }}>No coupons here yet.</Text>
+            <Text style={{ fontFamily: FT.reg, fontSize: 12, color: colors.textSub, marginTop: 2, textAlign: 'center' }}>Claim one from the catalog below, or earn more credits to unlock premium codes.</Text>
           </View>
-
-          <View style={{ gap: 12 }}>
-            {(data?.history || []).map((tx, idx) => (
-              <View key={tx.id || idx} style={s.txFullRow}>
-                <View style={[s.txIconBox, { backgroundColor: tx.type === 'credit' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(248, 113, 113, 0.15)' }]}>
-                  {tx.type === 'credit' ? (
-                    <ArrowDownLeft size={18} color={C.green} />
-                  ) : (
-                    <ArrowUpRight size={18} color={C.red} />
-                  )}
+        ) : (
+          <View style={{ gap: 10 }}>
+            {filteredMine.map((c: any) => (
+              <View key={c.id} style={{ backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 14, padding: 14 }}>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <BrandLogo partner={c.coupon?.partner || 'Partner'} logo={c.coupon?.logo} size={40} />
+                  <View style={{ flex: 1, gap: 6 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <Text style={{ fontFamily: FT.bold, fontSize: 13.5, color: colors.text }}>{c.coupon?.partner || 'Partner'}</Text>
+                        <View style={{
+                          backgroundColor: isDark ? 'rgba(59,130,246,0.16)' : '#EFF6FF',
+                          borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2,
+                        }}>
+                          <Text style={{ fontFamily: FT.bold, fontSize: 10.5, color: c.status === 'active' ? (isDark ? '#93C5FD' : '#1E40AF') : colors.dim }}>{c.coupon?.display || 'DEAL'}</Text>
+                        </View>
+                      </View>
+                      <Chip
+                        label={c.status === 'active' ? 'Active' : c.status === 'used' ? 'Used' : 'Expired'}
+                        tone={c.status === 'active' ? 'green' : c.status === 'used' ? 'neutral' : 'amber'}
+                      />
+                    </View>
+                    <Text style={{ fontFamily: FT.reg, fontSize: 12, color: colors.textSub, overflow: 'hidden' }}>{c.coupon?.title}</Text>
+                    <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+                      <DashedCodeBox
+                        code={c.code || '---'}
+                        onCopy={() => copyCode(c.code || '')}
+                        isDark={isDark}
+                        codeBoxBorder={isDark ? 'rgba(30,58,110,0.6)' : '#CBD5E1'}
+                      />
+                      <Text style={{ fontFamily: FT.reg, fontSize: 11, color: colors.textSub }}>
+                        {c.status === 'used' ? `Used ${fmtDate(c.used_at)}` : `Expires ${fmtDate(c.expires_at)}`}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={s.txFullReason}>{tx.reason}</Text>
-                  <Text style={s.txFullMeta}>
-                    ID: {tx.id || 'TX-8921'} · {tx.ts ? new Date(tx.ts).toLocaleString() : 'Recent'}
-                  </Text>
-                </View>
-
-                <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                  <Text style={[s.txFullAmount, { color: tx.type === 'credit' ? C.green : C.red }]}>
-                    {tx.type === 'credit' ? '+' : '-'}{fmtCredits(tx.amount)} Pts
-                  </Text>
-                  <Text style={s.txFullBal}>Bal: {fmtCredits(tx.balance_after || 0)} Pts</Text>
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                  {c.coupon?.url ? (
+                    <Pressable accessibilityRole="button" onPress={() => { Linking.openURL(c.coupon.url).catch(() => {}); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, padding: 8, borderRadius: 9, backgroundColor: isDark ? 'rgba(59,130,246,0.12)' : colors.accentSoft }}>
+                      <ExternalLink size={13} color={colors.accent} />
+                      <Text style={{ fontFamily: FT.med, fontSize: 11.5, color: colors.accent }}>Open Partner</Text>
+                    </Pressable>
+                  ) : null}
+                  {c.status === 'active' ? (
+                    <Pressable accessibilityRole="button" onPress={() => markCouponUsed(c.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, padding: 8, borderRadius: 9, backgroundColor: isDark ? 'rgba(148,163,184,0.12)' : colors.cardHover }}>
+                      <Check size={13} color={colors.text2} />
+                      <Text style={{ fontFamily: FT.med, fontSize: 11.5, color: colors.text2 }}>Mark as Used</Text>
+                    </Pressable>
+                  ) : null}
                 </View>
               </View>
             ))}
           </View>
-        </View>
-      )}
+        )}
+      </View>
 
-      {/* Instruction Detail Modal */}
-      <Modal visible={!!instructionModal} transparent animationType="fade" onRequestClose={() => setInstructionModal(null)}>
-        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 }} onPress={() => setInstructionModal(null)}>
-          <View style={{ backgroundColor: '#12162A', borderRadius: 20, padding: 28, maxWidth: 400, width: '100%', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }} onStartShouldSetResponder={() => true}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFF', flex: 1 }}>{instructionModal?.title}</Text>
-              <Pressable onPress={() => setInstructionModal(null)} style={{ padding: 4 }}>
-                <X size={20} color="#9CA3AF" />
-              </Pressable>
-            </View>
-            <View style={{ backgroundColor: 'rgba(59,130,246,0.1)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                <Info size={14} color="#3B82F6" />
-                <Text style={{ fontSize: 13, fontWeight: '600', color: '#3B82F6' }}>How to Redeem</Text>
-              </View>
-              <Text style={{ fontSize: 14, color: '#D1D5DB', lineHeight: 20 }}>{instructionModal?.instructions}</Text>
-            </View>
-            {instructionModal?.website ? (
-              <Pressable onPress={() => Linking.openURL(instructionModal.website!)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 14, backgroundColor: 'rgba(139,92,246,0.15)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(139,92,246,0.3)' }}>
-                <ExternalLink size={16} color="#A78BFA" />
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#A78BFA' }}>Open Website</Text>
-              </Pressable>
-            ) : null}
+      <View>
+        <SectionHeader title="Coupon Catalog" sub="Claim premium codes with your credits" />
+        {catalog.length === 0 ? (
+          <View style={{ backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 14, padding: 20, alignItems: 'center' }}>
+            <Text style={{ fontFamily: FT.reg, fontSize: 12.5, color: colors.textSub }}>No available coupons right now. Check back soon.</Text>
           </View>
-        </Pressable>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {catalog.map((c: any) => {
+              const alreadyClaimed = mineCoupons.some((m: any) => m.coupon?.id === c.id);
+              const affordable = balanceCredits >= (c.credits_cost || 0);
+              return (
+                <View key={c.id} style={{ backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 14, padding: 14 }}>
+                  <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+                    <BrandLogo partner={c.partner} logo={c.logo} size={42} />
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <Text style={{ fontFamily: FT.bold, fontSize: 13.5, color: colors.text }}>{c.partner}</Text>
+                        <View style={{ backgroundColor: isDark ? 'rgba(16,185,129,0.16)' : '#ECFDF5', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
+                          <Text style={{ fontFamily: FT.bold, fontSize: 10.5, color: isDark ? '#4ADE80' : '#047857' }}>{c.display}</Text>
+                        </View>
+                      </View>
+                      <Text style={{ fontFamily: FT.reg, fontSize: 12, color: colors.textSub, overflow: 'hidden' }}>{c.title}</Text>
+                      <Text style={{ fontFamily: FT.reg, fontSize: 10.5, color: colors.dim, marginTop: 2 }}>
+                        {c.max_claims ? `${c.max_claims - (c.claims || 0)} of ${c.max_claims} claimed · ` : ''}{c.expiry_days ? `Expires in ${c.expiry_days} days` : ''}
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'center' }}>
+                      <Text style={{ fontFamily: FT.bold, fontSize: 14, color: affordable ? colors.text : colors.danger }}>{fmtCredits(c.credits_cost || 0)}</Text>
+                      <Text style={{ fontFamily: FT.reg, fontSize: 9.5, color: colors.dim, marginTop: 1 }}>pts</Text>
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                    {alreadyClaimed ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, padding: 8, borderRadius: 9, backgroundColor: isDark ? 'rgba(16,185,129,0.14)' : '#ECFDF5' }}>
+                        <CheckCircle2 size={14} color={colors.success} />
+                        <Text style={{ fontFamily: FT.med, fontSize: 11.5, color: colors.success }}>Already in your wallet</Text>
+                      </View>
+                    ) : (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Claim ${c.partner} coupon for ${c.credits_cost} points`}
+                        disabled={!affordable || claimingId === c.id}
+                        onPress={() => claimCoupon(c.id)}
+                        style={({ pressed }) => ({
+                          flexDirection: 'row', alignItems: 'center', gap: 6,
+                          padding: 9, borderRadius: 10,
+                          backgroundColor: affordable ? colors.accent : colors.dim,
+                          opacity: (pressed || claimingId === c.id) ? 0.85 : 1,
+                        })}
+                      >
+                        {claimingId === c.id
+                          ? <ActivityIndicator size="small" color="#fff" />
+                          : <Gift size={14} color="#fff" />}
+                        <Text style={{ fontFamily: FT.bold, fontSize: 12, color: '#fff' }}>
+                          {affordable ? 'Claim' : 'Not enough credits'}
+                        </Text>
+                      </Pressable>
+                    )}
+                    {c.url ? (
+                      <Pressable accessibilityRole="button" onPress={() => { Linking.openURL(c.url).catch(() => {}); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, padding: 9, borderRadius: 10, backgroundColor: isDark ? 'rgba(148,163,184,0.12)' : colors.cardHover }}>
+                        <ExternalLink size={13} color={colors.text2} />
+                        <Text style={{ fontFamily: FT.med, fontSize: 11.5, color: colors.text2 }}>Visit</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </View>
+    </View>
+  );
+
+  const renderRewards = () => (
+    <View style={{ gap: 14 }}>
+      <View>
+        <SectionHeader title="Reward Marketplace" sub="Spend your credits on real perks" />
+        {rewards.length === 0 ? (
+          <View style={{ backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 14, padding: 24, alignItems: 'center' }}>
+            <Award size={28} color={colors.dim} />
+            <Text style={{ fontFamily: FT.med, fontSize: 13, color: colors.text2, marginTop: 8 }}>No rewards available right now.</Text>
+            <Text style={{ fontFamily: FT.reg, fontSize: 12, color: colors.textSub, marginTop: 2 }}>Earn more credits and check back.</Text>
+          </View>
+        ) : (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+            {rewards.map((r: any) => {
+              const affordable = balanceCredits >= r.cost;
+              const out = r.stock_remaining !== undefined ? r.stock_remaining <= 0 : false;
+              const limited = r.daily_limit && r.used_today >= r.daily_limit;
+              return (
+                <View key={r.id} style={{
+                  flex: 1, minWidth: 240, maxWidth: 420,
+                  backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1,
+                  borderRadius: 16, padding: 16,
+                }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: isDark ? 'rgba(59,130,246,0.14)' : colors.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+                      <Gift size={20} color={colors.accent} />
+                    </View>
+                    {r.hot ? (
+                      <View style={{ backgroundColor: isDark ? 'rgba(251,146,60,0.18)' : '#FFF7ED', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Flame size={12} color={isDark ? '#FB923C' : '#C2410C'} />
+                        <Text style={{ fontFamily: FT.bold, fontSize: 10, color: isDark ? '#FB923C' : '#C2410C' }}>HOT</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <Text style={{ fontFamily: FT.bold, fontSize: 14, color: colors.text, marginTop: 12 }}>{r.title}</Text>
+                  <Text style={{ fontFamily: FT.reg, fontSize: 12, color: colors.textSub, marginTop: 4, lineHeight: 16 }}>{r.desc}</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
+                    <View>
+                      <Text style={{ fontFamily: FT.xbold, fontSize: 17, color: affordable ? colors.text : colors.danger }}>{fmtCredits(r.cost)}</Text>
+                      <Text style={{ fontFamily: FT.reg, fontSize: 9.5, color: colors.dim, marginTop: 1 }}>SA points</Text>
+                    </View>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Redeem ${r.title} for ${r.cost} points`}
+                      disabled={!affordable || out || limited || redeemingId === r.id}
+                      onPress={() => redeemReward(r.id, r.title)}
+                      style={({ pressed }) => ({
+                        flexDirection: 'row', alignItems: 'center', gap: 6,
+                        paddingVertical: 9, paddingHorizontal: 14, borderRadius: 10,
+                        backgroundColor: (!affordable || out || limited) ? colors.dim : colors.accent,
+                        opacity: pressed ? 0.85 : 1,
+                      })}
+                    >
+                      {redeemingId === r.id ? <ActivityIndicator size="small" color="#fff" /> : <Zap size={14} color="#fff" />}
+                      <Text style={{ fontFamily: FT.bold, fontSize: 12, color: '#fff' }}>
+                        {!affordable ? 'Need more' : out ? 'Sold out' : limited ? 'Limit hit' : 'Redeem'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                  {r.stock_remaining !== undefined && !out ? (
+                    <Text style={{ fontFamily: FT.reg, fontSize: 10.5, color: colors.dim, marginTop: 8 }}>{r.stock_remaining} left</Text>
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </View>
+
+      {redeemHistory.length > 0 ? (
+        <View>
+          <SectionHeader title="Redemption History" />
+          <View style={{ backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 14, padding: 4 }}>
+            {redeemHistory.slice(0, 10).map((h: any) => (
+              <View key={h.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: isDark ? 'rgba(74,222,128,0.14)' : '#ECFDF5', alignItems: 'center', justifyContent: 'center' }}>
+                  <CheckCircle2 size={16} color={colors.success} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: FT.med, fontSize: 12.5, color: colors.text, overflow: 'hidden' }}>{h.title}</Text>
+                  <Text style={{ fontFamily: FT.reg, fontSize: 10.5, color: colors.textSub, marginTop: 1 }}>{fmtDateTime(h.ts)} · {fmtCredits(h.cost_credits)} pts</Text>
+                </View>
+                {h.code ? <Text style={{ fontFamily: FT.bold, fontSize: 11.5, color: colors.accentDeep }}>{h.code}</Text> : null}
+              </View>
+            ))}
+          </View>
+        </View>
+      ) : null}
+    </View>
+  );
+
+  const renderAnalytics = () => (
+    <View style={{ gap: 14 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <SectionHeader title="Analytics" sub={period.toUpperCase()} />
+        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12 }}>
+          {(['7d', '30d', '90d', '365d'] as const).map((p) => (
+            <Chip key={p} label={p === '365d' ? '1Y' : p === '90d' ? '90D' : p.toUpperCase()} active={period === p} onPress={() => setPeriod(p)} />
+          ))}
+        </View>
+      </View>
+
+      {/* Summary tiles */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+        {[
+          { label: 'Earned', value: fmtCredits(analytics?.summary?.earned ?? 0), Icon: TrendingUp, tone: colors.success },
+          { label: 'Spent', value: fmtCredits(analytics?.summary?.spent ?? 0), Icon: TrendingUp, tone: colors.danger },
+          { label: 'Net', value: `${(analytics?.summary?.net ?? 0) >= 0 ? '+' : ''}${fmtCredits(analytics?.summary?.net ?? 0)}`, Icon: Target, tone: colors.accent },
+          { label: 'Balance', value: fmtCredits(analytics?.summary?.balance_credits ?? balanceCredits), Icon: Wallet, tone: colors.text2 },
+        ].map((t) => (
+          <View key={t.label} style={{ flex: 1, minWidth: 120, backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 13, padding: 13 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <t.Icon size={14} color={t.tone as any} />
+              <Text style={{ fontFamily: FT.med, fontSize: 11, color: colors.textSub, textTransform: 'uppercase', letterSpacing: 0.4 }}>{t.label}</Text>
+            </View>
+            <Text style={{ fontFamily: FT.xbold, fontSize: 18, color: colors.text, marginTop: 8 }}>{t.value}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Charts */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14 }}>
+        <View style={{ flex: 1, minWidth: 280, backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 14, padding: 16, alignItems: 'center' }}>
+          <SectionHeader title="Earnings by Category" />
+          <DonutChart slices={donutSlices} trackColor={isDark ? '#17253A' : '#F1F5F9'} ink={ink} centerValue={fmtCredits(donutSlices.reduce((a, s) => a + s.value, 0))} centerLabel="pts" />
+        </View>
+        <View style={{ flex: 1, minWidth: 280, backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 14, padding: 16, alignItems: 'center' }}>
+          <SectionHeader title="Spending by Type" />
+          <View style={{ width: '100%', alignItems: 'center' }}>
+            <BarsChart items={barItems} width={Math.min(340, winW - 80)} barColor={cat[1]} ink={ink} />
+          </View>
+        </View>
+      </View>
+
+      <View style={{ backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 14, padding: 16 }}>
+        <SectionHeader title="Trend" sub={`in · out · net over ${period}`} />
+        <View style={{ width: '100%' }}>
+          <TrendLines points={trendPoints} width={Math.min(640, winW - 80)} colors={{ in: cat[0], out: cat[1], net: cat[2] }} ink={ink} gridColor={ink.grid} />
+        </View>
+        <View style={{ flexDirection: 'row', gap: 14, marginTop: 12, flexWrap: 'wrap' }}>
+          {[{ k: 'in', l: 'In', c: cat[0] }, { k: 'out', l: 'Out', c: cat[1] }, { k: 'net', l: 'Net', c: cat[2] }].map((s) => (
+            <View key={s.k} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: s.c }} />
+              <Text style={{ fontFamily: FT.med, fontSize: 11, color: ink.secondary }}>{s.l}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Projection + milestones */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14 }}>
+        <View style={{ flex: 1, minWidth: 280, backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 14, padding: 16 }}>
+          <SectionHeader title="Level Projection" sub={projection?.note} />
+          {projection ? (
+            <View style={{ gap: 8 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontFamily: FT.med, fontSize: 12.5, color: colors.text2 }}>{projection.current_level_name} → {projection.next_level_name || 'Max'}</Text>
+                <Text style={{ fontFamily: FT.bold, fontSize: 12.5, color: colors.accent }}>
+                  {projection.eta_days != null ? `${projection.eta_days} days` : projection.note || '—'}
+                </Text>
+              </View>
+              <Text style={{ fontFamily: FT.reg, fontSize: 11.5, color: colors.textSub }}>
+                Daily rate {fmtCredits(projection.daily_rate_credits || 0)} pts · need {fmtCredits(projection.credits_to_next || 0)} more
+              </Text>
+            </View>
+          ) : (
+            <Text style={{ fontFamily: FT.reg, fontSize: 12, color: colors.textSub }}>Not enough data to project yet. Keep earning!</Text>
+          )}
+        </View>
+        <View style={{ flex: 1, minWidth: 280, backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 14, padding: 16 }}>
+          <SectionHeader title="Milestones" />
+          <View style={{ gap: 9 }}>
+            {(milestones.length ? milestones : (level ? [{ level, name: level.name, icon: 'award', color: level.color, threshold: level.next_level_at, achieved: level.progress_pct >= 100, current: balanceCredits }] : [])).map((m: any, i: number) => {
+              const done = m.achieved || m.progress_pct >= 100;
+              return (
+                <View key={`${m.level}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View style={{
+                    width: 28, height: 28, borderRadius: 9,
+                    backgroundColor: done ? (isDark ? 'rgba(74,222,128,0.16)' : '#ECFDF5') : (isDark ? 'rgba(148,163,184,0.12)' : colors.cardHover),
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Star size={14} color={done ? colors.success : colors.dim} fill={done ? colors.success : 'transparent'} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontFamily: FT.med, fontSize: 12, color: colors.text }}>{m.name} {m.level ? `· Lv ${m.level}` : ''}</Text>
+                    <Text style={{ fontFamily: FT.reg, fontSize: 10.5, color: colors.textSub, marginTop: 1 }}>
+                      {done ? 'Achieved' : `${fmtCredits(m.current ?? 0)} / ${fmtCredits(m.threshold ?? 0)} pts`}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderHistory = () => {
+    const rows = data?.history || [];
+    return (
+      <View>
+        <SectionHeader title="Transaction History" sub={`${rows.length} entries`} right={
+          <Pressable accessibilityRole="button" onPress={() => fetchSummary(false)} style={{ padding: 4 }}>
+            <RefreshCw size={14} color={colors.textSub} />
+          </Pressable>
+        } />
+        <View style={{ backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 14, padding: 4 }}>
+          {rows.length === 0 ? (
+            <View style={{ padding: 24, alignItems: 'center' }}>
+              <Text style={{ fontFamily: FT.reg, fontSize: 12.5, color: colors.textSub }}>No transactions yet.</Text>
+            </View>
+          ) : rows.map((t: any, i: number) => (
+            <View key={t.id || i} style={{
+              flexDirection: 'row', alignItems: 'center', gap: 12,
+              padding: 13, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border,
+            }}>
+              <View style={{
+                width: 36, height: 36, borderRadius: 11,
+                backgroundColor: t.type === 'credit' ? (isDark ? 'rgba(74,222,128,0.14)' : '#ECFDF5') : (isDark ? 'rgba(248,113,113,0.14)' : '#FEF2F2'),
+                alignItems: 'center', justifyContent: 'center',
+              }}>
+                {t.type === 'credit' ? <ArrowUpRight size={17} color={colors.success} /> : <ArrowDownLeft size={17} color={colors.danger} />}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: FT.med, fontSize: 13, color: colors.text, overflow: 'hidden' }}>{t.reason}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
+                  <Clock size={11} color={colors.dim} />
+                  <Text style={{ fontFamily: FT.reg, fontSize: 10.5, color: colors.textSub }}>{fmtDateTime(t.ts)}</Text>
+                </View>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={{ fontFamily: FT.bold, fontSize: 13.5, color: t.type === 'credit' ? colors.success : colors.danger }}>
+                  {t.type === 'credit' ? '+' : '-'}{fmtCredits(t.amount)}
+                </Text>
+                <Text style={{ fontFamily: FT.reg, fontSize: 10, color: colors.dim, marginTop: 2 }}>Bal {fmtCredits(t.balance_after ?? 0)}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  const TABS: { key: typeof tab; label: string; Icon: any }[] = [
+    { key: 'overview', label: 'Overview', Icon: Wallet },
+    { key: 'coupons', label: 'Coupons', Icon: Tag },
+    { key: 'rewards', label: 'Rewards', Icon: Gift },
+    { key: 'analytics', label: 'Analytics', Icon: TrendingUp },
+    { key: 'history', label: 'History', Icon: Clock },
+  ];
+
+  return (
+    <View style={[s.shell, { backgroundColor: colors.bg }]}>
+      <View style={s.container}>
+        {/* KPI strip */}
+        <View style={[s.kpiRow, { justifyContent: isTablet ? 'flex-start' : 'space-between' }]}>
+          <KpiCard icon={<Wallet />} label="Balance" value={fmtINR(balanceInr)} sub={`${fmtCredits(balanceCredits)} SA points`} accent />
+          <KpiCard icon={<Award />} label="Rewards Level" value={level?.name || '—'} sub={level?.next_level_name ? `Next: ${level.next_level_name}` : 'Max level'}>
+            <View style={{ height: 6, borderRadius: 3, backgroundColor: isDark ? 'rgba(148,163,184,0.16)' : '#E2E8F0', overflow: 'hidden' }}>
+              <View style={{
+                height: '100%', width: `${Math.min(100, level?.progress_pct ?? 0)}%`,
+                borderRadius: 3, backgroundColor: level?.color || colors.accent,
+              }} />
+            </View>
+            <Text style={{ fontFamily: FT.reg, fontSize: 10, color: colors.textSub, marginTop: 4 }}>
+              {level?.credits_to_next ? `${fmtCredits(level.credits_to_next)} pts to ${level.next_level_name}` : 'Top tier reached'}
+            </Text>
+          </KpiCard>
+          <KpiCard icon={<Tag />} label="Active Coupons" value={String(activeCouponCount)} sub={`${catalog.length} in catalog`} />
+          <KpiCard icon={<Flame />} label="Login Streak" value={`${streak?.current ?? data?.streak_days ?? 0} days`} sub={streak?.recoverable ? `Missed? Recover for ${streak.recovery_cost} pts` : 'Keep it going'}>
+            <View style={{ flexDirection: 'row', gap: 3, flexWrap: 'wrap', maxHeight: 26 }}>
+              {(streak?.calendar || []).slice(0, 21).map((d: any, i: number) => (
+                <View key={`${d.date}-${i}`} style={{
+                  width: 11, height: 11, borderRadius: 3,
+                  backgroundColor: d.active ? colors.success : (d.recovered ? colors.accent : (isDark ? 'rgba(148,163,184,0.18)' : '#E2E8F0')),
+                }} />
+              ))}
+            </View>
+          </KpiCard>
+        </View>
+
+        {/* Tab strip */}
+        <View style={s.tabStrip}>
+          {TABS.map((t) => (
+            <Pressable
+              key={t.key}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: tab === t.key }}
+              onPress={() => setTab(t.key)}
+              style={({ pressed }) => ([
+                s.tabItem,
+                tab === t.key ? s.tabItemActive : s.tabItemInactive,
+                { backgroundColor: tab === t.key ? (isDark ? 'rgba(59,130,246,0.18)' : colors.accentSoft) : colors.card, opacity: pressed ? 0.9 : 1 },
+              ])}
+            >
+              <t.Icon size={15} color={tab === t.key ? colors.accent : colors.textSub} />
+              <Text style={{ fontFamily: FT.med, fontSize: 12, color: tab === t.key ? colors.accent : colors.text2, marginLeft: 6 }}>{t.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {/* Content */}
+        {loading ? (
+          <View style={s.loader}><ActivityIndicator size="large" color={colors.accent} /></View>
+        ) : (
+          <View>
+            {tab === 'overview' && renderOverview()}
+            {tab === 'coupons' && renderCoupons()}
+            {tab === 'rewards' && renderRewards()}
+            {tab === 'analytics' && renderAnalytics()}
+            {tab === 'history' && renderHistory()}
+          </View>
+        )}
+      </View>
+
+      {/* ── UPI / Card Top-Up Modal ── */}
+      <Modal visible={modal === 'upi' || modal === 'card'} transparent animationType="fade" onRequestClose={() => { setModal(null); setUpiPayment(null); setUpiSettled(false); }}>
+        <View style={[s.modalWrap, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <View style={[s.modalCard, { backgroundColor: colors.card, borderColor: colors.border, maxWidth: 460 }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <View>
+                <Text style={{ fontFamily: FT.xbold, fontSize: 17, color: colors.text }}>{modal === 'upi' ? 'UPI Top-Up' : 'Card Top-Up'}</Text>
+                <Text style={{ fontFamily: FT.reg, fontSize: 11.5, color: colors.textSub, marginTop: 2 }}>{modal === 'upi' ? `Earn a ${bonusPct}% bonus on UPI payments` : 'Pay securely via Razorpay'}</Text>
+              </View>
+              <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => { setModal(null); cancelUpiPayment(); }} style={s.modalClose}>
+                <X size={18} color={colors.text2} />
+              </Pressable>
+            </View>
+
+            <Text style={{ fontFamily: FT.med, fontSize: 12, color: colors.text2, marginBottom: 8 }}>Amount (₹)</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+              {TOPUP_PRESETS.map((p) => (
+                <Chip key={p} label={fmtINR(p)} active={topupAmount === String(p)} onPress={() => setTopupAmount(String(p))} />
+              ))}
+            </View>
+            <TextInput
+              value={topupAmount}
+              onChangeText={setTopupAmount}
+              keyboardType="numeric"
+              placeholder="Custom amount"
+              placeholderTextColor={colors.dim}
+              style={[s.input, { backgroundColor: colors.cardHover, borderColor: colors.border, color: colors.text }]}
+              maxLength={6}
+            />
+            <Text style={{ fontFamily: FT.reg, fontSize: 11.5, color: colors.textSub, marginTop: 8, marginBottom: 16 }}>
+              You will receive {fmtCredits((parseFloat(topupAmount) || 0) * (data?.credits_per_inr || 25))} SA pts ({bonusPct}% bonus included).
+            </Text>
+
+            {modal === 'upi' ? (
+              upiPayment ? (
+                <View style={{ gap: 14 }}>
+                  {upiSettled ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 12, backgroundColor: isDark ? 'rgba(74,222,128,0.14)' : '#ECFDF5' }}>
+                      <CheckCircle2 size={20} color={colors.success} />
+                      <Text style={{ fontFamily: FT.med, fontSize: 13, color: colors.success }}>Payment settled — {fmtCredits(upiPayment.expected_credits || 0)} pts credited.</Text>
+                    </View>
+                  ) : (
+                    <>
+                      <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'center', alignItems: 'center' }}>
+                        {upiPayment.upi?.qr_payload ? <QRCode value={upiPayment.upi.qr_payload} size={148} color={isDark ? '#FFFFFF' : '#0F172A'} backgroundColor={isDark ? '#111B2E' : '#FFFFFF'} /> : null}
+                        <View style={{ gap: 8, flex: 1, minWidth: 150 }}>
+                          <Text style={{ fontFamily: FT.med, fontSize: 12, color: colors.text2 }}>Pay via any UPI app</Text>
+                          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                            {(upiPayment.upi?.apps || []).map((a: any) => (
+                              <Pressable key={a.id} accessibilityRole="button" style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 5, padding: 8, borderRadius: 9, backgroundColor: isDark ? 'rgba(148,163,184,0.12)' : colors.cardHover, opacity: pressed ? 0.85 : 1 })}>
+                                <MaterialCommunityIcons name={(UPI_ICON_BY_APP[a.id] || 'wallet-outline') as any} size={15} color={colors.accent} />
+                                <Text style={{ fontFamily: FT.med, fontSize: 11.5, color: colors.text2 }}>{a.name}</Text>
+                              </Pressable>
+                            ))}
+                          </View>
+                          {upiPayment.upi?.deep_link ? (
+                            <Pressable accessibilityRole="button" onPress={() => { Linking.openURL(upiPayment.upi.deep_link).catch(() => { toast.warning('Open UPI app', 'No UPI app found on this device.'); }); }} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 10, borderRadius: 10, backgroundColor: colors.accent, opacity: pressed ? 0.9 : 1 })}>
+                              <ExternalLink size={14} color="#fff" />
+                              <Text style={{ fontFamily: FT.bold, fontSize: 12, color: '#fff' }}>Open UPI App</Text>
+                            </Pressable>
+                          ) : null}
+                        </View>
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <Pressable accessibilityRole="button" onPress={() => { setUpiPayment({ ...upiPayment, status: 'checking' }); toast.info('Checking status', 'Waiting for your UPI payment to settle…'); }} style={({ pressed }) => ({ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 11, borderRadius: 10, backgroundColor: isDark ? 'rgba(148,163,184,0.12)' : colors.cardHover, opacity: pressed ? 0.9 : 1 })}>
+                          <RefreshCw size={14} color={colors.text2} />
+                          <Text style={{ fontFamily: FT.med, fontSize: 12, color: colors.text2 }}>Check Status</Text>
+                        </Pressable>
+                        <Pressable accessibilityRole="button" onPress={cancelUpiPayment} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 11, borderRadius: 10, backgroundColor: isDark ? 'rgba(248,113,113,0.14)' : '#FEF2F2', opacity: pressed ? 0.9 : 1 })}>
+                          <Text style={{ fontFamily: FT.med, fontSize: 12, color: colors.danger }}>Cancel</Text>
+                        </Pressable>
+                      </View>
+                      {upiBusy ? <ActivityIndicator size="small" color={colors.accent} style={{ alignSelf: 'center' }} /> : null}
+                    </>
+                  )}
+                </View>
+              ) : (
+                <Pressable accessibilityRole="button" disabled={upiBusy} onPress={startUpiPayment} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 13, borderRadius: 11, backgroundColor: upiBusy ? colors.dim : colors.accent, opacity: pressed ? 0.9 : 1 })}>
+                  <QrCode size={16} color="#fff" />
+                  <Text style={{ fontFamily: FT.bold, fontSize: 13, color: '#fff' }}>{upiBusy ? 'Starting…' : 'Generate UPI Payment'}</Text>
+                </Pressable>
+              )
+            ) : (
+              <Pressable accessibilityRole="button" disabled={cardSubmitting} onPress={handleCardTopup} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 13, borderRadius: 11, backgroundColor: cardSubmitting ? colors.dim : colors.accent, opacity: pressed ? 0.9 : 1 })}>
+                {cardSubmitting ? <ActivityIndicator size="small" color="#fff" /> : <CreditCard size={16} color="#fff" />}
+                <Text style={{ fontFamily: FT.bold, fontSize: 13, color: '#fff' }}>{cardSubmitting ? 'Processing…' : 'Pay with Card'}</Text>
+              </Pressable>
+            )}
+          </View>
+        </View>
       </Modal>
 
-    </Container>
+      {/* ── Withdraw Modal ── */}
+      <Modal visible={modal === 'withdraw'} transparent animationType="fade" onRequestClose={() => setModal(null)}>
+        <View style={[s.modalWrap, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <View style={[s.modalCard, { backgroundColor: colors.card, borderColor: colors.border, maxWidth: 440 }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontFamily: FT.xbold, fontSize: 17, color: colors.text }}>Withdraw</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setModal(null)} style={s.modalClose}><X size={18} color={colors.text2} /></Pressable>
+            </View>
+            <Text style={{ fontFamily: FT.reg, fontSize: 12, color: colors.textSub, marginBottom: 14 }}>
+              Balance: {fmtINR(balanceInr)} · Minimum ₹100 · Processed to your chosen method.
+            </Text>
+            <Text style={{ fontFamily: FT.med, fontSize: 12, color: colors.text2, marginBottom: 8 }}>Amount (₹)</Text>
+            <TextInput
+              value={wdAmountInr}
+              onChangeText={setWdAmountInr}
+              keyboardType="numeric"
+              placeholder="e.g. 500"
+              placeholderTextColor={colors.dim}
+              style={[s.input, { backgroundColor: colors.cardHover, borderColor: colors.border, color: colors.text }]}
+            />
+            <Text style={{ fontFamily: FT.med, fontSize: 12, color: colors.text2, marginTop: 14, marginBottom: 8 }}>Method</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+              <Chip label="UPI" active={wdMethod === 'upi'} onPress={() => setWdMethod('upi')} />
+              <Chip label="Bank" active={wdMethod === 'bank'} onPress={() => setWdMethod('bank')} />
+            </View>
+            <Text style={{ fontFamily: FT.med, fontSize: 12, color: colors.text2, marginBottom: 8 }}>{wdMethod === 'upi' ? 'UPI ID' : 'Bank Account'}</Text>
+            <TextInput
+              value={wdTarget}
+              onChangeText={setWdTarget}
+              placeholder={wdMethod === 'upi' ? 'name@upi' : 'Account • IFSC'}
+              placeholderTextColor={colors.dim}
+              autoCapitalize="none"
+              style={[s.input, { backgroundColor: colors.cardHover, borderColor: colors.border, color: colors.text }]}
+            />
+            <Pressable accessibilityRole="button" disabled={wdSubmitting} onPress={handleWithdraw} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16, padding: 13, borderRadius: 11, backgroundColor: wdSubmitting ? colors.dim : colors.accent, opacity: pressed ? 0.9 : 1 })}>
+              {wdSubmitting ? <ActivityIndicator size="small" color="#fff" /> : <ArrowDownLeft size={16} color="#fff" />}
+              <Text style={{ fontFamily: FT.bold, fontSize: 13, color: '#fff' }}>{wdSubmitting ? 'Submitting…' : 'Request Withdrawal'}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Transfer Modal ── */}
+      <Modal visible={modal === 'transfer'} transparent animationType="fade" onRequestClose={() => setModal(null)}>
+        <View style={[s.modalWrap, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <View style={[s.modalCard, { backgroundColor: colors.card, borderColor: colors.border, maxWidth: 440 }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontFamily: FT.xbold, fontSize: 17, color: colors.text }}>Send to a Friend</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setModal(null)} style={s.modalClose}><X size={18} color={colors.text2} /></Pressable>
+            </View>
+            <Text style={{ fontFamily: FT.reg, fontSize: 12, color: colors.textSub, marginBottom: 14 }}>
+              Balance: {fmtCredits(balanceCredits)} SA pts · 10-500 pts per transfer · up to 3 per day.
+            </Text>
+            <Text style={{ fontFamily: FT.med, fontSize: 12, color: colors.text2, marginBottom: 8 }}>Recipient (name or ID)</Text>
+            <TextInput
+              value={xfRecipient}
+              onChangeText={setXfRecipient}
+              placeholder="e.g. Tejas K. or user_123"
+              placeholderTextColor={colors.dim}
+              style={[s.input, { backgroundColor: colors.cardHover, borderColor: colors.border, color: colors.text }]}
+            />
+            <Text style={{ fontFamily: FT.med, fontSize: 12, color: colors.text2, marginTop: 14, marginBottom: 8 }}>Amount (SA pts)</Text>
+            <TextInput
+              value={xfAmount}
+              onChangeText={setXfAmount}
+              keyboardType="numeric"
+              placeholder="e.g. 100"
+              placeholderTextColor={colors.dim}
+              style={[s.input, { backgroundColor: colors.cardHover, borderColor: colors.border, color: colors.text }]}
+              maxLength={4}
+            />
+            <Text style={{ fontFamily: FT.med, fontSize: 12, color: colors.text2, marginTop: 14, marginBottom: 8 }}>Note (optional)</Text>
+            <TextInput
+              value={xfNote}
+              onChangeText={setXfNote}
+              placeholder="Thanks for the referral!"
+              placeholderTextColor={colors.dim}
+              style={[s.input, { backgroundColor: colors.cardHover, borderColor: colors.border, color: colors.text }]}
+            />
+            <Pressable accessibilityRole="button" disabled={xfSubmitting} onPress={handleTransfer} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16, padding: 13, borderRadius: 11, backgroundColor: xfSubmitting ? colors.dim : colors.accent, opacity: pressed ? 0.9 : 1 })}>
+              {xfSubmitting ? <ActivityIndicator size="small" color="#fff" /> : <Send size={16} color="#fff" />}
+              <Text style={{ fontFamily: FT.bold, fontSize: 13, color: '#fff' }}>{xfSubmitting ? 'Sending…' : 'Send Points'}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Redeemed code reveal ── */}
+      <Modal visible={!!redeemedCode} transparent animationType="fade" onRequestClose={() => setRedeemedCode(null)}>
+        <View style={[s.modalWrap, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <View style={[s.modalCard, { backgroundColor: colors.card, borderColor: colors.border, maxWidth: 400, alignItems: 'center' }]}>
+            <View style={{ width: 54, height: 54, borderRadius: 17, backgroundColor: isDark ? 'rgba(74,222,128,0.16)' : '#ECFDF5', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+              <CheckCircle2 size={28} color={colors.success} />
+            </View>
+            <Text style={{ fontFamily: FT.xbold, fontSize: 17, color: colors.text }}>Reward Redeemed</Text>
+            <Text style={{ fontFamily: FT.reg, fontSize: 12.5, color: colors.textSub, marginTop: 4, textAlign: 'center' }}>{redeemedCode?.title}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16, padding: 14, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.border2, backgroundColor: colors.cardHover, width: '100%' }}>
+              <Text style={{ fontFamily: FT.xbold, fontSize: 20, color: colors.accentDeep, letterSpacing: 2, flex: 1, textAlign: 'center' }}>{redeemedCode?.code}</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="Copy code" onPress={() => copyCode(redeemedCode?.code || '')} style={{ padding: 4 }}>
+                <Copy size={17} color={colors.accent} />
+              </Pressable>
+            </View>
+            {redeemedCode?.ref ? <Text style={{ fontFamily: FT.reg, fontSize: 10.5, color: colors.dim, marginTop: 8 }}>Ref: {redeemedCode.ref}</Text> : null}
+            <Pressable accessibilityRole="button" onPress={() => setRedeemedCode(null)} style={({ pressed }) => ({ marginTop: 18, paddingVertical: 11, paddingHorizontal: 24, borderRadius: 10, backgroundColor: colors.accent, opacity: pressed ? 0.9 : 1 })}>
+              <Text style={{ fontFamily: FT.bold, fontSize: 13, color: '#fff' }}>Done</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Instruction modal ── */}
+      <Modal visible={!!instructionModal} transparent animationType="fade" onRequestClose={() => setInstructionModal(null)}>
+        <View style={[s.modalWrap, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <View style={[s.modalCard, { backgroundColor: colors.card, borderColor: colors.border, maxWidth: 420 }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontFamily: FT.xbold, fontSize: 16, color: colors.text }}>{instructionModal?.title}</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setInstructionModal(null)} style={s.modalClose}><X size={17} color={colors.text2} /></Pressable>
+            </View>
+            <Text style={{ fontFamily: FT.reg, fontSize: 13, color: colors.text2, lineHeight: 20 }}>{instructionModal?.instructions}</Text>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Money Coach — single instance at root */}
+      <MoneyCoach />
+    </View>
   );
 }
 
-/* ────────── Styles ────────── */
+/* ────────────────────────────────────────────────────────────────────────────
+   Styles
+   ────────────────────────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
-  shell: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  embeddedShell: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    gap: 24,
-    paddingBottom: 60,
-  },
-  contentContainer: {
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    paddingBottom: 80,
-    gap: 24,
-    maxWidth: 1280,
-    width: '100%' as any,
-    alignSelf: 'center' as any,
-  },
-
-  /* Header */
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  headerLeft: {
-    flex: 1,
-    minWidth: 280,
-  },
-  greetingText: {
-    color: C.text,
-    fontFamily: FT.med,
-    fontSize: 15,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  regenBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.35)',
-    backgroundColor: 'rgba(59, 130, 246, 0.08)',
-  },
-  regenBtnHover: {
-    backgroundColor: 'rgba(59, 130, 246, 0.18)',
-  },
-  regenBtnText: {
-    color: C.purpleL,
-    fontFamily: FT.bold,
-    fontSize: 12,
-  },
-  reportBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: C.purple2,
-  },
-  reportBtnHover: {
-    backgroundColor: '#6366F1',
-  },
-  reportBtnText: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 12,
-  },
-
-  /* KPI Row */
-  kpiRow: {
-    flexDirection: 'row',
-    gap: 14,
-    flexWrap: Platform.OS === 'web' ? ('nowrap' as any) : 'wrap',
-  },
-  kpiCard: {
-    flex: 1,
-    minWidth: 160,
-    backgroundColor: C.bgCard,
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    gap: 6,
-  },
-  kpiTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  kpiLabel: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-    fontSize: 11,
-    letterSpacing: 1.1,
-  },
-  kpiIconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  kpiValue: {
-    color: '#FFF',
-    fontFamily: FT.xbold,
-    fontSize: 22,
-    textShadowColor: 'rgba(255,255,255,0.4)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  kpiSubText: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 12,
-  },
-
-  /* Tab Bar */
-  tabBarRow: {
-    flexDirection: 'row',
-    gap: 8,
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E2E8F0',
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 6,
-    flexWrap: 'wrap',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-  },
+  shell: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { flex: 1, padding: 18, gap: 16 },
+  kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+  tabStrip: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   tabItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 10,
-  },
-  tabItemActive: {
-    backgroundColor: '#2563EB',
-  },
-  tabText: {
-    color: '#475569',
-    fontFamily: FT.bold,
-    fontSize: 13,
-  },
-  tabTextActive: {
-    color: '#FFFFFF',
-    fontFamily: FT.xbold,
-  },
-
-  /* Hero Card */
-  heroCard: {
-    borderRadius: 16,
-    borderColor: 'rgba(30, 58, 110, 0.60)',
-    borderWidth: 1,
-    padding: 24,
-    overflow: 'hidden',
-  },
-  heroContentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 24,
-  },
-  heroOverline: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-    fontSize: 11,
-    letterSpacing: 1.2,
-  },
-  heroBalanceBig: {
-    color: '#FFF',
-    fontFamily: FT.xbold,
-    fontSize: 38,
-    textShadowColor: 'rgba(255,255,255,0.4)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  heroBalanceSub: {
-    color: C.text2,
-    fontFamily: FT.med,
-    fontSize: 14,
-  },
-  heroQuickRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 12,
-    flexWrap: 'wrap',
-  },
-  heroBtnPrimary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: C.purple2,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  heroBtnText: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 13,
-  },
-  heroBtnSecondary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderColor: C.border2,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  heroBtnTextSec: {
-    color: C.text,
-    fontFamily: FT.bold,
-    fontSize: 13,
-  },
-  heroRightTile: {
-    width: 240,
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 16,
-    gap: 6,
-  },
-  heroTileTitle: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-    fontSize: 11,
-    letterSpacing: 1,
-  },
-  heroTileVal: {
-    color: C.teal,
-    fontFamily: FT.xbold,
-    fontSize: 18,
-  },
-  heroTileDesc: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 12,
-    lineHeight: 16,
-  },
-
-  /* 2 Col Layout */
-  twoColRow: {
-    flexDirection: Platform.OS === 'web' ? ('row' as any) : 'column',
-    gap: 24,
-    alignItems: 'stretch',
-  },
-  colCard: {
-    flex: 1,
-    backgroundColor: C.bgCard,
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 20,
-    gap: 16,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sectionTitle: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-    fontSize: 16,
-    letterSpacing: 1.1,
-  },
-  cardBottomLinkText: {
-    color: C.purpleL,
-    fontFamily: FT.bold,
-    fontSize: 13,
-  },
-
-  /* Transactions */
-  txRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-  },
-  txIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  txReason: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 13,
-  },
-  txDate: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 11,
-  },
-  txAmount: {
-    fontFamily: FT.bold,
-    fontSize: 14,
-  },
-
-  /* Coupon Controls */
-  couponControlsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    flexWrap: 'wrap',
-  },
-  couponFilterGroup: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 10,
-    backgroundColor: '#0F2347',
-    borderColor: '#2A4F8F',
-    borderWidth: 1.5,
-  },
-  filterChipActive: {
-    backgroundColor: '#2563EB',
-    borderColor: '#60A5FA',
-    borderWidth: 1.5,
-  },
-  filterChipText: {
-    color: '#FFFFFF',
-    fontFamily: FT.bold,
-    fontSize: 13,
-    letterSpacing: 0.2,
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
-    fontFamily: FT.xbold,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0B1A33',
-    borderColor: '#3B82F6',
-    borderWidth: 1.5,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    height: 40,
-    minWidth: 250,
-  },
-  searchInput: {
-    flex: 1,
-    color: '#FFFFFF',
-    fontFamily: FT.med,
-    fontSize: 13,
-  },
-  couponSectionHeader: {
-    marginBottom: 14,
-    gap: 4,
-  },
-  couponSectionTitle: {
-    color: '#F1F5F9',
-    fontFamily: FT.xbold,
-    fontSize: 17,
-    letterSpacing: 1.1,
-    textTransform: 'uppercase',
-  },
-  couponSectionSub: {
-    color: '#94A3B8',
-    fontFamily: FT.med,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-
-  /* Coupons Grid */
-  couponsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  couponCard: {
-    flexBasis: Platform.OS === 'web' ? 340 : '100%',
-    flexGrow: 1,
-    backgroundColor: C.bgCard,
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 18,
-    gap: 10,
-  },
-  couponCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  couponBrandBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  couponBrandText: {
-    fontFamily: FT.xbold,
-    fontSize: 12,
-  },
-  statusPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  statusPillText: {
-    fontFamily: FT.bold,
-    fontSize: 11,
-  },
-  discountChip: {
-    backgroundColor: 'rgba(52, 211, 153, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  discountChipText: {
-    color: C.green,
-    fontFamily: FT.bold,
-    fontSize: 11,
-  },
-  couponTitle: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 15,
-    textShadowColor: 'rgba(255,255,255,0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  couponExpiry: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 12,
-  },
-  voucherCodeBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(0,0,0,0.40)',
-    borderColor: 'rgba(30, 58, 110, 0.60)',
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginTop: 4,
-  },
-  voucherCodeText: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-    fontSize: 14,
-    letterSpacing: 1,
-  },
-  copyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  copyBtnText: {
-    color: C.purpleL,
-    fontFamily: FT.bold,
-    fontSize: 11,
-  },
-  couponActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 6,
-  },
-  useNowBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: C.purple2,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  useNowBtnText: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 12,
-  },
-  markUsedBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  markUsedText: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 12,
-  },
-  emptyBox: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-    gap: 10,
-    backgroundColor: C.bgCard,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  emptyTitle: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 16,
-  },
-  emptySub: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 13,
-  },
-  redeemCatalogFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-  },
-  redeemCatalogBtn: {
-    backgroundColor: 'rgba(52, 211, 153, 0.15)',
-    borderColor: C.green,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  redeemCatalogBtnText: {
-    color: C.green,
-    fontFamily: FT.bold,
-    fontSize: 12,
-  },
-
-  /* Form Cards */
-  formColCard: {
-    backgroundColor: C.bgCard,
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 24,
-    gap: 18,
-    maxWidth: 640,
-    alignSelf: 'center',
-    width: '100%',
-  },
-  inputLabel: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-    fontSize: 11,
-    letterSpacing: 1,
-  },
-  presetsGrid: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  presetChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderColor: C.border,
-    borderWidth: 1,
-  },
-  presetChipActive: {
-    backgroundColor: C.purple2,
-    borderColor: C.purpleL,
-  },
-  presetText: {
-    color: C.text,
-    fontFamily: FT.bold,
-    fontSize: 13,
-  },
-  presetTextActive: {
-    color: '#FFF',
-  },
-  textInputCustom: {
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    color: '#FFF',
-    fontFamily: FT.med,
-    fontSize: 14,
-  },
-  methodBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.border,
-    borderWidth: 1,
-  },
-  methodBoxActive: {
-    borderColor: C.purpleL,
-    backgroundColor: 'rgba(59, 130, 246, 0.12)',
-  },
-  methodText: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 13,
-  },
-  methodTextActive: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-  },
-  calcSummaryBox: {
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
-    gap: 8,
-  },
-  calcRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  calcLabel: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 13,
-  },
-  calcVal: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 13,
-  },
-  submitActionBtn: {
-    backgroundColor: C.purple2,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 6,
-  },
-  submitActionText: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 14,
-  },
-
-  /* History */
-  txFullRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
-  },
-  txFullReason: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 14,
-  },
-  txFullMeta: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 12,
-  },
-  txFullAmount: {
-    fontFamily: FT.xbold,
-    fontSize: 15,
-  },
-  txFullBal: {
-    color: C.dim,
-    fontFamily: FT.med,
-    fontSize: 11,
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 9, paddingHorizontal: 14,
+    borderRadius: 11, borderWidth: 1,
+  },
+  tabItemActive: {},
+  tabItemInactive: {},
+  loader: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
+  modalWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 18 },
+  modalCard: { width: '100%', borderRadius: 18, borderWidth: 1, padding: 20 },
+  modalClose: {
+    width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
+  },
+  input: {
+    borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
+    fontFamily: FT.reg, fontSize: 13,
   },
 });

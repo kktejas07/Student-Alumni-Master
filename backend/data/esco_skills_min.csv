@@ -1,0 +1,1888 @@
+id,skill,category,aliases
+python,Python,language,python;python3;py
+java,Java,language,java;jvm;jdk
+javascript,JavaScript,language,javascript;js;ecmascript
+typescript,TypeScript,language,typescript;ts
+c,C++,language,c;cpp;c_plus_plus;c++
+go,Go,language,go;golang
+rust,Rust,language,rust
+kotlin,Kotlin,language,kotlin
+swift,Swift,language,swift
+ruby,Ruby,language,ruby
+php,PHP,language,php
+scala,Scala,language,scala
+haskell,Haskell,language,haskell
+elixir,Elixir,language,elixir
+erlang,Erlang,language,erlang
+perl,Perl,language,perl
+lua,Lua,language,lua
+r,R,language,r
+julia,Julia,language,julia
+matlab,MATLAB,language,matlab;mat_lab
+dart,Dart,language,dart
+clojure,Clojure,language,clojure
+f,F#,language,f;fsharp;f_sharp;f#
+groovy,Groovy,language,groovy
+solidity,Solidity,language,solidity
+racket,Racket,language,racket
+ocaml,OCaml,language,ocaml
+vba,VBA,language,vba;visual_basic
+visual_basic,Visual Basic,language,visual_basic;vb;visual basic
+assembly,Assembly,language,assembly
+sql,SQL,language,sql;structured_query_language
+pl_sql,PL/SQL,language,pl_sql;pl/sql
+t_sql,T-SQL,language,t_sql;transact_sql;t-sql
+powershell,PowerShell,language,powershell
+bash,Bash,language,bash;shell_scripting;sh
+shell_scripting,Shell Scripting,language,shell_scripting;posix_shell;shell scripting
+jupyter_notebooks,Jupyter Notebooks,language,jupyter_notebooks;jupyter_lab;nbformat;jupyter notebooks
+pandas,Pandas,language,pandas
+numpy,NumPy,language,numpy
+scipy,SciPy,language,scipy
+opencv,OpenCV,language,opencv
+caffeine,Caffeine,language,caffeine
+objective_c,Objective-C,language,objective_c;obj_c;objective-c
+cobol,COBOL,language,cobol
+fortran,FORTRAN,language,fortran;fortran90;fortran_90;f90
+apl,APL,language,apl
+pascal,Pascal,language,pascal;delphi
+d,D,language,d
+zig,Zig,language,zig
+crystal,Crystal,language,crystal
+nim,Nim,language,nim
+e,E,language,e
+vala,Vala,language,vala
+swiftui,SwiftUI,language,swiftui;swift_ui
+jinja2,Jinja2,language,jinja2;jinja
+bicep,Bicep,language,bicep
+cdk,CDK,language,cdk;cloud_development_kit
+cloudformation,CloudFormation,language,cloudformation
+yaml,YAML,language,yaml;yaml_1_2
+json,JSON,language,json
+xml,XML,language,xml
+csv,CSV,language,csv
+graphql,GraphQL,language,graphql
+react,React,frontend,react;reactjs;react_js
+angular,Angular,frontend,angular;angularjs;angular_js
+vue_js,Vue.js,frontend,vue_js;vue;vuejs;vue.js
+vue_3,Vue 3,frontend,vue_3;vue3;vue 3
+svelte,Svelte,frontend,svelte
+sveltekit,SvelteKit,frontend,sveltekit
+next_js,Next.js,frontend,next_js;nextjs;next.js
+nuxt_js,Nuxt.js,frontend,nuxt_js;nuxtjs;nuxt;nuxt.js
+astro,Astro,frontend,astro
+remix,Remix,frontend,remix;remix_js;react_router
+ember_js,Ember.js,frontend,ember_js;ember;ember.js
+solidjs,SolidJS,frontend,solidjs;solid
+qwik,Qwik,frontend,qwik
+jquery,jQuery,frontend,jquery
+backbone_js,Backbone.js,frontend,backbone_js;backbone;backbone.js
+bootstrap,Bootstrap,frontend,bootstrap;bs5;bootstrap_5
+foundation,Foundation,frontend,foundation;zurb_foundation
+bulma,Bulma,frontend,bulma
+tailwind_css,Tailwind CSS,frontend,tailwind_css;tailwind;tailwind css
+bootstrap_5,Bootstrap 5,frontend,bootstrap_5;bs;bootstrap 5
+d3_js,D3.js,frontend,d3_js;d3;d3.js
+echarts,ECharts,frontend,echarts;apache_echarts
+highcharts,Highcharts,frontend,highcharts
+chart_js,Chart.js,frontend,chart_js;chartjs;chart.js
+leaflet,Leaflet,frontend,leaflet
+mapbox_gl,Mapbox GL,frontend,mapbox_gl;mapbox;mapbox gl
+maplibre,MapLibre,frontend,maplibre;mapbox_maplibre
+pixijs,PixiJS,frontend,pixijs;pixi_js;pixi
+three_js,Three.js,frontend,three_js;threejs;webgl;web_gl;three.js
+webgl,WebGL,frontend,webgl;open_gl_es;opengl
+webxr,WebXR,frontend,webxr;web_xr;vr;virtual_reality
+webassembly,WebAssembly,frontend,webassembly;wasm
+web_workers,Web Workers,frontend,web_workers;webworkers;web workers
+service_workers,Service Workers,frontend,service_workers;pwa_service_worker;service workers
+pwa,PWA,frontend,pwa;progressive_web_app;progressive_web_applications
+css,CSS,frontend,css;cascading_style_sheets;cascading_stylesheets
+css_grid,CSS Grid,frontend,css_grid;grid_layout;css grid
+flexbox,Flexbox,frontend,flexbox;flex_layout
+sass,Sass,frontend,sass;scss
+less,Less,frontend,less;lesscss
+stylus,Stylus,frontend,stylus
+styled_components,Styled Components,frontend,styled_components;styled components
+css_in_js,CSS-in-JS,frontend,css_in_js;css-in-js
+gatsby,Gatsby,frontend,gatsby
+vite,Vite,frontend,vite
+webpack,Webpack,frontend,webpack
+rollup,Rollup,frontend,rollup
+esbuild,esbuild,frontend,esbuild
+parcel,Parcel,frontend,parcel
+storybook,Storybook,frontend,storybook
+framer,Framer,frontend,framer;framer_studio
+aem,AEM,frontend,aem;adobe_experience_manager
+sanity,Sanity,frontend,sanity;sanity_io
+wordpress,WordPress,frontend,wordpress;wp
+ghost,Ghost,frontend,ghost
+umbraco,Umbraco,frontend,umbraco
+django_cms,Django CMS,frontend,django_cms;django cms
+webflow,Webflow,frontend,webflow
+web_dev_tools,Web Dev Tools,frontend,web_dev_tools;devtools;chrome_devtools;browser_devtools;web dev tools
+responsive_design,Responsive Design,frontend,responsive_design;responsive_web_design;adaptive_design;rwd;responsive design
+cross_browser_compatibility,Cross-browser Compatibility,frontend,cross_browser_compatibility;cross_browser;cross-browser compatibility
+progressive_enhancement,Progressive Enhancement,frontend,progressive_enhancement;progressive enhancement
+accessibility,Accessibility,frontend,accessibility;a11y;wcag_2_1;wcag;accessibility_standards;section_508
+aria,ARIA,frontend,aria;w3c_aria
+inclusive_design,Inclusive Design,frontend,inclusive_design;universal_design;inclusive design
+seo,SEO,frontend,seo;search_engine_optimisation;search_engine_optimization;on_page_seo;technical_seo
+core_web_vitals,Core Web Vitals,frontend,core_web_vitals;lcp;cls;fcp;web_performance;core web vitals
+performance_optimization,Performance Optimization,frontend,performance_optimization;web_performance;performance_tuning;performance_engineering;performance optimization
+cdn,CDN,frontend,cdn;content_delivery_network;cloudfront;fastly
+static_site_generators,Static Site Generators,frontend,static_site_generators;ssg;static site generators
+hydration,Hydration,frontend,hydration;client_side_rendering;csr
+ssr,SSR,frontend,ssr;server_side_rendering
+isr,ISR,frontend,isr;incremental_static_regeneration
+rsc,RSC,frontend,rsc;react_server_components
+i18n,i18n,frontend,i18n;internationalization;localization;l10n;globalization
+semantic_html,Semantic HTML,frontend,semantic_html;html5;html_5;semantic html
+html5_canvas,HTML5 Canvas,frontend,html5_canvas;canvas_api;html5 canvas
+svg,SVG,frontend,svg;scalable_vector_graphics
+animation,Animation,frontend,animation;gsap;css_animation;motion_design
+gsap,GSAP,frontend,gsap;greensock
+framer_motion,Framer Motion,frontend,framer_motion;motion;framer motion
+lottie,Lottie,frontend,lottie;lottie_files
+rive,Rive,frontend,rive
+node_js,Node.js,backend,node_js;nodejs;node.js
+express_js,Express.js,backend,express_js;expressjs;express;express.js
+koa,Koa,backend,koa;koa_js
+fastify,Fastify,backend,fastify
+sails_js,Sails.js,backend,sails_js;sailsjs;sails.js
+nest_js,Nest.js,backend,nest_js;nestjs;nest.js
+deno,Deno,backend,deno
+bun,Bun,backend,bun;bun_runtime
+django,Django,backend,django
+flask,Flask,backend,flask
+fastapi,FastAPI,backend,fastapi;fast_api
+sanic,Sanic,backend,sanic
+tornado,Tornado,backend,tornado
+starlette,Starlette,backend,starlette
+cherrypy,CherryPy,backend,cherrypy
+bottle,Bottle,backend,bottle
+litestar,Litestar,backend,litestar
+aiohttp,Aiohttp,backend,aiohttp;aio_http
+spring,Spring,backend,spring;spring_framework;spring_java
+spring_boot,Spring Boot,backend,spring_boot;spring boot
+spring_mvc,Spring MVC,backend,spring_mvc;spring mvc
+spring_data,Spring Data,backend,spring_data;spring data
+spring_security,Spring Security,backend,spring_security;spring security
+spring_cloud,Spring Cloud,backend,spring_cloud;spring cloud
+quarkus,Quarkus,backend,quarkus
+micronaut,Micronaut,backend,micronaut
+vaadin,Vaadin,backend,vaadin
+jhipster,JHipster,backend,jhipster
+lagom,Lagom,backend,lagom
+play_framework,Play Framework,backend,play_framework;playframework;play framework
+laravel,Laravel,backend,laravel
+symfony,Symfony,backend,symfony
+codeigniter,CodeIgniter,backend,codeigniter;code_igniter
+cakephp,CakePHP,backend,cakephp;cake_php
+slim,Slim,backend,slim;slim_framework
+phalcon,Phalcon,backend,phalcon
+fuelphp,FuelPHP,backend,fuelphp;fuel_php
+asp_net,ASP.NET,backend,asp_net;aspnet;asp.net
+asp_net_core,ASP.NET Core,backend,asp_net_core;aspnet_core;asp.net core
+blazor,Blazor,backend,blazor
+entity_framework,Entity Framework,backend,entity_framework;entityframework;ef_core;efcore;entity framework
+ef_core,EF Core,backend,ef_core;ef core
+wcf,WCF,backend,wcf;windows_communication_foundation
+signalr,SignalR,backend,signalr;signal_r
+mean_stack,MEAN Stack,backend,mean_stack;mean;mean stack
+mern_stack,MERN Stack,backend,mern_stack;mern;mern stack
+mevn_stack,MEVN Stack,backend,mevn_stack;mevn stack
+lamp_stack,LAMP Stack,backend,lamp_stack;lamp;lamp stack
+mamp_stack,MAMP Stack,backend,mamp_stack;mamp;mamp stack
+rest,REST,backend,rest;rest_api;restful_api;restful
+restful_api_design,RESTful API Design,backend,restful_api_design;rest_api_design;restful_services;restful api design
+soap,SOAP,backend,soap;web_services;web_services_soap
+grpc,gRPC,backend,grpc
+graphql_api,GraphQL API,backend,graphql_api;graphql_apis;graphql api
+openapi,OpenAPI,backend,openapi;open_api;swagger;openapi_3_0
+oas,OAS,backend,oas;openapi_specification
+api_design,API Design,backend,api_design;api_architecture;api_strategy;api design
+api_gateway,API Gateway,backend,api_gateway;kong;apigee;api gateway
+api_security,API Security,backend,api_security;api_authentication;oauth2;oauth_2_0;api security
+oauth_2_0,OAuth 2.0,backend,oauth_2_0;oauth2_0;oauth;oauth 2.0
+openid_connect,OpenID Connect,backend,openid_connect;oidc;openid connect
+jwt,JWT,backend,jwt;json_web_tokens;json_web_token
+api_key_management,API Key Management,backend,api_key_management;api_keys;api key management
+webhooks,Webhooks,backend,webhooks;webhook_integration
+serverless,Serverless,backend,serverless;faas;function_as_a_service;lambdas
+microservices,Microservices,backend,microservices;microservices_architecture;micro_service
+monolithic_architecture,Monolithic Architecture,backend,monolithic_architecture;monolith;monolithic architecture
+service_mesh,Service Mesh,backend,service_mesh;istio;envoy;service mesh
+domain_driven_design,Domain-Driven Design,backend,domain_driven_design;ddd;domain-driven design
+event_sourcing,Event Sourcing,backend,event_sourcing;event sourcing
+cqrs,CQRS,backend,cqrs;command_query_responsibility_segregation
+sagas,Sagas,backend,sagas;saga_pattern
+actor_model,Actor Model,backend,actor_model;akka;akka_net;actor model
+websockets,WebSockets,backend,websockets;websocket;socket_io;sockets
+real_time_communication,Real-time Communication,backend,real_time_communication;rtc;real-time communication
+message_queues,Message Queues,backend,message_queues;message_queue;amqp;message queues
+apache_kafka,Apache Kafka,backend,apache_kafka;kafka;apache kafka
+rabbitmq,RabbitMQ,backend,rabbitmq;rabbit_mq
+nats,NATS,backend,nats
+zeromq,ZeroMQ,backend,zeromq;zmq
+celery,Celery,backend,celery
+redis,Redis,backend,redis;redis_caching;in_memory_database
+rq,RQ,backend,rq;redis_queue
+bullmq,BullMQ,backend,bullmq;bull_mq
+django_channels,Django Channels,backend,django_channels;django channels
+socket_io,Socket.io,backend,socket_io;socket.io
+graphql_subscriptions,GraphQL Subscriptions,backend,graphql_subscriptions;graphql subscriptions
+long_polling,Long Polling,backend,long_polling;long polling
+sse,SSE,backend,sse;server_sent_events
+file_uploads,File Uploads,backend,file_uploads;multipart;multipart_form_data;file uploads
+pdf_generation,PDF Generation,backend,pdf_generation;pdfs;pdf generation
+email_delivery,Email Delivery,backend,email_delivery;sendgrid;mailgun;ses;smtp;email_servers;email delivery
+cron_scheduling,Cron Scheduling,backend,cron_scheduling;cron;scheduled_jobs;job_scheduling;task_scheduling;cron scheduling
+task_queues,Task Queues,backend,task_queues;job_queues;queue_workers;task queues
+rate_limiting,Rate Limiting,backend,rate_limiting;throttling;rate limiting
+caching,Caching,backend,caching;cache;memcached;caching_strategies
+session_management,Session Management,backend,session_management;sessions;stateful;session management
+authentication,Authentication,backend,authentication;auth;authn;login
+authorization,Authorization,backend,authorization;authz;rbac;role_based_access_control
+sso,SSO,backend,sso;single_sign_on;saml;federated_auth
+oauth,OAuth,backend,oauth
+mfa,MFA,backend,mfa;multi_factor_authentication;2fa;two_factor_authentication
+totp,TOTP,backend,totp;time_based_one_time_password
+saml,SAML,backend,saml;security_assertion_markup_language
+oauth_pkce,OAuth PKCE,backend,oauth_pkce;oauth pkce
+openid,OpenID,backend,openid;open_id_connect;open_id
+password_hashing,Password Hashing,backend,password_hashing;bcrypt;argon2;scrypt;password hashing
+vault,Vault,backend,vault;hashicorp_vault
+key_management,Key Management,backend,key_management;kms;secret_management;key management
+zero_trust,Zero Trust,backend,zero_trust;zero trust
+identity_providers,Identity Providers,backend,identity_providers;idp;identity_provider;okta;azure_ad;active_directory;identity providers
+active_directory,Active Directory,backend,active_directory;ad;ldap;active directory
+ldap,LDAP,backend,ldap;lightweight_directory_access_protocol
+rbac,RBAC,backend,rbac
+abac,ABAC,backend,abac;attribute_based_access_control
+oidc,OIDC,backend,oidc
+fido2,FIDO2,backend,fido2;fido2_webauthn;webauthn;passkeys;passkey
+biometric_authentication,Biometric Authentication,backend,biometric_authentication;biometrics;facial_recognition;biometric authentication
+android,Android,mobile,android;android_studio;android_os
+android_sdk,Android SDK,mobile,android_sdk;android_api;android sdk
+kotlin_android,Kotlin Android,mobile,kotlin_android;kotlin android
+android_jetpack,Android Jetpack,mobile,android_jetpack;jetpack;android jetpack
+android_jetpack_compose,Android Jetpack Compose,mobile,android_jetpack_compose;compose;android jetpack compose
+swift_ios,Swift iOS,mobile,swift_ios;swift ios
+uikit,UIKit,mobile,uikit
+objective_c_ios,Objective-C iOS,mobile,objective_c_ios;obj_c_ios;objective-c ios
+xcode,Xcode,mobile,xcode
+app_store,App Store,mobile,app_store;app_store_connect;app store
+play_store,Play Store,mobile,play_store;google_play;google_play_store;play store
+react_native,React Native,mobile,react_native;react native
+expo,Expo,mobile,expo;expo_go
+eas,EAS,mobile,eas;expo_app_services;eas_build
+flutter,Flutter,mobile,flutter;flutter_dart
+getx,GetX,mobile,getx;getx_framework
+rxdart,RxDart,mobile,rxdart;rx_dart
+bloc,Bloc,mobile,bloc;bloc_pattern;blocs
+riverpod,Riverpod,mobile,riverpod;state_riverpod
+mobx,MobX,mobile,mobx
+recoil,Recoil,mobile,recoil;recoil_state
+react_context,React Context,mobile,react_context;context_api;react context
+mobx_statetree,MobX StateTree,mobile,mobx_statetree;mobx statetree
+local_storage,Local Storage,mobile,local_storage;localstorage;indexeddb;core_data;local storage
+offline_sync,Offline Sync,mobile,offline_sync;offline_mode;offline_first;offline sync
+push_notifications,Push Notifications,mobile,push_notifications;fcm;firebase_cloud_messaging;apns;apple_push_notifications;web_push;push notifications
+geolocation,Geolocation,mobile,geolocation;gps;location_services
+camera_api,Camera API,mobile,camera_api;camera_access;camera api
+biometric_auth_mobile,Biometric Auth Mobile,mobile,biometric_auth_mobile;touch_id;face_id;faceid;fingerprint;biometric auth mobile
+app_signing,App Signing,mobile,app_signing;code_signing;apksigner;keychain;app signing
+app_distribution,App Distribution,mobile,app_distribution;testflight;enterprise_distribution;app distribution
+crash_reporting,Crash Reporting,mobile,crash_reporting;crashlytics;crash_reports;sentry_mobile;crash reporting
+deep_linking,Deep Linking,mobile,deep_linking;universal_links;intent_filters;deep linking
+background_tasks,Background Tasks,mobile,background_tasks;background_execution;workmanager;work_manager;background tasks
+battery_optimization,Battery Optimization,mobile,battery_optimization;batt_optimization;battery_friendly;battery optimization
+sensor_apis,Sensor APIs,mobile,sensor_apis;gyroscope;accelerometer;sensor apis
+nfc,NFC,mobile,nfc;near_field_communication
+bluetooth_le,Bluetooth LE,mobile,bluetooth_le;bluetooth_low_energy;ble;bluetooth le
+ar_core,AR Core,mobile,ar_core;augmented_reality;arcore;arkit;ar core
+scenekit,SceneKit,mobile,scenekit;scene_kit
+swiftdata,SwiftData,mobile,swiftdata;swift_data
+cloudkit,CloudKit,mobile,cloudkit
+nspersistentcontainer,NSPersistentContainer,mobile,nspersistentcontainer;core_data_stack
+realm,Realm,mobile,realm;realm_database
+sqlite,SQLite,mobile,sqlite;sqlite3;core_data_sqlite
+sqlite_on_ios,SQLite on iOS,mobile,sqlite_on_ios;core_data;sqlite on ios
+mongodb,MongoDB,data,mongodb;mongo;nosql_mongo
+mongo_shell,Mongo Shell,data,mongo_shell;mongo shell
+mongo_atlas,Mongo Atlas,data,mongo_atlas;mongodb_atlas;mongo atlas
+mongodb_schema_design,MongoDB Schema Design,data,mongodb_schema_design;nosql_schema;mongodb schema design
+nosql,NoSQL,data,nosql;nosql_databases
+cassandra,Cassandra,data,cassandra
+dynamodb,DynamoDB,data,dynamodb;amazon_dynamodb
+couchbase,Couchbase,data,couchbase
+ravendb,RavenDB,data,ravendb
+neon,Neon,data,neon;neon_postgres
+supabase,Supabase,data,supabase;supabase_pg
+neovim,Neovim,data,neovim
+postgresql,PostgreSQL,data,postgresql;postgres
+mysql,MySQL,data,mysql;mariadb
+mariadb,MariaDB,data,mariadb
+microsoft_sql_server,Microsoft SQL Server,data,microsoft_sql_server;mssql;sql_server;microsoft sql server
+oracle_database,Oracle Database,data,oracle_database;oracle;oracle_sql;oracle database
+sqlite_with_orm,SQLite with ORM,data,sqlite_with_orm;orm_sqlite;sqlite with orm
+firestore,Firestore,data,firestore;firebase_firestore
+bigquery,BigQuery,data,bigquery
+snowflake,Snowflake,data,snowflake;snowflake_data_cloud
+redshift,Redshift,data,redshift
+aurora,Aurora,data,aurora;amazon_aurora
+neon_postgres,Neon Postgres,data,neon_postgres;neon;neon postgres
+cockroachdb,CockroachDB,data,cockroachdb
+tidb,TiDB,data,tidb
+yugabyte,Yugabyte,data,yugabyte;yugabyte_db
+foundationdb,FoundationDB,data,foundationdb;foundation_db
+neo4j,Neo4j,data,neo4j;neo4j_database;graph_database
+janusgraph,JanusGraph,data,janusgraph
+amazon_neptune,Amazon Neptune,data,amazon_neptune;neptune;amazon neptune
+arangodb,ArangoDB,data,arangodb;arango
+pinecone,Pinecone,data,pinecone;pinecone_vector
+qdrant,Qdrant,data,qdrant;qdrant_vector
+chroma,Chroma,data,chroma;chroma_vector
+weaviate,Weaviate,data,weaviate;weaviate_vector
+faiss,FAISS,data,faiss;faiss_vector
+milvus,Milvus,data,milvus;milvus_vector
+pgvector,pgvector,data,pgvector;postgres_vector
+turbopuffer,Turbopuffer,data,turbopuffer
+lancedb,LanceDB,data,lancedb;lance_db
+sqlite_vector,SQLite Vector,data,sqlite_vector;sqlite_vec;sqlite vector
+data_warehouse,Data Warehouse,data,data_warehouse;datawarehouses;data warehouse
+data_lake,Data Lake,data,data_lake;data_lakehouse;data lake
+data_lakehouse,Data Lakehouse,data,data_lakehouse;lakehouse;data lakehouse
+data_pipeline,Data Pipeline,data,data_pipeline;data_pipelines;data pipeline
+elt,ELT,data,elt;elt_pipelines
+etl,ETL,data,etl;elt_processes;elt_jobs
+airflow,Airflow,data,airflow;apache_airflow
+dag,DAG,data,dag;dag_pipelines;directed_acyclic_graph
+spark,Spark,data,spark;pyspark;apache_spark
+pyspark,PySpark,data,pyspark
+databricks,Databricks,data,databricks
+delta_lake,Delta Lake,data,delta_lake;delta lake
+hadoop,Hadoop,data,hadoop;apache_hadoop;hdfs
+hbase,HBase,data,hbase;apache_hbase
+kafka_streams,Kafka Streams,data,kafka_streams;kafka streams
+kafka_kraft,Kafka KRaft,data,kafka_kraft;kraft;kafka kraft
+redpanda,Redpanda,data,redpanda;red_panda
+pulsar,Pulsar,data,pulsar;apache_pulsar
+dbt,DBT,data,dbt;dbt_core;dbt_models
+dbt_cloud,dbt Cloud,data,dbt_cloud;dbt cloud
+metabase,Metabase,data,metabase
+superset,Superset,data,superset;apache_superset
+mode,Mode,data,mode;analytics_mode
+hex,Hex,data,hex;hex_notebook
+jupyter_data,Jupyter Data,data,jupyter_data;jupyter data
+observable,Observable,data,observable;observable_notebook
+tableau,Tableau,data,tableau;tableau_desktop
+power_bi,Power BI,data,power_bi;powerbi;power bi
+looker,Looker,data,looker;looker_studio;looker_dashboards
+looker_studio,Looker Studio,data,looker_studio;looker studio
+sigma,Sigma,data,sigma;sigma_analytics
+periscope,Periscope,data,periscope;periscope_analytics
+amplitude,Amplitude,data,amplitude
+mixpanel,Mixpanel,data,mixpanel
+heap,Heap,data,heap;heap_analytics
+cohort_analysis,Cohort Analysis,data,cohort_analysis;cohort;cohort analysis
+funnel_analysis,Funnel Analysis,data,funnel_analysis;funnels;funnel analysis
+a_b_testing,A/B Testing,data,a_b_testing;ab_testing;abtest;a/b testing
+experiment_design,Experiment Design,data,experiment_design;experimentation;experiment design
+statistical_testing,Statistical Testing,data,statistical_testing;hypothesis_testing;t_tests;statistical testing
+p_value,P-Value,data,p_value;p-value
+confidence_intervals,Confidence Intervals,data,confidence_intervals;ci;confidence intervals
+regression_analysis,Regression Analysis,data,regression_analysis;regression;regression analysis
+linear_regression,Linear Regression,data,linear_regression;ols;least_squares;linear regression
+logistic_regression,Logistic Regression,data,logistic_regression;logistic regression
+time_series,Time Series,data,time_series;arima;forecasting;time series
+anomaly_detection,Anomaly Detection,data,anomaly_detection;anomaly;anomaly detection
+clustering,Clustering,data,clustering;kmeans;k_means
+dimensionality_reduction,Dimensionality Reduction,data,dimensionality_reduction;pca;dimensionality reduction
+feature_engineering,Feature Engineering,data,feature_engineering;feature_extraction;feature engineering
+data_quality,Data Quality,data,data_quality;data_profiling;data quality
+data_governance,Data Governance,data,data_governance;data governance
+data_stewardship,Data Stewardship,data,data_stewardship;data_steward;data stewardship
+data_lineage,Data Lineage,data,data_lineage;data lineage
+master_data_management,Master Data Management,data,master_data_management;mdm;master data management
+data_catalog,Data Catalog,data,data_catalog;data catalog
+metadata_management,Metadata Management,data,metadata_management;metadata management
+etl_monitoring,ETL Monitoring,data,etl_monitoring;elt_monitoring;etl monitoring
+data_virtualization,Data Virtualization,data,data_virtualization;data virtualization
+federated_queries,Federated Queries,data,federated_queries;federated;federated queries
+query_optimization,Query Optimization,data,query_optimization;query_tuning;indexing;query optimization
+indexing,Indexing,data,indexing;indexes
+sharding,Sharding,data,sharding;shards
+replication,Replication,data,replication;replica_sets;replicas
+partitioning,Partitioning,data,partitioning;partitioned_tables
+acid,ACID,data,acid;acid_transactions
+cap_theorem,CAP Theorem,data,cap_theorem;cap;cap theorem
+consistency_models,Consistency Models,data,consistency_models;consistency;consistency models
+transactions,Transactions,data,transactions;txn;database_transactions
+rollbacks,Rollbacks,data,rollbacks;rollback
+deadlock_handling,Deadlock Handling,data,deadlock_handling;deadlocks;deadlock handling
+query_performance,Query Performance,data,query_performance;query_plan;explain_plans;query performance
+execution_plans,Execution Plans,data,execution_plans;query_plans;execution plans
+slow_queries,Slow Queries,data,slow_queries;slow queries
+database_migration,Database Migration,data,database_migration;migrations;alembic;flyway;liquibase;django_migrations;database migration
+schema_design,Schema Design,data,schema_design;data_modelling;data_modeling;er_diagrams;schema design
+normalization,Normalization,data,normalization;normal_forms;denormalization
+denormalization,Denormalization,data,denormalization
+er_modeling,ER Modeling,data,er_modeling;entity_relationship;er modeling
+star_schema,Star Schema,data,star_schema;star_schemas;star schema
+snowflake_schema,Snowflake Schema,data,snowflake_schema;snowflake_star;snowflake schema
+dimensional_modeling,Dimensional Modeling,data,dimensional_modeling;dimensions;dimensional modeling
+surrogate_keys,Surrogate Keys,data,surrogate_keys;surrogate keys
+natural_keys,Natural Keys,data,natural_keys;natural keys
+composite_keys,Composite Keys,data,composite_keys;composite keys
+indexes,Indexes,data,indexes
+b_tree,B-Tree,data,b_tree;btree;b-tree
+hash_indexes,Hash Indexes,data,hash_indexes;hash_index;hash indexes
+full_text_search,Full-Text Search,data,full_text_search;full_text;fts;full-text search
+elasticsearch,Elasticsearch,data,elasticsearch;elastic
+opensearch,OpenSearch,data,opensearch
+meilisearch,Meilisearch,data,meilisearch
+typesense,Typesense,data,typesense
+solr,Solr,data,solr;apache_solr
+apache_solr,Apache Solr,data,apache_solr;apache solr
+lucene,Lucene,data,lucene;apache_lucene
+caching_layer,Caching Layer,data,caching_layer;caching;caching layer
+redis_pub_sub,Redis Pub/Sub,data,redis_pub_sub;pub_sub;redis pub/sub
+cache_invalidation,Cache Invalidation,data,cache_invalidation;cache_eviction;cache invalidation
+write_ahead_log,Write-Ahead Log,data,write_ahead_log;wal;write-ahead log
+mvcc,MVCC,data,mvcc;multi_version_concurrency_control
+isolation_levels,Isolation Levels,data,isolation_levels;transaction_isolation;isolation levels
+row_locking,Row Locking,data,row_locking;locks;row locking
+deadlock_detection,Deadlock Detection,data,deadlock_detection;deadlock;deadlock detection
+database_backup,Database Backup,data,database_backup;backups;restore;database backup
+pitr,PITR,data,pitr;point_in_time_recovery
+database_clustering,Database Clustering,data,database_clustering;clusters;database clustering
+read_replicas,Read Replicas,data,read_replicas;read_only_replicas;read replicas
+multi_region_db,Multi-Region DB,data,multi_region_db;cross_region;multi-region db
+database_monitoring,Database Monitoring,data,database_monitoring;db_monitoring;dba;database monitoring
+dba,DBA,data,dba;database_administration
+schema_validation,Schema Validation,data,schema_validation;schema_checks;schema validation
+machine_learning,Machine Learning,ai,machine_learning;ml;machine learning
+supervised_learning,Supervised Learning,ai,supervised_learning;supervised;supervised learning
+unsupervised_learning,Unsupervised Learning,ai,unsupervised_learning;unsupervised;unsupervised learning
+reinforcement_learning,Reinforcement Learning,ai,reinforcement_learning;rl;reinforcement learning
+deep_learning,Deep Learning,ai,deep_learning;dl;neural_nets;neural_networks;deep learning
+cnn,CNN,ai,cnn;convolutional_neural_network;convolutional_networks
+rnn,RNN,ai,rnn;recurrent_neural_network;recurrent_networks
+lstm,LSTM,ai,lstm;long_short_term_memory
+gru,GRU,ai,gru;gated_recurrent_unit;gated_recurrent_units
+transformer,Transformer,ai,transformer;transformer_architecture;transformers
+attention_mechanisms,Attention Mechanisms,ai,attention_mechanisms;attention;self_attention;attention mechanisms
+bert,BERT,ai,bert;bert_embeddings;bert_models
+gpt,GPT,ai,gpt;gpt_models;gpt_4;llm
+llms,LLMs,ai,llms;large_language_models;llm_models;large_language_model
+language_models,Language Models,ai,language_models;lm;language_model;language models
+text_embeddings,Text Embeddings,ai,text_embeddings;embeddings;text embeddings
+embedding_models,Embedding Models,ai,embedding_models;sentence_transformers;text_embeddings;embedding models
+hugging_face,Hugging Face,ai,hugging_face;hf;hub;hugging face
+diffusers,Diffusers,ai,diffusers;diffusion_models;stable_diffusion;sd
+image_generation,Image Generation,ai,image_generation;text_to_image;image generation
+audio_processing,Audio Processing,ai,audio_processing;speech_recognition;asr;speech_to_text;text_to_speech;tts;audio processing
+computer_vision,Computer Vision,ai,computer_vision;cv;object_detection;image_classification;computer vision
+yolo,YOLO,ai,yolo;yolo_object_detection
+opencv_cv,OpenCV CV,ai,opencv_cv;opencv;opencv cv
+ocr,OCR,ai,ocr;optical_character_recognition
+nlp,NLP,ai,nlp;natural_language_processing
+sentiment_analysis,Sentiment Analysis,ai,sentiment_analysis;sentiment;sentiment analysis
+named_entity_recognition,Named Entity Recognition,ai,named_entity_recognition;ner;named entity recognition
+text_classification,Text Classification,ai,text_classification;text_categorization;text classification
+text_generation,Text Generation,ai,text_generation;textgen;text generation
+prompt_engineering,Prompt Engineering,ai,prompt_engineering;prompt_design;prompting;prompt engineering
+rag,RAG,ai,rag;retrieval_augmented_generation;rag_pipelines
+vector_databases,Vector Databases,ai,vector_databases;vector_search;vector_db;vector databases
+vector_search,Vector Search,ai,vector_search;ann_search;ann;vector search
+ann,ANN,ai,ann;approximate_nearest_neighbor
+chromadb,ChromaDB,ai,chromadb;chroma
+langchain,LangChain,ai,langchain;langchain_frameworks;langchain_llm
+llamaindex,LlamaIndex,ai,llamaindex;llama_index
+semantic_kernel,Semantic Kernel,ai,semantic_kernel;semantic kernel
+crewai,CrewAI,ai,crewai;crew_ai
+autogen,AutoGen,ai,autogen
+dify,Dify,ai,dify;dify_platform
+haystack,Haystack,ai,haystack;haystack_nlp
+spacy,Spacy,ai,spacy;spacy_nlp;spacy_pipelines
+nltk,NLTK,ai,nltk;natural_language_tool_kit
+jieba,Jieba,ai,jieba;jieba_chinese
+corenlp,CoreNLP,ai,corenlp;stanford_corenlp
+transformers,Transformers,ai,transformers;transformer_models;transformer_architecture
+tensorflow,TensorFlow,ai,tensorflow;tf;tensorflow_2
+pytorch,PyTorch,ai,pytorch;torch
+keras,Keras,ai,keras;keras_api
+jax,JAX,ai,jax;deepmind_jax
+xgboost,XGBoost,ai,xgboost;xgb;xgboost_classifier
+lightgbm,LightGBM,ai,lightgbm
+catboost,CatBoost,ai,catboost
+scikit_learn,Scikit-learn,ai,scikit_learn;sklearn;scikit-learn
+numpy_ml,NumPy ML,ai,numpy_ml;numpy;numpy ml
+pandas_ml,Pandas ML,ai,pandas_ml;pandas;pandas ml
+matplotlib,Matplotlib,ai,matplotlib;plots
+seaborn,Seaborn,ai,seaborn
+plotly,Plotly,ai,plotly
+bokeh,Bokeh,ai,bokeh
+altair,Altair,ai,altair
+dataviz,DataViz,ai,dataviz;data_visualization
+power_bi_report,Power BI Report,ai,power_bi_report;powerbi;power bi report
+tableau_dashboard,Tableau Dashboard,ai,tableau_dashboard;tableau_dashboards;tableau dashboard
+grafana_dashboards,Grafana Dashboards,ai,grafana_dashboards;grafana dashboards
+kpi_dashboards,KPI Dashboards,ai,kpi_dashboards;kpi;kpi dashboards
+business_analytics,Business Analytics,ai,business_analytics;ba;descriptive_analytics;predictive_analytics;prescriptive_analytics;business analytics
+statistics,Statistics,ai,statistics;statistical_analysis;descriptive_statistics;inferential_statistics
+hypothesis_testing,Hypothesis Testing,ai,hypothesis_testing;stat_hypothesis;hypothesis testing
+regression,Regression,ai,regression;linear_regression;regression_analysis
+arima,ARIMA,ai,arima;arima_models
+prophet,Prophet,ai,prophet;prophet_forecasting
+forecasting,Forecasting,ai,forecasting;demand_forecasting;prediction
+time_series_models,Time Series Models,ai,time_series_models;sts;ets;ets_models;time series models
+ensemble_methods,Ensemble Methods,ai,ensemble_methods;bagging;boosting;ensemble_learning;ensemble methods
+random_forest,Random Forest,ai,random_forest;rf;random_forests;random forest
+gradient_boosting,Gradient Boosting,ai,gradient_boosting;gbm;gb;gradient boosting
+decision_trees,Decision Trees,ai,decision_trees;c4_5;id3;decision trees
+svm,SVM,ai,svm;support_vector_machines;support_vector_machine
+knn,KNN,ai,knn;k_nearest_neighbors
+naive_bayes,Naive Bayes,ai,naive_bayes;nb;naive bayes
+logistic,Logistic,ai,logistic;logreg
+neural_net,Neural Net,ai,neural_net;nn;neural_network;deep_neural_network;deep_nets;neural net
+feature_selection,Feature Selection,ai,feature_selection;feature_importance;feature selection
+model_interpretability,Model Interpretability,ai,model_interpretability;xai;explainability;shap;model interpretability
+shap,SHAP,ai,shap;shap_values
+lime,LIME,ai,lime;lime_explainer
+model_validation,Model Validation,ai,model_validation;cross_validation;kfold;model validation
+cross_validation,Cross-Validation,ai,cross_validation;cv_models;cross-validation
+hyperparameter_tuning,Hyperparameter Tuning,ai,hyperparameter_tuning;hp_tuning;bayesian_optimization;optuna;hyperparameter tuning
+optuna,Optuna,ai,optuna
+ml_ops,ML Ops,ai,ml_ops;mlops;ml ops
+feature_store,Feature Store,ai,feature_store;feature_stores;feast;feature store
+feast,Feast,ai,feast;feast_feature_store
+model_registry,Model Registry,ai,model_registry;mlflow;mlflow_registry;model registry
+mlflow,MLflow,ai,mlflow
+kubeflow,Kubeflow,ai,kubeflow;kubeflow_pipelines
+kubeflow_pipelines,Kubeflow Pipelines,ai,kubeflow_pipelines;kubeflow pipelines
+experiment_tracking,Experiment Tracking,ai,experiment_tracking;w_and_b;ml_experiment;neptune;experiment tracking
+weights_biases,Weights & Biases,ai,weights_biases;wandb;wandb_tracking;weights & biases
+neptune_ai,Neptune.ai,ai,neptune_ai;neptune_tracking;neptune.ai
+tensorboard,TensorBoard,ai,tensorboard
+ci_cd_for_ml,CI/CD for ML,ai,ci_cd_for_ml;ml_ci_cd;ci/cd for ml
+model_serving,Model Serving,ai,model_serving;inference_servers;model_deployment;model serving
+torchserve,TorchServe,ai,torchserve;torch_serve
+triton_inference,Triton Inference,ai,triton_inference;triton_inference_server;triton inference
+onnx,ONNX,ai,onnx;onnx_model
+tensorrt,TensorRT,ai,tensorrt
+model_compression,Model Compression,ai,model_compression;quantization;pruning;distillation;model compression
+quantization,Quantization,ai,quantization;int8;int4
+pruning,Pruning,ai,pruning;network_pruning
+distillation,Distillation,ai,distillation;knowledge_distillation
+automl,AutoML,ai,automl;automated_ml;hyperopt
+h2o,H2O,ai,h2o;h2o_ml;h2o_ai
+autogluon,AutoGluon,ai,autogluon
+catboost_models,CatBoost Models,ai,catboost_models;catboost_regression;catboost_classifier;catboost models
+lightgbm_models,LightGBM Models,ai,lightgbm_models;lightgbm models
+data_augmentation,Data Augmentation,ai,data_augmentation;augmentation;data augmentation
+transfer_learning,Transfer Learning,ai,transfer_learning;fine_tuning;finetuning;transfer learning
+fine_tuning,Fine-Tuning,ai,fine_tuning;fine_tune;lora;lora_adapters;qlora;fine-tuning
+lora,LoRA,ai,lora;low_rank_adaptation
+qlora,QLoRA,ai,qlora
+instruction_tuning,Instruction Tuning,ai,instruction_tuning;sft;supervised_fine_tuning;instruction tuning
+rlhf,RLHF,ai,rlhf;reinforcement_learning_from_human_feedback
+dpo,DPO,ai,dpo;direct_preference_optimization
+peft,PEFT,ai,peft;parameter_efficient_fine_tuning
+in_context_learning,In-Context Learning,ai,in_context_learning;few_shot;zero_shot;in-context learning
+few_shot,Few-Shot,ai,few_shot;few_shot_learning;few-shot
+zero_shot,Zero-Shot,ai,zero_shot;zero_shot_learning;zero-shot
+multimodal,Multimodal,ai,multimodal;vlm;multimodal_llm
+vision_language_models,Vision Language Models,ai,vision_language_models;vlm_models;vision language models
+multimodal_learning,Multimodal Learning,ai,multimodal_learning;multi_modal;multimodal learning
+speech_models,Speech Models,ai,speech_models;whisper;speech models
+whisper,Whisper,ai,whisper;whisper_asr
+diffusion_models,Diffusion Models,ai,diffusion_models;ddpm;diffusion;diffusion models
+stable_diffusion,Stable Diffusion,ai,stable_diffusion;sd_models;stable diffusion
+image_segmentation,Image Segmentation,ai,image_segmentation;segmentation;instance_segmentation;image segmentation
+image_classification,Image Classification,ai,image_classification;cnn_classifier;image classification
+object_detection,Object Detection,ai,object_detection;yolo_models;detector;object detection
+instance_segmentation,Instance Segmentation,ai,instance_segmentation;mask_r_cnn;maskrcnn;instance segmentation
+pose_estimation,Pose Estimation,ai,pose_estimation;pose_models;pose estimation
+depth_estimation,Depth Estimation,ai,depth_estimation;depth_models;depth estimation
+point_clouds,Point Clouds,ai,point_clouds;pointcloud;3d_point_clouds;point clouds
+pointnet,PointNet,ai,pointnet
+3d_vision,3D Vision,ai,3d_vision;3d_object_recognition;3d vision
+robotics,Robotics,ai,robotics;ros;robot_operating_system
+ros,ROS,ai,ros;robot_operating_system
+slam,SLAM,ai,slam;simultaneous_localization_and_mapping
+control_systems,Control Systems,ai,control_systems;pid;pid_control;control systems
+ec2,EC2,cloud,ec2;amazon_ec2;aws_ec2;ec2_instances
+s3,S3,cloud,s3;amazon_s3;aws_s3;s3_buckets
+lambda,Lambda,cloud,lambda;aws_lambda;lambda_functions
+ecs,ECS,cloud,ecs;amazon_ecs;ecs_tasks
+eks,EKS,cloud,eks;amazon_eks;eks_clusters
+elastic_beanstalk,Elastic Beanstalk,cloud,elastic_beanstalk;beanstalk;beanstalk_service;elastic beanstalk
+rds,RDS,cloud,rds;amazon_rds;aws_rds;rds_instances
+documentdb,DocumentDB,cloud,documentdb;amazon_documentdb
+emr,EMR,cloud,emr;amazon_emr
+glue,Glue,cloud,glue;aws_glue;glue_etl
+step_functions,Step Functions,cloud,step_functions;aws_step_functions;sfn;step functions
+cloudfront,CloudFront,cloud,cloudfront;aws_cloudfront
+acm,ACM,cloud,acm;aws_acm;certificate_manager
+route53,Route53,cloud,route53;amazon_route_53
+vpc,VPC,cloud,vpc;aws_vpc;virtual_private_cloud
+subnets,Subnets,cloud,subnets;public_subnets;private_subnets
+security_groups,Security Groups,cloud,security_groups;aws_security_groups;security groups
+nacl,NACL,cloud,nacl;network_acl
+load_balancer,Load Balancer,cloud,load_balancer;aws_alb;alb;nlb;elb;load balancer
+application_load_balancer,Application Load Balancer,cloud,application_load_balancer;alb;application load balancer
+network_load_balancer,Network Load Balancer,cloud,network_load_balancer;nlb;network load balancer
+iam,IAM,cloud,iam;aws_iam;iam_roles;iam_policies;iam_users
+iam_roles,IAM Roles,cloud,iam_roles;iam roles
+sts,STS,cloud,sts;security_token_service
+cognito,Cognito,cloud,cognito;aws_cognito;cognito_identity;cognito_user_pools
+kms,KMS,cloud,kms;aws_kms;key_management_service
+secrets_manager,Secrets Manager,cloud,secrets_manager;aws_secrets_manager;secrets manager
+ssm,SSM,cloud,ssm;aws_ssm;ssm_parameters
+cloudwatch,CloudWatch,cloud,cloudwatch;aws_cloudwatch;cloudwatch_metrics;cloudwatch_alarms;cloudwatch_logs
+cloudwatch_logs,CloudWatch Logs,cloud,cloudwatch_logs;cloudwatch_log_groups;cloudwatch logs
+x_ray,X-Ray,cloud,x_ray;aws_x_ray;x-ray
+guardduty,GuardDuty,cloud,guardduty;aws_guardduty
+securityhub,SecurityHub,cloud,securityhub;aws_securityhub
+config,Config,cloud,config;aws_config;aws_config_service
+trail,Trail,cloud,trail;aws_trail;cloudtrail
+cloudtrail,CloudTrail,cloud,cloudtrail;cloudtrail_logs
+insights,Insights,cloud,insights;aws_insights
+chatbot,ChatBot,cloud,chatbot;aws_chatbot
+waf,WAF,cloud,waf;aws_waf;waf_rules;waf_acl
+shield,Shield,cloud,shield;aws_shield;ddos_protection
+media,Media,cloud,media;aws_media;media_services
+transcribe,Transcribe,cloud,transcribe;aws_transcribe
+comprehend,Comprehend,cloud,comprehend;aws_comprehend
+rekognition,Rekognition,cloud,rekognition;aws_rekognition
+textract,Textract,cloud,textract;aws_textract
+polly,Polly,cloud,polly;aws_polly
+lex,Lex,cloud,lex;aws_lex;alexa_skills
+sagemaker,SageMaker,cloud,sagemaker;aws_sagemaker
+sagemaker_studio,SageMaker Studio,cloud,sagemaker_studio;sagemaker studio
+sagemaker_endpoints,SageMaker Endpoints,cloud,sagemaker_endpoints;sagemaker_models;sagemaker endpoints
+sagemaker_pipelines,SageMaker Pipelines,cloud,sagemaker_pipelines;sagemaker_pipeline;sagemaker pipelines
+emr_studio,EMR Studio,cloud,emr_studio;emr_studios;emr studio
+quicksight,Quicksight,cloud,quicksight;quicksight_dashboards
+lake_formation,Lake Formation,cloud,lake_formation;lake formation
+kinesis,Kinesis,cloud,kinesis;kinesis_streams;kinesis_firehose;kinesis_data_analytics
+kinesis_data_streams,Kinesis Data Streams,cloud,kinesis_data_streams;kinesis_streams;kinesis data streams
+kinesis_firehose,Kinesis Firehose,cloud,kinesis_firehose;kinesis firehose
+kinesis_analytics,Kinesis Analytics,cloud,kinesis_analytics;kinesis_data_analytics;kinesis analytics
+athena,Athena,cloud,athena;athena_queries
+databrew,Databrew,cloud,databrew;aws_databrew
+proton,Proton,cloud,proton;aws_proton
+amplify,Amplify,cloud,amplify;amplify_studio;amplify_gen
+amplify_studio,Amplify Studio,cloud,amplify_studio;amplify;amplify studio
+appsync,AppSync,cloud,appsync;aws_appsync
+eventbridge,EventBridge,cloud,eventbridge;aws_eventbridge
+sqs,SQS,cloud,sqs;aws_sqs;amazon_sqs
+sns,SNS,cloud,sns;aws_sns;amazon_sns
+msk,MSK,cloud,msk;amazon_msk;msk_cluster
+neuron,Neuron,cloud,neuron;aws_neuron
+sagemaker_hyperpod,SageMaker HyperPod,cloud,sagemaker_hyperpod;hyperpod;sagemaker hyperpod
+fargate,Fargate,cloud,fargate;aws_fargate
+codecommit,CodeCommit,cloud,codecommit;aws_codecommit
+codebuild,CodeBuild,cloud,codebuild;aws_codebuild
+codedeploy,CodeDeploy,cloud,codedeploy;aws_codedeploy
+codepipeline,CodePipeline,cloud,codepipeline;aws_codepipeline
+github_actions,GitHub Actions,cloud,github_actions;gha;github actions
+gitlab_ci_cd,GitLab CI/CD,cloud,gitlab_ci_cd;gitlab_pipelines;gitlab_ci;gitlab ci/cd
+jenkins,Jenkins,cloud,jenkins;jenkins_pipelines
+circleci,CircleCI,cloud,circleci;circle_ci
+travis_ci,Travis CI,cloud,travis_ci;travis;travis ci
+buildkite,Buildkite,cloud,buildkite;buildkite_ci
+azure_devops,Azure DevOps,cloud,azure_devops;azure_pipelines;azure devops
+github_pr_automation,GitHub PR Automation,cloud,github_pr_automation;github_actions;github_prs;github pr automation
+terraform,Terraform,cloud,terraform;tf
+terraform_modules,Terraform Modules,cloud,terraform_modules;tf_modules;terraform modules
+terraform_state,Terraform State,cloud,terraform_state;tf_state;state_backend;terraform state
+pulumi,Pulumi,cloud,pulumi;pulumi_iac
+crossplane,Crossplane,cloud,crossplane
+ansible,Ansible,cloud,ansible;ansible_playbooks;ansible_automation
+ansible_playbook,Ansible Playbook,cloud,ansible_playbook;playbooks;ansible playbook
+bash_automation,Bash Automation,cloud,bash_automation;shell_automation;bash_scripts;bash automation
+python_automation,Python Automation,cloud,python_automation;python_scripts;python automation
+jenkins_pipelines,Jenkins Pipelines,cloud,jenkins_pipelines;jenkins;jenkins pipelines
+pipelines,Pipelines,cloud,pipelines;ci_cd;ci_cd_pipelines
+ci_cd,CI/CD,cloud,ci_cd;continuous_integration;continuous_delivery;continuous_deployment;ci/cd
+sam,SAM,cloud,sam;aws_sam
+localstack,LocalStack,cloud,localstack
+docker,Docker,cloud,docker;docker_images;docker_containers
+docker_compose,Docker Compose,cloud,docker_compose;docker compose
+dockerfile,Dockerfile,cloud,dockerfile;dockerfiles
+kubernetes,Kubernetes,cloud,kubernetes;k8s;kubernetes_clusters
+kubernetes_helm,Kubernetes Helm,cloud,kubernetes_helm;helm_charts;helm;kubernetes helm
+kubernetes_operators,Kubernetes Operators,cloud,kubernetes_operators;k8s_operators;kubebuilder;kubernetes operators
+helm,Helm,cloud,helm;helm_releases
+k3s,K3s,cloud,k3s;k3s_clusters
+minikube,Minikube,cloud,minikube
+k9s,k9s,cloud,k9s
+kubectx,kubectx,cloud,kubectx
+istio,Istio,cloud,istio;istio_service_mesh
+linkerd,Linkerd,cloud,linkerd
+prometheus,Prometheus,cloud,prometheus;prometheus_metrics;prometheus_monitoring
+grafana,Grafana,cloud,grafana;grafana_dashboards;grafana_monitoring
+opentelemetry,OpenTelemetry,cloud,opentelemetry;otel;open_telemetry
+datadog,Datadog,cloud,datadog;datadog_apm;dd
+newrelic,NewRelic,cloud,newrelic;new_relic
+sentry,Sentry,cloud,sentry;sentry_monitoring
+pagerduty,PagerDuty,cloud,pagerduty
+statuspage,StatusPage,cloud,statuspage
+uptimerobot,UptimeRobot,cloud,uptimerobot
+cloud_monitoring,Cloud Monitoring,cloud,cloud_monitoring;cloudwatch;gcp_cloud_monitoring;cloud monitoring
+gcp,GCP,cloud,gcp;google_cloud
+aws,AWS,cloud,aws;amazon_web_services
+azure,Azure,cloud,azure;microsoft_azure
+gcp_bigquery,GCP BigQuery,cloud,gcp_bigquery;google_bigquery;gcp bigquery
+gcs,GCS,cloud,gcs;google_cloud_storage;gcp_storage
+gke,GKE,cloud,gke;google_kubernetes;gcp_kubernetes
+gcp_pubsub,GCP PubSub,cloud,gcp_pubsub;google_pubsub;gcp pubsub
+gcp_dataflow,GCP Dataflow,cloud,gcp_dataflow;google_dataflow;gcp dataflow
+gcp_vertex_ai,GCP Vertex AI,cloud,gcp_vertex_ai;vertex_ai;gcp_ml;gcp vertex ai
+gcp_spanner,GCP Spanner,cloud,gcp_spanner;spanner;gcp spanner
+gcp_firestore,GCP Firestore,cloud,gcp_firestore;cloud_firestore;gcp firestore
+azure_functions,Azure Functions,cloud,azure_functions;azure_serverless;azure functions
+azure_service_fabric,Azure Service Fabric,cloud,azure_service_fabric;service_fabric;azure service fabric
+azure_key_vault,Azure Key Vault,cloud,azure_key_vault;key_vault;azure_kv;azure key vault
+azure_app_service,Azure App Service,cloud,azure_app_service;app_service;azure app service
+azure_cosmos_db,Azure Cosmos DB,cloud,azure_cosmos_db;cosmos_db;cosmosdb;azure cosmos db
+azure_monitor,Azure Monitor,cloud,azure_monitor;log_analytics;azure_log_analytics;azure monitor
+azure_load_balancer,Azure Load Balancer,cloud,azure_load_balancer;azure_lb;azure load balancer
+azure_waf,Azure WAF,cloud,azure_waf;azure waf
+gcp_cloud_run,GCP Cloud Run,cloud,gcp_cloud_run;cloud_run;gcp cloud run
+gcp_load_balancer,GCP Load Balancer,cloud,gcp_load_balancer;gcp_lb;gcp load balancer
+gcp_iap,GCP IAP,cloud,gcp_iap;identity_aware_proxy;gcp iap
+gcp_secret_manager,GCP Secret Manager,cloud,gcp_secret_manager;gcp_secrets;gcp secret manager
+gcp_artifact_registry,GCP Artifact Registry,cloud,gcp_artifact_registry;artifact_registry;gcp artifact registry
+vercel,Vercel,cloud,vercel;vercel_deploy;vercel_hosting
+netlify,Netlify,cloud,netlify;netlify_deploy
+heroku,Heroku,cloud,heroku;heroku_apps
+railway,Railway,cloud,railway;railway_deploy
+render,Render,cloud,render;render_deploy;render_app
+fly_io,Fly.io,cloud,fly_io;fly_deploy;fly_machine;fly.io
+deno_deploy,Deno Deploy,cloud,deno_deploy;deno deploy
+aws_amplify,AWS Amplify,cloud,aws_amplify;amplify;aws amplify
+digitalocean,DigitalOcean,cloud,digitalocean;droplets;do_k8s
+hetzner,Hetzner,cloud,hetzner;hetzner_cloud
+vultr,Vultr,cloud,vultr;vultr_cloud
+linode,Linode,cloud,linode;akamai_linode;linode_cloud
+scaleway,Scaleway,cloud,scaleway;scaleway_cloud
+ovh,OVH,cloud,ovh;ovhcloud;ovh_cloud
+ionos,IONOS,cloud,ionos;ionos_cloud
+ibm_cloud,IBM Cloud,cloud,ibm_cloud;ibm cloud
+alibaba_cloud,Alibaba Cloud,cloud,alibaba_cloud;aliyun;alibaba cloud
+oracle_cloud,Oracle Cloud,cloud,oracle_cloud;oci;oracle cloud
+yandex_cloud,Yandex Cloud,cloud,yandex_cloud;yc;yandex cloud
+tencent_cloud,Tencent Cloud,cloud,tencent_cloud;tencent;tencent cloud
+huawei_cloud,Huawei Cloud,cloud,huawei_cloud;huawei;huawei cloud
+wasabi,Wasabi,cloud,wasabi;wasabi_storage
+backblaze,Backblaze,cloud,backblaze;backblaze_b2
+digitalocean_spaces,DigitalOcean Spaces,cloud,digitalocean_spaces;spaces;digitalocean spaces
+supabase_auth,Supabase Auth,cloud,supabase_auth;supabase auth
+supabase_storage,Supabase Storage,cloud,supabase_storage;supabase storage
+supabase_realtime,Supabase Realtime,cloud,supabase_realtime;supabase realtime
+supabase_edge_functions,Supabase Edge Functions,cloud,supabase_edge_functions;supabase_functions;supabase edge functions
+appwrite,Appwrite,cloud,appwrite
+firebase,Firebase,cloud,firebase;google_firebase
+firebase_auth,Firebase Auth,cloud,firebase_auth;firebase_sign_in;firebase auth
+firebase_firestore,Firebase Firestore,cloud,firebase_firestore;cloud_firestore;firebase firestore
+firebase_realtime_db,Firebase Realtime DB,cloud,firebase_realtime_db;firebase_rtdb;firebase realtime db
+firebase_cloud_messaging,Firebase Cloud Messaging,cloud,firebase_cloud_messaging;fcm;firebase cloud messaging
+firebase_hosting,Firebase Hosting,cloud,firebase_hosting;firebase_static_hosting;firebase hosting
+supabase_supertokens,Supabase Supertokens,cloud,supabase_supertokens;supertokens;supabase_auth;supabase supertokens
+auth0,Auth0,cloud,auth0;auth0_platform;auth0_login
+clerk,Clerk,cloud,clerk;clerk_auth;clerk_components
+keycloak,Keycloak,cloud,keycloak;keycloak_identity
+okta,Okta,cloud,okta;okta_sso
+zitadel,Zitadel,cloud,zitadel
+ory,Ory,cloud,ory;ory_kratos;ory_hydra
+gitlab_ci,GitLab CI,devops,gitlab_ci;gitlab_ci_cd;gitlab ci
+bitbucket_pipelines,Bitbucket Pipelines,devops,bitbucket_pipelines;bitbucket pipelines
+azure_pipelines,Azure Pipelines,devops,azure_pipelines;azure_devops_pipelines;azure pipelines
+ansible_playbooks,Ansible Playbooks,devops,ansible_playbooks;ansible_runs;ansible playbooks
+sarif,SARIF,devops,sarif;static_analysis
+kubernetes_operator,Kubernetes Operator,devops,kubernetes_operator;k8s_operators;kubernetes operator
+helm_chart,Helm Chart,devops,helm_chart;helm_templates;helm chart
+envoy,Envoy,devops,envoy;envoy_proxy
+jaeger,Jaeger,devops,jaeger;jaeger_tracing
+zipkin,Zipkin,devops,zipkin;zipkin_tracing
+grafana_loki,Grafana Loki,devops,grafana_loki;loki_logs;grafana loki
+grafana_tempo,Grafana Tempo,devops,grafana_tempo;tempo_traces;grafana tempo
+loki,Loki,devops,loki;loki_logs
+elastic_apm,Elastic APM,devops,elastic_apm;elastic_observability;elastic apm
+kibana,Kibana,devops,kibana;kibana_dashboards
+kibana_dashboards,Kibana Dashboards,devops,kibana_dashboards;kibana_visualizations;kibana dashboards
+splunk,Splunk,devops,splunk;splunk_queries
+logstash,Logstash,devops,logstash;logstash_filters
+sumologic,SumoLogic,devops,sumologic
+dynatrace,Dynatrace,devops,dynatrace;dynatrace_app
+appdynamics,AppDynamics,devops,appdynamics
+honeycomb,Honeycomb,devops,honeycomb;honeycomb_observability
+grafana_plugins,Grafana Plugins,devops,grafana_plugins;grafana_panels;grafana plugins
+grafana_dashboard,Grafana Dashboard,devops,grafana_dashboard;grafana_boards;grafana dashboard
+metrics,Metrics,devops,metrics;observability;telemetry;logs
+traces,Traces,devops,traces;distributed_tracing;trace;tracing
+logs,Logs,devops,logs;log_aggregation;log_ingestion;log_analysis
+uptime_monitoring,Uptime Monitoring,devops,uptime_monitoring;health_checks;uptime;uptime monitoring
+synthetic_monitoring,Synthetic Monitoring,devops,synthetic_monitoring;synthetic_tests;synthetic monitoring
+chaos_engineering,Chaos Engineering,devops,chaos_engineering;chaos_experiments;chaos engineering
+resiliency_testing,Resiliency Testing,devops,resiliency_testing;resilience_testing;resiliency testing
+load_testing,Load Testing,devops,load_testing;load_tests;performance_tests;load testing
+jmeter,JMeter,devops,jmeter;jmeter_tests
+locust,Locust,devops,locust;locust_tests
+k6,K6,devops,k6;k6_tests;k6_load
+artillery,Artillery,devops,artillery;artillery_load
+gatling,Gatling,devops,gatling;gatling_tests
+jmx,JMX,devops,jmx;jmeter_scripts
+tauri,Tauri,devops,tauri
+electron,Electron,devops,electron;electron_apps
+qt,Qt,devops,qt;qt_apps
+flutter_apps,Flutter Apps,devops,flutter_apps;flutter;flutter apps
+swift_app,Swift App,devops,swift_app;swift;swift app
+kotlin_app,Kotlin App,devops,kotlin_app;kotlin;kotlin app
+android_app,Android App,devops,android_app;android;android app
+ios_app,iOS App,devops,ios_app;ios;ios app
+testflight,TestFlight,devops,testflight;testflight_distribution
+play_console,Play Console,devops,play_console;google_play_console;play console
+crashlytics,Crashlytics,devops,crashlytics
+firebase_app_distribution,Firebase App Distribution,devops,firebase_app_distribution;app_distribution;firebase app distribution
+git,Git,devops,git;git_basics;git_branching;git_workflows
+gitflow,GitFlow,devops,gitflow;git_flow
+github_pr,GitHub PR,devops,github_pr;pull_requests;pr;github pr
+code_review,Code Review,devops,code_review;code_reviews;pr_reviews;code review
+git_rebase,Git Rebase,devops,git_rebase;rebase;git rebase
+git_cherry_pick,Git Cherry-pick,devops,git_cherry_pick;cherry_pick;git cherry-pick
+git_hooks,Git Hooks,devops,git_hooks;pre_commit_hooks;git hooks
+husky,Husky,devops,husky;husky_git_hooks
+lefthook,Lefthook,devops,lefthook;leff_hook
+pre_commit,Pre-commit,devops,pre_commit;pre_commit_hooks;pre-commit
+semver,Semver,devops,semver;semantic_versioning
+changelog,Changelog,devops,changelog;release_notes
+release_management,Release Management,devops,release_management;releases;release_process;release_engineering;release management
+feature_flags,Feature Flags,devops,feature_flags;feature_toggles;feature_flagging;launchdarkly;feature flags
+dark_feature,Dark Feature,devops,dark_feature;feature_toggles;dark feature
+launchdarkly,LaunchDarkly,devops,launchdarkly;feature_flag_service
+unleash,Unleash,devops,unleash;unleash_flags
+statsig,Statsig,devops,statsig
+optimizely,Optimizely,devops,optimizely
+configurations,Configurations,devops,configurations;config_management;environment_configuration
+configuration_management,Configuration Management,devops,configuration_management;chef;puppet;saltstack;configuration management
+chef,Chef,devops,chef;chef_cookbooks
+puppet,Puppet,devops,puppet;puppet_modules
+saltstack,SaltStack,devops,saltstack;salt
+rundeck,Rundeck,devops,rundeck
+iac,IaC,devops,iac;infrastructure_as_code
+terraform_cdk,Terraform CDK,devops,terraform_cdk;cdk;terraform cdk
+pulumi_cdk,Pulumi CDK,devops,pulumi_cdk;pulumi;pulumi cdk
+crossplane_cdk,Crossplane CDK,devops,crossplane_cdk;crossplane;crossplane cdk
+kontena,Kontena,devops,kontena
+nomad,Nomad,devops,nomad;hashicorp_nomad
+mesos,Mesos,devops,mesos;apache_mesos
+kaidb,KaiDb,devops,kaidb;kai
+security,Security,security,security;cybersecurity;infosec;application_security
+owasp,OWASP,security,owasp;owasp_top_ten
+owasp_top_10,OWASP Top 10,security,owasp_top_10;owasp top 10
+xss,XSS,security,xss;cross_site_scripting
+csrf,CSRF,security,csrf;cross_site_request_forgery
+sql_injection,SQL Injection,security,sql_injection;sql_inject;sqli;sql injection
+command_injection,Command Injection,security,command_injection;cmd_injection;code_injection;command injection
+ssrf,SSRF,security,ssrf;server_side_request_forgery
+insecure_deserialization,Insecure Deserialization,security,insecure_deserialization;deserialization;insecure deserialization
+idor,IDOR,security,idor;insecure_direct_object_reference;broken_access_control
+broken_access_control,Broken Access Control,security,broken_access_control;path_traversal;broken access control
+path_traversal,Path Traversal,security,path_traversal;directory_traversal;lfi;path traversal
+lfi,LFI,security,lfi;local_file_inclusion
+rfi,RFI,security,rfi;remote_file_inclusion
+cors,CORS,security,cors;cross_origin_resource_sharing;cors_misconfiguration
+clickjacking,Clickjacking,security,clickjacking;ui_redressing
+xxe,XXE,security,xxe;xml_external_entity
+deserialization,Deserialization,security,deserialization;yaml_deserialization
+auth_bypass,Auth Bypass,security,auth_bypass;authentication_bypass;auth bypass
+privilege_escalation,Privilege Escalation,security,privilege_escalation;priv_esc;privilege escalation
+session_hijacking,Session Hijacking,security,session_hijacking;session_fixation;session hijacking
+password_cracking,Password Cracking,security,password_cracking;hashcat;john_the_ripper;password cracking
+burp_suite,Burp Suite,security,burp_suite;burpsuite;burp;burp suite
+owasp_zap,OWASP ZAP,security,owasp_zap;zap;owasp zap
+nmap,Nmap,security,nmap;nmap_scans;port_scan
+port_scanning,Port Scanning,security,port_scanning;nmap_scan;port scanning
+vulnerability_scanning,Vulnerability Scanning,security,vulnerability_scanning;vuln_scans;vuln_scanning;vulnerability scanning
+nessus,Nessus,security,nessus;nessus_scan
+qualys,Qualys,security,qualys;qualys_vms
+checkmarx,Checkmarx,security,checkmarx;checkmarx_s
+sonarqube,SonarQube,security,sonarqube;sonarqube_sast
+semgrep,Semgrep,security,semgrep;semgrep_sast
+codeql,CodeQL,security,codeql;codeql_sqli
+snyk,Snyk,security,snyk;snyk_scan
+dependabot,Dependabot,security,dependabot;dependabot_alerts
+snyk_sca,Snyk SCA,security,snyk_sca;snyk sca
+trivy,Trivy,security,trivy;trivy_scan
+grype,Grype,security,grype;grype_scan
+owasp_dependency_check,OWASP Dependency Check,security,owasp_dependency_check;dependency_check;owasp dependency check
+pentest,Pentest,security,pentest;penetration_testing;pen_test
+ethical_hacking,Ethical Hacking,security,ethical_hacking;red_teaming;red_team;ethical hacking
+blue_team,Blue Team,security,blue_team;blue_teaming;dfir;blue team
+soc,SOC,security,soc;security_operations_center
+siem,SIEM,security,siem;splaunk
+yara,YARA,security,yara;yara_rules
+threat_modeling,Threat Modeling,security,threat_modeling;attack_surface;threat modeling
+stride,STRIDE,security,stride;stride_threat_model
+mitre_att_ck,MITRE ATT&CK,security,mitre_att_ck;mitre_attack;attack_techniques;mitre att&ck
+att_ck,ATT&CK,security,att_ck;attack_techniques;att&ck
+kill_chain,Kill Chain,security,kill_chain;kill chain
+incident_response,Incident Response,security,incident_response;ir;ir_playbooks;incident_management;incident response
+ir,IR,security,ir;incident_response
+forensics,Forensics,security,forensics;dfir;digital_forensics
+malware_analysis,Malware Analysis,security,malware_analysis;malware;reverse_engineering;malware analysis
+reverse_engineering,Reverse Engineering,security,reverse_engineering;ghidra;ida_pro;radare2;reverse engineering
+ghidra,Ghidra,security,ghidra;ghidra_decompiler
+radare2,Radare2,security,radare2;r2
+cffinders,CFFinders,security,cffinders;cf
+cryptography,Cryptography,security,cryptography;crypto;aes;rsa;elliptic_curve;hashes;sha256
+pki,PKI,security,pki;certificate;certificate_management
+certificate_management,Certificate Management,security,certificate_management;certificate_lifecycle;certificate management
+oauth2,OAuth2,security,oauth2;oauth_2;oauth
+passkeys,Passkeys,security,passkeys;passkey;fido2
+secrets_management,Secrets Management,security,secrets_management;vault;secret_store;secrets management
+encryption_at_rest,Encryption at Rest,security,encryption_at_rest;storage_encryption;encryption at rest
+encryption_in_transit,Encryption in Transit,security,encryption_in_transit;tls;https;ssl;encryption in transit
+tls,TLS,security,tls;ssl;tls_handshake;certificate_pinning
+certificate_pinning,Certificate Pinning,security,certificate_pinning;certificate pinning
+csp,CSP,security,csp;content_security_policy
+hsts,HSTS,security,hsts;strict_transport_security
+cors_policy,CORS Policy,security,cors_policy;cors;cors policy
+ddos_protection,DDoS Protection,security,ddos_protection;ddos_mitigation;ddos protection
+security_audits,Security Audits,security,security_audits;audit_logs;security_audit;security audits
+compliance,Compliance,security,compliance;gdpr;hipaa;sox;pci_dss;iso_27001;iso27001;soc2;soc_2
+gdpr,GDPR,security,gdpr;gdpr_compliance;data_protection
+hipaa,HIPAA,security,hipaa;hipaa_compliance;medical_data
+pci_dss,PCI DSS,security,pci_dss;pci_compliance;pci;pci dss
+sox,SOX,security,sox;sox_compliance
+soc_2,SOC 2,security,soc_2;soc2_compliance;soc 2
+iso_27001,ISO 27001,security,iso_27001;iso 27001
+regulatory_compliance,Regulatory Compliance,security,regulatory_compliance;compliance;regulatory compliance
+data_privacy,Data Privacy,security,data_privacy;privacy;data privacy
+data_retention,Data Retention,security,data_retention;data_deletion;data retention
+data_subject_rights,Data Subject Rights,security,data_subject_rights;dsar;privacy_requests;data subject rights
+access_reviews,Access Reviews,security,access_reviews;access_certification;access reviews
+change_management,Change Management,security,change_management;change management
+sdlc_security,SDLC Security,security,sdlc_security;secure_sd;shift_left;sdlc security
+shift_left,Shift Left,security,shift_left;shift_left_security;shift left
+sast,SAST,security,sast;static_analysis;static_app
+dast,DAST,security,dast;dynamic_analysis;dynamic_app
+sca,SCA,security,sca;software_composition_analysis;dependency_check
+iast,IAST,security,iast;interactive_analysis
+rasp,RASP,security,rasp;runtime_app
+container_security,Container Security,security,container_security;container_scans;image_scanning;container security
+image_scanning,Image Scanning,security,image_scanning;trivy;grype;image scanning
+supply_chain,Supply Chain,security,supply_chain;supply_chain_security;sigstore;in_toto;supply chain
+sigstore,Sigstore,security,sigstore;in_toto;cosign
+sbom,SBOM,security,sbom;software_bill_of_materials
+hardware_security,Hardware Security,security,hardware_security;tpm;secure_enclave;hardware security
+tpm,TPM,security,tpm;trusted_platform_module
+hsm,HSM,security,hsm;hardware_security_module
+vulnerability_management,Vulnerability Management,security,vulnerability_management;vuln_management;vulnerability management
+patch_management,Patch Management,security,patch_management;patching;patch management
+endpoint_security,Endpoint Security,security,endpoint_security;edr;endpoint_detection;edr_agent;endpoint security
+edr,EDR,security,edr;endpoint_detection_and_response
+network_security,Network Security,security,network_security;network_segmentation;firewall;network security
+firewall,Firewall,security,firewall;firewalls
+vpn,VPN,security,vpn;wireguard;openvpn;tailscale
+tailscale,Tailscale,security,tailscale;tailscale_zero_trust
+wireguard,WireGuard,security,wireguard
+unit_testing,Unit Testing,testing,unit_testing;unit_tests;junit;pytest;unit testing
+jest,Jest,testing,jest;jest_tests
+pytest,Pytest,testing,pytest;pytest_tests;python_tests
+xctest,XCTest,testing,xctest;swift_test
+xcode_test,Xcode Test,testing,xcode_test;xcode test
+karma,Karma,testing,karma;karma_tests
+mocha,Mocha,testing,mocha;mocha_tests
+cypress,Cypress,testing,cypress;cypress_e2e
+selenium,Selenium,testing,selenium;selenium_tests;selenium_webdriver
+webdriver,WebDriver,testing,webdriver;selenium_webdriver
+puppeteer,Puppeteer,testing,puppeteer
+playwright,Playwright,testing,playwright;playwright_tests
+test_driver,Test Driver,testing,test_driver;testdriver;test driver
+detox,Detox,testing,detox;detox_tests
+appium,Appium,testing,appium;appium_tests
+integration_testing,Integration Testing,testing,integration_testing;integration_tests;integration;integration testing
+end_to_end,End-to-End,testing,end_to_end;e2e_tests;e2e;end-to-end
+e2e,E2E,testing,e2e;e2e_tests;end_to_end
+acceptance_testing,Acceptance Testing,testing,acceptance_testing;bats;acceptance;acceptance testing
+behavior_driven,Behavior-Driven,testing,behavior_driven;bats;gherkin;cucumber;behavior-driven
+gherkin,Gherkin,testing,gherkin;bats
+cucumber,Cucumber,testing,cucumber;cucumber_tests
+rspec,RSpec,testing,rspec;rspec_tests
+phpunit,PHPUnit,testing,phpunit
+minitest,Minitest,testing,minitest;ruby_tests
+test_driven_development,Test-Driven Development,testing,test_driven_development;tdt;tdd;test-driven development
+tdd,TDD,testing,tdd;test_driven_development;red_green_refactor
+bdd,BDD,testing,bdd;behavior_driven_development;bats
+mutation_testing,Mutation Testing,testing,mutation_testing;mutation;pitest;mutation testing
+property_based,Property-Based,testing,property_based;property_based_testing;hypothesis;property-based
+hypothesis,Hypothesis,testing,hypothesis;hypothesis_testing;property_based
+fuzzing,Fuzzing,testing,fuzzing;fuzz_testing;fuzz
+chaotic_testing,Chaotic Testing,testing,chaotic_testing;chaos;chaotic testing
+performance_testing,Performance Testing,testing,performance_testing;load_testing;stress_testing;performance;performance testing
+apm,APM,testing,apm;application_performance_monitoring;newrelic
+apm_monitoring,APM Monitoring,testing,apm_monitoring;datadog_apm;apm;apm monitoring
+profiling,Profiling,testing,profiling;profilers;flame_graphs;py_spy;async_profiler
+flame_graphs,Flame Graphs,testing,flame_graphs;flame_graph;speedscope;flame graphs
+benchmarking,Benchmarking,testing,benchmarking;benchmark_tests;benchmark
+test_automation,Test Automation,testing,test_automation;test_automation_framework;automation;test automation
+test_framework,Test Framework,testing,test_framework;testing_framework;test framework
+test_isolation,Test Isolation,testing,test_isolation;isolated_tests;test isolation
+test_flakiness,Test Flakiness,testing,test_flakiness;flaky_tests;test flakiness
+mocking,Mocking,testing,mocking;mocks;jest_mocks;unittest_mock
+stubbing,Stubbing,testing,stubbing;stubs;fake_objects
+spies,Spies,testing,spies;spied_on
+test_doubles,Test Doubles,testing,test_doubles;test doubles
+fixtures,Fixtures,testing,fixtures;test_fixtures;pytest_fixtures
+snapshots,Snapshots,testing,snapshots;snapshot_testing;snapshot
+visual_testing,Visual Testing,testing,visual_testing;visual_regression;visual_tests;visual testing
+accessibility_testing,Accessibility Testing,testing,accessibility_testing;a11y_tests;axe;accessibility testing
+contract_testing,Contract Testing,testing,contract_testing;consumer_driven_contracts;pact;contract testing
+pact,Pact,testing,pact;pact_contracts
+wiremock,Wiremock,testing,wiremock
+rest_assured,Rest Assured,testing,rest_assured;restassured;rest assured
+postman,Postman,testing,postman;postman_collections
+postman_newman,Postman Newman,testing,postman_newman;newman;postman newman
+insomnia,Insomnia,testing,insomnia;insomnia_api
+apifox,Apifox,testing,apifox
+api_testing,API Testing,testing,api_testing;api_tests;rest_api_testing;api testing
+swagger,Swagger,testing,swagger;swagger_ui;openapi
+postman_api,Postman API,testing,postman_api;postman api
+insomnia_api,Insomnia API,testing,insomnia_api;insomnia api
+test_data,Test Data,testing,test_data;seed_data;faker;test data
+seed_data,Seed Data,testing,seed_data;test_fixtures;seed data
+test_environments,Test Environments,testing,test_environments;staging;dev_env;uat;test environments
+uat,UAT,testing,uat;user_acceptance_testing
+regression_testing,Regression Testing,testing,regression_testing;regression_tests;regression testing
+smoke_testing,Smoke Testing,testing,smoke_testing;smoke_tests;smoke testing
+sanity_testing,Sanity Testing,testing,sanity_testing;sanity;sanity testing
+exploratory_testing,Exploratory Testing,testing,exploratory_testing;exploratory;exploratory testing
+chaos,Chaos,testing,chaos;chaos_engineering
+fault_injection,Fault Injection,testing,fault_injection;tochaos;chaosblade;fault injection
+resilience_testing,Resilience Testing,testing,resilience_testing;resilience_tests;resilience testing
+security_testing,Security Testing,testing,security_testing;security_tests;pen_testing;security testing
+pen_testing,Pen Testing,testing,pen_testing;pentest;pen_test;penetration_test;pen testing
+static_analysis,Static Analysis,testing,static_analysis;sast;code_scanning;eslint;static analysis
+dynamic_analysis,Dynamic Analysis,testing,dynamic_analysis;dast;dynamic analysis
+code_coverage,Code Coverage,testing,code_coverage;coverage;lcov;istanbul;code coverage
+istanbul,Istanbul,testing,istanbul;istanbul_coverage
+jacoco,JaCoCo,testing,jacoco
+simplecov,SimpleCov,testing,simplecov
+test_report,Test Report,testing,test_report;test_reports;test report
+ui_design,UI Design,design,ui_design;user_interface_design;ui;ui design
+ux_design,UX Design,design,ux_design;user_experience_design;ux;ux design
+user_research,User Research,design,user_research;usability_research;research;user research
+usability_testing,Usability Testing,design,usability_testing;usability;usability_tests;usability testing
+user_interviews,User Interviews,design,user_interviews;user_interview;user interviews
+user_personas,User Personas,design,user_personas;user_persona;user personas
+user_journey,User Journey,design,user_journey;user_journey_map;user journey
+journey_mapping,Journey Mapping,design,journey_mapping;customer_journey_map;journey mapping
+customer_journey,Customer Journey,design,customer_journey;cx_journey;customer journey
+service_blueprinting,Service Blueprinting,design,service_blueprinting;service_blueprint;service blueprinting
+service_design,Service Design,design,service_design;service design
+interaction_design,Interaction Design,design,interaction_design;ixd;ixd_design;interaction design
+ixd,IxD,design,ixd;interaction_design
+information_architecture,Information Architecture,design,information_architecture;ia;information architecture
+ia,IA,design,ia;information_architecture;ia_design
+wireframes,Wireframes,design,wireframes;wireframe
+wireframing,Wireframing,design,wireframing;low_fi;lofi_wireframes
+low_fidelity,Low-Fidelity,design,low_fidelity;lofi;low_fi;low-fidelity
+high_fidelity,High-Fidelity,design,high_fidelity;hifi;high_fi;high-fidelity
+hi_fi,Hi-Fi,design,hi_fi;hifi;hi-fi
+prototyping,Prototyping,design,prototyping;prototype
+rapid_prototyping,Rapid Prototyping,design,rapid_prototyping;rapid_prototype;rapid prototyping
+clickable_prototype,Clickable Prototype,design,clickable_prototype;clickable;clickable prototype
+figma,Figma,design,figma;figma_design
+figma_ui,Figma UI,design,figma_ui;figma;figma ui
+sketch,Sketch,design,sketch;sketch_app
+adobe_xd,Adobe XD,design,adobe_xd;xd;adobe xd
+invision,InVision,design,invision
+axure,Axure,design,axure;axure_rp
+proto_io,Proto.io,design,proto_io;proto;proto.io
+design_systems,Design Systems,design,design_systems;design_system;design_tokens;design_language;design systems
+design_tokens,Design Tokens,design,design_tokens;style_dictionary;design tokens
+style_guide,Style Guide,design,style_guide;design_guidelines;style guide
+component_library,Component Library,design,component_library;design_library;component library
+figma_library,Figma Library,design,figma_library;figma_libraries;figma library
+motion_design,Motion Design,design,motion_design;motion;animation;motion design
+microinteractions,Microinteractions,design,microinteractions;micro_interaction
+interaction_animation,Interaction Animation,design,interaction_animation;interactions;interaction animation
+after_effects,After Effects,design,after_effects;ae;after effects
+principle,Principle,design,principle;principle_app
+illustration,Illustration,design,illustration;illustrations
+graphic_design,Graphic Design,design,graphic_design;graphics;graphic design
+visual_design,Visual Design,design,visual_design;visual;visual design
+branding,Branding,design,branding;brand;identity
+brand_guidelines,Brand Guidelines,design,brand_guidelines;brand guidelines
+typography,Typography,design,typography;type;fonts
+type_scale,Type Scale,design,type_scale;type scale
+color_theory,Color Theory,design,color_theory;color;colour;color theory
+color_palette,Color Palette,design,color_palette;color palette
+layout,Layout,design,layout;grid
+grid_systems,Grid Systems,design,grid_systems;grid_system;grid_layout;grid systems
+whitespace,Whitespace,design,whitespace;negative_space
+hierarchy,Hierarchy,design,hierarchy;visual_hierarchy
+design_critique,Design Critique,design,design_critique;crit;design critique
+design_review,Design Review,design,design_review;design review
+accessibility_standards,Accessibility Standards,design,accessibility_standards;wcag;wcag_2_1;section_508;accessibility standards
+wcag,WCAG,design,wcag;wcag_2_1
+contrast_ratio,Contrast Ratio,design,contrast_ratio;contrast;contrast ratio
+screen_reader,Screen Reader,design,screen_reader;screen_readers;screenreader;screen reader
+voiceover,VoiceOver,design,voiceover;talkback
+focus_management,Focus Management,design,focus_management;focus;focus management
+keyboard_navigation,Keyboard Navigation,design,keyboard_navigation;keyboard_nav;keyboard navigation
+user_testing,User Testing,design,user_testing;user_tests;user testing
+card_sorting,Card Sorting,design,card_sorting;card_sort;card sorting
+tree_testing,Tree Testing,design,tree_testing;tree_test;tree testing
+split_test,Split Test,design,split_test;split test
+multivariate,Multivariate,design,multivariate;multivariate_test
+heuristic_evaluation,Heuristic Evaluation,design,heuristic_evaluation;usability_heuristics;heuristic evaluation
+nielsen_heuristics,Nielsen Heuristics,design,nielsen_heuristics;nielsen_s_heuristics;nielsen heuristics
+design_thinking,Design Thinking,design,design_thinking;empathy;design thinking
+human_centered_design,Human-Centered Design,design,human_centered_design;hcd;human_centered;human-centered design
+product_design,Product Design,design,product_design;product;product design
+product_sense,Product Sense,design,product_sense;product sense
+ux_writing,UX Writing,design,ux_writing;content_design;ux writing
+content_design,Content Design,design,content_design;content_strategy;content design
+microcopy,Microcopy,design,microcopy
+copywriting,Copywriting,design,copywriting;copy
+ux_research,UX Research,design,ux_research;uxr;ux research
+quantitative_research,Quantitative Research,design,quantitative_research;quant_research;quantitative research
+qualitative_research,Qualitative Research,design,qualitative_research;qual_research;qualitative research
+eye_tracking,Eye Tracking,design,eye_tracking;eye tracking
+surveys,Surveys,design,surveys;questionnaires
+pulse_surveys,Pulse Surveys,design,pulse_surveys;pulse;pulse surveys
+behavioral_analysis,Behavioral Analysis,design,behavioral_analysis;behavioral;behavioral analysis
+data_driven_design,Data-Driven Design,design,data_driven_design;data_driven;data-driven design
+design_metrics,Design Metrics,design,design_metrics;design_kpi;design metrics
+kpi,KPI,design,kpi
+dashboards,Dashboards,design,dashboards
+data_visualization,Data Visualization,design,data_visualization;dataviz;data visualization
+infographics,Infographics,design,infographics
+charts,Charts,design,charts
+graphs,Graphs,design,graphs;charts
+tables,Tables,design,tables
+reports,Reports,design,reports
+slide_decks,Slide Decks,design,slide_decks;slides;slide decks
+powerpoint,PowerPoint,design,powerpoint;ppt
+keynote,Keynote,design,keynote
+canva,Canva,design,canva
+figma_motion,Figma Motion,design,figma_motion;figma motion
+illustrator,Illustrator,design,illustrator;adobe_illustrator;ai
+photoshop,Photoshop,design,photoshop;adobe_photoshop;ps
+indesign,InDesign,design,indesign;adobe_indesign
+premiere_pro,Premiere Pro,design,premiere_pro;premiere;premiere pro
+lightroom,Lightroom,design,lightroom
+3d_design,3D Design,design,3d_design;3d;3d_modelling;3d design
+blender,Blender,design,blender;blender_3d
+sketchup,SketchUp,design,sketchup;sketchup_3d
+rhino,Rhino,design,rhino;rhinoceros
+maya,Maya,design,maya;maya_3d
+cinema_4d,Cinema 4d,design,cinema_4d;c4d;cinema 4d
+houdini,Houdini,design,houdini
+zbrush,ZBrush,design,zbrush
+substance_painter,Substance Painter,design,substance_painter;substance;substance painter
+fusion_360,Fusion 360,design,fusion_360;fusion;fusion 360
+solidworks,SolidWorks,design,solidworks
+autocad,AutoCAD,design,autocad;cad
+inventor,Inventor,design,inventor
+revit,Revit,design,revit
+navisworks,Navisworks,design,navisworks
+keyshot,KeyShot,design,keyshot
+v_ray,V-Ray,design,v_ray;vray;v-ray
+corona_renderer,Corona Renderer,design,corona_renderer;corona;corona renderer
+3d_printing,3D Printing,design,3d_printing;3d printing
+fdm,FDM,design,fdm
+sla,SLA,design,sla
+sls,SLS,design,sls;selective_laser_sintering
+digital_fabrication,Digital Fabrication,design,digital_fabrication;laser_cutting;digital fabrication
+laser_cutting,Laser Cutting,design,laser_cutting;laser_cutter;laser cutting
+cnc,CNC,design,cnc;cnc_milling
+milling,Milling,design,milling;cnc_milling
+turning,Turning,design,turning;lathe
+3d_scanning,3D Scanning,design,3d_scanning;3d scanning
+photogrammetry,Photogrammetry,design,photogrammetry
+motion_capture,Motion Capture,design,motion_capture;mocap;motion capture
+ar_vr,AR/VR,design,ar_vr;ar;vr;ar/vr
+arkit,ARKit,design,arkit
+arcore,ARCore,design,arcore
+unity,Unity,design,unity;unity_engine
+unreal,Unreal,design,unreal;unreal_engine
+game_design,Game Design,design,game_design;gamedev;game_development;game design
+game_development,Game Development,design,game_development;gamedev;game development
+game_engines,Game Engines,design,game_engines;game engines
+unity_shader,Unity Shader,design,unity_shader;shaders;shader_graph;unity shader
+hlsl,HLSL,design,hlsl;shader_language
+glsl,GLSL,design,glsl
+shaders,Shaders,design,shaders
+vfx,VFX,design,vfx
+compositing,Compositing,design,compositing
+after_effects_motion,After Effects Motion,design,after_effects_motion;ae;after effects motion
+canvas,Canvas,design,canvas;html5_canvas
+svg_animation,SVG Animation,design,svg_animation;svg;svg animation
+pixi_js,Pixi.js,design,pixi_js;pixi;pixi.js
+babylon_js,Babylon.js,design,babylon_js;babylon;babylon.js
+playcanvas,PlayCanvas,design,playcanvas
+defold,Defold,design,defold
+godot,Godot,design,godot;godot_engine
+godot_engine,Godot Engine,design,godot_engine;godot;godot engine
+project_management,Project Management,business,project_management;project_manager;pmp;project management
+agile,Agile,business,agile;agile_methodologies;agile_development
+scrum,Scrum,business,scrum;scrum_framework;scrum_master
+kanban,Kanban,business,kanban
+kanban_method,Kanban Method,business,kanban_method;kanban_boards;kanban method
+safe,SAFe,business,safe;scale_agile_framework
+xp,XP,business,xp;extreme_programming
+extreme_programming,Extreme Programming,business,extreme_programming;xp;extreme programming
+waterfall,Waterfall,business,waterfall;waterfall_model
+lean,Lean,business,lean;lean_principles;lean_manufacturing
+lean_startup,Lean Startup,business,lean_startup;build_measure_learn;lean startup
+design_sprint,Design Sprint,business,design_sprint;design_sprints;sprint;design sprint
+sprint,Sprint,business,sprint;sprint_planning
+daily_standup,Daily Standup,business,daily_standup;standup;daily standup
+standup,Standup,business,standup;daily_standup;scrum_standup
+sprint_planning,Sprint Planning,business,sprint_planning;sprint_plan;sprint planning
+sprint_review,Sprint Review,business,sprint_review;demo;sprint review
+retrospective,Retrospective,business,retrospective;retro
+backlog,Backlog,business,backlog;product_backlog
+product_backlog,Product Backlog,business,product_backlog;backlog;product backlog
+backlog_grooming,Backlog Grooming,business,backlog_grooming;refinement;grooming;backlog grooming
+user_stories,User Stories,business,user_stories;user_story;user stories
+story_mapping,Story Mapping,business,story_mapping;story_map;story mapping
+epics,Epics,business,epics;epic
+features,Features,business,features;feature
+requirements,Requirements,business,requirements;requirement
+requirements_gathering,Requirements Gathering,business,requirements_gathering;requirements;requirements gathering
+stakeholder_management,Stakeholder Management,business,stakeholder_management;stakeholder;stakeholder management
+stakeholder_mapping,Stakeholder Mapping,business,stakeholder_mapping;power_interest_grid;stakeholder mapping
+communication_plan,Communication Plan,business,communication_plan;communication plan
+risk_management,Risk Management,business,risk_management;risk;risk_assessment;risk management
+risk_assessment,Risk Assessment,business,risk_assessment;risk_register;risk assessment
+risk_register,Risk Register,business,risk_register;risk_log;risk register
+issue_management,Issue Management,business,issue_management;issue;issue management
+issue_tracking,Issue Tracking,business,issue_tracking;issue;bug_tracking;issue tracking
+bug_tracking,Bug Tracking,business,bug_tracking;bug;bug tracking
+qa,QA,business,qa;quality_assurance
+quality_assurance,Quality Assurance,business,quality_assurance;qa;quality;quality assurance
+testing,Testing,business,testing;test
+project_planning,Project Planning,business,project_planning;project_plan;project planning
+project_scheduling,Project Scheduling,business,project_scheduling;gantt;project scheduling
+gantt_chart,Gantt Chart,business,gantt_chart;gantt;gantt chart
+critical_path,Critical Path,business,critical_path;critical path
+critical_path_method,Critical Path Method,business,critical_path_method;cpm;critical path method
+pert,PERT,business,pert;program_evaluation
+resource_planning,Resource Planning,business,resource_planning;resource;resource planning
+resource_allocation,Resource Allocation,business,resource_allocation;allocation;resource allocation
+capacity_planning,Capacity Planning,business,capacity_planning;capacity;capacity planning
+workload_management,Workload Management,business,workload_management;workload;workload management
+budgeting,Budgeting,business,budgeting;budget
+budget,Budget,business,budget
+financial_modeling,Financial Modeling,business,financial_modeling;financial_model;financial modeling
+financial_analysis,Financial Analysis,business,financial_analysis;financial;financial analysis
+cost_analysis,Cost Analysis,business,cost_analysis;cost;cost analysis
+roi,ROI,business,roi;return_on_investment
+npv,NPV,business,npv;net_present_value
+irr,IRR,business,irr;internal_rate_of_return
+tco,TCO,business,tco;total_cost_of_ownership
+business_case,Business Case,business,business_case;cost_benefit;business case
+cost_benefit_analysis,Cost-Benefit Analysis,business,cost_benefit_analysis;cost_benefit;cost-benefit analysis
+feasibility_study,Feasibility Study,business,feasibility_study;feasibility;feasibility study
+market_research,Market Research,business,market_research;market;market research
+market_analysis,Market Analysis,business,market_analysis;market;market analysis
+competitive_analysis,Competitive Analysis,business,competitive_analysis;competitive;competitor_analysis;competitive analysis
+competitive_landscape,Competitive Landscape,business,competitive_landscape;market_landscape;competitive landscape
+swot,SWOT,business,swot
+swot_analysis,SWOT Analysis,business,swot_analysis;swot;swot analysis
+pestel,PESTEL,business,pestel
+porter_s_five_forces,Porter's Five Forces,business,porter_s_five_forces;porter;porter's five forces
+five_forces,Five Forces,business,five_forces;five forces
+value_chain,Value Chain,business,value_chain;value chain
+blue_ocean_strategy,Blue Ocean Strategy,business,blue_ocean_strategy;blue_ocean;blue ocean strategy
+strategy,Strategy,business,strategy
+strategic_planning,Strategic Planning,business,strategic_planning;strategic;strategic planning
+business_strategy,Business Strategy,business,business_strategy;business strategy
+corporate_strategy,Corporate Strategy,business,corporate_strategy;corporate;corporate strategy
+functional_strategy,Functional Strategy,business,functional_strategy;functional;functional strategy
+okr,OKR,business,okr;objectives_and_key_results
+objectives_and_key_results,Objectives and Key Results,business,objectives_and_key_results;okr;objectives;objectives and key results
+key_results,Key Results,business,key_results;kr;key results
+key_performance_indicators,Key Performance Indicators,business,key_performance_indicators;kpi;kpis;key performance indicators
+balanced_scorecard,Balanced Scorecard,business,balanced_scorecard;scorecard;balanced scorecard
+data_driven_decision_making,Data-Driven Decision Making,business,data_driven_decision_making;data_driven;data-driven decision making
+data_driven,Data-Driven,business,data_driven;data-driven
+data_driven_decisions,Data-Driven Decisions,business,data_driven_decisions;data;data-driven decisions
+insight_generation,Insight Generation,business,insight_generation;insight;insight generation
+decision_making,Decision Making,business,decision_making;decision;decision making
+critical_thinking,Critical Thinking,business,critical_thinking;critical;critical thinking
+problem_solving,Problem Solving,business,problem_solving;problem;problem solving
+problem_identification,Problem Identification,business,problem_identification;problem;problem identification
+root_cause_analysis,Root Cause Analysis,business,root_cause_analysis;rca;root cause analysis
+rca,RCA,business,rca;root_cause
+5_whys,5 Whys,business,5_whys;five_whys;whys;5 whys
+fishbone_diagram,Fishbone Diagram,business,fishbone_diagram;fishbone;icsev_diagram;fishbone diagram
+ishikawa,Ishikawa,business,ishikawa
+ishikawa_diagram,Ishikawa Diagram,business,ishikawa_diagram;fishbone;ishikawa diagram
+fault_tree,Fault Tree,business,fault_tree;fault tree
+8d_problem_solving,8D Problem Solving,business,8d_problem_solving;8d;8d problem solving
+six_sigma,Six Sigma,business,six_sigma;lean_six_sigma;six sigma
+lean_six_sigma,Lean Six Sigma,business,lean_six_sigma;lean six sigma
+dmaic,DMAIC,business,dmaic
+kaizen,Kaizen,business,kaizen
+pdca,PDCA,business,pdca
+plan_do_check_act,Plan-Do-Check-Act,business,plan_do_check_act;pdca;plan-do-check-act
+gemba,Gemba,business,gemba
+muda,Muda,business,muda
+muri,Muri,business,muri
+mura,Mura,business,mura
+takt_time,Takt Time,business,takt_time;takt;takt time
+cycle_time,Cycle Time,business,cycle_time;cycle;cycle time
+oee,OEE,business,oee;overall_equipment_effectiveness
+throughput,Throughput,business,throughput
+bottleneck,Bottleneck,business,bottleneck
+tqm,TQM,business,tqm;total_quality_management
+total_quality_management,Total Quality Management,business,total_quality_management;tqm;total quality management
+iso_9001,ISO 9001,business,iso_9001;iso9001;quality_management;iso 9001
+quality_management,Quality Management,business,quality_management;quality;quality management
+quality_management_system,Quality Management System,business,quality_management_system;qms;quality management system
+certification,Certification,business,certification
+pmp,PMP,business,pmp
+prince2,PRINCE2,business,prince2
+agilepm,AgilePM,business,agilepm
+scrum_master,Scrum Master,business,scrum_master;scrum;scrum master
+pmbok,PMBOK,business,pmbok
+pmbok_guide,PMBOK Guide,business,pmbok_guide;pmbok;pmbok guide
+waterfall_methodology,Waterfall Methodology,business,waterfall_methodology;waterfall;waterfall methodology
+lean_methodology,Lean Methodology,business,lean_methodology;lean;lean methodology
+kanban_system,Kanban System,business,kanban_system;kanban;kanban system
+agile_transformation,Agile Transformation,business,agile_transformation;transformation;agile transformation
+transformation,Transformation,business,transformation
+adkar,ADKAR,business,adkar;change_model
+prosci,Prosci,business,prosci
+organizational_change,Organizational Change,business,organizational_change;organizational change
+organizational_development,Organizational Development,business,organizational_development;od;organizational development
+culture,Culture,business,culture
+culture_building,Culture Building,business,culture_building;culture;company_culture;culture building
+leadership,Leadership,business,leadership
+team_leadership,Team Leadership,business,team_leadership;team;team leadership
+team_management,Team Management,business,team_management;team;team management
+teamwork,Teamwork,business,teamwork;team
+collaboration,Collaboration,business,collaboration;collab
+mentoring,Mentoring,business,mentoring;mentor
+mentorship,Mentorship,business,mentorship
+coaching,Coaching,business,coaching;coach
+feedback,Feedback,business,feedback
+performance_management,Performance Management,business,performance_management;performance;performance management
+okrs,OKRs,business,okrs
+business_analysis,Business Analysis,business,business_analysis;ba;business analysis
+business_analyst,Business Analyst,business,business_analyst;ba;business analyst
+requirements_elicitation,Requirements Elicitation,business,requirements_elicitation;requirements;requirements elicitation
+process_modeling,Process Modeling,business,process_modeling;process;process modeling
+process_mapping,Process Mapping,business,process_mapping;process_map;process mapping
+bpmn,BPMN,business,bpmn
+continuous_improvement,Continuous Improvement,business,continuous_improvement;kaizen;continuous improvement
+quality_control,Quality Control,business,quality_control;qc;quality control
+validation,Validation,business,validation
+verification,Verification,business,verification
+regulatory,Regulatory,business,regulatory;regulation
+audit,Audit,business,audit
+internal_audit,Internal Audit,business,internal_audit;internal audit
+external_audit,External Audit,business,external_audit;external audit
+risk,Risk,business,risk
+gaap,GAAP,business,gaap
+ifrs,IFRS,business,ifrs
+tax,Tax,business,tax
+vat,VAT,business,vat
+sales_tax,Sales Tax,business,sales_tax;sales tax
+ap_ar,AP/AR,business,ap_ar;accounts_payable;accounts_receivable;ap/ar
+accounts_payable,Accounts Payable,business,accounts_payable;ap;accounts payable
+accounts_receivable,Accounts Receivable,business,accounts_receivable;ar;accounts receivable
+invoicing,Invoicing,business,invoicing;invoice
+payroll,Payroll,business,payroll
+hr,HR,business,hr
+hris,HRIS,business,hris;workday;bpm_hr
+talent_acquisition,Talent Acquisition,business,talent_acquisition;recruiting;talent acquisition
+recruiting,Recruiting,business,recruiting
+ats,ATS,business,ats;applicant_tracking_system
+linkedin_recruiter,LinkedIn Recruiter,business,linkedin_recruiter;linkedin;linkedin recruiter
+sourcing,Sourcing,business,sourcing
+interviewing,Interviewing,business,interviewing;interview
+hiring,Hiring,business,hiring
+onboarding,Onboarding,business,onboarding
+employee_relations,Employee Relations,business,employee_relations;er;employee relations
+performance_review,Performance Review,business,performance_review;performance;performance review
+compensation,Compensation,business,compensation;comp;salary
+benefits,Benefits,business,benefits
+compensation_benefits,Compensation & Benefits,business,compensation_benefits;comp_ben;compensation & benefits
+training,Training,business,training;learning
+learning,Learning,business,learning
+l_d,L&D,business,l_d;learning_development;ld;l&d
+lms,LMS,business,lms;learning_management
+elearning,eLearning,business,elearning
+communication,Communication,business,communication
+public_speaking,Public Speaking,business,public_speaking;speaking;public speaking
+presentation,Presentation,business,presentation;presentations
+storytelling,Storytelling,business,storytelling
+negotiation,Negotiation,business,negotiation
+conflict_resolution,Conflict Resolution,business,conflict_resolution;conflict;conflict resolution
+facilitation,Facilitation,business,facilitation
+workshop_facilitation,Workshop Facilitation,business,workshop_facilitation;workshop;workshop facilitation
+time_management,Time Management,business,time_management;time;time management
+prioritization,Prioritization,business,prioritization
+eisenhower_matrix,Eisenhower Matrix,business,eisenhower_matrix;eisenhower;eisenhower matrix
+task_management,Task Management,business,task_management;task;task management
+to_do,To-Do,business,to_do;todo;task;to-do
+productivity,Productivity,business,productivity
+attention,Attention,business,attention
+deep_work,Deep Work,business,deep_work;deep work
+focus,Focus,business,focus
+multitasking,Multitasking,business,multitasking
+goal_setting,Goal Setting,business,goal_setting;goal;goal setting
+smart_goals,SMART Goals,business,smart_goals;smart goals
+smart,SMART,business,smart
+vision,Vision,business,vision
+mission,Mission,business,mission
+values,Values,business,values
+ethics,Ethics,business,ethics
+ethical_decision_making,Ethical Decision Making,business,ethical_decision_making;ethics;ethical decision making
+strategic_thinking,Strategic Thinking,business,strategic_thinking;strategy;strategic thinking
+systems_thinking,Systems Thinking,business,systems_thinking;systems;systems thinking
+creativity,Creativity,business,creativity
+innovation,Innovation,business,innovation
+innovation_management,Innovation Management,business,innovation_management;innovation;innovation management
+user_centered_design,User-Centered Design,business,user_centered_design;ucd;user_centered;user-centered design
+research,Research,business,research
+analysis,Analysis,business,analysis
+analytics,Analytics,business,analytics
+data_analytics,Data Analytics,business,data_analytics;analytics;data analytics
+bi,BI,business,bi;business_intelligence
+dashboard,Dashboard,business,dashboard
+reporting,Reporting,business,reporting
+metric,Metric,business,metric
+insight,Insight,business,insight
+narrative,Narrative,business,narrative
+persuasion,Persuasion,business,persuasion
+influence,Influence,business,influence
+team,Team,business,team
+team_building,Team Building,business,team_building;team building
+cross_functional,Cross-Functional,business,cross_functional;cross-functional
+listening,Listening,business,listening
+active_listening,Active Listening,business,active_listening;active listening
+recognition,Recognition,business,recognition
+motivation,Motivation,business,motivation
+engagement,Engagement,business,engagement
+employee_engagement,Employee Engagement,business,employee_engagement;engagement;employee engagement
+retention,Retention,business,retention
+attrition,Attrition,business,attrition
+talent_management,Talent Management,business,talent_management;talent;talent management
+succession_planning,Succession Planning,business,succession_planning;succession;succession planning
+leadership_development,Leadership Development,business,leadership_development;leadership;leadership development
+digital_marketing,Digital Marketing,marketing,digital_marketing;digital;digital marketing
+sem,SEM,marketing,sem;search_engine_marketing
+ppc,PPC,marketing,ppc;pay_per_click
+google_ads,Google Ads,marketing,google_ads;google_adwords;adwords;ads;google ads
+bing_ads,Bing Ads,marketing,bing_ads;bing;bing ads
+meta_ads,Meta Ads,marketing,meta_ads;facebook_ads;instagram_ads;meta;meta ads
+facebook,Facebook,marketing,facebook;fb
+instagram,Instagram,marketing,instagram
+linkedin,LinkedIn,marketing,linkedin
+tiktok,TikTok,marketing,tiktok
+youtube,YouTube,marketing,youtube
+x,X,marketing,x;twitter;x_formerly_twitter
+pinterest,Pinterest,marketing,pinterest
+snapchat,Snapchat,marketing,snapchat
+content_marketing,Content Marketing,marketing,content_marketing;content;content marketing
+email_marketing,Email Marketing,marketing,email_marketing;email;email marketing
+marketing_automation,Marketing Automation,marketing,marketing_automation;automation;hubspot;marketo;marketing automation
+hubspot,HubSpot,marketing,hubspot
+marketo,Marketo,marketing,marketo
+salesforce_marketing_cloud,Salesforce Marketing Cloud,marketing,salesforce_marketing_cloud;sfmc;salesforce;salesforce marketing cloud
+crm,CRM,marketing,crm;customer_relationship_management
+salesforce,Salesforce,marketing,salesforce
+hubspot_crm,HubSpot CRM,marketing,hubspot_crm;hubspot;hubspot crm
+zendesk,Zendesk,marketing,zendesk
+intercom,Intercom,marketing,intercom
+drift,Drift,marketing,drift
+lead_generation,Lead Generation,marketing,lead_generation;lead;leads;lead generation
+lead_scoring,Lead Scoring,marketing,lead_scoring;scoring;lead scoring
+marketing_funnel,Marketing Funnel,marketing,marketing_funnel;funnel;marketing funnel
+attribution,Attribution,marketing,attribution;marketing_attribution
+google_analytics,Google Analytics,marketing,google_analytics;ga4;ga;google analytics
+ga4,GA4,marketing,ga4
+segment,Segment,marketing,segment
+hotjar,Hotjar,marketing,hotjar
+fullstory,FullStory,marketing,fullstory
+session_recording,Session Recording,marketing,session_recording;session;recording;session recording
+heatmaps,Heatmaps,marketing,heatmaps;heatmap
+growth,Growth,marketing,growth
+growth_marketing,Growth Marketing,marketing,growth_marketing;growth;growth marketing
+product_led_growth,Product-Led Growth,marketing,product_led_growth;plg;product-led growth
+plg,PLG,marketing,plg
+brand,Brand,marketing,brand
+brand_awareness,Brand Awareness,marketing,brand_awareness;awareness;brand awareness
+positioning,Positioning,marketing,positioning
+messaging,Messaging,marketing,messaging
+creative,Creative,marketing,creative
+design,Design,marketing,design
+photography,Photography,marketing,photography
+video,Video,marketing,video
+podcasting,Podcasting,marketing,podcasting;podcast
+influencer_marketing,Influencer Marketing,marketing,influencer_marketing;influencer;influencer marketing
+affiliate_marketing,Affiliate Marketing,marketing,affiliate_marketing;affiliate;affiliate marketing
+referral_program,Referral Program,marketing,referral_program;referral;referral program
+loyalty_program,Loyalty Program,marketing,loyalty_program;loyalty;loyalty program
+event_marketing,Event Marketing,marketing,event_marketing;events;event marketing
+sponsorship,Sponsorship,marketing,sponsorship
+pr,PR,marketing,pr;public_relations
+public_relations,Public Relations,marketing,public_relations;pr;public relations
+media_relations,Media Relations,marketing,media_relations;media;media relations
+press_release,Press Release,marketing,press_release;press;press release
+pitching,Pitching,marketing,pitching;pitch
+sales,Sales,marketing,sales
+sales_enablement,Sales Enablement,marketing,sales_enablement;enablement;sales enablement
+sdr,SDR,marketing,sdr;sales_development_rep
+bdr,BDR,marketing,bdr;business_development_rep
+outbound_sales,Outbound Sales,marketing,outbound_sales;outbound;outbound sales
+inbound_sales,Inbound Sales,marketing,inbound_sales;inbound;inbound sales
+cold_calling,Cold Calling,marketing,cold_calling;cold_call;cold;cold calling
+cold_emailing,Cold Emailing,marketing,cold_emailing;cold_email;cold emailing
+prospecting,Prospecting,marketing,prospecting;prospect
+qualifying,Qualifying,marketing,qualifying;qualify
+discovery_call,Discovery Call,marketing,discovery_call;discovery;discovery call
+demo,Demo,marketing,demo
+proof_of_concept,Proof of Concept,marketing,proof_of_concept;poc;proof of concept
+pilot,Pilot,marketing,pilot
+closing,Closing,marketing,closing;close
+objection_handling,Objection Handling,marketing,objection_handling;objection;objection handling
+consultative_selling,Consultative Selling,marketing,consultative_selling;consultative;consultative selling
+account_management,Account Management,marketing,account_management;account;account management
+customer_success,Customer Success,marketing,customer_success;cs;customer success
+customer_support,Customer Support,marketing,customer_support;support;customer support
+churn,Churn,marketing,churn
+upsell,Upsell,marketing,upsell
+cross_sell,Cross-Sell,marketing,cross_sell;cross-sell
+nps,NPS,marketing,nps
+customer_satisfaction,Customer Satisfaction,marketing,customer_satisfaction;csat;customer satisfaction
+csat,CSAT,marketing,csat
+ces,CES,marketing,ces;customer_effort_score
+customer_effort_score,Customer Effort Score,marketing,customer_effort_score;ces;customer effort score
+ltv,LTV,marketing,ltv;lifetime_value
+cac,CAC,marketing,cac;customer_acquisition_cost
+arpu,ARPU,marketing,arpu
+mrr,MRR,marketing,mrr;monthly_recurring_revenue
+arr,ARR,marketing,arr
+churn_rate,Churn Rate,marketing,churn_rate;churn;churn rate
+burn_rate,Burn Rate,marketing,burn_rate;burn;burn rate
+runway,Runway,marketing,runway
+headcount,Headcount,marketing,headcount
+revenue_operations,Revenue Operations,marketing,revenue_operations;revops;revenue operations
+demand_generation,Demand Generation,marketing,demand_generation;demand;demand generation
+marketing_operations,Marketing Operations,marketing,marketing_operations;martech;marketing operations
+marketing_technology,Marketing Technology,marketing,marketing_technology;martech;marketing technology
+sales_operations,Sales Operations,marketing,sales_operations;sales_ops;sales operations
+business_planning,Business Planning,business,business_planning;business_plan;business planning
+business_plan,Business Plan,business,business_plan;business plan
+business_model,Business Model,business,business_model;business model
+business_model_canvas,Business Model Canvas,business,business_model_canvas;canvas;business model canvas
+lean_canvas,Lean Canvas,business,lean_canvas;lean canvas
+disruptive_innovation,Disruptive Innovation,business,disruptive_innovation;disruptive;disruptive innovation
+entrepreneurship,Entrepreneurship,business,entrepreneurship;entrepreneur
+venture_capital,Venture Capital,business,venture_capital;venture;vc;venture capital
+private_equity,Private Equity,business,private_equity;private;private equity
+angel_investing,Angel Investing,business,angel_investing;angel;angel investing
+due_diligence,Due Diligence,business,due_diligence;due diligence
+m_a,M&A,business,m_a;mergers_and_acquisitions;m&a
+merger,Merger,business,merger
+acquisition,Acquisition,business,acquisition
+valuation,Valuation,business,valuation
+duffman,Duffman,business,duffman
+dcf,DCF,business,dcf
+comparable,Comparable,business,comparable
+exit,Exit,business,exit
+portfolio,Portfolio,business,portfolio
+fund,Fund,business,fund
+lp,LP,business,lp
+gp,GP,business,gp
+carry,Carry,business,carry
+esg,ESG,business,esg
+sustainability,Sustainability,business,sustainability
+social,Social,business,social;social_impact
+b_corp,B Corp,business,b_corp;b corp
+finance,Finance,business,finance
+financial,Financial,business,financial;finance
+banking,Banking,business,banking
+investment_banking,Investment Banking,business,investment_banking;investment;investment banking
+hedge,Hedge,business,hedge
+equity,Equity,business,equity
+fixed,Fixed,business,fixed
+credit,Credit,business,credit
+treasury,Treasury,business,treasury
+accounting,Accounting,business,accounting
+auditing,Auditing,business,auditing
+cpa,CPA,business,cpa
+cfa,CFA,business,cfa
+frm,FRM,business,frm
+chartered,Chartered,business,chartered
+insurance,Insurance,business,insurance
+real_estate,Real Estate,business,real_estate;real estate
+property,Property,business,property
+commodity,Commodity,business,commodity
+futures,Futures,business,futures
+options,Options,business,options
+derivative,Derivative,business,derivative
+operations,Operations,business,operations
+supply,Supply,business,supply
+logistics,Logistics,business,logistics
+procurement,Procurement,business,procurement
+purchasing,Purchasing,business,purchasing
+inventory,Inventory,business,inventory
+warehousing,Warehousing,business,warehousing
+erp,ERP,business,erp
+sap,SAP,business,sap
+oracle,Oracle,business,oracle
+it_support,IT Support,business,it_support;help_desk;support;it support
+help_desk,Help Desk,business,help_desk;help desk
+service_desk,Service Desk,business,service_desk;desk;service desk
+ticketing,Ticketing,business,ticketing;ticket;tickets
+jira,JIRA,business,jira
+freshdesk,Freshdesk,business,freshdesk
+itil,ITIL,business,itil
+rpo,RPO,business,rpo
+rto,RTO,business,rto
+dr,DR,business,dr;disaster
+bcp,BCP,business,bcp;business
+bcm,BCM,business,bcm;business
+backup,Backup,business,backup
+restore,Restore,business,restore
+snapshot,Snapshot,business,snapshot
+archive,Archive,business,archive
+data,Data,business,data
+deduplication,Deduplication,business,deduplication
+compression,Compression,business,compression
+encryption,Encryption,business,encryption
+key,Key,business,key
+excel,Excel,tools,excel;microsoft_excel
+advanced_excel,Advanced Excel,tools,advanced_excel;excel;advanced excel
+pivot,Pivot,tools,pivot
+power,Power,tools,power
+access,Access,tools,access
+writing,Writing,soft,writing;professional_writing
+technical_writing,Technical Writing,soft,technical_writing;docs;technical writing
+documentation,Documentation,soft,documentation
+reading,Reading,soft,reading;reading_comprehension
+speaking,Speaking,soft,speaking;public_speaking;presentation
+management,Management,soft,management
+organization,Organization,soft,organization;organizational
+planning,Planning,soft,planning
+adaptability,Adaptability,soft,adaptability;agility
+resilience,Resilience,soft,resilience
+empathy,Empathy,soft,empathy
+cultural_awareness,Cultural Awareness,soft,cultural_awareness;cultural;cultural awareness
+cross_cultural,Cross-cultural,soft,cross_cultural;global;cross-cultural
+diversity,Diversity,soft,diversity
+inclusion,Inclusion,soft,inclusion;belonging
+integrity,Integrity,soft,integrity
+accountability,Accountability,soft,accountability;ownership
+initiative,Initiative,soft,initiative
+curiosity,Curiosity,soft,curiosity
+growth_mindset,Growth Mindset,soft,growth_mindset;growth;learning;growth mindset
+learning_agility,Learning Agility,soft,learning_agility;learning agility
+self_awareness,Self-awareness,soft,self_awareness;self-awareness
+emotional_intelligence,Emotional Intelligence,soft,emotional_intelligence;eq;emotional intelligence
+self_regulation,Self-regulation,soft,self_regulation;self-regulation
+stress_management,Stress Management,soft,stress_management;stress;stress management
+burnout,Burnout,soft,burnout
+work_life_balance,Work-life Balance,soft,work_life_balance;work_life;work-life balance
+energy_management,Energy Management,soft,energy_management;energy;energy management
+trade_offs,Trade-offs,soft,trade_offs;tradeoffs;trade-offs
+opportunity_cost,Opportunity Cost,soft,opportunity_cost;opportunity cost
+risk_taking,Risk Taking,soft,risk_taking;risk;risk taking
+open_mindedness,Open-mindedness,soft,open_mindedness;open_minded;open-mindedness
+bias,Bias,soft,bias
+cognitive_bias,Cognitive Bias,soft,cognitive_bias;cognitive bias
+mental_models,Mental Models,soft,mental_models;mental models
+first_principles,First Principles,soft,first_principles;first principles
+inverse_thinking,Inverse Thinking,soft,inverse_thinking;inverse;inverse thinking
+second_order,Second-order,soft,second_order;second-order
+probability,Probability,soft,probability;bayes
+bayes,Bayes,soft,bayes
+sampling,Sampling,soft,sampling
+outlier,Outlier,soft,outlier
+correlation,Correlation,soft,correlation
+causation,Causation,soft,causation
+confounding,Confounding,soft,confounding
+placebo,Placebo,soft,placebo
+control,Control,soft,control
+randomization,Randomization,soft,randomization
+blinding,Blinding,soft,blinding
+double_blind,Double-blind,soft,double_blind;double-blind
+effect_size,Effect Size,soft,effect_size;effect size
+confidence_interval,Confidence Interval,soft,confidence_interval;confidence interval
+error,Error,soft,error
+margin_of_error,Margin of Error,soft,margin_of_error;margin of error
+significance,Significance,soft,significance
+null_hypothesis,Null Hypothesis,soft,null_hypothesis;null;null hypothesis
+alternative_hypothesis,Alternative Hypothesis,soft,alternative_hypothesis;alternative;alternative hypothesis
+type_i,Type I,soft,type_i;type i
+type_ii,Type II,soft,type_ii;type ii
+false_positive,False Positive,soft,false_positive;false positive
+false_negative,False Negative,soft,false_negative;false negative
+sensitivity,Sensitivity,soft,sensitivity
+specificity,Specificity,soft,specificity
+precision,Precision,soft,precision
+recall,Recall,soft,recall
+f1_score,F1 Score,soft,f1_score;f1;f1 score
+f_measure,F-measure,soft,f_measure;f-measure
+auc,AUC,soft,auc
+roc_curve,ROC Curve,soft,roc_curve;roc;roc curve
+lift,Lift,soft,lift
+gini,Gini,soft,gini
+ks,KS,soft,ks
+calibration,Calibration,soft,calibration
+overfitting,Overfitting,soft,overfitting
+underfitting,Underfitting,soft,underfitting
+bias_variance,Bias-Variance,soft,bias_variance;bias-variance
+variance,Variance,soft,variance
+regularization,Regularization,soft,regularization
+dropout,Dropout,soft,dropout
+early_stopping,Early Stopping,soft,early_stopping;early stopping
+batch,Batch,soft,batch
+mini_batch,Mini-batch,soft,mini_batch;mini-batch
+learning_rate,Learning Rate,soft,learning_rate;learning rate
+momentum,Momentum,soft,momentum
+adam,Adam,soft,adam
+rmsprop,RMSprop,soft,rmsprop
+sgd,SGD,soft,sgd
+optimizer,Optimizer,soft,optimizer
+loss,Loss,soft,loss
+loss_function,Loss Function,soft,loss_function;loss function
+gradient_descent,Gradient Descent,soft,gradient_descent;gradient descent
+backpropagation,Backpropagation,soft,backpropagation
+activation,Activation,soft,activation
+relu,ReLU,soft,relu
+sigmoid,Sigmoid,soft,sigmoid
+softmax,Softmax,soft,softmax
+tanh,Tanh,soft,tanh
+pooling,Pooling,soft,pooling
+batch_norm,Batch Norm,soft,batch_norm;batch norm
+layer_norm,Layer Norm,soft,layer_norm;layer norm
+multi_head,Multi-head,soft,multi_head;multi-head
+positional_encoding,Positional Encoding,soft,positional_encoding;positional encoding
+tokenization,Tokenization,soft,tokenization
+embedding,Embedding,soft,embedding
+context,Context,soft,context
+context_window,Context Window,soft,context_window;context;context window
+inference,Inference,soft,inference
+prompt,Prompt,soft,prompt
+chain_of_thought,Chain of Thought,soft,chain_of_thought;cot;chain of thought
+cot,CoT,soft,cot
+top,ToP,soft,top
+reflexion,Reflexion,soft,reflexion
+self_consistency,Self-Consistency,soft,self_consistency;self-consistency
+tree_of_thoughts,Tree of Thoughts,soft,tree_of_thoughts;tree of thoughts
+retrieval,Retrieval,soft,retrieval
+augmentation,Augmentation,soft,augmentation
+generation,Generation,soft,generation
+hallucination,Hallucination,soft,hallucination
+grounding,Grounding,soft,grounding
+alignment,Alignment,soft,alignment
+safety,Safety,soft,safety
+guardrails,Guardrails,soft,guardrails
+jailbreak,Jailbreak,soft,jailbreak
+prompt_injection,Prompt Injection,soft,prompt_injection;injection;prompt injection
+adversarial,Adversarial,soft,adversarial
+robustness,Robustness,soft,robustness
+data_leakage,Data Leakage,soft,data_leakage;leakage;data leakage
+class_imbalance,Class Imbalance,soft,class_imbalance;class imbalance
+pre_training,Pre-training,soft,pre_training;pretraining;pre-training
+continual_learning,Continual Learning,soft,continual_learning;continual;continual learning
+catastrophic_forgetting,Catastrophic Forgetting,soft,catastrophic_forgetting;catastrophic;catastrophic forgetting
+online_learning,Online Learning,soft,online_learning;online;online learning
+batch_learning,Batch Learning,soft,batch_learning;batch;batch learning
+semi_supervised,Semi-supervised,soft,semi_supervised;semi-supervised
+self_supervised,Self-supervised,soft,self_supervised;self-supervised
+weakly_supervised,Weakly supervised,soft,weakly_supervised;weakly;weakly supervised
+unsupervised,Unsupervised,soft,unsupervised
+supervised,Supervised,soft,supervised
+reinforcement,Reinforcement,soft,reinforcement
+imitation,Imitation,soft,imitation
+meta_learning,Meta-learning,soft,meta_learning;meta;meta-learning
+one_shot,One-shot,soft,one_shot;one-shot
+in_context,In-context,soft,in_context;in-context
+multi_task,Multi-task,soft,multi_task;multi-task
+multi_label,Multi-label,soft,multi_label;multi-label
+classification,Classification,soft,classification
+recommendation,Recommendation,soft,recommendation
+search,Search,soft,search
+ranking,Ranking,soft,ranking
+re_ranking,Re-ranking,soft,re_ranking;reranking;re-ranking
+scoring,Scoring,soft,scoring
+relevance,Relevance,soft,relevance
+query,Query,soft,query
+query_understanding,Query Understanding,soft,query_understanding;query;query understanding
+query_expansion,Query Expansion,soft,query_expansion;expansion;query expansion
+query_rewriting,Query Rewriting,soft,query_rewriting;rewriting;query rewriting
+query_parsing,Query Parsing,soft,query_parsing;parsing;query parsing
+parsing,Parsing,soft,parsing
+chunking,Chunking,soft,chunking
+n_gram,N-gram,soft,n_gram;n-gram
+stop_words,Stop Words,soft,stop_words;stop words
+lemmatization,Lemmatization,soft,lemmatization
+stemming,Stemming,soft,stemming
+pos,POS,soft,pos
+part_of_speech,Part-of-Speech,soft,part_of_speech;pos;part-of-speech
+dependency_parsing,Dependency Parsing,soft,dependency_parsing;dependency;dependency parsing
+coreference,Coreference,soft,coreference
+word_sense,Word Sense,soft,word_sense;word sense
+semeval,Semeval,soft,semeval
+senticnet,SenticNet,soft,senticnet;sentic
+sentiwordnet,SentiWordNet,soft,sentiwordnet
+vader,VADER,soft,vader
+textblob,TextBlob,soft,textblob
+flair,Flair,soft,flair
+huggingface,Huggingface,soft,huggingface
+llama,LLaMA,soft,llama
+mistral,Mistral,soft,mistral
+command,Command,soft,command
+gemini,Gemini,soft,gemini
+claude,Claude,soft,claude
+gpt_4,GPT-4,soft,gpt_4;gpt-4
+gpt_3,GPT-3,soft,gpt_3;gpt-3
+gpt_2,GPT-2,soft,gpt_2;gpt-2
+dall_e,DALL-E,soft,dall_e;dall-e
+midjourney,Midjourney,soft,midjourney
+pika,Pika,soft,pika
+sora,Sora,soft,sora
+video_generation,Video Generation,soft,video_generation;video;video generation
+music_generation,Music Generation,soft,music_generation;music;music generation
+audio,Audio,soft,audio
+speech,Speech,soft,speech
+asr,ASR,soft,asr
+tts,TTS,soft,tts
+elevenlabs,Elevenlabs,soft,elevenlabs
+murf,Murf,soft,murf
+naturalread,NaturalRead,soft,naturalread
+synthesis,Synthesis,soft,synthesis
+synth,Synth,soft,synth
+voice,Voice,soft,voice
+voice_cloning,Voice Cloning,soft,voice_cloning;voice;voice cloning
+voice_synthesis,Voice Synthesis,soft,voice_synthesis;voice;voice synthesis
+text_to_speech,Text-to-Speech,soft,text_to_speech;text-to-speech
+speech_to_text,Speech-to-Text,soft,speech_to_text;speech-to-text
+sentiment,Sentiment,soft,sentiment
+emotion,Emotion,soft,emotion
+topic_modeling,Topic Modeling,soft,topic_modeling;topic;topic modeling
+lda,LDA,soft,lda
+nmf,NMF,soft,nmf
+tf_idf,TF-IDF,soft,tf_idf;tf-idf
+embeddings,Embeddings,soft,embeddings
+word2vec,Word2Vec,soft,word2vec
+glove,GloVe,soft,glove
+fasttext,FastText,soft,fasttext
+sent,Sent,soft,sent

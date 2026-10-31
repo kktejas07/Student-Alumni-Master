@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
+import { WebOnlyRoute } from '@/src/lib/nativeGuard';
 import {
   View,
   Text,
@@ -36,10 +37,11 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import { SAModernLoader } from '@/src/views/components/SAModernLoader';
+import { getBaseUrl } from '@/src/lib/env';
 
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://studentalumni.ai';
+const API_BASE = getBaseUrl();
 
-export default function VerifyScreen() {
+function VerifyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [certResult, setCertResult] = useState<any>(null);
   const [data, setData] = useState<any>(null);
@@ -505,7 +507,7 @@ const styles = StyleSheet.create({
     color: '#9AA0B4',
     fontSize: 14.5,
     marginTop: 14,
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
   },
   errorIconCircle: {
     width: 72,
@@ -619,7 +621,7 @@ const styles = StyleSheet.create({
     color: '#8B84FF',
     fontSize: 13.5,
     fontWeight: '700',
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
   },
   imageWrapper: {
     backgroundColor: '#070A1A',
@@ -709,7 +711,7 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     fontWeight: '700',
     marginTop: 2,
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
   },
   hashBox: {
     marginTop: 8,
@@ -749,7 +751,7 @@ const styles = StyleSheet.create({
     color: '#10B981',
     fontSize: 13.5,
     fontWeight: '600',
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
     letterSpacing: 0.5,
   },
   actionsGrid: {
@@ -869,7 +871,7 @@ const styles = StyleSheet.create({
     color: '#8B84FF',
     fontSize: 13,
     fontWeight: '700',
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    fontFamily: Platform.OS === 'web' ? '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
     marginTop: 4,
   },
   modalOverlay: {
@@ -891,3 +893,12 @@ const styles = StyleSheet.create({
     height: '84%',
   },
 });
+
+/**
+ * Native guard — this route renders web-only UI. On iOS/Android show a
+ * placeholder that opens the page on studentalumni.ai instead of crashing.
+ */
+export default function VerifyScreenRoute() {
+  if (Platform.OS !== 'web') return <WebOnlyRoute />;
+  return <VerifyScreen />;
+}

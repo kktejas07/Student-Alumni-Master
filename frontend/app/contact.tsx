@@ -31,12 +31,10 @@ import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
 import { useRouter } from 'expo-router';
 import LandingPage from '@/src/views/web/LandingPage';
+import { request } from '@/src/models/services/api';
 
-export default function ContactPage() {
-  if (Platform.OS === 'web') {
-    return <LandingPage initialTab="contact" />;
-  }
-
+/** Native contact form (web renders the landing-page contact tab instead). */
+function NativeContactPage() {
   const router = useRouter();
   const [selectedTopic, setSelectedTopic] = useState<'general' | 'hr' | 'colleges' | 'mentors'>('general');
   const [form, setForm] = useState({
@@ -49,6 +47,7 @@ export default function ContactPage() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const topics = [
     { id: 'general', label: 'General Inquiry', icon: MessageSquare },
@@ -73,13 +72,29 @@ export default function ContactPage() {
     Linking.openURL(`mailto:${recipientEmail}`).catch(() => {});
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.fullName || !form.email || !form.message) return;
     setSending(true);
-    setTimeout(() => {
-      setSending(false);
+    setSubmitError(null);
+    try {
+      await request('/contact', {
+        method: 'POST',
+        auth: false,
+        body: {
+          full_name: form.fullName.trim(),
+          email: form.email.trim(),
+          phone: form.phone?.trim() || undefined,
+          organization: form.organization?.trim() || undefined,
+          topic: selectedTopic,
+          message: form.message.trim(),
+        },
+      });
       setSubmitted(true);
-    }, 800);
+    } catch (e: any) {
+      setSubmitError(e?.message || 'Could not send your message. Please try again or email us directly.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -91,7 +106,7 @@ export default function ContactPage() {
               html, body, #root {
                 background: #05060F !important;
                 color: #F4F5FB !important;
-                font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
               }
               .sa-jewel-text {
                 background: linear-gradient(135deg, #F5D0FE 0%, #C084FC 25%, #818CF8 50%, #38BDF8 75%, #E879F9 100%) !important;
@@ -484,6 +499,9 @@ export default function ContactPage() {
                   />
                 </View>
 
+                {submitError ? (
+                  <Text style={{ color: '#FCA5A5', fontSize: 13, marginBottom: 10 }}>{submitError}</Text>
+                ) : null}
                 <Pressable
                   onPress={handleSubmit}
                   disabled={sending || !form.fullName || !form.email || !form.message}
@@ -1007,3 +1025,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+
+/** Web renders the landing-page contact tab; native gets the in-app form. */
+export default function ContactPageRoute() {
+  if (Platform.OS !== 'web') return <NativeContactPage />;
+  return <LandingPage initialTab="contact" />;
+}

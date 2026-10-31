@@ -31,6 +31,8 @@ import { useConfirm } from '@/src/views/components';
 import * as Linking from 'expo-linking';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 import { EchoCertificateStudio } from './EchoCertificateStudio';
+import { request } from '@/src/models/services/api';
+import { getBaseUrl } from '@/src/lib/env';
 
 type TabId = 'templates' | 'issue' | 'bulk' | 'external' | 'verify' | 'files' | 'registry';
 
@@ -531,7 +533,7 @@ function BulkTab({ onSaved }: { onSaved: (s?: string) => void }) {
  *  FILES TAB — upload certificate files (PNG/JPEG/WEBP/PDF)
  * ══════════════════════════════════════════════════════════════════ */
 function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
-  const [mode, setMode] = useState<'single' | 'bulk' | 'zip'>('single');
+  const [mode, setMode] = useState<'single' | 'bulk' | 'zip' | 'csv-zip'>('single');
   const [email, setEmail] = useState('');
   const [title, setTitle] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -545,10 +547,33 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const bulkRef = React.useRef<HTMLInputElement>(null);
   const zipRef = React.useRef<HTMLInputElement>(null);
+  const csvZipRef = React.useRef<HTMLInputElement>(null);
+  const csvFileRef = React.useRef<HTMLInputElement>(null);
+  // CSV+ZIP mode state
+  const [csvZipFiles, setCsvZipFiles] = useState<File[]>([]);
+  const [csvCsvFile, setCsvCsvFile] = useState<File | null>(null);
+  const [csvDryRun, setCsvDryRun] = useState(true);
+  const [csvSendEmails, setCsvSendEmails] = useState(false);
+  const [csvBusy, setCsvBusy] = useState(false);
+  const [csvResult, setCsvResult] = useState<any>(null);
+  const [csvError, setCsvError] = useState<string | null>(null);
+  // Live streaming progress
+  const [csvProgress, setCsvProgress] = useState<{ row: any; live: boolean; phase: string }>({ row: null, live: false, phase: '' });
+  const [csvRows, setCsvRows] = useState<any[]>([]);
+  const [csvEmails, setCsvEmails] = useState<{ sent: number; errors: number }>({ sent: 0, errors: 0 });
+  const [csvTotalRows, setCsvTotalRows] = useState(0);
+  const csvPct = csvTotalRows > 0 ? Math.min(100, Math.round((csvRows.length / csvTotalRows) * 100)) : 0;
 
   const pickSingle = () => inputRef.current?.click();
   const pickBulk = () => bulkRef.current?.click();
   const pickZip = () => zipRef.current?.click();
+  const pickCsvZip = () => csvZipRef.current?.click();
+  const pickCsvFile = () => csvFileRef.current?.click();
+
+  const onCsvZipSelect = (e: any) => {
+    const list = Array.from(e?.target?.files || []) as File[];
+    if (list.length) setCsvZipFiles((prev) => [...prev, ...list]);
+  };
 
   const onSingleFile = (e: any) => {
     const f = e?.target?.files?.[0];
@@ -651,6 +676,116 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
     }
   };
 
+  const uploadCsvZip = async () => {
+    setCsvError(null); setCsvResult(null); setCsvRows([]); setCsvEmails({ sent: 0, errors: 0 });
+    if (!csvZipFiles.length) { setCsvError('Choose at least one ZIP containing certificate images.'); return; }
+    if (!csvCsvFile) { setCsvError('Choose a CSV index file with email, name, title, certificate_id, file columns.'); return; }
+    
+    // First: preview CSV to debug column mapping
+    try {
+      const base = getBaseUrl();
+      const token = typeof window !== 'undefined' ? localStorage.getItem('scd_access_token') || '' : '';
+      const fd2 = new FormData();
+      fd2.append('csv_file', csvCsvFile);
+      const prevResp = await fetch(`${base}/api/certificates/preview-csv`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd2,
+      });
+      if (prevResp.ok) {
+        const prev = await prevResp.json();
+        if (!prev.detected_columns?.email) {
+          setCsvError(`CSV header mismatch! Found: ${prev.headers?.join(', ')}. No "email" column detected.`);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Preview failed, continuing with import:', e);
+    }
+
+    setCsvBusy(true);
+    setCsvProgress({ row: null, live: true, phase: 'uploading' });
+    try {
+      const fd = new FormData();
+      csvZipFiles.forEach((f) => fd.append('images_zips', f));
+      fd.append('csv_file', csvCsvFile);
+      fd.append('issuer', 'Student Alumni');
+      fd.append('send_emails', String(csvSendEmails));
+      fd.append('dry_run', String(csvDryRun));
+
+      const base = getBaseUrl();
+      const token = typeof window !== 'undefined' ? localStorage.getItem('scd_access_token') || '' : '';
+      const resp = await fetch(`${base}/api/certificates/import-csv-zip`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        try { const ej = JSON.parse(errText); throw new Error(ej.detail || errText); } catch (e) { if (e.message.includes('Server error')) throw e; throw new Error(errText || `Server error ${resp.status}`); }
+      }
+
+      const contentType = resp.headers.get('content-type') || '';
+
+      if (contentType.includes('ndjson') || contentType.includes('x-ndjson')) {
+        // Streaming mode — read NDJSON
+        const reader = resp.body?.getReader();
+        if (!reader) throw new Error('Streaming not supported');
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let gotRows = false;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const msg = JSON.parse(line);
+              if (msg.type === 'start') {
+                setCsvTotalRows(msg.total_rows);
+                setCsvProgress({ row: { info: `Processing ${msg.total_rows} rows, ${msg.zip_images} images...` }, live: true, phase: 'processing' });
+              } else if (msg.type === 'row') {
+                gotRows = true;
+                setCsvRows((prev) => [...prev, msg]);
+                setCsvProgress({ row: msg, live: true, phase: 'processing' });
+              } else if (msg.type === 'email_start') {
+                setCsvProgress((prev) => ({ ...prev, phase: 'emails' }));
+              } else if (msg.type === 'email_sent') {
+                setCsvEmails((prev) => ({ ...prev, sent: prev.sent + 1 }));
+              } else if (msg.type === 'email_error') {
+                setCsvEmails((prev) => ({ ...prev, errors: prev.errors + 1 }));
+              } else if (msg.type === 'done') {
+              setCsvResult(msg);
+              setCsvProgress({ row: null, live: false, phase: '' });
+            }
+            } catch {}
+          }
+        }
+        if (!csvResult && !gotRows) throw new Error('No data received — check CSV has email and title columns');
+      } else {
+        // Batch mode — single JSON response
+        const r = await resp.json();
+        if (r.results?.length > 0) {
+          setCsvRows(r.results);
+          setCsvTotalRows(r.total_rows || r.results.length);
+        }
+        setCsvResult(r);
+      }
+      if (!csvDryRun) onSaved('Import complete');
+    } catch (e: any) {
+      setCsvError(e.message || 'CSV import failed');
+    } finally {
+      setCsvBusy(false);
+      setCsvProgress({ row: null, live: false });
+    }
+  };
+
   return (
     <Animated.View entering={FadeInDown.duration(260)}>
       <Card>
@@ -661,14 +796,14 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
         </Text>
 
         <View style={s.seg}>
-          {(['single', 'bulk', 'zip'] as const).map((m) => (
+          {(['single', 'bulk', 'zip', 'csv-zip'] as const).map((m) => (
             <Pressable
               key={m}
-              onPress={() => { setMode(m); setResult(null); setError(null); setTestResult(null); setDispatchResult(null); }}
+              onPress={() => { setMode(m); setResult(null); setError(null); setTestResult(null); setDispatchResult(null); setCsvResult(null); setCsvError(null); setCsvZipFiles([]); setCsvCsvFile(null); setCsvRows([]); setCsvProgress({ row: null, live: false, phase: '' }); setCsvEmails({ sent: 0, errors: 0 }); setCsvTotalRows(0); }}
               style={[s.segBtn, mode === m && s.segActive]}
             >
               <Text style={[s.segText, mode === m && s.segTextActive]}>
-                {m === 'single' ? 'Single file' : m === 'bulk' ? 'Bulk files' : 'ZIP Archive (.zip)'}
+                {m === 'single' ? 'Single' : m === 'bulk' ? 'Bulk' : m === 'zip' ? 'ZIP Archive' : 'CSV + ZIP'}
               </Text>
             </Pressable>
           ))}
@@ -707,7 +842,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           </>
         )}
 
-        {mode !== 'zip' ? (
+        {(mode === 'single' || mode === 'bulk') && (
           <Pressable onPress={mode === 'single' ? pickSingle : pickBulk} style={({ hovered }: any) => [s.dropZone, hovered && { borderColor: '#A78BFA' }]}>
             <FileUp size={20} color="#A78BFA" />
             <Text style={s.dropTitle}>{files.length ? `${files.length} file${files.length === 1 ? '' : 's'} selected` : 'Choose certificate file(s)'}</Text>
@@ -717,7 +852,9 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                 : 'Multi-select. Name each file "{email}__{title}.{ext}" — e.g. john@college.edu__AI Bootcamp.pdf'}
             </Text>
           </Pressable>
-        ) : (
+        )}
+
+        {mode === 'zip' && (
           <Pressable onPress={pickZip} style={({ hovered }: any) => [s.dropZone, hovered && { borderColor: '#10B981' }]}>
             <FolderOpen size={22} color="#10B981" />
             <Text style={s.dropTitle}>{zipFile ? zipFile.name : 'Choose ZIP archive file (.zip)'}</Text>
@@ -725,6 +862,234 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
               Contains multiple certificates organized by "{'{email}__{title}.ext'}" or subfolders by user email.
             </Text>
           </Pressable>
+        )}
+
+        {mode === 'csv-zip' && (
+          <>
+            <View style={{ padding: 14, borderRadius: 10, backgroundColor: 'rgba(124,92,252,0.08)', borderWidth: 1, borderColor: 'rgba(124,92,252,0.25)', marginBottom: 10 }}>
+              <Text style={{ color: '#D8B4FE', fontWeight: 'bold', fontSize: 13, marginBottom: 4 }}>CSV + ZIP Import (Recommended)</Text>
+              <Text style={{ color: '#9095A8', fontSize: 12, lineHeight: 18 }}>
+                Upload <Text style={{ fontWeight: 'bold', color: '#C7D2FE' }}>two separate files</Text>: a ZIP of certificate images + a CSV index. The CSV must have an{' '}
+                <Text style={{ fontFamily: 'monospace', color: '#C7D2FE' }}>email</Text>,{' '}
+                <Text style={{ fontFamily: 'monospace', color: '#C7D2FE' }}>name</Text>,{' '}
+                <Text style={{ fontFamily: 'monospace', color: '#C7D2FE' }}>title</Text>, and{' '}
+                <Text style={{ fontFamily: 'monospace', color: '#C7D2FE' }}>certificate_id</Text> column. Optional{' '}
+                <Text style={{ fontFamily: 'monospace', color: '#C7D2FE' }}>file</Text> column for image matching.
+              </Text>
+            </View>
+
+            {/* ZIP of images */}
+            <Pressable onPress={pickCsvZip} style={({ hovered }: any) => [s.dropZone, hovered && { borderColor: '#A78BFA' }, { marginBottom: 8 }]}>
+              <FolderOpen size={22} color="#A78BFA" />
+              <Text style={s.dropTitle}>{csvZipFiles.length ? `${csvZipFiles.length} ZIP file(s) selected` : 'Choose ZIP(s) of certificate images (.zip)'}</Text>
+              <Text style={s.dropSub}>PNG, JPG, PDF — you can select multiple ZIPs at once</Text>
+            </Pressable>
+            {csvZipFiles.length > 0 && (
+              <View style={{ gap: 4, marginBottom: 8 }}>
+                {csvZipFiles.map((f, i) => (
+                  <View key={i} style={s.fileRow}>
+                    <FolderOpen size={14} color="#A78BFA" />
+                    <Text style={s.fileName} numberOfLines={1}>{f.name}</Text>
+                    <Text style={s.fileSize}>{(f.size / 1024 / 1024).toFixed(1)} MB</Text>
+                    <Pressable onPress={() => setCsvZipFiles(csvZipFiles.filter((_, j) => j !== i))}><X size={14} color={SAC.muted} /></Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* CSV index */}
+            <Pressable onPress={pickCsvFile} style={({ hovered }: any) => [s.dropZone, hovered && { borderColor: '#10B981' }, { marginTop: 8 }]}>
+              <FileText size={22} color="#10B981" />
+              <Text style={s.dropTitle}>{csvCsvFile ? csvCsvFile.name : 'Choose CSV index file (.csv)'}</Text>
+              <Text style={s.dropSub}>Columns: email, name, title, certificate_id, file</Text>
+            </Pressable>
+            {csvCsvFile && (
+              <View style={s.fileRow}>
+                <FileText size={14} color="#10B981" />
+                <Text style={s.fileName} numberOfLines={1}>{csvCsvFile.name}</Text>
+                <Text style={s.fileSize}>{(csvCsvFile.size / 1024).toFixed(0)} KB</Text>
+                <Pressable onPress={() => setCsvCsvFile(null)}><X size={14} color={SAC.muted} /></Pressable>
+              </View>
+            )}
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+              <Pressable
+                onPress={() => setCsvDryRun(!csvDryRun)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: csvDryRun ? 'rgba(245,158,11,0.4)' : 'rgba(52,211,153,0.4)', backgroundColor: csvDryRun ? 'rgba(245,158,11,0.1)' : 'rgba(52,211,153,0.1)' }}
+              >
+                <Text style={{ color: csvDryRun ? '#FBBF24' : '#34D399', fontWeight: 'bold', fontSize: 12 }}>
+                  {csvDryRun ? '🧪 Dry Run' : '🚀 Live Run'}
+                </Text>
+              </Pressable>
+              {!csvDryRun && (
+                <Pressable
+                  onPress={() => setCsvSendEmails(!csvSendEmails)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: csvSendEmails ? 'rgba(59,130,246,0.4)' : 'rgba(255,255,255,0.15)', backgroundColor: csvSendEmails ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.04)' }}
+                >
+                  <Text style={{ color: csvSendEmails ? '#60A5FA' : '#9095A8', fontWeight: 'bold', fontSize: 12 }}>
+                    {csvSendEmails ? '✉ Send Emails' : '✉ No Emails'}
+                  </Text>
+                </Pressable>
+              )}
+              <Text style={{ color: '#9095A8', fontSize: 11 }}>
+                {csvDryRun ? 'Preview only — nothing saved' : csvSendEmails ? 'Import to DB + send emails' : 'Import to DB only — no emails'}
+              </Text>
+            </View>
+
+            <GradientButton onPress={uploadCsvZip} loading={csvBusy} disabled={!csvZipFiles.length || !csvCsvFile} style={{ marginTop: 10 }}>
+              <View style={s.btnInner}>
+                {csvDryRun ? <Search size={15} color="#fff" /> : <Upload size={15} color="#fff" />}
+                <Text style={s.btnText}>{csvBusy ? 'Processing...' : csvDryRun ? 'Preview Import (Dry Run)' : csvSendEmails ? 'Import + Send Emails' : 'Import to Database Only'}</Text>
+              </View>
+            </GradientButton>
+
+            {csvError && (
+              <View style={s.errorBox}>
+                <AlertTriangle size={14} color="#F87171" />
+                <Text style={s.errorText}>{csvError}</Text>
+              </View>
+            )}
+
+            {/* Live streaming progress */}
+            {csvProgress.live && (
+              <View style={{ padding: 16, borderRadius: 12, backgroundColor: 'rgba(99,102,241,0.06)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)', gap: 12 }}>
+                {/* Phase header */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: csvProgress.phase === 'uploading' ? 'rgba(245,158,11,0.15)' : csvProgress.phase === 'emails' ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.15)', alignItems: 'center', justifyContent: 'center' }}>
+                      <ActivityIndicator size="small" color={csvProgress.phase === 'uploading' ? '#FBBF24' : csvProgress.phase === 'emails' ? '#34D399' : '#818CF8'} />
+                    </View>
+                    <View>
+                      <Text style={{ color: '#E2E8F0', fontWeight: 'bold', fontSize: 14 }}>
+                        {csvProgress.phase === 'uploading'
+                          ? 'Uploading Files'
+                          : csvProgress.phase === 'emails'
+                          ? 'Sending Notifications'
+                          : csvPct >= 100
+                          ? 'Import Complete'
+                          : 'Processing Certificates'}
+                      </Text>
+                      <Text style={{ color: '#9095A8', fontSize: 11, marginTop: 1 }}>
+                        {csvProgress.phase === 'uploading'
+                          ? 'Sending ZIP archives and CSV to server...'
+                          : csvProgress.phase === 'emails'
+                          ? `Delivering to ${csvEmails.sent + csvEmails.errors} recipients`
+                          : csvPct >= 100
+                          ? 'All rows processed'
+                          : `Row ${csvRows.length} of ${csvTotalRows}`}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: csvPct >= 100 ? '#34D399' : '#A78BFA', fontWeight: '800', fontSize: 20, fontFamily: 'monospace' }}>
+                    {csvProgress.phase === 'uploading' ? '⬆️' : `${csvPct}%`}
+                  </Text>
+                </View>
+
+                {/* Progress bar */}
+                <View style={{ height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                  <View style={{
+                    height: 6, borderRadius: 3,
+                    width: csvProgress.phase === 'uploading' ? '40%' : `${csvPct}%`,
+                    backgroundColor: csvPct >= 100 ? '#34D399' : csvProgress.phase === 'uploading' ? '#F59E0B' : '#818CF8',
+                    transitionDuration: '300ms',
+                  }} />
+                </View>
+
+                {/* File details during upload */}
+                {csvProgress.phase === 'uploading' && (
+                  <View style={{ gap: 4 }}>
+                    {csvZipFiles.map((f, i) => (
+                      <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#F59E0B' }} />
+                        <Text style={{ color: '#C7D2FE', fontSize: 11, fontFamily: 'monospace' }}>{f.name}</Text>
+                        <Text style={{ color: '#9095A8', fontSize: 10 }}>{(f.size / 1024 / 1024).toFixed(1)} MB</Text>
+                      </View>
+                    ))}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981' }} />
+                      <Text style={{ color: '#C7D2FE', fontSize: 11, fontFamily: 'monospace' }}>{csvCsvFile?.name}</Text>
+                      <Text style={{ color: '#9095A8', fontSize: 10 }}>{((csvCsvFile?.size || 0) / 1024).toFixed(0)} KB</Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Running counters during import/emails */}
+                {csvProgress.phase !== 'uploading' && (
+                  <View style={{ flexDirection: 'row', gap: 14, flexWrap: 'wrap' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#34D399' }} />
+                      <Text style={{ color: '#34D399', fontSize: 12, fontWeight: '600' }}>{csvRows.filter(r => r.action === 'created').length} created</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#60A5FA' }} />
+                      <Text style={{ color: '#60A5FA', fontSize: 12, fontWeight: '600' }}>{csvRows.filter(r => r.action === 'updated').length} updated</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#9095A8' }} />
+                      <Text style={{ color: '#9095A8', fontSize: 12, fontWeight: '600' }}>{csvRows.filter(r => r.action === 'skipped').length} skipped</Text>
+                    </View>
+                    {csvEmails.sent > 0 && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#A78BFA' }} />
+                        <Text style={{ color: '#A78BFA', fontSize: 12, fontWeight: '600' }}>{csvEmails.sent} emailed</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                {/* Last processed row */}
+                {csvProgress.row && csvProgress.row.row && csvProgress.phase !== 'uploading' && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.03)' }}>
+                    <Text style={{ color: '#6366F1', fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold' }}>→</Text>
+                    <Text style={{ color: '#D8B4FE', fontSize: 11, fontFamily: 'monospace', flex: 1 }} numberOfLines={1}>
+                      Row {csvProgress.row.row}: {csvProgress.row.name || csvProgress.row.email}
+                    </Text>
+                    <Text style={{ color: csvProgress.row.action === 'created' ? '#34D399' : csvProgress.row.action === 'updated' ? '#60A5FA' : '#FBBF24', fontSize: 10, fontWeight: 'bold' }}>
+                      {csvProgress.row.action}
+                    </Text>
+                    {csvProgress.row.file_matched && (
+                      <Text style={{ color: '#9095A8', fontSize: 9, fontFamily: 'monospace' }} numberOfLines={1}>
+                        {csvProgress.row.file_matched}
+                      </Text>
+                    )}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {csvResult && (
+              <View style={[s.resultBox, { borderColor: csvResult.dry_run ? 'rgba(245,158,11,0.3)' : 'rgba(52,211,153,0.3)' }]}>
+                <View style={s.resultHead}>
+                  <CheckCircle2 size={16} color={csvResult.dry_run ? '#FBBF24' : '#34D399'} />
+                  <Text style={[s.resultTitle, { color: csvResult.dry_run ? '#FBBF24' : '#34D399' }]}>
+                    {csvResult.dry_run ? 'Dry Run Complete' : 'Import Complete'}: {csvRows.length || csvResult.total_rows || 0} rows
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 12, marginVertical: 6, flexWrap: 'wrap' }}>
+                  <Text style={{ color: '#34D399', fontSize: 12 }}>✓ {csvResult.created || csvRows.filter(r => r.action === 'created').length} created</Text>
+                  <Text style={{ color: '#60A5FA', fontSize: 12 }}>↻ {csvResult.updated || csvRows.filter(r => r.action === 'updated').length} updated</Text>
+                  <Text style={{ color: '#9095A8', fontSize: 12 }}>⏭ {csvResult.skipped || csvRows.filter(r => r.action === 'skipped').length} skipped</Text>
+                  {!csvResult.dry_run && (csvEmails.sent + csvEmails.errors) > 0 && (
+                    <Text style={{ color: '#A78BFA', fontSize: 12 }}>✉ {csvEmails.sent} sent, {csvEmails.errors} failed</Text>
+                  )}
+                </View>
+                {csvRows.length > 0 && (
+                  <ScrollView style={{ maxHeight: 240, marginTop: 6 }} nestedScrollEnabled>
+                    {csvRows.slice(-50).map((r: any, i: number) => (
+                      <View key={i} style={[s.bulkRow, { gap: 6, flexWrap: 'wrap', paddingVertical: 6 }]}>
+                        <Text style={{ fontSize: 10, color: '#9095A8', fontFamily: 'monospace' }}>row {r.row}</Text>
+                        <Text style={{ fontSize: 11, color: '#D8B4FE', fontWeight: 'bold' }}>{r.name} ({r.email})</Text>
+                        <Text style={{ fontSize: 10, color: '#9095A8' }}>{r.title}</Text>
+                        <Text style={{ fontSize: 10, fontFamily: 'monospace', color: r.action === 'created' ? '#34D399' : r.action === 'updated' ? '#60A5FA' : r.action === 'skipped' ? '#F87171' : '#FBBF24' }}>
+                          {r.action}{r.file_matched ? ` • ${r.file_matched}` : ''} {r.error ? `• ${r.error}` : ''}
+                        </Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
+            )}
+          </>
         )}
 
         {Platform.OS === 'web' && (
@@ -750,6 +1115,21 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
               accept=".zip,application/zip"
               style={{ display: 'none' }}
               onChange={onZipFileSelect}
+            />
+            <input
+              ref={csvZipRef as any}
+              type="file"
+              multiple
+              accept=".zip,application/zip"
+              style={{ display: 'none' }}
+              onChange={onCsvZipSelect}
+            />
+            <input
+              ref={csvFileRef as any}
+              type="file"
+              accept=".csv"
+              style={{ display: 'none' }}
+              onChange={(e) => { const f = e?.target?.files?.[0]; if (f) setCsvCsvFile(f); }}
             />
           </>
         )}
@@ -787,11 +1167,13 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           </View>
         )}
 
-        {mode !== 'zip' ? (
+        {(mode === 'single' || mode === 'bulk') && (
           <GradientButton onPress={mode === 'single' ? uploadSingle : uploadBulk} loading={busy} disabled={!files.length}>
             <View style={s.btnInner}><Upload size={15} color="#fff" /><Text style={s.btnText}>{busy ? 'Uploading...' : mode === 'single' ? 'Upload & Issue Certificate' : `Upload & Issue ${files.length} Certificate${files.length === 1 ? '' : 's'}`}</Text></View>
           </GradientButton>
-        ) : (
+        )}
+
+        {mode === 'zip' && (
           <View style={{ gap: 10 }}>
             <GradientButton onPress={uploadZipArchive} loading={busy} disabled={!zipFile}>
               <View style={s.btnInner}>
@@ -1231,9 +1613,9 @@ const s = StyleSheet.create({
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#1e293b', borderRadius: 10, paddingHorizontal: 12 },
   input: { flex: 1, color: '#e2e8f0', fontFamily: FONTS.med, fontSize: 13, paddingVertical: 12 },
   textarea: { minHeight: 140, textAlignVertical: 'top', paddingTop: 12 },
-  monoInput: { fontFamily: (Platform.OS === 'web' ? '"JetBrains Mono", "SF Mono", monospace' : FONTS.xbold) as any, letterSpacing: 0.6 },
-  mono: { fontFamily: (Platform.OS === 'web' ? '"JetBrains Mono", "SF Mono", monospace' : FONTS.xbold) as any, fontSize: 12 },
-  monoValue: { fontFamily: (Platform.OS === 'web' ? '"JetBrains Mono", "SF Mono", monospace' : FONTS.xbold) as any, fontSize: 11.5, color: '#A78BFA' },
+  monoInput: { fontFamily: (Platform.OS === 'web' ? 'SpaceMono, "SF Mono", monospace' : FONTS.xbold) as any, letterSpacing: 0.6 },
+  mono: { fontFamily: (Platform.OS === 'web' ? 'SpaceMono, "SF Mono", monospace' : FONTS.xbold) as any, fontSize: 12 },
+  monoValue: { fontFamily: (Platform.OS === 'web' ? 'SpaceMono, "SF Mono", monospace' : FONTS.xbold) as any, fontSize: 11.5, color: '#A78BFA' },
   miniBtn: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)' },
   errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)', borderRadius: 10, padding: 10, marginBottom: 12 },
   errorText: { color: '#F87171', fontFamily: FONTS.med, fontSize: 12, flex: 1 },

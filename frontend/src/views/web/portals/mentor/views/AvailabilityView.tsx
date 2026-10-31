@@ -15,7 +15,7 @@ type Slot = { day: string; start_time: string; end_time: string };
 
 export function AvailabilityView() {
   const toast = useToast();
-  const { email } = useCurrentUser('mentor-active1@persona.demo');
+  const { email } = useCurrentUser();
   const [slots, setSlots] = useState<Slot[]>([
     { day: 'Monday', start_time: '09:00', end_time: '17:00' },
     { day: 'Wednesday', start_time: '14:00', end_time: '18:00' },
@@ -100,14 +100,14 @@ export function AvailabilityView() {
 }
 
 const s = StyleSheet.create({
-  h1: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
+  h1: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
   sub: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 12, padding: 12, flexWrap: 'wrap' },
   iconBox: { width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(94,234,212,0.10)', borderColor: 'rgba(94,234,212,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   dayPicker: { flexDirection: 'row', gap: 4, flex: 1, flexWrap: 'wrap' },
   dayChip: { paddingHorizontal: 9, height: 28, borderRadius: 6, backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   dayChipOn: { backgroundColor: MC.tealP, borderColor: MC.tealP },
-  timeInput: { width: 70, height: 32, borderRadius: 8, borderColor: MC.border, borderWidth: 1, paddingHorizontal: 8, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  timeInput: { width: 70, height: 32, borderRadius: 8, borderColor: MC.border, borderWidth: 1, paddingHorizontal: 8, color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 12.5, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   dash: { color: MC.muted },
   removeBtn: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderColor: '#EF444466', borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   addBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 10, backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, alignSelf: 'flex-start', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },

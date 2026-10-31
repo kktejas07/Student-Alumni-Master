@@ -27,7 +27,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   Search, MapPin, Bookmark, BookmarkCheck, ExternalLink, RefreshCcw,
-  Lock, Sparkles, Briefcase, Globe2, Clock, Users, Calendar, IndianRupee,
+  Lock, Sparkles, Briefcase, Globe2, Clock, Users, UserPlus, Calendar, IndianRupee,
 } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GRAD } from '../portalkit';
@@ -61,6 +61,25 @@ type Job = {
   applied?: boolean;
   match_score?: number;
   is_recommended?: boolean;
+};
+
+type AlumniEntry = {
+  id: string;
+  name: string;
+  photo?: string;
+  role?: string;
+  grad_year?: number;
+  college?: string;
+  is_connected: boolean;
+  accepts_referrals: boolean;
+};
+
+type AlumniSheetState = {
+  job: Job;
+  items: AlumniEntry[];
+  total: number;
+  total_from_viewer_college: number;
+  loading: boolean;
 };
 
 type FeedResponse = {
@@ -202,7 +221,7 @@ export function InternshipsView() {
   const { width } = useWindowDimensions();
   const toast = useToast();
 
-  const [tab, setTab] = useState<'Recommended' | 'Saved' | 'Applied'>('Recommended');
+  const [tab, setTab] = useState<'Recommended' | 'Saved' | 'Applied' | 'Careers'>('Recommended');
   const [selectedType, setSelectedType] = useState<string>('All Types');
   const [selectedMode, setSelectedMode] = useState<string>('All Modes');
   const [q, setQ] = useState('');
@@ -228,12 +247,56 @@ export function InternshipsView() {
 
   const [savedJobs, setSavedJobs] = useState<Job[]>([]);
   const [appliedRaw, setAppliedRaw] = useState<any[]>([]);
+  const [careerApps, setCareerApps] = useState<any[]>([]);
+  const [careerOpenings, setCareerOpenings] = useState<any[]>([]);
+  const [careerSubTab, setCareerSubTab] = useState<'openings' | 'applications'>('openings');
 
   // Modals state
   const [coverModalJob, setCoverModalJob] = useState<Job | null>(null);
   const [coverLetterText, setCoverLetterText] = useState('');
   const [generatingCover, setGeneratingCover] = useState(false);
   const [whyMatchJob, setWhyMatchJob] = useState<Job | null>(null);
+
+  // Alumni referrals sheet + modal
+  const [alumniSheet, setAlumniSheet] = useState<AlumniSheetState | null>(null);
+  const [alumniLoadingJobs, setAlumniLoadingJobs] = useState<Set<string>>(new Set());
+  const [referralModal, setReferralModal] = useState<{ job: Job; alumni: AlumniEntry } | null>(null);
+  const [referralNote, setReferralNote] = useState('');
+  const [sendingReferral, setSendingReferral] = useState(false);
+  const [myReferrals, setMyReferrals] = useState<any[]>([]);
+
+  const myReferralFor = useCallback((jobId: string, alumniId: string) => {
+    return myReferrals.find((x: any) => x.job_id === jobId && x.alumni_id === alumniId) || null;
+  }, [myReferrals]);
+
+  // Dedupe referral_accepted events to one per referral per session
+  const acceptedTrackedRef = React.useRef<Set<string>>(new Set());
+  const markReferralAccepted = useCallback((req: any) => {
+    if (!req || (req.status !== 'accepted' && req.status !== 'referred')) return;
+    if (acceptedTrackedRef.current.has(req.id)) return;
+    acceptedTrackedRef.current.add(req.id);
+    track('referral_accepted', {
+      referral_id: req.id,
+      job_id: req.job_id,
+      company: req.job_company,
+      status: req.status,
+    });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r: any = await request('/referrals/my-requests').catch(() => ({ items: [] }));
+        if (cancelled) return;
+        const items = r?.items || [];
+        setMyReferrals(items);
+        // Fire referral_accepted when a previously-requested referral has been accepted/referred
+        items.forEach((x: any) => markReferralAccepted(x));
+      } catch { }
+    })();
+    return () => { cancelled = true; };
+  }, [markReferralAccepted]);
 
   const loadFeed = useCallback(async (opts?: { append?: boolean; refresh?: boolean; pageOverride?: number }) => {
     const append = opts?.append || false;
@@ -258,6 +321,49 @@ export function InternshipsView() {
       const appliedRes: any = await request(`/student/my-applications?email=${encodeURIComponent(authUser?.email || '')}`);
       const aList = appliedRes.items || [];
       setAppliedRaw(aList);
+
+      try {
+        const [cRes, openRes]: [any, any] = await Promise.all([
+          request('/careers/student/my-applications').catch(() => ({ applications: [] })),
+          request('/careers?limit=50', { auth: false }).catch(() => ({ openings: [] })),
+        ]);
+        const cList = cRes?.applications || [];
+        const oList = openRes?.openings || [];
+        setCareerApps(cList);
+        setCareerOpenings(oList);
+
+        if (tab === 'Careers') {
+          if (careerSubTab === 'openings') {
+            const filtered = oList.filter((op: any) => {
+              if (!q.trim()) return true;
+              const term = q.toLowerCase();
+              return (
+                (op.title || '').toLowerCase().includes(term) ||
+                (op.company_name || '').toLowerCase().includes(term) ||
+                (op.work_mode || '').toLowerCase().includes(term) ||
+                (op.location || '').toLowerCase().includes(term) ||
+                (op.skills_required || []).some((sk: string) => sk.toLowerCase().includes(term))
+              );
+            });
+            setTotal(filtered.length);
+          } else {
+            const filtered = cList.filter((c: any) => {
+              if (!q.trim()) return true;
+              const term = q.toLowerCase();
+              return (
+                (c.opening?.title || '').toLowerCase().includes(term) ||
+                (c.opening?.company_name || '').toLowerCase().includes(term) ||
+                (c.status || '').toLowerCase().includes(term)
+              );
+            });
+            setTotal(filtered.length);
+          }
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        // Continue normally
+      }
 
       if (tab === 'Saved') {
         // Filter locally for fast response
@@ -324,9 +430,9 @@ export function InternshipsView() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [tab, selectedType, selectedMode, q, page, toast, items]);
+  }, [tab, careerSubTab, selectedType, selectedMode, q, page, toast, items]);
 
-  useEffect(() => { setPage(1); loadFeed({ pageOverride: 1 }); }, [tab, selectedType, selectedMode]); // eslint-disable-line
+  useEffect(() => { setPage(1); loadFeed({ pageOverride: 1 }); }, [tab, careerSubTab, selectedType, selectedMode]); // eslint-disable-line
 
   // "X new jobs since you last visited"
   useEffect(() => {
@@ -360,6 +466,78 @@ export function InternshipsView() {
     setPage(nextPage);
     loadFeed({ append: true, pageOverride: nextPage });
   }, [page, loadFeed]);
+
+  const openAlumniSheet = useCallback(async (job: Job) => {
+    setAlumniLoadingJobs((prev) => {
+      const next = new Set(prev);
+      next.add(job.job_id);
+      return next;
+    });
+    setAlumniSheet({
+      job,
+      items: [],
+      total: 0,
+      total_from_viewer_college: 0,
+      loading: true,
+    });
+    try {
+      const r: any = await request(`/jobs/${job.job_id}/alumni`);
+      setAlumniSheet((prev) => {
+        if (!prev) return prev;
+        const items = r.items || [];
+        return {
+          job,
+          items,
+          total: r.total || items.length,
+          total_from_viewer_college: r.total_from_viewer_college || 0,
+          loading: false,
+        };
+      });
+    } catch (e: any) {
+      setAlumniSheet((prev) => (prev ? { ...prev, loading: false } : prev));
+      toast.error('Could not load alumni', e?.message || 'Please try again.');
+    } finally {
+      setAlumniLoadingJobs((prev) => {
+        const next = new Set(prev);
+        next.delete(job.job_id);
+        return next;
+      });
+    }
+  }, [toast]);
+
+  const getAlumniCount = useCallback((job: Job) => {
+    // Lazy-load on first open; after first load, reflect cached sheet
+    const cached = alumniSheet?.job.job_id === job.job_id ? alumniSheet : null;
+    if (cached && !cached.loading) return { items: cached.items, total: cached.total, fromCollege: cached.total_from_viewer_college };
+    return null;
+  }, [alumniSheet]);
+
+  const submitReferral = useCallback(async () => {
+    if (!referralModal) return;
+    setSendingReferral(true);
+    try {
+      const r: any = await request('/referrals', {
+        method: 'POST',
+        body: { job_id: referralModal.job.job_id, alumni_id: referralModal.alumni.id, note: referralNote },
+      });
+      track('referral_requested', {
+        job_id: referralModal.job.job_id,
+        company: referralModal.job.company,
+        alumni_id: referralModal.alumni.id,
+        daily_used: r.daily_used,
+        daily_limit: r.daily_limit,
+      });
+      toast.success('Referral requested', 'Your referral request has been sent. We will notify you when it is handled.');
+      setReferralModal(null);
+      setReferralNote('');
+      setAlumniSheet((prev) => (prev ? { ...prev } : prev));
+    } catch (e: any) {
+      // Surface rate-limit and conflict errors verbatim
+      toast.error('Referral not sent', e?.message || 'Please try again.');
+    } finally {
+      setSendingReferral(false);
+    }
+  }, [referralModal, referralNote, toast]);
 
   const onToggleSave = useCallback(async (job: Job) => {
     const next = !job.saved;
@@ -448,11 +626,12 @@ ${email}`;
       <View style={s.headerRow}>
         {/* Left side: Tabs */}
         <View style={s.tabsContainer}>
-          {(['Recommended', 'Saved', 'Applied'] as const).map((t) => {
+          {(['Recommended', 'Saved', 'Applied', 'Careers'] as const).map((t) => {
             const active = tab === t;
             let label: string = t;
             if (t === 'Saved') label = `Saved (${savedJobs.length})`;
             if (t === 'Applied') label = `Applied (${appliedRaw.length})`;
+            if (t === 'Careers') label = `Direct Careers (${careerOpenings.length || careerApps.length})`;
             return (
               <Pressable
                 key={t}
@@ -524,7 +703,299 @@ ${email}`;
 
       {/* List */}
       <View style={{ gap: 12, marginTop: 10 }}>
-        {loading && items.length === 0 ? (
+        {tab === 'Careers' ? (
+          <View style={{ gap: 14 }}>
+            {/* Top Sub-Navigation Header */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, paddingBottom: 4 }}>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <Pressable
+                  onPress={() => setCareerSubTab('openings')}
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    backgroundColor: careerSubTab === 'openings' ? '#7C5CFC' : '#F1F5F9',
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontFamily: FONTS.bold, color: careerSubTab === 'openings' ? '#FFFFFF' : '#475569' }}>
+                    Available Openings ({careerOpenings.length})
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setCareerSubTab('applications')}
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    backgroundColor: careerSubTab === 'applications' ? '#7C5CFC' : '#F1F5F9',
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontFamily: FONTS.bold, color: careerSubTab === 'applications' ? '#FFFFFF' : '#475569' }}>
+                    My Applications ({careerApps.length})
+                  </Text>
+                </Pressable>
+              </View>
+
+              <Pressable
+                onPress={() => {
+                  if (Platform.OS === 'web') {
+                    window.location.href = '/careers';
+                  }
+                }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 4 }}
+              >
+                <Text style={{ color: '#7C5CFC', fontSize: 13, fontFamily: FONTS.bold }}>
+                  Explore Full Careers Portal
+                </Text>
+                <ExternalLink size={14} color="#7C5CFC" />
+              </Pressable>
+            </View>
+
+            {/* Sub-view: Available Openings */}
+            {careerSubTab === 'openings' ? (
+              careerOpenings.length === 0 ? (
+                <EmptyState
+                  variant="generic"
+                  title="No direct career openings published right now"
+                  body="Super Admin has not published any openings yet. Check back soon or visit the Careers portal."
+                  cta={{
+                    label: 'Explore Careers Portal',
+                    onPress: () => {
+                      if (Platform.OS === 'web') {
+                        window.location.href = '/careers';
+                      }
+                    },
+                  }}
+                />
+              ) : (
+                careerOpenings.map((op: any) => {
+                  const alreadyApplied = careerApps.some(
+                    (a: any) =>
+                      a.career_opening_id === (op.id || op._id) ||
+                      a.opening?.id === (op.id || op._id)
+                  );
+
+                  return (
+                    <View
+                      key={op.id || op._id}
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        borderColor: op.featured ? '#7C5CFC' : 'rgba(124, 92, 252, 0.22)',
+                        borderWidth: 1.5,
+                        borderRadius: 14,
+                        padding: 18,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.04,
+                        shadowRadius: 6,
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                        <View style={{ flex: 1, marginRight: 12 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
+                            <View style={{ backgroundColor: 'rgba(124, 92, 252, 0.12)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }}>
+                              <Text style={{ color: '#7C5CFC', fontSize: 10, fontFamily: FONTS.bold, letterSpacing: 0.5 }}>
+                                FIRST-PARTY CAREER OPENING
+                              </Text>
+                            </View>
+                            {op.featured && (
+                              <View style={{ backgroundColor: '#F59E0B', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                                <Text style={{ color: '#FFFFFF', fontSize: 9.5, fontFamily: FONTS.bold }}>FEATURED</Text>
+                              </View>
+                            )}
+                            <Text style={{ color: '#64748B', fontSize: 11, fontFamily: FONTS.med }}>
+                              • {op.work_mode || 'REMOTE'} • {op.employment_type?.replace('_', ' ') || 'FULL TIME'}
+                            </Text>
+                          </View>
+                          <Text style={{ color: '#0F172A', fontSize: 18, fontFamily: FONTS.bold }}>
+                            {op.title}
+                          </Text>
+                          <Text style={{ color: '#475569', fontSize: 13.5, fontFamily: FONTS.med, marginTop: 2 }}>
+                            {op.company_name} {op.location ? `• ${op.location}` : ''}
+                          </Text>
+                        </View>
+
+                        {alreadyApplied ? (
+                          <View style={{ backgroundColor: 'rgba(16, 185, 129, 0.12)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#10B981' }}>
+                            <Text style={{ fontSize: 12, fontFamily: FONTS.bold, color: '#10B981' }}>APPLIED</Text>
+                          </View>
+                        ) : (
+                          <Pressable
+                            onPress={() => {
+                              if (Platform.OS === 'web') {
+                                window.location.href = `/careers?openingId=${op.id || op._id}`;
+                              }
+                            }}
+                            style={{
+                              backgroundColor: '#7C5CFC',
+                              paddingHorizontal: 16,
+                              paddingVertical: 8,
+                              borderRadius: 8,
+                            }}
+                          >
+                            <Text style={{ color: '#FFFFFF', fontSize: 12.5, fontFamily: FONTS.bold }}>Apply Direct</Text>
+                          </Pressable>
+                        )}
+                      </View>
+
+                      {op.description && (
+                        <Text style={{ color: '#334155', fontSize: 13, lineHeight: 19, marginVertical: 6 }} numberOfLines={2}>
+                          {op.description}
+                        </Text>
+                      )}
+
+                      {op.skills_required && op.skills_required.length > 0 && (
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                          {op.skills_required.slice(0, 6).map((sk: string) => (
+                            <View key={sk} style={{ backgroundColor: '#F1F5F9', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                              <Text style={{ color: '#475569', fontSize: 11.5, fontFamily: FONTS.med }}>{sk}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+
+                      <View style={{ borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 10, marginTop: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{ color: '#64748B', fontSize: 12, fontFamily: FONTS.med }}>
+                          {op.salary_range ? `Compensation: ${op.salary_range}` : 'Competitive compensation'}
+                        </Text>
+                        <Pressable
+                          onPress={() => {
+                            if (Platform.OS === 'web') {
+                              window.location.href = `/careers?openingId=${op.id || op._id}`;
+                            }
+                          }}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                        >
+                          <Text style={{ color: '#7C5CFC', fontSize: 12, fontFamily: FONTS.bold }}>View Details</Text>
+                          <ExternalLink size={12} color="#7C5CFC" />
+                        </Pressable>
+                      </View>
+                    </View>
+                  );
+                })
+              )
+            ) : (
+              /* Sub-view: My Applications */
+              careerApps.length === 0 ? (
+                <EmptyState
+                  variant="generic"
+                  title="No direct career applications yet"
+                  body="Apply to verified first-party openings directly through the StudentAlumni Careers portal."
+                  cta={{
+                    label: 'Explore Careers Portal',
+                    onPress: () => {
+                      if (Platform.OS === 'web') {
+                        window.location.href = '/careers';
+                      }
+                    },
+                  }}
+                />
+              ) : (
+                careerApps.map((app) => {
+                  const op = app.opening || {};
+                  const st = (app.status || 'APPLIED').toUpperCase();
+                  const isSelected = st === 'SELECTED';
+                  const isRejected = st === 'REJECTED';
+                  const isReview = st === 'UNDER_REVIEW' || st === 'SHORTLISTED' || st === 'INTERVIEW';
+
+                  return (
+                    <View
+                      key={app.id || app._id}
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        borderColor: 'rgba(124, 92, 252, 0.25)',
+                        borderWidth: 1.5,
+                        borderRadius: 14,
+                        padding: 18,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.04,
+                        shadowRadius: 6,
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                        <View style={{ flex: 1, marginRight: 12 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                            <View style={{ backgroundColor: 'rgba(124, 92, 252, 0.12)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }}>
+                              <Text style={{ color: '#7C5CFC', fontSize: 10, fontFamily: FONTS.bold, letterSpacing: 0.5 }}>
+                                FIRST-PARTY CAREER APPLICATION
+                              </Text>
+                            </View>
+                            {op.work_mode && (
+                              <Text style={{ color: '#64748B', fontSize: 11, fontFamily: FONTS.med }}>
+                                • {op.work_mode}
+                              </Text>
+                            )}
+                          </View>
+                          <Text style={{ color: '#0F172A', fontSize: 17, fontFamily: FONTS.bold }}>
+                            {op.title || 'Career Opening'}
+                          </Text>
+                          <Text style={{ color: '#475569', fontSize: 13.5, fontFamily: FONTS.med, marginTop: 2 }}>
+                            {op.company_name || 'StudentAlumni'}
+                          </Text>
+                        </View>
+
+                        <View
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 5,
+                            borderRadius: 8,
+                            backgroundColor: isSelected
+                              ? 'rgba(16, 185, 129, 0.12)'
+                              : isRejected
+                              ? 'rgba(239, 68, 68, 0.12)'
+                              : isReview
+                              ? 'rgba(245, 158, 11, 0.12)'
+                              : 'rgba(59, 130, 246, 0.12)',
+                            borderWidth: 1,
+                            borderColor: isSelected
+                              ? '#10B981'
+                              : isRejected
+                              ? '#EF4444'
+                              : isReview
+                              ? '#F59E0B'
+                              : '#3B82F6',
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 11.5,
+                              fontFamily: FONTS.bold,
+                              color: isSelected
+                                ? '#10B981'
+                                : isRejected
+                                ? '#EF4444'
+                                : isReview
+                                ? '#D97706'
+                                : '#2563EB',
+                            }}
+                          >
+                            {st.replace('_', ' ')}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={{ borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 10, marginTop: 6, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{ color: '#64748B', fontSize: 12, fontFamily: FONTS.med }}>
+                          Applied: {app.created_at ? new Date(app.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                        </Text>
+                        {app.resume_url ? (
+                          <Pressable
+                            onPress={() => { if (Platform.OS === 'web') window.open(app.resume_url, '_blank'); }}
+                            style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                          >
+                            <Text style={{ color: '#7C5CFC', fontSize: 12, fontFamily: FONTS.bold }}>View Resume</Text>
+                            <ExternalLink size={12} color="#7C5CFC" />
+                          </Pressable>
+                        ) : null}
+                      </View>
+                    </View>
+                  );
+                })
+              )
+            )}
+          </View>
+        ) : loading && items.length === 0 ? (
           <SkeletonList n={5} kind="job" gap={12} />
         ) : items.length === 0 ? (
           tab === 'Saved' ? (
@@ -557,6 +1028,8 @@ ${email}`;
             onApply={onApply}
             onCoverLetter={generateCoverLetter}
             onWhyMatch={setWhyMatchJob}
+            onAlumni={openAlumniSheet}
+            alumniCount={getAlumniCount(j)}
           />
         ))}
 
@@ -798,6 +1271,236 @@ ${email}`;
           </GlassCard>
         </View>
       </Modal>
+
+      {/* Alumni Referrals Sheet */}
+      <Modal
+        visible={alumniSheet !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAlumniSheet(null)}
+      >
+        <View style={s.modalBg}>
+          <GlassCard radius={16} padding={22} style={s.modalCard}>
+            <View style={s.modalHeader}>
+              <View style={[s.modalIconDisc, { backgroundColor: 'rgba(37,99,235,0.16)', borderColor: 'rgba(37,99,235,0.40)' }]}>
+                <Users size={18} color="#60A5FA" />
+              </View>
+              <Text style={s.modalTitle}>
+                {alumniSheet?.total_from_viewer_college ? `${alumniSheet.total_from_viewer_college} alumni from your college at ${alumniSheet.job.company}` : `Alumni at ${alumniSheet?.job.company}`}
+              </Text>
+            </View>
+            <Text style={s.modalSubtext}>
+              Asking for a referral for <Text style={{ fontFamily: FONTS.bold, color: '#FFFFFF' }}>{alumniSheet?.job.title}</Text>?
+            </Text>
+
+            {alumniSheet?.loading ? (
+              <View style={{ padding: 30, alignItems: 'center', gap: 12 }}>
+                <ActivityIndicator size="large" color="#3B82F6" />
+                <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 13 }}>Finding alumni...</Text>
+              </View>
+            ) : (alumniSheet?.items || []).length === 0 ? (
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 13 }}>
+                  No matching alumni available yet. Try another company.
+                </Text>
+              </View>
+            ) : (
+              <View style={{ gap: 8, marginBottom: 16 }}>
+                {(alumniSheet?.items || []).map((a: AlumniEntry) => {
+                  const myReq = myReferralFor(alumniSheet!.job.job_id, a.id);
+                  const chip = myReq
+                    ? { label: myReq.status === 'requested' ? 'Requested' : myReq.status, tone: myReq.status === 'accepted' || myReq.status === 'referred' ? 'ok' : 'warn' }
+                    : null;
+                  return (
+                    <View key={a.id} style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 10,
+                      backgroundColor: 'rgba(255,255,255,0.04)',
+                      borderRadius: 10,
+                      padding: 10,
+                      borderWidth: 1,
+                      borderColor: 'rgba(255,255,255,0.06)',
+                    }}>
+                      <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#334155', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                        {a.photo ? (
+                          Platform.OS === 'web'
+                            ? <img src={a.photo} style={{ width: 34, height: 34, borderRadius: 17 }} alt="" />
+                            : <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 14 }}>{(a.name || '?').slice(0, 1).toUpperCase()}</Text>
+                        ) : (
+                          <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 14 }}>{(a.name || '?').slice(0, 1).toUpperCase()}</Text>
+                        )}
+                      </View>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13 }}>{a.name}</Text>
+                          {a.is_connected && (
+                            <View style={{
+                              backgroundColor: 'rgba(16,185,129,0.12)',
+                              borderWidth: 1,
+                              borderColor: 'rgba(16,185,129,0.35)',
+                              borderRadius: 5,
+                              paddingHorizontal: 5,
+                              paddingVertical: 1,
+                            }}>
+                              <Text style={{ color: '#10B981', fontFamily: FONTS.bold, fontSize: 9 }}>Connected</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 }}>
+                          {[a.role, a.college, a.grad_year ? `Class of ${a.grad_year}` : null].filter(Boolean).join(' · ') || '—'}
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
+                        {a.accepts_referrals && (
+                          <View style={{
+                            backgroundColor: 'rgba(16,185,129,0.10)',
+                            borderWidth: 1,
+                            borderColor: 'rgba(16,185,129,0.30)',
+                            borderRadius: 5,
+                            paddingHorizontal: 5,
+                            paddingVertical: 1,
+                          }}>
+                            <Text style={{ color: '#10B981', fontFamily: FONTS.bold, fontSize: 9 }}>Open to referrals</Text>
+                          </View>
+                        )}
+                        {chip && (
+                          <View style={{
+                            backgroundColor: chip.tone === 'ok' ? 'rgba(16,185,129,0.10)' : 'rgba(245,158,11,0.12)',
+                            borderWidth: 1,
+                            borderColor: chip.tone === 'ok' ? 'rgba(16,185,129,0.30)' : 'rgba(245,158,11,0.35)',
+                            borderRadius: 5,
+                            paddingHorizontal: 5,
+                            paddingVertical: 1,
+                          }}>
+                            <Text style={{ color: chip.tone === 'ok' ? '#10B981' : '#F59E0B', fontFamily: FONTS.bold, fontSize: 9 }}>{chip.label}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Pressable
+                        disabled={!a.accepts_referrals || (myReq && myReq.status !== 'declined')}
+                        onPress={() => {
+                          setReferralModal({ job: alumniSheet!.job, alumni: a });
+                          setReferralNote('');
+                        }}
+                        accessibilityRole="button"
+                        style={({ pressed, hovered }: any) => [
+                          {
+                            borderWidth: 1,
+                            borderColor: 'rgba(37,99,235,0.30)',
+                            backgroundColor: 'rgba(37,99,235,0.08)',
+                            borderRadius: 8,
+                            paddingHorizontal: 10,
+                            height: 28,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            opacity: (!a.accepts_referrals || (myReq && myReq.status !== 'declined')) ? 0.45 : 1,
+                          },
+                          (pressed || hovered) && { opacity: 0.75 },
+                        ]}
+                      >
+                        <Text style={{ color: a.accepts_referrals ? '#60A5FA' : '#64748B', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+                          {!a.accepts_referrals ? 'Not open' : myReq ? 'Requested' : 'Request a referral'}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+            <View style={s.modalBtnRow}>
+              <Pressable
+                onPress={() => setAlumniSheet(null)}
+                style={[s.modalCancelBtn]}
+              >
+                <Text style={s.modalCancelTxt}>Close</Text>
+              </Pressable>
+            </View>
+          </GlassCard>
+        </View>
+      </Modal>
+
+      {/* Referral Request Modal */}
+      <Modal
+        visible={referralModal !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setReferralModal(null)}
+      >
+        <View style={s.modalBg}>
+          <GlassCard radius={16} padding={22} style={s.modalCard}>
+            <View style={s.modalHeader}>
+              <View style={[s.modalIconDisc, { backgroundColor: 'rgba(16,185,129,0.16)', borderColor: 'rgba(16,185,129,0.40)' }]}>
+                <UserPlus size={18} color="#34D399" />
+              </View>
+              <Text style={s.modalTitle}>Request a referral</Text>
+            </View>
+            <Text style={s.modalText}>
+              Ask <Text style={{ fontFamily: FONTS.bold, color: '#34D399' }}>{referralModal?.alumni.name}</Text> to refer you for{' '}
+              <Text style={{ fontFamily: FONTS.bold, color: '#FFFFFF' }}>{referralModal?.job.title}</Text> at{' '}
+              <Text style={{ fontFamily: FONTS.bold, color: '#FFFFFF' }}>{referralModal?.job.company}</Text>.
+            </Text>
+            <TextInput
+              value={referralNote}
+              onChangeText={(t) => setReferralNote(t.slice(0, 500))}
+              placeholder="Add a short note (optional, up to 500 characters)"
+              placeholderTextColor="rgba(255,255,255,0.35)"
+              multiline
+              style={{
+                flex: 1,
+                minHeight: 90,
+                backgroundColor: 'rgba(0,0,0,0.30)',
+                borderRadius: 10,
+                padding: 12,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.08)',
+                color: '#FFFFFF',
+                fontFamily: FONTS.med,
+                fontSize: 13,
+                marginBottom: 10,
+              }}
+            />
+            <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 10.5, marginBottom: 16, textAlign: 'right' }}>
+              {referralNote.length}/500
+            </Text>
+            <View style={s.modalBtnRow}>
+              <Pressable
+                onPress={() => setReferralModal(null)}
+                style={[s.modalCancelBtn]}
+              >
+                <Text style={s.modalCancelTxt}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                disabled={sendingReferral}
+                onPress={submitReferral}
+                accessibilityRole="button"
+                style={({ pressed }: any) => [
+                  {
+                    backgroundColor: '#0F766E',
+                    borderRadius: 10,
+                    paddingHorizontal: 18,
+                    height: 38,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    gap: 6,
+                    opacity: sendingReferral ? 0.6 : 1,
+                  },
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                {sendingReferral
+                  ? <ActivityIndicator size="small" color="#FFFFFF" />
+                  : <UserPlus size={13} color="#FFFFFF" />}
+                <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 }}>
+                  {sendingReferral ? 'Sending...' : 'Send request'}
+                </Text>
+              </Pressable>
+            </View>
+          </GlassCard>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -809,12 +1512,16 @@ function JobCard({
   onApply,
   onCoverLetter,
   onWhyMatch,
+  onAlumni,
+  alumniCount,
 }: {
   job: Job;
   onSave: (j: Job) => void;
   onApply: (j: Job) => void;
   onCoverLetter: (j: Job) => void;
   onWhyMatch: (j: Job) => void;
+  onAlumni?: (j: Job) => void;
+  alumniCount?: { items: AlumniEntry[]; total: number; fromCollege: number } | null;
 }) {
   const initials = (job.company || '?').slice(0, 1).toUpperCase();
   const logoBg = pickColor(job.company || '');
@@ -1003,6 +1710,63 @@ function JobCard({
           </View>
 
 
+
+          {/* Alumni Referrals Row */}
+          {onAlumni && (alumniCount ? alumniCount.total > 0 : true) && (
+            <Pressable
+              onPress={() => onAlumni(job)}
+              accessibilityRole="button"
+              style={({ pressed }: any) => [
+                {
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  marginTop: 12,
+                  borderRadius: 8,
+                  padding: 8,
+                },
+                pressed && { backgroundColor: 'rgba(37,99,235,0.05)' },
+              ]}
+            >
+              {alumniCount ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <View style={{ flexDirection: 'row' }}>
+                    {(alumniCount.items || []).slice(0, 3).map((a: AlumniEntry, i: number) => (
+                      <View key={a.id} style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: 11,
+                        backgroundColor: '#E2E8F0',
+                        borderWidth: 1,
+                        borderColor: '#FFFFFF',
+                        marginLeft: i > 0 ? -8 : 0,
+                        overflow: 'hidden',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Text style={{ fontSize: 9, color: '#475569', fontFamily: FONTS.bold }}>
+                          {(a.name || '?').slice(0, 1).toUpperCase()}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                  <Text style={{ color: '#2563EB', fontFamily: FONTS.bold, fontSize: 11 }}>
+                    {alumniCount.total} alumni work here
+                    {alumniCount.fromCollege > 0 ? ` · ${alumniCount.fromCollege} from your college` : ''}
+                    {' '}
+                    · View
+                  </Text>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Users size={11} color="#2563EB" />
+                  <Text style={{ color: '#2563EB', fontFamily: FONTS.bold, fontSize: 11 }}>
+                    See alumni at {job.company}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+          )}
 
           {/* Footer Info & Actions */}
           <View style={{
