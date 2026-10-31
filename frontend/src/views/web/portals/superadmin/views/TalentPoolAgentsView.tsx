@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Modal } from 'react-native';
 import {
   LayoutDashboard, Copy, Lightbulb, Briefcase, Trophy, Gauge, Clock, CalendarCheck,
-  RefreshCw, Play, X, Plus, CheckCircle, AlertTriangle, Target, Sparkles, Network,
+  RefreshCw, Play, X, Plus, Minus, CheckCircle, AlertTriangle, Target, Sparkles, Network,
   ArrowRight, Search, Mail, FileText,
 } from 'lucide-react-native';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
@@ -734,7 +734,12 @@ export function TalentPoolAgentsView() {
               <TextInput style={[s.input, { flex: 1 }]} placeholder="Max exp (yrs)" placeholderTextColor={SAC.muted} keyboardType="numeric" value={rkMaxExp} onChangeText={setRkMaxExp} />
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={s.label}>Top K: {rkK}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={s.label}>Top K</Text>
+                <Pressable style={s.iconBtn} onPress={() => setRkK((k) => Math.max(1, k - 1))}><Minus size={14} color={SAC.muted} /></Pressable>
+                <Text style={s.chipVal}>{rkK}</Text>
+                <Pressable style={s.iconBtn} onPress={() => setRkK((k) => Math.min(100, k + 1))}><Plus size={14} color={SAC.muted} /></Pressable>
+              </View>
               <Pressable style={[s.specBtn, ranking && s.specBtnDisabled]} onPress={runRanker}>
                 <Target size={13} color="#fff" /><Text style={s.specBtnText}>{ranking ? 'Ranking…' : 'Run Ranker'}</Text>
               </Pressable>

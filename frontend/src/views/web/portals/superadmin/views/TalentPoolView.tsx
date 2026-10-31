@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Platform, ActivityIndicator, Linking, Image, Modal } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Search, Trash2, CheckCircle, XCircle, MapPin, Briefcase, GraduationCap, Star, X, Mail, Building2, ExternalLink, Calendar, UserPlus, Send, Sparkles, Cpu, Copy, BarChart3, Zap, TrendingUp, Tags, Shield, Database, RefreshCw, ClipboardCheck } from 'lucide-react-native';
+import { Search, Trash2, CheckCircle, XCircle, MapPin, Briefcase, GraduationCap, Star, X, Mail, ExternalLink, Calendar, UserPlus, Send, Sparkles, Cpu, Copy, BarChart3, Zap, TrendingUp, Tags, Shield, Database, RefreshCw, ClipboardCheck } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { request, tokenStore, resolveImageUrl } from '@/src/models/services/api';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
