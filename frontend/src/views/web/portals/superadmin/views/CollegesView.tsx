@@ -16,8 +16,7 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
   Building2, Search, X, Check, Pencil, Trash2, ShieldCheck, ShieldOff, RefreshCw,
-  AlertTriangle, ExternalLink, Sparkles, Award, MapPin, Users, Globe, BookOpen, Plus, Download,
-  ListChecks, GitMerge,
+  AlertTriangle, ExternalLink, Sparkles, Award, MapPin, Users, Globe, BookOpen, Plus, Download, FileDown,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
@@ -49,82 +48,29 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [backfilling, setBackfilling] = useState(false);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [bulkBusy, setBulkBusy] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-
-  // ── Duplicates / merge ──
-  const [dedupOpen, setDedupOpen] = useState(false);
-  const [dedupLoading, setDedupLoading] = useState(false);
-  const [dedupErr, setDedupErr] = useState('');
-  const [groups, setGroups] = useState<any[]>([]);
-  const [primaryPick, setPrimaryPick] = useState<Record<number, string>>({});
-  const [merging, setMerging] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const { toast, flash, hide } = useToast();
 
-  const loadDuplicates = useCallback(async () => {
-    setDedupLoading(true); setDedupErr('');
+  const exportCsv = async () => {
+    setExporting(true);
     try {
-      const r: any = await request('/admin/colleges/duplicates');
-      setGroups((r?.groups || []).map((g: any, i: number) => ({ ...g, index: i })));
-      setPrimaryPick({});
-    } catch (e: any) {
-      setGroups([]);
-      setDedupErr(String(e?.message || 'Failed to load duplicates'));
-    } finally { setDedupLoading(false); }
-  }, []);
-
-  const openDedup = () => { setDedupOpen(true); loadDuplicates(); };
-  const closeDedup = () => { if (!merging) setDedupOpen(false); };
-
-  const mergeGroup = async (g: any) => {
-    const cols: any[] = g.colleges || [];
-    const pid = primaryPick[g.index] || cols[0]?.id;
-    if (!pid || merging) return;
-    setMerging(true);
-    try {
-      const r: any = await request('/admin/colleges/merge', {
-        method: 'POST',
-        body: { primary_id: pid, secondary_ids: cols.filter((c) => c.id !== pid).map((c) => c.id) },
-      });
-      const n = r?.archived?.length || 0;
-      const stu = r?.students_reassigned || 0;
-      flash(`Merged ${n} ${n === 1 ? 'college' : 'colleges'}${stu ? ` · ${stu} students re-pointed` : ''}`);
-      loadDuplicates();
-      setBump((b) => b + 1);
+      const r: any = await request(`/admin/colleges/export?status=${tab}&q=${encodeURIComponent(q)}`);
+      const csvText = typeof r?.raw === 'string' ? r.raw : JSON.stringify(r ?? '');
+      const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `colleges_export_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      flash('Export started');
     } catch {
-      flash('Merge failed', 'error');
-    } finally { setMerging(false); }
-  };
-
-  const toggleSel = (id: string) =>
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  const clearSel = () => setSelected(new Set());
-
-  const BULK_LABEL: Record<string, string> = { approve: 'Approved', disable: 'Disabled', reenrich: 'Re-enriched', delete: 'Deleted' };
-  const runBulk = async (action: 'approve' | 'disable' | 'reenrich' | 'delete') => {
-    const ids = [...selected];
-    if (!ids.length) return;
-    setBulkBusy(true);
-    try {
-      const r: any = await request('/admin/colleges/bulk', { method: 'POST', body: { action, ids } });
-      const ok = r?.succeeded?.length || 0;
-      const bad = r?.failed?.length || 0;
-      clearSel();
-      setBump((b) => b + 1);
-      if (bad) flash(`${BULK_LABEL[action]} ${ok} · ${bad} failed`, 'error');
-      else flash(`${BULK_LABEL[action]} ${ok}`);
-    } catch { flash(`Bulk ${action} failed`, 'error'); }
-    finally { setBulkBusy(false); }
-  };
-  const startBulk = (action: 'approve' | 'disable' | 'reenrich' | 'delete') => {
-    if (!selected.size || bulkBusy) return;
-    if (action === 'delete') { setConfirmDelete(true); return; }
-    runBulk(action);
+      flash('Export failed', 'error');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const backfill = async () => {
@@ -243,15 +189,14 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
       <Card>
         <View style={s.browseHead}>
           <TopTabs<Status> tabs={tabs as any} active={tab} onChange={setTab} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <Pressable
-              onPress={selectAll}
-              style={[s.checkToggle, allSelected && s.checkToggleOn]}
-            >
-              {allSelected ? <Check size={11} color="#fff" /> : <ListChecks size={13} color={T.muted} />}
-              <Text style={[s.checkToggleText, allSelected && { color: '#fff' }]}>Select all ({items.length})</Text>
-            </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <SearchField value={q} onChange={setQ} placeholder="Search colleges, cities…" width={300} />
+            {Platform.OS === 'web' && (
+              <SecondaryButton onPress={exportCsv} disabled={exporting}>
+                <FileDown size={12} color={T.muted} />
+                <Text style={s.secText}>{exporting ? 'Exporting…' : 'Export CSV'}</Text>
+              </SecondaryButton>
+            )}
           </View>
         </View>
       </Card>
