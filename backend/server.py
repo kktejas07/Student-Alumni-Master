@@ -254,6 +254,27 @@ async def _lifespan(application):
         _safe_create_index(db.sa_ai_resume_reviews, [("user_id", 1), ("status", 1)]),
         _safe_create_index(db.sa_marketplace_purchases, [("user_id", 1), ("ts", -1)]),
         _safe_create_index(db.sa_marketplace_purchases, [("user_id", 1), ("service", 1), ("ts", 1)]),
+        # Talent Pool agent suite (TP15-TP32)
+        _safe_create_index(db.outreach_campaigns, "status"),
+        _safe_create_index(db.outreach_campaigns, [("created_at", -1)]),
+        _safe_create_index(db.outreach_messages, "token", unique=True, sparse=True),
+        _safe_create_index(db.outreach_messages, [("campaign_id", 1), ("profile_id", 1)]),
+        _safe_create_index(db.canonical_skills, "canonical", unique=True, sparse=True),
+        _safe_create_index(db.talent_pool_consent, "email"),
+        _safe_create_index(db.talent_pool_consent, "profile_id"),
+        _safe_create_index(db.talent_pool_consent, "status"),
+        _safe_create_index(db.erasure_log, [("erased_at", -1)]),
+        _safe_create_index(db.talent_pool_activity_log, [("startTime", -1)]),
+        _safe_create_index(db.talent_pool_activity_log, "object.id"),
+        _safe_create_index(db.talent_pool_activity_log, "action"),
+        _safe_create_index(db.scheduler_logs, [("agent", 1), ("started_at", -1)]),
+        _safe_create_index(db.settings, "id", unique=True),
+        _safe_create_index(db.external_job_listings, "dedup_hash"),
+        _safe_create_index(db.external_job_listings, [("is_active", 1), ("created_at", -1)]),
+        _safe_create_index(db.whatsapp_message_log, "external_id"),
+        _safe_create_index(db.whatsapp_message_log, "status"),
+        _safe_create_index(db.interview_feedback, [("candidate_id", 1), ("created_at", -1)]),
+        _safe_create_index(db.ats_field_mappings, "system"),
     ]
     await asyncio.gather(*index_tasks, return_exceptions=True)
 
@@ -332,6 +353,21 @@ async def _lifespan(application):
             agent_scheduler.start(db=db)
         except Exception as _e:
             logger.warning("Could not start 30-minute Agent Scheduler: %s", _e)
+
+        # Talent Pool agent suite (TP23): opt-in startup catch-up run
+        # (TP_RUN_ON_STARTUP=1). The 30-min cycle covers the steady state.
+        try:
+            async def _talent_suite_startup(d):
+                from services.agents.talent_scheduler import talent_scheduler_agent
+                try:
+                    out = await talent_scheduler_agent.run_on_startup(d)
+                    if out.get("skipped") != "TP_RUN_ON_STARTUP not set":
+                        logger.info("Talent suite startup catch-up: %s", out)
+                except Exception as _ce:
+                    logger.warning("Talent suite startup catch-up failed: %s", _ce)
+            asyncio.create_task(_talent_suite_startup(db))
+        except Exception as _e:
+            logger.warning("Could not schedule Talent Pool suite startup run: %s", _e)
 
         # Start the 24-hour autonomous operations & audit swarm
         try:

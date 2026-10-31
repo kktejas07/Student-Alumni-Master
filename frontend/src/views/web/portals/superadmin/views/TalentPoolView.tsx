@@ -48,6 +48,14 @@ interface TalentProfile {
   screening_notes?: string;
   last_synced_at?: string;
   imported_at?: string;
+  // TP24 quality scanner (persisted on talent_pool docs):
+  quality_score?: number | null;
+  needs_attention?: boolean;
+  quality_missing?: string[];
+  // TP18 match engine (persisted on the audit collection; may be null until a match run):
+  match_score?: number | null;
+  match_badge?: string;
+  match_opening?: string;
 }
 
 export function TalentPoolView() {
@@ -423,13 +431,33 @@ export function TalentPoolView() {
                       </View>
                     </View>
 
-                    {/* AI Job Fit Score Pill */}
+                    {/* TP24 Quality Score pill (real, persisted by the quality scanner) */}
                     <View style={{ width: 110, justifyContent: 'center' }}>
-                      <View style={{ paddingHorizontal: 7, paddingVertical: 2.5, borderRadius: 999, backgroundColor: 'rgba(16,185,129,0.15)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.3)', alignSelf: 'flex-start' }}>
-                        <Text style={{ color: '#10B981', fontFamily: FONTS.bold, fontSize: 10.5 }}>
-                          🟢 {Math.floor(82 + (p.full_name.length * 3) % 17)}% Fit
-                        </Text>
-                      </View>
+                      {typeof p.quality_score === 'number' ? (
+                        <View
+                          style={{
+                            paddingHorizontal: 7,
+                            paddingVertical: 2.5,
+                            borderRadius: 999,
+                            backgroundColor: p.quality_score >= 80 ? 'rgba(16,185,129,0.15)' : p.quality_score >= 30 ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)',
+                            borderWidth: 1,
+                            borderColor: p.quality_score >= 80 ? 'rgba(16,185,129,0.3)' : p.quality_score >= 30 ? 'rgba(245,158,11,0.3)' : 'rgba(239,68,68,0.35)',
+                            alignSelf: 'flex-start',
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: p.quality_score >= 80 ? '#10B981' : p.quality_score >= 30 ? '#F59E0B' : '#EF4444',
+                              fontFamily: FONTS.bold,
+                              fontSize: 10.5,
+                            }}
+                          >
+                            {p.needs_attention ? '⚠ ' : ''}{p.quality_score}%{p.match_score != null ? ` · ${Math.round(p.match_score)}% fit` : ''}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5, paddingLeft: 7 }}>— unscored</Text>
+                      )}
                     </View>
 
                     {/* Account Status */}
