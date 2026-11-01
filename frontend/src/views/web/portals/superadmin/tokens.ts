@@ -350,5 +350,28 @@ export function resolveColors<T extends Record<string, any>>(sheet: T, tokens: S
   return result;
 }
 
+/**
+ * pristineOf — stable original (dark-baked) snapshot of a module-scope StyleSheet.
+ *
+ * Call sites theme a shared sheet in place: `Object.assign(sheet, resolveColors(sheet, T))`.
+ * `resolveColors` is a *value-keyed* reverse map and is NOT idempotent — a light
+ * target that happens to equal a *different* dark token value (e.g. `#FFFFFF` is
+ * both `LIGHT.card` and `DARK.b30`) gets re-resolved to the wrong (darker) value on
+ * the second call, corrupting backgrounds on every re-render in light mode.
+ *
+ * By always resolving from the *pristine* snapshot captured before any in-place
+ * mutation, repeated calls stay idempotent and theme switching (light↔dark) is
+ * correct: dark is an identity map, light resolves from the original dark values.
+ */
+const pristineCache = new WeakMap<object, Record<string, any>>();
+export function pristineOf(sheet: Record<string, any>): Record<string, any> {
+  let p = pristineCache.get(sheet);
+  if (!p) {
+    p = { ...sheet }; // shallow: top-level keys are later REPLACED, nested originals stay intact
+    pristineCache.set(sheet, p);
+  }
+  return p;
+}
+
 // Font tokens: one type system for every portal (src/theme/typography.ts).
 export { FONTS } from '@/src/theme/typography';

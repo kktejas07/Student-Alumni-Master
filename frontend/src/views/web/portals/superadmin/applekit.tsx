@@ -13,7 +13,7 @@
  */
 import { Info, Loader } from 'lucide-react-native';
 import { createKit } from '../shared/kit';
-import { SAC, useSAC, FONTS, resolveColors } from './tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from './tokens';
 
 export type { PillKind, ToastKind } from '../shared/kit';
 export { useToast } from '../shared/kit';
@@ -71,7 +71,9 @@ const kit = createKit({
   // tokens at render time (same behaviour as the previous in-file kit).
   useThemedSheet: (sheet) => {
     const T = useSAC();
-    Object.assign(sheet, resolveColors(sheet, T));
+    // Resolve from the pristine dark-baked snapshot (not the live sheet) so
+    // repeated in-place mutation stays idempotent across re-renders / theme flips.
+    Object.assign(sheet, resolveColors(pristineOf(sheet), T));
   },
 });
 
