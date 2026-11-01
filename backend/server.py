@@ -257,6 +257,13 @@ async def _lifespan(application):
     ]
     await asyncio.gather(*index_tasks, return_exceptions=True)
 
+    # 2b. Lead Aggregator indexes (LA1)
+    try:
+        from features.lead_aggregator.database import ensure_indexes as _la_indexes
+        await _la_indexes()
+    except Exception as _e:
+        logger.warning("Could not create Lead Aggregator indexes: %s", _e)
+
     # 3. Auto seed certificates on startup if count is 0
     try:
         from scripts.seed_certificates import seed_certificates
@@ -451,6 +458,10 @@ app.include_router(contacts_router)
 # Student Perks sub-router
 from features.routers.student_perks import router as student_perks_router
 app.include_router(student_perks_router)
+
+# Lead Aggregator (LA1–LA14)
+from features.lead_aggregator.api import router as lead_aggregator_router
+app.include_router(lead_aggregator_router)
 
 from core.email_quality import router as email_quality_router
 api_router.include_router(email_quality_router)
