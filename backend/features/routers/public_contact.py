@@ -23,6 +23,7 @@ from core.config import limiter
 from core.db import db
 from core.deps import get_current_user, ensure_admin
 from core.email import send_email, render_html_email
+from core.whatsapp import send_wa_message
 
 logger = logging.getLogger(__name__)
 
@@ -200,6 +201,36 @@ async def submit_contact_inquiry(request: Request, payload: ContactInquiry):
         await send_email(email, f"Your inquiry reached us, {first_name}", confirm_body)
     except Exception as e:  # pragma: no cover - confirmation must not block the submission
         logger.warning("[CONTACT] Confirmation email failed: %s", e)
+
+    # CT9 — WhatsApp welcome message with coupons (best-effort, never blocks).
+    # Uses the OpenWA gateway configured in core/whatsapp.py.
+    if doc["phone"]:
+        try:
+            first_name = doc["full_name"].split(" ")[0]
+            wa_text = (
+                f"Hi {first_name}! Thanks for reaching out to StudentAlumni.ai "
+                f"about {TOPIC_LABEL[topic]}.\n\n"
+                f"Our team will respond within 24 hours.\n\n"
+                f"Welcome to the AXISS Ecosystem! Here are exclusive offers for you:\n\n"
+                f"*CodeSpectra.ai* — 3 months FREE\n"
+                f"Coupon: SACODE3M\n"
+                f"Technical assessment & coding platform\n\n"
+                f"*WeHive.co.in* — 15% OFF\n"
+                f"Coupon: SAWEHIVE15\n"
+                f"Visa, study-abroad & travel services\n\n"
+                f"Register on StudentAlumni.ai to claim your offers:\n"
+                f"https://studentalumni.ai/register\n\n"
+                f"Ref: {res.inserted_id}"
+            )
+            await send_wa_message(
+                phone=doc["phone"],
+                text=wa_text,
+                kind="contact_welcome",
+                reg_id=str(res.inserted_id),
+                location=doc.get("organization"),
+            )
+        except Exception as e:  # pragma: no cover
+            logger.warning("[CONTACT] WhatsApp welcome failed: %s", e)
 
     return {"ok": True, "id": str(res.inserted_id)}
 
