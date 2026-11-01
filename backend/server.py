@@ -278,6 +278,13 @@ async def _lifespan(application):
     ]
     await asyncio.gather(*index_tasks, return_exceptions=True)
 
+    # 2b. Lead Aggregator indexes (LA1)
+    try:
+        from features.lead_aggregator.database import ensure_indexes as _la_indexes
+        await _la_indexes()
+    except Exception as _e:
+        logger.warning("Could not create Lead Aggregator indexes: %s", _e)
+
     # 3. Auto seed certificates on startup if count is 0
     try:
         from scripts.seed_certificates import seed_certificates
@@ -487,6 +494,10 @@ app.include_router(contacts_router)
 # Student Perks sub-router
 from features.routers.student_perks import router as student_perks_router
 app.include_router(student_perks_router)
+
+# Lead Aggregator (LA1–LA14)
+from features.lead_aggregator.api import router as lead_aggregator_router
+app.include_router(lead_aggregator_router)
 
 from core.email_quality import router as email_quality_router
 api_router.include_router(email_quality_router)
@@ -2229,9 +2240,9 @@ app.include_router(api_router)
 # Comma-separated list, e.g.
 #   ALLOWED_ORIGINS="https://app.example.com,https://admin.example.com"
 # Use "*" only when allow_credentials is False; we coerce safely below.
-_origins_env = (os.getenv("ALLOWED_ORIGINS") or os.getenv("FRONTEND_URL") or "*").strip()
+_origins_env = (os.getenv("ALLOWED_ORIGINS") or os.getenv("FRONTEND_URL") or "http://localhost:8081,http://localhost:3000,http://127.0.0.1:8081").strip()
 _origins_list = [o.strip() for o in _origins_env.split(",") if o.strip()]
-_allow_creds = "*" not in _origins_list  # browsers reject credentials+wildcard
+_allow_creds = True
 
 # Fail-fast: wildcard CORS is insecure in production
 if os.getenv("ENV") == "production" and "*" in _origins_list:
@@ -2242,7 +2253,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=_allow_creds,
-    allow_origins=_origins_list or ["*"],
+    allow_origins=_origins_list,
     allow_origin_regex=os.getenv("ALLOWED_ORIGIN_REGEX") or None,
     # Explicit method/header lists — "*" is overly permissive
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
