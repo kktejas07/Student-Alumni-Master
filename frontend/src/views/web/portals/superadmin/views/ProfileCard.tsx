@@ -85,6 +85,18 @@ export type ProfileCardProps = {
     aadhaarVerified?: boolean;
     digilockerVerified?: boolean;
     digilockerDocCount?: number;
+    /* MT4 — mentor card enrichment (rendered only for category === 'mentor') */
+    mentorStatus?: 'pending' | 'approved' | 'rejected';
+    mentorTaxonomy?: string;
+    mentorYears?: number;
+    mentorPrice?: number;
+    mentorExpertise?: string[];
+    mentorAvailabilityDays?: any[];
+    mentorSessionCount?: number;
+    mentorMenteeCount?: number;
+    mentorAvgRating?: number;
+    mentorReviewCount?: number;
+    mentorBadges?: string[];
   };
   goals?: string[];
   progress?: {
@@ -260,6 +272,74 @@ export function ProfileCard(props: ProfileCardProps) {
                 </Text>
               </View>
             ) : null}
+          </View>
+        ) : null}
+
+        {/* MENTOR STRIP — category, years, price, expertise, rating, badges (MT4) */}
+        {user.category === 'mentor' ? (
+          <View style={[s.tagRow, { marginTop: 12 }]}>
+            {user.mentorTaxonomy ? (
+              <View style={[s.tag, { backgroundColor: 'rgba(251,146,60,0.14)', borderColor: 'rgba(251,146,60,0.38)' }]}>
+                <Text style={[s.tagText, { color: '#FDBA74' }]} numberOfLines={1}>{user.mentorTaxonomy}</Text>
+              </View>
+            ) : null}
+            {user.mentorYears != null ? (
+              <View style={s.tag}>
+                <Text style={s.tagText} numberOfLines={1}>{user.mentorYears} yrs exp</Text>
+              </View>
+            ) : null}
+            {user.mentorPrice != null ? (
+              <View style={s.tag}>
+                <Text style={s.tagText} numberOfLines={1}>₹{Number(user.mentorPrice).toLocaleString('en-IN')}/session</Text>
+              </View>
+            ) : null}
+            {user.mentorAvgRating ? (
+              <View style={[s.tag, { backgroundColor: 'rgba(251,191,36,0.10)', borderColor: 'rgba(251,191,36,0.30)' }]}>
+                <Text style={[s.tagText, { color: '#FCD34D' }]} numberOfLines={1}>
+                  ★ {Number(user.mentorAvgRating).toFixed(1)}{user.mentorReviewCount ? ` (${user.mentorReviewCount})` : ''}
+                </Text>
+              </View>
+            ) : null}
+            {user.mentorSessionCount ? (
+              <View style={s.tag}>
+                <Text style={s.tagText} numberOfLines={1}>{user.mentorSessionCount} sessions</Text>
+              </View>
+            ) : null}
+            {user.mentorMenteeCount ? (
+              <View style={s.tag}>
+                <Text style={s.tagText} numberOfLines={1}>{user.mentorMenteeCount} mentees</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+        {user.category === 'mentor' && (user.mentorExpertise || []).length > 0 ? (
+          <View style={s.tagRow}>
+            {(user.mentorExpertise || []).slice(0, 5).map((e: string, i: number) => (
+              <View key={i} style={s.tag}><Text style={s.tagText}>{e}</Text></View>
+            ))}
+          </View>
+        ) : null}
+        {user.category === 'mentor' && (user.mentorBadges || []).length > 0 ? (
+          <View style={s.tagRow}>
+            {(user.mentorBadges || []).slice(0, 3).map((b: string, i: number) => (
+              <View key={i} style={[s.tag, { backgroundColor: 'rgba(34,197,94,0.12)', borderColor: 'rgba(34,197,94,0.35)' }]}>
+                <Text style={[s.tagText, { color: '#86EFAC' }]} numberOfLines={1}>🏅 {b.replace(/_/g, ' ')}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+        {user.category === 'mentor' && user.mentorStatus === 'pending' ? (
+          <View style={[s.tagRow, { marginTop: 6 }]}>
+            <View style={[s.tag, { backgroundColor: 'rgba(245,158,11,0.14)', borderColor: 'rgba(245,158,11,0.40)' }]}>
+              <Text style={[s.tagText, { color: '#FCD34D' }]}>⏳ Pending Review</Text>
+            </View>
+          </View>
+        ) : null}
+        {user.category === 'mentor' && user.mentorStatus === 'rejected' ? (
+          <View style={[s.tagRow, { marginTop: 6 }]}>
+            <View style={[s.tag, { backgroundColor: PC.dangerBg, borderColor: 'rgba(239,68,68,0.35)' }]}>
+              <Text style={[s.tagText, { color: '#FCA5A5' }]}>Rejected</Text>
+            </View>
           </View>
         ) : null}
 

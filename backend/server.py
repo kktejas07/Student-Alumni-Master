@@ -2147,6 +2147,11 @@ api_router.include_router(admin_imports_router)
 from features.routers.admin.colleges import router as admin_colleges_router
 api_router.include_router(admin_colleges_router)
 
+# Mentor Super Admin (MT1–MT14) — KPIs, taxonomy, approval workflow, session
+# analytics, connections, alumni pipeline + autonomous agent suite surface
+from features.mentor_admin import router as mentor_admin_router
+api_router.include_router(mentor_admin_router)
+
 # Talent Pool — searchable candidate profiles (LinkedIn, CSV, platform opt-in)
 from features.talent_pool import router as talent_pool_router
 api_router.include_router(talent_pool_router)
