@@ -16,11 +16,12 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
   Building2, Search, X, Check, Pencil, Trash2, ShieldCheck, ShieldOff, RefreshCw,
-  AlertTriangle, ExternalLink, Sparkles, Award, MapPin, Users, Globe, BookOpen, Plus, Download, FileDown,
+  AlertTriangle, ExternalLink, Sparkles, Award, MapPin, Users, Globe, BookOpen, Plus, Download, FileDown, BarChart3, GitMerge,
 } from 'lucide-react-native';
+import Svg, { Circle, Path, Text as SvgText } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   TopTabs, SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox, KpiTile,
@@ -32,13 +33,26 @@ type Status = 'all' | 'pending' | 'active' | 'paused';
 
 export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const { go } = usePortalUrl();
   const goStudentsProfile = (uid: string) => {
     try { go('students', uid); } catch { go('students'); }
   };
-  const [tab, setTab] = useSubTab<Status>(['all', 'pending', 'active', 'paused'], 'all', { sub, onSub });
+  type SubView = 'browse' | 'analytics';
+  const [subView, setSubView] = useSubTab<SubView>(['browse', 'analytics'], 'browse', { sub, onSub });
+  const [statusTab, setStatusTab] = useState<Status>('all');
   const [q, setQ] = useState('');
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [analyticsBusy, setAnalyticsBusy] = useState(false);
+
+  const loadAnalytics = useCallback(() => {
+    setAnalyticsBusy(true);
+    request<any>('/admin/colleges/analytics')
+      .then((r) => setAnalytics(r || {}))
+      .catch((e) => { console.warn('Colleges analytics load failed', e); setAnalytics(null); })
+      .finally(() => setAnalyticsBusy(false));
+  }, []);
+  useEffect(() => { if (subView === 'analytics') loadAnalytics(); }, [subView, loadAnalytics]);
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [page, setPage] = useState(1);
@@ -49,12 +63,23 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
   const [newName, setNewName] = useState('');
   const [backfilling, setBackfilling] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // ── Duplicates / merge ──
+  const [dedupOpen, setDedupOpen] = useState(false);
+  const [dedupLoading, setDedupLoading] = useState(false);
+  const [dedupErr, setDedupErr] = useState('');
+  const [groups, setGroups] = useState<any[]>([]);
+  const [primaryPick, setPrimaryPick] = useState<Record<number, string>>({});
+  const [merging, setMerging] = useState(false);
   const { toast, flash, hide } = useToast();
 
   const exportCsv = async () => {
     setExporting(true);
     try {
-      const r: any = await request(`/admin/colleges/export?status=${tab}&q=${encodeURIComponent(q)}`);
+      const r: any = await request(`/admin/colleges/export?status=${statusTab}&q=${encodeURIComponent(q)}`);
       const csvText = typeof r?.raw === 'string' ? r.raw : JSON.stringify(r ?? '');
       const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -83,19 +108,84 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
     finally { setBackfilling(false); }
   };
 
+  const loadDuplicates = useCallback(async () => {
+    setDedupLoading(true); setDedupErr('');
+    try {
+      const r: any = await request('/admin/colleges/duplicates');
+      setGroups((r?.groups || []).map((g: any, i: number) => ({ ...g, index: i })));
+      setPrimaryPick({});
+    } catch (e: any) {
+      setGroups([]);
+      setDedupErr(String(e?.message || 'Failed to load duplicates'));
+    } finally { setDedupLoading(false); }
+  }, []);
+
+  const openDedup = () => { setDedupOpen(true); loadDuplicates(); };
+  const closeDedup = () => { if (!merging) setDedupOpen(false); };
+
+  const mergeGroup = async (g: any) => {
+    const cols: any[] = g.colleges || [];
+    const pid = primaryPick[g.index] || cols[0]?.id;
+    if (!pid || merging) return;
+    setMerging(true);
+    try {
+      const r: any = await request('/admin/colleges/merge', {
+        method: 'POST',
+        body: { primary_id: pid, secondary_ids: cols.filter((c) => c.id !== pid).map((c) => c.id) },
+      });
+      const n = r?.archived?.length || 0;
+      const stu = r?.students_reassigned || 0;
+      flash(`Merged ${n} ${n === 1 ? 'college' : 'colleges'}${stu ? ` · ${stu} students re-pointed` : ''}`);
+      loadDuplicates();
+      setBump((b) => b + 1);
+    } catch {
+      flash('Merge failed', 'error');
+    } finally { setMerging(false); }
+  };
+
+  const toggleSel = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  const clearSel = () => setSelected(new Set());
+
+  const BULK_LABEL: Record<string, string> = { approve: 'Approved', disable: 'Disabled', reenrich: 'Re-enriched', delete: 'Deleted' };
+  const runBulk = async (action: 'approve' | 'disable' | 'reenrich' | 'delete') => {
+    const ids = [...selected];
+    if (!ids.length) return;
+    setBulkBusy(true);
+    try {
+      const r: any = await request('/admin/colleges/bulk', { method: 'POST', body: { action, ids } });
+      const ok = r?.succeeded?.length || 0;
+      const bad = r?.failed?.length || 0;
+      clearSel();
+      setBump((b) => b + 1);
+      if (bad) flash(`${BULK_LABEL[action]} ${ok} · ${bad} failed`, 'error');
+      else flash(`${BULK_LABEL[action]} ${ok}`);
+    } catch { flash(`Bulk ${action} failed`, 'error'); }
+    finally { setBulkBusy(false); }
+  };
+  const startBulk = (action: 'approve' | 'disable' | 'reenrich' | 'delete') => {
+    if (!selected.size || bulkBusy) return;
+    if (action === 'delete') { setConfirmDelete(true); return; }
+    runBulk(action);
+  };
+
   const goToPage = useCallback((p: number) => {
     setPage(p);
     setBusy(true);
     (async () => {
       try {
-        const r = await request<any>(`/admin/colleges/list?status=${tab}&q=${encodeURIComponent(q)}&page=${p}&limit=24`);
+        const r = await request<any>(`/admin/colleges/list?status=${statusTab}&q=${encodeURIComponent(q)}&page=${p}&limit=24`);
         setData(r || { items: [], total: 0, counts: { all: 0, pending: 0, active: 0, paused: 0 } });
         setPages(r?.pages || 1);
       } catch (e: any) {
         if (/401|Not authenticated/i.test(String(e?.message || ''))) {
           await new Promise((r) => setTimeout(r, 600));
           try {
-            const r = await request<any>(`/admin/colleges/list?status=${tab}&q=${encodeURIComponent(q)}&page=${p}&limit=24`);
+            const r = await request<any>(`/admin/colleges/list?status=${statusTab}&q=${encodeURIComponent(q)}&page=${p}&limit=24`);
             setData(r || { items: [], total: 0, counts: { all: 0, pending: 0, active: 0, paused: 0 } }); setPages(r?.pages || 1); return;
           } catch {}
         }
@@ -103,7 +193,7 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
         setData({ items: [], total: 0, counts: { all: 0, pending: 0, active: 0, paused: 0 } });
       } finally { setBusy(false); }
     })();
-  }, [tab, q, bump]);
+  }, [statusTab, q, bump]);
   const load = useCallback(() => { goToPage(1); }, [goToPage]);
   useEffect(() => { load(); }, [load]);
 
@@ -177,6 +267,22 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
         </View>
       </Card>
 
+      {/* CL6 — Browse / Analytics sub-view */}
+      <Card>
+        <TopTabs<SubView>
+          tabs={[
+            { id: 'browse', label: 'Colleges', Icon: Building2 },
+            { id: 'analytics', label: 'Analytics', Icon: BarChart3 },
+          ]}
+          active={subView}
+          onChange={setSubView}
+        />
+      </Card>
+
+      {subView === 'analytics' ? (
+        <CollegesAnalytics analytics={analytics} busy={analyticsBusy} />
+      ) : (
+      <>
       {/* KPI */}
       <View style={s.kpiRow}>
         <KpiTile Icon={Building2}   label="TOTAL"             value={String(counts.all     || 0)} />
@@ -188,7 +294,7 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
       {/* Tabs + Search + Select-all */}
       <Card>
         <View style={s.browseHead}>
-          <TopTabs<Status> tabs={tabs as any} active={tab} onChange={setTab} />
+          <TopTabs<Status> tabs={tabs as any} active={statusTab} onChange={setStatusTab} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <SearchField value={q} onChange={setQ} placeholder="Search colleges, cities…" width={300} />
             {Platform.OS === 'web' && (
@@ -439,8 +545,155 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
           </Animated.View>
         </View>
       </Modal>
+      </>
+      )}
 
       <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
+    </View>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ *  CL6 — Analytics panel: KPI cards, state/type bar charts, status donut
+ * ══════════════════════════════════════════════════════════════════ */
+const CHART_PALETTE = ['#FB923C', '#F59E0B', '#7C3AED', '#06B6D4', '#10B981', '#EC4899', '#3B82F6', '#EF4444', '#8B5CF6', '#14B8A6'];
+const STATUS_COLORS: Record<string, string> = { active: '#10B981', pending: '#F59E0B', paused: '#64748B' };
+
+function ringPath(a0: number, a1: number, cx: number, cy: number, r: number) {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const x0 = cx + r * Math.cos(toRad(a0 - 90));
+  const y0 = cy + r * Math.sin(toRad(a0 - 90));
+  const x1 = cx + r * Math.cos(toRad(a1 - 90));
+  const y1 = cy + r * Math.sin(toRad(a1 - 90));
+  const large = a1 - a0 > 180 ? 1 : 0;
+  return `M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1}`;
+}
+
+function HBarCard({ title, rows, note }: { title: string; rows: { label: string; count: number }[]; note?: string }) {
+  const T = useSAC();
+  const max = Math.max(...rows.map((r) => r.count), 1);
+  return (
+    <Card style={{ padding: 20, gap: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: T.text }}>{title}</Text>
+        {note ? <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: T.dim }}>{note}</Text> : null}
+      </View>
+      {rows.length === 0 ? (
+        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.dim }}>No data yet</Text>
+      ) : (
+        <View style={{ gap: 10 }}>
+          {rows.map((r, i) => (
+            <View key={`${r.label}-${i}`} style={{ gap: 4 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.muted }} numberOfLines={1}>{r.label}</Text>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: T.text }}>{r.count}</Text>
+              </View>
+              <View style={{ height: 8, borderRadius: 4, backgroundColor: T.line, overflow: 'hidden' }}>
+                <View style={{ height: '100%', width: `${(r.count / max) * 100}%`, borderRadius: 4, backgroundColor: CHART_PALETTE[i % CHART_PALETTE.length] }} />
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+    </Card>
+  );
+}
+
+function StatusDonut({ status }: { status: { label: string; count: number }[] }) {
+  const T = useSAC();
+  const size = 220, r = 78, cx = size / 2, cy = size / 2, thickness = 26;
+  const total = status.reduce((s, t) => s + t.count, 0);
+
+  let acc = 0;
+  const arcs = status.map((t) => {
+    const start = (acc / Math.max(total, 1)) * 360;
+    acc += t.count;
+    const end = (acc / Math.max(total, 1)) * 360;
+    return { ...t, start, end, color: STATUS_COLORS[t.label] || CHART_PALETTE[0] };
+  });
+
+  return (
+    <Card style={{ padding: 20, gap: 12 }}>
+      <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: T.text }}>Status Distribution</Text>
+      {total === 0 ? (
+        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.dim }}>No colleges yet</Text>
+      ) : (
+        <>
+          <View style={{ alignItems: 'center' }}>
+            <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+              {arcs.map((a, i) =>
+                a.end - a.start >= 359.99 ? (
+                  <Circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={a.color} strokeWidth={thickness} />
+                ) : (
+                  <Path key={i} d={ringPath(a.start, a.end, cx, cy, r)} stroke={a.color} strokeWidth={thickness} fill="none" />
+                )
+              )}
+              <SvgText x={cx} y={cy} textAnchor="middle" fill={T.text} fontSize={22} fontWeight={700}>{total}</SvgText>
+              <SvgText x={cx} y={cy + 18} textAnchor="middle" fill={T.dim} fontSize={10}>colleges</SvgText>
+            </Svg>
+          </View>
+          <View style={{ gap: 8 }}>
+            {arcs.map((a, i) => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: a.color }} />
+                <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: T.muted, flex: 1 }} numberOfLines={1}>{a.label}</Text>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: a.color }}>{a.count}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
+    </Card>
+  );
+}
+
+function CollegesAnalytics({ analytics, busy }: { analytics: any; busy: boolean }) {
+  const T = useSAC();
+  if (busy && !analytics) {
+    return <LoadingBox label="Building geographic analytics…" />;
+  }
+  if (!analytics) {
+    return (
+      <Card style={{ padding: 20, gap: 8 }}>
+        <AlertTriangle size={16} color={T.danger} />
+        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.muted }}>Analytics failed to load. Check the backend and retry.</Text>
+      </Card>
+    );
+  }
+  const d = analytics;
+  const states = d.by_state || [];
+  const types = d.by_type || [];
+  const statuses = d.by_status || [];
+  const countries = d.by_country || [];
+  return (
+    <View style={{ gap: 14 }}>
+      <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+        <KpiTile Icon={Building2} label="Total colleges" value={String(d.total_colleges ?? 0)} />
+        <KpiTile Icon={Users} label="Total students" value={String(d.total_students ?? 0)} delta={`${d.avg_students_per_college ?? 0} avg / college`} deltaKind="success" />
+        <KpiTile Icon={Sparkles} label="Enrichment rate" value={`${d.enrichment_rate ?? 0}%`} deltaKind={(d.enrichment_rate ?? 0) >= 70 ? 'success' : 'warn'} />
+        <KpiTile Icon={AlertTriangle} label="Pending approvals" value={String(d.pending_approvals ?? 0)} delta={d.pending_approvals ? 'awaiting review' : 'all clear'} deltaKind={d.pending_approvals ? 'warn' : 'success'} />
+      </View>
+
+      <View style={{ flexDirection: 'row', gap: 14, flexWrap: 'wrap' }}>
+        <View style={{ flex: 1, minWidth: 300 }}><HBarCard title="Colleges by State" note="top 20" rows={states} /></View>
+        <View style={{ flex: 1, minWidth: 300 }}><HBarCard title="Colleges by Type" rows={types} /></View>
+        <View style={{ minWidth: 280 }}><StatusDonut status={statuses} /></View>
+      </View>
+
+      {countries.length > 0 ? (
+        <Card style={{ padding: 16, gap: 10 }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: T.text }}>Countries</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {countries.map((c, i) => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: T.card, borderWidth: 1, borderColor: T.line }}>
+                <Globe size={11} color={T.accent} />
+                <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: T.muted }}>{c.label}</Text>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: T.text }}>{c.count}</Text>
+              </View>
+            ))}
+          </View>
+        </Card>
+      ) : null}
     </View>
   );
 }
