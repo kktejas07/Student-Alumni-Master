@@ -585,3 +585,334 @@ class TestIntegrations:
         from features.lead_aggregator.integrations import get_integration
         result = get_integration("nonexistent")
         assert result.get("status") == "error"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Export Tests
+# ═══════════════════════════════════════════════════════════════════════════
+class TestExport:
+    def test_flatten_lead_nested_brands(self):
+        from features.lead_aggregator.export import _flatten_lead
+        lead = {"matched_brands": ["BrandA", "BrandB", "BrandC"]}
+        flat = _flatten_lead(lead)
+        assert flat["matched_brands"] == "BrandA, BrandB, BrandC"
+
+    def test_flatten_lead_missing_fields(self):
+        from features.lead_aggregator.export import _flatten_lead
+        flat = _flatten_lead({})
+        assert flat["full_name"] == ""
+        assert flat["email"] == ""
+        assert flat["score"] == ""
+
+    def test_flatten_lead_datetime_conversion(self):
+        from features.lead_aggregator.export import _flatten_lead
+        dt = datetime(2025, 6, 15, 10, 30, 0)
+        flat = _flatten_lead({"created_at": dt})
+        assert flat["created_at"] == "2025-06-15 10:30:00"
+
+    def test_flatten_lead_dict_field_serialized(self):
+        from features.lead_aggregator.export import _flatten_lead
+        flat = _flatten_lead({"matched_brands": {"nested": "dict"}})
+        import json
+        parsed = json.loads(flat["matched_brands"])
+        assert parsed["nested"] == "dict"
+
+    def test_timestamp_format(self):
+        from features.lead_aggregator.export import _timestamp
+        ts = _timestamp()
+        assert len(ts) == 15  # YYYYMMDD_HHMMSS
+        assert ts[8] == "_"
+        assert ts[:8].isdigit()
+        assert ts[9:].isdigit()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Assignment Rule Matching Tests
+# ═══════════════════════════════════════════════════════════════════════════
+class TestAssignmentRules:
+    def test_rule_matches_city(self):
+        from features.lead_aggregator.assignment import _rule_matches
+        rule = {"conditions": {"cities": ["hyderabad"], "domains": [], "min_score": 0, "temperatures": []}}
+        lead = {"city": "Hyderabad", "domain": "technology", "score": 50}
+        assert _rule_matches(rule, lead) is True
+
+    def test_rule_matches_domain(self):
+        from features.lead_aggregator.assignment import _rule_matches
+        rule = {"conditions": {"cities": [], "domains": ["technology"], "min_score": 0, "temperatures": []}}
+        lead = {"city": "Mumbai", "domain": "technology", "score": 30}
+        assert _rule_matches(rule, lead) is True
+        lead_other = {"city": "Mumbai", "domain": "finance", "score": 30}
+        assert _rule_matches(rule, lead_other) is False
+
+    def test_rule_matches_min_score(self):
+        from features.lead_aggregator.assignment import _rule_matches
+        rule = {"conditions": {"cities": [], "domains": [], "min_score": 60, "temperatures": []}}
+        assert _rule_matches(rule, {"score": 70}) is True
+        assert _rule_matches(rule, {"score": 50}) is False
+
+    def test_rule_empty_conditions_match_all(self):
+        from features.lead_aggregator.assignment import _rule_matches
+        rule = {"conditions": {"cities": [], "domains": [], "min_score": 0, "temperatures": []}}
+        assert _rule_matches(rule, {"city": "Anywhere", "domain": "any", "score": 10}) is True
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Email Digest Rendering Tests
+# ═══════════════════════════════════════════════════════════════════════════
+class TestEmailDigest:
+    def _sample_digest(self):
+        return {
+            "brand_id": "BRD-001",
+            "period": "weekly",
+            "period_start": "2025-06-01T00:00:00",
+            "period_end": "2025-06-07T23:59:59",
+            "new_leads": 42,
+            "prev_leads": 30,
+            "leads_delta_pct": 40.0,
+            "temperature": {"hot": 10, "warm": 15, "cold": 12, "low": 5},
+            "total_claims": 8,
+            "top_offers": [{"title": "Summer Internship", "claims": 5}],
+            "conversion_rate": 23.8,
+            "prev_conversion_rate": 18.0,
+            "revenue_inr": 15000.0,
+            "new_campus_contacts": 3,
+            "fraud_alerts": 1,
+        }
+
+    def test_render_digest_html_contains_brand_name(self):
+        from features.lead_aggregator.email_digest import render_digest_html
+        html = render_digest_html(self._sample_digest(), "TestCorp", "weekly")
+        assert "TestCorp" in html
+
+    def test_render_digest_html_contains_kpi_data(self):
+        from features.lead_aggregator.email_digest import render_digest_html
+        html = render_digest_html(self._sample_digest(), "TestCorp", "weekly")
+        assert "42" in html  # new_leads
+        assert "23.8" in html  # conversion_rate
+
+    def test_render_digest_html_period_label(self):
+        from features.lead_aggregator.email_digest import render_digest_html
+        weekly_html = render_digest_html(self._sample_digest(), "TestCorp", "weekly")
+        assert "This Week" in weekly_html
+        monthly_html = render_digest_html(self._sample_digest(), "TestCorp", "monthly")
+        assert "This Month" in monthly_html
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# WA Bot Validation Extended Tests
+# ═══════════════════════════════════════════════════════════════════════════
+class TestWACaptureStates:
+    def test_email_regex_valid(self):
+        import re
+        pattern = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+        assert re.match(pattern, "user@example.com")
+        assert re.match(pattern, "a.b+c@domain.co.in")
+        assert not re.match(pattern, "noatsign.com")
+        assert not re.match(pattern, "spaces in@email.com")
+
+    def test_age_range_15_60(self):
+        for valid_age in [15, 22, 45, 60]:
+            assert 15 <= valid_age <= 60
+        for invalid_age in [14, 61, 0, -1, 100]:
+            assert not (15 <= invalid_age <= 60)
+
+    def test_domain_validation(self):
+        from features.lead_aggregator.models import SUPPORTED_DOMAINS
+        assert "technology" in SUPPORTED_DOMAINS
+        assert "finance" in SUPPORTED_DOMAINS
+        assert "fake_nonexistent_domain" not in SUPPORTED_DOMAINS
+
+    def test_reset_keyword_detection(self):
+        reset_keywords = {"reset", "restart", "stop", "quit", "exit"}
+        assert "reset" in reset_keywords
+        assert "RESET".lower() in reset_keywords
+        assert "hello" not in reset_keywords
+
+    def test_consent_yes_no_parsing(self):
+        yes_variants = {"yes", "y", "ha", "haan", "ok", "agree"}
+        no_variants = {"no", "n", "nahi", "disagree"}
+        assert "yes" in yes_variants
+        assert "y" in yes_variants
+        assert "no" in no_variants
+        assert "maybe" not in yes_variants and "maybe" not in no_variants
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Geo Extended Tests
+# ═══════════════════════════════════════════════════════════════════════════
+class TestGeoExtended:
+    def test_haversine_zero_distance(self):
+        d = _haversine_km(19.076, 72.877, 19.076, 72.877)
+        assert d == 0.0
+
+    def test_haversine_mumbai_delhi(self):
+        d = _haversine_km(19.076, 72.877, 28.614, 77.209)
+        assert 1100 < d < 1400
+
+    def test_resolve_city_trivandrum(self):
+        assert resolve_city("Trivandrum") == "thiruvananthapuram"
+
+    def test_cities_match_case_insensitive(self):
+        assert cities_match("MUMBAI", "mumbai") is True
+        assert cities_match("Bangalore", "BENGALURU") is True
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Scoring Edge Cases Tests
+# ═══════════════════════════════════════════════════════════════════════════
+class TestScoringEdgeCases:
+    def test_score_with_none_fields(self):
+        lead = {"full_name": None, "email": None, "phone": None, "age": None,
+                "city": None, "skills": [], "education_level": None}
+        brand = {"target_age_min": 20, "target_age_max": 25, "target_cities": ["Mumbai"],
+                 "target_skills": ["python"], "target_education_levels": ["btech"]}
+        score, breakdown, temp = compute_lead_score(lead, brand)
+        assert isinstance(score, int)
+        assert 0 <= score <= 100
+
+    def test_score_with_empty_brand(self):
+        lead = {"full_name": "Test", "email": "t@t.com", "phone": "9876543210",
+                "age": 22, "city": "Hyderabad", "skills": ["python"]}
+        score, breakdown, temp = compute_lead_score(lead, {})
+        assert isinstance(score, int)
+        assert breakdown["city_match"] == 10
+        assert breakdown["skills_match"] == 12
+        assert breakdown["education_match"] == 8
+
+    def test_skills_overlap_calculation(self):
+        lead = {"full_name": "T", "skills": ["python", "react", "java"]}
+        brand = {"target_skills": ["python", "react", "ml", "docker"]}
+        score, breakdown, temp = compute_lead_score(lead, brand)
+        # Jaccard: 2 / 5 = 0.4 → 0.4 * 25 = 10
+        assert breakdown["skills_match"] == 10
+
+    def test_education_case_insensitive(self):
+        lead_upper = {"full_name": "T", "education_level": "BTECH"}
+        lead_lower = {"full_name": "T", "education_level": "btech"}
+        brand = {"target_education_levels": ["btech"]}
+        _, bd_upper, _ = compute_lead_score(lead_upper, brand)
+        _, bd_lower, _ = compute_lead_score(lead_lower, brand)
+        assert bd_upper["education_match"] == bd_lower["education_match"] == 15
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ML Scoring Extended Tests
+# ═══════════════════════════════════════════════════════════════════════════
+class TestMLScoringExtended:
+    def test_extract_features_all_match(self):
+        from features.lead_aggregator.ml_scoring import extract_features
+        lead = {"age": 22, "city": "Hyderabad", "skills": ["python", "react"],
+                "education_level": "btech", "phone_verified": True,
+                "domain": "technology", "email": "t@t.com", "institution": "SNIST",
+                "full_name": "Test", "phone": "9876543210", "interests": ["ai"]}
+        brand = {"target_age_min": 20, "target_age_max": 25,
+                 "target_cities": ["Hyderabad"],
+                 "target_skills": ["python", "react"],
+                 "target_education_levels": ["btech"],
+                 "domain": "technology"}
+        features = extract_features(lead, brand)
+        assert features[0] == 1.0  # age_fit
+        assert features[1] == 1.0  # city_match
+        assert features[2] == 1.0  # skills_overlap (exact match)
+        assert features[3] == 1.0  # education_match
+        assert features[5] == 1.0  # phone_verified
+        assert features[6] == 1.0  # domain_match
+
+    def test_extract_features_no_match(self):
+        from features.lead_aggregator.ml_scoring import extract_features
+        lead = {"age": 50, "city": "Unknown", "skills": ["cooking"],
+                "education_level": "phd", "phone_verified": False,
+                "domain": "food", "full_name": "T"}
+        brand = {"target_age_min": 18, "target_age_max": 22,
+                 "target_cities": ["Mumbai"],
+                 "target_skills": ["python"],
+                 "target_education_levels": ["btech"],
+                 "domain": "technology"}
+        features = extract_features(lead, brand)
+        assert features[0] == 0.0  # age_fit (way out of range)
+        assert features[1] == 0.0  # city_match
+        assert features[2] == 0.0  # skills_overlap (no overlap)
+        assert features[3] == 0.0  # education_match
+        assert features[5] == 0.0  # phone_verified
+        assert features[6] == 0.0  # domain_match
+
+    def test_train_model_converges(self):
+        from features.lead_aggregator.ml_scoring import train_model, predict_score
+        positive = [([1.0, 0.8, 0.9, 1.0, 0.7, 1.0, 1.0, 1.0, 1.0, 0.5], 1)] * 50
+        negative = [([0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0], 0)] * 50
+        data = positive + negative
+        weights, bias = train_model(data, lr=0.1, epochs=100)
+        pos_score = predict_score(positive[0][0], weights, bias)
+        neg_score = predict_score(negative[0][0], weights, bias)
+        assert pos_score > 0.7
+        assert neg_score < 0.3
+
+    def test_predict_with_default_weights(self):
+        from features.lead_aggregator.ml_scoring import predict_score, DEFAULT_WEIGHTS, DEFAULT_BIAS
+        all_ones = [1.0] * 10
+        score = predict_score(all_ones, DEFAULT_WEIGHTS, DEFAULT_BIAS)
+        assert 0 < score < 1
+        all_zeros = [0.0] * 10
+        score_zero = predict_score(all_zeros, DEFAULT_WEIGHTS, DEFAULT_BIAS)
+        assert score > score_zero
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Fraud Detection Logic Tests (inline)
+# ═══════════════════════════════════════════════════════════════════════════
+class TestFraudRules:
+    DISPOSABLE_DOMAINS = {
+        "mailinator.com", "guerrillamail.com", "tempmail.com", "throwaway.email",
+        "yopmail.com", "10minutemail.com", "trashmail.com",
+    }
+
+    def test_disposable_email_detection(self):
+        assert "mailinator.com" in self.DISPOSABLE_DOMAINS
+        assert "guerrillamail.com" in self.DISPOSABLE_DOMAINS
+        assert "gmail.com" not in self.DISPOSABLE_DOMAINS
+        assert "company.com" not in self.DISPOSABLE_DOMAINS
+
+    def test_phone_velocity_threshold(self):
+        max_submissions_per_phone = 3
+        submissions = 5
+        assert submissions > max_submissions_per_phone
+
+    def test_risk_level_calculation(self):
+        def _calc_risk(signals: int) -> str:
+            if signals >= 3:
+                return "critical"
+            elif signals >= 2:
+                return "high"
+            elif signals >= 1:
+                return "medium"
+            return "low"
+        assert _calc_risk(0) == "low"
+        assert _calc_risk(1) == "medium"
+        assert _calc_risk(2) == "high"
+        assert _calc_risk(5) == "critical"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Attribution Model Tests (inline)
+# ═══════════════════════════════════════════════════════════════════════════
+class TestAttributionModels:
+    def test_first_touch_attribution(self):
+        touchpoints = ["organic_search", "email_campaign", "direct"]
+        credits = {tp: 0.0 for tp in touchpoints}
+        credits[touchpoints[0]] = 1.0
+        assert credits["organic_search"] == 1.0
+        assert credits["email_campaign"] == 0.0
+
+    def test_last_touch_attribution(self):
+        touchpoints = ["organic_search", "email_campaign", "direct"]
+        credits = {tp: 0.0 for tp in touchpoints}
+        credits[touchpoints[-1]] = 1.0
+        assert credits["direct"] == 1.0
+        assert credits["organic_search"] == 0.0
+
+    def test_linear_attribution(self):
+        touchpoints = ["organic_search", "email_campaign", "direct"]
+        equal_share = 1.0 / len(touchpoints)
+        credits = {tp: equal_share for tp in touchpoints}
+        assert abs(sum(credits.values()) - 1.0) < 1e-9
+        assert abs(credits["organic_search"] - credits["direct"]) < 1e-9

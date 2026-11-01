@@ -285,6 +285,20 @@ async def _lifespan(application):
     except Exception as _e:
         logger.warning("Could not create Lead Aggregator indexes: %s", _e)
 
+    # 2c. Lead Aggregator analytics indexes
+    try:
+        from features.lead_aggregator.analytics import ensure_analytics_indexes as _la_analytics_idx
+        await _la_analytics_idx()
+    except Exception as _e:
+        logger.warning("Could not create LA analytics indexes: %s", _e)
+
+    # 2d. Lead Aggregator structured logging
+    try:
+        from features.lead_aggregator.logging_config import setup_la_logging
+        setup_la_logging()
+    except Exception as _e:
+        logger.warning("Could not setup LA logging: %s", _e)
+
     # 3. Auto seed certificates on startup if count is 0
     try:
         from scripts.seed_certificates import seed_certificates
@@ -498,6 +512,13 @@ app.include_router(student_perks_router)
 # Lead Aggregator (LA1–LA14)
 from features.lead_aggregator.api import router as lead_aggregator_router
 app.include_router(lead_aggregator_router)
+
+# Lead Aggregator request logging middleware
+try:
+    from features.lead_aggregator.logging_config import RequestLogMiddleware
+    app.add_middleware(RequestLogMiddleware)
+except Exception as _e:
+    logger.warning("Could not add LA request logging middleware: %s", _e)
 
 from core.email_quality import router as email_quality_router
 api_router.include_router(email_quality_router)
