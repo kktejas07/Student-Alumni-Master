@@ -21,10 +21,17 @@ import {
   Filter, Mail, Phone, MapPin, Building2, ExternalLink, Calendar, FileText,
   SquareCheck, Square, CheckSquare, LayoutGrid, List, FileDown, Eye, Copy,
   CheckCircle2, Clock, Target, ChevronRight, Star,
+  Terminal, Rocket, Compass, LineChart, Handshake, ListChecks, Palette, Heart,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+
+// MT2 — backend ships taxonomy `icon` as a string name; resolve to a component.
+const MENTOR_TAX_ICONS: Record<string, any> = {
+  Terminal, Users, Briefcase, Handshake, Target, GraduationCap, Rocket,
+  Compass, LineChart, Building: Building2, ListChecks, Palette, Heart,
+};
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   TopTabs, SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox, KpiTile,
@@ -323,9 +330,12 @@ export function UserDirectoryView({
                 onPress={() => setMCat(mCat === t.slug ? '' : t.slug)}
                 style={[st.chip, mCat === t.slug && st.chipActive]}
               >
-                <Text style={[st.chipText, mCat === t.slug && st.chipTextActive]} numberOfLines={1}>
-                  {t.icon ? `${t.icon} ` : ''}{t.label} ({t.count})
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  {(() => { const Ic = MENTOR_TAX_ICONS[t.icon]; return Ic ? <Ic size={11} color={mCat === t.slug ? '#fff' : SAC.muted} /> : null; })()}
+                  <Text style={[st.chipText, mCat === t.slug && st.chipTextActive]} numberOfLines={1}>
+                    {t.label} ({t.count})
+                  </Text>
+                </View>
               </Pressable>
             ))}
             <Pressable
