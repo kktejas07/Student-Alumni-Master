@@ -133,7 +133,7 @@ langchain-text-splitters
 # Talent Pool agents & OSS expansion (TP15-TP32)
 PyGithub
 spacy
-en_core_web_sm
+# en_core_web_sm is a spaCy model, not a pip package (its versions require Python <3.12); the resume parser treats spaCy as optional with a heuristic fallback
 skillNer
 dateparser
 scikit-learn
