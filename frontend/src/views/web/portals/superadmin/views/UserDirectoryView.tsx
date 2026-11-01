@@ -20,7 +20,7 @@ import {
   Pencil, Trash2, ShieldCheck, ShieldOff, RefreshCw, AlertTriangle,
   Filter, Mail, Phone, MapPin, Building2, ExternalLink, Calendar, FileText,
   SquareCheck, Square, CheckSquare, LayoutGrid, List, FileDown, Eye, Copy,
-  CheckCircle2, Clock, Target, ChevronRight,
+  CheckCircle2, Clock, Target, ChevronRight, Star,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
@@ -50,12 +50,14 @@ export function UserDirectoryView({
   subtitle,
   showCategoryTabs = false,
   openUserId = null,
+  mentorMode = false,
 }: {
   category?: Cat;
   title?: string;
   subtitle?: string;
   showCategoryTabs?: boolean;
   openUserId?: string | null;
+  mentorMode?: boolean;
 }) {
   const T = useSAC();
   Object.assign(st, resolveColors(st, T));
@@ -75,6 +77,22 @@ export function UserDirectoryView({
 
   useEffect(() => { if (openUserId) setProfileId(openUserId); }, [openUserId]);
 
+  /* ── MT: mentor-only state (KPIs, taxonomy chips, reject modal) ── */
+  const [mStats, setMStats] = useState<any>(null);
+  const [mTax, setMTax] = useState<any>(null);
+  const [mCat, setMCat] = useState<string>('');
+  const [rejectTarget, setRejectTarget] = useState<any>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejecting, setRejecting] = useState(false);
+
+  useEffect(() => {
+    if (!mentorMode) return;
+    (async () => {
+      try { setMStats(await request<any>('/admin/mentors/stats')); } catch { setMStats(null); }
+      try { setMTax(await request<any>('/admin/mentors/taxonomy')); } catch { setMTax(null); }
+    })();
+  }, [mentorMode, bump]);
+
   /* Bulk selection */
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
@@ -83,16 +101,18 @@ export function UserDirectoryView({
   const goToPage = useCallback((p: number) => {
     setPage(p);
     setBusy(true);
+    const catParam = mentorMode && mCat ? `&mentor_category=${encodeURIComponent(mCat)}` : '';
+    const url = (pp: number) => `/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&page=${pp}&limit=24${catParam}`;
     (async () => {
       try {
-        const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&page=${p}&limit=24`);
+        const r = await request<any>(url(p));
         setData(r || { items: [], total: 0, counts: {} });
         setPages(r?.pages || 1);
       } catch (e: any) {
         if (/401|Not authenticated/i.test(String(e?.message || ''))) {
           await new Promise((r) => setTimeout(r, 600));
           try {
-            const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&page=${p}&limit=24`);
+            const r = await request<any>(url(p));
             setData(r || { items: [], total: 0, counts: {} }); setPages(r?.pages || 1); return;
           } catch {}
         }
@@ -100,7 +120,7 @@ export function UserDirectoryView({
         setData({ items: [], total: 0, counts: {} });
       } finally { setBusy(false); }
     })();
-  }, [cat, q, bump]);
+  }, [cat, q, bump, mentorMode, mCat]);
 
   const load = useCallback(() => { goToPage(1); }, [goToPage]);
   useEffect(() => { load(); }, [load]);
@@ -113,10 +133,31 @@ export function UserDirectoryView({
 
   /* Per-card actions */
   const approve = async (id: string) => {
-    try { await request(`/admin/users/profile/${id}/approve`, { method: 'POST' });
+    try {
+      if (mentorMode) await request(`/admin/mentors/${id}/approve`, { method: 'POST' });
+      else await request(`/admin/users/profile/${id}/approve`, { method: 'POST' });
       flash('Approved · now active');
-      setData((d: any) => d ? { ...d, items: d.items.map((u: any) => u.id === id ? { ...u, approved: true, is_new: false } : u) } : d);
+      setData((d: any) => d ? { ...d, items: d.items.map((u: any) => u.id === id ? { ...u, approved: true, is_new: false, mentor_status: 'approved' } : u) } : d);
+      setBump((b) => b + 1);
     } catch { flash('Failed to approve'); }
+  };
+  const openReject = (u: any) => {
+    setRejectTarget(u);
+    setRejectReason('');
+  };
+  const confirmReject = async () => {
+    if (!rejectTarget) return;
+    const reason = rejectReason.trim();
+    if (reason.length < 3 || reason.length > 600) { flash('Reason must be 3–600 characters'); return; }
+    setRejecting(true);
+    try {
+      await request(`/admin/mentors/${rejectTarget.id}/reject`, { method: 'POST', body: { reason } });
+      flash('Mentor rejected · rejection email sent');
+      setData((d: any) => d ? { ...d, items: d.items.map((u: any) => u.id === rejectTarget.id ? { ...u, approved: false, mentor_status: 'rejected' } : u) } : d);
+      setBump((b) => b + 1);
+      setRejectTarget(null);
+    } catch { flash('Failed to reject mentor'); }
+    setRejecting(false);
   };
   const disable = async (id: string) => {
     try { await request(`/admin/users/profile/${id}/disable`, { method: 'POST' });
@@ -247,13 +288,55 @@ export function UserDirectoryView({
         </View>
       </Card>
 
-      {/* KPI strip */}
+      {/* KPI strip — mentor mode uses the MT1 stats endpoint */}
+      {mentorMode ? (
+        <View style={st.kpiRow}>
+          <KpiTile Icon={Sparkles}      label="TOTAL MENTORS"      value={String(mStats?.total ?? '—')} />
+          <KpiTile Icon={ShieldCheck}   label="APPROVED"           value={String(mStats?.approved ?? 0)} delta="active" deltaKind="success" />
+          <KpiTile Icon={AlertTriangle} label="PENDING REVIEW"     value={String(mStats?.pending ?? 0)} delta={(mStats?.pending ?? 0) > 0 ? 'needs review' : 'all clear'} deltaKind={(mStats?.pending ?? 0) > 0 ? 'warn' : 'success'} />
+          <KpiTile Icon={Calendar}      label="ACTIVE THIS MONTH"  value={String(mStats?.active_this_month ?? 0)} delta="booking" deltaKind="success" />
+          <KpiTile Icon={Star}          label="AVG RATING"         value={mStats?.avg_rating ? Number(mStats.avg_rating).toFixed(1) : '—'} delta={mStats?.avg_rating_n != null ? `${mStats.avg_rating_n} reviews` : 'no reviews yet'} deltaKind="success" />
+          <KpiTile Icon={FileText}      label="TOTAL SESSIONS"     value={String(mStats?.total_sessions ?? 0)} delta={String(mStats?.total_bookings ?? 0)} deltaKind="success" />
+        </View>
+      ) : (
       <View style={st.kpiRow}>
         <KpiTile Icon={Users}          label="TOTAL"             value={String(counts.all || 0)} />
         <KpiTile Icon={ShieldCheck}    label="APPROVED"          value={String((counts.all || 0) - pendingCount)} delta="active" deltaKind="success" />
         <KpiTile Icon={AlertTriangle}  label="PENDING APPROVAL"  value={String(pendingCount)} delta={pendingCount > 0 ? 'review' : 'all clear'} deltaKind={pendingCount > 0 ? 'warn' : 'success'} />
         <KpiTile Icon={Sparkles}       label="NEW (THIS WEEK)"   value={String(Math.min(pendingCount, counts.all || 0))} />
       </View>
+      )}
+
+      {/* MT2 — taxonomy filter chips (URL-persisted via the directory query) */}
+      {mentorMode && mTax ? (
+        <Card>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', padding: 12 }}>
+            <Pressable
+              onPress={() => setMCat('')}
+              style={[st.chip, !mCat && st.chipActive]}
+            >
+              <Text style={[st.chipText, !mCat && st.chipTextActive]}>All</Text>
+            </Pressable>
+            {(mTax.items || []).map((t: any) => (
+              <Pressable
+                key={t.slug}
+                onPress={() => setMCat(mCat === t.slug ? '' : t.slug)}
+                style={[st.chip, mCat === t.slug && st.chipActive]}
+              >
+                <Text style={[st.chipText, mCat === t.slug && st.chipTextActive]} numberOfLines={1}>
+                  {t.icon ? `${t.icon} ` : ''}{t.label} ({t.count})
+                </Text>
+              </Pressable>
+            ))}
+            <Pressable
+              onPress={() => setMCat(mCat === 'unclassified' ? '' : 'unclassified')}
+              style={[st.chip, mCat === 'unclassified' && st.chipActive]}
+            >
+              <Text style={[st.chipText, mCat === 'unclassified' && st.chipTextActive]}>Unclassified ({mTax.unclassified ?? 0})</Text>
+            </Pressable>
+          </View>
+        </Card>
+      ) : null}
 
       {/* Toolbar: Tabs + Search + View Switcher + Actions */}
       <Card>
@@ -361,6 +444,7 @@ export function UserDirectoryView({
                 onDisable={disable}
                 onRestore={restore}
                 onRemove={(id) => askRemove(id, u.name || u.full_name || u.email)}
+                onReject={mentorMode ? openReject : undefined}
                 selectMode={selectMode}
                 selected={!!selected[u.id]}
                 onToggleSelect={() => toggleSelect(u.id)}
@@ -423,6 +507,16 @@ export function UserDirectoryView({
         onClose={() => setDeleteTarget(null)}
         onConfirm={confirmDelete}
       />
+      {mentorMode ? (
+        <RejectMentorModal
+          target={rejectTarget}
+          reason={rejectReason}
+          setReason={setRejectReason}
+          busy={rejecting}
+          onConfirm={confirmReject}
+          onClose={() => setRejectTarget(null)}
+        />
+      ) : null}
       <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
 
       {/* Floating bulk action bar */}
@@ -767,13 +861,14 @@ function UserDirectoryTable({
 /* ────────────────────────────────────────────────────────────────────
  *  ProfileCard wrapper that adds real student fields & menu actions
  * ────────────────────────────────────────────────────────────────── */
-function ProfileCardWithActions({ user, onView, onApprove, onDisable, onRestore, onRemove, selectMode, selected, onToggleSelect }: {
+function ProfileCardWithActions({ user, onView, onApprove, onDisable, onRestore, onRemove, onReject, selectMode, selected, onToggleSelect }: {
   user: any;
   onView: (id: string) => void;
   onApprove: (id: string) => void;
   onDisable: (id: string) => void;
   onRestore: (id: string) => void;
   onRemove: (id: string) => void;
+  onReject?: (u: any) => void;
   selectMode?: boolean;
   selected?: boolean;
   onToggleSelect?: () => void;
@@ -810,6 +905,18 @@ function ProfileCardWithActions({ user, onView, onApprove, onDisable, onRestore,
             approved: !!user.approved,
             onboardingCompleted: user.onboarding_completed,
             careerPath: user.career_path || '',
+            /* MT4 — mentor enrichment (ignored by ProfileCard for non-mentors) */
+            mentorStatus: user.mentor_status,
+            mentorTaxonomy: user.mentor_taxonomy,
+            mentorYears: user.mentor_years,
+            mentorPrice: user.mentor_price,
+            mentorExpertise: user.mentor_expertise,
+            mentorAvailabilityDays: user.mentor_availability_days,
+            mentorSessionCount: user.session_count,
+            mentorMenteeCount: user.mentee_count,
+            mentorAvgRating: user.avg_rating,
+            mentorReviewCount: user.review_count,
+            mentorBadges: user.mentor_badges,
           }}
           goals={realGoals}
           progress={user.completeness_score != null ? {
@@ -857,6 +964,9 @@ function ProfileCardWithActions({ user, onView, onApprove, onDisable, onRestore,
           ) : null}
           {(user.disabled || !user.approved) ? (
             <MenuItem icon={RefreshCw} label="Restore" onPress={() => { setMenuOpen(false); onRestore(user.id); }} />
+          ) : null}
+          {user.category === 'mentor' && !user.disabled && onReject ? (
+            <MenuItem icon={X} label="Reject…" danger onPress={() => { setMenuOpen(false); onReject(user); }} />
           ) : null}
           <MenuItem icon={Pencil} label="Edit" onPress={() => { setMenuOpen(false); onView(user.id); }} />
           <MenuItem icon={Trash2} label="Delete" danger onPress={() => { setMenuOpen(false); onRemove(user.id); }} />
@@ -1239,6 +1349,83 @@ function DeleteConfirmModal({
   );
 }
 
+/* ──────────────────────────────────────────────────────────────────
+ *  RejectMentorModal — MT3 rejection flow with mandatory reason
+ *  (3–600 chars); the backend emails the reason to the mentor.
+ * ────────────────────────────────────────────────────────────────── */
+function RejectMentorModal({
+  target,
+  reason,
+  setReason,
+  busy,
+  onConfirm,
+  onClose,
+}: {
+  target: any;
+  reason: string;
+  setReason: (v: string) => void;
+  busy: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  if (!target) return null;
+  const len = reason.trim().length;
+  const valid = len >= 3 && len <= 600;
+
+  return (
+    <Modal visible={!!target} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={st.modalBg} onPress={onClose}>
+        <Pressable style={st.modalCard} onPress={(e) => e.stopPropagation()}>
+          <View style={st.modalHero}>
+            <IconBox size={34}><ShieldOff size={16} color="#EF4444" /></IconBox>
+            <View style={{ flex: 1 }}>
+              <Text style={st.modalTitle}>Reject Mentor</Text>
+              <Text style={st.secText}>{target.name || target.email || target.id}</Text>
+            </View>
+            <Pressable title="Close dialog" accessibilityLabel="Close reject dialog" onPress={onClose} style={{ padding: 4 }}>
+              <X size={16} color={SAC.muted} />
+            </Pressable>
+          </View>
+          <View style={{ padding: 18, gap: 10 }}>
+            <Text style={st.secText}>
+              A rejection email with this reason will be sent to the mentor. Reason is required (3–600 characters).
+            </Text>
+            <TextInput
+              style={st.formInput}
+              multiline
+              numberOfLines={4}
+              value={reason}
+              onChangeText={setReason}
+              placeholder="Why is this mentor being rejected?"
+              placeholderTextColor={SAC.muted}
+              maxLength={600}
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={[st.secText, !valid && { color: '#FCA5A5' }]}>{len}/600</Text>
+              <Text style={st.secText}>A rejection email will be sent</Text>
+            </View>
+          </View>
+          <View style={st.actionsRow}>
+            <View style={{ padding: 18, paddingVertical: 0 }}>
+              <SecondaryButton title="Cancel" onPress={onClose} />
+            </View>
+            <Pressable
+              title="Confirm rejection"
+              accessibilityLabel="Confirm mentor rejection"
+              onPress={onConfirm}
+              disabled={!valid || busy}
+              style={[st.destructiveBtn, !valid || busy ? { opacity: 0.5 } : {}]}
+            >
+              <X size={13} color="#FFFFFF" />
+              <Text style={st.btnText}>{busy ? 'Rejecting…' : 'Reject Mentor'}</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 /* ─── Styles ──────────────────────────────────────────────────────── */
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
@@ -1476,6 +1663,16 @@ const st = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
+
+  /* MT2 — taxonomy filter chips */
+  chip: {
+    paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: SAC.border,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  chipActive: { backgroundColor: 'rgba(249,115,22,0.18)', borderColor: GRAD.to, borderWidth: 1 },
+  chipText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+  chipTextActive: { color: '#F4F4FA' },
 
   /* modal */
   modalBg: {

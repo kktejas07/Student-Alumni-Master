@@ -108,6 +108,11 @@ class AgentSchedulerService:
                 name="Talent Pool Agent Suite Scheduler (TP23)",
                 description="Self-gating runs of TP15-TP32 sub-agents (quality, taxonomy, PII, drips, dedup, insights, external jobs, WhatsApp, ATS, calendar).",
             ),
+            "mentor_suite": SchedulerAgentTask(
+                agent_id="mentor_suite",
+                name="Mentor Agent Suite Scheduler (MT8-MT14)",
+                description="Self-gating runs of the mentor suite: auto-categorization, engagement scores, quality flags, content digests, availability gaps, milestone badges.",
+            ),
         }
 
     async def run_cycle(self, db=None) -> Dict[str, Any]:
@@ -212,6 +217,9 @@ class AgentSchedulerService:
         # step on cadence + env flags; missing/optional modules skip cleanly.
         await self._run_talent_suite(db, now_iso, cycle_results)
 
+        # 13. Mentor agent suite (MT8–MT14). Same self-gating registry pattern.
+        await self._run_mentor_suite(db, now_iso, cycle_results)
+
         return cycle_results
 
     async def _run_talent_suite(self, db, now_iso, cycle_results):
@@ -237,6 +245,30 @@ class AgentSchedulerService:
                 task.status = "FAILED"
                 task.last_error = str(e)
             cycle_results["talent_suite"] = {"ok": False, "error": str(e)}
+
+    async def _run_mentor_suite(self, db, now_iso, cycle_results):
+        """Drives the MT8–MT14 sub-agent registry from the house cycle.
+        Never raises — a single agent's failure must not take down the cycle."""
+        task = self._tasks.get("mentor_suite")
+        if task:
+            task.status = "RUNNING"
+        try:
+            from services.agents.mentor_scheduler import mentor_scheduler_agent
+            out = await mentor_scheduler_agent.run(db)
+            if task:
+                task.status = "SUCCESS"
+                task.total_runs += 1
+                task.last_run_at = now_iso
+                task.next_run_at = self._next_cycle_at
+                task.last_summary = f"Mentor suite: {len(out.get('ran', []))} steps ran, " \
+                                    f"{len(out.get('skipped', {}))} gated/skipped."
+            cycle_results["mentor_suite"] = {"ok": True, "ran": out.get("ran", []),
+                                             "skipped": out.get("skipped", {})}
+        except Exception as e:
+            if task:
+                task.status = "FAILED"
+                task.last_error = str(e)
+            cycle_results["mentor_suite"] = {"ok": False, "error": str(e)}
 
     async def _run_bgv_agents(self, db, now_iso, cycle_results):
         """Runs the six BGV agents; each no-ops (not-due) until its cadence elapses."""

@@ -95,7 +95,7 @@ export function SuperAdminPortalRN() {
         {active === 'bgv'             && <BGVAccountVerticalsView />}
         {active === 'colleges'        && <CollegesView {...subFor()} />}
         {active === 'students'        && <StudentsView openUserId={sub || null} />}
-        {active === 'mentors'         && <MentorsView />}
+        {active === 'mentors'         && <MentorsView {...subFor()} />}
         {active === 'alumni'          && <AlumniView />}
         {active === 'events'          && <EventsView {...subFor()} />}
         {active === 'payments'        && <PaymentsView />}
