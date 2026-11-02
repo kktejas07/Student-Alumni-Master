@@ -1565,7 +1565,7 @@ function JobCard({
           paddingHorizontal: 8,
           paddingVertical: 3,
         }}>
-          <Text style={{ color: '#2563EB', fontFamily: FONTS.bold, fontSize: 10 }}>{job.match_score !== undefined ? `${job.match_score}%` : `+${matchPct}%`} match</Text>
+          <Text style={{ color: '#2563EB', fontFamily: FONTS.bold, fontSize: 10 }}>{job.match_score != null ? `${job.match_score}%` : `+${matchPct}%`} match</Text>
         </View>
         <Pressable
           onPress={() => onSave(job)}

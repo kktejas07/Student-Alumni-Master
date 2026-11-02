@@ -96,7 +96,7 @@ function StudentPortalInner() {
         {active === 'financial'       && <FinancialPage />}
         {active === 'deals'           && <DealsPage />}
         {active === 'wallet'          && <WalletPage />}
-        {active === 'higher-ed'       && <HigherEducationPage />}
+        {active === 'higher-education'       && <HigherEducationPage />}
         {active === 'rentals'         && <RentalsView />}
         {active === 'profile'         && <ProfileSettingsView />}
       </PortalShell>

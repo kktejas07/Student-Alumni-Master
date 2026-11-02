@@ -147,9 +147,9 @@ export default function HigherEducationScreen() {
   useEffect(() => {
     if (!isEmbedded && initialized && user) {
       if (user.role === 'alumni') {
-        router.replace('/alumni-portal?tab=higher-ed' as any);
+        router.replace('/alumni-portal?tab=higher-education' as any);
       } else if (user.role === 'student') {
-        router.replace('/student-portal?tab=higher-ed' as any);
+        router.replace('/student-portal?tab=higher-education' as any);
       }
     }
   }, [isEmbedded, initialized, user, router]);
