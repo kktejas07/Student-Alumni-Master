@@ -60,7 +60,7 @@ import re
 from cachetools import TTLCache, cached
 from pathlib import Path
 
-from core.deps import get_current_user, require_role, require_admin_role
+from core.deps import get_current_user, require_role, require_admin_role, bearer_token, decode_payload_silent
 from pydantic import BaseModel
 
 # Instantiate TTL Caches for high-traffic endpoints
@@ -76,6 +76,7 @@ from tier_logic import (
     student_suggestions_for_tier,
 )
 from core.db import db as _db
+from core.query_helpers import nonempty
 from db import fetch_users_with_mock_limit
 
 router = APIRouter()
@@ -431,17 +432,12 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
     # ── Profile lookup ──────────────────────────────────────────────
     student = None
     if not student_email:
-        auth = request.headers.get("Authorization", "")
-        if auth.startswith("Bearer "):
+        payload = decode_payload_silent(bearer_token(request.headers.get("Authorization", "")))
+        if payload and "sub" in payload:
             try:
-                import jwt
-                from core.security import JWT_SECRET, JWT_ALGORITHM
-                from bson import ObjectId
-                payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
-                if "sub" in payload:
-                    me = await _db.users.find_one({"_id": ObjectId(payload["sub"])})
-                    if me:
-                        student_email = me.get("email")
+                me = await _db.users.find_one({"_id": ObjectId(payload["sub"])})
+                if me:
+                    student_email = me.get("email")
             except Exception:
                 pass
 
@@ -617,7 +613,7 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
         branch_q = {"role": "alumni", "alumni_info.branch_or_stream": d["_id"], **college_query}
         try:
             branch_alumni = await _db.users.count_documents(branch_q)
-            branch_placed = await _db.users.count_documents({**branch_q, "alumni_info.current_employer": {"$nin": [None, "", "—", "-"]}})
+            branch_placed = await _db.users.count_documents({**branch_q, "alumni_info.current_employer": nonempty("—", "-")})
         except Exception:
             branch_alumni, branch_placed = 0, 0
         dept_placement.append({
@@ -708,7 +704,7 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
     # Calculate real placement rate (based on alumni with current employer)
     placed_alumni_cnt = await _db.users.count_documents({
         "role": "alumni",
-        "alumni_info.current_employer": {"$nin": [None, "", "—", "-"]},
+        "alumni_info.current_employer": nonempty("—", "-"),
         **college_query
     })
     placement_pct_num = int((placed_alumni_cnt / alumni_cnt) * 100) if alumni_cnt > 0 else 0
@@ -775,14 +771,13 @@ async def super_admin_overview(user: dict = Depends(require_role('admin'))):
 
     # KPIs
     kpis = [
-        {"id": "colleges",   "icon": "Building2",     "label": "Total Colleges",      "value": str(len(colleges)), "delta": "↑ growing"},
-        {"id": "students",   "icon": "GraduationCap", "label": "Total Students",      "value": f"{students:,}",    "delta": "↑ active"},
-        {"id": "mentors",    "icon": "UserCheck",     "label": "Active Mentors",      "value": str(mentors),       "delta": f"+ {pending_mentors} pending"},
-        {"id": "alumni",     "icon": "Users",         "label": "Alumni Network",      "value": f"{alumni:,}",      "delta": "↑ joined"},
-        {"id": "revenue",    "icon": "CreditCard",    "label": "Revenue This Month",  "value": _money(revenue_amt), "delta": "↑ 12% MoM"},
-        {"id": "events",     "icon": "Calendar",      "label": "Active Events",       "value": str(events),        "delta": "↑ this week"},
-        {"id": "approvals",  "icon": "CheckCircle",   "label": "Pending Approvals",   "value": str(pending_mentors), "delta": "review needed"},
-        {"id": "engagement", "icon": "BarChart3",     "label": "Platform Engagement", "value": "78%",              "delta": "↑ 3 pts"},
+        {"id": "colleges",   "icon": "Building2",     "label": "Total Colleges",      "value": str(len(colleges)), "delta": "distinct institutions"},
+        {"id": "students",   "icon": "GraduationCap", "label": "Total Students",      "value": f"{students:,}",    "delta": "on platform"},
+        {"id": "mentors",    "icon": "UserCheck",     "label": "Active Mentors",      "value": str(mentors),       "delta": f"{pending_mentors} pending"},
+        {"id": "alumni",     "icon": "Users",         "label": "Alumni Network",      "value": f"{alumni:,}",      "delta": "on platform"},
+        {"id": "revenue",    "icon": "CreditCard",    "label": "Revenue This Month",  "value": _money(revenue_amt), "delta": "paid registrations"},
+        {"id": "events",     "icon": "Calendar",      "label": "Active Events",       "value": str(events),        "delta": "scheduled"},
+        {"id": "approvals",  "icon": "CheckCircle",   "label": "Pending Approvals",   "value": str(pending_mentors), "delta": "review needed" if pending_mentors > 0 else "all clear"},
     ]
 
     # Recent activity from bookings + new users
@@ -855,10 +850,10 @@ async def super_admin_overview(user: dict = Depends(require_role('admin'))):
 
     return {
         "admin": {
-            "name": "Super Admin",
-            "email": "admin@studentalumni.in",
-            "initials": "SA",
-            "role": "Platform Admin · Full Access",
+            "name": user.get("full_name") or "Admin",
+            "email": user.get("email") or "",
+            "initials": _initials(user.get("full_name") or "Admin"),
+            "role": f"{user.get('role', 'admin').replace('_', ' ').title()} · Platform",
         },
         "kpis": kpis,
         "recentActivity": recent[:5],
@@ -1656,7 +1651,7 @@ async def super_approvals(user: dict = Depends(require_role('admin'))):
 @router.get("/admin/super/analytics")
 async def super_analytics(user: dict = Depends(require_role('admin'))):
     """Platform analytics — real data from MongoDB + Firebase + PostHog."""
-    from analytics import super_admin_full_analytics
+    from features.analytics import super_admin_full_analytics
     return await super_admin_full_analytics(_db)
 
 
@@ -1916,7 +1911,7 @@ async def college_analytics(college_name: Optional[str] = None, user: dict = Dep
         return float(m.group(1)) if m else None
 
     placed_alumni = await _db.users.find(
-        {"role": "alumni", "alumni_info.current_employer": {"$nin": [None, "", "—", "-"]}, **college_query},
+        {"role": "alumni", "alumni_info.current_employer": nonempty("—", "-"), **college_query},
         {"alumni_info": 1},
     ).to_list(2000)
     recorded_lpa = [l for l in (_to_lpa((d.get("alumni_info") or {}).get("package_lpa")) for d in placed_alumni) if l]
@@ -2629,7 +2624,7 @@ async def create_workflow(req: WorkflowCreateRequest, user: dict = Depends(requi
 async def fire_workflow_event_endpoint(event_type: str = Body(...), payload: Optional[Dict[str, Any]] = Body(None)):
     """Manually fire a workflow event. All workflows with matching event_triggers will run."""
     try:
-        from workflow_automation import fire_workflow_event as _fire
+        from features.workflow_automation import fire_workflow_event as _fire
         results = await _fire(event_type, payload or {})
         return {"ok": True, "event_type": event_type, "workflows_triggered": len(results), "results": results}
     except Exception as e:
@@ -2637,7 +2632,7 @@ async def fire_workflow_event_endpoint(event_type: str = Body(...), payload: Opt
 
 
 # ── Step registry: single source of truth lives in workflow_automation ──
-from workflow_automation import STEP_REGISTRY  # noqa: E402
+from features.workflow_automation import STEP_REGISTRY  # noqa: E402
 
 
 @router.post("/admin/super/workflows/{wf_id}/run")

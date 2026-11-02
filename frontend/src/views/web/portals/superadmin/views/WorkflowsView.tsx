@@ -250,7 +250,7 @@ export function WorkflowsView() {
     <View style={s.container}>
       {/* Header Banner with Mode Toggle */}
       <View style={s.banner}>
-        <View style={s.bIcon}><Workflow size={20} color={SAC.accent} /></View>
+        <View style={s.bIcon}><Workflow size={20} color={T.accent} /></View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text style={s.bTitle}>Visual Workflow & Agent DAG Studio</Text>
@@ -268,15 +268,15 @@ export function WorkflowsView() {
               onPress={() => setViewMode('canvas')}
               style={[s.modeBtn, viewMode === 'canvas' && s.modeBtnActive]}
             >
-              <Layers size={13} color={viewMode === 'canvas' ? '#fff' : SAC.muted} />
-              <Text style={[s.modeText, viewMode === 'canvas' && { color: SAC.text }]}>Visual Canvas</Text>
+              <Layers size={13} color={viewMode === 'canvas' ? '#fff' : T.muted} />
+              <Text style={[s.modeText, viewMode === 'canvas' && { color: T.text }]}>Visual Canvas</Text>
             </Pressable>
             <Pressable
               onPress={() => setViewMode('list')}
               style={[s.modeBtn, viewMode === 'list' && s.modeBtnActive]}
             >
-              <Sliders size={13} color={viewMode === 'list' ? '#fff' : SAC.muted} />
-              <Text style={[s.modeText, viewMode === 'list' && { color: SAC.text }]}>Workflows List</Text>
+              <Sliders size={13} color={viewMode === 'list' ? '#fff' : T.muted} />
+              <Text style={[s.modeText, viewMode === 'list' && { color: T.text }]}>Workflows List</Text>
             </Pressable>
           </View>
           <Pressable onPress={() => setCreating(true)} style={s.cta}>
@@ -295,7 +295,7 @@ export function WorkflowsView() {
               <Text style={s.presetLabel}>Templates:</Text>
               {TEMPLATE_PRESETS.map((p, idx) => (
                 <Pressable key={idx} onPress={() => loadPreset(p)} style={s.presetPill}>
-                  <Sparkles size={11} color={SAC.accent} />
+                  <Sparkles size={11} color={T.accent} />
                   <Text style={s.presetText}>{p.name}</Text>
                 </Pressable>
               ))}
@@ -355,7 +355,7 @@ export function WorkflowsView() {
                       onPress={() => setSelectedNode(node)}
                       style={[
                         s.nodeCard,
-                        { borderColor: isExecuting ? '#10b981' : isSelected ? SAC.accent : SAC.border },
+                        { borderColor: isExecuting ? '#10b981' : isSelected ? T.accent : T.border },
                         isExecuting && s.nodeExecutingGlow
                       ]}
                     >
@@ -382,7 +382,7 @@ export function WorkflowsView() {
                       </View>
 
                       <Pressable style={s.nodeDeleteBtn} onPress={() => removeNode(node.id)}>
-                        <X size={14} color={SAC.muted} />
+                        <X size={14} color={T.muted} />
                       </Pressable>
                     </Pressable>
 
@@ -391,7 +391,7 @@ export function WorkflowsView() {
                       <View style={s.arrowRow}>
                         <View style={s.arrowLine} />
                         <View style={[s.arrowHead, isExecuting && { borderColor: '#10b981' }]}>
-                          <ArrowDown size={14} color={isExecuting ? '#10b981' : SAC.accent} />
+                          <ArrowDown size={14} color={isExecuting ? '#10b981' : T.accent} />
                         </View>
                         <View style={s.arrowLine} />
                       </View>
@@ -407,11 +407,11 @@ export function WorkflowsView() {
             <View style={s.inspectorCard}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Sliders size={16} color={SAC.accent} />
+                  <Sliders size={16} color={T.accent} />
                   <Text style={s.inspectorTitle}>Node Inspector: {selectedNode.title}</Text>
                 </View>
                 <Pressable onPress={() => setSelectedNode(null)}>
-                  <X size={16} color={SAC.muted} />
+                  <X size={16} color={T.muted} />
                 </Pressable>
               </View>
 
@@ -473,7 +473,7 @@ export function WorkflowsView() {
         <View style={{ gap: 10 }}>
           {items.length === 0 && (
             <View style={s.emptyState}>
-              <Workflow size={32} color={SAC.dim} />
+              <Workflow size={32} color={T.dim} />
               <Text style={s.emptyTitle}>No workflows yet</Text>
               <Text style={s.emptySub}>Create your first workflow to automate approvals, alerts, and more.</Text>
             </View>
@@ -490,10 +490,10 @@ export function WorkflowsView() {
                     {w.on && <Badge label="ACTIVE" color="green" />}
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                    <Zap size={11} color={SAC.muted} />
+                    <Zap size={11} color={T.muted} />
                     <Text style={s.trigger}>{w.trigger || '—'}</Text>
                     <Text style={s.dotSep}>·</Text>
-                    <Clock size={11} color={SAC.muted} />
+                    <Clock size={11} color={T.muted} />
                     <Text style={s.trigger}>{w.steps.length} steps</Text>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
@@ -503,7 +503,7 @@ export function WorkflowsView() {
                       w.steps.map((step, idx) => (
                         <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                           <Text style={s.step}>{step}</Text>
-                          {idx < w.steps.length - 1 && <ChevronRight size={10} color={SAC.dim} />}
+                          {idx < w.steps.length - 1 && <ChevronRight size={10} color={T.dim} />}
                         </View>
                       ))
                     )}
@@ -512,28 +512,28 @@ export function WorkflowsView() {
                 <View style={{ alignItems: 'flex-end', gap: 4 }}>
                   <Text style={s.statRuns}>{w.runs.toLocaleString('en-IN')} runs</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    {successPct < 100 && w.runs > 0 && <AlertTriangle size={11} color={SAC.amber} />}
+                    {successPct < 100 && w.runs > 0 && <AlertTriangle size={11} color={T.amber} />}
                     <Text style={[s.statSuccess, {
-                      color: successPct >= 99 ? SAC.green : successPct >= 90 ? SAC.amber : w.runs === 0 ? SAC.muted : SAC.red,
+                      color: successPct >= 99 ? T.green : successPct >= 90 ? T.amber : w.runs === 0 ? T.muted : T.red,
                     }]}>
                       {w.runs === 0 ? 'Never run' : `${successPct}% success`}
                     </Text>
                   </View>
                 </View>
                 <View style={{ gap: 6, alignItems: 'center' }}>
-                  <Pressable onPress={() => setViewWf(w)} style={s.iconBtn}><Eye size={13} color={SAC.muted} /></Pressable>
-                  <Pressable onPress={() => setEditWf({ ...w })} style={s.iconBtn}><Pencil size={13} color={SAC.muted} /></Pressable>
-                  <Pressable onPress={() => setDeleteWf(w)} style={[s.iconBtn, { borderColor: SAC.red + '55' }]}><Trash2 size={13} color={SAC.red} /></Pressable>
+                  <Pressable onPress={() => setViewWf(w)} style={s.iconBtn}><Eye size={13} color={T.muted} /></Pressable>
+                  <Pressable onPress={() => setEditWf({ ...w })} style={s.iconBtn}><Pencil size={13} color={T.muted} /></Pressable>
+                  <Pressable onPress={() => setDeleteWf(w)} style={[s.iconBtn, { borderColor: T.red + '55' }]}><Trash2 size={13} color={T.red} /></Pressable>
                 </View>
                 <Switch
                   value={w.on}
                   onValueChange={() => toggle(w.id, w.on)}
-                  trackColor={{ false: 'rgba(255,255,255,0.10)', true: SAC.primary }}
+                  trackColor={{ false: 'rgba(255,255,255,0.10)', true: T.primary }}
                   thumbColor={w.on ? '#fff' : '#ccc'}
                   {...(Platform.OS === 'web' ? ({ activeThumbColor: '#fff' } as any) : {})}
                 />
                 <Pressable onPress={() => runWorkflow(w.id)} style={s.runBtn}>
-                  <Play size={11} color={SAC.accent} /><Text style={s.runText}>Run</Text>
+                  <Play size={11} color={T.accent} /><Text style={s.runText}>Run</Text>
                 </Pressable>
               </View>
             );
@@ -549,11 +549,11 @@ export function WorkflowsView() {
             <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
               <IconBox size={36}><Workflow size={16} color={GRAD.to} /></IconBox>
               <View style={{ flex: 1 }}><Text style={s.modalTitle}>New workflow</Text><Text style={s.muted}>Define the name and trigger for your automation.</Text></View>
-              <Pressable onPress={() => setCreating(false)}><X size={16} color={SAC.muted} /></Pressable>
+              <Pressable onPress={() => setCreating(false)}><X size={16} color={T.muted} /></Pressable>
             </LinearGradient>
             <View style={{ padding: 18, gap: 12 }}>
-              <TextInput value={newWorkflow.name} onChangeText={(v) => setNewWorkflow({ ...newWorkflow, name: v })} placeholder="Workflow name (e.g. Welcome Series)" placeholderTextColor={SAC.dim} style={s.input} />
-              <TextInput value={newWorkflow.trigger} onChangeText={(v) => setNewWorkflow({ ...newWorkflow, trigger: v })} placeholder="Trigger (e.g. New signup, Cron daily, Attendance < 70%)" placeholderTextColor={SAC.dim} style={s.input} />
+              <TextInput value={newWorkflow.name} onChangeText={(v) => setNewWorkflow({ ...newWorkflow, name: v })} placeholder="Workflow name (e.g. Welcome Series)" placeholderTextColor={T.dim} style={s.input} />
+              <TextInput value={newWorkflow.trigger} onChangeText={(v) => setNewWorkflow({ ...newWorkflow, trigger: v })} placeholder="Trigger (e.g. New signup, Cron daily, Attendance < 70%)" placeholderTextColor={T.dim} style={s.input} />
               <View style={{ gap: 6 }}>
                 <Text style={s.label}>Event Triggers</Text>
                 <Text style={s.hint}>Select events that should trigger this workflow.</Text>
@@ -607,11 +607,11 @@ export function WorkflowsView() {
       <Modal visible={!!deleteWf} transparent animationType="fade" onRequestClose={() => setDeleteWf(null)}>
         <View style={s.modalBg}>
           <View style={[s.modalCard, { maxWidth: 400, padding: 20, gap: 14 }]}>
-            <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 16 }}>Delete Workflow?</Text>
-            <Text style={{ color: SAC.muted, fontSize: 13 }}>Are you sure you want to delete "{deleteWf?.name}"? This action cannot be undone.</Text>
+            <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 16 }}>Delete Workflow?</Text>
+            <Text style={{ color: T.muted, fontSize: 13 }}>Are you sure you want to delete "{deleteWf?.name}"? This action cannot be undone.</Text>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
               <SecondaryButton onPress={() => setDeleteWf(null)}><Text style={s.secText}>Cancel</Text></SecondaryButton>
-              <Pressable onPress={confirmDelete} style={[s.cta, { backgroundColor: SAC.red }]}><Text style={s.ctaText}>Delete</Text></Pressable>
+              <Pressable onPress={confirmDelete} style={[s.cta, { backgroundColor: T.red }]}><Text style={s.ctaText}>Delete</Text></Pressable>
             </View>
           </View>
         </View>

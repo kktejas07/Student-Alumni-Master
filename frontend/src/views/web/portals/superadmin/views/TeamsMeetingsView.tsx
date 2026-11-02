@@ -262,8 +262,8 @@ export function TeamsMeetingsView() {
   if (loading) {
     return (
       <View style={{ alignItems: 'center', paddingVertical: 60 }}>
-        <ActivityIndicator size="large" color={SAC.violet} />
-        <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 12 }}>Loading Teams meetings…</Text>
+        <ActivityIndicator size="large" color={T.violet} />
+        <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 12 }}>Loading Teams meetings…</Text>
       </View>
     );
   }
@@ -273,7 +273,7 @@ export function TeamsMeetingsView() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.titleRow}>
-          <Video size={24} color={SAC.violetLt} />
+          <Video size={24} color={T.violetLt} />
           <Text style={s.h1}>Microsoft Teams Meetings</Text>
         </View>
         <Text style={s.hSub}>Create, manage, and track attendance for Teams meetings with seat-limited registration.</Text>
@@ -288,7 +288,7 @@ export function TeamsMeetingsView() {
       {/* Meetings List */}
       {meetings.length === 0 ? (
         <View style={s.empty}>
-          <Calendar size={48} color={SAC.muted} />
+          <Calendar size={48} color={T.muted} />
           <Text style={s.emptyTitle}>No meetings yet</Text>
           <Text style={s.emptySub}>Create your first Teams meeting to get started.</Text>
         </View>
@@ -308,18 +308,18 @@ export function TeamsMeetingsView() {
 
               <View style={s.cardMeta}>
                 <View style={s.metaRow}>
-                  <Clock size={12} color={SAC.muted} />
+                  <Clock size={12} color={T.muted} />
                   <Text style={s.metaText}>{formatDate(m.start_time)} · {m.duration_minutes} min</Text>
                 </View>
                 {m.seat_limit && (
                   <View style={s.metaRow}>
-                    <Users size={12} color={SAC.muted} />
+                    <Users size={12} color={T.muted} />
                     <Text style={s.metaText}>{m.registrations?.length || 0}/{m.seat_limit} seats filled</Text>
                   </View>
                 )}
                 {m.attendees?.length > 0 && (
                   <View style={s.metaRow}>
-                    <Users size={12} color={SAC.muted} />
+                    <Users size={12} color={T.muted} />
                     <Text style={s.metaText}>{m.attendees.length} required attendees</Text>
                   </View>
                 )}
@@ -328,7 +328,7 @@ export function TeamsMeetingsView() {
               {m.join_url && (
                 <Pressable onPress={() => copyUrl(m.join_url)} style={s.urlRow}>
                   <Text style={s.urlText} numberOfLines={1}>{m.join_url}</Text>
-                  <Copy size={12} color={SAC.muted} />
+                  <Copy size={12} color={T.muted} />
                 </Pressable>
               )}
 
@@ -384,7 +384,7 @@ export function TeamsMeetingsView() {
               <Text style={s.modalTitle}>{editingMeeting ? 'Edit Teams Meeting' : 'Create Teams Meeting'}</Text>
 
               <Text style={s.inputLabel}>Title</Text>
-              <TextInput placeholder="e.g. Career Workshop: Startups 101" placeholderTextColor={SAC.muted}
+              <TextInput placeholder="e.g. Career Workshop: Startups 101" placeholderTextColor={T.muted}
                 style={s.input} value={editingMeeting ? editForm.title : form.title} onChangeText={(t) => {
                   if (editingMeeting) setEditForm({ ...editForm, title: t }); else setForm({ ...form, title: t });
                 }} />
@@ -394,7 +394,7 @@ export function TeamsMeetingsView() {
                  <Text style={s.dropdownText} numberOfLines={1}>
                    {events.find(e => e.slug === activeForm.event_slug)?.title || (activeForm.event_slug ? activeForm.event_slug : 'Select an event…')}
                  </Text>
-                 <ChevronDown size={14} color={SAC.muted} />
+                 <ChevronDown size={14} color={T.muted} />
                </Pressable>
                {eventOpen && (
                  <Modal transparent visible={eventOpen} animationType="fade" onRequestClose={() => setEventOpen(false)}>
@@ -433,9 +433,9 @@ export function TeamsMeetingsView() {
                    value={activeForm.date || ''}
                    onChange={(e: any) => setActiveForm({ ...activeForm, date: e.target.value })}
                    style={{
-                     width: '100%', backgroundColor: '#101019', border: `1px solid ${SAC.border}`,
+                     width: '100%', backgroundColor: '#101019', border: `1px solid ${T.border}`,
                      borderRadius: 8, padding: '9px 12px', fontFamily: FONTS.med, fontSize: 13,
-                     color: SAC.text, colorScheme: 'dark',
+                     color: T.text, colorScheme: 'dark',
                    }}
                  />
                ) : (
@@ -443,7 +443,7 @@ export function TeamsMeetingsView() {
                    <Text style={s.dropdownText}>
                      {dateOptions.find(d => d.value === activeForm.date)?.label || 'Select date'}
                    </Text>
-                   <ChevronDown size={14} color={SAC.muted} />
+                   <ChevronDown size={14} color={T.muted} />
                  </Pressable>
                )}
 
@@ -454,9 +454,9 @@ export function TeamsMeetingsView() {
                    value={activeForm.time || ''}
                    onChange={(e: any) => setActiveForm({ ...activeForm, time: e.target.value })}
                    style={{
-                     width: '100%', backgroundColor: '#101019', border: `1px solid ${SAC.border}`,
+                     width: '100%', backgroundColor: '#101019', border: `1px solid ${T.border}`,
                      borderRadius: 8, padding: '9px 12px', fontFamily: FONTS.med, fontSize: 13,
-                     color: SAC.text, colorScheme: 'dark',
+                     color: T.text, colorScheme: 'dark',
                    }}
                  />
                ) : (
@@ -464,14 +464,14 @@ export function TeamsMeetingsView() {
                    <Text style={s.dropdownText}>
                      {timeOptions.find(t => t.value === activeForm.time)?.label || 'Select time'}
                    </Text>
-                   <ChevronDown size={14} color={SAC.muted} />
+                   <ChevronDown size={14} color={T.muted} />
                  </Pressable>
                )}
 
               <Text style={s.inputLabel}>Duration</Text>
               <Pressable onPress={() => setDurationOpen(true)} style={s.dropdown}>
                 <Text style={s.dropdownText}>{durationOptions.find(d => d === activeForm.duration)?.toString() || '60'} minutes</Text>
-                <ChevronDown size={14} color={SAC.muted} />
+                <ChevronDown size={14} color={T.muted} />
               </Pressable>
               {durationOpen && (
                 <Modal transparent visible={durationOpen} animationType="fade" onRequestClose={() => setDurationOpen(false)}>
@@ -493,31 +493,31 @@ export function TeamsMeetingsView() {
               )}
 
               <Text style={s.inputLabel}>Seat Limit (leave blank for unlimited)</Text>
-              <TextInput placeholder="e.g. 50" placeholderTextColor={SAC.muted}
+              <TextInput placeholder="e.g. 50" placeholderTextColor={T.muted}
                 style={s.input} value={editingMeeting ? editForm.seat_limit : form.seat_limit} onChangeText={(t) => {
                   if (editingMeeting) setEditForm({ ...editForm, seat_limit: t }); else setForm({ ...form, seat_limit: t });
                 }} keyboardType="numeric" />
 
               <Text style={s.inputLabel}>Attendee Emails (comma-separated)</Text>
-              <TextInput placeholder="attendee1@college.edu, attendee2@college.edu" placeholderTextColor={SAC.muted}
+              <TextInput placeholder="attendee1@college.edu, attendee2@college.edu" placeholderTextColor={T.muted}
                 style={s.input} value={editingMeeting ? editForm.attendee_emails : form.attendee_emails} onChangeText={(t) => {
                   if (editingMeeting) setEditForm({ ...editForm, attendee_emails: t }); else setForm({ ...form, attendee_emails: t });
                 }} />
 
               <Text style={s.inputLabel}>Organizer Email (required for real Teams meetings)</Text>
-              <TextInput placeholder="organizer@college.edu" placeholderTextColor={SAC.muted} autoCapitalize="none"
+              <TextInput placeholder="organizer@college.edu" placeholderTextColor={T.muted} autoCapitalize="none"
                 style={s.input} value={editingMeeting ? editForm.organizer_email : form.organizer_email} onChangeText={(t) => {
                   if (editingMeeting) setEditForm({ ...editForm, organizer_email: t }); else setForm({ ...form, organizer_email: t });
                 }} />
 
               <Text style={s.inputLabel}>Teams Join Link (optional — paste a link you created manually in Teams)</Text>
-              <TextInput placeholder="https://teams.microsoft.com/l/meetup-join/..." placeholderTextColor={SAC.muted} autoCapitalize="none"
+              <TextInput placeholder="https://teams.microsoft.com/l/meetup-join/..." placeholderTextColor={T.muted} autoCapitalize="none"
                 style={s.input} value={editingMeeting ? editForm.manual_join_url || '' : form.manual_join_url || ''} onChangeText={(t) => {
                   if (editingMeeting) setEditForm({ ...editForm, manual_join_url: t }); else setForm({ ...form, manual_join_url: t });
                 }} />
 
               <Text style={s.inputLabel}>Description (optional)</Text>
-              <TextInput placeholder="Meeting description or agenda" placeholderTextColor={SAC.muted}
+              <TextInput placeholder="Meeting description or agenda" placeholderTextColor={T.muted}
                 style={[s.input, { height: 80, textAlignVertical: 'top' }]}
                 value={editingMeeting ? editForm.description : form.description} onChangeText={(t) => {
                   if (editingMeeting) setEditForm({ ...editForm, description: t }); else setForm({ ...form, description: t });

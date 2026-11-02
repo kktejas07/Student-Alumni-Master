@@ -492,7 +492,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
     <View style={s.container}>
       {/* Studio Header */}
       <View style={s.headerBanner}>
-        <View style={s.hIcon}><Award size={22} color={SAC.accent} /></View>
+        <View style={s.hIcon}><Award size={22} color={T.accent} /></View>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text style={s.hTitle}>ECHO 2026 & AXISS Certificate Studio</Text>
@@ -534,7 +534,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
               style={[
                 s.tplCard,
                 active && s.tplCardActive,
-                { borderLeftColor: t.colorScheme === 'gold' ? '#F59E0B' : t.colorScheme === 'green' ? '#10B981' : t.colorScheme === 'ember' ? '#EF4444' : SAC.primary }
+                { borderLeftColor: t.colorScheme === 'gold' ? '#F59E0B' : t.colorScheme === 'green' ? '#10B981' : t.colorScheme === 'ember' ? '#EF4444' : T.primary }
               ]}
             >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -554,7 +554,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
         <View style={s.leftCol}>
           <Card>
             <View style={s.cardHead}>
-              <Sliders size={16} color={SAC.accent} />
+              <Sliders size={16} color={T.accent} />
               <Text style={s.cardHeadText}>Certificate Parameters</Text>
             </View>
 
@@ -629,7 +629,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
                     onPress={() => setBgStyle(b.id as any)}
                     style={[s.bgChip, bgStyle === b.id && s.bgChipActive]}
                   >
-                    <Text style={[s.bgChipText, bgStyle === b.id && { color: SAC.text }]}>{b.label}</Text>
+                    <Text style={[s.bgChipText, bgStyle === b.id && { color: T.text }]}>{b.label}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -687,7 +687,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
               )}
 
               {/* Signatories */}
-              <Text style={[s.label, { marginTop: 10, color: SAC.accent }]}>Signatories & Authorization</Text>
+              <Text style={[s.label, { marginTop: 10, color: T.accent }]}>Signatories & Authorization</Text>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={s.label}>Signatory 1 Name</Text>
@@ -730,7 +730,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
           <Card>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Sparkles size={16} color={SAC.accent} />
+                <Sparkles size={16} color={T.accent} />
                 <Text style={s.cardHeadText}>Live WYSIWYG Preview ({currentTpl.name})</Text>
               </View>
               <Badge label="297mm × 210mm (A4 Landscape)" color="purple" />
@@ -748,7 +748,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
                 <View style={s.certBand}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <View style={s.certLogoBox}>
-                      <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13 }}>SA</Text>
+                      <Text style={{ color: T.text, fontFamily: FONTS.xbold, fontSize: 13 }}>SA</Text>
                     </View>
                     <View>
                       <Text style={s.certBrandText}>StudentAlumni</Text>

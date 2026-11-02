@@ -11,6 +11,7 @@ import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { GRAD, Card, IconBox, KpiTile, StatusPill, GradientButton, SecondaryButton, SectionLabel, useToast, Toast } from '../applekit';
 import { usePortalData } from '@/src/lib/portalApi';
 import { request } from '@/src/models/services/api';
+import { getBaseUrl } from '@/src/lib/env';
 
 type Tx = { id: string; date: string; desc: string; type: string; amount: number; by: string; status: string };
 type Tier = { id?: string; tier: string; cut: string; count: number; color?: string };
@@ -178,7 +179,7 @@ export function PaymentsView() {
   const doExport = async () => {
     setExporting(true);
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const tokenStore = (await import('@/src/models/services/api')).tokenStore;
       const token = await tokenStore.getAccess();
       const resp = await fetch(base + '/api/admin/export/payments', {
@@ -223,7 +224,7 @@ export function PaymentsView() {
             <Text style={st.title}>Payments</Text>
             <Text style={st.sub}>Stripe ledger, mentor payouts and refund queue across the platform.</Text>
           </View>
-          <SecondaryButton onPress={doExport} loading={exporting}><Download size={12} color={SAC.muted} /><Text style={st.secText}>{exporting ? 'Exporting…' : 'Export CSV'}</Text></SecondaryButton>
+          <SecondaryButton onPress={doExport} loading={exporting}><Download size={12} color={T.muted} /><Text style={st.secText}>{exporting ? 'Exporting…' : 'Export CSV'}</Text></SecondaryButton>
         </View>
       </Card>
 
@@ -360,9 +361,9 @@ export function PaymentsView() {
             {settlements.available === false ? (
               <View style={{ paddingVertical: 30, alignItems: 'center' }}>
                 {settlementsLoading ? (
-                  <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 13 }}>Loading settlements...</Text>
+                  <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 13 }}>Loading settlements...</Text>
                 ) : (
-                  <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 13 }}>
+                  <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 13 }}>
                     {settlements.error || 'Razorpay not connected. Connect via Integrations to view settlements.'}
                   </Text>
                 )}
@@ -392,7 +393,7 @@ export function PaymentsView() {
                 {/* Settlement list */}
                 <ScrollView style={{ maxHeight: 340 }}>
                   {(settlements?.settlements || []).length === 0 ? (
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', paddingVertical: 24 }}>
+                    <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', paddingVertical: 24 }}>
                       No settlements found.
                     </Text>
                   ) : (

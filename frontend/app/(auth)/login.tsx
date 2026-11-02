@@ -21,7 +21,7 @@ import { Mail, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowRight, Sparkle
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { getBaseUrl } from '@/src/lib/env';
 import { api } from '@/src/models/services/api';
-import { initFirebaseAuth, signInWithGoogle, isFirebaseWebConfigComplete } from '@/src/lib/firebaseAuth';
+import { initFirebaseAuth, signInWithGoogleRedirect, consumeGoogleRedirectResult, isFirebaseWebConfigComplete } from '@/src/lib/firebaseAuth';
 import { friendlyNetworkError } from '@/src/lib/networkErrors';
 
 const BASE = getBaseUrl();
@@ -183,6 +183,22 @@ function WebLoginScreen() {
             appId: firebaseConfig.appId,
           });
           setFirebaseReady(initialized);
+          if (initialized) {
+            try {
+              const redirected = await consumeGoogleRedirectResult();
+              if (redirected) {
+                await processGoogleAuth({
+                  id_token: redirected.idToken,
+                  email: redirected.email,
+                  full_name: redirected.name,
+                  picture: redirected.picture,
+                });
+              }
+            } catch (err: any) {
+              setErrorMsg(err?.message || 'Google Sign-In failed. Please try again.');
+              setLoading(false);
+            }
+          }
         } else {
           setFirebaseReady(false);
         }
@@ -204,17 +220,8 @@ function WebLoginScreen() {
       // Wait for the runtime OAuth/Firebase configuration to finish loading
       // before the sign-in flow decides whether Firebase is configured.
       await configLoadRef.current;
-      const result = await signInWithGoogle();
-      if (result) {
-        await processGoogleAuth({
-          id_token: result.idToken,
-          email: result.email,
-          full_name: result.name,
-          picture: result.picture,
-        });
-      } else {
-        setLoading(false);
-      }
+      if (!firebaseReady) throw new Error('Firebase Auth is not ready. Check the Google sign-in configuration and try again.');
+      await signInWithGoogleRedirect();
     } catch (err: any) {
       setLoading(false);
       setErrorMsg(err?.message || 'Google Sign-In failed. Please try again.');

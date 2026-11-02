@@ -10,8 +10,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { XCircle, Ticket, ArrowLeft, CalendarDays, Clock } from '@/src/views/web/portals/student/iconShims';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
+import { getBaseUrl } from '@/src/lib/env';
 
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://studentalumni.ai';
+const API_BASE = getBaseUrl();
 
 export default function EchoScanPage() {
   const { code: rawCode } = useLocalSearchParams<{ code: string }>();

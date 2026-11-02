@@ -10,7 +10,7 @@ import type { NavItem, PortalConfig } from '@/src/ui/shell/types';
 export type SuperAdminNavId =
   | 'overview' | 'agents' | 'visitor-radar' | 'bgv' | 'colleges' | 'students' | 'mentors' | 'alumni' | 'events'
   | 'payments' | 'analytics' | 'approvals' | 'ai-insights' | 'settings'
-  | 'workflows' | 'imports' | 'partners' | 'promotions' | 'talent-pool' | 'echo-showcase'
+  | 'workflows' | 'imports' | 'partners' | 'promotions' | 'talent-pool' | 'talent-pool-agents' | 'echo-showcase'
   | 'vendors' | 'coupons' | 'careers' | 'newsletter' | 'certificates' | 'email-health' | 'teams' | 'cicd-evaluator' | 'code-health';
 
 export const NAV: (NavItem & { id: SuperAdminNavId })[] = [
@@ -26,6 +26,7 @@ export const NAV: (NavItem & { id: SuperAdminNavId })[] = [
   { id: 'alumni',          label: 'Alumni',              Icon: Users },
   { id: 'careers',         label: 'Careers',             Icon: Briefcase },
   { id: 'talent-pool',     label: 'Talent Pool',         Icon: UserPlus },
+  { id: 'talent-pool-agents', label: 'Talent Pool AI Agents', Icon: Bot },
   { id: 'imports',         label: 'Import Contacts',     Icon: Upload },
   { id: 'events',          label: 'Events',              Icon: Calendar },
   { id: 'echo-showcase',   label: 'Echo Showcase',       Icon: Sparkles, tag: 'CMS' },

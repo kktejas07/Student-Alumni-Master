@@ -2,16 +2,14 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 export function getBaseUrl() {
-  const envUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
+  const envUrl = process.env.EXPO_PUBLIC_BACKEND_URL?.replace(/\/+$/, '');
 
   if (envUrl) {
     return envUrl;
   }
 
-  // Default must match the documented local backend (backend/start.bat,
-  // docker-compose, DOKPLOY.md): http://127.0.0.1:8000. start.ps1 also starts
-  // uvicorn on this port, so dev defaults and docs never disagree.
-  let port = '8000';
+  // Extract port from envUrl if present, otherwise default to 8002
+  let port = '8002';
 
   // Native mobile apps (Android/iOS) cannot connect to host's localhost.
   // We use Expo's hostUri to get the developer's machine IP.

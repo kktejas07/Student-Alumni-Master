@@ -57,7 +57,7 @@ export const STUDENT_PORTAL: PortalConfig = {
   agentK: true,
   aiFab: true,
   profileTab: 'profile',
-  mobileTabs: ['dashboard', 'career-ai', 'network', 'myevents', 'profile'],
+  mobileTabs: ['dashboard', 'career-ai', 'wallet', 'network', 'courses'],
   promoHiddenOn: ['internships'],
   topbar: { greetingTab: 'dashboard', greetingSub: "Here's your personalised dashboard for today", search: { placeholder: 'Search jobs, mentors, courses…' } },
   profile: (user) => ({ name: displayName(user), subtitle: yearLabel(user), initials: displayInitials(user), email: user?.email }),

@@ -9,6 +9,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
 import { request } from '@/src/models/services/api';
 import { PortalShell } from '@/src/ui/shell/PortalShell';
+import { ForceLightTheme } from '@/src/theme/ThemeContext';
 
 import { SUPERADMIN_PORTAL, type SuperAdminNavId } from './nav';
 import { OverviewView } from './views/OverviewView';
@@ -28,6 +29,7 @@ import { ImportsView } from './views/ImportsView';
 import { PartnersView } from './views/PartnersView';
 import { PromotionsView } from './views/PromotionsView';
 import { TalentPoolView } from './views/TalentPoolView';
+import { TalentPoolAgentsView } from './views/TalentPoolAgentsView';
 import { NewsletterView } from './views/NewsletterView';
 import { EchoShowcaseAdminView } from './views/EchoShowcaseAdminView';
 import { VendorsView } from './views/VendorsView';
@@ -72,50 +74,53 @@ export function SuperAdminPortalRN() {
   }, []);
 
   const onLogout = async () => {
-    router.replace('/welcome');
     try { await logout(); } catch {}
+    router.replace('/welcome');
   };
   const nav = (id: string) => go(id);
   const subFor = () => ({ sub, onSub: (s: string) => go(active, s) });
 
   return (
-    <>
-      {Platform.OS === 'web' && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-          <div id="sa-cursor-glow" />
-        </div>
-      )}
-      <PortalShell config={SUPERADMIN_PORTAL} active={active} onNav={nav} onLogout={onLogout} counts={counts} plain>
-        {active === 'overview'        && <OverviewView onNavigate={(id) => go(id as SuperAdminNavId)} />}
-        {active === 'visitor-radar'   && <VisitorIntelligenceView />}
-        {active === 'agents'          && <AutonomousAgentsView />}
-        {active === 'cicd-evaluator'  && <CICDEvaluatorView />}
-        {active === 'code-health'     && <CodeHealthView />}
-        {active === 'bgv'             && <BGVAccountVerticalsView />}
-        {active === 'colleges'        && <CollegesView {...subFor()} />}
-        {active === 'students'        && <StudentsView />}
-        {active === 'mentors'         && <MentorsView />}
-        {active === 'alumni'          && <AlumniView />}
-        {active === 'events'          && <EventsView {...subFor()} />}
-        {active === 'payments'        && <PaymentsView />}
-        {active === 'analytics'       && <AnalyticsView />}
-        {active === 'approvals'       && <ApprovalsView />}
-        {active === 'ai-insights'     && <AIInsightsView />}
-        {active === 'settings'        && <SettingsView {...subFor()} />}
-        {active === 'workflows'       && <WorkflowsView />}
-        {active === 'imports'         && <ImportsView {...subFor()} />}
-        {active === 'partners'        && <PartnersView {...subFor()} />}
-        {active === 'promotions'      && <PromotionsView />}
-        {active === 'newsletter'      && <NewsletterView {...subFor()} />}
-        {active === 'email-health'    && <EmailQualityView />}
-        {active === 'talent-pool'     && <TalentPoolView />}
-        {active === 'echo-showcase'   && <EchoShowcaseAdminView {...subFor()} />}
-        {active === 'vendors'         && <VendorsView />}
-        {active === 'coupons'         && <CouponsView />}
-        {active === 'careers'         && <CareersAdminView />}
-        {active === 'certificates'    && <CertificatesView {...subFor()} />}
-        {active === 'teams'           && <TeamsMeetingsView />}
-      </PortalShell>
-    </>
+    <ForceLightTheme>
+      <>
+        {Platform.OS === 'web' && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+            <div id="sa-cursor-glow" />
+          </div>
+        )}
+        <PortalShell config={SUPERADMIN_PORTAL} active={active} onNav={nav} onLogout={onLogout} counts={counts} plain>
+          {active === 'overview'        && <OverviewView onNavigate={(id) => go(id as SuperAdminNavId)} />}
+          {active === 'visitor-radar'   && <VisitorIntelligenceView />}
+          {active === 'agents'          && <AutonomousAgentsView />}
+          {active === 'cicd-evaluator'  && <CICDEvaluatorView />}
+          {active === 'code-health'     && <CodeHealthView />}
+          {active === 'bgv'             && <BGVAccountVerticalsView />}
+          {active === 'colleges'        && <CollegesView {...subFor()} />}
+          {active === 'students'        && <StudentsView openUserId={sub || null} />}
+          {active === 'mentors'         && <MentorsView {...subFor()} />}
+          {active === 'alumni'          && <AlumniView />}
+          {active === 'events'          && <EventsView {...subFor()} />}
+          {active === 'payments'        && <PaymentsView />}
+          {active === 'analytics'       && <AnalyticsView />}
+          {active === 'approvals'       && <ApprovalsView />}
+          {active === 'ai-insights'     && <AIInsightsView />}
+          {active === 'settings'        && <SettingsView {...subFor()} />}
+          {active === 'workflows'       && <WorkflowsView />}
+          {active === 'imports'         && <ImportsView {...subFor()} />}
+          {active === 'partners'        && <PartnersView {...subFor()} />}
+          {active === 'promotions'      && <PromotionsView />}
+          {active === 'newsletter'      && <NewsletterView {...subFor()} />}
+          {active === 'email-health'    && <EmailQualityView />}
+          {active === 'talent-pool'     && <TalentPoolView {...subFor()} />}
+          {active === 'talent-pool-agents' && <TalentPoolAgentsView />}
+          {active === 'echo-showcase'   && <EchoShowcaseAdminView {...subFor()} />}
+          {active === 'vendors'         && <VendorsView />}
+          {active === 'coupons'         && <CouponsView />}
+          {active === 'careers'         && <CareersAdminView />}
+          {active === 'certificates'    && <CertificatesView {...subFor()} />}
+          {active === 'teams'           && <TeamsMeetingsView />}
+        </PortalShell>
+      </>
+    </ForceLightTheme>
   );
 }

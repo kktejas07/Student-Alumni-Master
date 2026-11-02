@@ -6,7 +6,6 @@ logger = logging.getLogger(__name__)
 from enum import Enum
 from datetime import datetime, timezone
 
-MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 DB_NAME = os.environ.get("DB_NAME", "student_alumni_db")
 from db import client as _mongo
 db = _mongo[DB_NAME]

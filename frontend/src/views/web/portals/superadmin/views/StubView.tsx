@@ -11,7 +11,7 @@ export function StubView({ title, note }: { title: string; note: string }) {
   Object.assign(s, resolveColors(s, T));
   return (
     <View style={s.wrap}>
-      <View style={s.icon}><Sparkles size={26} color={SAC.accent} /></View>
+      <View style={s.icon}><Sparkles size={26} color={T.accent} /></View>
       <Text style={s.title}>{title}</Text>
       <Text style={s.note}>{note}</Text>
     </View>

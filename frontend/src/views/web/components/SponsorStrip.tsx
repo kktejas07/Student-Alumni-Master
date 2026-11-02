@@ -26,9 +26,30 @@ export type Partner = {
   category: 'college' | 'company' | 'sponsor';
   logo_url: string;
   logo_white_url?: string | null;
+  website_url?: string | null;
+  tier?: 'gold' | 'silver' | 'bronze' | 'standard';
   display_order: number;
   is_active: boolean;
 };
+
+// ─────────────────────────────────────────────────────────────────────────
+// PT5 — public analytics beacons (fire-and-forget, sessionStorage-deduped)
+// ─────────────────────────────────────────────────────────────────────────
+const _beaconed = new Set<string>();
+
+function partnerBeacon(partnerId: string, event: 'impression' | 'click'): void {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+  if (event === 'impression' && _beaconed.has(partnerId)) return;
+  if (event === 'impression') _beaconed.add(partnerId);
+  try {
+    window.fetch('/api/partner-event', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ partner_id: partnerId, event }),
+    }).catch(() => {});
+  } catch {}
+}
 
 // ─────────────────────────────────────────────────────────────────────────
 // usePartners — fetch + cache across the page lifetime
@@ -162,11 +183,24 @@ function Group({ title, tone, children }: { title: string; tone: string; childre
   );
 }
 
-function LogoTile({ partner, h = 44, dark = false }: { partner: Partner; h?: number; dark?: boolean }) {
-  const src = partner.logo_white_url || partner.logo_url;
-  // If only color logo exists, brightness-invert to make it visible on navy
-  const needsInvert = !partner.logo_white_url && Platform.OS === 'web';
-  return (
+function LogoTile({ partner, h = 44, dark }: { partner: Partner; h?: number; dark?: boolean }) {
+  const { isDark } = useTheme();
+  // PT3 — auto-switch logo by theme: white variant on dark surfaces, color
+  // variant on light ones (the footer follows the app theme).
+  const darkSurface = dark || isDark;
+  const src = darkSurface
+    ? (partner.logo_white_url || partner.logo_url)
+    : (partner.logo_url || partner.logo_white_url);
+  // If only color logo exists on a dark surface, brightness-invert it so it
+  // stays legible on navy
+  const needsInvert = darkSurface && !partner.logo_white_url && Platform.OS === 'web';
+
+  // PT5 — impression beacon once per partner per session
+  useEffect(() => {
+    partnerBeacon(partner.id, 'impression');
+  }, [partner.id]);
+
+  const tile = (
     <View style={[s.logoTile, dark && { paddingHorizontal: 10, paddingVertical: 6 }]}>
       <Image
         source={{ uri: resolveImageUrl(src) }}
@@ -178,6 +212,19 @@ function LogoTile({ partner, h = 44, dark = false }: { partner: Partner; h?: num
       />
     </View>
   );
+
+  const openSite = () => {
+    partnerBeacon(partner.id, 'click');
+    if (partner.website_url && Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.open(partner.website_url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  return partner.website_url ? (
+    <Pressable onPress={openSite} style={{ alignItems: 'center' }}>
+      {tile}
+    </Pressable>
+  ) : tile;
 }
 
 function SkeletonLogo({ h, w }: { h: number; w: number }) {

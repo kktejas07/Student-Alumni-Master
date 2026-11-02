@@ -265,21 +265,6 @@ export function InternshipsView() {
   const [sendingReferral, setSendingReferral] = useState(false);
   const [myReferrals, setMyReferrals] = useState<any[]>([]);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const r: any = await request('/referrals/my-requests').catch(() => ({ items: [] }));
-        if (cancelled) return;
-        const items = r?.items || [];
-        setMyReferrals(items);
-        // Fire referral_accepted when a previously-requested referral has been accepted/referred
-        items.forEach((x: any) => markReferralAccepted(x));
-      } catch { }
-    })();
-    return () => { cancelled = true; };
-  }, [markReferralAccepted]);
-
   const myReferralFor = useCallback((jobId: string, alumniId: string) => {
     return myReferrals.find((x: any) => x.job_id === jobId && x.alumni_id === alumniId) || null;
   }, [myReferrals]);
@@ -297,6 +282,21 @@ export function InternshipsView() {
       status: req.status,
     });
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r: any = await request('/referrals/my-requests').catch(() => ({ items: [] }));
+        if (cancelled) return;
+        const items = r?.items || [];
+        setMyReferrals(items);
+        // Fire referral_accepted when a previously-requested referral has been accepted/referred
+        items.forEach((x: any) => markReferralAccepted(x));
+      } catch { }
+    })();
+    return () => { cancelled = true; };
+  }, [markReferralAccepted]);
 
   const loadFeed = useCallback(async (opts?: { append?: boolean; refresh?: boolean; pageOverride?: number }) => {
     const append = opts?.append || false;
@@ -1737,7 +1737,8 @@ function JobCard({
                         height: 22,
                         borderRadius: 11,
                         backgroundColor: '#E2E8F0',
-                        border: '1px solid #FFFFFF',
+                        borderWidth: 1,
+                        borderColor: '#FFFFFF',
                         marginLeft: i > 0 ? -8 : 0,
                         overflow: 'hidden',
                         alignItems: 'center',
