@@ -638,7 +638,7 @@ const st = StyleSheet.create({
   statLabel: { fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginTop: 2 },
   
   // Health bar
-  healthBar: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.1)', marginTop: 12, overflow: 'hidden' },
+  healthBar: { height: 8, borderRadius: 4, backgroundColor: 'rgba(20,23,38,0.1)', marginTop: 12, overflow: 'hidden' },
   healthBarFill: { height: '100%', borderRadius: 4 },
   healthLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
   healthLabel: { fontFamily: FONTS.med, fontSize: 11, color: SAC.muted },
@@ -647,14 +647,14 @@ const st = StyleSheet.create({
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' },
   searchGo: {
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
-    borderWidth: 1, borderColor: SAC.border, backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1, borderColor: SAC.border, backgroundColor: 'rgba(20,23,38,0.04)',
   },
   
   // List rows
   listRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    padding: 10, borderRadius: 8, backgroundColor: 'rgba(20,23,38,0.03)',
+    borderWidth: 1, borderColor: 'rgba(20,23,38,0.06)',
   },
   rowIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   emailText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
@@ -683,21 +683,21 @@ const st = StyleSheet.create({
   restoreAllTextDanger: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 11 },
 
   // Audit
-  auditScoreRow: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)' },
+  auditScoreRow: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, backgroundColor: 'rgba(20,23,38,0.03)' },
   auditScoreCircle: { width: 64, height: 64, borderRadius: 32, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
   auditScoreValue: { fontFamily: FONTS.xbold, fontSize: 18 },
   auditScoreLabel: { fontFamily: FONTS.bold, fontSize: 14, color: SAC.text },
   auditStatsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   auditStatItem: {
     flex: 1, minWidth: 80, flexDirection: 'row', alignItems: 'center', gap: 6,
-    padding: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    padding: 10, borderRadius: 8, backgroundColor: 'rgba(20,23,38,0.03)',
+    borderWidth: 1, borderColor: 'rgba(20,23,38,0.06)',
   },
   auditStatValue: { fontFamily: FONTS.bold, fontSize: 14, color: SAC.text },
   auditStatLabel: { fontFamily: FONTS.med, fontSize: 10, color: SAC.muted },
   auditIssueRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8,
-    borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.02)',
+    borderRadius: 6, backgroundColor: 'rgba(20,23,38,0.02)',
     marginBottom: 4,
   },
   issueBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },

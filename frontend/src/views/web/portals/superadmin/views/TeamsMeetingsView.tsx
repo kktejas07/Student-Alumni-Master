@@ -436,7 +436,7 @@ export function TeamsMeetingsView() {
                    style={{
                      width: '100%', backgroundColor: T.panel, border: `1px solid ${T.border}`,
                      borderRadius: 8, padding: '9px 12px', fontFamily: FONTS.med, fontSize: 13,
-                     color: T.text, colorScheme: 'dark',
+                     color: T.text,
                    }}
                  />
                ) : (
@@ -457,7 +457,7 @@ export function TeamsMeetingsView() {
                    style={{
                      width: '100%', backgroundColor: T.panel, border: `1px solid ${T.border}`,
                      borderRadius: 8, padding: '9px 12px', fontFamily: FONTS.med, fontSize: 13,
-                     color: T.text, colorScheme: 'dark',
+                     color: T.text,
                    }}
                  />
                ) : (
@@ -658,7 +658,7 @@ const s = StyleSheet.create({
   metaText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
   urlRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
+    backgroundColor: 'rgba(20,23,38,0.04)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
   },
   urlText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, flex: 1 },
   cardActions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
@@ -677,13 +677,13 @@ const s = StyleSheet.create({
   modalSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginBottom: 18 },
   inputLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12, marginBottom: 4 },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.line,
+    backgroundColor: 'rgba(20,23,38,0.04)', borderWidth: 1, borderColor: SAC.line,
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, color: SAC.text,
     fontFamily: FONTS.med, fontSize: 14, marginBottom: 14,
   },
   dropdown: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.line,
+    backgroundColor: 'rgba(20,23,38,0.04)', borderWidth: 1, borderColor: SAC.line,
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, marginBottom: 14,
   },
   dropdownText: { color: SAC.text, fontFamily: FONTS.med, fontSize: 14 },
@@ -692,7 +692,7 @@ const s = StyleSheet.create({
   dropdownOptionText: { color: SAC.text, fontFamily: FONTS.med, fontSize: 13 },
   dropdownOptionTextSelected: { color: '#8B5CF6', fontFamily: FONTS.bold, fontSize: 13 },
   modalActions: { flexDirection: 'row', gap: 12, marginTop: 8 },
-  modalCancelBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.line },
+  modalCancelBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 10, backgroundColor: 'rgba(20,23,38,0.04)', borderWidth: 1, borderColor: SAC.line },
   modalCancelText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 14 },
   modalSaveBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     paddingVertical: 12, borderRadius: 10, backgroundColor: SAC.violet },

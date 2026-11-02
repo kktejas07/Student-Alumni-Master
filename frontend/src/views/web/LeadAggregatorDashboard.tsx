@@ -10,7 +10,6 @@ import {
   View, Text, StyleSheet, Pressable, ScrollView, TextInput,
   useWindowDimensions, Platform, ActivityIndicator,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   BarChart2, Users, Briefcase, Zap, Target, Flame, TrendingUp,
   RefreshCw, ChevronRight, Building2, MapPin, Bot, Shield,
@@ -23,13 +22,13 @@ import { leadAggregatorApi } from '@/src/lib/leadAggregatorApi';
 
 // ─── Design Tokens ─────────────────────────────────────────────────────────
 const C = {
-  bg1: '#0A0E1A', bg2: '#111827', bg3: '#1F2937',
-  card: 'rgba(255,255,255,0.04)', cardH: 'rgba(255,255,255,0.08)',
-  border: 'rgba(255,255,255,0.08)', borderH: 'rgba(255,255,255,0.15)',
-  accent: '#6366F1', accentL: '#818CF8', accentXL: '#A5B4FC',
-  teal: '#2DD4BF', green: '#34D399', amber: '#F59E0B', red: '#EF4444',
-  blue: '#60A5FA', pink: '#F472B6', purple: '#A78BFA', orange: '#FB923C',
-  text: '#F9FAFB', textDim: 'rgba(255,255,255,0.55)', textMute: 'rgba(255,255,255,0.30)',
+  bg1: '#F8FAFC', bg2: '#FFFFFF', bg3: '#F1F5F9',
+  card: '#FFFFFF', cardH: '#F8FAFC',
+  border: '#E2E8F0', borderH: '#CBD5E1',
+  accent: '#6366F1', accentL: '#4F46E5', accentXL: '#4338CA',
+  teal: '#0D9488', green: '#10B981', amber: '#D97706', red: '#EF4444',
+  blue: '#3B82F6', pink: '#EC4899', purple: '#8B5CF6', orange: '#F97316',
+  text: '#0F172A', textDim: '#64748B', textMute: '#94A3B8',
 };
 const FT = { bold: 'DMSans_700Bold', semi: 'DMSans_600SemiBold', med: 'DMSans_500Medium', reg: 'DMSans_400Regular' };
 
@@ -335,6 +334,11 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
     padding: 16,
+    shadowColor: 'rgba(15,23,42,0.08)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 2,
   },
   section: { padding: 20 },
   sectionTitle: { fontFamily: FT.semi, fontSize: 15, color: C.text },

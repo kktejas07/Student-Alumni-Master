@@ -958,7 +958,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
               {!csvDryRun && (
                 <Pressable
                   onPress={() => setCsvSendEmails(!csvSendEmails)}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: csvSendEmails ? 'rgba(59,130,246,0.4)' : 'rgba(255,255,255,0.15)', backgroundColor: csvSendEmails ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.04)' }}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: csvSendEmails ? 'rgba(59,130,246,0.4)' : 'rgba(20,23,38,0.15)', backgroundColor: csvSendEmails ? 'rgba(59,130,246,0.1)' : 'rgba(20,23,38,0.04)' }}
                 >
                   <Text style={{ color: csvSendEmails ? '#60A5FA' : T.muted, fontWeight: 'bold', fontSize: 12 }}>
                     {csvSendEmails ? '✉ Send Emails' : '✉ No Emails'}
@@ -1020,7 +1020,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                 </View>
 
                 {/* Progress bar */}
-                <View style={{ height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                <View style={{ height: 6, borderRadius: 3, backgroundColor: 'rgba(20,23,38,0.06)', overflow: 'hidden' }}>
                   <View style={{
                     height: 6, borderRadius: 3,
                     width: csvProgress.phase === 'uploading' ? '40%' : `${csvPct}%`,
@@ -1073,7 +1073,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
                 {/* Last processed row */}
                 {csvProgress.row && csvProgress.row.row && csvProgress.phase !== 'uploading' && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.03)' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6, backgroundColor: 'rgba(20,23,38,0.03)' }}>
                     <Text style={{ color: '#6366F1', fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold' }}>→</Text>
                     <Text style={{ color: '#D8B4FE', fontSize: 11, fontFamily: 'monospace', flex: 1 }} numberOfLines={1}>
                       Row {csvProgress.row.row}: {csvProgress.row.name || csvProgress.row.email}
@@ -1272,7 +1272,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
             <ScrollView style={{ maxHeight: 240, marginVertical: 8 }} nestedScrollEnabled>
               {(result.recipient_groups || []).map((grp: any, i: number) => (
-                <View key={i} style={{ padding: 10, borderRadius: 8, backgroundColor: '#141424', marginBottom: 8, borderBasis: '100%' }}>
+                <View key={i} style={{ padding: 10, borderRadius: 8, backgroundColor: T.panel2, marginBottom: 8, borderBasis: '100%' }}>
                   <Text style={{ color: '#D8B4FE', fontWeight: 'bold', fontSize: 13 }}>
                     👤 {grp.recipient_name} ({grp.recipient_email}) — {grp.certificates?.length || 0} cert(s)
                   </Text>
@@ -1646,7 +1646,7 @@ const s = StyleSheet.create({
   hint: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, lineHeight: 18, marginBottom: 14 },
   field: { marginBottom: 12 },
   label: { color: '#cbd5e1', fontFamily: FONTS.bold, fontSize: 11.5, marginBottom: 6 },
-  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#1e293b', borderRadius: 10, paddingHorizontal: 12 },
+  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.border, borderRadius: 10, paddingHorizontal: 12 },
   input: { flex: 1, color: '#e2e8f0', fontFamily: FONTS.med, fontSize: 13, paddingVertical: 12 },
   textarea: { minHeight: 140, textAlignVertical: 'top', paddingTop: 12 },
   monoInput: { fontFamily: (Platform.OS === 'web' ? 'SpaceMono, "SF Mono", monospace' : FONTS.xbold) as any, letterSpacing: 0.6 },
@@ -1655,7 +1655,7 @@ const s = StyleSheet.create({
   miniBtn: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)' },
   errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)', borderRadius: 10, padding: 10, marginBottom: 12 },
   errorText: { color: '#F87171', fontFamily: FONTS.med, fontSize: 12, flex: 1 },
-  resultBox: { marginTop: 14, backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#1e293b', borderRadius: 12, padding: 14 },
+  resultBox: { marginTop: 14, backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.border, borderRadius: 12, padding: 14 },
   resultHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
   resultTitle: { color: '#34D399', fontFamily: FONTS.xbold, fontSize: 13.5 },
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 6 },
@@ -1674,8 +1674,8 @@ const s = StyleSheet.create({
   classHint: { color: '#94a3b8', fontFamily: FONTS.med, fontSize: 11.5, lineHeight: 17, marginTop: 6 },
   classRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   classKey: { color: '#64748b', fontFamily: FONTS.bold, fontSize: 11 },
-  divider: { height: 1, backgroundColor: '#1e293b', marginVertical: 14 },
-  seg: { flexDirection: 'row', gap: 8, marginBottom: 14, backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#1e293b', borderRadius: 10, padding: 4 },
+  divider: { height: 1, backgroundColor: SAC.border, marginVertical: 14 },
+  seg: { flexDirection: 'row', gap: 8, marginBottom: 14, backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.border, borderRadius: 10, padding: 4 },
   segBtn: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 8 },
   segActive: { backgroundColor: 'rgba(167,139,250,0.15)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.35)' },
   segText: { color: '#64748b', fontFamily: FONTS.bold, fontSize: 12.5 },
@@ -1695,7 +1695,7 @@ const s = StyleSheet.create({
   countPill: { backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.28)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
   countText: { color: '#c4b5fd', fontFamily: FONTS.xbold, fontSize: 11.5 },
   regFilters: { gap: 8, marginBottom: 12 },
-  filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: '#1e293b', backgroundColor: '#0f172a' },
+  filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.card },
   filterChipActive: { borderColor: 'rgba(167,139,250,0.5)', backgroundColor: 'rgba(167,139,250,0.14)' },
   filterChipText: { color: '#64748b', fontFamily: FONTS.bold, fontSize: 11.5 },
   filterChipTextActive: { color: '#c4b5fd' },
@@ -1704,17 +1704,17 @@ const s = StyleSheet.create({
   emptyText: { color: '#64748b', fontFamily: FONTS.med, fontSize: 12.5 },
   regRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(30,41,59,0.6)' },
   thumbWrap: { width: 44, height: 44 },
-  thumbPlaceholder: { width: 44, height: 44, borderRadius: 8, backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#1e293b', alignItems: 'center', justifyContent: 'center' },
+  thumbPlaceholder: { width: 44, height: 44, borderRadius: 8, backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', justifyContent: 'center' },
   regName: { color: '#e2e8f0', fontFamily: FONTS.xbold, fontSize: 13 },
   regTitleText: { color: '#94a3b8', fontFamily: FONTS.med, fontSize: 11.5 },
   regCode: { color: '#A78BFA', fontSize: 10.5 },
   regMeta: { color: '#64748b', fontFamily: FONTS.bold, fontSize: 10 },
   regLinkBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)', backgroundColor: 'rgba(167,139,250,0.08)', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   regLinkText: { color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 10.5 },
-  regCopyBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 7, borderWidth: 1, borderColor: '#1e293b', backgroundColor: '#0f172a', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  regCopyBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 7, borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.card, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   regCopyText: { color: '#64748b', fontFamily: FONTS.bold, fontSize: 10.5 },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 16, gap: 14 },
-  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: '#0f172a', borderRadius: 8, borderWidth: 1, borderColor: '#1e293b', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.card, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   pageBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
   pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 });

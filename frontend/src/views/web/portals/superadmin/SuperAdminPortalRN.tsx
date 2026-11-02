@@ -41,6 +41,7 @@ import { BGVAccountVerticalsView } from './views/BGVAccountVerticalsView';
 import { VisitorIntelligenceView } from './views/VisitorIntelligenceView';
 import { CICDEvaluatorView } from './views/CICDEvaluatorView';
 import { CodeHealthView } from './views/CodeHealthView';
+import { LeadAggregatorView } from './views/LeadAggregatorView';
 import { CareersAdminView } from './views/CareersAdminView';
 
 export function SuperAdminPortalRN() {
@@ -102,6 +103,7 @@ export function SuperAdminPortalRN() {
           {active === 'events'          && <EventsView {...subFor()} />}
           {active === 'payments'        && <PaymentsView />}
           {active === 'analytics'       && <AnalyticsView />}
+          {active === 'lead-aggregator' && <LeadAggregatorView />}
           {active === 'approvals'       && <ApprovalsView />}
           {active === 'ai-insights'     && <AIInsightsView />}
           {active === 'settings'        && <SettingsView {...subFor()} />}

@@ -528,7 +528,7 @@ export function WorkflowsView() {
                 <Switch
                   value={w.on}
                   onValueChange={() => toggle(w.id, w.on)}
-                  trackColor={{ false: 'rgba(255,255,255,0.10)', true: T.primary }}
+                  trackColor={{ false: 'rgba(20,23,38,0.10)', true: T.primary }}
                   thumbColor={w.on ? '#fff' : '#ccc'}
                   {...(Platform.OS === 'web' ? ({ activeThumbColor: '#fff' } as any) : {})}
                 />
@@ -638,7 +638,7 @@ const s = StyleSheet.create({
   // Canvas Styles
   canvasControlBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12, padding: 12 },
   presetLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  presetPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: SAC.border, borderWidth: 1 },
+  presetPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(20,23,38,0.04)', borderColor: SAC.border, borderWidth: 1 },
   presetText: { color: '#eee', fontFamily: FONTS.med, fontSize: 11.5 },
   testRunBtn: { paddingHorizontal: 14, height: 32, borderRadius: 8, backgroundColor: '#10b981', justifyContent: 'center', alignItems: 'center' },
   testRunText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
@@ -674,10 +674,10 @@ const s = StyleSheet.create({
   trigger: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
   dotSep: { color: SAC.dim },
   noSteps: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11.5 },
-  step: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.04)' },
+  step: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: 'rgba(20,23,38,0.04)' },
   statRuns: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
   statSuccess: { fontFamily: FONTS.bold, fontSize: 11 },
-  iconBtn: { padding: 6, borderRadius: 6, borderWidth: 1, borderColor: SAC.border, backgroundColor: 'rgba(255,255,255,0.03)' },
+  iconBtn: { padding: 6, borderRadius: 6, borderWidth: 1, borderColor: SAC.border, backgroundColor: 'rgba(20,23,38,0.03)' },
   runBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: 'rgba(251,191,36,0.12)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)' },
   runText: { color: SAC.accent, fontFamily: FONTS.bold, fontSize: 11.5 },
   emptyState: { alignItems: 'center', padding: 40, gap: 10 },
@@ -695,7 +695,7 @@ const s = StyleSheet.create({
   input: { backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1, borderRadius: 8, padding: 10, color: SAC.text, fontSize: 12.5 },
   label: { color: '#ccc', fontFamily: FONTS.bold, fontSize: 12 },
   hint: { color: SAC.muted, fontSize: 11 },
-  eventToggle: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.border },
+  eventToggle: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, backgroundColor: 'rgba(20,23,38,0.04)', borderWidth: 1, borderColor: SAC.border },
   eventToggleActive: { backgroundColor: SAC.primary, borderColor: SAC.accent },
   eventToggleText: { color: SAC.muted, fontSize: 11 },
   eventToggleTextActive: { color: SAC.text, fontFamily: FONTS.bold }

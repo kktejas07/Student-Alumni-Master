@@ -9,10 +9,11 @@ import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Modal, ScrollView, Platform } from 'react-native';
 import {
   Building2, UserCheck, Calendar, ShieldCheck, ChevronRight, Eye, EyeOff,
-  CheckCircle2, Inbox, X, Mail, Phone, MapPin, Briefcase, GraduationCap,
-  Clock, AlertTriangle, ExternalLink, Timer, History, Download, ArrowUpRight,
+  CheckCircle2, X, Mail, Phone, MapPin, Briefcase, GraduationCap,
+  Clock, AlertTriangle, ExternalLink,
 } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import Svg, { Rect, Circle, Path } from 'react-native-svg';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { Av } from '../atoms';
 import {
@@ -47,46 +48,18 @@ const kindIcon  = (k: Approval['kind']) => (k === 'college' ? Building2 : k === 
 const kindLabel = (k: Approval['kind']) => (k === 'college' ? 'COLLEGE' : k === 'mentor' ? 'MENTOR' : 'EVENT');
 const priorityKind = (p: Approval['priority']) => (p === 'high' ? 'danger' : p === 'med' ? 'warn' : 'neutral') as const;
 
-/** Human-readable pending duration, e.g. "3d 4h", "6h 12m". */
-function fmtDuration(hours?: number): string {
-  if (hours === undefined || hours === null) return '—';
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
-  if (h >= 48) return `${Math.floor(h / 24)}d ${h % 24}h`;
-  if (h >= 1) return `${h}h ${m}m`;
-  return `${Math.max(m, 0)}m`;
+function ApprovalsEmptyArt() {
+  const T = useSAC();
+  return (
+    <Svg width={44} height={44} viewBox="0 0 44 44">
+      <Rect x={9} y={9} width={26} height={26} rx={7} fill="none" stroke={T.line2} strokeDasharray="3 3" />
+      <Circle cx={22} cy={21} r={6.5} fill={T.tint} stroke={T.violet} strokeWidth={1.6} />
+      <Path d="M19.5 21l1.8 1.8 3.4-3.6" fill="none" stroke={T.violet} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
 }
 
-/** SLA badge text + colour for an approval. */
-function slaBadge(a: Approval): { label: string; kind: 'danger' | 'warn' | 'success' } {
-  if (a.overdue) {
-    const over = Math.max((a.pending_hours || 0) - (a.sla_hours || 0), 0);
-    return { label: `OVERDUE ${fmtDuration(over)}`, kind: 'danger' };
-  }
-  if (a.sla_state === 'due_soon') {
-    return { label: `DUE IN ${fmtDuration(a.remaining_hours)}`, kind: 'warn' };
-  }
-  return { label: `ON TRACK · ${fmtDuration(a.remaining_hours)} LEFT`, kind: 'success' };
-}
-
-const ACTION_META: Record<string, { label: string; color: string }> = {
-  submitted: { label: 'Submitted',  color: '#A78BFA' },
-  viewed:    { label: 'Viewed',     color: '#6FD6FF' },
-  approved:  { label: 'Approved',   color: '#34D399' },
-  rejected:  { label: 'Rejected',   color: '#F87171' },
-  escalated: { label: 'Escalated',  color: '#FB923C' },
-};
-
-function fmtTimestamp(iso: string): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return String(iso).slice(0, 16).replace('T', ' ');
-  return d.toLocaleString('en-IN', {
-    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
-  });
-}
-
-function ReviewPanel({ item, onClose, onApprove, onReject, onEscalate }: {
+function ReviewPanel({ item, onClose, onApprove, onReject }: {
   item: Approval | null;
   onClose: () => void;
   onApprove: (id: string, label?: string) => void;
@@ -292,18 +265,18 @@ const rpst = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: SAC.border,
   },
   head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
-  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
-  xBtn: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
+  xBtn: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(20,23,38,0.05)' },
   profile: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 4 },
-  name: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 17 },
+  name: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 17 },
   detailCard: {
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
     borderRadius: 12, padding: 14, gap: 12,
   },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   detailLabel: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, width: 60 },
-  detailVal: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
+  detailVal: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
   rejectBox: {
     backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.25)',
     borderWidth: 1, borderRadius: 12, padding: 14,
@@ -311,11 +284,11 @@ const rpst = StyleSheet.create({
   rejectTitle: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12.5 },
   rejectInput: {
     height: 80, borderRadius: 10, backgroundColor: SAC.panel2,
-    color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5,
+    color: SAC.text, fontFamily: FONTS.med, fontSize: 12.5,
     padding: 12, textAlignVertical: 'top',
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
-  primaryText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
+  primaryText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   dangerText: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 },
   trailCard: {
@@ -535,7 +508,7 @@ export function ApprovalsView() {
       {/* List */}
       {list.length === 0 ? (
         <EmptyState
-          icon={Inbox}
+          icon={() => <ApprovalsEmptyArt />}
           title="Nothing here right now"
           sub={search ? 'No items match your search.' : 'New approvals will appear here as they come in.'}
         />
@@ -591,7 +564,7 @@ export function ApprovalsView() {
 
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
-  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
+  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
   sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
 
   row: {
@@ -618,10 +591,10 @@ const s = StyleSheet.create({
   },
   checkOn: { backgroundColor: GRAD.to, borderColor: GRAD.to },
 
-  name: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13.5 },
+  name: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13.5 },
   meta: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
 
-  primaryText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 11.5 },
+  primaryText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 11.5 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
   dangerText: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 11.5 },
 });

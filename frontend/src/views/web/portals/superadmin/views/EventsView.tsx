@@ -414,9 +414,9 @@ export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) =
 
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 760 },
-  btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
+  btnText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 
@@ -428,24 +428,24 @@ const st = StyleSheet.create({
   },
   card: {
     flexGrow: 1, flexBasis: 300, maxWidth: 360,
-    backgroundColor: '#1A0F05', borderColor: 'rgba(251,146,60,0.18)', borderWidth: 1, borderRadius: 16, overflow: 'hidden',
+    backgroundColor: SAC.card, borderColor: 'rgba(251,146,60,0.18)', borderWidth: 1, borderRadius: 16, overflow: 'hidden',
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 6px 24px rgba(0,0,0,0.45)' } as any) : {}),
   },
   cover: { height: 96, borderBottomWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  cTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 14.5, lineHeight: 18 },
+  cTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 14.5, lineHeight: 18 },
   meta: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
   dot: { color: SAC.dim, fontSize: 11 },
-  barTrack: { height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden', marginTop: 2 },
+  barTrack: { height: 5, borderRadius: 3, backgroundColor: 'rgba(20,23,38,0.06)', overflow: 'hidden', marginTop: 2 },
   barFill: { height: '100%', borderRadius: 3 },
 
   modalBg: { flex: 1, backgroundColor: SAC.panel2, alignItems: 'center', justifyContent: 'center', padding: 20 },
   modalCard: { width: '100%', maxWidth: 560, maxHeight: '92%', backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2, overflow: 'hidden' },
   modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
-  modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
-  input: { flex: 1, color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13, backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border, paddingHorizontal: 12, paddingVertical: 10 },
+  modalTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
+  input: { flex: 1, color: SAC.text, fontFamily: FONTS.med, fontSize: 13, backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border, paddingHorizontal: 12, paddingVertical: 10 },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 100 },
-  detailValue: { color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
+  detailValue: { color: SAC.text, fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
 });
 
@@ -454,18 +454,18 @@ const mst = StyleSheet.create({
   bgPress: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: SAC.panel2 },
   card: {
     width: '100%', maxWidth: 620,
-    backgroundColor: '#1A0F05', borderColor: 'rgba(251,146,60,0.20)', borderWidth: 1, borderRadius: 16,
+    backgroundColor: SAC.card, borderColor: 'rgba(251,146,60,0.20)', borderWidth: 1, borderRadius: 16,
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.5)' } as any) : {}),
   },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
+  head: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(20,23,38,0.08)' },
+  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   closeBtn: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
-              backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+              backgroundColor: 'rgba(20,23,38,0.04)', borderWidth: 1, borderColor: 'rgba(20,23,38,0.10)' },
   label: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.4 },
   input: {
-    height: 38, paddingHorizontal: 12, color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
-    backgroundColor: SAC.panel2, borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 10,
+    height: 38, paddingHorizontal: 12, color: SAC.text, fontFamily: FONTS.med, fontSize: 13,
+    backgroundColor: SAC.panel2, borderColor: 'rgba(20,23,38,0.10)', borderWidth: 1, borderRadius: 10,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   err: {
@@ -473,7 +473,7 @@ const mst = StyleSheet.create({
     backgroundColor: 'rgba(239,68,68,0.10)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)',
     paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8,
   },
-  foot: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
+  foot: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 16, borderTopWidth: 1, borderTopColor: 'rgba(20,23,38,0.08)' },
   delBtn: {
     flexDirection: 'row', gap: 6, alignItems: 'center',
     paddingHorizontal: 12, height: 32, borderRadius: 9,
@@ -482,7 +482,7 @@ const mst = StyleSheet.create({
   },
   segBtn: {
     paddingHorizontal: 11, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(20,23,38,0.04)', borderWidth: 1, borderColor: 'rgba(20,23,38,0.10)',
   },
   segOn: { backgroundColor: GRAD.to, borderColor: GRAD.from },
 });

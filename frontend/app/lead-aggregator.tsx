@@ -6,7 +6,7 @@ import { LeadAggregatorDashboard } from '@/src/views/web/LeadAggregatorDashboard
 
 export default function LeadAggregatorRoute() {
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0E1A' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
       <LeadAggregatorDashboard />
     </SafeAreaView>
   );
