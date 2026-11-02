@@ -67,6 +67,12 @@ class AgentSchedulerService:
                 name="CodeHealthAgent — Codebase Auditor & Auto-Fix Loop Agent",
                 description="Continuously audits codebase against development standards and surfaces findings with Code Health Score."
             ),
+            "marketing_suite": SchedulerAgentTask(
+                agent_id="marketing_suite",
+                name="Marketing Agent Suite (PT5/PT6/PM6/PM7)",
+                description="Daily partner contract expiry, promo auto-expiry, recurring promo cloning, analytics compaction & A/B auto-settle.",
+                cadence_minutes=60,
+            ),
         }
 
     async def run_cycle(self, db=None) -> Dict[str, Any]:
@@ -163,7 +169,38 @@ class AgentSchedulerService:
             t5.last_error = str(e)
             cycle_results["code_health"] = {"ok": False, "error": str(e)}
 
+        # 6. Marketing agent suite (PT5/PT6/PM6/PM7): partner contract expiry,
+        # promo auto-expiry, recurring promo cloning, analytics compaction.
+        await self._run_marketing_suite(db, now_iso, cycle_results)
+
         return cycle_results
+
+    async def _run_marketing_suite(self, db, now_iso, cycle_results):
+        """Drives the PT5/PT6/PM6/PM7 marketing sub-agent registry from the
+        house cycle. Never raises — a single agent's failure must not take
+        down the cycle."""
+        if db is None:
+            return
+        task = self._tasks.get("marketing_suite")
+        if task:
+            task.status = "RUNNING"
+        try:
+            from services.agents.marketing_scheduler import marketing_scheduler_agent
+            out = await marketing_scheduler_agent.run(db)
+            if task:
+                task.status = "SUCCESS"
+                task.total_runs += 1
+                task.last_run_at = now_iso
+                task.next_run_at = self._next_cycle_at
+                task.last_summary = f"Marketing suite: {len(out.get('ran', []))} steps ran, " \
+                                    f"{len(out.get('skipped', {}))} gated/skipped."
+            cycle_results["marketing_suite"] = {"ok": True, "ran": out.get('ran', []),
+                                                "skipped": out.get("skipped", {})}
+        except Exception as e:
+            if task:
+                task.status = "FAILED"
+                task.last_error = str(e)
+            cycle_results["marketing_suite"] = {"ok": False, "error": str(e)}
 
     async def _loop(self, db=None):
         logger.info("[AgentScheduler] Started 30-minute recurring multi-agent worker.")

@@ -254,6 +254,10 @@ async def _lifespan(application):
         _safe_create_index(db.sa_ai_resume_reviews, [("user_id", 1), ("status", 1)]),
         _safe_create_index(db.sa_marketplace_purchases, [("user_id", 1), ("ts", -1)]),
         _safe_create_index(db.sa_marketplace_purchases, [("user_id", 1), ("service", 1), ("ts", 1)]),
+        # Partners & Promotions marketing suite (PT5/PT6/PM6/PM7)
+        _safe_create_index(db.partner_event_daily, [("partner_id", 1), ("day", 1)], unique=True),
+        _safe_create_index(db.promotion_event_daily, [("promo_id", 1), ("day", 1)], unique=True),
+        _safe_create_index(db.promotion_ab_sessions, "client_key", unique=True),
     ]
     await asyncio.gather(*index_tasks, return_exceptions=True)
 
