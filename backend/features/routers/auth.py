@@ -1575,6 +1575,16 @@ async def auth_google(request: Request, req: OAuthCallback):
         if profile is None and req.id_token:
             _load_firebase_service_account(creds)
             profile = _verify_firebase_token(req.id_token)
+            if profile is None:
+                profile = await _verify_firebase_token_with_api_key(
+                    req.id_token, creds.get("firebase_api_key", "")
+                )
+
+            # The Google endpoint must only accept a Firebase session created
+            # with Google. The Identity Toolkit lookup verifies the token; this
+            # claim is read from that same verified token.
+            if profile and profile.get("firebase_provider") != "google.com":
+                profile = None
 
         if profile is None:
             # SECURITY: never trust a client-supplied email. Only allow the
@@ -1735,6 +1745,64 @@ def _verify_firebase_token(id_token: str) -> Optional[dict]:
         return None
 
 
+async def _verify_firebase_token_with_api_key(
+    id_token: str, api_key: str
+) -> Optional[dict]:
+    """Verify a Firebase ID token through Identity Toolkit if Admin creds are unavailable.
+
+    The Firebase Web API key is public project configuration. Identity Toolkit
+    validates the ID token and returns the account profile, so profile fields
+    supplied by the browser are never trusted as identity proof.
+    """
+    if not id_token or not api_key:
+        return None
+
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            response = await client.post(
+                "https://identitytoolkit.googleapis.com/v1/accounts:lookup",
+                params={"key": api_key},
+                json={"idToken": id_token},
+            )
+        if not response.is_success:
+            try:
+                code = (response.json().get("error") or {}).get("message", "unknown")
+            except Exception:
+                code = "unreadable_response"
+            logger.warning("Firebase Identity Toolkit rejected ID token: %s", str(code).split(":", 1)[0])
+            return None
+
+        users = response.json().get("users") or []
+        if not users or users[0].get("disabled"):
+            return None
+        user = users[0]
+
+        # Identity Toolkit verified this exact token. Decode only to retain
+        # Firebase-specific claims not included in the account lookup response.
+        claims = jwt.decode(
+            id_token,
+            options={"verify_signature": False, "verify_aud": False, "verify_exp": False},
+            algorithms=["RS256"],
+        )
+        firebase_claims = claims.get("firebase") or {}
+        auth_time = int(claims.get("auth_time") or 0)
+        valid_since = int(user.get("validSince") or 0)
+        if valid_since and auth_time < valid_since:
+            return None
+
+        return {
+            "email": user.get("email"),
+            "name": user.get("displayName", ""),
+            "picture": user.get("photoUrl", ""),
+            "sub": user.get("localId"),
+            "firebase_provider": firebase_claims.get("sign_in_provider", ""),
+        }
+    except Exception as exc:
+        # Never log the bearer token or the API key.
+        logger.debug("Firebase Identity Toolkit token lookup failed: %s", type(exc).__name__)
+        return None
+
+
 @router.post("/auth/firebase", response_model=AuthResponse)
 @limiter.limit("20/minute")
 async def auth_firebase(request: Request, req: OAuthCallback):
@@ -1747,6 +1815,10 @@ async def auth_firebase(request: Request, req: OAuthCallback):
         _load_firebase_service_account(creds)
 
         profile = _verify_firebase_token(req.id_token) if req.id_token else None
+        if profile is None and req.id_token:
+            profile = await _verify_firebase_token_with_api_key(
+                req.id_token, creds.get("firebase_api_key", "")
+            )
         if profile is None:
             if not fb_service_account and os.getenv("ENV") == "development":
                 if not req.email or not req.full_name:
