@@ -21,7 +21,8 @@ import { Mail, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowRight, Sparkle
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { getBaseUrl } from '@/src/lib/env';
 import { api } from '@/src/models/services/api';
-import { initFirebaseAuth, signInWithGoogle } from '@/src/lib/firebaseAuth';
+import { initFirebaseAuth, signInWithGoogle, isFirebaseWebConfigComplete } from '@/src/lib/firebaseAuth';
+import { friendlyNetworkError } from '@/src/lib/networkErrors';
 
 const BASE = getBaseUrl();
 
@@ -134,13 +135,13 @@ function WebLoginScreen() {
         } else {
           setEmailStatus('new');
         }
-      } catch {
+      } catch (err: any) {
         if (REGISTERED_EMAILS.includes(clean)) {
           setEmailStatus('registered');
         } else {
           // DO NOT assume it's a new account if the server request failed.
           // It could be a network error or the backend is down.
-          setErrorMsg('Unable to reach the server. Please check your connection or try again later.');
+          setErrorMsg(friendlyNetworkError(err, BASE));
           setEmailStatus('idle');
         }
       }
@@ -150,6 +151,9 @@ function WebLoginScreen() {
   const [googleClientId, setGoogleClientId] = useState('');
   const [googleLoginEnabled, setGoogleLoginEnabled] = useState(false);
   const [oauthConfigLoaded, setOauthConfigLoaded] = useState(false);
+  // Google is only offered once the runtime Firebase web config has actually
+  // been accepted by the SDK. A truthy feature flag alone is not enough.
+  const [firebaseReady, setFirebaseReady] = useState(false);
 
   // Holds the oauth-config load so the Google button can await it. Without
   // this, clicking Continue with Google before the config fetch resolves
@@ -170,18 +174,23 @@ function WebLoginScreen() {
         } else {
           setGoogleLoginEnabled(false);
         }
-        if (data?.firebase?.apiKey) {
-          await initFirebaseAuth({
-            apiKey: data.firebase.apiKey,
-            authDomain: data.firebase.authDomain,
-            projectId: data.firebase.projectId,
-            appId: data.firebase.appId,
+        const firebaseConfig = data?.firebase;
+        if (isFirebaseWebConfigComplete(firebaseConfig)) {
+          const initialized = await initFirebaseAuth({
+            apiKey: firebaseConfig.apiKey,
+            authDomain: firebaseConfig.authDomain,
+            projectId: firebaseConfig.projectId,
+            appId: firebaseConfig.appId,
           });
+          setFirebaseReady(initialized);
+        } else {
+          setFirebaseReady(false);
         }
         setOauthConfigLoaded(true);
       })
       .catch(() => {
         setGoogleLoginEnabled(false);
+        setFirebaseReady(false);
         setOauthConfigLoaded(true);
       });
     configLoadRef.current = load;
@@ -208,10 +217,6 @@ function WebLoginScreen() {
       }
     } catch (err: any) {
       setLoading(false);
-      if (err?.message?.includes('Firebase') || !googleClientId) {
-        setShowGoogleModal(true);
-        return;
-      }
       setErrorMsg(err?.message || 'Google Sign-In failed. Please try again.');
     }
   };
@@ -266,7 +271,7 @@ function WebLoginScreen() {
         setLoading(false);
       }
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Google Sign-In failed. Please check connection.');
+      setErrorMsg(friendlyNetworkError(err, BASE));
       setLoading(false);
     }
   };
@@ -322,7 +327,7 @@ function WebLoginScreen() {
       else if (r === 'alumni') router.replace('/alumni-portal');
       else router.replace('/student-portal/dashboard');
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Network error — please check connection or credentials.');
+      setErrorMsg(friendlyNetworkError(err, BASE));
       setLoading(false);
     }
   };
@@ -431,14 +436,15 @@ function WebLoginScreen() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? '32px 20px' : '52px 48px' }}>
             <div style={{ width: '100%', maxWidth: 420 }}>
               <div style={{ fontSize: 32, fontWeight: '700', letterSpacing: '-1px', color: '#F4F4FA' }}>Sign in</div>
-              <div style={{ fontSize: 14.5, color: '#8A8A9E', marginTop: 7 }}>Use your college address to unlock your cohort.</div>
+              <div style={{ fontSize: 14.5, color: '#8A8A9E', marginTop: 7 }}>Use your email address to continue. College verification may be required for cohort access.</div>
 
-              {oauthConfigLoaded && googleLoginEnabled && (
+              {oauthConfigLoaded && googleLoginEnabled && firebaseReady && (
                 <>
                   {/* Google Button */}
                   <button
                     type="button"
                     onClick={() => handleGoogleSignIn()}
+                    data-testid="google-signin-button"
                     className="social-btn"
                     style={{
                       display: 'flex',
@@ -474,6 +480,17 @@ function WebLoginScreen() {
                 </>
               )}
 
+              {oauthConfigLoaded && googleLoginEnabled && !firebaseReady && (
+                <div
+                  role="status"
+                  data-testid="google-signin-unavailable"
+                  style={{ marginTop: 26, border: '1px solid #3A2E1B', borderRadius: 12, background: 'rgba(245,158,11,.08)', color: '#C9A227', fontSize: 13, lineHeight: 1.5, padding: '12px 14px' }}
+                >
+                  Google sign-in is unavailable in this environment because its Firebase web
+                  configuration is missing or invalid. Use your email and password below.
+                </div>
+              )}
+
               {/* Error Message Alert */}
               {errorMsg ? (
                 <div
@@ -486,16 +503,16 @@ function WebLoginScreen() {
               ) : null}
 
               {/* Email Step Input */}
-              <div style={{ fontSize: 12, fontWeight: '700', letterSpacing: '1.3px', color: '#8A8A9E', marginBottom: 9 }}>COLLEGE EMAIL</div>
+              <div style={{ fontSize: 12, fontWeight: '700', letterSpacing: '1.3px', color: '#8A8A9E', marginBottom: 9 }}>EMAIL</div>
               <div className="db-field-focus" style={{ display: 'flex', alignItems: 'center', gap: 11, border: '1px solid #262638', borderRadius: 12, background: '#14141F', padding: '14px 15px', transition: 'all 0.2s ease' }}>
                 <Mail size={16} color="#8A8A9E" />
                 <input
                   type="email"
-                  aria-label="College Email"
+                  aria-label="Email address"
                   data-testid="email-input"
                   value={email}
                   onChange={(e) => handleEmailChange(e.target.value)}
-                  placeholder="devender@mrit.edu"
+                  placeholder="you@email.com"
                   style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', color: '#F4F4FA', fontSize: 15, outline: 'none' }}
                 />
                 {emailStatus === 'registered' && <CheckCircle2 size={16} color="#34D399" />}
