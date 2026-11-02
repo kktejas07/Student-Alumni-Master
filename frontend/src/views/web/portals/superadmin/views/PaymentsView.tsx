@@ -30,6 +30,7 @@ const FALLBACK = {
 };
 
 function PayoutTiersEditor({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const T = useSAC();
   const [tiers, setTiers] = useState<FlatTier[]>([]);
   const [loading, setLoading] = useState(false);
   const [editIdx, setEditIdx] = useState<number | null>(null);
@@ -129,7 +130,7 @@ function PayoutTiersEditor({ visible, onClose }: { visible: boolean; onClose: ()
                 <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
               </SecondaryButton>
               <GradientButton onPress={save} loading={loading} disabled={!form.name} style={{ flex: 1 }}>
-                <Check size={13} color="#fff" /><Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>{editIdx !== null ? 'Update' : 'Add'}</Text>
+                <Check size={13} color="#fff" /><Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 12 }}>{editIdx !== null ? 'Update' : 'Add'}</Text>
               </GradientButton>
             </View>
           </View>

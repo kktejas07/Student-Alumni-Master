@@ -806,6 +806,8 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(25);
 
   const load = useCallback(async (pageNum = page, limit = perPage) => {
     setBusy(true);
@@ -856,8 +858,9 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
   const items = useMemo(() => {
     let list = data?.items || [];
     if (showPendingOnly) list = list.filter((u: any) => !u.approved);
-    return list;
-  }, [data, showPendingOnly]);
+    const start = (page - 1) * perPage;
+    return list.slice(start, start + perPage);
+  }, [data, showPendingOnly, page, perPage]);
 
   const approve = async (id: string) => {
     try {

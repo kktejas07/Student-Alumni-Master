@@ -57,7 +57,6 @@ function EventModal({
 }) {
   const { confirm } = useConfirm();
   const T = useSAC();
-  Object.assign(mst, resolveColors(mst, T));
   const isEdit = !!editing;
   const [form, setForm] = useState<Editable>(EMPTY);
   const [saving, setSaving] = useState(false);
@@ -228,7 +227,7 @@ function EventModal({
               <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
             </SecondaryButton>
             <GradientButton onPress={save} loading={saving}>
-              <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12 }}>
+              <Text style={{ color: T.text, fontFamily: FONTS.xbold, fontSize: 12 }}>
                 {isEdit ? 'Save changes' : 'Create event'}
               </Text>
             </GradientButton>

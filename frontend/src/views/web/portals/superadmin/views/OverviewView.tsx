@@ -761,7 +761,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                       start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
                       style={{ width: '100%', height: h, borderTopLeftRadius: 5, borderTopRightRadius: 5, opacity: isLast ? 1 : 0.7 }}
                     />
-                    <Text style={[s.barMonth, isLast && { color: SAC.text, fontFamily: FONTS.bold }]}>{m.month}</Text>
+                    <Text style={[s.barMonth, isLast && { color: T.text, fontFamily: FONTS.bold }]}>{m.month}</Text>
                   </View>
                 );
               })}

@@ -194,7 +194,7 @@ function RegistryTab({ onSaved }: { onSaved: (s?: string) => void }) {
               onChangeText={(t) => { setQ(t); }}
               onSubmitEditing={reload}
               placeholder="Search name, code, roll no…"
-              placeholderTextColor="#475569"
+              placeholderTextColor={T.dim}
               autoCapitalize="none"
               autoCorrect={false}
               style={s.input}
@@ -236,7 +236,7 @@ function RegistryTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
         {!loading && items.length === 0 && (
           <View style={s.emptyBox}>
-            <FolderOpen size={22} color="#475569" />
+            <FolderOpen size={22} color={T.dim} />
             <Text style={s.emptyText}>
               {total === 0 ? 'No certificates in the registry yet.' : 'No results match your filters.'}
             </Text>
@@ -260,13 +260,13 @@ function RegistryTab({ onSaved }: { onSaved: (s?: string) => void }) {
                         alt="cert"
                         style={{
                           width: 44, height: 44, borderRadius: 8, objectFit: 'cover',
-                          display: 'block', background: T.card,
+                          display: 'block', background: T.panel,
                         }}
                       />
                     </View>
                   ) : (
                     <View style={s.thumbPlaceholder}>
-                      <FileText size={18} color="#475569" />
+                      <FileText size={18} color={T.dim} />
                     </View>
                   )}
 
@@ -289,7 +289,7 @@ function RegistryTab({ onSaved }: { onSaved: (s?: string) => void }) {
                       onPress={() => copyUrl(id || code)}
                       style={s.regCopyBtn}
                     >
-                      <Copy size={12} color="#64748b" />
+                      <Copy size={12} color={T.dim} />
                       <Text style={s.regCopyText}>{copied === (id || code) ? 'Copied!' : 'Copy link'}</Text>
                     </Pressable>
                     <Pressable
@@ -390,7 +390,7 @@ function IssueTab({ onSaved }: { onSaved: (s?: string) => void }) {
               value={email}
               onChangeText={setEmail}
               placeholder="student@college.edu"
-              placeholderTextColor="#475569"
+              placeholderTextColor={T.dim}
               autoCapitalize="none"
               keyboardType="email-address"
               style={s.input}
@@ -406,7 +406,7 @@ function IssueTab({ onSaved }: { onSaved: (s?: string) => void }) {
               value={title}
               onChangeText={setTitle}
               placeholder="e.g. Data Structures & Algorithms Workshop"
-              placeholderTextColor="#475569"
+              placeholderTextColor={T.dim}
               style={s.input}
             />
           </View>
@@ -420,7 +420,7 @@ function IssueTab({ onSaved }: { onSaved: (s?: string) => void }) {
               value={issuer}
               onChangeText={setIssuer}
               placeholder="Student Alumni"
-              placeholderTextColor="#475569"
+              placeholderTextColor={T.dim}
               style={s.input}
             />
           </View>
@@ -525,7 +525,7 @@ function BulkTab({ onSaved }: { onSaved: (s?: string) => void }) {
           value={rows}
           onChangeText={setRows}
           placeholder={'student1@college.edu | AI & ML Bootcamp\nstudent2@college.edu | Web Dev Workshop'}
-          placeholderTextColor="#475569"
+          placeholderTextColor={T.dim}
           multiline
           style={[s.input, s.textarea]}
         />
@@ -853,7 +853,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   value={email}
                   onChangeText={setEmail}
                   placeholder="student@college.edu"
-                  placeholderTextColor="#475569"
+                  placeholderTextColor={T.dim}
                   autoCapitalize="none"
                   keyboardType="email-address"
                   style={s.input}
@@ -868,7 +868,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   value={title}
                   onChangeText={setTitle}
                   placeholder="e.g. AI & ML Bootcamp"
-                  placeholderTextColor="#475569"
+                  placeholderTextColor={T.dim}
                   style={s.input}
                 />
               </View>
@@ -902,7 +902,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <>
             <View style={{ padding: 14, borderRadius: 10, backgroundColor: 'rgba(124,92,252,0.08)', borderWidth: 1, borderColor: 'rgba(124,92,252,0.25)', marginBottom: 10 }}>
               <Text style={{ color: '#D8B4FE', fontWeight: 'bold', fontSize: 13, marginBottom: 4 }}>CSV + ZIP Import (Recommended)</Text>
-              <Text style={{ color: '#9095A8', fontSize: 12, lineHeight: 18 }}>
+              <Text style={{ color: T.muted, fontSize: 12, lineHeight: 18 }}>
                 Upload <Text style={{ fontWeight: 'bold', color: '#C7D2FE' }}>two separate files</Text>: a ZIP of certificate images + a CSV index. The CSV must have an{' '}
                 <Text style={{ fontFamily: 'monospace', color: '#C7D2FE' }}>email</Text>,{' '}
                 <Text style={{ fontFamily: 'monospace', color: '#C7D2FE' }}>name</Text>,{' '}
@@ -960,12 +960,12 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   onPress={() => setCsvSendEmails(!csvSendEmails)}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: csvSendEmails ? 'rgba(59,130,246,0.4)' : 'rgba(20,23,38,0.15)', backgroundColor: csvSendEmails ? 'rgba(59,130,246,0.1)' : 'rgba(20,23,38,0.04)' }}
                 >
-                  <Text style={{ color: csvSendEmails ? '#60A5FA' : '#9095A8', fontWeight: 'bold', fontSize: 12 }}>
+                  <Text style={{ color: csvSendEmails ? '#60A5FA' : T.muted, fontWeight: 'bold', fontSize: 12 }}>
                     {csvSendEmails ? '✉ Send Emails' : '✉ No Emails'}
                   </Text>
                 </Pressable>
               )}
-              <Text style={{ color: '#9095A8', fontSize: 11 }}>
+              <Text style={{ color: T.muted, fontSize: 11 }}>
                 {csvDryRun ? 'Preview only — nothing saved' : csvSendEmails ? 'Import to DB + send emails' : 'Import to DB only — no emails'}
               </Text>
             </View>
@@ -994,7 +994,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                       <ActivityIndicator size="small" color={csvProgress.phase === 'uploading' ? '#FBBF24' : csvProgress.phase === 'emails' ? '#34D399' : '#818CF8'} />
                     </View>
                     <View>
-                      <Text style={{ color: '#E2E8F0', fontWeight: 'bold', fontSize: 14 }}>
+                      <Text style={{ color: T.text, fontWeight: 'bold', fontSize: 14 }}>
                         {csvProgress.phase === 'uploading'
                           ? 'Uploading Files'
                           : csvProgress.phase === 'emails'
@@ -1003,7 +1003,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                           ? 'Import Complete'
                           : 'Processing Certificates'}
                       </Text>
-                      <Text style={{ color: '#9095A8', fontSize: 11, marginTop: 1 }}>
+                      <Text style={{ color: T.muted, fontSize: 11, marginTop: 1 }}>
                         {csvProgress.phase === 'uploading'
                           ? 'Sending ZIP archives and CSV to server...'
                           : csvProgress.phase === 'emails'
@@ -1036,13 +1036,13 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                       <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#F59E0B' }} />
                         <Text style={{ color: '#C7D2FE', fontSize: 11, fontFamily: 'monospace' }}>{f.name}</Text>
-                        <Text style={{ color: '#9095A8', fontSize: 10 }}>{(f.size / 1024 / 1024).toFixed(1)} MB</Text>
+                        <Text style={{ color: T.muted, fontSize: 10 }}>{(f.size / 1024 / 1024).toFixed(1)} MB</Text>
                       </View>
                     ))}
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                       <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981' }} />
                       <Text style={{ color: '#C7D2FE', fontSize: 11, fontFamily: 'monospace' }}>{csvCsvFile?.name}</Text>
-                      <Text style={{ color: '#9095A8', fontSize: 10 }}>{((csvCsvFile?.size || 0) / 1024).toFixed(0)} KB</Text>
+                      <Text style={{ color: T.muted, fontSize: 10 }}>{((csvCsvFile?.size || 0) / 1024).toFixed(0)} KB</Text>
                     </View>
                   </View>
                 )}
@@ -1059,8 +1059,8 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                       <Text style={{ color: '#60A5FA', fontSize: 12, fontWeight: '600' }}>{csvRows.filter(r => r.action === 'updated').length} updated</Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#9095A8' }} />
-                      <Text style={{ color: '#9095A8', fontSize: 12, fontWeight: '600' }}>{csvRows.filter(r => r.action === 'skipped').length} skipped</Text>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: T.muted }} />
+                      <Text style={{ color: T.muted, fontSize: 12, fontWeight: '600' }}>{csvRows.filter(r => r.action === 'skipped').length} skipped</Text>
                     </View>
                     {csvEmails.sent > 0 && (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -1082,7 +1082,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                       {csvProgress.row.action}
                     </Text>
                     {csvProgress.row.file_matched && (
-                      <Text style={{ color: '#9095A8', fontSize: 9, fontFamily: 'monospace' }} numberOfLines={1}>
+                      <Text style={{ color: T.muted, fontSize: 9, fontFamily: 'monospace' }} numberOfLines={1}>
                         {csvProgress.row.file_matched}
                       </Text>
                     )}
@@ -1102,7 +1102,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                 <View style={{ flexDirection: 'row', gap: 12, marginVertical: 6, flexWrap: 'wrap' }}>
                   <Text style={{ color: '#34D399', fontSize: 12 }}>✓ {csvResult.created || csvRows.filter(r => r.action === 'created').length} created</Text>
                   <Text style={{ color: '#60A5FA', fontSize: 12 }}>↻ {csvResult.updated || csvRows.filter(r => r.action === 'updated').length} updated</Text>
-                  <Text style={{ color: '#9095A8', fontSize: 12 }}>⏭ {csvResult.skipped || csvRows.filter(r => r.action === 'skipped').length} skipped</Text>
+                  <Text style={{ color: T.muted, fontSize: 12 }}>⏭ {csvResult.skipped || csvRows.filter(r => r.action === 'skipped').length} skipped</Text>
                   {!csvResult.dry_run && (csvEmails.sent + csvEmails.errors) > 0 && (
                     <Text style={{ color: '#A78BFA', fontSize: 12 }}>✉ {csvEmails.sent} sent, {csvEmails.errors} failed</Text>
                   )}
@@ -1111,9 +1111,9 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   <ScrollView style={{ maxHeight: 240, marginTop: 6 }} nestedScrollEnabled>
                     {csvRows.slice(-50).map((r: any, i: number) => (
                       <View key={i} style={[s.bulkRow, { gap: 6, flexWrap: 'wrap', paddingVertical: 6 }]}>
-                        <Text style={{ fontSize: 10, color: '#9095A8', fontFamily: 'monospace' }}>row {r.row}</Text>
+                        <Text style={{ fontSize: 10, color: T.muted, fontFamily: 'monospace' }}>row {r.row}</Text>
                         <Text style={{ fontSize: 11, color: '#D8B4FE', fontWeight: 'bold' }}>{r.name} ({r.email})</Text>
-                        <Text style={{ fontSize: 10, color: '#9095A8' }}>{r.title}</Text>
+                        <Text style={{ fontSize: 10, color: T.muted }}>{r.title}</Text>
                         <Text style={{ fontSize: 10, fontFamily: 'monospace', color: r.action === 'created' ? '#34D399' : r.action === 'updated' ? '#60A5FA' : r.action === 'skipped' ? '#F87171' : '#FBBF24' }}>
                           {r.action}{r.file_matched ? ` • ${r.file_matched}` : ''} {r.error ? `• ${r.error}` : ''}
                         </Text>
@@ -1253,8 +1253,8 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
               {(testResult.preview || []).map((item: any, idx: number) => (
                 <View key={idx} style={[s.bulkRow, { gap: 6, flexWrap: 'wrap' }]}>
                   <Text style={[s.mono, { color: '#34D399', fontSize: 11 }]}>{item.simulated_code}</Text>
-                  <Text style={{ color: SAC.text, fontSize: 12, fontWeight: 'bold' }}>{item.recipient_name} ({item.recipient_email})</Text>
-                  <Text style={{ color: '#94A3B8', fontSize: 11 }}>Title: {item.extracted_title}</Text>
+                  <Text style={{ color: T.text, fontSize: 12, fontWeight: 'bold' }}>{item.recipient_name} ({item.recipient_email})</Text>
+                  <Text style={{ color: T.muted, fontSize: 11 }}>Title: {item.extracted_title}</Text>
                 </View>
               ))}
             </ScrollView>
@@ -1277,7 +1277,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                     👤 {grp.recipient_name} ({grp.recipient_email}) — {grp.certificates?.length || 0} cert(s)
                   </Text>
                   {(grp.certificates || []).map((c: any, j: number) => (
-                    <Text key={j} style={{ color: '#9095A8', fontSize: 11, marginTop: 4, fontFamily: 'monospace' }}>
+                    <Text key={j} style={{ color: T.muted, fontSize: 11, marginTop: 4, fontFamily: 'monospace' }}>
                       • [{c.code}] {c.title}
                     </Text>
                   ))}
@@ -1438,7 +1438,7 @@ function ExternalTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <Text style={s.label}>Recipient Email *</Text>
           <View style={s.inputRow}>
             <Mail size={15} color={T.muted} />
-            <TextInput value={email} onChangeText={setEmail} placeholder="student@college.edu" placeholderTextColor="#475569" autoCapitalize="none" keyboardType="email-address" style={s.input} />
+            <TextInput value={email} onChangeText={setEmail} placeholder="student@college.edu" placeholderTextColor={T.dim} autoCapitalize="none" keyboardType="email-address" style={s.input} />
           </View>
         </View>
 
@@ -1446,7 +1446,7 @@ function ExternalTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <Text style={s.label}>Certificate Title *</Text>
           <View style={s.inputRow}>
             <Award size={15} color={T.muted} />
-            <TextInput value={title} onChangeText={setTitle} placeholder="e.g. Python for Everybody" placeholderTextColor="#475569" style={s.input} />
+            <TextInput value={title} onChangeText={setTitle} placeholder="e.g. Python for Everybody" placeholderTextColor={T.dim} style={s.input} />
           </View>
         </View>
 
@@ -1454,7 +1454,7 @@ function ExternalTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <Text style={s.label}>Credential URL *</Text>
           <View style={s.inputRow}>
             <Link2 size={15} color={T.muted} />
-            <TextInput value={url} onChangeText={setUrl} placeholder="https://www.udemy.com/certificate/UC-..." placeholderTextColor="#475569" autoCapitalize="none" autoCorrect={false} style={s.input} />
+            <TextInput value={url} onChangeText={setUrl} placeholder="https://www.udemy.com/certificate/UC-..." placeholderTextColor={T.dim} autoCapitalize="none" autoCorrect={false} style={s.input} />
             <Pressable onPress={classify} style={s.miniBtn}>
               {classifying ? <ActivityIndicator size={12} color="#A78BFA" /> : <Sparkles size={14} color="#A78BFA" />}
             </Pressable>
@@ -1471,7 +1471,7 @@ function ExternalTab({ onSaved }: { onSaved: (s?: string) => void }) {
             <Text style={s.classHint}>{classification.hint}</Text>
             <View style={s.classRow}>
               <Text style={s.classKey}>Key</Text>
-              <Text style={[s.mono, { color: '#94a3b8' }]}>{classification.issuer_key}</Text>
+              <Text style={[s.mono, { color: T.muted }]}>{classification.issuer_key}</Text>
             </View>
           </View>
         )}
@@ -1547,7 +1547,7 @@ function VerifyTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <Text style={s.label}>Verification Code</Text>
           <View style={s.inputRow}>
             <ShieldCheck size={15} color={T.muted} />
-            <TextInput value={code} onChangeText={setCode} placeholder="SA-ABCD-1234" placeholderTextColor="#475569" autoCapitalize="characters" autoCorrect={false} style={[s.input, s.monoInput]} />
+            <TextInput value={code} onChangeText={setCode} placeholder="SA-ABCD-1234" placeholderTextColor={T.dim} autoCapitalize="characters" autoCorrect={false} style={[s.input, s.monoInput]} />
             <GradientButton onPress={lookup} loading={busy} size="sm">
               <View style={s.btnInner}><Search size={14} color="#fff" /><Text style={s.btnTextSm}>Verify</Text></View>
             </GradientButton>
@@ -1560,7 +1560,7 @@ function VerifyTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <Text style={s.label}>Or look up by recipient email</Text>
           <View style={s.inputRow}>
             <User size={15} color={T.muted} />
-            <TextInput value={email} onChangeText={setEmail} placeholder="student@college.edu" placeholderTextColor="#475569" autoCapitalize="none" keyboardType="email-address" style={s.input} />
+            <TextInput value={email} onChangeText={setEmail} placeholder="student@college.edu" placeholderTextColor={T.dim} autoCapitalize="none" keyboardType="email-address" style={s.input} />
             <GradientButton onPress={byRecipient} loading={busy} size="sm">
               <View style={s.btnInner}><Search size={14} color="#fff" /><Text style={s.btnTextSm}>Find</Text></View>
             </GradientButton>
