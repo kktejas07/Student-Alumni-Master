@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 
 _CACHE_TTL_HOURS = 24
 _BATCH_SIZE = 50  # leads per Claude API call in batch mode
-_MODEL = "claude-sonnet-5-5"
+_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5")
+_BASE_URL = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com").rstrip("/")
 
 ai_match_cache = db.la_ai_match_cache
 ai_cost_log = db.la_ai_cost_log
@@ -156,7 +157,7 @@ async def match_lead_to_brand(lead: dict, brand: dict) -> dict:
 
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(
-                "https://api.anthropic.com/v1/messages",
+                f"{_BASE_URL}/v1/messages",
                 headers={
                     "x-api-key": api_key,
                     "anthropic-version": "2023-06-01",
