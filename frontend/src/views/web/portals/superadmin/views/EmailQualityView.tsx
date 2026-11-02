@@ -17,7 +17,7 @@ import {
   XCircle, Search, Users, TrendingUp, TrendingDown, Eye, Trash2,
   CheckCircle2, Clock, FileText, Download, Filter,
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import {
   GRAD, SecondaryButton, Card, IconBox, SectionLabel,
   StatusPill, Toast, useToast, KpiTile, SearchField,
@@ -68,7 +68,7 @@ function kindColor(kind?: string): string {
 
 export function EmailQualityView() {
   const T = useSAC();
-  Object.assign(st, resolveColors(st, T));
+  Object.assign(st, resolveColors(pristineOf(st), T));
   const { toast, flash, hide } = useToast();
   const { confirm } = useConfirm();
   const [q, setQ] = useState('');
@@ -472,7 +472,7 @@ export function EmailQualityView() {
                         onPress={() => suppressEmails([issue.email], issue.reason)} 
                         style={[st.restoreBtn, { borderColor: 'rgba(239,68,68,0.35)', paddingVertical: 4 }]}
                       >
-                        <Text style={[st.restoreText, { color: '#FCA5A5' }]}>Suppress</Text>
+                        <Text style={[st.restoreText, { color: T.danger }]}>Suppress</Text>
                       </Pressable>
                     </View>
                   ))}
@@ -664,7 +664,7 @@ const st = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8,
     borderWidth: 1, borderColor: 'rgba(110,231,183,0.35)',
   },
-  restoreText: { color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 12 },
+  restoreText: { color: SAC.ok, fontFamily: FONTS.bold, fontSize: 12 },
   
   // Selection & Restore
   listRowSelected: { backgroundColor: 'rgba(124,58,237,0.08)', borderColor: 'rgba(167,139,250,0.3)' },
@@ -675,12 +675,12 @@ const st = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
     borderWidth: 1, borderColor: 'rgba(110,231,183,0.35)', backgroundColor: 'rgba(110,231,183,0.1)',
   },
-  restoreAllText: { color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 11 },
+  restoreAllText: { color: SAC.ok, fontFamily: FONTS.bold, fontSize: 11 },
   restoreAllBtnDanger: {
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
     borderWidth: 1, borderColor: 'rgba(239,68,68,0.35)', backgroundColor: 'rgba(239,68,68,0.1)',
   },
-  restoreAllTextDanger: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 11 },
+  restoreAllTextDanger: { color: SAC.danger, fontFamily: FONTS.bold, fontSize: 11 },
 
   // Audit
   auditScoreRow: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, backgroundColor: 'rgba(20,23,38,0.03)' },

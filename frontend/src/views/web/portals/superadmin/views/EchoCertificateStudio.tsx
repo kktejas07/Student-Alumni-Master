@@ -8,7 +8,7 @@ import {
   Upload, Layers, Sliders, RefreshCw, Copy, FileText, Image as ImageIcon,
   UserCheck, Building2, GraduationCap, Star, Palette, QrCode
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import { Badge } from '../atoms';
 import { GradientButton, SecondaryButton, Card, IconBox } from '../applekit';
 import { request } from '@/src/models/services/api';
@@ -316,7 +316,7 @@ const TEMPLATES: TemplateDef[] = [
 
 export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => void }) {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('certA');
   const [activeEventFilter, setActiveEventFilter] = useState<string>('ALL');
 

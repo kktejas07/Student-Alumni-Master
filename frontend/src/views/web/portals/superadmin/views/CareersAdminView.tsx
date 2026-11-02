@@ -45,7 +45,7 @@ import {
   AlertCircle,
 } from 'lucide-react-native';
 
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import {
   GRAD,
   GradientButton,
@@ -97,7 +97,7 @@ const Label = ({ children }: { children: React.ReactNode }) => (
 
 export function CareersAdminView() {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const { toast, flash, hide } = useToast();
 
   const [activeTab, setActiveTab] = useState<'openings' | 'applications'>('openings');

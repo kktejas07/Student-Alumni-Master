@@ -18,7 +18,7 @@ import {
   Percent, DollarSign, Gift, Ticket, Users, BarChart3,
   Lock, Unlock, Info, Globe, Upload, Image,
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, SectionLabel, StatusPill,
   KpiTile, EmptyState, useToast, Toast,
@@ -63,7 +63,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export function CouponsView() {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
 
   const [coupons, setCoupons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

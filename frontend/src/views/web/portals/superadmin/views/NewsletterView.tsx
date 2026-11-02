@@ -20,7 +20,7 @@ import {
   Mail, Send, RefreshCw, Calendar, AlertTriangle, Check, Users, Megaphone,
   Bell, Smartphone, Search, User, Upload, X, ImagePlus, MessageSquare,
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   StatusPill, Toast, useToast, KpiTile,
@@ -117,7 +117,7 @@ function buildPreviewHtml(form: any, events: any[]): string {
 
 export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const T = useSAC();
-  Object.assign(st, resolveColors(st, T));
+  Object.assign(st, resolveColors(pristineOf(st), T));
   const { toast, flash, hide } = useToast();
   const [form, setForm] = useState({
     subject: '',

@@ -33,7 +33,7 @@ import {
   ImagePlus, RefreshCw, ExternalLink, Award,
   UploadCloud, Download, FileText,
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   TopTabs, SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox,
@@ -121,7 +121,7 @@ function contractDays(p: Partner): { days: number; color: string; label: string 
 export function PartnersView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const sac = useSAC();
   const T = useThemedCrudStyles();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const { toast, flash, hide } = useToast();
   const [partners, setPartners] = useState<Partner[] | null>(null);
   const [busy, setBusy] = useState(false);

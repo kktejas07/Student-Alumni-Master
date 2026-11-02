@@ -6,7 +6,7 @@ import {
   RefreshCw, Play, X, Plus, Minus, CheckCircle, AlertTriangle, Target, Sparkles, Network,
   ArrowRight, Search, Mail, FileText,
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import { Badge, KpiCard } from '../atoms';
 import { getPortal, postPortal } from '@/src/lib/portalApi';
 import { useToast, Toast } from '../applekit';
@@ -85,7 +85,7 @@ const TABS: { key: Tab; label: string; Icon: any }[] = [
 
 export function TalentPoolAgentsView() {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const { toast, flash, hide } = useToast();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
 

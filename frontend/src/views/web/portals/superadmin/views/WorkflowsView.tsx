@@ -6,7 +6,7 @@ import {
   Trash2, Pencil, Eye, Bot, Sparkles, Database, Layers, ArrowRight, ArrowDown,
   Settings, Sliders, Split, Send, Bell, Mail, ShieldCheck, RefreshCw, Move, Code, FileText, CheckCircle2
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import { Badge } from '../atoms';
 import { GradientButton, SecondaryButton, Toast, useToast, IconBox } from '../applekit';
 import { usePortalData, postPortal, patchPortal, deletePortal } from '@/src/lib/portalApi';
@@ -109,7 +109,7 @@ const FALLBACK = { items: [] as Wf[] };
 
 export function WorkflowsView() {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/workflows', FALLBACK);
   const [viewMode, setViewMode] = useState<'canvas' | 'list'>('canvas');
   const [nodes, setNodes] = useState<GraphNode[]>(DEFAULT_GRAPH_NODES);

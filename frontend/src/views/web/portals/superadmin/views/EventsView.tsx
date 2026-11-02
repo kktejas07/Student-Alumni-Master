@@ -15,7 +15,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions, Modal, TextInput, ScrollView } from 'react-native';
 import { Calendar as CalIcon, MapPin, Users as UsersIcon, ShieldCheck, AlertTriangle, IndianRupee, Sparkles, Plus, X, Trash2 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import { GRAD, Card, IconBox, KpiTile, StatusPill, GradientButton, SecondaryButton, SearchField, TopTabs, EmptyState, useToast, Toast } from '../applekit';
 import { usePortalData } from '@/src/lib/portalApi';
 import { request } from '@/src/models/services/api';
@@ -209,8 +209,8 @@ function EventModal({
 
             {!!err && (
               <View style={mst.err}>
-                <AlertTriangle size={12} color="#FCA5A5" />
-                <Text style={{ color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 11.5 }}>{err}</Text>
+                <AlertTriangle size={12} color={T.danger} />
+                <Text style={{ color: T.danger, fontFamily: FONTS.bold, fontSize: 11.5 }}>{err}</Text>
               </View>
             )}
           </ScrollView>
@@ -218,8 +218,8 @@ function EventModal({
           <View style={mst.foot}>
             {isEdit ? (
               <Pressable onPress={remove} disabled={saving} style={mst.delBtn}>
-                <Trash2 size={13} color="#FCA5A5" />
-                <Text style={{ color: '#FCA5A5', fontFamily: FONTS.xbold, fontSize: 12 }}>Delete</Text>
+                <Trash2 size={13} color={T.danger} />
+                <Text style={{ color: T.danger, fontFamily: FONTS.xbold, fontSize: 12 }}>Delete</Text>
               </Pressable>
             ) : <View />}
             <View style={{ flex: 1 }} />
@@ -266,7 +266,7 @@ function Segmented({ value, onChange, options }: { value: string; onChange: (v: 
 
 export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const T = useSAC();
-  Object.assign(st, resolveColors(st, T));
+  Object.assign(st, resolveColors(pristineOf(st), T));
   const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/events', FALLBACK);
   const EVENTS = data?.items || [];
   const { width } = useWindowDimensions();

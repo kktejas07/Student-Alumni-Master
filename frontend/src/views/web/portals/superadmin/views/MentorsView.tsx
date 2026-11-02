@@ -21,7 +21,7 @@ import {
 } from 'lucide-react-native';
 import { GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   KpiTile, useToast, Toast, EmptyState, LoadingBox } from '../applekit';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 import { request } from '@/src/models/services/api';
 import { UserDirectoryView } from './UserDirectoryView';
@@ -38,7 +38,7 @@ const TAB_LABELS: Record<TabId, string> = {
 
 export function MentorsView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const [tab, setTab] = useSubTab<TabId>(TAB_IDS, 'directory', { sub, onSub });
   const { toast, flash, hide } = useToast();
 

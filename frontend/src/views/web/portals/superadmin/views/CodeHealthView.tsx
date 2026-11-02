@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { ShieldCheck, Zap, Play, Pause, Circle, Sparkles, UserCheck, ExternalLink } from "lucide-react-native";
-import { SAC, useSAC, FONTS, resolveColors } from "../tokens";
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from "../tokens";
 import { Card } from "../applekit";
 import { request } from "@/src/models/services/api";
 
@@ -20,7 +20,7 @@ const trackClick = (actionName: string, meta?: Record<string, any>) => {
 
 export const CodeHealthView: React.FC = () => {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
 
   const [loading, setLoading] = useState<boolean>(true);
   const [metrics, setMetrics] = useState<any>(null);

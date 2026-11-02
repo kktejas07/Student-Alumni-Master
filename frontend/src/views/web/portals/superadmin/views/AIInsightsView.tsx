@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Sparkles, AlertTriangle, TrendingUp, Lightbulb, Zap } from 'lucide-react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import { Badge } from '../atoms';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
 import { useToast, Toast, EmptyState } from '../applekit';
@@ -24,7 +24,7 @@ function InsightsEmptyArt() {
 
 export function AIInsightsView() {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const { toast, flash, hide } = useToast();
   const { data } = usePortalData<typeof FALLBACK>('/admin/super/ai-insights', FALLBACK);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());

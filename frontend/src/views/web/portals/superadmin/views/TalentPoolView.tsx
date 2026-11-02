@@ -8,7 +8,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Search, Trash2, CheckCircle, XCircle, MapPin, Briefcase, GraduationCap, Star, X, Mail, ExternalLink, Calendar, UserPlus, Send, Sparkles, Cpu, Copy, BarChart3, Zap, TrendingUp, Tags, Shield, Database, RefreshCw, ClipboardCheck } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { request, tokenStore, resolveImageUrl } from '@/src/models/services/api';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import { GRAD } from '../applekit';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 
@@ -79,7 +79,7 @@ const TAB_LABELS: Record<TabId, string> = {
 
 export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const [tab, setTab] = useSubTab<TabId>(TAB_IDS, 'profiles', { sub, onSub });
   const [profiles, setProfiles] = useState<TalentProfile[]>([]);
   const [loading, setLoading] = useState(true);

@@ -28,7 +28,7 @@ import {
   Radio, Bell, TriangleAlert, Info, ArrowDown, ArrowRight, CircleDot,
 } from 'lucide-react-native';
 
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import { Card, GRAD, SecondaryButton, GradientButton, StatusPill, TopTabs } from '../applekit';
 import { getBaseUrl } from '@/src/lib/env';
 import { request, tokenStore } from '@/src/models/services/api';
@@ -39,7 +39,7 @@ type TabId = 'live' | 'heatmap' | 'modules' | 'hardware' | 'geo' | 'acquisition'
 
 export function VisitorIntelligenceView() {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const isTablet = width < 1100;

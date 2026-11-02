@@ -25,7 +25,7 @@ import {
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 
 // MT2 — backend ships taxonomy `icon` as a string name; resolve to a component.
 const MENTOR_TAX_ICONS: Record<string, any> = {
@@ -67,7 +67,7 @@ export function UserDirectoryView({
   mentorMode?: boolean;
 }) {
   const T = useSAC();
-  Object.assign(st, resolveColors(st, T));
+  Object.assign(st, resolveColors(pristineOf(st), T));
   const meta = CAT_META[category];
   const [cat, setCat] = useState<Cat>(category);
   const [q, setQ]     = useState('');
