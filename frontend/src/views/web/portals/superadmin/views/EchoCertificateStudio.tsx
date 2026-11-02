@@ -844,41 +844,41 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
 
 const s = StyleSheet.create({
   container: { gap: 14 },
-  headerBanner: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: 14, backgroundColor: 'rgba(99,102,241,0.08)', borderColor: T.border2, borderWidth: 1, alignItems: 'center' },
+  headerBanner: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: 14, backgroundColor: 'rgba(99,102,241,0.08)', borderColor: SAC.border2, borderWidth: 1, alignItems: 'center' },
   hIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(99,102,241,0.18)', alignItems: 'center', justifyContent: 'center' },
-  hTitle: { color: T.text, fontFamily: FONTS.xbold, fontSize: 16 },
-  hSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 18 },
+  hTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
+  hSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 18 },
 
   filterRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  filterLabel: { color: T.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: T.card, borderColor: T.border, borderWidth: 1 },
-  filterChipActive: { backgroundColor: T.primary, borderColor: T.accent },
-  filterChipText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
-  filterChipTextActive: { color: T.text },
+  filterLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1 },
+  filterChipActive: { backgroundColor: SAC.primary, borderColor: SAC.accent },
+  filterChipText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+  filterChipTextActive: { color: SAC.text },
 
   tplList: { gap: 10, paddingVertical: 4 },
-  tplCard: { width: 220, padding: 12, borderRadius: 12, backgroundColor: T.card, borderColor: T.border, borderWidth: 1, borderLeftWidth: 4, gap: 4 },
-  tplCardActive: { borderColor: T.accent, backgroundColor: 'rgba(124,58,237,0.14)' },
-  tplName: { color: T.text, fontFamily: FONTS.bold, fontSize: 12.5, marginTop: 4 },
-  tplCat: { color: T.muted, fontFamily: FONTS.med, fontSize: 11 },
+  tplCard: { width: 220, padding: 12, borderRadius: 12, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderLeftWidth: 4, gap: 4 },
+  tplCardActive: { borderColor: SAC.accent, backgroundColor: 'rgba(124,58,237,0.14)' },
+  tplName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5, marginTop: 4 },
+  tplCat: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
 
   workspaceRow: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' },
   leftCol: { flex: 1, minWidth: 320, maxWidth: 420 },
   rightCol: { flex: 2, minWidth: 480 },
 
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  cardHeadText: { color: T.text, fontFamily: FONTS.bold, fontSize: 14 },
+  cardHeadText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 14 },
   label: { color: '#ccc', fontFamily: FONTS.bold, fontSize: 11.5 },
-  input: { backgroundColor: T.panel2, borderColor: T.border, borderWidth: 1, borderRadius: 8, padding: 10, color: T.text, fontSize: 12.5 },
-  bgChip: { flex: 1, paddingVertical: 8, borderRadius: 6, backgroundColor: T.card, borderColor: T.border, borderWidth: 1, alignItems: 'center' },
-  bgChipActive: { backgroundColor: T.primary, borderColor: T.accent },
-  bgChipText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  input: { backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1, borderRadius: 8, padding: 10, color: SAC.text, fontSize: 12.5 },
+  bgChip: { flex: 1, paddingVertical: 8, borderRadius: 6, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, alignItems: 'center' },
+  bgChipActive: { backgroundColor: SAC.primary, borderColor: SAC.accent },
+  bgChipText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
 
-  btnText: { color: T.text, fontFamily: FONTS.bold, fontSize: 12.5 },
-  secBtnText: { color: T.text, fontFamily: FONTS.bold, fontSize: 12.5 },
+  btnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
+  secBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
 
   // Live Canvas Chassis
-  certStageWrapper: { padding: 16, backgroundColor: '#0B0A10', borderRadius: 14, borderColor: T.border, borderWidth: 1, alignItems: 'center' },
+  certStageWrapper: { padding: 16, backgroundColor: '#0B0A10', borderRadius: 14, borderColor: SAC.border, borderWidth: 1, alignItems: 'center' },
   certChassis: { width: '100%', maxWidth: 760, minHeight: 480, padding: 24, borderRadius: 12, borderWidth: 2, justifyContent: 'space-between', backgroundColor: '#FAF7FE' },
   certPurple: { borderColor: '#5F259F', backgroundColor: '#FAF7FE' },
   certGreen: { borderColor: '#1B7A4C', backgroundColor: '#F5FBF7' },
@@ -923,16 +923,16 @@ const s = StyleSheet.create({
 
   certSealCenter: { alignItems: 'center' },
   certSealCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#5F259F', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#E2D6F2' },
-  certSealText: { color: T.text, fontFamily: FONTS.bold, fontSize: 7, marginTop: 2 },
+  certSealText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 7, marginTop: 2 },
 
   certVerifyFoot: { textAlign: 'center', color: '#8A8394', fontFamily: FONTS.med, fontSize: 8.5, marginTop: 10 },
 
   // AI Agent Styling
   aiActionChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(124,58,237,0.18)', borderColor: 'rgba(124,58,237,0.4)', borderWidth: 1 },
   aiChipText: { color: '#C4B5FD', fontFamily: FONTS.bold, fontSize: 11 },
-  aiSecondaryBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: T.border, borderWidth: 1 },
+  aiSecondaryBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: SAC.border, borderWidth: 1 },
   aiSecondaryText: { color: '#eee', fontFamily: FONTS.bold, fontSize: 11.5 },
-  aiResultCard: { backgroundColor: T.panel2, borderColor: T.border2, borderWidth: 1, borderRadius: 10, padding: 10, gap: 4, marginTop: 6 },
-  aiResultTitle: { color: T.text, fontFamily: FONTS.bold, fontSize: 12 },
-  aiResultSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 11 }
+  aiResultCard: { backgroundColor: SAC.panel2, borderColor: SAC.border2, borderWidth: 1, borderRadius: 10, padding: 10, gap: 4, marginTop: 6 },
+  aiResultTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
+  aiResultSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }
 });

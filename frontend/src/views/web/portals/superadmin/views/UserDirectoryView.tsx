@@ -1440,19 +1440,19 @@ function RejectMentorModal({
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: -0.2 },
-  sub: { color: T.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 2 },
-  muted: { color: T.muted, fontFamily: FONTS.med, fontSize: 11.5 },
+  sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 2 },
+  muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
   kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
   browseHead: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
 
   /* View Switcher */
   viewSwitcher: {
     flexDirection: 'row',
-    backgroundColor: T.cardSolid,
+    backgroundColor: SAC.cardSolid,
     borderRadius: 8,
     padding: 3,
     borderWidth: 1,
-    borderColor: T.border,
+    borderColor: SAC.border,
   },
   viewModeBtn: {
     flexDirection: 'row',
@@ -1467,7 +1467,7 @@ const st = StyleSheet.create({
     backgroundColor: GRAD.to,
   },
   viewModeBtnText: {
-    color: T.muted,
+    color: SAC.muted,
     fontFamily: FONTS.bold,
     fontSize: 11,
   },
@@ -1481,10 +1481,10 @@ const st = StyleSheet.create({
   toggleBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7,
-    borderWidth: 1, borderColor: T.border, backgroundColor: T.cardSolid,
+    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  toggleBtnText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  toggleBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
 
   /* Data Table Styles */
   tableHeadRow: {
@@ -1538,7 +1538,7 @@ const st = StyleSheet.create({
     fontSize: 12.5,
   },
   tableEmail: {
-    color: T.muted,
+    color: SAC.muted,
     fontFamily: FONTS.med,
     fontSize: 11,
   },
@@ -1622,7 +1622,7 @@ const st = StyleSheet.create({
   menuTrigger: {
     position: 'absolute', top: 14, right: 14, width: 28, height: 28, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: T.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
+    backgroundColor: SAC.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
     zIndex: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
@@ -1643,7 +1643,7 @@ const st = StyleSheet.create({
   selectBox: {
     position: 'absolute', top: 14, left: 14, width: 28, height: 28, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: T.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
+    backgroundColor: SAC.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
     zIndex: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
@@ -1677,45 +1677,45 @@ const st = StyleSheet.create({
   /* MT2 — taxonomy filter chips */
   chip: {
     paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: T.border,
+    backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: SAC.border,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   chipActive: { backgroundColor: 'rgba(249,115,22,0.18)', borderColor: GRAD.to, borderWidth: 1 },
-  chipText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+  chipText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
   chipTextActive: { color: '#F4F4FA' },
 
   /* modal */
   modalBg: {
-    flex: 1, backgroundColor: T.panel2,
+    flex: 1, backgroundColor: SAC.panel2,
     alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
   modalCard: {
     width: '100%', maxWidth: 540, maxHeight: '92%',
-    backgroundColor: T.bg2, borderRadius: 16, borderWidth: 1, borderColor: T.border2, overflow: 'hidden',
+    backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2, overflow: 'hidden',
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
   },
-  modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: T.border },
+  modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
   modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
 
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  detailLabel: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 130 },
+  detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 130 },
   detailValue: { color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   formInput: {
     flex: 1, color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
-    backgroundColor: T.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: T.border,
+    backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
     paddingHorizontal: 12, paddingVertical: 9,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
-  destructiveBtn: { backgroundColor: T.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  destructiveBtn: { backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)' },
   btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
-  secText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, gap: 14 },
-  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.card, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   pageBtnText: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
-  pageInfo: { color: T.muted, fontFamily: FONTS.med, fontSize: 12 },
+  pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 
   /* Premium Export Modal */
   exportModalCard: {
@@ -1750,7 +1750,7 @@ const st = StyleSheet.create({
     letterSpacing: -0.2,
   },
   exportModalSub: {
-    color: T.muted,
+    color: SAC.muted,
     fontFamily: FONTS.med,
     fontSize: 12.5,
     marginTop: 3,
@@ -1770,7 +1770,7 @@ const st = StyleSheet.create({
     justifyContent: 'space-between',
   },
   exportInfoLabel: {
-    color: T.muted,
+    color: SAC.muted,
     fontFamily: FONTS.bold,
     fontSize: 11.5,
   },
@@ -1826,7 +1826,7 @@ const st = StyleSheet.create({
     letterSpacing: -0.2,
   },
   deleteModalSub: {
-    color: T.muted,
+    color: SAC.muted,
     fontFamily: FONTS.med,
     fontSize: 12.5,
     marginTop: 3,

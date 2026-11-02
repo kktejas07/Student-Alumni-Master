@@ -621,33 +621,33 @@ export function EmailQualityView() {
 
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: T.text, fontFamily: FONTS.xbold, fontSize: 16 },
-  sub: { color: T.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
-  secText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  muted: { color: T.muted, fontFamily: FONTS.med, fontSize: 12 },
+  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
+  sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
+  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
   
   // Stats
   statsRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   statCard: {
     flex: 1, minWidth: 120, flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: T.cardSolid, borderRadius: 12, borderWidth: 1, borderColor: T.border,
+    backgroundColor: SAC.cardSolid, borderRadius: 12, borderWidth: 1, borderColor: SAC.border,
     padding: 12,
   },
   statIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  statValue: { fontFamily: FONTS.xbold, fontSize: 18, color: T.text },
-  statLabel: { fontFamily: FONTS.med, fontSize: 11, color: T.muted, marginTop: 2 },
+  statValue: { fontFamily: FONTS.xbold, fontSize: 18, color: SAC.text },
+  statLabel: { fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginTop: 2 },
   
   // Health bar
   healthBar: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.1)', marginTop: 12, overflow: 'hidden' },
   healthBarFill: { height: '100%', borderRadius: 4 },
   healthLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  healthLabel: { fontFamily: FONTS.med, fontSize: 11, color: T.muted },
+  healthLabel: { fontFamily: FONTS.med, fontSize: 11, color: SAC.muted },
   
   // Card
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' },
   searchGo: {
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
-    borderWidth: 1, borderColor: T.border, backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1, borderColor: SAC.border, backgroundColor: 'rgba(255,255,255,0.04)',
   },
   
   // List rows
@@ -657,8 +657,8 @@ const st = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
   },
   rowIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  emailText: { color: T.text, fontFamily: FONTS.bold, fontSize: 13 },
-  rowMeta: { color: T.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2, lineHeight: 15 },
+  emailText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
+  rowMeta: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2, lineHeight: 15 },
   restoreBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8,
@@ -686,15 +686,15 @@ const st = StyleSheet.create({
   auditScoreRow: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)' },
   auditScoreCircle: { width: 64, height: 64, borderRadius: 32, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
   auditScoreValue: { fontFamily: FONTS.xbold, fontSize: 18 },
-  auditScoreLabel: { fontFamily: FONTS.bold, fontSize: 14, color: T.text },
+  auditScoreLabel: { fontFamily: FONTS.bold, fontSize: 14, color: SAC.text },
   auditStatsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   auditStatItem: {
     flex: 1, minWidth: 80, flexDirection: 'row', alignItems: 'center', gap: 6,
     padding: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
   },
-  auditStatValue: { fontFamily: FONTS.bold, fontSize: 14, color: T.text },
-  auditStatLabel: { fontFamily: FONTS.med, fontSize: 10, color: T.muted },
+  auditStatValue: { fontFamily: FONTS.bold, fontSize: 14, color: SAC.text },
+  auditStatLabel: { fontFamily: FONTS.med, fontSize: 10, color: SAC.muted },
   auditIssueRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8,
     borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.02)',
@@ -702,10 +702,10 @@ const st = StyleSheet.create({
   },
   issueBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   issueBadgeText: { fontFamily: FONTS.bold, fontSize: 9 },
-  issueEmail: { flex: 1, fontFamily: FONTS.med, fontSize: 11, color: T.text },
-  issueSource: { fontFamily: FONTS.med, fontSize: 10, color: T.dim },
+  issueEmail: { flex: 1, fontFamily: FONTS.med, fontSize: 11, color: SAC.text },
+  issueSource: { fontFamily: FONTS.med, fontSize: 10, color: SAC.dim },
 
   // Tips
   tipRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  tipText: { flex: 1, color: T.muted, fontFamily: FONTS.med, fontSize: 12, lineHeight: 18 },
+  tipText: { flex: 1, color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, lineHeight: 18 },
 });

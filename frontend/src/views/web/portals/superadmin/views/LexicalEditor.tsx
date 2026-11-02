@@ -304,7 +304,7 @@ const fallbackStyle = StyleSheet.create({
 
 const aim = StyleSheet.create({
   backdrop: {
-    flex: 1, backgroundColor: T.panel2,
+    flex: 1, backgroundColor: SAC.panel2,
     alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(8px)' } : {}),
   },

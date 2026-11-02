@@ -28,22 +28,22 @@ import { request } from '@/src/models/services/api';
 const Field = (props: any) => (
   <TextInput
     style={[{
-      backgroundColor: T.cardSolid,
-      color: T.text,
+      backgroundColor: SAC.cardSolid,
+      color: SAC.text,
       borderWidth: 1,
-      borderColor: T.border,
+      borderColor: SAC.border,
       borderRadius: 9,
       padding: 10,
       fontSize: 13,
       fontFamily: FONTS.regular,
     }, props.style]}
-    placeholderTextColor={T.dim}
+    placeholderTextColor={SAC.dim}
     {...props}
   />
 );
 
 const Label = ({ children }: { children: React.ReactNode }) => (
-  <Text style={{ color: T.muted, fontSize: 11, marginBottom: 5, fontFamily: FONTS.bold, letterSpacing: 0.3 }}>{children}</Text>
+  <Text style={{ color: SAC.muted, fontSize: 11, marginBottom: 5, fontFamily: FONTS.bold, letterSpacing: 0.3 }}>{children}</Text>
 );
 
 const CATEGORIES = [
