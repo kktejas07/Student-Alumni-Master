@@ -1,10 +1,11 @@
 /**
  * ProfileCard — Student/Alumni dashboard profile card.
  *
- * Matches the warm amber/orange admin theme exactly:
- *   • Near-black surface with brown-amber undertone
- *   • Orange→amber gradient on primary CTAs + glow
+ * Matches the light student-portal admin theme:
+ *   • White card surface with soft slate border
+ *   • Orange→amber gradient on primary CTAs
  *   • Avatar with category-tinted ring + status dot
+ *   • Role icons (GraduationCap / UserCheck / Award)
  *   • Goals · Progress bar · Tag pills · Next-session sub-card
  *   • View Profile (gradient) + LinkedIn + GitHub action row
  *   • Hover lifts the card 2px and intensifies the border + amber glow
@@ -18,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   Eye, ChevronRight, Calendar, Check, Play, Code, Sparkles,
   ShieldCheck, Trash2, Mail, Building2,
+  GraduationCap, UserCheck, Award,
 } from 'lucide-react-native';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { GRAD } from '../applekit';
@@ -34,28 +36,28 @@ function LinkedinGlyph({ size = 16, color = '#fff' }: { size?: number; color?: s
   );
 }
 
-/* ─── Tokens (per spec) ──────────────────────────────────────────── */
+/* ─── Tokens (light student-portal admin theme) ─────────────────── */
 export const PC = {
-  bgPage:           '#0B0703',
-  cardBgFrom:       '#1A0F05',
-  cardBgTo:         '#120A03',
-  cardBorder:       'rgba(251,146,60,0.18)',
-  cardBorderHover:  'rgba(251,146,60,0.38)',
+  bgPage:           '#F8FAFC',
+  cardBgFrom:       '#FFFFFF',
+  cardBgTo:         '#F8FAFC',
+  cardBorder:       '#E2E8F0',
+  cardBorderHover:  'rgba(249,115,22,0.40)',
   accent:           '#F97316',
   accentBright:     '#FB923C',
   accentDeep:       '#EA580C',
-  statusActive:     '#FBBF24',
-  statusActiveBg:   'rgba(251,191,36,0.10)',
-  statusActiveBd:   'rgba(251,191,36,0.35)',
-  textPrimary:      '#FFFFFF',
-  textSecondary:    '#C4A788',
-  textMuted:        '#8B6F52',
-  textLabel:        '#6B5237',
-  pillBg:           'rgba(255,255,255,0.04)',
-  pillBorder:       'rgba(251,146,60,0.12)',
-  trackBg:          'rgba(255,255,255,0.05)',
+  statusActive:     '#16A34A',
+  statusActiveBg:   'rgba(22,163,74,0.10)',
+  statusActiveBd:   'rgba(22,163,74,0.35)',
+  textPrimary:      '#0F172A',
+  textSecondary:    '#475569',
+  textMuted:        '#64748B',
+  textLabel:        '#94A3B8',
+  pillBg:           '#F1F5F9',
+  pillBorder:       '#E2E8F0',
+  trackBg:          '#F1F5F9',
   linkedinBg:       '#0A66C2',
-  githubBg:         '#1F1208',
+  githubBg:         '#0F172A',
   danger:           '#EF4444',
   dangerBg:         'rgba(239,68,68,0.08)',
 } as const;
@@ -114,12 +116,20 @@ export type ProfileCardProps = {
   onRemove?: (userId: string) => void;
 };
 
-/* ─── Category accent dots (warm amber family) ───────────────────── */
+/* ─── Category accent dots (saturated amber family for light bg) ─── */
 const CAT_DOT: Record<ProfileCardCategory, { c: string; label: string }> = {
-  student: { c: '#FCD34D', label: 'Student'  },  // amber-300
-  masters: { c: '#F59E0B', label: "Master's" },  // amber-500
-  alumni:  { c: '#D97706', label: 'Alumni'   },  // amber-600
-  mentor:  { c: '#B45309', label: 'Mentor'   },  // amber-700
+  student: { c: '#F59E0B', label: 'Student'  },  // amber-500
+  masters: { c: '#D97706', label: "Master's" },  // amber-600
+  alumni:  { c: '#B45309', label: 'Alumni'   },  // amber-700
+  mentor:  { c: '#92400E', label: 'Mentor'   },  // amber-800
+};
+
+/* ─── Role icons (GraduationCap=student, UserCheck=mentor, Award=alumni) ─ */
+export const ROLE_ICON: Record<ProfileCardCategory, typeof GraduationCap> = {
+  student: GraduationCap,
+  masters: GraduationCap,
+  alumni:  Award,
+  mentor:  UserCheck,
 };
 
 /* ─── Helpers ────────────────────────────────────────────────────── */
@@ -228,6 +238,7 @@ export function ProfileCard(props: ProfileCardProps) {
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              {(() => { const RoleIcon = ROLE_ICON[user.category] || GraduationCap; return <RoleIcon size={13} color={cat.c} />; })()}
               <Text style={s.name} numberOfLines={1}>{fullName}</Text>
               <View style={[s.catDot, { backgroundColor: cat.c }]} />
               <Text style={s.catLabel}>{cat.label}</Text>
@@ -260,14 +271,14 @@ export function ProfileCard(props: ProfileCardProps) {
                 backgroundColor: user.onboardingCompleted ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
                 borderColor: user.onboardingCompleted ? 'rgba(34,197,94,0.35)' : 'rgba(245,158,11,0.35)',
               }]}>
-                <Text style={[s.tagText, { color: user.onboardingCompleted ? '#86EFAC' : '#FCD34D', fontSize: 10, fontWeight: '700' }]}>
+                <Text style={[s.tagText, { color: user.onboardingCompleted ? '#15803D' : '#B45309', fontSize: 10, fontWeight: '700' }]}>
                   {user.onboardingCompleted ? '✓ Onboarded' : '⏳ Pending Onboarding'}
                 </Text>
               </View>
             )}
             {user.careerPath ? (
               <View style={[s.tag, { backgroundColor: 'rgba(251,146,60,0.12)', borderColor: 'rgba(251,146,60,0.30)' }]}>
-                <Text style={[s.tagText, { color: '#FDBA74', fontSize: 10, fontWeight: '700' }]} numberOfLines={1}>
+                <Text style={[s.tagText, { color: '#C2410C', fontSize: 10, fontWeight: '700' }]} numberOfLines={1}>
                   🎯 {user.careerPath}
                 </Text>
               </View>
@@ -280,7 +291,7 @@ export function ProfileCard(props: ProfileCardProps) {
           <View style={[s.tagRow, { marginTop: 12 }]}>
             {user.mentorTaxonomy ? (
               <View style={[s.tag, { backgroundColor: 'rgba(251,146,60,0.14)', borderColor: 'rgba(251,146,60,0.38)' }]}>
-                <Text style={[s.tagText, { color: '#FDBA74' }]} numberOfLines={1}>{user.mentorTaxonomy}</Text>
+                <Text style={[s.tagText, { color: '#C2410C' }]} numberOfLines={1}>{user.mentorTaxonomy}</Text>
               </View>
             ) : null}
             {user.mentorYears != null ? (
@@ -295,7 +306,7 @@ export function ProfileCard(props: ProfileCardProps) {
             ) : null}
             {user.mentorAvgRating ? (
               <View style={[s.tag, { backgroundColor: 'rgba(251,191,36,0.10)', borderColor: 'rgba(251,191,36,0.30)' }]}>
-                <Text style={[s.tagText, { color: '#FCD34D' }]} numberOfLines={1}>
+                <Text style={[s.tagText, { color: '#B45309' }]} numberOfLines={1}>
                   ★ {Number(user.mentorAvgRating).toFixed(1)}{user.mentorReviewCount ? ` (${user.mentorReviewCount})` : ''}
                 </Text>
               </View>
@@ -323,7 +334,7 @@ export function ProfileCard(props: ProfileCardProps) {
           <View style={s.tagRow}>
             {(user.mentorBadges || []).slice(0, 3).map((b: string, i: number) => (
               <View key={i} style={[s.tag, { backgroundColor: 'rgba(34,197,94,0.12)', borderColor: 'rgba(34,197,94,0.35)' }]}>
-                <Text style={[s.tagText, { color: '#86EFAC' }]} numberOfLines={1}>🏅 {b.replace(/_/g, ' ')}</Text>
+                <Text style={[s.tagText, { color: '#15803D' }]} numberOfLines={1}>🏅 {b.replace(/_/g, ' ')}</Text>
               </View>
             ))}
           </View>
@@ -331,14 +342,14 @@ export function ProfileCard(props: ProfileCardProps) {
         {user.category === 'mentor' && user.mentorStatus === 'pending' ? (
           <View style={[s.tagRow, { marginTop: 6 }]}>
             <View style={[s.tag, { backgroundColor: 'rgba(245,158,11,0.14)', borderColor: 'rgba(245,158,11,0.40)' }]}>
-              <Text style={[s.tagText, { color: '#FCD34D' }]}>⏳ Pending Review</Text>
+              <Text style={[s.tagText, { color: '#B45309' }]}>⏳ Pending Review</Text>
             </View>
           </View>
         ) : null}
         {user.category === 'mentor' && user.mentorStatus === 'rejected' ? (
           <View style={[s.tagRow, { marginTop: 6 }]}>
             <View style={[s.tag, { backgroundColor: PC.dangerBg, borderColor: 'rgba(239,68,68,0.35)' }]}>
-              <Text style={[s.tagText, { color: '#FCA5A5' }]}>Rejected</Text>
+              <Text style={[s.tagText, { color: '#DC2626' }]}>Rejected</Text>
             </View>
           </View>
         ) : null}
@@ -391,14 +402,14 @@ export function ProfileCard(props: ProfileCardProps) {
           <View style={[s.tagRow, { marginTop: 4, marginBottom: 2 }]}>
             {(user.aadhaarMasked || user.aadhaarVerified) && (
               <View style={[s.tag, { backgroundColor: user.aadhaarVerified ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)', borderColor: user.aadhaarVerified ? 'rgba(16,185,129,0.35)' : 'rgba(245,158,11,0.35)' }]}>
-                <Text style={[s.tagText, { color: user.aadhaarVerified ? '#34D399' : '#FBBF24', fontSize: 10, fontWeight: '700' }]}>
+                <Text style={[s.tagText, { color: user.aadhaarVerified ? '#15803D' : '#B45309', fontSize: 10, fontWeight: '700' }]}>
                   {user.aadhaarVerified ? '✓ UIDAI' : 'Aadhaar'}: {user.aadhaarMasked || '•••• 1234'}
                 </Text>
               </View>
             )}
             {user.digilockerVerified && (
               <View style={[s.tag, { backgroundColor: 'rgba(124,58,237,0.15)', borderColor: 'rgba(124,58,237,0.40)' }]}>
-                <Text style={[s.tagText, { color: '#C4B5FD', fontSize: 10, fontWeight: '700' }]}>
+                <Text style={[s.tagText, { color: '#7C3AED', fontSize: 10, fontWeight: '700' }]}>
                   ⚡ DigiLocker ({user.digilockerDocCount || 3} Docs)
                 </Text>
               </View>
@@ -469,7 +480,7 @@ export function ProfileCard(props: ProfileCardProps) {
                 onPress={(e: any) => { e?.stopPropagation?.(); onRemove?.(user.id); }}
                 style={[s.socialBtn, { backgroundColor: PC.dangerBg, borderColor: 'rgba(239,68,68,0.30)', borderWidth: 1 }]}
               >
-                <Trash2 size={16} color={'#FCA5A5'} />
+                <Trash2 size={16} color="#DC2626" />
               </Pressable>
             </ActionTooltip>
           ) : null}
@@ -523,7 +534,7 @@ function StatusPillCard({ status }: { status: ProfileCardStatus }) {
   if (status === 'archived') {
     return (
       <View style={[s.statusPill, { backgroundColor: PC.dangerBg, borderColor: 'rgba(239,68,68,0.35)' }]}>
-        <Text style={[s.statusText, { color: '#FCA5A5' }]}>Archived</Text>
+        <Text style={[s.statusText, { color: '#DC2626' }]}>Archived</Text>
       </View>
     );
   }
@@ -560,14 +571,14 @@ const s = StyleSheet.create({
     borderRadius: 20, borderWidth: 1, borderColor: PC.cardBorder,
     backgroundColor: PC.cardBgFrom,
     ...(Platform.OS === 'web'
-      ? ({ boxShadow: '0 0 0 1px rgba(251,146,60,0.06), 0 10px 30px rgba(0,0,0,0.45)', transitionDuration: '200ms', cursor: 'pointer' } as any)
-      : { shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } }),
+      ? ({ boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 10px 30px rgba(15,23,42,0.08)', transitionDuration: '200ms', cursor: 'pointer' } as any)
+      : { shadowColor: '#0F172A', shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } }),
   },
   cardHover: {
     borderColor: PC.cardBorderHover,
     transform: [{ translateY: -2 }],
     ...(Platform.OS === 'web'
-      ? ({ boxShadow: '0 0 0 1px rgba(251,146,60,0.18), 0 18px 44px rgba(0,0,0,0.55)' } as any) : {}),
+      ? ({ boxShadow: '0 0 0 1px rgba(249,115,22,0.18), 0 18px 44px rgba(15,23,42,0.14)' } as any) : {}),
   },
   cardFocus: { borderColor: PC.accent, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   cardInner: { padding: 22, borderRadius: 20, flex: 1 },
@@ -576,8 +587,9 @@ const s = StyleSheet.create({
     position: 'absolute', top: 14, right: 14,
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, zIndex: 5,
+    backgroundColor: PC.accent, borderWidth: 1, borderColor: PC.accentBright,
   },
-  newPillText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
+  newPillText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
 
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
   avatar: {
@@ -585,7 +597,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(249,115,22,0.18)',
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 19 },
+  avatarText: { color: PC.accentDeep, fontFamily: FONTS.xbold, fontSize: 19 },
   statusDot: {
     position: 'absolute', right: -2, bottom: -2,
     width: 14, height: 14, borderRadius: 999,
@@ -658,14 +670,14 @@ const s = StyleSheet.create({
       ? ({ boxShadow: '0 8px 24px rgba(249,115,22,0.35)', transitionDuration: '160ms' } as any)
       : { shadowColor: PC.accent, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } }),
   },
-  viewBtnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13.5, letterSpacing: 0.1 },
+  viewBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5, letterSpacing: 0.1 },
   socialBtn: {
     width: 44, height: 44, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
 
-  skBox: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6 },
+  skBox: { backgroundColor: '#E2E8F0', borderRadius: 6 },
 
   /* Action Tooltips */
   customTooltip: {
@@ -673,13 +685,13 @@ const s = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4.5,
     borderRadius: 6,
-    backgroundColor: '#1A0E04',
+    backgroundColor: '#0F172A',
     borderWidth: 1,
-    borderColor: 'rgba(251,146,60,0.40)',
+    borderColor: 'rgba(15,23,42,0.30)',
     zIndex: 99999,
     minWidth: 40,
     ...(Platform.OS === 'web' ? ({
-      boxShadow: '0 8px 22px rgba(0,0,0,0.85), 0 0 0 1px rgba(251,146,60,0.18)',
+      boxShadow: '0 8px 22px rgba(15,23,42,0.25)',
       whiteSpace: 'nowrap',
       pointerEvents: 'none',
       userSelect: 'none',

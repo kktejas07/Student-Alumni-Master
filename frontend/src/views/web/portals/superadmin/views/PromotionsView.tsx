@@ -27,6 +27,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import Svg, { Rect, Circle, Path } from 'react-native-svg';
 import {
   Megaphone, Plus, X, Check, RefreshCw, ImagePlus, Upload, ArrowRight,
   Sparkles, Copy, FlaskConical, Repeat, FileText, BarChart3, CalendarClock,
@@ -99,6 +100,18 @@ type PromoTemplate = {
   payload: Partial<Promotion> & { tone?: PromoTone };
   created_at?: string | null;
 };
+
+function PromotionsEmptyArt() {
+  const T = useSAC();
+  return (
+    <Svg width={44} height={44} viewBox="0 0 44 44">
+      <Rect x={9} y={9} width={26} height={26} rx={7} fill="none" stroke={T.line2} strokeDasharray="3 3" />
+      <Circle cx={16} cy={24} r={3} fill={T.tint} stroke={T.violet} strokeWidth={1.6} />
+      <Path d="M16 21v-6l11 4-11 4" fill="none" stroke={T.violet} strokeWidth={1.6} strokeLinejoin="round" />
+      <Path d="M30 15v6M34 17v4" fill="none" stroke={T.violet} strokeWidth={1.4} strokeLinecap="round" />
+    </Svg>
+  );
+}
 
 const TONE_PREVIEW: Record<PromoTone, { from: string; to: string; label: string }> = {
   violet:  { from: '#60A5FA', to: '#2563EB', label: 'Violet'  },
@@ -316,7 +329,7 @@ export function PromotionsView() {
         <LoadingBox />
       ) : (filtered.length === 0) ? (
         <EmptyState
-          icon={Megaphone}
+          icon={() => <PromotionsEmptyArt />}
           title="No promotions yet"
           sub={q
             ? 'No promotions match your search.'
@@ -611,6 +624,7 @@ function PromoEditor({
   onClose: () => void;
   onSaved: (p: Promotion, mode: 'created' | 'updated') => void;
 }) {
+  const sac = useSAC();
   const [form, setForm] = useState<Partial<Promotion>>(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -19,7 +19,6 @@ import { PagesTab } from './settingsPages';
 import { TemplatesTab } from './settingsTemplates';
 import { EchoLandingHeroTab } from './settingsEchoHero';
 import { BrandingTab } from './settingsBranding';
-import { ChangelogTab } from './settingsChangelog';
 
 /* ─────────────────────────────────────────────────────────────────
  * Main view

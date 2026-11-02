@@ -26,6 +26,7 @@ import {
   View, Text, Pressable, StyleSheet, TextInput, Platform, Image,
 } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import Svg, { Rect, Circle, Path } from 'react-native-svg';
 import {
   Handshake, Plus, X, Upload, ArrowUp, ArrowDown,
   GraduationCap, Building2, Sparkles, GripVertical,
@@ -38,6 +39,18 @@ import {
   TopTabs, SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox,
 } from '../applekit';
 import { KpiCard, Badge } from '../atoms';
+
+function PartnersEmptyArt() {
+  const T = useSAC();
+  return (
+    <Svg width={44} height={44} viewBox="0 0 44 44">
+      <Rect x={9} y={9} width={26} height={26} rx={7} fill="none" stroke={T.line2} strokeDasharray="3 3" />
+      <Circle cx={17} cy={22} r={5} fill={T.tint} stroke={T.violet} strokeWidth={1.6} />
+      <Circle cx={27} cy={22} r={5} fill={T.tint} stroke={T.violet} strokeWidth={1.6} />
+      <Path d="M20.5 22h3" fill="none" stroke={T.violet} strokeWidth={1.6} strokeLinecap="round" />
+    </Svg>
+  );
+}
 import { request, resolveImageUrl } from '@/src/models/services/api';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 import {
@@ -291,7 +304,7 @@ export function PartnersView({ sub, onSub }: { sub?: string; onSub?: (s: string)
         <LoadingBox />
       ) : (filtered.length === 0) ? (
         <EmptyState
-          icon={Handshake}
+          icon={() => <PartnersEmptyArt />}
           title="No partners yet"
           sub={q || tab !== 'all'
             ? 'No partners match the current filter. Try a different category or clear the search.'
@@ -374,6 +387,7 @@ function PartnerRow({
   onDelete: () => void;
   canFilter: boolean;
 }) {
+  const sac = useSAC();
   const cat = CAT_META[partner.category];
   const Icon = cat.Icon;
   const tier = TIER_META[partner.tier || 'standard'] || TIER_META.standard;
@@ -929,6 +943,7 @@ function LogoPicker({
   hint: string;
   dark?: boolean;
 }) {
+  const sac = useSAC();
   return (
     <View style={{ marginTop: 8, gap: 8 }}>
       {value ? (
