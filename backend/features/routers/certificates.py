@@ -6,10 +6,11 @@ import json
 import secrets
 import zipfile
 import hashlib
+import base64
 from typing import Optional, List
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Depends, Query, File, UploadFile, Body
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, Response
 from pydantic import BaseModel
 
 from core.db import db
@@ -725,8 +726,46 @@ async def _send_cert_email(to_email: str, title: str, recipient_name: str, code:
 
 class IssuePayload(BaseModel):
     recipient_email: str
-    title: str
+    title: str = ""
     issuer: str = "Student Alumni"
+    # Optional rich fields — the certificate studio sends these.
+    recipient_name: Optional[str] = None
+    certification_name: Optional[str] = None
+    verification_code: Optional[str] = None
+    issue_date: Optional[str] = None
+    institution: Optional[str] = None
+    department: Optional[str] = None
+    role: Optional[str] = None
+    citation: Optional[str] = None
+    metadata: Optional[dict] = None
+
+
+def _issue_document(payload: IssuePayload, code: str) -> dict:
+    """Build the certificate document. Shared by /issue and /preview-pdf."""
+    email = (payload.recipient_email or "").strip().lower()
+    derived_name = email.split("@")[0].replace(".", " ").title() if email else "Recipient"
+    title = (payload.title or "").strip() or (payload.certification_name or "").strip()
+    now_iso = datetime.now(timezone.utc).isoformat()
+    return {
+        "verification_code": code,
+        "certificate_id": code,
+        "id": code,
+        "recipient_email": email,
+        "recipient_name": (payload.recipient_name or "").strip() or derived_name,
+        "title": title,
+        "issuer": (payload.issuer or "").strip() or "Student Alumni",
+        "issuer_type": "platform",
+        "issue_date": (payload.issue_date or "").strip(),
+        "institution": (payload.institution or "").strip(),
+        "department": (payload.department or "").strip(),
+        "role": (payload.role or "").strip(),
+        "citation": (payload.citation or "").strip(),
+        "metadata": payload.metadata or {},
+        "issued_at": now_iso,
+        "created_at": now_iso,
+        "status": "valid",
+        "status_label": "Officially Verified",
+    }
 
 
 @router.post("/issue")
@@ -736,20 +775,7 @@ async def issue_certificate(payload: IssuePayload, user: dict = Depends(get_curr
     code = await _generate_code()
     verify_url = f"{FRONTEND_URL}/certificates/verify/{code}"
 
-    doc = {
-        "verification_code": code,
-        "certificate_id": code,
-        "id": code,
-        "recipient_email": payload.recipient_email.strip().lower(),
-        "recipient_name": (payload.recipient_email.split("@")[0].replace(".", " ").title()),
-        "title": payload.title.strip(),
-        "issuer": payload.issuer.strip() or "Student Alumni",
-        "issuer_type": "platform",
-        "issued_at": datetime.now(timezone.utc).isoformat(),
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "status": "valid",
-        "status_label": "Officially Verified",
-    }
+    doc = _issue_document(payload, code)
     await db.certificates.insert_one(doc)
 
     # Fire-and-forget email notification
@@ -765,6 +791,112 @@ async def issue_certificate(payload: IssuePayload, user: dict = Depends(get_curr
         "recipient_name": doc["recipient_name"],
         "title": doc["title"],
     }
+
+
+class PreviewPdfPayload(BaseModel):
+    """Same shape as IssuePayload — renders a PDF without persisting anything."""
+    recipient_email: str = ""
+    title: str = ""
+    issuer: str = "Student Alumni"
+    recipient_name: Optional[str] = None
+    certification_name: Optional[str] = None
+    verification_code: Optional[str] = None
+    issue_date: Optional[str] = None
+    institution: Optional[str] = None
+    department: Optional[str] = None
+    role: Optional[str] = None
+    citation: Optional[str] = None
+    metadata: Optional[dict] = None
+
+
+def _preview_extra_lines(doc: dict) -> list:
+    """Secondary detail lines printed under the certificate title."""
+    lines = []
+    if doc.get("institution"):
+        lines.append(f"{doc['institution']}{' · ' + doc['department'] if doc.get('department') else ''}")
+    if doc.get("role"):
+        lines.append(doc["role"])
+    if doc.get("citation"):
+        lines.append(doc["citation"])
+    return lines
+
+
+@router.post("/preview-pdf")
+async def preview_certificate_pdf(payload: PreviewPdfPayload, user: dict = Depends(get_current_user)):
+    """Render a certificate PDF preview with its verification QR code.
+
+    Nothing is persisted — this is the "look before you issue" step. The QR
+    encodes the public verification URL for the (provisional) code.
+    """
+    from services.certificate_pdf import qr_data_uri, render_certificate_pdf
+
+    code = (payload.verification_code or "").strip() or "SA-PREVIEW"
+    doc = _issue_document(payload, code)
+    verify_url = f"{FRONTEND_URL}/certificates/verify/{code}"
+
+    issued_at = doc.get("issue_date") or datetime.now(timezone.utc).strftime("%d %b %Y")
+    pdf_bytes = render_certificate_pdf(
+        recipient_name=doc["recipient_name"],
+        title=doc["title"] or "Certificate of Achievement",
+        issuer=doc["issuer"],
+        verification_code=code,
+        verify_url=verify_url,
+        issued_at=issued_at,
+        extra_lines=_preview_extra_lines(doc),
+    )
+
+    return {
+        "ok": True,
+        "pdf_base64": base64.b64encode(pdf_bytes).decode("ascii"),
+        "qr_data_uri": qr_data_uri(verify_url),
+        "verify_url": verify_url,
+        "verification_code": code,
+        "byte_size": len(pdf_bytes),
+    }
+
+
+@router.get("/{code}/pdf")
+async def download_certificate_pdf(code: str, user: dict = Depends(get_current_user)):
+    """Download the rendered PDF (with QR) for an issued certificate."""
+    from services.certificate_pdf import render_certificate_pdf
+
+    ident = _clean_str(code)
+    if not ident:
+        raise HTTPException(400, "Certificate code is required")
+
+    pattern = re.escape(ident)
+    doc = await db.certificates.find_one({
+        "$or": [
+            {"verification_code": {"$regex": f"^{pattern}$", "$options": "i"}},
+            {"certificate_id": {"$regex": f"^{pattern}$", "$options": "i"}},
+            {"id": {"$regex": f"^{pattern}$", "$options": "i"}},
+        ]
+    })
+    if not doc:
+        raise HTTPException(404, "Certificate not found")
+
+    real_code = doc.get("verification_code") or doc.get("certificate_id") or ident
+    verify_url = f"{FRONTEND_URL}/certificates/verify/{real_code}"
+    issued_at = doc.get("issue_date") or (doc.get("issued_at") or "")[:10]
+
+    pdf_bytes = render_certificate_pdf(
+        recipient_name=doc.get("recipient_name") or "Recipient",
+        title=doc.get("title") or "Certificate of Achievement",
+        issuer=doc.get("issuer") or "Student Alumni",
+        verification_code=real_code,
+        verify_url=verify_url,
+        issued_at=issued_at,
+        extra_lines=_preview_extra_lines(doc),
+    )
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="certificate-{real_code}.pdf"',
+            "X-Verify-Url": verify_url,
+        },
+    )
 
 
 async def _sync_with_echo_registrations(email: str, cert_doc: dict):

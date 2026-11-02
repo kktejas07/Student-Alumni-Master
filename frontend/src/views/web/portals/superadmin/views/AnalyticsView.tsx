@@ -6,7 +6,7 @@
  * active hours heat map, retention, page views, error tracking, predictions,
  * session duration, activity feed, top colleges.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ScrollView,
 } from 'react-native';
@@ -24,6 +24,10 @@ import { usePortalData } from '@/src/lib/portalApi';
 import { WorldMap } from './WorldMap';
 import { VisitorIntelligenceView } from './VisitorIntelligenceView';
 import { ContactAnalyticsView } from './ContactAnalyticsView';
+import {
+  PeriodToolbar, PeriodComparisonCard, EMPTY_PERIOD, formatDelta, deltaKind,
+  type RangeKey, type PeriodBlock,
+} from './AnalyticsPeriod';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 type KPIs = {
@@ -78,6 +82,7 @@ type AnalyticsData = {
   role_distribution: RoleDist[]; engagement: Engagement; devices: DeviceData;
   geography: GeoData; funnel: FunnelStage[]; recent_activity: ActivityItem[];
   top_colleges: College[]; firebase: FirebaseData; posthog: PostHogData; errors: ErrorData; predictions: Predictions;
+  period: PeriodBlock;
 };
 
 const FALLBACK: AnalyticsData = {
@@ -90,6 +95,7 @@ const FALLBACK: AnalyticsData = {
   posthog: { configured: false, reason: '', realtime_active: 0, totals_30d: { events: 0, users: 0, pageviews: 0 }, daily_series: [], top_events: [], top_paths: [], sources: [], countries: [], devices: { by_os: [], by_browser: [], by_device: [] }, sessions: { sessions: 0, users: 0, has_session_data: false } },
   errors: { total_errors_30d: 0, auth_errors: 0, activity_errors: 0, recent: [] },
   predictions: { next_3_months: [], trend: 'stable', growth_rate_pct: 0 },
+  period: EMPTY_PERIOD,
 };
 
 const fmt = (n: number) => n >= 1000000 ? `${(n / 1000000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
@@ -105,10 +111,33 @@ export function AnalyticsView() {
   const { width } = useWindowDimensions();
   const stack = width < 1100;
   const [analyticsMode, setAnalyticsMode] = useState<'platform' | 'visitors' | 'contact'>('platform');
-  const { data, loading, refresh } = usePortalData<AnalyticsData>('/admin/super/analytics', FALLBACK, 15_000);
+  const [range, setRange] = useState<RangeKey>('30d');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+  const [compare, setCompare] = useState(false);
+
+  const analyticsPath = useMemo(() => {
+    const params = new URLSearchParams({ range });
+    if (range === 'custom') {
+      if (customStart) params.set('start', customStart);
+      if (customEnd) params.set('end', customEnd);
+    }
+    return `/admin/super/analytics?${params.toString()}`;
+  }, [range, customStart, customEnd]);
+
+  const { data, loading, refresh } = usePortalData<AnalyticsData>(analyticsPath, FALLBACK, 15_000);
   const d = data || FALLBACK;
   const fb = d.firebase || FALLBACK.firebase;
   const ph = d.posthog || FALLBACK.posthog;
+  const period = d.period || EMPTY_PERIOD;
+  const deltas = period.delta_pct || EMPTY_PERIOD.delta_pct;
+
+  const onPeriodChange = useCallback((next: { range: RangeKey; start: string; end: string; compare: boolean }) => {
+    setRange(next.range);
+    if (next.start) setCustomStart(next.start);
+    if (next.end) setCustomEnd(next.end);
+    setCompare(next.compare);
+  }, []);
 
   const handleExport = useCallback(() => {
     if (Platform.OS !== 'web' || !data) return;
@@ -184,6 +213,15 @@ export function AnalyticsView() {
         </View>
       </Card>
 
+      {/* Date range + previous-period comparison */}
+      <PeriodToolbar
+        range={range}
+        start={customStart}
+        end={customEnd}
+        compare={compare}
+        onChange={onPeriodChange}
+      />
+
       {/* KPI Strip */}
       <View style={{ flexDirection: stack ? 'column' : 'row', gap: 12, flexWrap: 'wrap' }}>
         <View style={{ flex: 1, minWidth: 140 }}><KpiTile Icon={Users} label="TOTAL SIGNUPS" value={fmt(d.kpis.total_signups)} delta={`${d.kpis.signups_mom_pct > 0 ? '+' : ''}${d.kpis.signups_mom_pct}% MoM`} deltaKind={d.kpis.signups_mom_pct >= 0 ? 'success' : 'danger'} /></View>
@@ -193,6 +231,50 @@ export function AnalyticsView() {
         <View style={{ flex: 1, minWidth: 140 }}><KpiTile Icon={Target} label="ENGAGEMENT" value={`${fb.engagement.engagement_rate}%`} delta={`${fb.engagement.bounce_rate}% bounce`} deltaKind={fb.engagement.engagement_rate > 50 ? 'success' : 'danger'} /></View>
         <View style={{ flex: 1, minWidth: 140 }}><KpiTile Icon={AlertTriangle} label="ERRORS (30d)" value={String(d.errors.total_errors_30d)} delta={`${d.errors.auth_errors} auth`} deltaKind={d.errors.total_errors_30d > 50 ? 'danger' : 'success'} /></View>
       </View>
+
+      {/* Selected-window KPIs with period-over-period deltas */}
+      <View style={{ flexDirection: stack ? 'column' : 'row', gap: 12, flexWrap: 'wrap' }}>
+        <View style={{ flex: 1, minWidth: 150 }}>
+          <KpiTile
+            Icon={Users}
+            label={`SIGNUPS · ${period.range.label.toUpperCase()}`}
+            value={fmt(period.current.signups)}
+            delta={`${formatDelta(deltas.signups)} vs previous`}
+            deltaKind={deltaKind(deltas.signups)}
+          />
+        </View>
+        <View style={{ flex: 1, minWidth: 150 }}>
+          <KpiTile
+            Icon={Activity}
+            label={`ACTIVE · ${period.range.label.toUpperCase()}`}
+            value={fmt(period.current.active_users)}
+            delta={`${formatDelta(deltas.active_users)} vs previous`}
+            deltaKind={deltaKind(deltas.active_users)}
+          />
+        </View>
+        <View style={{ flex: 1, minWidth: 150 }}>
+          <KpiTile
+            Icon={Calendar}
+            label={`BOOKINGS · ${period.range.label.toUpperCase()}`}
+            value={fmt(period.current.bookings)}
+            delta={`${formatDelta(deltas.bookings)} vs previous`}
+            deltaKind={deltaKind(deltas.bookings)}
+          />
+        </View>
+        <View style={{ flex: 1, minWidth: 150 }}>
+          <KpiTile
+            Icon={TrendingUp}
+            label={`REVENUE · ${period.range.label.toUpperCase()}`}
+            value={fmtCurrency(period.current.revenue)}
+            delta={`${formatDelta(deltas.revenue)} vs previous`}
+            deltaKind={deltaKind(deltas.revenue)}
+          />
+        </View>
+      </View>
+
+      {/* Previous-period overlay */}
+      <PeriodComparisonCard period={period} compare={compare} metric="signups" />
+      <PeriodComparisonCard period={period} compare={compare} metric="revenue" />
 
       {/* Growth + Roles */}
       <View style={{ flexDirection: stack ? 'column' : 'row', gap: 14 }}>

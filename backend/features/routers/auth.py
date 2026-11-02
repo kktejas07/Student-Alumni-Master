@@ -360,6 +360,18 @@ async def register(request: Request, response: Response, req: RegisterRequest):
         ("postal_code",  None, encrypt_value(req.postal_code or "")),
     ])
 
+    # Approval trail (AP4) — mentors enter the approvals queue on signup.
+    if role_norm == "mentor":
+        try:
+            from features.routers.admin.approvals import _write_audit
+            await _write_audit(
+                action="submitted", kind="mentor", item_id=user_id,
+                label=req.full_name or "", user=None,
+                detail={"source": "register"},
+            )
+        except Exception:
+            pass
+
     access_token = create_access_token(user_id, email, role_norm)
     refresh_token = create_refresh_token(user_id)
     _set_refresh_cookie(response, refresh_token)

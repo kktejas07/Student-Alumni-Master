@@ -5,6 +5,7 @@ import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { Badge } from '../atoms';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
 import { useToast, Toast } from '../applekit';
+import { WeeklyBriefing } from './WeeklyBriefing';
 
 type Insight = { id: string; kind: 'risk' | 'opportunity' | 'insight'; icon: string; color: string; title: string; body: string };
 const ICON_MAP: Record<string, any> = { AlertTriangle, TrendingUp, Lightbulb, Zap };
@@ -30,7 +31,10 @@ export function AIInsightsView() {
   };
   return (
     <View>
-      <View style={s.banner}>
+      {/* Weekly platform health briefing (AI4) */}
+      <WeeklyBriefing />
+
+      <View style={[s.banner, { marginTop: 14 }]}>
         <View style={s.bIcon}><Sparkles size={16} color={T.accent} /></View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.bTitle}>Platform Briefing · Powered by Claude</Text>
