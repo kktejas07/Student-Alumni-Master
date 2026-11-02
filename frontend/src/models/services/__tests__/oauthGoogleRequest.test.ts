@@ -88,6 +88,33 @@ describe('api.oauthGoogle request contract', () => {
   });
 });
 
+describe('api.oauthFirebase request contract', () => {
+  it('posts the Firebase ID token to the Firebase auth endpoint', async () => {
+    fetchMock.mockResolvedValueOnce(okJson(SESSION_OK));
+
+    await api.oauthFirebase({
+      id_token: 'firebase-id-token-abc',
+      email: 'g.user@example.com',
+      full_name: 'G User',
+      picture: 'https://pic.example.com/a.jpg',
+      role: 'student',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://unit.test/api/auth/firebase');
+    expect(init.method).toBe('POST');
+    expect(init.headers.Authorization).toBeUndefined();
+    expect(JSON.parse(init.body)).toEqual({
+      id_token: 'firebase-id-token-abc',
+      email: 'g.user@example.com',
+      full_name: 'G User',
+      picture: 'https://pic.example.com/a.jpg',
+      role: 'student',
+    });
+  });
+});
+
 describe('email/password login contract (regression guard)', () => {
   it('posts the classic credentials body to /api/auth/login', async () => {
     fetchMock.mockResolvedValueOnce(okJson(SESSION_OK));
