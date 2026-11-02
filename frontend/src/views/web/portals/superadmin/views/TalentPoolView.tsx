@@ -1170,6 +1170,7 @@ function AgentsPanel({ notify }: { notify: (m: string) => void }) {
 
 // ── Duplicates Panel ─────────────────────────────────────────────────
 function DuplicatesPanel({ notify }: { notify: (m: string) => void }) {
+  const T = useSAC();
   const [groups, setGroups] = useState<any[]>([]);
   const [openGroups, setOpenGroups] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -1375,6 +1376,7 @@ function QualityPanel({ notify }: { notify: (m: string) => void }) {
 
 // ── Activity Panel ───────────────────────────────────────────────────
 function ActivityPanel({ notify }: { notify: (m: string) => void }) {
+  const T = useSAC();
   const [events, setEvents] = useState<any[]>([]);
   const [profileId, setProfileId] = useState('');
   const [loading, setLoading] = useState(true);
@@ -1424,6 +1426,7 @@ function ActivityPanel({ notify }: { notify: (m: string) => void }) {
 
 // ── Insights Panel ───────────────────────────────────────────────────
 function InsightsPanel({ notify }: { notify: (m: string) => void }) {
+  const T = useSAC();
   const [insights, setInsights] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [genBusy, setGenBusy] = useState(false);
@@ -1505,6 +1508,7 @@ function InsightsPanel({ notify }: { notify: (m: string) => void }) {
 
 // ── Drip Campaigns Panel ─────────────────────────────────────────────
 function DripPanel({ notify }: { notify: (m: string) => void }) {
+  const T = useSAC();
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [campaignName, setCampaignName] = useState('');
   const [openingRef, setOpeningRef] = useState('');
@@ -1587,6 +1591,7 @@ function DripPanel({ notify }: { notify: (m: string) => void }) {
 
 // ── External Jobs Panel ──────────────────────────────────────────────
 function ExternalJobsPanel({ notify }: { notify: (m: string) => void }) {
+  const T = useSAC();
   const [listings, setListings] = useState<any[]>([]);
   const [deadlines, setDeadlines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1677,6 +1682,7 @@ function ExternalJobsPanel({ notify }: { notify: (m: string) => void }) {
 
 // ── Ranker Panel ─────────────────────────────────────────────────────
 function RankerPanel({ notify }: { notify: (m: string) => void }) {
+  const T = useSAC();
   const [results, setResults] = useState<any[]>([]);
   const [meta, setMeta] = useState<any>(null);
   const [jobTitle, setJobTitle] = useState('');
@@ -1763,6 +1769,7 @@ function RankerPanel({ notify }: { notify: (m: string) => void }) {
 
 // ── Interviews Panel ─────────────────────────────────────────────────
 function InterviewsPanel({ notify }: { notify: (m: string) => void }) {
+  const T = useSAC();
   const [interviews, setInterviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [schedBusy, setSchedBusy] = useState(false);
@@ -1887,6 +1894,7 @@ function InterviewsPanel({ notify }: { notify: (m: string) => void }) {
 
 // ── Skills Panel ─────────────────────────────────────────────────────
 function SkillsPanel({ notify }: { notify: (m: string) => void }) {
+  const T = useSAC();
   const [taxonomy, setTaxonomy] = useState<any>(null);
   const [status, setStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -1992,6 +2000,7 @@ function SkillsPanel({ notify }: { notify: (m: string) => void }) {
 
 // ── Compliance / ATS / WhatsApp Panel ────────────────────────────────
 function CompliancePanel({ notify }: { notify: (m: string) => void }) {
+  const T = useSAC();
   const [report, setReport] = useState<any>(null);
   const [ats, setAts] = useState<any>(null);
   const [wapp, setWapp] = useState<any>(null);
@@ -2117,6 +2126,7 @@ function ProfileDetailModal({
   onClose: () => void;
   onPromote: (p: TalentProfile) => void;
 }) {
+  const T = useSAC();
   if (!profile) return null;
   const p = profile;
 
