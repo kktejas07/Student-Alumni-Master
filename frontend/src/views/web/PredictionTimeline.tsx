@@ -61,7 +61,7 @@ function smoothPath(pts: Array<{ x: number; y: number }>): string {
   return d;
 }
 
-export function PredictionTimeline({ data }: { data?: Predictions }) {
+export function PredictionTimeline({ data, onViewAnalysis }: { data?: Predictions; onViewAnalysis?: () => void }) {
   const { isDark } = useTheme();
   const s = useMemo(() => makeStyles(isDark), [isDark]);
 
@@ -115,13 +115,13 @@ export function PredictionTimeline({ data }: { data?: Predictions }) {
               <Svg width="100%" height={160} viewBox="0 0 480 160" preserveAspectRatio="none">
                 <Defs>
                   <SvgLinearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-                    <Stop offset="0%" stopColor="#818CF8" />
-                    <Stop offset="50%" stopColor="#6366F1" />
-                    <Stop offset="100%" stopColor="#A5B4FC" />
+                    <Stop offset="0%" stopColor="#A78BFA" />
+                    <Stop offset="50%" stopColor="#7C5CFC" />
+                    <Stop offset="100%" stopColor="#C4B5FD" />
                   </SvgLinearGradient>
                   <SvgLinearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <Stop offset="0%" stopColor="#4F46E5" stopOpacity={0.35} />
-                    <Stop offset="100%" stopColor="#4F46E5" stopOpacity={0.0} />
+                    <Stop offset="0%" stopColor="#7C5CFC" stopOpacity={0.35} />
+                    <Stop offset="100%" stopColor="#7C5CFC" stopOpacity={0.0} />
                   </SvgLinearGradient>
                 </Defs>
 
@@ -138,7 +138,7 @@ export function PredictionTimeline({ data }: { data?: Predictions }) {
 
                 {/* Dots */}
                 {points.map((p, i) => (
-                  <Circle key={i} cx={p.x} cy={p.y} r={5} fill="#A5B4FC" stroke={isDark ? '#18162A' : '#FFFFFF'} strokeWidth="2" />
+                    <Circle key={i} cx={p.x} cy={p.y} r={5} fill="#C4B5FD" stroke={isDark ? '#18162A' : '#FFFFFF'} strokeWidth="2" />
                 ))}
               </Svg>
 
@@ -161,6 +161,7 @@ export function PredictionTimeline({ data }: { data?: Predictions }) {
               </Text>
               <Pressable
                 accessibilityRole="button"
+                onPress={onViewAnalysis}
                 style={({ pressed, hovered }: any) => [
                   s.insightBtn,
                   (pressed || hovered) && s.insightBtnHover,
@@ -184,7 +185,7 @@ export function PredictionTimeline({ data }: { data?: Predictions }) {
 
 const makeStyles = (dark: boolean) => StyleSheet.create({
   card: {
-    backgroundColor: dark ? '#0A0A2A' : '#FFFFFF',
+    backgroundColor: dark ? '#14141F' : '#FFFFFF',
     borderColor: dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15,23,42,0.08)',
     borderWidth: 1,
     borderRadius: RADIUS.card,
@@ -264,7 +265,7 @@ const makeStyles = (dark: boolean) => StyleSheet.create({
   insightCard: {
     flex: 1,
     backgroundColor: dark ? 'rgba(67, 56, 202, 0.12)' : 'rgba(99,102,241,0.08)',
-    borderColor: dark ? 'rgba(129, 140, 248, 0.25)' : 'rgba(99,102,241,0.25)',
+    borderColor: dark ? 'rgba(124, 92, 252, 0.25)' : 'rgba(98,70,232,0.25)',
     borderWidth: 1,
     borderRadius: RADIUS.card,
     padding: SPACING.md,
@@ -288,8 +289,8 @@ const makeStyles = (dark: boolean) => StyleSheet.create({
     fontFamily: FONT_FAMILIES.bold,
   },
   insightBtn: {
-    backgroundColor: dark ? 'rgba(129, 140, 248, 0.15)' : 'rgba(99, 102, 241, 0.12)',
-    borderColor: dark ? 'rgba(129, 140, 248, 0.35)' : 'rgba(99, 102, 241, 0.3)',
+    backgroundColor: dark ? 'rgba(124, 92, 252, 0.15)' : 'rgba(124, 92, 252, 0.12)',
+    borderColor: dark ? 'rgba(124, 92, 252, 0.35)' : 'rgba(98, 70, 232, 0.3)',
     borderWidth: 1,
     borderRadius: RADIUS.btn,
     paddingVertical: 10,
@@ -298,7 +299,7 @@ const makeStyles = (dark: boolean) => StyleSheet.create({
     justifyContent: 'center',
   },
   insightBtnHover: {
-    backgroundColor: dark ? 'rgba(129, 140, 248, 0.25)' : 'rgba(99, 102, 241, 0.2)',
+    backgroundColor: dark ? 'rgba(124, 92, 252, 0.25)' : 'rgba(124, 92, 252, 0.2)',
   },
   insightBtnText: {
     color: dark ? COLORS.purpleL : '#4338CA',

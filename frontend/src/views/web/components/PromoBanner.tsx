@@ -39,6 +39,20 @@ export type Promotion = {
   ends_at?: string | null;
   display_order: number;
   image_url?: string | null;
+  ab_experiment?: {
+    variant_a: {
+      title: string; body: string;
+      cta_label: string | null; cta_url: string | null;
+      badge: string | null; tone: PromoTone;
+    };
+    variant_b: {
+      title: string; body: string;
+      cta_label: string | null; cta_url: string | null;
+      badge: string | null; tone: PromoTone;
+    };
+    winner: 'a' | 'b' | null;
+    settled_at: string | null;
+  } | null;
 };
 
 const TONE_GRAD: Record<PromoTone, [string, string]> = {
@@ -73,10 +87,24 @@ function writeDismissed(map: Record<string, number>) {
   try { window.localStorage.setItem(DISMISSED_KEY, JSON.stringify(map)); } catch {}
 }
 
+function promoBeacon(promoId: string, event: 'impression' | 'click', variant: 'a' | 'b' | null): void {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+  try {
+    window.fetch('/api/promotion-event', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ promo_id: promoId, event, variant: variant ?? undefined }),
+    }).catch(() => {});
+  } catch {}
+}
+
 export function PromoBanner({ portal }: { portal: 'student' | 'alumni' | 'college' | 'mentor' | 'super_admin' }) {
   const [items, setItems] = useState<Promotion[] | null>(null);
   const [dismissed, setDismissed] = useState<Record<string, number>>(() => readDismissed());
   const user = useAuthStore((s) => s.user);
+  // PM3 — the A/B variant this session was assigned (cookie-sticky server-side)
+  const [abVariant, setAbVariant] = useState<'a' | 'b' | null>(null);
 
   useEffect(() => {
     if (!user) { setItems([]); return; }
@@ -98,6 +126,59 @@ export function PromoBanner({ portal }: { portal: 'student' | 'alumni' | 'colleg
     return visible[0] || null;
   }, [items, dismissed]);
 
+  const ab = promo?.ab_experiment || null;
+  const abOpen = !!ab && !ab.winner && !ab.settled_at;
+
+  // PM3 — ask the server which variant this session should see (open
+  // experiments only; settled ones keep the winner's copy locally).
+  useEffect(() => {
+    setAbVariant(null);
+    const p = promo;
+    if (!p || !abOpen || Platform.OS !== 'web' || typeof window === 'undefined') return;
+    let cancelled = false;
+    window.fetch(`/api/promotions/ab/variant/${p.id}`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: any) => {
+        if (cancelled) return;
+        if (j?.variant === 'a' || j?.variant === 'b') setAbVariant(j.variant);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [promo?.id, abOpen]);
+
+  // PM3 — the copy actually rendered: base fields, or the assigned /
+  // winning variant's fields.
+  const effective = useMemo(() => {
+    if (!promo || !ab) return promo;
+    let v: 'a' | 'b' | null = null;
+    if (ab.winner && ab.settled_at) v = ab.winner;
+    else if (abOpen) v = abVariant;
+    if (!v) return promo;
+    const side = v === 'b' ? ab.variant_b : ab.variant_a;
+    return {
+      ...promo,
+      title: side.title || promo.title,
+      body: side.body || promo.body,
+      cta_label: side.cta_label ?? promo.cta_label,
+      cta_url: side.cta_url ?? promo.cta_url,
+      badge: side.badge ?? promo.badge,
+      tone: side.tone || promo.tone,
+    };
+  }, [promo, ab, abOpen, abVariant]);
+
+  // PM2 — impression beacon, once per promo per session
+  useEffect(() => {
+    if (!effective || Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const key = `imp:${effective.id}`;
+    try { if (window.sessionStorage.getItem(key)) return; } catch {}
+    try { window.sessionStorage.setItem(key, String(Date.now())); } catch {}
+    const variant = ab.winner && ab.settled_at ? ab.winner : (abOpen ? abVariant : null);
+    promoBeacon(effective.id, 'impression', variant);
+  }, [effective?.id, abVariant]);
+
   const onDismiss = useCallback(() => {
     if (!promo) return;
     const next = { ...dismissed, [promo.id]: Date.now() };
@@ -106,23 +187,26 @@ export function PromoBanner({ portal }: { portal: 'student' | 'alumni' | 'colleg
   }, [promo, dismissed]);
 
   const onCta = useCallback(() => {
-    if (!promo?.cta_url) return;
+    if (!effective?.cta_url) return;
+    // PM2 — click beacon attributed to the shown variant
+    const variant = ab?.winner && ab.settled_at ? ab.winner : (abOpen ? abVariant : null);
+    promoBeacon(effective.id, 'click', variant);
     if (Platform.OS === 'web') {
       // Internal route or external URL — both supported
-      if (/^https?:\/\//.test(promo.cta_url)) {
-        window.open(promo.cta_url, '_blank', 'noopener,noreferrer');
+      if (/^https?:\/\//.test(effective.cta_url)) {
+        window.open(effective.cta_url, '_blank', 'noopener,noreferrer');
       } else {
-        window.location.assign(promo.cta_url);
+        window.location.assign(effective.cta_url);
       }
     } else {
-      Linking.openURL(promo.cta_url).catch(() => {});
+      Linking.openURL(effective.cta_url).catch(() => {});
     }
-  }, [promo]);
+  }, [effective, ab, abOpen, abVariant]);
 
-  if (!promo) return null;
+  if (!effective) return null;
 
-  const grad = TONE_GRAD[promo.tone] || TONE_GRAD.violet;
-  const tint = TONE_TINT[promo.tone] || TONE_TINT.violet;
+  const grad = TONE_GRAD[effective.tone] || TONE_GRAD.violet;
+  const tint = TONE_TINT[effective.tone] || TONE_TINT.violet;
 
   return (
     <View style={s.wrap}>
@@ -148,27 +232,27 @@ export function PromoBanner({ portal }: { portal: 'student' | 'alumni' | 'colleg
         {/* Text */}
         <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
           <View style={s.titleRow}>
-            {promo.badge ? (
+            {effective.badge ? (
               <View style={[s.badge, { backgroundColor: tint, borderColor: tint.replace('0.22', '0.55') as any }]}>
-                <Text style={[s.badgeText, { color: grad[0] }]}>{promo.badge}</Text>
+                <Text style={[s.badgeText, { color: grad[0] }]}>{effective.badge}</Text>
               </View>
             ) : null}
-            <Text style={s.title} numberOfLines={1}>{promo.title}</Text>
+            <Text style={s.title} numberOfLines={1}>{effective.title}</Text>
           </View>
-          {!!promo.body && (
-            <Text style={s.body} numberOfLines={2}>{promo.body}</Text>
+          {!!effective.body && (
+            <Text style={s.body} numberOfLines={2}>{effective.body}</Text>
           )}
         </View>
 
         {/* CTA */}
-        {promo.cta_label && promo.cta_url ? (
+        {effective.cta_label && effective.cta_url ? (
           <Pressable onPress={onCta}>
             <LinearGradient
               colors={grad}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
               style={s.cta}
             >
-              <Text style={s.ctaText}>{promo.cta_label}</Text>
+              <Text style={s.ctaText}>{effective.cta_label}</Text>
               <ArrowRight size={12} color="#fff" />
             </LinearGradient>
           </Pressable>

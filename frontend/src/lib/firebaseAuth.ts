@@ -6,8 +6,30 @@
 let _firebaseAuth: any = null;
 let _firebaseApp: any = null;
 
+// Dedicated Firebase app name for authentication. Keeps auth isolated from any
+// other Firebase app the bundle may create (analytics, messaging, ...) so the
+// auth flow always runs against the exact configuration provided to it.
+const AUTH_APP_NAME = 'studentalumni-auth';
+
 export function getFirebaseAuth() {
   return _firebaseAuth;
+}
+
+/**
+ * True only when every value required for browser Google sign-in is present.
+ *
+ * `initFirebaseAuth` can technically run with just apiKey+projectId, but Google
+ * sign-in also needs `authDomain` (the OAuth handler host) and `appId` (the
+ * registered web app). The login page uses this to avoid advertising a Google
+ * button that cannot work.
+ */
+export function isFirebaseWebConfigComplete(
+  config: { apiKey?: string; authDomain?: string; projectId?: string; appId?: string } | null | undefined
+): boolean {
+  if (!config) return false;
+  return Boolean(
+    config.apiKey && config.authDomain && config.projectId && config.appId
+  );
 }
 
 export async function initFirebaseAuth(config: {
@@ -20,11 +42,25 @@ export async function initFirebaseAuth(config: {
   if (!config.apiKey || !config.projectId) return false;
 
   try {
-    const { initializeApp, getApps } = await import('firebase/app');
-    const { getAuth, GoogleAuthProvider, GithubAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, PhoneAuthProvider, signInWithPhoneNumber } = await import('firebase/auth');
+    const { initializeApp, getApp, getApps } = await import('firebase/app');
+    const { getAuth, GoogleAuthProvider, GithubAuthProvider, signInWithPopup, PhoneAuthProvider, signInWithPhoneNumber } = await import('firebase/auth');
 
-    const existing = getApps();
-    const app = existing.length > 0 ? existing[0] : initializeApp(config as any);
+    // CONFIG SAFETY: only reuse an existing Firebase app whose configuration
+    // EXACTLY matches the provided web configuration (apiKey + projectId).
+    // Never silently adopt an unrelated app (e.g. an analytics app initialized
+    // with stale or different build args) — that would authenticate the user
+    // against the wrong Firebase project.
+    const match = getApps().find(
+      (a) => a?.options?.apiKey === config.apiKey && a?.options?.projectId === config.projectId
+    );
+    let app = match;
+    if (!app) {
+      try {
+        app = getApp(AUTH_APP_NAME);
+      } catch {
+        app = initializeApp(config as any, AUTH_APP_NAME);
+      }
+    }
     _firebaseApp = app;
     _firebaseAuth = {
       get auth() { return getAuth(app); },
@@ -32,8 +68,6 @@ export async function initFirebaseAuth(config: {
       GithubAuthProvider,
       PhoneAuthProvider,
       signInWithPopup,
-      signInWithRedirect,
-      getRedirectResult,
       signInWithPhoneNumber,
     };
     return true;
@@ -41,17 +75,26 @@ export async function initFirebaseAuth(config: {
     return false;
   }
 }
-
 export async function signInWithGoogle(): Promise<{ idToken: string; email: string; name: string; picture: string } | null> {
   if (!_firebaseAuth) {
-    const initialized = await initFirebaseAuth({
+    const lazyConfig = {
       apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "",
       authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "",
       projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "",
       appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "",
-    });
+    };
+    if (!lazyConfig.apiKey || !lazyConfig.projectId) {
+      // Clear diagnostic: distinguish "not configured at all" from an SDK
+      // failure, instead of surfacing an unexplained login error.
+      throw new Error(
+        "Google sign-in is not configured for this environment: no Firebase web configuration was provided."
+      );
+    }
+    const initialized = await initFirebaseAuth(lazyConfig);
     if (!initialized) {
-      throw new Error("Firebase Auth could not be initialized. Check API keys.");
+      throw new Error(
+        "Firebase Auth could not be initialized. Verify the Firebase web configuration (apiKey/authDomain/projectId) is valid."
+      );
     }
   }
   if (!_firebaseAuth) return null;
@@ -72,51 +115,6 @@ export async function signInWithGoogle(): Promise<{ idToken: string; email: stri
     if (e?.code === 'auth/popup-closed-by-user') return null;
     throw e;
   }
-}
-
-/**
- * Google sign-in via full-page redirect.
- *
- * The popup variant (`signInWithPopup`) polls `popup.closed`, which Chrome
- * reports as a Cross-Origin-Opener-Policy violation because the Google popup
- * lives in its own browsing-context group. The redirect flow avoids both that
- * console noise and popup blockers on mobile.
- */
-export async function signInWithGoogleRedirect(): Promise<void> {
-  if (!_firebaseAuth) {
-    const initialized = await initFirebaseAuth({
-      apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "",
-      authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "",
-      projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "",
-      appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "",
-    });
-    if (!initialized) {
-      throw new Error("Firebase Auth could not be initialized. Check API keys.");
-    }
-  }
-  await _firebaseAuth.signInWithRedirect(
-    _firebaseAuth.auth,
-    new _firebaseAuth.GoogleAuthProvider()
-  );
-}
-
-/**
- * Resolve the result of a `signInWithGoogleRedirect` round-trip. Call once on
- * mount, after `initFirebaseAuth` has completed. Returns null when the user is
- * not coming back from a redirect.
- */
-export async function consumeGoogleRedirectResult(): Promise<{ idToken: string; email: string; name: string; picture: string } | null> {
-  if (!_firebaseAuth) return null;
-  const result = await _firebaseAuth.getRedirectResult(_firebaseAuth.auth);
-  const user = result?.user;
-  if (!user) return null;
-  const idToken = await user.getIdToken();
-  return {
-    idToken,
-    email: user.email || '',
-    name: user.displayName || '',
-    picture: user.photoURL || '',
-  };
 }
 
 export async function signInWithGitHub(): Promise<{ idToken: string; email: string; name: string; picture: string } | null> {

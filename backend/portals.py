@@ -1595,64 +1595,114 @@ async def export_payments_csv(user: dict = Depends(require_role('admin'))):
 
 @router.get("/admin/super/approvals")
 async def super_approvals(user: dict = Depends(require_role('admin'))):
-    """All pending items: mentors + colleges (from colleges_meta) + events."""
+    """All pending items: mentors + colleges (from colleges_meta) + events.
+
+    Each item carries its SLA state (AP1): pending duration, the SLA window it
+    is measured against, and an `overdue` flag once the window is breached.
+    """
+    from features.routers.admin.approvals import SLA_HOURS, _pending_items
+
+    now = datetime.now(timezone.utc)
+    sla_state = {
+        i["id"]: i
+        for i in await _pending_items()
+    }
+
     items: List[Dict[str, Any]] = []
 
     # Pending mentors
     cur = _db.users.find({"role": "mentor", "mentor_status": "pending"})
     async for m in cur:
         mi = m.get("mentor_info") or {}
+        item_id = str(m["_id"])
+        sla = sla_state.get(item_id, {})
         items.append({
-            "id": str(m["_id"]),
+            "id": item_id,
             "kind": "mentor",
             "who": m.get("full_name") or "—",
             "who2": _initials(m.get("full_name") or ""),
             "meta": f"{mi.get('job_title', 'Mentor')}, {mi.get('organization', '—')} · {mi.get('years_of_experience', 5)} yrs",
             "priority": "high",
             "color": _color_for(m.get("full_name", "")),
+            "pending_hours": sla.get("pending_hours", 0),
+            "sla_hours": SLA_HOURS["mentor"],
+            "due_at": sla.get("due_at"),
+            "remaining_hours": sla.get("remaining_hours", 0),
+            "overdue": bool(sla.get("overdue")),
+            "sla_state": sla.get("state", "on_track"),
         })
 
     # Pending colleges
     pcur = _db.colleges_meta.find({"status": "pending"})
     async for c in pcur:
+        item_id = str(c["_id"])
+        sla = sla_state.get(item_id, {})
         items.append({
-            "id": str(c["_id"]),
+            "id": item_id,
             "kind": "college",
             "who": c.get("name", "—"),
             "who2": _initials(c.get("name", "")),
             "meta": f"{c.get('mou_kind', 'Onboarding')} · {c.get('mou', 'Standard')} MoU · {c.get('annual_fee', '₹2.4L/yr')}",
             "priority": c.get("priority", "med"),
             "color": _color_for(c.get("name", "")),
+            "pending_hours": sla.get("pending_hours", 0),
+            "sla_hours": SLA_HOURS["college"],
+            "due_at": sla.get("due_at"),
+            "remaining_hours": sla.get("remaining_hours", 0),
+            "overdue": bool(sla.get("overdue")),
+            "sla_state": sla.get("state", "on_track"),
         })
 
     # Pending events (start_date > 30 days from now)
     ev_cur = _db.events.find({
-        "start_date": {"$gt": datetime.now(timezone.utc) + timedelta(days=30)},
+        "start_date": {"$gt": now + timedelta(days=30)},
     }).limit(2)
     async for ev in ev_cur:
+        item_id = str(ev["_id"])
+        sla = sla_state.get(item_id, {})
         items.append({
-            "id": str(ev["_id"]),
+            "id": item_id,
             "kind": "event",
             "who": ev.get("title", "Event"),
             "who2": _initials(ev.get("title", "")),
             "meta": f"{ev.get('mode', 'Online')} · Capacity {ev.get('capacity', 1000)}",
             "priority": "low",
             "color": _color_for(ev.get("title", "")),
+            "pending_hours": sla.get("pending_hours", 0),
+            "sla_hours": SLA_HOURS["event"],
+            "due_at": sla.get("due_at"),
+            "remaining_hours": sla.get("remaining_hours", 0),
+            "overdue": bool(sla.get("overdue")),
+            "sla_state": sla.get("state", "on_track"),
         })
+
+    # Overdue items first — they need attention soonest.
+    items.sort(key=lambda x: (not x["overdue"], -x["pending_hours"]))
 
     return {"items": items, "counts": {
         "all": len(items),
         "college": sum(1 for x in items if x["kind"] == "college"),
         "mentor":  sum(1 for x in items if x["kind"] == "mentor"),
         "event":   sum(1 for x in items if x["kind"] == "event"),
-    }}
+        "overdue": sum(1 for x in items if x["overdue"]),
+        "due_soon": sum(1 for x in items if x["sla_state"] == "due_soon"),
+    }, "sla_hours": SLA_HOURS}
 
 
 @router.get("/admin/super/analytics")
-async def super_analytics(user: dict = Depends(require_role('admin'))):
-    """Platform analytics — real data from MongoDB + Firebase + PostHog."""
+async def super_analytics(
+    range: str = Query("30d", pattern="^(7d|30d|90d|ytd|custom)$"),
+    start: Optional[str] = Query(None),
+    end: Optional[str] = Query(None),
+    user: dict = Depends(require_role('admin')),
+):
+    """Platform analytics — real data from MongoDB + Firebase + PostHog.
+
+    `range` scopes the period block (current window, previous window of the
+    same length, and the % delta between them).
+    """
     from features.analytics import super_admin_full_analytics
-    return await super_admin_full_analytics(_db)
+    return await super_admin_full_analytics(_db, range_key=range, start=start, end=end)
 
 
 @router.get("/admin/super/ai-insights")
@@ -2725,6 +2775,18 @@ async def delete_workflow(wf_id: str, user: dict = Depends(require_role('admin')
     return {"ok": True, "deleted": wf_id}
 
 
+async def _log_approval_action(action: str, kind: str, item_id: str, label: str, user: dict, detail: Optional[Dict[str, Any]] = None):
+    """Append an entry to the immutable approval audit trail (AP4)."""
+    try:
+        from features.routers.admin.approvals import _write_audit
+        await _write_audit(
+            action=action, kind=kind, item_id=item_id, label=label,
+            user=user, detail=detail or {},
+        )
+    except Exception:
+        pass
+
+
 @router.post("/admin/super/approvals/{user_id}/approve")
 async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))):
     """Approve a pending mentor, college, or event."""
@@ -2733,9 +2795,11 @@ async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))
         oid = ObjectId(user_id)
         res = await _db.users.update_one({"_id": oid, "role": "mentor"}, {"$set": {"mentor_status": "approved", "approved_at": datetime.now(timezone.utc)}})
         if res.matched_count > 0:
+            await _log_approval_action("approved", "mentor", user_id, user.get("full_name") or "", user)
             return {"ok": True, "kind": "mentor"}
         res2 = await _db.colleges_meta.update_one({"_id": oid}, {"$set": {"status": "active", "approved_at": datetime.now(timezone.utc)}})
         if res2.matched_count > 0:
+            await _log_approval_action("approved", "college", user_id, "", user)
             return {"ok": True, "kind": "college"}
     except Exception:
         pass
@@ -2746,6 +2810,7 @@ async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))
         {"$set": {"status": "active", "approved_at": datetime.now(timezone.utc)}}
     )
     if res.matched_count > 0:
+        await _log_approval_action("approved", "college", user_id, user_id, user)
         return {"ok": True, "kind": "college"}
 
     # Try events by title
@@ -2754,6 +2819,7 @@ async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))
         {"$set": {"status": "live", "approved_at": datetime.now(timezone.utc)}}
     )
     if res3.matched_count > 0:
+        await _log_approval_action("approved", "event", user_id, user_id, user)
         return {"ok": True, "kind": "event"}
 
     raise HTTPException(404, "Not found")
@@ -2763,18 +2829,21 @@ async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))
 async def reject_user(user_id: str, user: dict = Depends(require_role('admin'))):
     try:
         oid = ObjectId(user_id)
-        res = await _db.users.update_one({"_id": oid, "role": "mentor"}, {"$set": {"mentor_status": "rejected"}})
+        res = await _db.users.update_one({"_id": oid, "role": "mentor"}, {"$set": {"mentor_status": "rejected", "rejected_at": datetime.now(timezone.utc)}})
         if res.matched_count > 0:
+            await _log_approval_action("rejected", "mentor", user_id, user.get("full_name") or "", user)
             return {"ok": True, "kind": "mentor"}
-        res2 = await _db.colleges_meta.update_one({"_id": oid}, {"$set": {"status": "rejected"}})
+        res2 = await _db.colleges_meta.update_one({"_id": oid}, {"$set": {"status": "rejected", "rejected_at": datetime.now(timezone.utc)}})
         if res2.matched_count > 0:
+            await _log_approval_action("rejected", "college", user_id, "", user)
             return {"ok": True, "kind": "college"}
     except Exception:
         pass
 
     # Try by name
-    res = await _db.colleges_meta.update_one({"name": user_id}, {"$set": {"status": "rejected"}})
+    res = await _db.colleges_meta.update_one({"name": user_id}, {"$set": {"status": "rejected", "rejected_at": datetime.now(timezone.utc)}})
     if res.matched_count > 0:
+        await _log_approval_action("rejected", "college", user_id, user_id, user)
         return {"ok": True, "kind": "college"}
 
     # Try events by title
@@ -2783,6 +2852,7 @@ async def reject_user(user_id: str, user: dict = Depends(require_role('admin')))
         {"$set": {"status": "cancelled", "rejected_at": datetime.now(timezone.utc)}}
     )
     if res3.matched_count > 0:
+        await _log_approval_action("rejected", "event", user_id, user_id, user)
         return {"ok": True, "kind": "event"}
 
     raise HTTPException(404, "Not found")

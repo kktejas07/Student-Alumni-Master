@@ -333,7 +333,7 @@ async def fire_workflow_event(event_type: str, payload: Optional[Dict[str, Any]]
 async def run_cron_workflows() -> List[Dict[str, Any]]:
     """Run workflows triggered by cron events (daily, monthly)."""
     results = []
-    now = datetime.utcnow(timezone.utc)
+    now = datetime.now(timezone.utc)
     hour = now.hour
     day = now.day
 

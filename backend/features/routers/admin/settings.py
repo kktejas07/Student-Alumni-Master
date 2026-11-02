@@ -54,6 +54,36 @@ async def _require_admin(authorization: Optional[str]) -> dict:
     return user
 
 
+async def _log_setting_change(section: str, key: str, label: str,
+                              old_value: Any, new_value: Any,
+                              user: Optional[dict], action: str = "update") -> None:
+    """Append the change to the append-only settings changelog (ST2).
+
+    Best-effort: a changelog write must never fail the settings mutation
+    that triggered it.
+    """
+    try:
+        from features.routers.admin.settings_changelog import record_change
+        await record_change(
+            section=section, key=key, label=label,
+            old_value=old_value, new_value=new_value,
+            user=user, action=action,
+        )
+    except Exception:
+        pass
+
+
+def _label_for(section: str, key: str, arr: List[dict]) -> str:
+    """Human label for a setting key, from the stored/default metadata."""
+    for item in arr or []:
+        if isinstance(item, dict) and item.get("key") == key:
+            return item.get("label") or key
+    for item in DEFAULT_PLATFORM_CONTROLS.get(section) or []:
+        if isinstance(item, dict) and item.get("key") == key:
+            return item.get("label") or key
+    return key
+
+
 # ─── Permission catalog (read-only) ───────────────────────────────
 PERMISSIONS_CATALOG = [
     {"id": Perm.USERS_VIEW,       "group": "Users",       "label": "View users"},
@@ -138,7 +168,7 @@ class RoleBody(BaseModel):
 
 @router.post("/admin/roles")
 async def create_role(body: RoleBody, authorization: Optional[str] = Header(None)):
-    await _require_admin(authorization)
+    admin = await _require_admin(authorization)
     name = body.name.strip()
     if not name:
         raise HTTPException(400, "Role name required")
@@ -154,6 +184,8 @@ async def create_role(body: RoleBody, authorization: Optional[str] = Header(None
         "created_at": datetime.now(timezone.utc),
     }
     res = await _db.admin_roles.insert_one(doc)
+    await _log_setting_change("roles", "__role_created__", f"Role · {name}",
+                              None, name, admin, action="create")
     return {
         "id": str(res.inserted_id),
         "key": doc["key"], "name": doc["name"], "description": doc["description"],
@@ -165,7 +197,7 @@ async def create_role(body: RoleBody, authorization: Optional[str] = Header(None
 
 @router.patch("/admin/roles/{role_id}")
 async def update_role(role_id: str, body: Dict[str, Any] = Body(...), authorization: Optional[str] = Header(None)):
-    await _require_admin(authorization)
+    admin = await _require_admin(authorization)
     from bson import ObjectId
     r = await _db.admin_roles.find_one({"_id": ObjectId(role_id)})
     if not r:
@@ -178,13 +210,36 @@ async def update_role(role_id: str, body: Dict[str, Any] = Body(...), authorizat
         update["permissions"] = [p for p in body["permissions"] if p in valid_ids]
     if update:
         update["updated_at"] = datetime.now(timezone.utc)
+        # Capture the prior field values before the write so the changelog
+        # records a genuine old -> new diff.
+        prior = {f: r.get(f) for f in update if f != "updated_at"}
         await _db.admin_roles.update_one({"_id": ObjectId(role_id)}, {"$set": update})
+        # Record each changed field separately so the timeline reads as a
+        # per-field diff (ST2). Each entry carries the role id and the prior
+        # field value so it can be rolled back on its own.
+        try:
+            from features.routers.admin.settings_changelog import record_change
+            for field, new_value in update.items():
+                if field == "updated_at":
+                    continue
+                await record_change(
+                    section="roles", key=field,
+                    label=f"{r.get('name') or r.get('key') or 'Role'} · {field}",
+                    old_value=prior.get(field), new_value=new_value,
+                    user=admin, action="update",
+                    extra={
+                        "role_id": ObjectId(role_id),
+                        "rollback_payload": {field: prior.get(field)},
+                    },
+                )
+        except Exception:
+            pass
     return {"ok": True}
 
 
 @router.delete("/admin/roles/{role_id}")
 async def delete_role(role_id: str, authorization: Optional[str] = Header(None)):
-    await _require_admin(authorization)
+    admin = await _require_admin(authorization)
     from bson import ObjectId
     r = await _db.admin_roles.find_one({"_id": ObjectId(role_id)})
     if not r:
@@ -192,6 +247,9 @@ async def delete_role(role_id: str, authorization: Optional[str] = Header(None))
     if r.get("is_system"):
         raise HTTPException(403, "System roles cannot be deleted")
     await _db.admin_roles.delete_one({"_id": ObjectId(role_id)})
+    await _log_setting_change("roles", "__role_deleted__",
+                              f"Role · {r.get('name') or r.get('key')}",
+                              r.get("name"), None, admin, action="delete")
     return {"ok": True}
 
 
@@ -742,7 +800,25 @@ async def update_admin_profile(body: ProfilePatch, authorization: Optional[str] 
     if "signature" in update and isinstance(update["signature"], str):
         update["signature"] = update["signature"][:1500]
     if update:
+        # Capture prior values before the write so the changelog records a
+        # genuine old -> new diff.
+        prior = {f: user.get(f) for f in update}
         await _db.users.update_one({"_id": user["_id"]}, {"$set": update})
+        try:
+            from features.routers.admin.settings_changelog import record_change
+            for field, new_value in update.items():
+                await record_change(
+                    section="profile", key=field,
+                    label=f"Profile · {field}",
+                    old_value=prior.get(field), new_value=new_value,
+                    user=user, action="update",
+                    extra={
+                        "user_id": user["_id"],
+                        "rollback_payload": {field: prior.get(field)},
+                    },
+                )
+        except Exception:
+            pass
     return {"ok": True}
 
 
@@ -960,15 +1036,17 @@ class PlatformControlsPatch(BaseModel):
 
 @router.patch("/admin/platform-controls")
 async def patch_platform_controls(body: PlatformControlsPatch, authorization: Optional[str] = Header(None)):
-    await _require_admin(authorization)
+    admin = await _require_admin(authorization)
     doc = await _db.platform_controls.find_one({"_id": "singleton"})
     if not doc:
         doc = {"_id": "singleton", **DEFAULT_PLATFORM_CONTROLS}
     arr = doc.get(body.section) or []
     defaults = DEFAULT_PLATFORM_CONTROLS.get(body.section) or []
+    old_value = None
     found = False
     for it in arr:
         if it.get("key") == body.key:
+            old_value = it.get("value")
             it["value"] = body.value
             found = True
             break
@@ -982,6 +1060,10 @@ async def patch_platform_controls(body: PlatformControlsPatch, authorization: Op
         {"$set": {body.section: arr, "updated_at": datetime.now(timezone.utc)}},
         upsert=True,
     )
+    await _log_setting_change(
+        body.section, body.key, _label_for(body.section, body.key, arr),
+        old_value, body.value, admin,
+    )
     return {"ok": True}
 
 
@@ -993,14 +1075,16 @@ class SystemSettingPatch(BaseModel):
 @router.patch("/admin/platform-controls/system-settings")
 async def patch_system_setting(body: SystemSettingPatch, authorization: Optional[str] = Header(None)):
     """Update a single system setting value. Adds new fields if they don't exist yet."""
-    await _require_admin(authorization)
+    admin = await _require_admin(authorization)
     doc = await _db.platform_controls.find_one({"_id": "singleton"})
     if not doc:
         doc = {"_id": "singleton", **DEFAULT_PLATFORM_CONTROLS}
     settings = doc.get("system_settings") or []
+    old_value = None
     found = False
     for it in settings:
         if it.get("key") == body.key:
+            old_value = it.get("value")
             it["value"] = body.value
             found = True
             break
@@ -1015,13 +1099,20 @@ async def patch_system_setting(body: SystemSettingPatch, authorization: Optional
         {"$set": {"system_settings": settings, "updated_at": datetime.now(timezone.utc)}},
         upsert=True,
     )
+    await _log_setting_change(
+        "system_settings", body.key, _label_for("system_settings", body.key, settings),
+        old_value, body.value, admin,
+    )
     return {"ok": True}
 
 
 @router.post("/admin/platform-controls/reset")
 async def reset_platform_controls(authorization: Optional[str] = Header(None)):
     """Reset all platform controls to defaults. Admin-only."""
-    await _require_admin(authorization)
+    admin = await _require_admin(authorization)
+    prev = await _db.platform_controls.find_one({"_id": "singleton"}) or {}
+    prev_flags = {i.get("key"): i.get("value") for i in (prev.get("feature_flags") or []) if isinstance(i, dict)}
+    prev_settings = {i.get("key"): i.get("value") for i in (prev.get("system_settings") or []) if isinstance(i, dict)}
     await _db.platform_controls.update_one(
         {"_id": "singleton"},
         {"$set": {**DEFAULT_PLATFORM_CONTROLS, "updated_at": datetime.now(timezone.utc)}},
@@ -1033,6 +1124,16 @@ async def reset_platform_controls(authorization: Optional[str] = Header(None)):
         "target": "platform_controls",
         "at": datetime.now(timezone.utc),
     })
+    # Record every value the reset changed (ST2) so the timeline is complete.
+    for section, old_map in (("feature_flags", prev_flags), ("system_settings", prev_settings)):
+        defaults = DEFAULT_PLATFORM_CONTROLS.get(section) or []
+        new_map = {i.get("key"): i.get("value") for i in defaults if isinstance(i, dict)}
+        for key, old_val in old_map.items():
+            if new_map.get(key) != old_val:
+                await _log_setting_change(
+                    section, key, _label_for(section, key, defaults),
+                    old_val, new_map.get(key), admin, action="reset",
+                )
     return {"ok": True, "message": "Platform settings reset to defaults"}
 
 

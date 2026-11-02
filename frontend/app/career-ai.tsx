@@ -56,54 +56,54 @@ import {
   HorizontalRoadmap,
   AIInsightBubble,
 } from '@/src/views/web/career';
-import { FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
+import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
 
 /* ────────── Design tokens (theme-aware) ────────── */
 const C_DARK = {
-  bg: '#08080F',
-  bgCard: '#101019',
-  bgCardH: '#14141F',
-  border: 'rgba(255, 255, 255, 0.08)',
-  border2: 'rgba(255, 255, 255, 0.14)',
-  text: '#FFFFFF',
-  text2: 'rgba(255, 255, 255, 0.95)',
-  textSub: 'rgba(255, 255, 255, 0.85)',
-  dim: 'rgba(255, 255, 255, 0.70)',
-  purple: '#4F46E5',
-  purple2: '#6366F1',
-  purpleL: '#818CF8',
-  purpleXL: '#A5B4FC',
-  teal: '#2DD4BF',
+  bg: COLORS.bg,
+  bgCard: COLORS.surface1,
+  bgCardH: COLORS.surface2,
+  border: COLORS.border,
+  border2: COLORS.borderHi,
+  text: COLORS.text,
+  text2: COLORS.text2,
+  textSub: COLORS.textSub,
+  dim: COLORS.dim,
+  purple: COLORS.primary,
+  purple2: COLORS.primary,
+  purpleL: COLORS.primaryLight,
+  purpleXL: '#C4B5FD',
+  teal: COLORS.green,
   blue: '#60A5FA',
   amber: '#F59E0B',
   red: '#F87171',
   green: '#34D399',
   pink: '#F472B6',
-  surface: '#0A0A2A',
-  surfaceBorder: 'rgba(255, 255, 255, 0.08)',
+  surface: COLORS.surface2,
+  surfaceBorder: COLORS.border,
   subtleBg: 'rgba(255, 255, 255, 0.03)',
   subtleBorder: 'rgba(255, 255, 255, 0.06)',
   track: 'rgba(255, 255, 255, 0.1)',
   agentBg: 'rgba(255, 255, 255, 0.05)',
-  colCardBorder: 'rgba(0,0,0,0.07)',
+  colCardBorder: COLORS.border,
   cardShadow: '0 4px 20px rgba(0,0,0,0.15)',
-  heroCardBg: 'rgba(79, 70, 229, 0.15)',
-  heroShadow: '0 8px 32px rgba(79, 70, 229, 0.25)',
+  heroCardBg: 'rgba(124, 92, 252, 0.15)',
+  heroShadow: '0 8px 32px rgba(124, 92, 252, 0.25)',
 };
 
 const C_LIGHT = {
-  bg: '#F8FAFC',
+  bg: '#F4F5FA',
   bgCard: '#FFFFFF',
-  bgCardH: '#F1F5F9',
-  border: 'rgba(15, 23, 42, 0.08)',
-  border2: 'rgba(15, 23, 42, 0.14)',
-  text: '#0F172A',
-  text2: 'rgba(15, 23, 42, 0.9)',
-  textSub: 'rgba(15, 23, 42, 0.75)',
-  dim: 'rgba(15, 23, 42, 0.55)',
-  purple: '#4338CA',
-  purple2: '#4F46E5',
-  purpleL: '#6366F1',
+  bgCardH: '#F3F4FA',
+  border: 'rgba(20, 23, 38, 0.10)',
+  border2: 'rgba(20, 23, 38, 0.16)',
+  text: '#141726',
+  text2: 'rgba(20, 23, 38, 0.92)',
+  textSub: 'rgba(20, 23, 38, 0.75)',
+  dim: 'rgba(20, 23, 38, 0.56)',
+  purple: '#6246E8',
+  purple2: '#7C5CFC',
+  purpleL: '#6246E8',
   purpleXL: '#4338CA',
   teal: '#0D9488',
   blue: '#2563EB',
@@ -112,15 +112,15 @@ const C_LIGHT = {
   green: '#059669',
   pink: '#DB2777',
   surface: '#FFFFFF',
-  surfaceBorder: 'rgba(15, 23, 42, 0.08)',
-  subtleBg: 'rgba(15, 23, 42, 0.03)',
-  subtleBorder: 'rgba(15, 23, 42, 0.06)',
-  track: 'rgba(15, 23, 42, 0.1)',
-  agentBg: 'rgba(15, 23, 42, 0.04)',
-  colCardBorder: 'rgba(15, 23, 42, 0.08)',
-  cardShadow: '0 4px 20px rgba(15, 23, 42, 0.08)',
+  surfaceBorder: 'rgba(20, 23, 38, 0.10)',
+  subtleBg: 'rgba(20, 23, 38, 0.03)',
+  subtleBorder: 'rgba(20, 23, 38, 0.06)',
+  track: 'rgba(20, 23, 38, 0.10)',
+  agentBg: 'rgba(20, 23, 38, 0.04)',
+  colCardBorder: 'rgba(20, 23, 38, 0.10)',
+  cardShadow: '0 4px 20px rgba(20, 23, 38, 0.08)',
   heroCardBg: '#FFFFFF',
-  heroShadow: '0 8px 32px rgba(79, 70, 229, 0.12)',
+  heroShadow: '0 8px 32px rgba(124, 92, 252, 0.12)',
 };
 
 const FT = {
@@ -138,7 +138,7 @@ const SKILL_META = [
   { key: 'Technical Excellence',       label: 'Technical Excellence',       short: 'Technical Excellence',       color: '#38BDF8', colorLight: '#2563EB', Icon: Code, status: 'Strong' },
   { key: 'Professional Communication', label: 'Professional Communication', short: 'Professional Communication', color: '#60A5FA', colorLight: '#4F46E5', Icon: MessageSquare, status: 'Developing' },
   { key: 'Leadership & Collaboration', label: 'Leadership & Collaboration', color: '#2DD4BF', colorLight: '#0D9488', Icon: Award, status: 'Needs Work' },
-  { key: 'Career Preparation',         label: 'Projects & Practical Skills',color: '#818CF8', colorLight: '#4338CA', Icon: Folder, status: 'Strong' },
+  { key: 'Career Preparation',         label: 'Projects & Practical Skills',color: COLORS.primaryLight, colorLight: COLORS.primaryDark, Icon: Folder, status: 'Strong' },
   { key: 'Personal Brand',             label: 'Personal Brand',             short: 'Personal Brand',             color: '#F59E0B', colorLight: '#D97706', Icon: Star, status: 'Developing' },
   { key: 'Industry Presence',          label: 'Industry Presence',          short: 'Industry Presence',          color: '#EC4899', colorLight: '#DB2777', Icon: UserIcon, status: 'Needs Work' },
 ];
@@ -184,8 +184,8 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   }, [isEmbedded, initialized, user, router]);
 
   const { width: winW } = useWindowDimensions();
-  const isLarge = winW >= 1024;
-  const isTablet = winW >= 680;
+  const isLarge = winW >= (isEmbedded ? 1280 : 1024);
+  const isTablet = winW >= (isEmbedded ? 960 : 680);
 
   /* ── State ── */
   const [loading, setLoading] = useState(true);
@@ -225,7 +225,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   /* ── Derived ── */
   const allMilestones = useMemo(() => roadmap.milestones || [], [roadmap]);
   const pendingMilestones = useMemo(() => allMilestones.filter(m => !m.completed), [allMilestones]);
-  const firstPendingIdx = useMemo(() => allMilestones.findIndex(m => !m.completed), [allMilestones]);
+  const nextMilestone = pendingMilestones[0] || null;
 
   /* ── Fetch Data ── */
   const fetch = useCallback(async (force = false) => {
@@ -351,9 +351,8 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
     <View style={{ flex: 1, width: '100%', overflow: 'hidden' }}>
         <LinearGradient
           colors={isDark
-            ? ['#08080F', '#101019', '#14141F', '#0B0B14']
-            : ['#FFFFFF', '#F8FAFC', '#EFF6FF', '#E2E8F0']}
-          locations={[0, 0.3, 0.7, 1]}
+            ? ['#08080F', '#0C0E1F', '#08080F']
+            : ['#F4F5FA', '#EDEBF8', '#F4F5FA']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[StyleSheet.absoluteFillObject, { zIndex: -1 }]}
@@ -467,12 +466,15 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
               {/* Panel 2: Next Milestone */}
               <View style={s.heroPanel}>
-                <Text style={s.heroPanelLabel}>Next Milestone</Text>
-                <Text style={s.heroPanelTitle} numberOfLines={2}>Build your professional resume</Text>
-                <View style={s.heroProgressTrack}>
-                  <View style={[s.heroProgressFill, { width: '60%' }]} />
-                </View>
-                <Text style={s.heroPanelSub}>60% Completed</Text>
+                <Text style={s.heroPanelLabel}>
+                  {nextMilestone ? 'Next Milestone' : allMilestones.length ? 'Roadmap Complete' : 'Next Milestone'}
+                </Text>
+                <Text style={s.heroPanelTitle} numberOfLines={2}>
+                  {nextMilestone?.title || (allMilestones.length ? 'All milestones complete' : 'No milestone planned yet')}
+                </Text>
+                <Text style={s.heroPanelSub} numberOfLines={3}>
+                  {nextMilestone?.description || nextMilestone?.completion_rule || (allMilestones.length ? 'You have completed every step in this roadmap.' : 'Your roadmap will show its first milestone here.')}
+                </Text>
               </View>
 
               {/* Panel 3: Estimated Achievement */}
@@ -512,7 +514,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           subText={readinessLevel}
           iconElement={<CompletionRing pct={readinessScore} size={18} stroke={2.5} color={C.purpleL} trackColor="transparent" hideText={true} />}
           onPress={() => { setExplainTab('readiness'); setShowExplainModal(true); }}
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 155 }}
         />
         <MetricCard
           label="TARGET READINESS"
@@ -520,7 +522,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           color={C.teal}
           subText="Industry Ready"
           iconElement={<Target size={16} color={C.teal} />}
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 155 }}
         />
         <MetricCard
           label="CAREER LEVEL"
@@ -528,7 +530,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           color={C.amber}
           subText="Current Level"
           iconElement={<Award size={16} color={C.amber} />}
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 155 }}
         />
         <MetricCard
           label="PROFILE STRENGTH"
@@ -536,7 +538,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           color={C.blue}
           subText="Profile Score"
           iconElement={<Shield size={16} color={C.blue} />}
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 155 }}
         />
         <MetricCard
           label="SKILL STREAK"
@@ -544,7 +546,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           color={C.red}
           subText="Start your streak!"
           iconElement={<Flame size={16} color={C.red} fill={C.red} />}
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 155 }}
         />
       </View>
 
@@ -552,7 +554,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
       <PredictionTimeline data={careerIntel?.predictions} />
 
       {/* ══════════════ 5. ROW 1: SKILLS BREAKDOWN & NEXT BEST ACTIONS ══════════════ */}
-      <View style={s.twoColRow}>
+      <View style={[s.twoColRow, !isLarge && { flexDirection: 'column' }]}>
         {/* Left (50%): Skills Breakdown */}
         <View style={s.colCard}>
           <View style={s.cardHeader}>
@@ -617,7 +619,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
       </View>
 
       {/* ══════════════ 6. ROW 2: AI INSIGHTS & GOAL SIMULATOR ══════════════ */}
-      <View style={s.twoColRow}>
+      <View style={[s.twoColRow, !isLarge && { flexDirection: 'column' }]}>
         {/* Left (50%): AI Insights */}
         <View style={s.colCard}>
           <View style={s.cardHeader}>
@@ -687,11 +689,8 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
       />
 
       {/* ══════════════ 8. ROW 3: THIS WEEK'S FOCUS & RECRUITER VIEW ══════════════ */}
-      <View style={s.twoColRow}>
-        {/* Left (50%): Goal Simulator — toggle the ranked actions and preview the readiness gain */}
-        <CareerGoalSimulator currentReadiness={readinessScore} collapsible={false} />
-
-        {/* Right (50%): Recruiter View (Beta) */}
+      <View style={[s.twoColRow, !isLarge && { flexDirection: 'column' }]}>
+        {/* Recruiter View (Beta) */}
         <View style={s.colCard}>
           <View style={s.cardHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -820,7 +819,7 @@ const makeStyles = (C: typeof C_DARK) => StyleSheet.create({
     backgroundColor: C.purple2,
   },
   reportBtnHover: {
-    backgroundColor: '#6366F1',
+    backgroundColor: COLORS.primaryDark,
   },
   reportBtnText: {
     color: '#FFF',
@@ -969,7 +968,7 @@ const makeStyles = (C: typeof C_DARK) => StyleSheet.create({
     marginTop: 8,
   },
   continueBtnHover: {
-    backgroundColor: '#6366F1',
+    backgroundColor: COLORS.primaryDark,
   },
   continueBtnText: {
     color: '#FFF',
@@ -1010,7 +1009,7 @@ const makeStyles = (C: typeof C_DARK) => StyleSheet.create({
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: '#818CF8',
+    backgroundColor: COLORS.primaryLight,
     opacity: 0.5,
   },
   heroStar3: {
@@ -1020,7 +1019,7 @@ const makeStyles = (C: typeof C_DARK) => StyleSheet.create({
     width: 2,
     height: 2,
     borderRadius: 1,
-    backgroundColor: '#0A0A2A',
+    backgroundColor: C.bgCardH,
     opacity: 0.4,
   },
   heroStar4: {
@@ -1066,7 +1065,7 @@ const makeStyles = (C: typeof C_DARK) => StyleSheet.create({
   kpiRow: {
     flexDirection: 'row',
     gap: SPACING.md,
-    flexWrap: Platform.OS === 'web' ? ('nowrap' as any) : 'wrap',
+    flexWrap: 'wrap',
   },
 
   /* 2-Column Section Cards */
