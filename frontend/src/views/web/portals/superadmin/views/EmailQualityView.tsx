@@ -288,11 +288,11 @@ export function EmailQualityView() {
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <SecondaryButton onPress={() => syncPostal()}>
-              <RefreshCw size={12} color={SAC.muted} />
+              <RefreshCw size={12} color={T.muted} />
               <Text style={st.secText}>Sync Postal</Text>
             </SecondaryButton>
             <SecondaryButton onPress={() => load()}>
-              {loading ? <ActivityIndicator size="small" color={SAC.muted} /> : <RefreshCw size={12} color={SAC.muted} />}
+              {loading ? <ActivityIndicator size="small" color={T.muted} /> : <RefreshCw size={12} color={T.muted} />}
               <Text style={st.secText}>Refresh</Text>
             </SecondaryButton>
           </View>
@@ -344,15 +344,15 @@ export function EmailQualityView() {
         <View style={{ gap: 12 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <IconBox size={32}><ShieldOff size={16} color={GRAD.to} /></IconBox>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>Automatic Quality Filters</Text>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: T.text }}>Automatic Quality Filters</Text>
           </View>
-          <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: SAC.muted, lineHeight: 20 }}>
+          <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: T.muted, lineHeight: 20 }}>
             The backend is permanently enforcing the following strict email checks before any email reaches Postal. These cannot be disabled:
           </Text>
           <View style={{ paddingLeft: 10, gap: 6 }}>
-            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: SAC.text }}>✓ <strong style={{ color: '#DDD6FE' }}>Disposable Domains:</strong> Automatically blocked via GitHub daily updates (e.g. Yopmail, Mailinator, etc.)</Text>
-            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: SAC.text }}>✓ <strong style={{ color: '#DDD6FE' }}>Junk Catchers:</strong> Known test addresses are dropped (e.g. test@gmail.com, asdf@...)</Text>
-            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: SAC.text }}>✓ <strong style={{ color: '#DDD6FE' }}>Duplicates:</strong> Pre-filtered at the form submission level (one registration per email).</Text>
+            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: T.text }}>✓ <strong style={{ color: '#DDD6FE' }}>Disposable Domains:</strong> Automatically blocked via GitHub daily updates (e.g. Yopmail, Mailinator, etc.)</Text>
+            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: T.text }}>✓ <strong style={{ color: '#DDD6FE' }}>Junk Catchers:</strong> Known test addresses are dropped (e.g. test@gmail.com, asdf@...)</Text>
+            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: T.text }}>✓ <strong style={{ color: '#DDD6FE' }}>Duplicates:</strong> Pre-filtered at the form submission level (one registration per email).</Text>
           </View>
         </View>
       </Card>
@@ -380,7 +380,7 @@ export function EmailQualityView() {
         <View style={st.cardHeader}>
           <SectionLabel>EMAIL AUDIT</SectionLabel>
           <SecondaryButton onPress={runAudit} disabled={auditing}>
-            {auditing ? <ActivityIndicator size="small" color={SAC.muted} /> : <Search size={12} color={SAC.muted} />}
+            {auditing ? <ActivityIndicator size="small" color={T.muted} /> : <Search size={12} color={T.muted} />}
             <Text style={st.secText}>{auditing ? 'Auditing...' : 'Run Audit'}</Text>
           </SecondaryButton>
         </View>
@@ -567,7 +567,7 @@ export function EmailQualityView() {
         <View style={{ marginTop: 12, gap: 8 }}>
           {events.length === 0 ? (
             <View style={{ padding: 20, alignItems: 'center', gap: 8 }}>
-              <Clock size={24} color={SAC.muted} />
+              <Clock size={24} color={T.muted} />
               <Text style={st.muted}>No recent email events. Form blocks and send skips will appear here.</Text>
             </View>
           ) : (

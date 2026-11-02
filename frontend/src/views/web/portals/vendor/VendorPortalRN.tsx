@@ -23,8 +23,8 @@ export function VendorPortalRN() {
   }, [token, router]);
   if (!token) return null;
 
-  const onLogout = () => {
-    logout();
+  const onLogout = async () => {
+    try { await logout(); } catch {}
     router.replace('/vendor-portal/login' as any);
   };
   const name = vendor?.name || 'Vendor';

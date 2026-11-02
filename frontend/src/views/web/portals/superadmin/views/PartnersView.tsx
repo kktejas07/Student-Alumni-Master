@@ -32,7 +32,7 @@ import {
   ImagePlus, RefreshCw, ExternalLink, Award,
   UploadCloud, Download, FileText,
 } from 'lucide-react-native';
-import { SAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   TopTabs, SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox,
@@ -106,6 +106,7 @@ function contractDays(p: Partner): { days: number; color: string; label: string 
  * Root
  * ────────────────────────────────────────────────────────────────── */
 export function PartnersView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const sac = useSAC();
   const T = useThemedCrudStyles();
   Object.assign(s, resolveColors(s, T));
   const { toast, flash, hide } = useToast();
@@ -279,7 +280,7 @@ export function PartnersView({ sub, onSub }: { sub?: string; onSub?: (s: string)
           />
           <SearchField value={q} onChange={setQ} placeholder="Search by name…" width={280} />
           <Pressable onPress={load} style={crud.refreshBtn}>
-            <RefreshCw size={11} color={SAC.muted} />
+            <RefreshCw size={11} color={sac.muted} />
             <Text style={crud.refreshText}>Refresh</Text>
           </Pressable>
         </View>
@@ -450,7 +451,7 @@ function PartnerRow({
           {partner.logo_url ? (
             <Image source={{ uri: resolveImageUrl(partner.logo_url) }} style={s.logoImg} resizeMode="contain" />
           ) : (
-            <ImagePlus size={18} color={SAC.dim} />
+            <ImagePlus size={18} color={sac.dim} />
           )}
         </View>
 
@@ -937,7 +938,7 @@ function LogoPicker({
             <Text style={crud.muted}>Logo uploaded · {Math.round(value.length / 1000)} KB (base64)</Text>
             <View style={{ flexDirection: 'row', gap: 6 }}>
               <SecondaryButton size="sm" onPress={onPick}>
-                <Upload size={11} color={SAC.muted} />
+                <Upload size={11} color={sac.muted} />
                 <Text style={crud.secText}>Replace</Text>
               </SecondaryButton>
               <SecondaryButton size="sm" danger onPress={onClear}>

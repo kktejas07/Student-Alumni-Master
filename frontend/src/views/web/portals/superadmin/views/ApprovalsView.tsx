@@ -321,12 +321,12 @@ export function ApprovalsView() {
                     />
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 5 }}>
-                    <Icon size={11} color={SAC.muted} />
+                    <Icon size={11} color={T.muted} />
                     <Text numberOfLines={1} style={s.meta}>{a.meta}</Text>
                   </View>
                 </View>
                 <SecondaryButton size="sm" onPress={() => setReviewItem(a)}>
-                  <Eye size={12} color={SAC.muted} />
+                  <Eye size={12} color={T.muted} />
                   <Text style={s.secText}>Review</Text>
                 </SecondaryButton>
                 <GradientButton size="sm" onPress={() => onApprove(a.id, a.who)}>
@@ -336,7 +336,7 @@ export function ApprovalsView() {
                 <SecondaryButton size="sm" danger onPress={() => onReject(a.id, a.who)}>
                   <Text style={s.dangerText}>Reject</Text>
                 </SecondaryButton>
-                <ChevronRight size={14} color={SAC.dim} />
+                <ChevronRight size={14} color={T.dim} />
               </Animated.View>
             );
           })}

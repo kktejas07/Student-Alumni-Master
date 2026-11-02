@@ -669,6 +669,460 @@ async def list_colleges(
     return {"items": items, "total": total, "page": page, "limit": limit, "pages": max(1, (total + limit - 1) // limit), "counts": counts}
 
 
+@router.get("/admin/colleges/export")
+async def export_colleges_csv(
+    status: Optional[str] = None,
+    q: Optional[str] = None,
+    authorization: Optional[str] = Header(None),
+):
+    """Export the filtered college directory as CSV (all matching rows, no pagination).
+
+    Mirrors the /admin/colleges/list filters so the export always matches
+    what the admin is looking at in the UI.
+    """
+    await _require_admin(authorization)
+
+    import csv
+    import io
+    from fastapi.responses import Response
+
+    match: Dict[str, Any] = {}
+    if status and status != "all":
+        match["status"] = status
+    if q:
+        match["name"] = {"$regex": re.escape(q), "$options": "i"}
+
+    cur = _db.colleges.find(match).sort([("created_at", -1), ("_id", -1)])
+
+    docs: List[dict] = []
+    name_to_norm: Dict[str, str] = {}
+    async for c in cur:
+        docs.append(c)
+        name_to_norm[str(c["_id"])] = c.get("normalized_name") or _normalize(c.get("name", ""))
+
+    # Same student-count aggregation as the list endpoint
+    counts_pipeline = [
+        {"$match": {"college": nonempty()}},
+        {"$group": {"_id": {"$toLower": "$college"}, "n": {"$sum": 1}}},
+    ]
+    counts_map: Dict[str, int] = {}
+    try:
+        async for r in _db.users.aggregate(counts_pipeline):
+            n = _normalize(r.get("_id") or "")
+            if n:
+                counts_map[n] = counts_map.get(n, 0) + int(r.get("n", 0))
+    except Exception:
+        counts_map = {}
+
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow([
+        "Name", "City", "State", "Country", "Type", "Status",
+        "Enrichment Status", "Student Count", "NAAC Grade", "NIRF Rank",
+        "Website", "LinkedIn", "Domains", "Created At",
+    ])
+    for c in docs:
+        norm = name_to_norm.get(str(c["_id"]), "")
+        accreditation = c.get("accreditation") or []
+        ranking = c.get("ranking") or []
+        naac = next((a for a in accreditation if "naac" in a.lower()), "")
+        nirf = next((r for r in ranking if "nirf" in r.lower()), "")
+        created = c.get("created_at")
+        writer.writerow([
+            c.get("name") or "",
+            c.get("city") or "",
+            c.get("state") or "",
+            c.get("country") or "",
+            c.get("type") or "",
+            c.get("status") or "pending",
+            c.get("enrichment_status") or "failed",
+            counts_map.get(norm, 0),
+            naac,
+            nirf,
+            c.get("website") or "",
+            c.get("linkedin_url") or "",
+            "; ".join(c.get("domains") or []),
+            created.strftime("%Y-%m-%d %H:%M UTC") if isinstance(created, datetime) else "",
+        ])
+
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    return Response(
+        content=out.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=colleges_export_{stamp}.csv"},
+    )
+
+
+@router.get("/admin/colleges/analytics")
+async def colleges_analytics(authorization: Optional[str] = Header(None)):
+    """Geographic analytics dashboard data (CL6).
+
+    Aggregated in one pass over `colleges` + a users student-count rollup:
+      • by_state (top 20) · by_country · by_type · by_status
+      • enrichment success rate · average student count per college
+      • totals for KPI cards
+    """
+    await _require_admin(authorization)
+
+    def _top(rows: List[dict], limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        out = [{"label": str(r.get("_id") or "Unknown"), "count": int(r.get("count", 0))} for r in rows]
+        out.sort(key=lambda x: (-x["count"], x["label"].lower()))
+        return out[:limit] if limit else out
+
+    async def _count_by(field: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        pipeline = [
+            {"$group": {"_id": {"$trim": {"$ifNull": [f"${field}", ""]}}, "count": {"$sum": 1}}},
+            {"$match": {"_id": {"$ne": ""}}},
+            {"$sort": {"_id": 1}},
+        ]
+        rows: List[dict] = []
+        async for r in _db.colleges.aggregate(pipeline):
+            rows.append(r)
+        return _top(rows, limit)
+
+    by_state   = await _count_by("state", 20)
+    by_country = await _count_by("country")
+    by_type    = await _count_by("type")
+    by_status  = await _count_by("status")
+
+    total = await _db.colleges.count_documents({})
+    enriched = await _db.colleges.count_documents({"enrichment_status": {"$in": ["enriched", "partial"]}})
+    pending_approvals = await _db.colleges.count_documents({"status": "pending"})
+    enrichment_rate = round((enriched / total) * 100, 1) if total else 0.0
+
+    # Student counts per college (same aggregation as /list)
+    counts_map: Dict[str, int] = {}
+    try:
+        counts_pipeline = [
+            {"$match": {"college": nonempty()}},
+            {"$group": {"_id": {"$toLower": "$college"}, "n": {"$sum": 1}}},
+        ]
+        async for r in _db.users.aggregate(counts_pipeline):
+            n = _normalize(r.get("_id") or "")
+            if n:
+                counts_map[n] = counts_map.get(n, 0) + int(r.get("n", 0))
+    except Exception:
+        counts_map = {}
+
+    total_students = sum(counts_map.values())
+    avg_students = round(total_students / total, 1) if total else 0
+
+    return {
+        "total_colleges": total,
+        "total_students": total_students,
+        "avg_students_per_college": avg_students,
+        "enrichment_rate": enrichment_rate,
+        "pending_approvals": pending_approvals,
+        "by_state": by_state,
+        "by_country": by_country,
+        "by_type": by_type,
+        "by_status": by_status,
+    }
+
+
+
+# ─── DEDUP: fuzzy duplicate detection & merge ─────────────────────
+# Students are linked to colleges by the `users.college` string (matched
+# case-insensitively against the college name), so a merge must also
+# re-point those rows onto the surviving (primary) name.
+
+_MERGE_FILL_FIELDS = (
+    "city", "state", "country", "type", "website", "linkedin_url",
+    "logo_url", "wiki_url", "description", "enrichment_status",
+)
+_MERGE_LIST_FIELDS = ("accreditation", "ranking", "specialties", "domains", "enrichment_sources")
+
+
+def _levenshtein_capped(a: str, b: str, cap: int = 3) -> int:
+    """Bounded Levenshtein distance. Returns cap+1 when the distance is
+    known to exceed `cap` (early exit keeps it cheap on long names)."""
+    if a == b:
+        return 0
+    if abs(len(a) - len(b)) > cap:
+        return cap + 1
+    if not a:
+        return len(b)
+    if not b:
+        return len(a)
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        row_min = i
+        for j, cb in enumerate(b, 1):
+            cost = 0 if ca == cb else 1
+            v = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost)
+            cur.append(v)
+            row_min = min(row_min, v)
+        if row_min > cap:
+            return cap + 1
+        prev = cur
+    return prev[-1] if prev[-1] <= cap else cap + 1
+
+
+def _jaro_winkler(a: str, b: str) -> float:
+    """Jaro-Winkler similarity on lowercased strings (0..1)."""
+    a, b = (a or "").lower(), (b or "").lower()
+    if a == b:
+        return 1.0
+    la, lb = len(a), len(b)
+    if la < 2 or lb < 2:
+        return 1.0 if a == b else 0.0
+    match_dist = max(la, lb) // 2 - 1
+    match_dist = max(match_dist, 0)
+    a_match = [False] * la
+    b_match = [False] * lb
+    matches = 0
+    for i in range(la):
+        lo = max(0, i - match_dist)
+        hi = min(i + match_dist + 1, lb)
+        for j in range(lo, hi):
+            if b[j] == a[i] and not b_match[j]:
+                a_match[i] = True
+                b_match[j] = True
+                matches += 1
+                break
+    if matches < 2:
+        return 0.0
+    trans = 0
+    k = 0
+    for i in range(la):
+        if a_match[i]:
+            while k < lb and not b_match[k]:
+                k += 1
+            if k < lb and a[i] != b[k]:
+                trans += 1
+            k += 1
+    jaro = (matches / la + matches / lb + (matches - trans / 2) / matches) / 3
+    prefix = 0
+    for i in range(min(4, la, lb)):
+        if a[i] == b[i]:
+            prefix += 1
+        else:
+            break
+    return jaro + 0.1 * prefix * (1 - jaro)
+
+
+def _pair_confidence(a: str, b: str) -> float:
+    """Score a pair of college names: 1.0 for exact normalized matches,
+    else the Jaro-Winkler similarity, with a Levenshtein ≤ 3 floor so
+    short typo-variants still qualify."""
+    na, nb = _normalize(a), _normalize(b)
+    if na and na == nb:
+        return 1.0
+    sim = _jaro_winkler(na, nb)
+    lev = _levenshtein_capped(na, nb, cap=3)
+    if lev <= 3 and sim < 0.92:
+        sim = max(sim, 0.85 + (3 - lev) * 0.02)
+    return round(sim, 4)
+
+
+@router.get("/admin/colleges/duplicates")
+async def find_duplicate_colleges(authorization: Optional[str] = Header(None)):
+    """Group colleges whose names fuzzy-match (Jaro-Winkler ≥ 0.85 or
+    Levenshtein ≤ 3 on the normalized name). Groups are returned sorted
+    by confidence (highest first) so the likeliest duplicates lead.
+
+    Pairwise comparison is bucketed by the first 4 normalized
+    characters (with a full pass for names ≤ 6 chars) to keep it fast on
+    large collections.
+    """
+    await _require_admin(authorization)
+
+    docs: List[dict] = []
+    async for c in _db.colleges.find({}):
+        docs.append(c)
+
+    parent: Dict[str, str] = {}
+
+    def union(x: str, y: str) -> None:
+        rx, ry = x, y
+        while parent.get(rx, rx) != rx:
+            rx = parent[rx]
+        while parent.get(ry, ry) != ry:
+            ry = parent[ry]
+        if rx != ry:
+            parent[rx] = ry
+
+    by_id: Dict[str, dict] = {}
+    for c in docs:
+        cid = str(c["_id"])
+        by_id[cid] = c
+
+    def same_group(a: str, b: str) -> None:
+        if _pair_confidence(by_id[a].get("name") or "", by_id[b].get("name") or "") >= 0.85:
+            union(a, b)
+
+    # Small collections: exact O(n²) pass so no candidate pair is missed.
+    # Large collections: bucket by 4-char normalized prefix (+ cross pass
+    # for short names ≤ 6 chars) to keep runtime bounded.
+    ids_all = [str(c["_id"]) for c in docs]
+    if len(docs) <= 1500:
+        for i in range(len(ids_all)):
+            for j in range(i + 1, len(ids_all)):
+                same_group(ids_all[i], ids_all[j])
+    else:
+        buckets: Dict[str, List[str]] = {}
+        short_norm: Dict[str, str] = {}
+        for c in docs:
+            cid = str(c["_id"])
+            n = _normalize(c.get("name") or "")
+            if len(n) > 6:
+                buckets.setdefault(n[:4], []).append(cid)
+            elif n:
+                short_norm[cid] = n
+        for ids in buckets.values():
+            for i in range(len(ids)):
+                for j in range(i + 1, len(ids)):
+                    same_group(ids[i], ids[j])
+        sids = list(short_norm)
+        for i in range(len(sids)):
+            for j in range(i + 1, len(sids)):
+                same_group(sids[i], sids[j])
+        for cid, n in short_norm.items():
+            for key, b in buckets.items():
+                if key.startswith(n):
+                    for other in b:
+                        same_group(cid, other)
+
+    groups: List[Dict[str, Any]] = []
+    grouped: Dict[str, List[str]] = {}
+    for cid, root in parent.items():
+        grouped.setdefault(root, []).append(cid)
+
+    # student counts for every college in every group
+    all_ids = [cid for cids in grouped.values() if len(cids) >= 2 for cid in cids]
+    counts_map: Dict[str, int] = {}
+    if all_ids:
+        name_to_id: Dict[str, str] = {}
+        for cid in all_ids:
+            c = by_id[cid]
+            nn = c.get("normalized_name") or _normalize(c.get("name", ""))
+            if nn:
+                name_to_id[nn] = cid
+        try:
+            cur = _db.users.aggregate([
+                {"$match": {"college": nonempty()}},
+                {"$group": {"_id": {"$toLower": "$college"}, "n": {"$sum": 1}}},
+            ])
+            async for r in cur:
+                n = _normalize(r.get("_id") or "")
+                if n in name_to_id:
+                    counts_map[name_to_id[n]] = counts_map.get(name_to_id[n], 0) + int(r.get("n", 0))
+        except Exception:
+            counts_map = {}
+
+    for cids in grouped.values():
+        if len(cids) < 2:
+            continue
+        members = [by_id[i] for i in cids]
+        # group confidence = weakest pair link
+        confs = [
+            _pair_confidence(m1.get("name") or "", m2.get("name") or "")
+            for i, m1 in enumerate(members) for m2 in members[i + 1:]
+        ]
+        groups.append({
+            "confidence": round(min(confs), 2),
+            "colleges": [
+                {**_serialize(m, counts_map.get(str(m["_id"]), 0)), "in_group": len(cids)}
+                for m in members
+            ],
+        })
+    groups.sort(key=lambda g: -g["confidence"])
+    total = len(groups)
+    groups = groups[:50]
+    return {"ok": True, "total_groups": total, "groups": groups, "truncated": total > 50}
+
+
+class MergeColleges(BaseModel):
+    primary_id: str
+    secondary_ids: List[str]
+
+
+@router.post("/admin/colleges/merge")
+async def merge_colleges(body: MergeColleges, authorization: Optional[str] = Header(None)):
+    """Merge secondary college entries into a primary one.
+
+    - Field fill: empty primary fields are backfilled from the
+      secondaries (primary wins on conflicts); list fields
+      (accreditation, ranking, specialties, domains, sources) are
+      unioned, keeping the primary's order.
+    - Students: users.college rows pointing at a secondary name are
+      re-pointed at the primary name.
+    - Secondaries are soft-archived to colleges_archive tagged
+      `merged_into`, then removed from colleges.
+    - Every merge is recorded in colleges_merge_audit.
+    """
+    user = await _require_admin(authorization)
+    primary_id = (body.primary_id or "").strip()
+    secondary_ids = [i for i in dict.fromkeys(body.secondary_ids or []) if i and i != primary_id][:25]
+    if not primary_id or not secondary_ids:
+        raise HTTPException(400, "primary_id and at least one secondary_id required")
+    try:
+        primary_oid = ObjectId(primary_id)
+        oids = [ObjectId(i) for i in secondary_ids]
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    primary = await _db.colleges.find_one({"_id": primary_oid})
+    if not primary:
+        raise HTTPException(404, "Primary college not found")
+
+    now = datetime.now(timezone.utc)
+    archived: List[Dict[str, str]] = []
+    moved_students = 0
+    for oid in oids:
+        sec = await _db.colleges.find_one({"_id": oid})
+        if not sec:
+            continue
+        fill: Dict[str, Any] = {}
+        for f in _MERGE_FILL_FIELDS:
+            if not primary.get(f) and sec.get(f):
+                fill[f] = sec[f]
+        for f in _MERGE_LIST_FIELDS:
+            if not isinstance(sec.get(f), list):
+                continue
+            merged = list(dict.fromkeys((primary.get(f) or []) + [x for x in sec[f] if x]))
+            if len(merged) > len(primary.get(f) or []):
+                fill[f] = merged
+        if fill:
+            await _db.colleges.update_one({"_id": primary_oid}, {"$set": fill})
+        variants = [v for v in (sec.get("name"), sec.get("normalized_name")) if v]
+        if variants:
+            try:
+                res = await _db.users.update_many(
+                    {"college": {"$in": variants}},
+                    {"$set": {"college": primary.get("name") or ""}},
+                )
+                moved_students += int(res.get("modified_count") or 0)
+            except Exception:
+                pass
+        sec["archived_at"] = now
+        sec["archived_by"] = str(user["_id"])
+        sec["merged_into"] = primary_id
+        await _db.colleges_archive.insert_one(sec)
+        await _db.colleges.delete_one({"_id": oid})
+        archived.append({"id": str(oid), "name": sec.get("name") or ""})
+
+    try:
+        await _db.colleges_merge_audit.insert_one({
+            "merged_at": now,
+            "merged_by": str(user["_id"]),
+            "primary_id": primary_id,
+            "primary_name": primary.get("name") or "",
+            "secondary": archived,
+            "students_reassigned": moved_students,
+        })
+    except Exception:
+        pass
+
+    return {
+        "ok": True,
+        "primary_id": primary_id,
+        "archived": archived,
+        "students_reassigned": moved_students,
+    }
+
+
+
 @router.get("/admin/colleges/{cid}")
 async def get_college(cid: str, authorization: Optional[str] = Header(None)):
     await _require_admin(authorization)
@@ -683,6 +1137,45 @@ async def get_college(cid: str, authorization: Optional[str] = Header(None)):
     if norm:
         sc = await _db.users.count_documents({"college": {"$regex": f"^{re.escape(c.get('name', ''))}$", "$options": "i"}})
     return _serialize(c, sc)
+
+
+@router.get("/admin/colleges/{cid}/students")
+async def college_students(
+    cid: str,
+    page: int = 1,
+    limit: int = 20,
+    authorization: Optional[str] = Header(None),
+):
+    await _require_admin(authorization)
+    try: oid = ObjectId(cid)
+    except Exception: raise HTTPException(400, "Invalid id")
+    c = await _db.colleges.find_one({"_id": oid})
+    if not c:
+        raise HTTPException(404, "College not found")
+
+    name = c.get("name", "")
+    match = {"college": {"$regex": f"^{re.escape(name)}$", "$options": "i"}}
+    total = await _db.users.count_documents(match)
+    page = max(1, page)
+    limit = min(max(1, limit), 100)
+    skip = (page - 1) * limit
+    cur = _db.users.find(match, {
+        "full_name": 1, "first_name": 1, "last_name": 1, "email": 1, "phone": 1,
+        "roll_number": 1, "sa_id": 1, "college": 1, "approved": 1, "disabled": 1,
+        "created_at": 1,
+    }).sort([("created_at", -1), ("_id", -1)]).skip(skip).limit(limit)
+    items = []
+    async for u in cur:
+        items.append({
+            "id": str(u.get("_id")),
+            "name": u.get("full_name") or " ".join(x for x in [u.get("first_name"), u.get("last_name")] if x),
+            "email": u.get("email", ""),
+            "roll_number": u.get("roll_number") or u.get("sa_id") or "",
+            "college": u.get("college", ""),
+            "status": "archived" if u.get("disabled") else ("active" if u.get("approved") else "inactive"),
+            "created_at": u.get("created_at"),
+        })
+    return {"items": items, "total": total, "page": page, "limit": limit, "pages": max(1, (total + limit - 1) // limit)}
 
 
 class PatchCollege(BaseModel):
@@ -807,6 +1300,69 @@ async def reenrich_college(cid: str, authorization: Optional[str] = Header(None)
     await _db.colleges.update_one({"_id": oid}, {"$set": data})
     fresh = await _db.colleges.find_one({"_id": oid})
     return _serialize(fresh, 0)
+
+
+class BulkColleges(BaseModel):
+    action: str
+    ids: List[str]
+
+
+@router.post("/admin/colleges/bulk")
+async def bulk_colleges(body: BulkColleges, authorization: Optional[str] = Header(None)):
+    """Batch-apply a single action to many colleges at once.
+
+    Actions: 'approve' (→ active), 'disable' (→ paused), 'delete'
+    (soft-archive), or 'reenrich' (re-run enrichment). Processes ids
+    sequentially and reports per-id outcomes so the UI can surface
+    partial failures without aborting the whole batch.
+    """
+    user = await _require_admin(authorization)
+    action = (body.action or "").strip()
+    if action not in {"approve", "disable", "delete", "reenrich"}:
+        raise HTTPException(400, "Unknown action")
+    ids = [i for i in (body.ids or []) if i][:200]
+    if not ids:
+        raise HTTPException(400, "No college ids supplied")
+
+    succeeded: List[str] = []
+    failed: List[Dict[str, str]] = []
+    now = datetime.now(timezone.utc)
+    for cid in ids:
+        try:
+            oid = ObjectId(cid)
+        except Exception:
+            failed.append({"id": cid, "error": "Invalid id"})
+            continue
+        try:
+            c = await _db.colleges.find_one({"_id": oid})
+            if not c:
+                failed.append({"id": cid, "error": "Not found"})
+                continue
+            if action == "approve":
+                await _db.colleges.update_one(
+                    {"_id": oid},
+                    {"$set": {"status": "active", "approved_by": str(user["_id"]), "approved_at": now}},
+                )
+            elif action == "disable":
+                await _db.colleges.update_one(
+                    {"_id": oid},
+                    {"$set": {"status": "paused", "disabled_at": now}},
+                )
+            elif action == "delete":
+                c["archived_at"] = now
+                c["archived_by"] = str(user["_id"])
+                await _db.colleges_archive.insert_one(c)
+                await _db.colleges.delete_one({"_id": oid})
+            else:  # reenrich
+                data = await _enrich(c.get("name") or "")
+                for skip_field in ("status", "approved_by", "approved_at", "created_by", "created_at"):
+                    data.pop(skip_field, None)
+                await _db.colleges.update_one({"_id": oid}, {"$set": data})
+            succeeded.append(cid)
+        except Exception as e:
+            failed.append({"id": cid, "error": str(e)})
+
+    return {"ok": True, "action": action, "succeeded": succeeded, "failed": failed}
 
 
 # ─── BACKFILL: onboard colleges for every existing imported user ──

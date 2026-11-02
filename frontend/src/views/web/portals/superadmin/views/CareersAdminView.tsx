@@ -435,7 +435,7 @@ export function CareersAdminView() {
           style={[s.tabButton, activeTab === 'openings' && s.tabButtonActive]}
           onPress={() => setActiveTab('openings')}
         >
-          <Briefcase size={15} color={activeTab === 'openings' ? '#FFFFFF' : SAC.muted} />
+          <Briefcase size={15} color={activeTab === 'openings' ? '#FFFFFF' : T.muted} />
           <Text style={[s.tabButtonText, activeTab === 'openings' && s.tabButtonTextActive]}>
             Career Openings ({stats.total_openings})
           </Text>
@@ -445,7 +445,7 @@ export function CareersAdminView() {
           style={[s.tabButton, activeTab === 'applications' && s.tabButtonActive]}
           onPress={() => setActiveTab('applications')}
         >
-          <FileText size={15} color={activeTab === 'applications' ? '#FFFFFF' : SAC.muted} />
+          <FileText size={15} color={activeTab === 'applications' ? '#FFFFFF' : T.muted} />
           <Text style={[s.tabButtonText, activeTab === 'applications' && s.tabButtonTextActive]}>
             Candidate Applications ({stats.total_applications})
           </Text>
@@ -457,11 +457,11 @@ export function CareersAdminView() {
         <Card style={s.tableCard}>
           <View style={s.tableHeaderRow}>
             <View style={s.searchWrap}>
-              <Search size={14} color={SAC.dim} style={{ marginRight: 8 }} />
+              <Search size={14} color={T.dim} style={{ marginRight: 8 }} />
               <TextInput
                 style={s.searchInput}
                 placeholder="Search openings..."
-                placeholderTextColor={SAC.dim}
+                placeholderTextColor={T.dim}
                 value={openingsSearch}
                 onChangeText={setOpeningsSearch}
                 onSubmitEditing={loadOpenings}
@@ -496,8 +496,8 @@ export function CareersAdminView() {
 
           {openingsLoading ? (
             <View style={s.centerLoading}>
-              <ActivityIndicator size="small" color={SAC.accent} />
-              <Text style={{ color: SAC.muted, fontSize: 13, marginTop: 8 }}>Loading openings...</Text>
+              <ActivityIndicator size="small" color={T.accent} />
+              <Text style={{ color: T.muted, fontSize: 13, marginTop: 8 }}>Loading openings...</Text>
             </View>
           ) : openings.length === 0 ? (
             <EmptyState
@@ -567,7 +567,7 @@ export function CareersAdminView() {
 
                       <View style={[s.actionsCell, { width: 200 }]}>
                         <Pressable style={s.actionBtn} onPress={() => openEditOpeningModal(op)}>
-                          <Pencil size={13} color={SAC.muted} />
+                          <Pencil size={13} color={T.muted} />
                         </Pressable>
 
                         {isDraft && (
@@ -615,11 +615,11 @@ export function CareersAdminView() {
         <Card style={s.tableCard}>
           <View style={s.tableHeaderRow}>
             <View style={s.searchWrap}>
-              <Search size={14} color={SAC.dim} style={{ marginRight: 8 }} />
+              <Search size={14} color={T.dim} style={{ marginRight: 8 }} />
               <TextInput
                 style={s.searchInput}
                 placeholder="Search candidate name or email..."
-                placeholderTextColor={SAC.dim}
+                placeholderTextColor={T.dim}
                 value={applicationSearch}
                 onChangeText={setApplicationSearch}
                 onSubmitEditing={loadApplications}
@@ -659,8 +659,8 @@ export function CareersAdminView() {
 
           {applicationsLoading ? (
             <View style={s.centerLoading}>
-              <ActivityIndicator size="small" color={SAC.accent} />
-              <Text style={{ color: SAC.muted, fontSize: 13, marginTop: 8 }}>Loading applications...</Text>
+              <ActivityIndicator size="small" color={T.accent} />
+              <Text style={{ color: T.muted, fontSize: 13, marginTop: 8 }}>Loading applications...</Text>
             </View>
           ) : applications.length === 0 ? (
             <EmptyState
@@ -749,7 +749,7 @@ export function CareersAdminView() {
                   {editingOpening ? 'Edit Career Opening' : 'Create First-Party Career Opening'}
                 </Text>
                 <Pressable onPress={() => setOpeningModalVisible(false)} style={s.closeModalBtn}>
-                  <X size={18} color={SAC.text} />
+                  <X size={18} color={T.text} />
                 </Pressable>
               </View>
 
@@ -941,12 +941,12 @@ export function CareersAdminView() {
                       <View
                         style={[
                           s.checkboxBox,
-                          openingForm.featured && { backgroundColor: SAC.accent, borderColor: SAC.accent },
+                          openingForm.featured && { backgroundColor: T.accent, borderColor: T.accent },
                         ]}
                       >
                         {openingForm.featured && <CheckCircle2 size={13} color="#FFFFFF" />}
                       </View>
-                      <Text style={{ color: SAC.text, fontSize: 13, fontFamily: FONTS.medium }}>
+                      <Text style={{ color: T.text, fontSize: 13, fontFamily: FONTS.medium }}>
                         Mark as Featured Opportunity
                       </Text>
                     </Pressable>
@@ -961,8 +961,8 @@ export function CareersAdminView() {
                   disabled={savingOpening}
                   style={{ paddingHorizontal: 16, paddingVertical: 9 }}
                 >
-                  <X size={14} color={SAC.muted} />
-                  <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 }}>Cancel</Text>
+                  <X size={14} color={T.muted} />
+                  <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 13 }}>Cancel</Text>
                 </SecondaryButton>
                 <GradientButton
                   title={savingOpening ? 'Saving...' : editingOpening ? 'Update Opening' : 'Create Opening'}
@@ -989,12 +989,12 @@ export function CareersAdminView() {
               <View style={s.modalHeader}>
                 <View>
                   <Text style={s.modalTitle}>Application Review</Text>
-                  <Text style={{ color: SAC.muted, fontSize: 12 }}>
+                  <Text style={{ color: T.muted, fontSize: 12 }}>
                     Candidate submission for {selectedApp.opening?.title || selectedApp.career_opening_id}
                   </Text>
                 </View>
                 <Pressable onPress={() => setSelectedApp(null)} style={s.closeModalBtn}>
-                  <X size={18} color={SAC.text} />
+                  <X size={18} color={T.text} />
                 </Pressable>
               </View>
 
@@ -1004,22 +1004,22 @@ export function CareersAdminView() {
                   <Text style={s.reviewSectionTitle}>Candidate Profile</Text>
                   <View style={s.profileGrid}>
                     <View style={s.profileItem}>
-                      <User size={14} color={SAC.dim} />
+                      <User size={14} color={T.dim} />
                       <Text style={s.profileVal}>{selectedApp.student_name}</Text>
                     </View>
                     <View style={s.profileItem}>
-                      <Mail size={14} color={SAC.dim} />
+                      <Mail size={14} color={T.dim} />
                       <Text style={s.profileVal}>{selectedApp.student_email}</Text>
                     </View>
                     {selectedApp.student_phone && (
                       <View style={s.profileItem}>
-                        <Phone size={14} color={SAC.dim} />
+                        <Phone size={14} color={T.dim} />
                         <Text style={s.profileVal}>{selectedApp.student_phone}</Text>
                       </View>
                     )}
                     {selectedApp.student_profile?.college && (
                       <View style={s.profileItem}>
-                        <Building2 size={14} color={SAC.dim} />
+                        <Building2 size={14} color={T.dim} />
                         <Text style={s.profileVal}>{selectedApp.student_profile.college}</Text>
                       </View>
                     )}
@@ -1037,14 +1037,14 @@ export function CareersAdminView() {
                           }
                         }}
                       >
-                        <FileText size={15} color={SAC.accent} />
-                        <Text style={{ color: SAC.accent, fontSize: 13, fontWeight: '600' }} numberOfLines={1}>
+                        <FileText size={15} color={T.accent} />
+                        <Text style={{ color: T.accent, fontSize: 13, fontWeight: '600' }} numberOfLines={1}>
                           {selectedApp.resume_url}
                         </Text>
                       </Pressable>
                     </View>
                   ) : (
-                    <Text style={{ color: SAC.dim, fontSize: 12, marginTop: 8 }}>
+                    <Text style={{ color: T.dim, fontSize: 12, marginTop: 8 }}>
                       No resume URL provided.
                     </Text>
                   )}
@@ -1054,7 +1054,7 @@ export function CareersAdminView() {
                     <View style={{ marginTop: 12 }}>
                       <Label>Cover Letter / Candidate Note</Label>
                       <View style={s.coverLetterBox}>
-                        <Text style={{ color: SAC.text, fontSize: 13, lineHeight: 20 }}>
+                        <Text style={{ color: T.text, fontSize: 13, lineHeight: 20 }}>
                           {selectedApp.cover_letter}
                         </Text>
                       </View>
@@ -1114,10 +1114,10 @@ export function CareersAdminView() {
                         <View key={h.id || idx} style={s.timelineItem}>
                           <View style={s.timelineDot} />
                           <View style={{ flex: 1 }}>
-                            <Text style={{ color: SAC.text, fontSize: 13, fontWeight: '600' }}>
+                            <Text style={{ color: T.text, fontSize: 13, fontWeight: '600' }}>
                               Status set to {h.new_status}
                             </Text>
-                            <Text style={{ color: SAC.dim, fontSize: 11 }}>
+                            <Text style={{ color: T.dim, fontSize: 11 }}>
                               {h.changed_at ? new Date(h.changed_at).toLocaleString() : ''}
                               {h.note ? ` — ${h.note}` : ''}
                             </Text>
@@ -1135,8 +1135,8 @@ export function CareersAdminView() {
                   onPress={() => setSelectedApp(null)}
                   style={{ paddingHorizontal: 16, paddingVertical: 9 }}
                 >
-                  <X size={14} color={SAC.muted} />
-                  <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 }}>Close</Text>
+                  <X size={14} color={T.muted} />
+                  <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 13 }}>Close</Text>
                 </SecondaryButton>
                 <GradientButton
                   title={updatingApp ? 'Saving...' : 'Save Status & Notes'}

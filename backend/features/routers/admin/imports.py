@@ -1360,6 +1360,7 @@ async def list_users(
     page: int = Query(1, ge=1),
     limit: int = 24,
     offset: int = 0,
+    mentor_category: Optional[str] = None,  # MT2: 13-slug taxonomy filter (mentor only; "unclassified" = no category yet)
     authorization: Optional[str] = Header(None),
 ):
     """Return users matching category/search, enriched with completeness & account stats,
@@ -1601,6 +1602,83 @@ async def list_users(
             "created_at": created_str,
             "linkedin_url": u.get("linkedin_url") or u.get("profile_url"),
         })
+
+    # MT2 — taxonomy chip filter (mentor-only; keys on mentor_info.category slug)
+    raw_by_oid: Dict[str, dict] = (
+        {str(e["raw"].get("_id", "")): e["raw"] for e in by_email.values()} if cat == "mentor" else {}
+    )
+    if mentor_category and cat == "mentor":
+        def _tax_slug(x: dict) -> str:
+            info = (raw_by_oid.get(str(x.get("id", "")), {}) or {}).get("mentor_info") or {}
+            return str(info.get("category") or "").strip().lower()
+        if mentor_category == "unclassified":
+            combined_items = [x for x in combined_items if not _tax_slug(x)]
+        else:
+            mc = mentor_category.strip().lower()
+            combined_items = [x for x in combined_items if _tax_slug(x) == mc]
+
+    # MT4 — mentor enrichment (mentee count, avg rating, availability, session count)
+    if cat == "mentor" and combined_items:
+        valid_oids: List[ObjectId] = []
+        for x in combined_items:
+            try:
+                valid_oids.append(ObjectId(x.get("id", "")))
+            except Exception:
+                continue
+        valid_oids = list(dict.fromkeys(valid_oids))
+
+        if valid_oids:
+            # reviews → avg rating + count per mentor
+            rev_rows = await _db.reviews.aggregate([
+                {"$match": {"mentor_id": {"$in": valid_oids}}},
+                {"$group": {"_id": "$mentor_id", "avg": {"$avg": "$rating"}, "n": {"$sum": 1}}},
+            ]).to_list(len(valid_oids))
+            rev_map: Dict[str, Any] = {}
+            for r in rev_rows:
+                rev_map[str(r["_id"])] = {"avg_rating": round(r.get("avg") or 0.0, 2), "review_count": r.get("n", 0)}
+
+            mentee_map: Dict[str, Any] = {}
+            async for row in _db.bookings.aggregate([
+                {"$match": {"mentor_id": {"$in": valid_oids},
+                            "status": {"$nin": ["cancelled"]}}},
+                {"$group": {"_id": "$mentor_id", "n": {"$sum": 1}, "mentees": {"$addToSet": "$student_id"}}},
+            ]):
+                mid = str(row["_id"])
+                mentee_map[mid] = {"sessions": row.get("n", 0), "mentees": len(row.get("mentees") or [])}
+
+            sess_map: Dict[str, Any] = {}
+            async for row in _db.mentor_sessions.find(
+                {"mentor_id": {"$in": valid_oids}}, {"mentor_id": 1, "mentee_id": 1}
+            ):
+                mid = str(row.get("mentor_id"))
+                sess_map.setdefault(mid, {"n": 0, "mentees": set()})
+                sess_map[mid]["n"] += 1
+                if row.get("mentee_id"):
+                    sess_map[mid]["mentees"].add(row.get("mentee_id"))
+
+            avail_map: Dict[str, bool] = {}
+            async for row in _db.mentor_availability.find({"mentor_id": {"$in": valid_oids}}):
+                avail_map[str(row.get("mentor_id"))] = True
+
+            for x in combined_items:
+                mid = str(x.get("id", ""))
+                raw = raw_by_oid.get(mid, {})
+                info = raw.get("mentor_info") or {}
+                r = rev_map.get(mid, {})
+                b = mentee_map.get(mid, {})
+                s = sess_map.get(mid, {"n": 0, "mentees": set()})
+                x["session_count"] = b.get("sessions", 0) + s["n"]
+                x["mentee_count"] = max(b.get("mentees", 0), len(s["mentees"]))
+                x["avg_rating"] = r.get("avg_rating", 0.0)
+                x["review_count"] = r.get("review_count", 0)
+                x["has_availability"] = bool(avail_map.get(mid, False))
+                x["mentor_status"] = raw.get("mentor_status") or "pending"
+                x["mentor_badges"] = raw.get("mentor_badges") or info.get("mentor_badges") or []
+                x["mentor_years"] = info.get("years_of_experience") or raw.get("years_of_experience")
+                x["mentor_taxonomy"] = str(info.get("category") or "").strip().lower()
+                x["mentor_price"] = info.get("session_price_inr") or info.get("price_inr")
+                x["mentor_expertise"] = (info.get("expertise") or info.get("skills_offered") or [])[:5]
+                x["mentor_availability_days"] = (raw.get("mentor_availability_days") or info.get("availability") or [])
 
     # Sort strictly by created_at DESC (newest uploaded contacts shown FIRST in the top row)
     combined_items.sort(key=lambda x: str(x.get("created_at") or ""), reverse=True)

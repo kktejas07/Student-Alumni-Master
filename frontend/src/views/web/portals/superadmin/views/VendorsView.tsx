@@ -233,10 +233,10 @@ export function VendorsView() {
       {creating && (
         <Card>
           <View style={s.formHeader}>
-            <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 }}>Create Vendor Account</Text>
-            <Pressable onPress={() => setCreating(false)} hitSlop={8}><X size={16} color={SAC.muted} /></Pressable>
+            <Text style={{ color: T.text, fontFamily: FONTS.xbold, fontSize: 15 }}>Create Vendor Account</Text>
+            <Pressable onPress={() => setCreating(false)} hitSlop={8}><X size={16} color={T.muted} /></Pressable>
           </View>
-          <Text style={{ color: SAC.muted, fontSize: 12, marginBottom: 14 }}>The vendor signs in at <Text style={{ color: GRAD.to }}>/vendor-portal/login</Text> with these credentials. Credentials are emailed to the address below on creation.</Text>
+          <Text style={{ color: T.muted, fontSize: 12, marginBottom: 14 }}>The vendor signs in at <Text style={{ color: GRAD.to }}>/vendor-portal/login</Text> with these credentials. Credentials are emailed to the address below on creation.</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
             <View style={{ flex: 1, minWidth: 200 }}>
               <Label>Vendor ID *</Label>
@@ -256,7 +256,7 @@ export function VendorsView() {
             </View>
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-            <SecondaryButton onPress={() => setCreating(false)}><Text style={{ color: SAC.text }}>Cancel</Text></SecondaryButton>
+            <SecondaryButton onPress={() => setCreating(false)}><Text style={{ color: T.text }}>Cancel</Text></SecondaryButton>
             <GradientButton onPress={handleCreate} loading={busy}><Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 }}>Create & Email Credentials</Text></GradientButton>
           </View>
         </Card>
@@ -267,16 +267,16 @@ export function VendorsView() {
         <View style={s.tableHeader}>
           <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Store size={16} color={GRAD.to} />
-            <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 }}>Vendor Accounts</Text>
+            <Text style={{ color: T.text, fontFamily: FONTS.xbold, fontSize: 15 }}>Vendor Accounts</Text>
             <StatusPill label={`${vendors.length}`} kind="info" />
           </View>
           <View style={s.searchWrap}>
-            <Search size={13} color={SAC.dim} />
+            <Search size={13} color={T.dim} />
             <TextInput
               value={query}
               onChangeText={setQuery}
               placeholder="Search name, ID or email…"
-              placeholderTextColor={SAC.dim}
+              placeholderTextColor={T.dim}
               style={s.searchInput}
             />
           </View>
@@ -285,7 +285,7 @@ export function VendorsView() {
         {loading ? (
           <View style={{ padding: 40, alignItems: 'center', gap: 10 }}>
             <RefreshCw size={20} color={GRAD.to} />
-            <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 }}>Loading vendors…</Text>
+            <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 12 }}>Loading vendors…</Text>
           </View>
         ) : filtered.length === 0 ? (
           <View style={{ padding: 24 }}>
@@ -315,24 +315,24 @@ export function VendorsView() {
               return (
                 <View key={v.vendor_id} style={s.row}>
                   <View style={{ flex: 2.2, minWidth: 0 }}>
-                    <Text style={{ color: SAC.text, fontFamily: FONTS.semi, fontSize: 13.5 }} numberOfLines={1}>{v.name || v.vendor_id}</Text>
-                    <Text style={{ color: SAC.dim, fontSize: 11.5, fontFamily: FONTS.regular }}>{v.vendor_id}</Text>
+                    <Text style={{ color: T.text, fontFamily: FONTS.semi, fontSize: 13.5 }} numberOfLines={1}>{v.name || v.vendor_id}</Text>
+                    <Text style={{ color: T.dim, fontSize: 11.5, fontFamily: FONTS.regular }}>{v.vendor_id}</Text>
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ color: SAC.text, fontSize: 12.5 }} numberOfLines={1}>{v.email || '—'}</Text>
+                    <Text style={{ color: T.text, fontSize: 12.5 }} numberOfLines={1}>{v.email || '—'}</Text>
                     {v.email && <Pressable onPress={() => handleSendCredentials(v)} hitSlop={6} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
                       <Mail size={10} color={GRAD.to} /><Text style={{ color: GRAD.to, fontFamily: FONTS.bold, fontSize: 10.5 }}>Email credentials</Text>
                     </Pressable>}
                   </View>
                   <Text style={{ flex: 0.8, textAlign: 'right', color: '#A3E635', fontFamily: FONTS.bold, fontSize: 13 }}>₹{revenue.toLocaleString('en-IN')}</Text>
-                  <Text style={{ flex: 0.6, textAlign: 'right', color: SAC.text, fontFamily: FONTS.semi, fontSize: 13 }}>{orders}</Text>
+                  <Text style={{ flex: 0.6, textAlign: 'right', color: T.text, fontFamily: FONTS.semi, fontSize: 13 }}>{orders}</Text>
                   <View style={{ flex: 0.7, alignItems: 'flex-end' }}>
                     {fulfilled + pending > 0 ? (
                       <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={{ color: SAC.green, fontFamily: FONTS.semi, fontSize: 12.5 }}>{fulfilled}</Text>
+                        <Text style={{ color: T.green, fontFamily: FONTS.semi, fontSize: 12.5 }}>{fulfilled}</Text>
                         {pending > 0 && <Text style={{ color: '#FBBF24', fontSize: 10.5 }}>{pending} pending</Text>}
                       </View>
-                    ) : <Text style={{ color: SAC.dim, fontSize: 12.5 }}>—</Text>}
+                    ) : <Text style={{ color: T.dim, fontSize: 12.5 }}>—</Text>}
                   </View>
                   <View style={{ flex: 0.6, alignItems: 'flex-end' }}>
                     {refunded > 0 ? (
@@ -340,10 +340,10 @@ export function VendorsView() {
                         <Text style={{ color: '#F87171', fontFamily: FONTS.semi, fontSize: 12.5 }}>{refunded}</Text>
                         <Text style={{ color: '#F87171', fontSize: 10.5 }}>₹{refundedAmt.toLocaleString('en-IN')}</Text>
                       </View>
-                    ) : <Text style={{ color: SAC.dim, fontSize: 12.5 }}>—</Text>}
+                    ) : <Text style={{ color: T.dim, fontSize: 12.5 }}>—</Text>}
                   </View>
                   <View style={{ flex: 1.2, flexDirection: 'row', justifyContent: 'flex-end', gap: 4 }}>
-                    <Pressable onPress={() => setEditing(v)} style={s.iconBtn}><Pencil size={14} color={SAC.muted} /></Pressable>
+                    <Pressable onPress={() => setEditing(v)} style={s.iconBtn}><Pencil size={14} color={T.muted} /></Pressable>
                     <Pressable onPress={() => handlePasswordReset(v)} style={s.iconBtn}><KeyRound size={14} color="#FBBF24" /></Pressable>
                     <Pressable onPress={() => handleDelete(v)} style={s.iconBtn}><Trash2 size={14} color="#F87171" /></Pressable>
                   </View>
@@ -359,8 +359,8 @@ export function VendorsView() {
         <View style={s.overlay}>
           <Card style={{ width: 460, maxWidth: '92vw' as any }}>
             <View style={s.formHeader}>
-              <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 }}>Edit {editing.name || editing.vendor_id}</Text>
-              <Pressable onPress={() => setEditing(null)} hitSlop={8}><X size={16} color={SAC.muted} /></Pressable>
+              <Text style={{ color: T.text, fontFamily: FONTS.xbold, fontSize: 15 }}>Edit {editing.name || editing.vendor_id}</Text>
+              <Pressable onPress={() => setEditing(null)} hitSlop={8}><X size={16} color={T.muted} /></Pressable>
             </View>
             <View style={{ gap: 12, marginTop: 6 }}>
               <View>
@@ -372,7 +372,7 @@ export function VendorsView() {
                 <Field value={editing.email || ''} onChangeText={(val: string) => setEditing({ ...editing, email: val })} autoCapitalize="none" keyboardType="email-address" />
               </View>
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 6, justifyContent: 'flex-end' }}>
-                <SecondaryButton onPress={() => setEditing(null)}><Text style={{ color: SAC.text }}>Cancel</Text></SecondaryButton>
+                <SecondaryButton onPress={() => setEditing(null)}><Text style={{ color: T.text }}>Cancel</Text></SecondaryButton>
                 <GradientButton onPress={handleUpdate} loading={busy}><Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 }}>Save Changes</Text></GradientButton>
               </View>
             </View>

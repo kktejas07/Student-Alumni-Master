@@ -130,6 +130,15 @@ rapidfuzz
 cleanco
 fpdf2
 langchain-text-splitters
+# Talent Pool agents & OSS expansion (TP15-TP32)
+PyGithub
+spacy>=3.7,<4.0
+# en_core_web_sm is NOT a pip package — installed via: python -m spacy download en_core_web_sm (see Dockerfile)
+# skillNer is optional — imported at runtime with fallback; install manually if available for your Python version
+dateparser
+scikit-learn
+recordlinkage
+msal
 tzlocal==5.3.1
 uritemplate==4.2.0
 urllib3==2.7.0

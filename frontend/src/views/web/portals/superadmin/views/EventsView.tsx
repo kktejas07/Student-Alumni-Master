@@ -373,14 +373,14 @@ export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) =
                   </View>
                   <Text numberOfLines={2} style={st.cTitle}>{e.title}</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <CalIcon size={11} color={SAC.muted} />
+                    <CalIcon size={11} color={T.muted} />
                     <Text style={st.meta}>{e.date}</Text>
                     <Text style={st.dot}>·</Text>
-                    <MapPin size={11} color={SAC.muted} />
+                    <MapPin size={11} color={T.muted} />
                     <Text style={st.meta}>{e.city}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <UsersIcon size={11} color={SAC.muted} />
+                    <UsersIcon size={11} color={T.muted} />
                     <Text style={st.meta}>{e.attending}/{e.capacity} attending · {pct}%</Text>
                   </View>
                   <View style={st.barTrack}>

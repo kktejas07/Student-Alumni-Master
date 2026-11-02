@@ -31,7 +31,7 @@ export function AIInsightsView() {
   return (
     <View>
       <View style={s.banner}>
-        <View style={s.bIcon}><Sparkles size={16} color={SAC.accent} /></View>
+        <View style={s.bIcon}><Sparkles size={16} color={T.accent} /></View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.bTitle}>Platform Briefing · Powered by Claude</Text>
           <Text style={s.bSub}>6 prioritized insights generated this morning. Trust the high-priority ones — they’ve been verified against the last 90 days of platform data.</Text>

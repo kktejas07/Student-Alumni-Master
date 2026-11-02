@@ -31,7 +31,7 @@ import {
   Megaphone, Plus, X, Check, RefreshCw, ImagePlus, Upload, ArrowRight,
   Sparkles, Copy, FlaskConical, Repeat, FileText, BarChart3, CalendarClock,
 } from 'lucide-react-native';
-import { SAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox,
@@ -152,6 +152,7 @@ function ctr(impressions: number, clicks: number): number {
  * Root
  * ────────────────────────────────────────────────────────────────── */
 export function PromotionsView() {
+  const sac = useSAC();
   const T = useThemedCrudStyles();
   Object.assign(s, resolveColors(s, T));
   const { toast, flash, hide } = useToast();
@@ -304,7 +305,7 @@ export function PromotionsView() {
         <View style={crud.filtersRow}>
           <SearchField value={q} onChange={setQ} placeholder="Search by title or body…" width={320} />
           <Pressable onPress={load} style={crud.refreshBtn}>
-            <RefreshCw size={11} color={SAC.muted} />
+            <RefreshCw size={11} color={sac.muted} />
             <Text style={crud.refreshText}>Refresh</Text>
           </Pressable>
         </View>
@@ -773,7 +774,7 @@ function PromoEditor({
                 value={form.title || ''}
                 onChangeText={(v) => update('title', v)}
                 placeholder="e.g. Year-end placement drive opens Friday"
-                placeholderTextColor={SAC.dim}
+                placeholderTextColor={sac.dim}
                 style={[crud.input, { marginTop: 8 }]}
               />
             </View>
@@ -785,7 +786,7 @@ function PromoEditor({
                 value={form.body || ''}
                 onChangeText={(v) => update('body', v)}
                 placeholder="Short supporting line shown under the title (2 lines max)."
-                placeholderTextColor={SAC.dim}
+                placeholderTextColor={sac.dim}
                 multiline
                 numberOfLines={2}
                 style={[crud.input, { marginTop: 8, minHeight: 70 }]}
@@ -800,7 +801,7 @@ function PromoEditor({
                   value={form.badge || ''}
                   onChangeText={(v) => update('badge', v)}
                   placeholder="NEW · DEAL · BETA"
-                  placeholderTextColor={SAC.dim}
+                  placeholderTextColor={sac.dim}
                   maxLength={12}
                   style={[crud.input, { marginTop: 8 }]}
                 />
@@ -830,7 +831,7 @@ function PromoEditor({
                   value={form.cta_label || ''}
                   onChangeText={(v) => update('cta_label', v)}
                   placeholder="Learn more"
-                  placeholderTextColor={SAC.dim}
+                  placeholderTextColor={sac.dim}
                   style={[crud.input, { marginTop: 8 }]}
                 />
               </View>
@@ -840,7 +841,7 @@ function PromoEditor({
                   value={form.cta_url || ''}
                   onChangeText={(v) => update('cta_url', v)}
                   placeholder="https://… or /super-admin/imports"
-                  placeholderTextColor={SAC.dim}
+                  placeholderTextColor={sac.dim}
                   style={[crud.input, { marginTop: 8 }]}
                 />
               </View>
@@ -1031,7 +1032,7 @@ function PromoEditor({
                       <Text style={crud.muted}>{Math.round(form.image_url.length / 1000)} KB (base64)</Text>
                       <View style={{ flexDirection: 'row', gap: 6 }}>
                         <SecondaryButton size="sm" onPress={() => fileRef.current?.click?.()}>
-                          <Upload size={11} color={SAC.muted} /><Text style={crud.secText}>Replace</Text>
+                          <Upload size={11} color={sac.muted} /><Text style={crud.secText}>Replace</Text>
                         </SecondaryButton>
                         <SecondaryButton size="sm" danger onPress={() => update('image_url', null)}>
                           <X size={11} color="#FCA5A5" /><Text style={[crud.secText, { color: '#FCA5A5' }]}>Remove</Text>
@@ -1060,7 +1061,7 @@ function PromoEditor({
                   value={String(form.display_order ?? 100)}
                   onChangeText={(v) => update('display_order', parseInt(v) || 0)}
                   keyboardType="numeric"
-                  placeholderTextColor={SAC.dim}
+                  placeholderTextColor={sac.dim}
                   style={[crud.input, { marginTop: 8 }]}
                 />
               </View>

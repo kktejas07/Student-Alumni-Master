@@ -261,6 +261,27 @@ async def _lifespan(application):
     ]
     await asyncio.gather(*index_tasks, return_exceptions=True)
 
+    # 2b. Lead Aggregator indexes (LA1)
+    try:
+        from features.lead_aggregator.database import ensure_indexes as _la_indexes
+        await _la_indexes()
+    except Exception as _e:
+        logger.warning("Could not create Lead Aggregator indexes: %s", _e)
+
+    # 2c. Lead Aggregator analytics indexes
+    try:
+        from features.lead_aggregator.analytics import ensure_analytics_indexes as _la_analytics_idx
+        await _la_analytics_idx()
+    except Exception as _e:
+        logger.warning("Could not create LA analytics indexes: %s", _e)
+
+    # 2d. Lead Aggregator structured logging
+    try:
+        from features.lead_aggregator.logging_config import setup_la_logging
+        setup_la_logging()
+    except Exception as _e:
+        logger.warning("Could not setup LA logging: %s", _e)
+
     # 3. Auto seed certificates on startup if count is 0
     try:
         from scripts.seed_certificates import seed_certificates
@@ -336,6 +357,21 @@ async def _lifespan(application):
             agent_scheduler.start(db=db)
         except Exception as _e:
             logger.warning("Could not start 30-minute Agent Scheduler: %s", _e)
+
+        # Talent Pool agent suite (TP23): opt-in startup catch-up run
+        # (TP_RUN_ON_STARTUP=1). The 30-min cycle covers the steady state.
+        try:
+            async def _talent_suite_startup(d):
+                from services.agents.talent_scheduler import talent_scheduler_agent
+                try:
+                    out = await talent_scheduler_agent.run_on_startup(d)
+                    if out.get("skipped") != "TP_RUN_ON_STARTUP not set":
+                        logger.info("Talent suite startup catch-up: %s", out)
+                except Exception as _ce:
+                    logger.warning("Talent suite startup catch-up failed: %s", _ce)
+            asyncio.create_task(_talent_suite_startup(db))
+        except Exception as _e:
+            logger.warning("Could not schedule Talent Pool suite startup run: %s", _e)
 
         # Start the 24-hour autonomous operations & audit swarm
         try:
@@ -455,6 +491,17 @@ app.include_router(contacts_router)
 # Student Perks sub-router
 from features.routers.student_perks import router as student_perks_router
 app.include_router(student_perks_router)
+
+# Lead Aggregator (LA1–LA14)
+from features.lead_aggregator.api import router as lead_aggregator_router
+app.include_router(lead_aggregator_router)
+
+# Lead Aggregator request logging middleware
+try:
+    from features.lead_aggregator.logging_config import RequestLogMiddleware
+    app.add_middleware(RequestLogMiddleware)
+except Exception as _e:
+    logger.warning("Could not add LA request logging middleware: %s", _e)
 
 from core.email_quality import router as email_quality_router
 api_router.include_router(email_quality_router)
@@ -2104,6 +2151,11 @@ api_router.include_router(admin_imports_router)
 from features.routers.admin.colleges import router as admin_colleges_router
 api_router.include_router(admin_colleges_router)
 
+# Mentor Super Admin (MT1–MT14) — KPIs, taxonomy, approval workflow, session
+# analytics, connections, alumni pipeline + autonomous agent suite surface
+from features.mentor_admin import router as mentor_admin_router
+api_router.include_router(mentor_admin_router)
+
 # Talent Pool — searchable candidate profiles (LinkedIn, CSV, platform opt-in)
 from features.talent_pool import router as talent_pool_router
 api_router.include_router(talent_pool_router)
@@ -2175,9 +2227,15 @@ api_router.include_router(community_router)
 from features.routers.careers import router as careers_router
 api_router.include_router(careers_router)
 
-# Public website contact form (POST /api/contact)
-from features.routers.public_contact import router as public_contact_router
+# Public website contact form (POST /api/contact) + admin contact analytics
+from features.routers.public_contact import router as public_contact_router, admin_router as public_contact_admin_router
 api_router.include_router(public_contact_router)
+api_router.include_router(public_contact_admin_router)
+
+# Public AXISS-ecosystem promo coupons (contact-form welcome codes)
+from features.routers.coupons_public import router as coupons_public_router, admin_router as coupons_public_admin_router
+api_router.include_router(coupons_public_router)
+api_router.include_router(coupons_public_admin_router)
 
 # Alumni Referrals (GET /api/jobs/{job_id}/alumni, /api/referrals, ...)
 from features.routers.referrals import router as referrals_router
@@ -2191,9 +2249,9 @@ app.include_router(api_router)
 # Comma-separated list, e.g.
 #   ALLOWED_ORIGINS="https://app.example.com,https://admin.example.com"
 # Use "*" only when allow_credentials is False; we coerce safely below.
-_origins_env = (os.getenv("ALLOWED_ORIGINS") or os.getenv("FRONTEND_URL") or "*").strip()
+_origins_env = (os.getenv("ALLOWED_ORIGINS") or os.getenv("FRONTEND_URL") or "http://localhost:8081,http://localhost:3000,http://127.0.0.1:8081").strip()
 _origins_list = [o.strip() for o in _origins_env.split(",") if o.strip()]
-_allow_creds = "*" not in _origins_list  # browsers reject credentials+wildcard
+_allow_creds = True
 
 # Fail-fast: wildcard CORS is insecure in production
 if os.getenv("ENV") == "production" and "*" in _origins_list:
@@ -2204,7 +2262,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=_allow_creds,
-    allow_origins=_origins_list or ["*"],
+    allow_origins=_origins_list,
     allow_origin_regex=os.getenv("ALLOWED_ORIGIN_REGEX") or None,
     # Explicit method/header lists — "*" is overly permissive
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],

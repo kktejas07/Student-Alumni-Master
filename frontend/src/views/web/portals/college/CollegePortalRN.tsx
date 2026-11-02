@@ -53,8 +53,8 @@ export function CollegePortalRN() {
   }, [user?.email]);
 
   const onLogout = async () => {
-    router.replace('/welcome');
     try { await logout(); } catch {}
+    router.replace('/welcome');
   };
 
   return (

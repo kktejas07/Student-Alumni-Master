@@ -41,6 +41,8 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
     pip install "uvicorn[standard]" gunicorn && \
+    # Install spaCy English model (not available via pip, must use spacy download)
+    python -m spacy download en_core_web_sm && \
     # Install Playwright Chromium (system deps already installed above)
     PLAYWRIGHT_BROWSERS_PATH=/app/.playwright playwright install chromium
 

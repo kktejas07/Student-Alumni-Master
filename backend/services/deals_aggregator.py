@@ -1222,6 +1222,16 @@ def start_deals_aggregator_scheduler() -> None:
                 _job, trigger, id=gid, replace_existing=True,
                 max_instances=1, coalesce=True,
             )
+
+        # D3 — hourly deal verification + auto-expiry sweep
+        from features.deals_aggregator import run_deal_verification_sweep
+        def _verify_sweep() -> None:
+            asyncio.ensure_future(run_deal_verification_sweep())
+        _deals_scheduler.add_job(
+            _verify_sweep, IntervalTrigger(hours=1),
+            id="deals_verify_sweep_1h", replace_existing=True,
+            max_instances=1, coalesce=True,
+        )
         _deals_scheduler.start()
         logger.info("[deals_agg] scheduler started: %d groups", len(CRON_GROUPS))
     except Exception as e:  # noqa: BLE001
@@ -1298,3 +1308,67 @@ async def trigger_deals_run(source: Optional[str] = Query(None),
         raise HTTPException(404, f"Unknown deals aggregator source '{source}'")
     report = await run_deals_aggregation(source)
     return {"ok": True, **report}
+
+
+@admin_router.get("/verification-dashboard")
+async def deals_verification_dashboard(user: dict = Depends(require_super_admin)):
+    """D3 admin view: crowdsourced verification health across all deals."""
+    from features.deals_aggregator import (
+        STALE_AFTER_DAYS, UNRELIABLE_MIN_REPORTS, EXPIRED_MIN_REPORTS)
+    db = _db
+    now = datetime.now(timezone.utc)
+    total_reports = await db.deal_verifications.count_documents({})
+    worked_total = await db.deal_verifications.count_documents({"worked": True})
+    deals_with_reports = await db.deals.count_documents(
+        {"verification_count": {"$gt": 0}})
+    pending_pushes = await db.deal_claims.count_documents(
+        {"verification_push_sent_at": None})
+    recent = []
+    cur = db.deal_verifications.find({}).sort("reported_at", -1).limit(20)
+    async for r in cur:
+        recent.append({
+            "deal_id": r.get("deal_id"), "user_id": r.get("user_id"),
+            "worked": r.get("worked"), "comment": r.get("comment"),
+            "reported_at": (r.get("reported_at").isoformat()
+                            if isinstance(r.get("reported_at"), datetime)
+                            else r.get("reported_at")),
+        })
+    # deals needing attention: unreliable / stale / expired
+    attention = []
+    async for d in db.deals.find({"deal_id": {"$ne": None}}):
+        rate = d.get("success_rate")
+        vc = int(d.get("verification_count") or 0)
+        reasons = []
+        if vc >= UNRELIABLE_MIN_REPORTS and rate is not None and rate < 0.5:
+            reasons.append("unreliable")
+        if vc >= EXPIRED_MIN_REPORTS and rate is not None and rate < 0.2:
+            reasons.append("expired_low_rate")
+        if d.get("status") == "expired":
+            reasons.append("expired")
+        if d.get("staleness_flag"):
+            reasons.append("stale")
+        if reasons:
+            attention.append({
+                "deal_id": d.get("deal_id"), "brand": d.get("brand"),
+                "success_rate": rate, "verification_count": vc,
+                "status": d.get("status"), "reasons": reasons,
+            })
+    return {
+        "total_reports": total_reports,
+        "worked_total": worked_total,
+        "overall_success_rate": round(worked_total / total_reports, 4)
+                               if total_reports else None,
+        "deals_with_reports": deals_with_reports,
+        "pending_verification_pushes": pending_pushes,
+        "stale_after_days": STALE_AFTER_DAYS,
+        "attention": attention[:100],
+        "recent_reports": recent,
+        "generated_at": now.isoformat(),
+    }
+
+
+@admin_router.post("/verification-sweep/run")
+async def trigger_deals_verification_sweep(user: dict = Depends(require_super_admin)):
+    """Manually trigger the hourly D3 sweep (auto-expiry + 24h pushes)."""
+    from features.deals_aggregator import run_deal_verification_sweep
+    return await run_deal_verification_sweep()

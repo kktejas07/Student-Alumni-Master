@@ -634,7 +634,7 @@ export function AutonomousAgentsView() {
     <View style={s.container}>
       {/* Header Banner */}
       <View style={s.header}>
-        <View style={s.hIcon}><Bot size={22} color={SAC.violet} /></View>
+        <View style={s.hIcon}><Bot size={22} color={T.violet} /></View>
         <View style={{ flex: 1 }}>
           <Text style={s.hTitle}>Autonomous Agents & Custom Teams Control Plane</Text>
           <Text style={s.hSub}>Orchestrate Top 5 AI Teams (Outreach, Growth, Dev, QA, Career) with AI Community Blog Engine, Campus Venue Scouting, and Impact Analytics.</Text>
@@ -644,37 +644,37 @@ export function AutonomousAgentsView() {
       {/* Navigation Tabs */}
       <View style={s.tabsRow}>
         <Pressable onPress={() => setActiveTab('custom_teams')} style={[s.tabBtn, activeTab === 'custom_teams' && s.tabActive]}>
-          <Users size={14} color={activeTab === 'custom_teams' ? '#fff' : SAC.muted} />
+          <Users size={14} color={activeTab === 'custom_teams' ? '#fff' : T.muted} />
           <Text style={[s.tabText, activeTab === 'custom_teams' && s.tabTextActive]}>AI Agent Teams (5)</Text>
           <Badge label="TOP 5" color="amber" />
         </Pressable>
         <Pressable onPress={() => setActiveTab('outreach_directory')} style={[s.tabBtn, activeTab === 'outreach_directory' && s.tabActive]}>
-          <Globe size={14} color={activeTab === 'outreach_directory' ? '#fff' : SAC.muted} />
+          <Globe size={14} color={activeTab === 'outreach_directory' ? '#fff' : T.muted} />
           <Text style={[s.tabText, activeTab === 'outreach_directory' && s.tabTextActive]}>Outreach & Goodies</Text>
           <Badge label={`${selectedInterval}H SCOUT`} color="pink" />
         </Pressable>
         <Pressable onPress={() => setActiveTab('swarm')} style={[s.tabBtn, activeTab === 'swarm' && s.tabActive]}>
-          <Layers size={14} color={activeTab === 'swarm' ? '#fff' : SAC.muted} />
+          <Layers size={14} color={activeTab === 'swarm' ? '#fff' : T.muted} />
           <Text style={[s.tabText, activeTab === 'swarm' && s.tabTextActive]}>Multi-Agent Swarm</Text>
         </Pressable>
         <Pressable onPress={() => setActiveTab('autopilot')} style={[s.tabBtn, activeTab === 'autopilot' && s.tabActive]}>
-          <Zap size={14} color={activeTab === 'autopilot' ? '#fff' : SAC.muted} />
+          <Zap size={14} color={activeTab === 'autopilot' ? '#fff' : T.muted} />
           <Text style={[s.tabText, activeTab === 'autopilot' && s.tabTextActive]}>AutoGPT Auto-Pilot</Text>
         </Pressable>
         <Pressable onPress={() => setActiveTab('qa')} style={[s.tabBtn, activeTab === 'qa' && s.tabActive]}>
-          <CheckCircle size={14} color={activeTab === 'qa' ? '#fff' : SAC.muted} />
+          <CheckCircle size={14} color={activeTab === 'qa' ? '#fff' : T.muted} />
           <Text style={[s.tabText, activeTab === 'qa' && s.tabTextActive]}>Autonomous QA Testing</Text>
         </Pressable>
         <Pressable onPress={() => setActiveTab('specialized')} style={[s.tabBtn, activeTab === 'specialized' && s.tabActive]}>
-          <ShieldCheck size={14} color={activeTab === 'specialized' ? '#fff' : SAC.muted} />
+          <ShieldCheck size={14} color={activeTab === 'specialized' ? '#fff' : T.muted} />
           <Text style={[s.tabText, activeTab === 'specialized' && s.tabTextActive]}>Specialized Audits</Text>
         </Pressable>
         <Pressable onPress={() => setActiveTab('daily_audit')} style={[s.tabBtn, activeTab === 'daily_audit' && s.tabActive]}>
-          <CheckCircle size={14} color={activeTab === 'daily_audit' ? '#fff' : SAC.muted} />
+          <CheckCircle size={14} color={activeTab === 'daily_audit' ? '#fff' : T.muted} />
           <Text style={[s.tabText, activeTab === 'daily_audit' && s.tabTextActive]}>24h Ops Swarm</Text>
         </Pressable>
         <Pressable onPress={() => setActiveTab('cicd')} style={[s.tabBtn, activeTab === 'cicd' && s.tabActive]}>
-          <Code size={14} color={activeTab === 'cicd' ? '#fff' : SAC.muted} />
+          <Code size={14} color={activeTab === 'cicd' ? '#fff' : T.muted} />
           <Text style={[s.tabText, activeTab === 'cicd' && s.tabTextActive]}>CI/CD PR Evaluator</Text>
           <Badge label="GIT SCOUT" color="indigo" />
         </Pressable>
@@ -697,13 +697,13 @@ export function AutonomousAgentsView() {
 
           {/* Teams Grid */}
           {teamsLoading ? (
-            <ActivityIndicator size="medium" color={SAC.accent} style={{ marginVertical: 20 }} />
+            <ActivityIndicator size="medium" color={T.accent} style={{ marginVertical: 20 }} />
           ) : teamsError ? (
-            <Pressable onPress={fetchTeams} style={{ padding: 14, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(190,18,60,0.4)', backgroundColor: SAC.dangerTint }}>
-              <Text style={{ color: SAC.danger, fontSize: 13 }}>{teamsError}. Tap to retry.</Text>
+            <Pressable onPress={fetchTeams} style={{ padding: 14, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(190,18,60,0.4)', backgroundColor: T.dangerTint }}>
+              <Text style={{ color: T.danger, fontSize: 13 }}>{teamsError}. Tap to retry.</Text>
             </Pressable>
           ) : teamsList.length === 0 ? (
-            <Text style={{ color: SAC.muted, fontSize: 13, paddingVertical: 12 }}>No agent teams configured yet.</Text>
+            <Text style={{ color: T.muted, fontSize: 13, paddingVertical: 12 }}>No agent teams configured yet.</Text>
           ) : (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
               {teamsList.map((team) => {
@@ -713,7 +713,7 @@ export function AutonomousAgentsView() {
                   <View key={team.id} style={[s.teamCard, isSelected && s.teamCardSelected]}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <View style={[s.teamBadgeIcon, { backgroundColor: team.color || SAC.primary }]}>
+                        <View style={[s.teamBadgeIcon, { backgroundColor: team.color || T.primary }]}>
                           <Bot size={16} color="#fff" />
                         </View>
                         <View>
@@ -726,10 +726,10 @@ export function AutonomousAgentsView() {
                       ) : (
                         <View style={{ flexDirection: 'row', gap: 4 }}>
                           <Pressable onPress={() => openEditModal(team)} style={s.iconBtn}>
-                            <Pencil size={12} color={SAC.muted} />
+                            <Pencil size={12} color={T.muted} />
                           </Pressable>
                           <Pressable onPress={() => deleteTeam(team.id)} style={s.iconBtn}>
-                            <Trash2 size={12} color={SAC.danger} />
+                            <Trash2 size={12} color={T.danger} />
                           </Pressable>
                         </View>
                       )}
@@ -751,7 +751,7 @@ export function AutonomousAgentsView() {
                       style={[s.selectBtn, isSelected && s.selectBtnActive]}
                       onPress={() => setSelectedTeam(team)}
                     >
-                      <Text style={[s.selectBtnText, isSelected && { color: SAC.text }]}>
+                      <Text style={[s.selectBtnText, isSelected && { color: T.text }]}>
                         {isSelected ? '✓ Selected Team' : 'Select Team'}
                       </Text>
                     </Pressable>
@@ -765,7 +765,7 @@ export function AutonomousAgentsView() {
           {selectedTeam && (
             <View style={s.card}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <View style={[s.teamBadgeIcon, { backgroundColor: selectedTeam.color || SAC.primary }]}>
+                <View style={[s.teamBadgeIcon, { backgroundColor: selectedTeam.color || T.primary }]}>
                   <Bot size={18} color="#fff" />
                 </View>
                 <View style={{ flex: 1 }}>
@@ -782,7 +782,7 @@ export function AutonomousAgentsView() {
                   style={[s.input, { height: 75 }]}
                   multiline
                   placeholder="Describe the objective for your agent team..."
-                  placeholderTextColor={SAC.muted}
+                  placeholderTextColor={T.muted}
                 />
 
                 <Pressable style={s.primaryBtn} onPress={runTeamTask} disabled={teamRunLoading}>
@@ -825,20 +825,20 @@ export function AutonomousAgentsView() {
         <View style={{ gap: 16 }}>
 
           {/* ── Autonomous Goodies Harvester & Multi-Spec Outreach Swarm ── */}
-          <View style={{ borderColor: SAC.border2, borderWidth: 1, borderRadius: 16, padding: 20, backgroundColor: SAC.card, gap: 16 }}>
+          <View style={{ borderColor: T.border2, borderWidth: 1, borderRadius: 16, padding: 20, backgroundColor: T.card, gap: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
               <View style={{ gap: 4, flex: 1 }}>
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>🤖 Autonomous Goodies Harvester & Multi-Spec Outreach Swarm</Text>
-                <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: SAC.muted }}>Scouts platforms for free student goodies/coupons and dispatches multi-spec partnership contracts in an automated loop.</Text>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: T.text }}>🤖 Autonomous Goodies Harvester & Multi-Spec Outreach Swarm</Text>
+                <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: T.muted }}>Scouts platforms for free student goodies/coupons and dispatches multi-spec partnership contracts in an automated loop.</Text>
               </View>
 
               <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
-                <Pressable onPress={runHarvesterLoop} disabled={harvesterLoading} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: SAC.violet, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, opacity: harvesterLoading ? 0.7 : 1 }}>
+                <Pressable onPress={runHarvesterLoop} disabled={harvesterLoading} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: T.violet, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, opacity: harvesterLoading ? 0.7 : 1 }}>
                   <Gift size={16} color="#FFF" />
                   <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#FFF' }}>{harvesterLoading ? 'Scouting Goodies...' : 'Run Goodies Harvester Loop'}</Text>
                 </Pressable>
 
-                <Pressable onPress={runSpecDispatcherLoop} disabled={specDispatchLoading} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: SAC.blue, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, opacity: specLoading ? 0.7 : 1 }}>
+                <Pressable onPress={runSpecDispatcherLoop} disabled={specDispatchLoading} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: T.blue, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, opacity: specLoading ? 0.7 : 1 }}>
                   <Send size={16} color="#FFF" />
                   <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#FFF' }}>{specDispatchLoading ? 'Dispatching...' : 'Dispatch Multi-Spec Loop'}</Text>
                 </Pressable>
@@ -847,7 +847,7 @@ export function AutonomousAgentsView() {
 
             {/* Spec Template Selector */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.muted }}>Select Spec Template:</Text>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: T.muted }}>Select Spec Template:</Text>
               {[
                 { id: 'goodies_partnership', label: '🎁 Goodies & Perks Spec' },
                 { id: 'event_sponsorship', label: '⚡ ECHO Event Sponsorship Spec' },
@@ -856,25 +856,25 @@ export function AutonomousAgentsView() {
                 <Pressable
                   key={st.id}
                   onPress={() => setSelectedSpecType(st.id)}
-                  style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: selectedSpecType === st.id ? SAC.primary : SAC.panel2, borderWidth: 1, borderColor: selectedSpecType === st.id ? SAC.accent : SAC.border }}
+                  style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: selectedSpecType === st.id ? T.primary : T.panel2, borderWidth: 1, borderColor: selectedSpecType === st.id ? T.accent : T.border }}
                 >
-                  <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: selectedSpecType === st.id ? SAC.onAccent : SAC.muted }}>{st.label}</Text>
+                  <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: selectedSpecType === st.id ? T.onAccent : T.muted }}>{st.label}</Text>
                 </Pressable>
               ))}
             </View>
 
             {/* Harvester / Spec Results Display */}
             {harvesterResult && (
-              <View style={{ border: '1px solid ' + SAC.okLine, borderRadius: 10, padding: 14, backgroundColor: SAC.okTint, gap: 6 }}>
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.ok }}>✅ Goodies Harvester Output ({harvesterResult.offers_harvested} Platforms Discovered)</Text>
-                <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: SAC.muted }}>{harvesterResult.message}</Text>
+              <View style={{ border: '1px solid ' + T.okLine, borderRadius: 10, padding: 14, backgroundColor: T.okTint, gap: 6 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: T.ok }}>✅ Goodies Harvester Output ({harvesterResult.offers_harvested} Platforms Discovered)</Text>
+                <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: T.muted }}>{harvesterResult.message}</Text>
               </View>
             )}
 
             {specDispatchResult && (
-              <View style={{ border: '1px solid ' + SAC.blue, borderRadius: 10, padding: 14, backgroundColor: 'rgba(30,86,196,0.08)', gap: 6 }}>
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.blue }}>🚀 Dispatched Specs ({specDispatchResult.dispatched_count} Sent)</Text>
-                <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: SAC.muted }}>{specDispatchResult.message}</Text>
+              <View style={{ border: '1px solid ' + T.blue, borderRadius: 10, padding: 14, backgroundColor: 'rgba(30,86,196,0.08)', gap: 6 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: T.blue }}>🚀 Dispatched Specs ({specDispatchResult.dispatched_count} Sent)</Text>
+                <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: T.muted }}>{specDispatchResult.message}</Text>
               </View>
             )}
           </View>
@@ -882,22 +882,22 @@ export function AutonomousAgentsView() {
           {impactAnalytics && (
             <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
               <View style={s.kpiTile}>
-                <DollarSign size={16} color={SAC.green} />
+                <DollarSign size={16} color={T.green} />
                 <Text style={s.kpiVal}>{impactAnalytics.total_dollar_value_unlocked}</Text>
                 <Text style={s.kpiLabel}>DOLLAR VALUE UNLOCKED</Text>
               </View>
               <View style={s.kpiTile}>
-                <Users size={16} color={SAC.blue} />
+                <Users size={16} color={T.blue} />
                 <Text style={s.kpiVal}>{impactAnalytics.total_student_reach}</Text>
                 <Text style={s.kpiLabel}>TOTAL STUDENT REACH</Text>
               </View>
               <View style={s.kpiTile}>
-                <Gift size={16} color={SAC.accent} />
+                <Gift size={16} color={T.accent} />
                 <Text style={s.kpiVal}>{impactAnalytics.total_perks_claimed} Claimed</Text>
                 <Text style={s.kpiLabel}>STUDENT PERKS UNLOCKED</Text>
               </View>
               <View style={s.kpiTile}>
-                <Building2 size={16} color={SAC.violet} />
+                <Building2 size={16} color={T.violet} />
                 <Text style={s.kpiVal}>{impactAnalytics.active_community_partners} Active</Text>
                 <Text style={s.kpiLabel}>COMMUNITY PARTNERS</Text>
               </View>
@@ -907,13 +907,13 @@ export function AutonomousAgentsView() {
           {/* Status & Dynamic Cadence Banner */}
           <View style={s.scoutStatusBanner}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <View style={s.scoutIconBox}><Globe size={20} color={SAC.violet} /></View>
+              <View style={s.scoutIconBox}><Globe size={20} color={T.violet} /></View>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 14 }}>Autonomous Community Scouting Worker</Text>
+                  <Text style={{ color: T.text, fontFamily: FONTS.xbold, fontSize: 14 }}>Autonomous Community Scouting Worker</Text>
                   <Badge label={`CADENCE: EVERY ${selectedInterval}H`} color="purple" />
                 </View>
-                <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 }}>
+                <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 }}>
                   Last scouted: {outreachStatus?.last_scout_at ? new Date(outreachStatus.last_scout_at).toLocaleTimeString() : 'Just now'} • Next run in ~{selectedInterval} hours
                 </Text>
               </View>
@@ -939,16 +939,16 @@ export function AutonomousAgentsView() {
             </View>
 
             {/* Dynamic Cadence Control Bar */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: SAC.accentLine }}>
-              <Clock size={13} color={SAC.accent} />
-              <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5 }}>Adjust Scouting Cadence:</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: T.accentLine }}>
+              <Clock size={13} color={T.accent} />
+              <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 11.5 }}>Adjust Scouting Cadence:</Text>
               {[4, 8, 12, 24].map((hrs) => (
                 <Pressable
                   key={hrs}
                   onPress={() => changeSchedulerInterval(hrs)}
                   style={[s.cadenceChip, selectedInterval === hrs && s.cadenceChipActive]}
                 >
-                  <Text style={[s.cadenceChipText, selectedInterval === hrs && { color: SAC.text }]}>{hrs} Hours</Text>
+                  <Text style={[s.cadenceChipText, selectedInterval === hrs && { color: T.text }]}>{hrs} Hours</Text>
                 </Pressable>
               ))}
             </View>
@@ -958,33 +958,33 @@ export function AutonomousAgentsView() {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
             {/* Domain Filter Bar */}
             <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-              <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12, marginRight: 4 }}>Filter:</Text>
+              <Text style={{ color: T.muted, fontFamily: FONTS.bold, fontSize: 12, marginRight: 4 }}>Filter:</Text>
               {['all', 'ai', 'dev', 'design', 'web3', 'campus'].map((dom) => (
                 <Pressable
                   key={dom}
                   onPress={() => setOutreachDomainFilter(dom)}
                   style={[s.catChip, outreachDomainFilter === dom && s.catChipActive]}
                 >
-                  <Text style={[s.catChipText, outreachDomainFilter === dom && { color: SAC.text }]}>{dom.toUpperCase()}</Text>
+                  <Text style={[s.catChipText, outreachDomainFilter === dom && { color: T.text }]}>{dom.toUpperCase()}</Text>
                 </Pressable>
               ))}
             </View>
 
             {/* View Mode Toggle (Grid List vs Kanban CRM Board) */}
-            <View style={{ flexDirection: 'row', gap: 4, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 8, padding: 2 }}>
+            <View style={{ flexDirection: 'row', gap: 4, backgroundColor: T.card, borderColor: T.border, borderWidth: 1, borderRadius: 8, padding: 2 }}>
               <Pressable
                 onPress={() => setOutreachViewMode('list')}
                 style={[s.viewModeBtn, outreachViewMode === 'list' && s.viewModeBtnActive]}
               >
-                <LayoutGrid size={13} color={outreachViewMode === 'list' ? '#fff' : SAC.muted} />
-                <Text style={[s.viewModeText, outreachViewMode === 'list' && { color: SAC.text }]}>List View</Text>
+                <LayoutGrid size={13} color={outreachViewMode === 'list' ? '#fff' : T.muted} />
+                <Text style={[s.viewModeText, outreachViewMode === 'list' && { color: T.text }]}>List View</Text>
               </Pressable>
               <Pressable
                 onPress={() => setOutreachViewMode('kanban')}
                 style={[s.viewModeBtn, outreachViewMode === 'kanban' && s.viewModeBtnActive]}
               >
-                <Columns size={13} color={outreachViewMode === 'kanban' ? '#fff' : SAC.muted} />
-                <Text style={[s.viewModeText, outreachViewMode === 'kanban' && { color: SAC.text }]}>CRM Kanban</Text>
+                <Columns size={13} color={outreachViewMode === 'kanban' ? '#fff' : T.muted} />
+                <Text style={[s.viewModeText, outreachViewMode === 'kanban' && { color: T.text }]}>CRM Kanban</Text>
               </Pressable>
             </View>
           </View>
@@ -992,7 +992,7 @@ export function AutonomousAgentsView() {
           {/* VIEW MODE 1: GRID LIST */}
           {outreachViewMode === 'list' && (
             outreachLoading ? (
-              <ActivityIndicator size="medium" color={SAC.accent} style={{ marginVertical: 20 }} />
+              <ActivityIndicator size="medium" color={T.accent} style={{ marginVertical: 20 }} />
             ) : (
               <View style={{ gap: 14 }}>
                 {communitiesList.map((comm) => (
@@ -1040,24 +1040,24 @@ export function AutonomousAgentsView() {
                     {/* Complete Contact Info Grid */}
                     <View style={s.contactGrid}>
                       <View style={s.contactItem}>
-                        <Mail size={12} color={SAC.accent} />
+                        <Mail size={12} color={T.accent} />
                         <Text style={s.contactText}>{comm.email}</Text>
                       </View>
                       <View style={s.contactItem}>
-                        <Phone size={12} color={SAC.green} />
+                        <Phone size={12} color={T.green} />
                         <Text style={s.contactText}>{comm.phone}</Text>
                       </View>
                       <View style={s.contactItem}>
-                        <Globe size={12} color={SAC.blue} />
+                        <Globe size={12} color={T.blue} />
                         <Text style={s.contactText}>{comm.website}</Text>
                       </View>
                       <View style={s.contactItem}>
-                        <ExternalLink size={12} color={SAC.pink} />
+                        <ExternalLink size={12} color={T.pink} />
                         <Text style={s.contactText}>LinkedIn: {comm.linkedin}</Text>
                       </View>
                       {comm.discord && (
                         <View style={s.contactItem}>
-                          <Users size={12} color={SAC.violet} />
+                          <Users size={12} color={T.violet} />
                           <Text style={s.contactText}>Discord: {comm.discord}</Text>
                         </View>
                       )}
@@ -1066,9 +1066,9 @@ export function AutonomousAgentsView() {
                     {/* Organizer & Ambassador Info */}
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
                       <View style={s.organizerRow}>
-                        <Building2 size={13} color={SAC.muted} />
-                        <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>
-                          Lead Organizer: <Text style={{ color: SAC.text }}>{comm.organizer_name}</Text> ({comm.organizer_role}) • Contact: <Text style={{ color: SAC.accentBright }}>{comm.organizer_email}</Text>
+                        <Building2 size={13} color={T.muted} />
+                        <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 12 }}>
+                          Lead Organizer: <Text style={{ color: T.text }}>{comm.organizer_name}</Text> ({comm.organizer_role}) • Contact: <Text style={{ color: T.accentBright }}>{comm.organizer_email}</Text>
                         </Text>
                       </View>
 
@@ -1082,14 +1082,14 @@ export function AutonomousAgentsView() {
                     {/* Discovered Free Goodies & Sponsorship Vouchers */}
                     {comm.free_goodies && comm.free_goodies.length > 0 && (
                       <View style={{ marginTop: 10, gap: 8 }}>
-                        <Text style={{ color: SAC.accent, fontFamily: FONTS.bold, fontSize: 12 }}>🎁 Unlocked Free Goodies & Sponsorship Perks:</Text>
+                        <Text style={{ color: T.accent, fontFamily: FONTS.bold, fontSize: 12 }}>🎁 Unlocked Free Goodies & Sponsorship Perks:</Text>
                         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
                           {comm.free_goodies.map((g: any, idx: number) => (
                             <View key={idx} style={s.goodieCard}>
-                              <Gift size={13} color={SAC.accent} />
+                              <Gift size={13} color={T.accent} />
                               <View>
                                 <Text style={s.goodieTitle}>{g.title}</Text>
-                                <Text style={s.goodieSub}>{g.value} • Promo Code: <Text style={{ color: SAC.green, fontFamily: FONTS.bold }}>{g.code}</Text></Text>
+                                <Text style={s.goodieSub}>{g.value} • Promo Code: <Text style={{ color: T.green, fontFamily: FONTS.bold }}>{g.code}</Text></Text>
                               </View>
                             </View>
                           ))}
@@ -1106,10 +1106,10 @@ export function AutonomousAgentsView() {
           {outreachViewMode === 'kanban' && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingTop: 6 }}>
               {[
-                { id: 'discovered', label: '1. Discovered (Auto-Scouted)', color: SAC.violet },
-                { id: 'outreach_sent', label: '2. Campaign Dispatched', color: SAC.blue },
-                { id: 'negotiating', label: '3. In Negotiation', color: SAC.accent },
-                { id: 'active_partner', label: '4. Active Partner', color: SAC.green },
+                { id: 'discovered', label: '1. Discovered (Auto-Scouted)', color: T.violet },
+                { id: 'outreach_sent', label: '2. Campaign Dispatched', color: T.blue },
+                { id: 'negotiating', label: '3. In Negotiation', color: T.accent },
+                { id: 'active_partner', label: '4. Active Partner', color: T.green },
               ].map((column) => {
                 const columnItems = communitiesList.filter((c) => (c.crm_stage || 'discovered') === column.id);
                 return (
@@ -1137,8 +1137,8 @@ export function AutonomousAgentsView() {
                               </Pressable>
                             )}
                             {column.id !== 'active_partner' && (
-                              <Pressable style={[s.kanbanActionBtn, { backgroundColor: SAC.green }]} onPress={() => updateCrmStage(comm.id, 'active_partner')}>
-                                <Text style={{ color: SAC.text, fontSize: 10, fontFamily: FONTS.bold }}>Partner</Text>
+                              <Pressable style={[s.kanbanActionBtn, { backgroundColor: T.green }]} onPress={() => updateCrmStage(comm.id, 'active_partner')}>
+                                <Text style={{ color: T.text, fontSize: 10, fontFamily: FONTS.bold }}>Partner</Text>
                               </Pressable>
                             )}
                           </View>
@@ -1158,7 +1158,7 @@ export function AutonomousAgentsView() {
                 <View style={s.modalHeader}>
                   <Text style={s.modalTitle}>AI Generated Blog Post (Published to /blog)</Text>
                   <Pressable onPress={() => setBlogModalVisible(false)}>
-                    <X size={18} color={SAC.muted} />
+                    <X size={18} color={T.muted} />
                   </Pressable>
                 </View>
 
@@ -1170,18 +1170,18 @@ export function AutonomousAgentsView() {
                       <Badge label="LIVE ON BLOG" color="green" />
                     </View>
 
-                    <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 }}>{generatedBlog.title}</Text>
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 }}>By {generatedBlog.author} • Published on {generatedBlog.date}</Text>
+                    <Text style={{ color: T.text, fontFamily: FONTS.xbold, fontSize: 16 }}>{generatedBlog.title}</Text>
+                    <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 12 }}>By {generatedBlog.author} • Published on {generatedBlog.date}</Text>
 
-                    <View style={{ padding: 12, borderRadius: 10, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1 }}>
-                      <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 }}>{generatedBlog.description}</Text>
+                    <View style={{ padding: 12, borderRadius: 10, backgroundColor: T.panel2, borderColor: T.border, borderWidth: 1 }}>
+                      <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 }}>{generatedBlog.description}</Text>
                     </View>
 
                     {generatedBlog.sections?.map((sec: any, idx: number) => (
                       <View key={idx} style={{ gap: 4, marginTop: 6 }}>
-                        <Text style={{ color: SAC.accent, fontFamily: FONTS.bold, fontSize: 13 }}>{sec.label}</Text>
+                        <Text style={{ color: T.accent, fontFamily: FONTS.bold, fontSize: 13 }}>{sec.label}</Text>
                         {sec.content?.map((p: string, pIdx: number) => (
-                          <Text key={pIdx} style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, lineHeight: 17 }}>{p}</Text>
+                          <Text key={pIdx} style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 12, lineHeight: 17 }}>{p}</Text>
                         ))}
                       </View>
                     ))}
@@ -1190,7 +1190,7 @@ export function AutonomousAgentsView() {
 
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 14 }}>
                   <Pressable style={s.cancelBtn} onPress={() => setBlogModalVisible(false)}>
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
+                    <Text style={{ color: T.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
                   </Pressable>
                 </View>
               </View>
@@ -1204,7 +1204,7 @@ export function AutonomousAgentsView() {
                 <View style={s.modalHeader}>
                   <Text style={s.modalTitle}>Social Media Spotlight Generator</Text>
                   <Pressable onPress={() => setSocialModalVisible(false)}>
-                    <X size={18} color={SAC.muted} />
+                    <X size={18} color={T.muted} />
                   </Pressable>
                 </View>
 
@@ -1224,7 +1224,7 @@ export function AutonomousAgentsView() {
 
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 }}>
                   <Pressable style={s.saveBtn} onPress={() => { setSocialModalVisible(false); flash('Posts copied to clipboard!'); }}>
-                    <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Copy & Publish Posts</Text>
+                    <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 12 }}>Copy & Publish Posts</Text>
                   </Pressable>
                 </View>
               </View>
@@ -1238,7 +1238,7 @@ export function AutonomousAgentsView() {
                 <View style={s.modalHeader}>
                   <Text style={s.modalTitle}>Scouted Campus Auditoriums & Venues (Bengaluru)</Text>
                   <Pressable onPress={() => setVenueModalVisible(false)}>
-                    <X size={18} color={SAC.muted} />
+                    <X size={18} color={T.muted} />
                   </Pressable>
                 </View>
 
@@ -1246,11 +1246,11 @@ export function AutonomousAgentsView() {
                   {scoutedVenues.map((v) => (
                     <View key={v.id} style={s.artifactCard}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 14 }}>{v.name}</Text>
+                        <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 14 }}>{v.name}</Text>
                         <Badge label={v.capacity} color="green" />
                       </View>
-                      <Text style={{ color: SAC.accent, fontFamily: FONTS.med, fontSize: 12 }}>{v.venue_type} • {v.city}</Text>
-                      <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 4 }}>Contact: {v.contact_email}</Text>
+                      <Text style={{ color: T.accent, fontFamily: FONTS.med, fontSize: 12 }}>{v.venue_type} • {v.city}</Text>
+                      <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 4 }}>Contact: {v.contact_email}</Text>
                       <View style={{ flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                         {v.amenities?.map((am: string, i: number) => (
                           <View key={i} style={s.agentPill}>
@@ -1264,7 +1264,7 @@ export function AutonomousAgentsView() {
 
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 14 }}>
                   <Pressable style={s.cancelBtn} onPress={() => setVenueModalVisible(false)}>
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
+                    <Text style={{ color: T.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
                   </Pressable>
                 </View>
               </View>
@@ -1278,14 +1278,14 @@ export function AutonomousAgentsView() {
                 <View style={s.modalHeader}>
                   <Text style={s.modalTitle}>AI Partnership MoU & Contract Generator</Text>
                   <Pressable onPress={() => setMouModalVisible(false)}>
-                    <X size={18} color={SAC.muted} />
+                    <X size={18} color={T.muted} />
                   </Pressable>
                 </View>
 
                 {mouComm && (
                   <ScrollView style={{ maxHeight: 460 }} contentContainerStyle={{ gap: 12 }} showsVerticalScrollIndicator={false}>
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5 }}>
-                      Generating official digital Memorandum of Understanding (MoU) contract for <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{mouComm.name}</Text>.
+                    <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 12.5 }}>
+                      Generating official digital Memorandum of Understanding (MoU) contract for <Text style={{ color: T.text, fontFamily: FONTS.bold }}>{mouComm.name}</Text>.
                     </Text>
 
                     <Text style={s.label}>Custom Terms & Special Clauses</Text>
@@ -1313,7 +1313,7 @@ export function AutonomousAgentsView() {
 
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 14 }}>
                   <Pressable style={s.cancelBtn} onPress={() => setMouModalVisible(false)}>
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
+                    <Text style={{ color: T.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
                   </Pressable>
                 </View>
               </View>
@@ -1327,7 +1327,7 @@ export function AutonomousAgentsView() {
                 <View style={s.modalHeader}>
                   <Text style={s.modalTitle}>Broadcast to All Partner Community Groups</Text>
                   <Pressable onPress={() => setBroadcastModalVisible(false)}>
-                    <X size={18} color={SAC.muted} />
+                    <X size={18} color={T.muted} />
                   </Pressable>
                 </View>
 
@@ -1340,7 +1340,7 @@ export function AutonomousAgentsView() {
                         onPress={() => setBroadcastChannel(ch as any)}
                         style={[s.roleChip, broadcastChannel === ch && s.roleChipActive]}
                       >
-                        <Text style={[s.roleChipText, broadcastChannel === ch && { color: SAC.text }]}>{ch.toUpperCase()}</Text>
+                        <Text style={[s.roleChipText, broadcastChannel === ch && { color: T.text }]}>{ch.toUpperCase()}</Text>
                       </Pressable>
                     ))}
                   </View>
@@ -1354,13 +1354,13 @@ export function AutonomousAgentsView() {
 
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
                   <Pressable style={s.cancelBtn} onPress={() => setBroadcastModalVisible(false)}>
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
+                    <Text style={{ color: T.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
                   </Pressable>
                   <Pressable style={s.saveBtn} onPress={handleDispatchBroadcast} disabled={broadcastLoading}>
                     {broadcastLoading ? <ActivityIndicator size="small" color="#fff" /> : (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <Radio size={13} color="#fff" />
-                        <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Broadcast to Groups</Text>
+                        <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 12 }}>Broadcast to Groups</Text>
                       </View>
                     )}
                   </Pressable>
@@ -1376,14 +1376,14 @@ export function AutonomousAgentsView() {
                 <View style={s.modalHeader}>
                   <Text style={s.modalTitle}>Dispatch 1-Click Outreach Campaign</Text>
                   <Pressable onPress={() => setCampaignModalVisible(false)}>
-                    <X size={18} color={SAC.muted} />
+                    <X size={18} color={T.muted} />
                   </Pressable>
                 </View>
 
                 {campaignComm && (
                   <View style={{ gap: 12 }}>
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5 }}>
-                      Recipient: <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{campaignComm.organizer_name}</Text> ({campaignComm.organizer_email || campaignComm.email})
+                    <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 12.5 }}>
+                      Recipient: <Text style={{ color: T.text, fontFamily: FONTS.bold }}>{campaignComm.organizer_name}</Text> ({campaignComm.organizer_email || campaignComm.email})
                     </Text>
 
                     <Text style={s.label}>Select Delivery Channel</Text>
@@ -1392,13 +1392,13 @@ export function AutonomousAgentsView() {
                         onPress={() => setCampaignChannel('email')}
                         style={[s.roleChip, campaignChannel === 'email' && s.roleChipActive]}
                       >
-                        <Text style={[s.roleChipText, campaignChannel === 'email' && { color: SAC.text }]}>✉ Email Outreach</Text>
+                        <Text style={[s.roleChipText, campaignChannel === 'email' && { color: T.text }]}>✉ Email Outreach</Text>
                       </Pressable>
                       <Pressable
                         onPress={() => setCampaignChannel('whatsapp')}
                         style={[s.roleChip, campaignChannel === 'whatsapp' && s.roleChipActive]}
                       >
-                        <Text style={[s.roleChipText, campaignChannel === 'whatsapp' && { color: SAC.text }]}>◆ WhatsApp Direct</Text>
+                        <Text style={[s.roleChipText, campaignChannel === 'whatsapp' && { color: T.text }]}>◆ WhatsApp Direct</Text>
                       </Pressable>
                     </View>
 
@@ -1412,13 +1412,13 @@ export function AutonomousAgentsView() {
 
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
                   <Pressable style={s.cancelBtn} onPress={() => setCampaignModalVisible(false)}>
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
+                    <Text style={{ color: T.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
                   </Pressable>
                   <Pressable style={s.saveBtn} onPress={handleDispatchCampaign} disabled={campaignLoading}>
                     {campaignLoading ? <ActivityIndicator size="small" color="#fff" /> : (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <Send size={13} color="#fff" />
-                        <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Dispatch Now</Text>
+                        <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 12 }}>Dispatch Now</Text>
                       </View>
                     )}
                   </Pressable>
@@ -1434,14 +1434,14 @@ export function AutonomousAgentsView() {
                 <View style={s.modalHeader}>
                   <Text style={s.modalTitle}>Register Profile in Super Admin Directory</Text>
                   <Pressable onPress={() => setConvertModalVisible(false)}>
-                    <X size={18} color={SAC.muted} />
+                    <X size={18} color={T.muted} />
                   </Pressable>
                 </View>
 
                 {convertCommunity && (
                   <View style={{ gap: 12 }}>
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5 }}>
-                      Create a managed platform user profile for <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{convertCommunity.organizer_name}</Text> from <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{convertCommunity.name}</Text>.
+                    <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 12.5 }}>
+                      Create a managed platform user profile for <Text style={{ color: T.text, fontFamily: FONTS.bold }}>{convertCommunity.organizer_name}</Text> from <Text style={{ color: T.text, fontFamily: FONTS.bold }}>{convertCommunity.name}</Text>.
                     </Text>
 
                     <Text style={s.label}>Select Target Role Type</Text>
@@ -1456,28 +1456,28 @@ export function AutonomousAgentsView() {
                           onPress={() => setConvertRole(r.id)}
                           style={[s.roleChip, convertRole === r.id && s.roleChipActive]}
                         >
-                          <Text style={[s.roleChipText, convertRole === r.id && { color: SAC.text }]}>{r.label}</Text>
+                          <Text style={[s.roleChipText, convertRole === r.id && { color: T.text }]}>{r.label}</Text>
                         </Pressable>
                       ))}
                     </View>
 
-                    <View style={{ padding: 12, borderRadius: 10, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1, gap: 4 }}>
-                      <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Profile Metadata to be Created:</Text>
-                      <Text style={{ color: SAC.muted, fontSize: 11 }}>• Email: {convertCommunity.organizer_email || convertCommunity.email}</Text>
-                      <Text style={{ color: SAC.muted, fontSize: 11 }}>• Phone: {convertCommunity.phone}</Text>
-                      <Text style={{ color: SAC.muted, fontSize: 11 }}>• Organization: {convertCommunity.name}</Text>
-                      <Text style={{ color: SAC.muted, fontSize: 11 }}>• Website: {convertCommunity.website}</Text>
+                    <View style={{ padding: 12, borderRadius: 10, backgroundColor: T.panel2, borderColor: T.border, borderWidth: 1, gap: 4 }}>
+                      <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 12 }}>Profile Metadata to be Created:</Text>
+                      <Text style={{ color: T.muted, fontSize: 11 }}>• Email: {convertCommunity.organizer_email || convertCommunity.email}</Text>
+                      <Text style={{ color: T.muted, fontSize: 11 }}>• Phone: {convertCommunity.phone}</Text>
+                      <Text style={{ color: T.muted, fontSize: 11 }}>• Organization: {convertCommunity.name}</Text>
+                      <Text style={{ color: T.muted, fontSize: 11 }}>• Website: {convertCommunity.website}</Text>
                     </View>
                   </View>
                 )}
 
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
                   <Pressable style={s.cancelBtn} onPress={() => setConvertModalVisible(false)}>
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
+                    <Text style={{ color: T.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
                   </Pressable>
                   <Pressable style={s.saveBtn} onPress={handleConvertProfile} disabled={convertLoading}>
                     {convertLoading ? <ActivityIndicator size="small" color="#fff" /> : (
-                      <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Create Profile</Text>
+                      <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 12 }}>Create Profile</Text>
                     )}
                   </Pressable>
                 </View>
@@ -1584,7 +1584,7 @@ export function AutonomousAgentsView() {
             <View style={{ flexDirection: 'row', gap: 10 }}>
               {(['student', 'mentor', 'college'] as const).map((p) => (
                 <Pressable key={p} onPress={() => setQaPersona(p)} style={[s.personaBtn, qaPersona === p && s.personaBtnActive]}>
-                  <Text style={[s.personaBtnText, qaPersona === p && { color: SAC.text }]}>{p.toUpperCase()}</Text>
+                  <Text style={[s.personaBtnText, qaPersona === p && { color: T.text }]}>{p.toUpperCase()}</Text>
                 </Pressable>
               ))}
             </View>
@@ -1642,7 +1642,7 @@ export function AutonomousAgentsView() {
             </Pressable>
           </View>
 
-          {specLoading && <ActivityIndicator size="small" color={SAC.accent} style={{ marginTop: 14 }} />}
+          {specLoading && <ActivityIndicator size="small" color={T.accent} style={{ marginTop: 14 }} />}
 
           {specDispatchResult && (
             <View style={{ marginTop: 20, gap: 12 }}>
@@ -1662,7 +1662,7 @@ export function AutonomousAgentsView() {
           <Text style={s.cardTitle}>LLM & RAG Telemetry</Text>
           <Text style={s.cardSub}>Real-time token usage, latency metrics, and agent memory telemetry.</Text>
           {obsLoading ? (
-            <ActivityIndicator size="medium" color={SAC.accent} style={{ marginVertical: 20 }} />
+            <ActivityIndicator size="medium" color={T.accent} style={{ marginVertical: 20 }} />
           ) : (
             <View style={{ marginTop: 14, gap: 10 }}>
               <View style={s.artifactCard}>
@@ -1689,16 +1689,16 @@ export function AutonomousAgentsView() {
           </View>
 
           {dossierLoading ? (
-            <ActivityIndicator size="medium" color={SAC.accent} style={{ marginVertical: 20 }} />
+            <ActivityIndicator size="medium" color={T.accent} style={{ marginVertical: 20 }} />
           ) : (
             dailyDossier && (
               <View style={{ marginTop: 20, gap: 14 }}>
-                <View style={{ padding: 14, borderRadius: 12, backgroundColor: SAC.okTint, borderColor: SAC.okLine, borderWidth: 1 }}>
+                <View style={{ padding: 14, borderRadius: 12, backgroundColor: T.okTint, borderColor: T.okLine, borderWidth: 1 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ color: SAC.ok, fontFamily: FONTS.bold, fontSize: 13 }}>{dailyDossier.dossier_id}</Text>
+                    <Text style={{ color: T.ok, fontFamily: FONTS.bold, fontSize: 13 }}>{dailyDossier.dossier_id}</Text>
                     <Badge label={dailyDossier.health_status} color="green" />
                   </View>
-                  <Text style={{ color: SAC.text, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 18 }}>
+                  <Text style={{ color: T.text, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 18 }}>
                     {dailyDossier.executive_verdict}
                   </Text>
                 </View>
@@ -1729,13 +1729,13 @@ export function AutonomousAgentsView() {
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>{editingTeamId ? 'Edit Agent Team' : 'Create Custom Agent Team'}</Text>
               <Pressable onPress={() => setModalVisible(false)}>
-                <X size={18} color={SAC.muted} />
+                <X size={18} color={T.muted} />
               </Pressable>
             </View>
 
             <ScrollView style={{ maxHeight: 480 }} contentContainerStyle={{ gap: 12 }} showsVerticalScrollIndicator={false}>
               <Text style={s.label}>Team Name</Text>
-              <TextInput value={formName} onChangeText={setFormName} style={s.input} placeholder="e.g. Growth & Marketing Team" placeholderTextColor={SAC.muted} />
+              <TextInput value={formName} onChangeText={setFormName} style={s.input} placeholder="e.g. Growth & Marketing Team" placeholderTextColor={T.muted} />
 
               <Text style={s.label}>Category</Text>
               <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
@@ -1745,19 +1745,19 @@ export function AutonomousAgentsView() {
                     onPress={() => setFormCategory(cat)}
                     style={[s.catChip, formCategory === cat && s.catChipActive]}
                   >
-                    <Text style={[s.catChipText, formCategory === cat && { color: SAC.text }]}>{cat.toUpperCase()}</Text>
+                    <Text style={[s.catChipText, formCategory === cat && { color: T.text }]}>{cat.toUpperCase()}</Text>
                   </Pressable>
                 ))}
               </View>
 
               <Text style={s.label}>Description</Text>
-              <TextInput value={formDesc} onChangeText={setFormDesc} style={s.input} multiline placeholder="Briefly describe what this team specializes in..." placeholderTextColor={SAC.muted} />
+              <TextInput value={formDesc} onChangeText={setFormDesc} style={s.input} multiline placeholder="Briefly describe what this team specializes in..." placeholderTextColor={T.muted} />
 
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
                 <Text style={s.sectionHeader}>Team Agents ({formAgents.length})</Text>
                 <Pressable style={s.addAgentBtn} onPress={addAgentToForm}>
                   <Plus size={12} color="#fff" />
-                  <Text style={{ color: SAC.text, fontSize: 11, fontFamily: FONTS.bold }}>Add Agent</Text>
+                  <Text style={{ color: T.text, fontSize: 11, fontFamily: FONTS.bold }}>Add Agent</Text>
                 </Pressable>
               </View>
 
@@ -1765,23 +1765,23 @@ export function AutonomousAgentsView() {
                 <View key={ag.id || idx} style={s.agentFormCard}>
                   <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
                     <TextInput value={ag.avatar} onChangeText={(v) => updateAgentField(idx, 'avatar', v)} style={[s.input, { width: 44, textAlign: 'center' }]} />
-                    <TextInput value={ag.name} onChangeText={(v) => updateAgentField(idx, 'name', v)} style={[s.input, { flex: 1 }]} placeholder="Agent Name" placeholderTextColor={SAC.muted} />
+                    <TextInput value={ag.name} onChangeText={(v) => updateAgentField(idx, 'name', v)} style={[s.input, { flex: 1 }]} placeholder="Agent Name" placeholderTextColor={T.muted} />
                     <Pressable onPress={() => removeAgentFromForm(idx)}>
-                      <Trash2 size={14} color={SAC.danger} />
+                      <Trash2 size={14} color={T.danger} />
                     </Pressable>
                   </View>
-                  <TextInput value={ag.role} onChangeText={(v) => updateAgentField(idx, 'role', v)} style={s.input} placeholder="Agent Role" placeholderTextColor={SAC.muted} />
-                  <TextInput value={ag.system_prompt} onChangeText={(v) => updateAgentField(idx, 'system_prompt', v)} style={[s.input, { height: 50 }]} multiline placeholder="System Persona Prompt" placeholderTextColor={SAC.muted} />
+                  <TextInput value={ag.role} onChangeText={(v) => updateAgentField(idx, 'role', v)} style={s.input} placeholder="Agent Role" placeholderTextColor={T.muted} />
+                  <TextInput value={ag.system_prompt} onChangeText={(v) => updateAgentField(idx, 'system_prompt', v)} style={[s.input, { height: 50 }]} multiline placeholder="System Persona Prompt" placeholderTextColor={T.muted} />
                 </View>
               ))}
             </ScrollView>
 
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
               <Pressable style={s.cancelBtn} onPress={() => setModalVisible(false)}>
-                <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
+                <Text style={{ color: T.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
               </Pressable>
               <Pressable style={s.saveBtn} onPress={saveTeam}>
-                <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Save Team</Text>
+                <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 12 }}>Save Team</Text>
               </Pressable>
             </View>
           </View>
