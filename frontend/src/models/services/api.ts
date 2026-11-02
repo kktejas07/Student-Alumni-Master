@@ -458,7 +458,14 @@ export const api = {
   }) => request<any>('/mentor/bookings', { method: 'POST', body: payload }),
   rescheduleBooking: (id: string, slotStartIso: string) =>
     request<any>(`/bookings/${id}/reschedule`, { method: 'POST', body: { slot_start_iso: slotStartIso } }),
-  networkDiscover: (q?: string) => request<any>(`/network/discover${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  networkDiscover: (q?: string, page?: number) => {
+    const qs: string[] = [];
+    if (q) qs.push(`q=${encodeURIComponent(q)}`);
+    if (page && page > 1) qs.push(`page=${page}`);
+    const suffix = qs.length ? `?${qs.join('&')}` : '';
+    return request<any>(`/network/discover${suffix}`);
+  },
+  networkCounts: () => request<any>('/network/counts'),
   networkConnections: () => request<any>('/network/connections'),
   networkRequests: () => request<any>('/network/requests'),
   sendConnectionRequest: (otherId: string, message?: string) =>

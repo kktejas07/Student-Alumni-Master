@@ -3119,7 +3119,7 @@ def _match_institution(inst_a: Optional[str], inst_b: Optional[str]) -> bool:
 
 
 @router.get("/network/discover")
-async def network_discover(user: dict = Depends(get_current_user), q: str = "", limit: int = 12):
+async def network_discover(user: dict = Depends(get_current_user), q: str = "", limit: int = 12, page: int = 1):
     """
     Discover sections (each up to `limit` matches):
       • by_interest   — users with overlapping interests
@@ -3173,7 +3173,29 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
             {"interests": rx},
             {"career_path": rx},
         ]
-    candidates = await db.users.find(base_query, {"password_hash": 0}).sort("_id", -1).to_list(100 if is_search else 200)
+    # Pull a healthy candidate set. Sample per role in parallel so every
+    # section has a deep pool; non-students get priority on dedup (a student
+    # who is also a mentor shows up as mentor, not student).
+    per_role_n = 100 if is_search else 500
+    role_samples = await asyncio.gather(
+        db.users.find({**base_query, "role": "student"}, {"password_hash": 0}).sort("_id", -1).to_list(per_role_n),
+        db.users.find({**base_query, "role": "alumni"}, {"password_hash": 0}).sort("_id", -1).to_list(per_role_n),
+        db.users.find({**base_query, "role": "mentor"}, {"password_hash": 0}).sort("_id", -1).to_list(per_role_n),
+        db.users.find({**base_query, "role": "college"}, {"password_hash": 0}).sort("_id", -1).to_list(per_role_n),
+    )
+    seen_sample: set = set()
+    candidates: list = []
+    for sample in role_samples[1:]:  # non-students first
+        for u in sample:
+            uid = str(u.get("_id") or u.get("id"))
+            if uid not in seen_sample:
+                seen_sample.add(uid)
+                candidates.append(u)
+    for u in role_samples[0]:
+        uid = str(u.get("_id") or u.get("id"))
+        if uid not in seen_sample:
+            seen_sample.add(uid)
+            candidates.append(u)
 
     cards = [_user_card(c) for c in candidates if str(c.get("_id") or c.get("id")) != me_id]
     # attach connection_state (none|pending|connected|incoming)
@@ -3258,53 +3280,61 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     skill_label    = ", ".join(my_skills[:3])     if my_skills    else "your declared skills"
     cp_label = (my_cp or "your goal").replace("_", " ").title() if my_cp else "Your career goal"
 
-    sections = []
+    # Full per-section pools; windowed below by `page`.
+    pools: list = []
     if is_search:
-        sections.append({
-            "key": "search_results",
-            "title": f"Search Results for '{q.strip()}'",
-            "subtitle": f"Found {len(cards)} account(s) matching your query",
-            "icon": "Search",
-            "tint": "#3B82F6",
-            "items": cards[:sec_limit]
-        })
-
-    sections.extend([
-        {"key": "by_interest", "title": "Matched by Interest",
-         "subtitle": f"Based on: {interest_label}",
-         "icon": "Heart", "tint": "#A78BFA",
-         "items": by_interest[:sec_limit]},
-        {"key": "by_career", "title": "Matched by Career Path",
-         "subtitle": f"Pursuing {cp_label}",
-         "icon": "Briefcase", "tint": "#F59E0B",
-         "items": by_career[:sec_limit]},
-        {"key": "by_skills", "title": "Matched by Skills",
-         "subtitle": f"Shared skills: {skill_label}",
-         "icon": "Code2", "tint": "#2DD4BF",
-         "items": by_skills[:sec_limit]},
-        {"key": "by_college", "title": "From Your College",
-         "subtitle": "People from " + (my_inst or "your school"),
-         "icon": "GraduationCap", "tint": "#22D3EE",
-         "items": by_college[:sec_limit]},
-        {"key": "mentors", "title": "Recommended Mentors",
-         "subtitle": "Book a session \u00b7 First 2 free",
-         "icon": "UserCheck", "tint": "#10B981",
-         "items": mentor_cards[:sec_limit]},
-        {"key": "peer_students", "title": "Peer Students",
-         "subtitle": "Connect with peers and classmates",
-         "icon": "Users", "tint": "#22D3EE",
-         "items": peer_students[:sec_limit]},
-        {"key": "explore_alumni", "title": "Explore Alumni",
-         "subtitle": "Learn from graduates in the industry",
-         "icon": "Users", "tint": "#F59E0B",
-         "items": explore_alumni[:sec_limit]},
-        {"key": "expand", "title": "Expand Your Horizons",
-         "subtitle": "People outside your current interests",
-         "icon": "Compass", "tint": "#EC4899",
-         "items": expand[:sec_limit]},
+        pools.append(("search_results", f"Search Results for '{q.strip()}'",
+                      f"Found {len(cards)} account(s) matching your query", "Search", "#3B82F6", cards))
+    pools.extend([
+        ("by_interest", "Matched by Interest", f"Based on: {interest_label}", "Heart", "#A78BFA", by_interest),
+        ("by_career", "Matched by Career Path", f"Pursuing {cp_label}", "Briefcase", "#F59E0B", by_career),
+        ("by_skills", "Matched by Skills", f"Shared skills: {skill_label}", "Code2", "#2DD4BF", by_skills),
+        ("by_college", "From Your College", "People from " + (my_inst or "your school"), "GraduationCap", "#22D3EE", by_college),
+        ("mentors", "Recommended Mentors", "Book a session \u00b7 First 2 free", "UserCheck", "#10B981", mentor_cards),
+        ("peer_students", "Peer Students", "Connect with peers and classmates", "Users", "#22D3EE", peer_students),
+        ("explore_alumni", "Explore Alumni", "Learn from graduates in the industry", "Users", "#F59E0B", explore_alumni),
+        ("expand", "Expand Your Horizons", "People outside your current interests", "Compass", "#EC4899", expand),
     ])
 
-    return {"sections": sections}
+    page = max(1, page)
+    start = (page - 1) * sec_limit
+    sections = []
+    for key, title, subtitle, icon, tint, items in pools:
+        total = len(items)
+        page_items = items[start:start + sec_limit]
+        sections.append({
+            "key": key, "title": title, "subtitle": subtitle,
+            "icon": icon, "tint": tint,
+            "items": page_items,
+            "total": total,
+            "page": page,
+            "limit": sec_limit,
+            "has_more": start + sec_limit < total,
+        })
+
+    return {"sections": sections, "page": page, "limit": sec_limit}
+
+
+@router.get("/network/counts")
+async def network_counts(user: dict = Depends(get_current_user)):
+    """Live role totals for the discover filter pills.
+
+    industry = mentors + alumni (the two roles the frontend's "Industry"
+    pill maps to), so the pill badge matches what the filtered list shows.
+    """
+    counts = await asyncio.gather(
+        db.users.count_documents({"role": "student"}),
+        db.users.count_documents({"role": "alumni"}),
+        db.users.count_documents({"role": "mentor", "mentor_status": "approved"}),
+    )
+    students, alumni, mentors = counts
+    return {
+        "total": students + alumni + mentors,
+        "students": students,
+        "alumni": alumni,
+        "mentors": mentors,
+        "industry": mentors + alumni,
+    }
 
 
 @router.get("/network/connections")
