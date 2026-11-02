@@ -542,7 +542,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
         />
         <MetricCard
           label="SKILL STREAK"
-          value={`${skillStreak} Days`}
+          value={`${skillStreak} ${skillStreak === 1 ? 'Day' : 'Days'}`}
           color={C.red}
           subText="Start your streak!"
           iconElement={<Flame size={16} color={C.red} fill={C.red} />}

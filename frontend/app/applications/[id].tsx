@@ -77,9 +77,9 @@ export default function ApplicationTrackerScreen() {
 
   const handleBack = () => {
     if (role === 'alumni') {
-      router.replace('/alumni-portal?tab=higher-ed' as any);
+      router.replace('/alumni-portal?tab=higher-education' as any);
     } else if (role === 'student') {
-      router.replace('/student-portal?tab=higher-ed' as any);
+      router.replace('/student-portal?tab=higher-education' as any);
     } else {
       router.replace('/higher-education' as any);
     }

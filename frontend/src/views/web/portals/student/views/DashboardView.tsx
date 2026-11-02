@@ -27,19 +27,38 @@
  */
 
 import React, { useState, useEffect, useContext } from 'react';
-import { Check, X, Star } from 'lucide-react';
+import { Check, X, Star, Briefcase, Ticket } from 'lucide-react';
 import { View, Text, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StudentPortalNavContext } from '../StudentPortalNavContext';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { request } from '@/src/models/services/api';
+import { deriveReadiness } from '@/src/lib/careerDerivations';
 
 export function DashboardView() {
   const router = useRouter();
   const portalNav = useContext(StudentPortalNavContext);
   const authUser = useAuthStore((u) => u.user);
   const { isDark } = useTheme();
+
+  // Live profile/completion + skill-intelligence (same sources Career AI reads,
+  // so the two pages always agree on Profile Strength and Readiness).
+  const [profileStrength, setProfileStrength] = useState<number | null>(null);
+  const [readiness, setReadiness] = useState<{ score: number; level: string } | null>(null);
+  useEffect(() => {
+    request<any>('/users/me/completion')
+      .then((res: any) => setProfileStrength(res?.percentage != null ? Number(res.percentage) : null))
+      .catch(() => {});
+    request<any>('/users/me/skill-intelligence')
+      .then((intel: any) => {
+        const d = deriveReadiness(intel);
+        setReadiness({ score: d.readinessScore, level: d.readinessLevel });
+      })
+      .catch(() => {});
+  }, []);
+  const readinessScore = readiness ? readiness.score : null;
+  const readinessLevel = readiness ? readiness.level : 'Builder';
 
   // Tabs: 'opportunities' | 'intelligence'
   const [activeTab, setActiveTab] = useState<'opportunities' | 'intelligence'>('opportunities');
@@ -478,7 +497,7 @@ export function DashboardView() {
                 gap: '8px'
               }}
             >
-              <span>💼</span> LinkedIn Page
+              <Briefcase size={16} /> LinkedIn Page
             </a>
           </div>
         </div>
@@ -500,8 +519,8 @@ export function DashboardView() {
           onClick={() => window.location.href = '/student-portal?tab=wallet'}
         >
           <div>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: C.textPrimary, marginBottom: '4px' }}>
-              🎫 Browse Marketplace & Partner Coupons
+            <div style={{ fontSize: '15px', fontWeight: 700, color: C.textPrimary, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Ticket size={18} color={isDark ? '#A78BFA' : '#7C5CFC'} /> Browse Marketplace & Partner Coupons
             </div>
             <div style={{ fontSize: '13px', color: C.textSecondary }}>
               Find discount codes for food, beverages, partners, and more — all in your wallet.
@@ -518,12 +537,12 @@ export function DashboardView() {
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px' }}>
             <div>
               <div style={{ fontSize: '13px', fontWeight: 600, color: isDark ? '#A78BFA' : '#7C5CFC', marginBottom: '10px' }}>Profile Strength</div>
-              <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1, color: C.textPrimary }}>50%</div>
-              <div style={{ fontSize: '12.5px', color: C.textSecondary, marginTop: '8px' }}>Keep going!</div>
+              <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1, color: C.textPrimary }}>{profileStrength != null ? `${profileStrength}%` : '—'}</div>
+              <div style={{ fontSize: '12.5px', color: C.textSecondary, marginTop: '8px' }}>{profileStrength == null ? 'Complete your profile' : profileStrength < 50 ? 'Keep going!' : 'Great progress!'}</div>
             </div>
             <svg width="46" height="46" viewBox="0 0 46 46" style={{ flex: 'none' }}>
               <circle cx="23" cy="23" r="19" style={{ fill: 'none', stroke: C.bgTrack, strokeWidth: 4 }} />
-              <circle cx="23" cy="23" r="19" style={{ fill: 'none', stroke: '#7C5CFC', strokeWidth: 4, strokeLinecap: 'round', transform: 'rotate(-90deg)', transformOrigin: '23px 23px', strokeDasharray: 119.4, strokeDashoffset: 59.7 }} />
+              <circle cx="23" cy="23" r="19" style={{ fill: 'none', stroke: '#7C5CFC', strokeWidth: 4, strokeLinecap: 'round', transform: 'rotate(-90deg)', transformOrigin: '23px 23px', strokeDasharray: 119.4, strokeDashoffset: profileStrength != null ? 119.4 * (1 - Math.min(100, Math.max(0, profileStrength)) / 100) : 119.4 }} />
             </svg>
           </div>
         </div>
@@ -626,7 +645,7 @@ export function DashboardView() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '22px', marginBottom: '22px' }}>
               <svg width="112" height="112" viewBox="0 0 112 112" style={{ flex: 'none' }}>
                 <circle cx="56" cy="56" r="46" style={{ fill: 'none', stroke: C.bgTrack, strokeWidth: 9 }} />
-                <circle cx="56" cy="56" r="46" style={{ fill: 'none', stroke: 'url(#dbRingGrad)', strokeWidth: 9, strokeLinecap: 'round', transform: 'rotate(-90deg)', transformOrigin: '56px 56px', strokeDasharray: 289, strokeDashoffset: 185 }} />
+                <circle cx="56" cy="56" r="46" style={{ fill: 'none', stroke: 'url(#dbRingGrad)', strokeWidth: 9, strokeLinecap: 'round', transform: 'rotate(-90deg)', transformOrigin: '56px 56px', strokeDasharray: 289, strokeDashoffset: readinessScore != null ? 289 * (1 - Math.min(100, Math.max(0, readinessScore)) / 100) : 289 }} />
                 <defs>
                   <linearGradient id="dbRingGrad" x1="0" y1="0" x2="1" y2="1">
                     <stop offset="0" stopColor="#8B7BFF" />
@@ -634,11 +653,11 @@ export function DashboardView() {
                   </linearGradient>
                 </defs>
                 <text x="56" y="63" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '26px', fontWeight: 700, fill: C.textPrimary }}>
-                  36%
+                  {readinessScore != null ? `${readinessScore}%` : '—'}
                 </text>
               </svg>
               <div>
-                <div style={{ fontSize: '22px', fontWeight: 700, letterSpacing: '-.6px', color: C.textPrimary }}>Builder</div>
+                <div style={{ fontSize: '22px', fontWeight: 700, letterSpacing: '-.6px', color: C.textPrimary }}>{readinessLevel}</div>
                 <div style={{ fontSize: '13px', color: C.textSecondary, marginTop: '3px' }}> Industry Ready</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '12px', fontSize: '12px', fontWeight: 600, color: isDark ? '#34D399' : '#059669', background: isDark ? 'rgba(16, 185, 129, 0.13)' : 'rgba(16, 185, 129, 0.10)', borderRadius: '7px', padding: '5px 9px' }}>
                   ↗ +8% this week
@@ -1080,7 +1099,7 @@ export function DashboardView() {
               <div style={{ border: `1px solid ${C.insightBorder}`, borderRadius: '16px', background: C.insightBg, padding: '22px 24px 24px' }}>
                 <div style={{ fontSize: '17px', fontWeight: 700, marginBottom: '12px', color: C.textPrimary }}>Prediction Insight</div>
                 <div style={{ fontSize: '14px', lineHeight: 1.6, color: C.textSecondary, marginBottom: '20px' }}>
-                  You're on the right track! Consistent action can take you from <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>36%</strong> to <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>92%</strong> readiness in 18 weeks.
+                  You're on the right track! Consistent action can take you from <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>{readinessScore != null ? `${readinessScore}%` : '36%'}</strong> to <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>92%</strong> readiness in 18 weeks.
                 </div>
                 <button
                   type="button"

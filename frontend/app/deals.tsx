@@ -346,7 +346,7 @@ export default function DealsScreen() {
       <FeaturePageShell
         title="Deals & Offers"
         subtitle={`${allDeals.length || 0} deals · Updated ${relTime(lastUpdated)}`}
-        heroEmoji="🎁"
+        heroIcon={<MaterialCommunityIcons name="package-variant-gift" size={22} color="#7C5CFC" />}
         accent="#7C5CFC"
         rightSlot={
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
