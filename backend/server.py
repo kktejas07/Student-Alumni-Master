@@ -432,6 +432,15 @@ async def _lifespan(application):
         except Exception as _e:
             logger.warning("Could not start Deals Aggregator scheduler: %s", _e)
 
+        # Start the 6-hour Lead Aggregator bot cycle (opt-in:
+        # LA_BOT_SCHEDULER_ENABLED=1; optional startup catch-up via
+        # LA_BOT_STARTUP_CATCHUP=1)
+        try:
+            from features.lead_aggregator.bot_scheduler import start_lead_aggregator_scheduler
+            start_lead_aggregator_scheduler()
+        except Exception as _e:
+            logger.warning("Could not start Lead Aggregator 6h scheduler: %s", _e)
+
 
     try:
         from core.leader import run_as_leader
@@ -482,6 +491,12 @@ async def _lifespan(application):
     try:
         from services.deals_aggregator import stop_deals_aggregator_scheduler
         stop_deals_aggregator_scheduler()
+    except Exception:
+        pass
+
+    try:
+        from features.lead_aggregator.bot_scheduler import stop_lead_aggregator_scheduler
+        stop_lead_aggregator_scheduler()
     except Exception:
         pass
     client.close()
