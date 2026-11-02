@@ -500,7 +500,7 @@ export function TalentPoolAgentsView() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabRow}>
         {TABS.map(({ key, label, Icon }) => (
           <Pressable key={key} style={[s.tabBtn, activeTab === key && s.tabActive]} onPress={() => setActiveTab(key)}>
-            <Icon size={13} color={activeTab === key ? '#fff' : SAC.muted} />
+            <Icon size={13} color={activeTab === key ? '#fff' : T.muted} />
             <Text style={[s.tabText, activeTab === key && s.tabTextActive]}>{label}</Text>
           </Pressable>
         ))}
@@ -539,7 +539,7 @@ export function TalentPoolAgentsView() {
                         <Text style={s.pipeSub}>{st.t}</Text>
                       </View>
                     </View>
-                    {i < arr.length - 1 && <View style={s.pipeArrow}><ArrowRight size={14} color={SAC.muted} /></View>}
+                    {i < arr.length - 1 && <View style={s.pipeArrow}><ArrowRight size={14} color={T.muted} /></View>}
                   </View>
                 ))}
               </View>
@@ -688,7 +688,7 @@ export function TalentPoolAgentsView() {
           )}
           <View style={s.card}>
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-              <TextInput style={[s.input, { flex: 1 }]} placeholder="Search query (e.g. React engineer)" placeholderTextColor={SAC.muted} value={fetchQuery} onChangeText={setFetchQuery} />
+              <TextInput style={[s.input, { flex: 1 }]} placeholder="Search query (e.g. React engineer)" placeholderTextColor={T.muted} value={fetchQuery} onChangeText={setFetchQuery} />
               <Pressable style={[s.specBtn, fetching && s.specBtnDisabled]} onPress={fetchJobs}>
                 <Search size={13} color="#fff" /><Text style={s.specBtnText}>{fetching ? 'Fetching…' : 'Fetch'}</Text>
               </Pressable>
@@ -727,18 +727,18 @@ export function TalentPoolAgentsView() {
             </Pressable>
           </View>
           <View style={{ gap: 10 }}>
-            <TextInput style={s.input} placeholder="Job title" placeholderTextColor={SAC.muted} value={rkTitle} onChangeText={setRkTitle} />
-            <TextInput style={s.input} placeholder="Skills (comma separated)" placeholderTextColor={SAC.muted} value={rkSkills} onChangeText={setRkSkills} />
+            <TextInput style={s.input} placeholder="Job title" placeholderTextColor={T.muted} value={rkTitle} onChangeText={setRkTitle} />
+            <TextInput style={s.input} placeholder="Skills (comma separated)" placeholderTextColor={T.muted} value={rkSkills} onChangeText={setRkSkills} />
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TextInput style={[s.input, { flex: 1 }]} placeholder="Min exp (yrs)" placeholderTextColor={SAC.muted} keyboardType="numeric" value={rkMinExp} onChangeText={setRkMinExp} />
-              <TextInput style={[s.input, { flex: 1 }]} placeholder="Max exp (yrs)" placeholderTextColor={SAC.muted} keyboardType="numeric" value={rkMaxExp} onChangeText={setRkMaxExp} />
+              <TextInput style={[s.input, { flex: 1 }]} placeholder="Min exp (yrs)" placeholderTextColor={T.muted} keyboardType="numeric" value={rkMinExp} onChangeText={setRkMinExp} />
+              <TextInput style={[s.input, { flex: 1 }]} placeholder="Max exp (yrs)" placeholderTextColor={T.muted} keyboardType="numeric" value={rkMaxExp} onChangeText={setRkMaxExp} />
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Text style={s.label}>Top K</Text>
-                <Pressable style={s.iconBtn} onPress={() => setRkK((k) => Math.max(1, k - 1))}><Minus size={14} color={SAC.muted} /></Pressable>
+                <Pressable style={s.iconBtn} onPress={() => setRkK((k) => Math.max(1, k - 1))}><Minus size={14} color={T.muted} /></Pressable>
                 <Text style={s.chipVal}>{rkK}</Text>
-                <Pressable style={s.iconBtn} onPress={() => setRkK((k) => Math.min(100, k + 1))}><Plus size={14} color={SAC.muted} /></Pressable>
+                <Pressable style={s.iconBtn} onPress={() => setRkK((k) => Math.min(100, k + 1))}><Plus size={14} color={T.muted} /></Pressable>
               </View>
               <Pressable style={[s.specBtn, ranking && s.specBtnDisabled]} onPress={runRanker}>
                 <Target size={13} color="#fff" /><Text style={s.specBtnText}>{ranking ? 'Ranking…' : 'Run Ranker'}</Text>
@@ -816,7 +816,7 @@ export function TalentPoolAgentsView() {
               <View>
                 <Text style={s.sectionHeader}>Score Now</Text>
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
-                  <TextInput style={[s.input, { flex: 1 }]} placeholder="Profile id" placeholderTextColor={SAC.muted} value={scoreNowId} onChangeText={setScoreNowId} />
+                  <TextInput style={[s.input, { flex: 1 }]} placeholder="Profile id" placeholderTextColor={T.muted} value={scoreNowId} onChangeText={setScoreNowId} />
                   <Pressable style={[s.specBtn, scoreNowBusy && s.specBtnDisabled]} onPress={scoreNow}><Text style={s.specBtnText}>{scoreNowBusy ? '…' : 'Score'}</Text></Pressable>
                 </View>
               </View>
@@ -854,8 +854,8 @@ export function TalentPoolAgentsView() {
             <Text style={s.cardSub}>W3C Activity Stream — unified across all agents</Text>
             <View style={{ gap: 8, marginTop: 12 }}>
               <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TextInput style={[s.input, { flex: 1 }]} placeholder="Filter: profile id (optional)" placeholderTextColor={SAC.muted} value={aProfileId} onChangeText={setAProfileId} />
-                <TextInput style={[s.input, { flex: 1 }]} placeholder="Action (optional)" placeholderTextColor={SAC.muted} value={aAction} onChangeText={setAAction} />
+                <TextInput style={[s.input, { flex: 1 }]} placeholder="Filter: profile id (optional)" placeholderTextColor={T.muted} value={aProfileId} onChangeText={setAProfileId} />
+                <TextInput style={[s.input, { flex: 1 }]} placeholder="Action (optional)" placeholderTextColor={T.muted} value={aAction} onChangeText={setAAction} />
               </View>
               <Pressable style={s.specBtn} onPress={loadActivity}><RefreshCw size={13} color="#fff" /><Text style={s.specBtnText}>Load</Text></Pressable>
             </View>
@@ -864,8 +864,8 @@ export function TalentPoolAgentsView() {
           <View style={s.card}>
             <Text style={s.cardTitle}>Add Note</Text>
             <View style={{ gap: 8, marginTop: 10 }}>
-              <TextInput style={s.input} placeholder="Profile id" placeholderTextColor={SAC.muted} value={noteProfileId} onChangeText={setNoteProfileId} />
-              <TextInput style={[s.input, { height: 72 }]} placeholder="Recruiter note / call log / thread…" placeholderTextColor={SAC.muted} multiline value={noteText} onChangeText={setNoteText} />
+              <TextInput style={s.input} placeholder="Profile id" placeholderTextColor={T.muted} value={noteProfileId} onChangeText={setNoteProfileId} />
+              <TextInput style={[s.input, { height: 72 }]} placeholder="Recruiter note / call log / thread…" placeholderTextColor={T.muted} multiline value={noteText} onChangeText={setNoteText} />
               <Pressable style={[s.specBtn, noteBusy && s.specBtnDisabled]} onPress={addNote}>
                 <Mail size={13} color="#fff" /><Text style={s.specBtnText}>{noteBusy ? 'Recording…' : 'Record Note'}</Text>
               </Pressable>
@@ -915,7 +915,7 @@ export function TalentPoolAgentsView() {
                   </View>
                   <View style={{ flexDirection: 'row', gap: 6 }}>
                     <Badge label={iv.status || '—'} color={iv.status === 'Selected' ? 'green' : iv.status === 'Rejected' ? 'red' : 'gray'} />
-                    <Pressable style={s.iconBtn} onPress={() => openFeedback(iv)}><FileText size={14} color={SAC.muted} /></Pressable>
+                    <Pressable style={s.iconBtn} onPress={() => openFeedback(iv)}><FileText size={14} color={T.muted} /></Pressable>
                   </View>
                 </View>
               ))}
@@ -930,7 +930,7 @@ export function TalentPoolAgentsView() {
         <View style={s.modalOverlay}>
           <View style={s.modalContent}>
             <View style={s.modalHeader}><Text style={s.modalTitle}>Merge Duplicate Group</Text>
-              <Pressable onPress={() => setMergeGroup(null)}><X size={18} color={SAC.muted} /></Pressable></View>
+              <Pressable onPress={() => setMergeGroup(null)}><X size={18} color={T.muted} /></Pressable></View>
             <Text style={s.label}>Keeper (the profile to keep)</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
               {(mergeGroup?.members ?? []).map((m: any) => {
@@ -940,7 +940,7 @@ export function TalentPoolAgentsView() {
                   <Pressable key={key} onPress={() => setKeepRef(key)}
                     style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: active ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.1)', backgroundColor: active ? 'rgba(139,92,246,0.15)' : 'transparent' }}>
                     {active && <CheckCircle size={12} color="#A78BFA" />}
-                    <Text style={{ color: active ? '#C4B5FD' : SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>{m.full_name || m.id}</Text>
+                    <Text style={{ color: active ? '#C4B5FD' : T.muted, fontFamily: FONTS.med, fontSize: 11 }}>{m.full_name || m.id}</Text>
                   </Pressable>
                 );
               })}
@@ -959,7 +959,7 @@ export function TalentPoolAgentsView() {
         <View style={s.modalOverlay}>
           <View style={s.modalContent}>
             <View style={s.modalHeader}><Text style={s.modalTitle}>Schedule Interview</Text>
-              <Pressable onPress={() => setSchedOpen(false)}><X size={18} color={SAC.muted} /></Pressable></View>
+              <Pressable onPress={() => setSchedOpen(false)}><X size={18} color={T.muted} /></Pressable></View>
             <ScrollView style={{ maxHeight: 420 }} contentContainerStyle={{ gap: 10 }} showsVerticalScrollIndicator={false}>
               <View>
                 <Text style={s.label}>Candidate</Text>
@@ -967,14 +967,14 @@ export function TalentPoolAgentsView() {
                   {profiles.slice(0, 12).map((p: any) => (
                     <Pressable key={p.id} onPress={() => setSchedFor(p)}
                       style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: schedFor?.id === p.id ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.1)', backgroundColor: schedFor?.id === p.id ? 'rgba(139,92,246,0.15)' : 'transparent' }}>
-                      <Text style={{ color: schedFor?.id === p.id ? '#C4B5FD' : SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>{p.full_name}</Text>
+                      <Text style={{ color: schedFor?.id === p.id ? '#C4B5FD' : T.muted, fontFamily: FONTS.med, fontSize: 11 }}>{p.full_name}</Text>
                     </Pressable>
                   ))}
                 </View>
               </View>
               <View>
                 <Text style={s.label}>Start (ISO datetime)</Text>
-                <TextInput style={s.input} placeholder="2026-11-05T10:00:00Z" placeholderTextColor={SAC.muted} value={iStart} onChangeText={setIStart} />
+                <TextInput style={s.input} placeholder="2026-11-05T10:00:00Z" placeholderTextColor={T.muted} value={iStart} onChangeText={setIStart} />
               </View>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <View style={{ flex: 1 }}>
@@ -992,10 +992,10 @@ export function TalentPoolAgentsView() {
                   </View>
                 </View>
               </View>
-              <TextInput style={s.input} placeholder="Organizer email" placeholderTextColor={SAC.muted} value={iOrganizer} onChangeText={setIOrganizer} />
-              <TextInput style={s.input} placeholder="Invitee email" placeholderTextColor={SAC.muted} value={iInvitee} onChangeText={setIInvitee} />
-              <TextInput style={s.input} placeholder="Location / link" placeholderTextColor={SAC.muted} value={iLoc} onChangeText={setILoc} />
-              <TextInput style={s.input} placeholder="Agenda / summary" placeholderTextColor={SAC.muted} value={iSummary} onChangeText={setISummary} />
+              <TextInput style={s.input} placeholder="Organizer email" placeholderTextColor={T.muted} value={iOrganizer} onChangeText={setIOrganizer} />
+              <TextInput style={s.input} placeholder="Invitee email" placeholderTextColor={T.muted} value={iInvitee} onChangeText={setIInvitee} />
+              <TextInput style={s.input} placeholder="Location / link" placeholderTextColor={T.muted} value={iLoc} onChangeText={setILoc} />
+              <TextInput style={s.input} placeholder="Agenda / summary" placeholderTextColor={T.muted} value={iSummary} onChangeText={setISummary} />
             </ScrollView>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
               <Pressable style={s.cancelBtn} onPress={() => setSchedOpen(false)}><Text style={s.cancelText}>Cancel</Text></Pressable>
@@ -1012,7 +1012,7 @@ export function TalentPoolAgentsView() {
         <View style={s.modalOverlay}>
           <View style={s.modalContent}>
             <View style={s.modalHeader}><Text style={s.modalTitle}>Interview Feedback</Text>
-              <Pressable onPress={() => setFbFor(null)}><X size={18} color={SAC.muted} /></Pressable></View>
+              <Pressable onPress={() => setFbFor(null)}><X size={18} color={T.muted} /></Pressable></View>
             <Text style={s.cardSub}>Decision feeds back into the ranker for the next retrain.</Text>
             <View style={{ gap: 10, marginTop: 12 }}>
               <Text style={s.label}>Decision</Text>
@@ -1029,7 +1029,7 @@ export function TalentPoolAgentsView() {
               </View>
               <View>
                 <Text style={s.label}>Notes</Text>
-                <TextInput style={[s.input, { height: 64 }]} multiline placeholder="Why?" placeholderTextColor={SAC.muted} value={fbNotes} onChangeText={setFbNotes} />
+                <TextInput style={[s.input, { height: 64 }]} multiline placeholder="Why?" placeholderTextColor={T.muted} value={fbNotes} onChangeText={setFbNotes} />
               </View>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
@@ -1048,43 +1048,43 @@ export function TalentPoolAgentsView() {
 }
 
 const s = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: SAC.bg, padding: 16, gap: 14 },
+  wrap: { flex: 1, backgroundColor: T.bg, padding: 16, gap: 14 },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(139,92,246,0.18)', borderColor: 'rgba(139,92,246,0.35)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   headTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: -0.3 },
-  headSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
+  headSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   tabRow: { paddingHorizontal: -16 },
-  tabBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, marginRight: 6, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1 },
+  tabBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, marginRight: 6, backgroundColor: T.card, borderColor: T.border, borderWidth: 1 },
   tabActive: { backgroundColor: 'rgba(139,92,246,0.22)', borderColor: 'rgba(139,92,246,0.5)' },
-  tabText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  tabText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 12 },
   tabTextActive: { color: '#F4F4FA' },
-  card: { backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 16 },
+  card: { backgroundColor: T.card, borderColor: T.border, borderWidth: 1, borderRadius: 14, padding: 16 },
   cardTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 14 },
-  cardSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
+  cardSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
   centered: { paddingVertical: 30, alignItems: 'center' },
-  empty: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', paddingVertical: 20 },
+  empty: { color: T.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', paddingVertical: 20 },
   // pipeline
   pipeline: { flexDirection: 'row', alignItems: 'stretch', gap: 4, paddingVertical: 4 },
   pipeStage: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   pipeDot: { width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(139,92,246,0.2)', alignItems: 'center', justifyContent: 'center' },
   pipeNum: { color: '#C4B5FD', fontFamily: FONTS.xbold, fontSize: 11 },
   pipeLabel: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
-  pipeSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 },
+  pipeSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 10 },
   pipeArrow: { justifyContent: 'center', paddingHorizontal: 2 },
   // agent cards
   agentCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 10, padding: 12 },
   agentName: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
-  agentMeta: { color: SAC.danger, fontFamily: FONTS.med, fontSize: 11, marginTop: 4 },
-  agentCost: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
+  agentMeta: { color: T.danger, fontFamily: FONTS.med, fontSize: 11, marginTop: 4 },
+  agentCost: { color: T.muted, fontFamily: FONTS.med, fontSize: 10.5 },
   // oss table
   ossRow: { flexDirection: 'row', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  ossLayer: { width: 110, color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  ossLayer: { width: 110, color: T.muted, fontFamily: FONTS.bold, fontSize: 11 },
   ossTech: { flex: 1, color: '#C4B5FD', fontFamily: FONTS.bold, fontSize: 11 },
-  ossUsed: { flex: 1.2, color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
+  ossUsed: { flex: 1.2, color: T.muted, fontFamily: FONTS.med, fontSize: 11 },
   // controls
-  label: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, marginBottom: 5 },
+  label: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11, marginBottom: 5 },
   input: { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 10, color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13 },
-  sectionHeader: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 6 },
+  sectionHeader: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 6 },
   specBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(139,92,246,0.9)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   specBtnDisabled: { opacity: 0.5 },
   specBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
@@ -1092,13 +1092,13 @@ const s = StyleSheet.create({
   artifactText: { color: '#86EFAC', fontFamily: FONTS.med, fontSize: 12 },
   catChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.12)', borderWidth: 1 },
   catChipActive: { backgroundColor: 'rgba(139,92,246,0.25)', borderColor: 'rgba(139,92,246,0.6)' },
-  catChipText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  catChipText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16 },
-  modalContent: { width: '100%', maxWidth: 560, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 16 },
+  modalContent: { width: '100%', maxWidth: 560, backgroundColor: T.card, borderColor: T.border, borderWidth: 1, borderRadius: 14, padding: 16 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
   cancelBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center' },
-  cancelText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  cancelText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 12 },
   saveBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(139,92,246,0.9)' },
   btnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
   btnDisabled: { opacity: 0.5 },
@@ -1108,42 +1108,42 @@ const s = StyleSheet.create({
   dupTitle: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
   dupMember: { backgroundColor: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.25)', borderWidth: 1, borderRadius: 8, padding: 6, paddingHorizontal: 8 },
   dupMemberText: { color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 11 },
-  dupMemberSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 9.5 },
+  dupMemberSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 9.5 },
   // insights
   insightCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 10, padding: 12 },
   insightWeek: { color: '#C4B5FD', fontFamily: FONTS.bold, fontSize: 12 },
-  insightSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
+  insightSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 10.5 },
   chip: { backgroundColor: 'rgba(139,92,246,0.1)', borderColor: 'rgba(139,92,246,0.25)', borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  chipText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 9, textTransform: 'uppercase' },
+  chipText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 9, textTransform: 'uppercase' },
   chipVal: { color: '#C4B5FD', fontFamily: FONTS.med, fontSize: 11 },
   // listings
   listingRow: { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 10, padding: 12 },
   listingTitle: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 13 },
-  listingSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
+  listingSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   listingSalary: { color: '#34D399', fontFamily: FONTS.bold, fontSize: 11 },
   // ranker
   rankRow: { flexDirection: 'row', gap: 10, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 10, padding: 10 },
   rankScore: { width: 44, height: 44, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   rankName: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12.5 },
-  rankSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 2 },
+  rankSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 2 },
   // quality
   qStat: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 12, alignItems: 'center', minWidth: 90 },
   qStatVal: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 22 },
-  qStatLabel: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 2 },
-  bandLabel: { width: 52, color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  qStatLabel: { color: T.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 2 },
+  bandLabel: { width: 52, color: T.muted, fontFamily: FONTS.bold, fontSize: 11 },
   bandVal: { width: 32, textAlign: 'right', color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 11 },
   lowRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   lowName: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
-  lowSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
+  lowSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 10.5 },
   // activity
   evtRow: { flexDirection: 'row', gap: 10 },
   evtDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(139,92,246,0.8)', marginTop: 4 },
   evtAction: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
-  evtAt: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
-  evtSummary: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 3 },
+  evtAt: { color: T.muted, fontFamily: FONTS.med, fontSize: 10.5 },
+  evtSummary: { color: T.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 3 },
   evtObj: { color: 'rgba(139,92,246,0.8)', fontFamily: FONTS.med, fontSize: 10, marginTop: 3 },
   // interviews
   ivRow: { flexDirection: 'row', gap: 10, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 10, padding: 12 },
   ivTitle: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12.5 },
-  ivSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 2 },
+  ivSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 2 },
 });

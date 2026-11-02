@@ -425,7 +425,7 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
                 </View>
               </View>
               <SecondaryButton size="sm" onPress={() => { setData(null); setResult(null); }}>
-                <RefreshCw size={11} color={SAC.muted} />
+                <RefreshCw size={11} color={T.muted} />
                 <Text style={s.secText}>Replace file</Text>
               </SecondaryButton>
             </View>
@@ -436,7 +436,7 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
               <SumStat label="Master's"   value={data.summary.masters || 0} tint={CAT.masters.color} />
               <SumStat label="Alumni"     value={data.summary.alumni || 0}  tint={CAT.alumni.color}  />
               <SumStat label="Mentor"     value={data.summary.mentor || 0}  tint={CAT.mentor.color}  />
-              <SumStat label="Errors"     value={data.summary.errors || 0}  tint={SAC.red} />
+              <SumStat label="Errors"     value={data.summary.errors || 0}  tint={T.red} />
               <SumStat label="Review"     value={data.summary.needs_review || 0} tint="#FBBF24" />
             </View>
 
@@ -446,7 +446,7 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <ShieldCheck size={14} color="#22C55E" />
-                    <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.5 }}>PRE-FLIGHT INGESTION IMPACT</Text>
+                    <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.5 }}>PRE-FLIGHT INGESTION IMPACT</Text>
                   </View>
                   <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 5, backgroundColor: 'rgba(34,197,94,0.14)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.3)' }}>
                     <Text style={{ color: '#86EFAC', fontFamily: FONTS.bold, fontSize: 10 }}>Ready to Commit</Text>
@@ -455,15 +455,15 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
                 <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
                   <View style={{ flex: 1, minWidth: 120, padding: 10, borderRadius: 8, backgroundColor: 'rgba(34,197,94,0.08)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.2)' }}>
                     <Text style={{ color: '#86EFAC', fontFamily: FONTS.xbold, fontSize: 16 }}>+{data.preflight.new_count}</Text>
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 }}>New Profiles to Create</Text>
+                    <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 10 }}>New Profiles to Create</Text>
                   </View>
                   <View style={{ flex: 1, minWidth: 120, padding: 10, borderRadius: 8, backgroundColor: 'rgba(59,130,246,0.08)', borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)' }}>
                     <Text style={{ color: '#93C5FD', fontFamily: FONTS.xbold, fontSize: 16 }}>~{data.preflight.update_count}</Text>
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 }}>Existing to Merge/Update</Text>
+                    <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 10 }}>Existing to Merge/Update</Text>
                   </View>
                   <View style={{ flex: 1, minWidth: 120, padding: 10, borderRadius: 8, backgroundColor: data.preflight.invalid_count > 0 ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: data.preflight.invalid_count > 0 ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)' }}>
-                    <Text style={{ color: data.preflight.invalid_count > 0 ? '#FCA5A5' : SAC.muted, fontFamily: FONTS.xbold, fontSize: 16 }}>{data.preflight.invalid_count}</Text>
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 }}>Invalid/Filtered Rows</Text>
+                    <Text style={{ color: data.preflight.invalid_count > 0 ? '#FCA5A5' : T.muted, fontFamily: FONTS.xbold, fontSize: 16 }}>{data.preflight.invalid_count}</Text>
+                    <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 10 }}>Invalid/Filtered Rows</Text>
                   </View>
                 </View>
               </View>
@@ -480,7 +480,7 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
                 return (
                   <View key={h} style={s.mapRow}>
                     <Text style={s.mapSrc} numberOfLines={1}>{h || '—'}</Text>
-                    <ChevronRight size={11} color={SAC.dim} />
+                    <ChevronRight size={11} color={T.dim} />
                     {target ? (
                       <GradientPill label={target} />
                     ) : (
@@ -514,14 +514,14 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
                   const hasErr = (p.errors || []).length > 0;
                   return (
                     <View key={i} style={[s.tableRow, hasErr && s.tableRowErr]}>
-                      <Text style={[s.td, { width: 50, color: SAC.dim }]}>{p.row}</Text>
+                      <Text style={[s.td, { width: 50, color: T.dim }]}>{p.row}</Text>
                       <View style={{ width: 100 }}>{p.category && <CategoryBadge cat={p.category} small />}</View>
                       <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 200 }]}>{p.full_name || '—'}</Text>
-                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 240, color: SAC.muted }]}>{p.email || '—'}</Text>
-                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 200, color: SAC.muted }]}>{p.college || '—'}</Text>
-                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 160, color: SAC.muted }]}>{p.degree || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 240, color: T.muted }]}>{p.email || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 200, color: T.muted }]}>{p.college || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 160, color: T.muted }]}>{p.degree || '—'}</Text>
                       <Text style={[s.td, { width: 80 }]}>{(p.experience_years ?? 0).toString()}</Text>
-                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 240, color: SAC.muted }]}>{p.category_rule || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 240, color: T.muted }]}>{p.category_rule || '—'}</Text>
                       <View style={{ flex: 1, minWidth: 180 }}>
                         {hasErr ? (
                           <StatusPill kind="danger" label={(p.errors || []).join(', ')} />
@@ -571,14 +571,14 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
         <View style={s.modalBg}>
           <Animated.View entering={FadeInDown.duration(220)} style={s.modalCard}>
             <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
-              <IconBox size={40}><CheckCircle2 size={20} color={SAC.green} /></IconBox>
+              <IconBox size={40}><CheckCircle2 size={20} color={T.green} /></IconBox>
               <View style={{ flex: 1 }}>
                 <Text style={s.modalTitle}>Import complete</Text>
                 <Text style={s.muted}>
                   {result?.added} added · {result?.updated} updated · {result?.skipped} skipped
                 </Text>
               </View>
-              <Pressable onPress={() => setResult(null)}><X size={16} color={SAC.muted} /></Pressable>
+              <Pressable onPress={() => setResult(null)}><X size={16} color={T.muted} /></Pressable>
             </LinearGradient>
 
             <View style={{ padding: 18, gap: 14 }}>
@@ -751,7 +751,7 @@ function ManualTab({ onSaved }: { onSaved: (s?: string) => void }) {
             </Animated.View>
           ) : (
             <View style={{ marginTop: 14, gap: 6, alignItems: 'center', paddingVertical: 20 }}>
-              <Sparkles size={20} color={SAC.dim} />
+              <Sparkles size={20} color={T.dim} />
               <Text style={[s.muted, { textAlign: 'center' }]}>
                 Start typing email + degree + experience{'\n'}to see the live category prediction.
               </Text>
@@ -769,7 +769,7 @@ function FormField({ label, value, onChange, placeholder, full, keyboardType }: 
       <Text style={s.formLabel}>{label}</Text>
       <TextInput
         value={value} onChangeText={onChange}
-        placeholder={placeholder} placeholderTextColor={SAC.dim}
+        placeholder={placeholder} placeholderTextColor={T.dim}
         keyboardType={keyboardType}
         autoCapitalize="none" autoCorrect={false}
         style={s.formInput}
@@ -1035,7 +1035,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
       {/* Metric Summary KPI Tiles */}
       <View style={s.summaryStats}>
         <View style={s.sumStat}>
-          <Text style={[s.sumVal, { color: SAC.text }]}>{totalDisplay.toLocaleString()}</Text>
+          <Text style={[s.sumVal, { color: T.text }]}>{totalDisplay.toLocaleString()}</Text>
           <Text style={s.sumLabel}>TOTAL CONTACTS</Text>
         </View>
         <View style={s.sumStat}>
@@ -1068,20 +1068,20 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
             <SearchField value={q} onChange={setQ} placeholder="Search name, email, college, SA-ID…" width={240} />
             
             {/* View Mode Toggle: Spreadsheet vs Grid */}
-            <View style={{ flexDirection: 'row', backgroundColor: SAC.cardSolid, borderRadius: 8, padding: 3, borderWidth: 1, borderColor: SAC.border }}>
+            <View style={{ flexDirection: 'row', backgroundColor: T.cardSolid, borderRadius: 8, padding: 3, borderWidth: 1, borderColor: T.border }}>
               <Pressable
                 onPress={() => setViewMode('spreadsheet')}
                 style={[s.viewModeBtn, viewMode === 'spreadsheet' && { backgroundColor: GRAD.to }]}
               >
-                <FileSpreadsheet size={13} color={viewMode === 'spreadsheet' ? '#fff' : SAC.muted} />
-                <Text style={[s.viewModeBtnText, viewMode === 'spreadsheet' && { color: SAC.text }]}>Grid</Text>
+                <FileSpreadsheet size={13} color={viewMode === 'spreadsheet' ? '#fff' : T.muted} />
+                <Text style={[s.viewModeBtnText, viewMode === 'spreadsheet' && { color: T.text }]}>Grid</Text>
               </Pressable>
               <Pressable
                 onPress={() => setViewMode('grid')}
                 style={[s.viewModeBtn, viewMode === 'grid' && { backgroundColor: GRAD.to }]}
               >
-                <LayoutGrid size={13} color={viewMode === 'grid' ? '#fff' : SAC.muted} />
-                <Text style={[s.viewModeBtnText, viewMode === 'grid' && { color: SAC.text }]}>Cards</Text>
+                <LayoutGrid size={13} color={viewMode === 'grid' ? '#fff' : T.muted} />
+                <Text style={[s.viewModeBtnText, viewMode === 'grid' && { color: T.text }]}>Cards</Text>
               </Pressable>
             </View>
 
@@ -1091,14 +1091,14 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
               style={[s.toggleBtn, { backgroundColor: 'rgba(255,255,255,0.06)' }]}
             >
               <FileDown size={12} color="#fff" />
-              <Text style={[s.toggleBtnText, { color: SAC.text }]}>Export</Text>
+              <Text style={[s.toggleBtnText, { color: T.text }]}>Export</Text>
             </Pressable>
 
             <Pressable
               onPress={() => { setSelectMode(!selectMode); if (selectMode) clearSelection(); }}
               style={[s.toggleBtn, selectMode && { borderColor: GRAD.to, backgroundColor: 'rgba(245,158,11,0.10)' }]}
             >
-              <CheckSquare size={11} color={selectMode ? GRAD.to : SAC.muted} />
+              <CheckSquare size={11} color={selectMode ? GRAD.to : T.muted} />
               <Text style={[s.toggleBtnText, selectMode && { color: GRAD.to }]}>
                 {selectMode ? 'Cancel' : 'Select'}
               </Text>
@@ -1114,7 +1114,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
             onPress={() => setAccountFilter('all')}
             style={[s.toggleBtn, accountFilter === 'all' && { borderColor: '#fff', backgroundColor: 'rgba(255,255,255,0.12)' }]}
           >
-            <Text style={[s.toggleBtnText, accountFilter === 'all' && { color: SAC.text, fontFamily: FONTS.bold }]}>
+            <Text style={[s.toggleBtnText, accountFilter === 'all' && { color: T.text, fontFamily: FONTS.bold }]}>
               All Contacts ({totalDisplay})
             </Text>
           </Pressable>
@@ -1257,7 +1257,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                           <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold, fontSize: 9 }}>{t}</Text>
                         </View>
                       ))}
-                      {(!u.tags || u.tags.length === 0) && <Text style={{ color: SAC.dim, fontSize: 10 }}>—</Text>}
+                      {(!u.tags || u.tags.length === 0) && <Text style={{ color: T.dim, fontSize: 10 }}>—</Text>}
                     </View>
 
                     {/* Completeness Score */}
@@ -1278,15 +1278,15 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                         colors={[GRAD.from, GRAD.to]}
                         style={{ width: 26, height: 26, borderRadius: 6, alignItems: 'center', justifyContent: 'center' }}
                       >
-                        <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 10 }}>
+                        <Text style={{ color: T.text, fontFamily: FONTS.xbold, fontSize: 10 }}>
                           {(u.first_name?.[0] || u.name?.[0] || 'U').toUpperCase()}
                         </Text>
                       </LinearGradient>
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text numberOfLines={1} style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 11.5 }}>
+                        <Text numberOfLines={1} style={{ color: T.text, fontFamily: FONTS.xbold, fontSize: 11.5 }}>
                           {u.name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || '—'}
                         </Text>
-                        <Text numberOfLines={1} style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 10 }}>
+                        <Text numberOfLines={1} style={{ color: T.dim, fontFamily: FONTS.med, fontSize: 10 }}>
                           {u.email || u.id.slice(-6)}
                         </Text>
                       </View>
@@ -1336,7 +1336,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                           onPress={(e) => { e.stopPropagation(); startInlineEdit(u.id, 'company', u.company); }}
                           style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
                         >
-                          <Text numberOfLines={1} style={[s.td, { width: 135, color: SAC.muted }]}>
+                          <Text numberOfLines={1} style={[s.td, { width: 135, color: T.muted }]}>
                             {u.company || '—'}
                           </Text>
                         </Pressable>
@@ -1359,7 +1359,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                           onPress={(e) => { e.stopPropagation(); startInlineEdit(u.id, 'location', u.location); }}
                           style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
                         >
-                          <Text numberOfLines={1} style={[s.td, { width: 110, color: SAC.muted }]}>
+                          <Text numberOfLines={1} style={[s.td, { width: 110, color: T.muted }]}>
                             {u.location || '—'}
                           </Text>
                         </Pressable>
@@ -1382,7 +1382,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                           onPress={(e) => { e.stopPropagation(); startInlineEdit(u.id, 'phone', u.phone); }}
                           style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
                         >
-                          <Text numberOfLines={1} style={[s.td, { width: 120, color: SAC.muted }]}>
+                          <Text numberOfLines={1} style={[s.td, { width: 120, color: T.muted }]}>
                             {u.phone || '—'}
                           </Text>
                         </Pressable>
@@ -1400,24 +1400,24 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                           <Text style={{ color: '#60A5FA', fontFamily: FONTS.med, fontSize: 10.5 }}>Profile</Text>
                         </Pressable>
                       ) : (
-                        <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 }}>—</Text>
+                        <Text style={{ color: T.dim, fontFamily: FONTS.med, fontSize: 10.5 }}>—</Text>
                       )}
                     </View>
 
                     {/* College & Degree */}
                     <View style={{ width: 170 }}>
-                      <Text numberOfLines={1} style={[s.td, { width: 170, color: SAC.text, fontSize: 10.5 }]}>
+                      <Text numberOfLines={1} style={[s.td, { width: 170, color: T.text, fontSize: 10.5 }]}>
                         {u.college || '—'}
                       </Text>
                       {u.degree && (
-                        <Text numberOfLines={1} style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 9.5 }}>
+                        <Text numberOfLines={1} style={{ color: T.dim, fontFamily: FONTS.med, fontSize: 9.5 }}>
                           {u.degree}{u.graduation_year ? ` · ${u.graduation_year}` : ''}
                         </Text>
                       )}
                     </View>
 
                     {/* Experience */}
-                    <Text style={[s.td, { width: 70, color: SAC.muted }]}>
+                    <Text style={[s.td, { width: 70, color: T.muted }]}>
                       {u.experience_years != null ? `${u.experience_years}y` : '—'}
                     </Text>
 
@@ -1432,7 +1432,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                         onPress={(e) => { e.stopPropagation(); onOpen(u.id); }}
                         style={{ paddingHorizontal: 5, paddingVertical: 2.5, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.06)' }}
                       >
-                        <Text style={{ color: SAC.text, fontSize: 10, fontFamily: FONTS.bold }}>View</Text>
+                        <Text style={{ color: T.text, fontSize: 10, fontFamily: FONTS.bold }}>View</Text>
                       </Pressable>
                       {!u.approved ? (
                         <Pressable
@@ -1564,10 +1564,10 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
           </Pressable>
           <View style={{ flex: 1 }} />
           <SecondaryButton onPress={bulkApprove} disabled={bulkBusy}>
-            <ShieldCheck size={12} color={SAC.muted} /><Text style={s.secText}>{bulkBusy ? '…' : 'Approve'}</Text>
+            <ShieldCheck size={12} color={T.muted} /><Text style={s.secText}>{bulkBusy ? '…' : 'Approve'}</Text>
           </SecondaryButton>
           <SecondaryButton onPress={() => setTagModalOpen(true)} disabled={bulkBusy}>
-            <Tag size={12} color={SAC.muted} /><Text style={s.secText}>Add Tag</Text>
+            <Tag size={12} color={T.muted} /><Text style={s.secText}>Add Tag</Text>
           </SecondaryButton>
           <SecondaryButton onPress={bulkInvite} disabled={bulkBusy}>
             <Send size={12} color="#93C5FD" /><Text style={[s.secText, { color: '#93C5FD' }]}>Send Invites</Text>
@@ -1594,7 +1594,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                 <Text style={s.modalTitle}>Tag Selected Profiles</Text>
                 <Text style={s.muted}>Applying tag to {selectedIds.length} candidate record(s)</Text>
               </View>
-              <Pressable onPress={() => setTagModalOpen(false)}><X size={16} color={SAC.muted} /></Pressable>
+              <Pressable onPress={() => setTagModalOpen(false)}><X size={16} color={T.muted} /></Pressable>
             </View>
             <View style={{ padding: 18, gap: 14 }}>
               <View>
@@ -1603,7 +1603,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                   value={tagInput}
                   onChangeText={setTagInput}
                   placeholder="Enter tag name…"
-                  placeholderTextColor={SAC.dim}
+                  placeholderTextColor={T.dim}
                   style={s.textInput}
                 />
               </View>
@@ -1665,7 +1665,7 @@ function HistoryTab() {
               ) : null)}
             </View>
           </View>
-          <ChevronRight size={14} color={SAC.dim} />
+          <ChevronRight size={14} color={T.dim} />
         </Pressable>
       ))}
 
@@ -1679,11 +1679,11 @@ function HistoryTab() {
                 <Text style={s.modalTitle}>{detail?.filename}</Text>
                 <Text style={s.muted}>{detail && new Date(detail.at).toLocaleString()}</Text>
               </View>
-              <Pressable onPress={() => setDetail(null)}><X size={16} color={SAC.muted} /></Pressable>
+              <Pressable onPress={() => setDetail(null)}><X size={16} color={T.muted} /></Pressable>
             </View>
             <View style={{ padding: 18, gap: 10 }}>
               <View style={s.resultGrid}>
-                <View style={s.resultTile}><Text style={s.miniLabel}>ADDED</Text><Text style={[s.kpiVal, { color: SAC.green }]}>{detail?.added}</Text></View>
+                <View style={s.resultTile}><Text style={s.miniLabel}>ADDED</Text><Text style={[s.kpiVal, { color: T.green }]}>{detail?.added}</Text></View>
                 <View style={s.resultTile}><Text style={s.miniLabel}>UPDATED</Text><Text style={[s.kpiVal, { color: '#93C5FD' }]}>{detail?.updated}</Text></View>
                 <View style={s.resultTile}><Text style={s.miniLabel}>SKIPPED</Text><Text style={[s.kpiVal, { color: '#FBBF24' }]}>{detail?.skipped}</Text></View>
                 <View style={s.resultTile}><Text style={s.miniLabel}>TOTAL</Text><Text style={[s.kpiVal, { color: '#F4F4FA' }]}>{detail?.total}</Text></View>
@@ -1764,7 +1764,7 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
                   </View>
                   {!!data.designation && <Text style={[s.muted, { marginTop: 4 }]}>{data.designation}{data.company ? ` @ ${data.company}` : ''}</Text>}
                 </View>
-                <Pressable onPress={onClose}><X size={16} color={SAC.muted} /></Pressable>
+                <Pressable onPress={onClose}><X size={16} color={T.muted} /></Pressable>
               </LinearGradient>
 
               <ScrollView style={{ maxHeight: 520 }} contentContainerStyle={{ padding: 20, gap: 16 }}>
@@ -1862,7 +1862,7 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
                         <Text style={[s.secText, { color: '#FBBF24' }]}>To Talent Pool</Text>
                       </SecondaryButton>
                       <SecondaryButton onPress={() => setEdit(true)}>
-                        <Pencil size={12} color={SAC.muted} />
+                        <Pencil size={12} color={T.muted} />
                         <Text style={s.secText}>Edit</Text>
                       </SecondaryButton>
                       <SecondaryButton danger onPress={() => setConfirmDel(true)}>
@@ -1884,7 +1884,7 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
                 </View>
 
                 {confirmDel && (
-                  <View style={[s.warnBox, { borderColor: SAC.red, backgroundColor: 'rgba(239,68,68,0.08)' }]}>
+                  <View style={[s.warnBox, { borderColor: T.red, backgroundColor: 'rgba(239,68,68,0.08)' }]}>
                     <AlertTriangle size={13} color={'#FCA5A5'} />
                     <Text style={[s.muted, { color: '#FCA5A5', flex: 1 }]}>
                       Permanently delete this profile?
@@ -1909,7 +1909,7 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
 function DetailRow({ Icon, label, value }: { Icon: any; label: string; value: string }) {
   return (
     <View style={s.detailRow}>
-      <Icon size={13} color={SAC.muted} />
+      <Icon size={13} color={T.muted} />
       <Text style={s.detailLabel}>{label}</Text>
       <Text style={s.detailValue} numberOfLines={2}>{value}</Text>
     </View>
@@ -1920,7 +1920,7 @@ function LinkRow({ Icon, label, value, href }: { Icon: any; label: string; value
   const open = () => { if (href) Linking.openURL(href).catch(() => {}); };
   return (
     <Pressable onPress={href ? open : undefined} style={s.detailRow}>
-      <Icon size={13} color={SAC.muted} />
+      <Icon size={13} color={T.muted} />
       <Text style={s.detailLabel}>{label}</Text>
       <Text style={[s.detailValue, href && { color: GRAD.to, textDecorationLine: 'underline' }]} numberOfLines={1}>{value}</Text>
       {href && <ExternalLink size={11} color={GRAD.to} />}
@@ -1934,7 +1934,7 @@ function EditRow({ label, value, onChange }: { label: string; value: string; onC
       <Text style={[s.detailLabel, { width: 120 }]}>{label}</Text>
       <TextInput
         value={value || ''} onChangeText={onChange}
-        placeholderTextColor={SAC.dim}
+        placeholderTextColor={T.dim}
         style={s.formInput}
       />
     </View>
@@ -1947,8 +1947,8 @@ function EditRow({ label, value, onChange }: { label: string; value: string; onC
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
-  sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
-  muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
+  sub:   { color: T.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
+  muted: { color: T.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   err: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 },
   
   // Stats row
@@ -1957,14 +1957,14 @@ const s = StyleSheet.create({
   },
   statCard: {
     flex: 1, minWidth: 120, flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: SAC.cardSolid, borderRadius: 12, borderWidth: 1, borderColor: SAC.border,
+    backgroundColor: T.cardSolid, borderRadius: 12, borderWidth: 1, borderColor: T.border,
     padding: 12,
   },
   statIcon: {
     width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
   },
-  statValue: { fontFamily: FONTS.xbold, fontSize: 18, color: SAC.text },
-  statLabel: { fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginTop: 2 },
+  statValue: { fontFamily: FONTS.xbold, fontSize: 18, color: T.text },
+  statLabel: { fontFamily: FONTS.med, fontSize: 11, color: T.muted, marginTop: 2 },
 
   catBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -1974,13 +1974,13 @@ const s = StyleSheet.create({
 
   // Upload
   dropZone: {
-    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14,
+    backgroundColor: T.card, borderColor: T.border, borderWidth: 1, borderRadius: 14,
     borderStyle: 'dashed', padding: 40, alignItems: 'center', gap: 10,
     ...(Platform.OS === 'web' ? ({ transitionDuration: '150ms' } as any) : {}),
   },
   dropIcon: { width: 56, height: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   dropTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15, marginTop: 6 },
-  dropSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
+  dropSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 12 },
 
   summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   fileName: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 14 },
@@ -1989,26 +1989,26 @@ const s = StyleSheet.create({
   },
   sumStat: {
     flex: 1, minWidth: 80, paddingVertical: 10, paddingHorizontal: 12,
-    backgroundColor: SAC.cardSolid, borderRadius: 10, borderColor: SAC.border, borderWidth: 1,
+    backgroundColor: T.cardSolid, borderRadius: 10, borderColor: T.border, borderWidth: 1,
     alignItems: 'center', gap: 2,
   },
   sumVal: { fontFamily: FONTS.xbold, fontSize: 18 },
-  sumLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.4 },
+  sumLabel: { color: T.muted, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.4 },
 
   mapRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
-  mapSrc: { color: SAC.text, fontFamily: FONTS.med, fontSize: 12, width: 220,
+  mapSrc: { color: T.text, fontFamily: FONTS.med, fontSize: 12, width: 220,
     ...(Platform.OS === 'web' ? ({ fontFamily: 'SpaceMono, "SF Mono", monospace' } as any) : {}) },
-  mapUnused: { backgroundColor: 'rgba(255,255,255,0.04)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, borderWidth: 1, borderColor: SAC.border },
-  mapUnusedText: { color: SAC.dim, fontFamily: FONTS.bold, fontSize: 10.5 },
+  mapUnused: { backgroundColor: 'rgba(255,255,255,0.04)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, borderWidth: 1, borderColor: T.border },
+  mapUnusedText: { color: T.dim, fontFamily: FONTS.bold, fontSize: 10.5 },
 
   tableHead: {
     flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 10,
-    backgroundColor: 'rgba(255,255,255,0.03)', borderBottomWidth: 1, borderBottomColor: SAC.border,
+    backgroundColor: 'rgba(255,255,255,0.03)', borderBottomWidth: 1, borderBottomColor: T.border,
   },
-  th: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.2, paddingRight: 10 },
+  th: { color: T.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.2, paddingRight: 10 },
   tableRow: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: SAC.border,
+    borderBottomWidth: 1, borderBottomColor: T.border,
   },
   tableRowErr: { backgroundColor: 'rgba(239,68,68,0.04)' },
   td: { color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 11.5, paddingRight: 10 },
@@ -2016,24 +2016,24 @@ const s = StyleSheet.create({
   commitRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
   commitTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13 },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  checkBox: { width: 16, height: 16, borderRadius: 5, borderWidth: 1.4, borderColor: SAC.border2, alignItems: 'center', justifyContent: 'center' },
-  checkLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5 },
+  checkBox: { width: 16, height: 16, borderRadius: 5, borderWidth: 1.4, borderColor: T.border2, alignItems: 'center', justifyContent: 'center' },
+  checkLabel: { color: T.text, fontFamily: FONTS.bold, fontSize: 11.5 },
 
   // Manual
   manualGrid: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' as any },
   formGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 },
   formField: { flex: 1, minWidth: 180, gap: 6 },
-  formLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+  formLabel: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
   formInput: {
     color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
-    backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
+    backgroundColor: T.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: T.border,
     paddingHorizontal: 12, paddingVertical: 10,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   previewBigVal: { fontFamily: FONTS.xbold, fontSize: 18 },
   previewRule: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, borderRadius: 9, backgroundColor: 'rgba(245,158,11,0.08)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)' },
   previewRuleText: { color: GRAD.to, fontFamily: FONTS.xbold, fontSize: 11.5, flex: 1 },
-  previewLbl: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+  previewLbl: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
   previewVal: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
   warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(251,191,36,0.08)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.30)' },
 
@@ -2049,19 +2049,19 @@ const s = StyleSheet.create({
     paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
-  viewModeBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  viewModeBtnText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11 },
   toggleBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 9, paddingVertical: 4, borderRadius: 7,
-    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
+    borderWidth: 1, borderColor: T.border, backgroundColor: T.cardSolid,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  toggleBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  toggleBtnText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11 },
   
   // File list
   fileRow: {
     flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8,
-    backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border,
+    backgroundColor: T.cardSolid, borderWidth: 1, borderColor: T.border,
   },
   clearBtn: {
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6,
@@ -2076,32 +2076,32 @@ const s = StyleSheet.create({
   // Pagination
   paginationRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 12, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: SAC.border,
+    paddingVertical: 12, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: T.border,
     flexWrap: 'wrap', gap: 10,
   },
   perPageBtn: {
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6,
-    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
+    borderWidth: 1, borderColor: T.border, backgroundColor: T.cardSolid,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   perPageBtnActive: {
     borderColor: GRAD.from, backgroundColor: 'rgba(124,58,237,0.15)',
   },
-  perPageText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  perPageText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11 },
   perPageTextActive: { color: '#C4B5FD' },
   pageBtn: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
-    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
+    borderWidth: 1, borderColor: T.border, backgroundColor: T.cardSolid,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   pageBtnDisabled: { opacity: 0.4 },
-  pageBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
+  pageBtnText: { color: T.text, fontFamily: FONTS.bold, fontSize: 12 },
 
   /* selection mode */
   selectBox: {
     position: 'absolute', top: 14, left: 14, width: 28, height: 28, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center', zIndex: 12,
-    backgroundColor: SAC.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
+    backgroundColor: T.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   selectedHalo: {
@@ -2129,11 +2129,11 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  secText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 12 },
   userRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 11, paddingHorizontal: 14,
-    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12,
+    backgroundColor: T.card, borderColor: T.border, borderWidth: 1, borderRadius: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
   avatar: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
@@ -2144,70 +2144,70 @@ const s = StyleSheet.create({
   runCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 12, paddingHorizontal: 14,
-    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12,
+    backgroundColor: T.card, borderColor: T.border, borderWidth: 1, borderRadius: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
   miniPill: { paddingHorizontal: 7, paddingVertical: 2.5, borderRadius: 999, borderWidth: 1 },
   miniPillText: { fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 0.3 },
-  miniLabel: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.4 },
+  miniLabel: { color: T.muted, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.4 },
   kpiVal: { fontFamily: FONTS.xbold, fontSize: 22, marginTop: 4 },
 
   // Modal
   modalBg: {
-    flex: 1, backgroundColor: SAC.panel2,
+    flex: 1, backgroundColor: T.panel2,
     alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
   modalCard: {
     width: '100%', maxWidth: 720, maxHeight: '92%',
-    backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2,
+    backgroundColor: T.bg2, borderRadius: 16, borderWidth: 1, borderColor: T.border2,
     overflow: 'hidden',
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
   },
   modalHero: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border,
+    padding: 18, borderBottomWidth: 1, borderBottomColor: T.border,
   },
   modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
-  modalLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
+  modalLabel: { color: T.text, fontFamily: FONTS.bold, fontSize: 12 },
 
   resultGrid: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  resultTile: { flex: 1, minWidth: 100, padding: 12, borderRadius: 10, backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', gap: 2 },
-  skipRow: { flexDirection: 'row', gap: 10, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: SAC.border },
+  resultTile: { flex: 1, minWidth: 100, padding: 12, borderRadius: 10, backgroundColor: T.cardSolid, borderWidth: 1, borderColor: T.border, alignItems: 'center', gap: 2 },
+  skipRow: { flexDirection: 'row', gap: 10, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: T.border },
 
   // Profile panel
-  avatarLg: { width: 56, height: 56, borderRadius: 14, borderWidth: 1.5, backgroundColor: SAC.panel2, alignItems: 'center', justifyContent: 'center' },
+  avatarLg: { width: 56, height: 56, borderRadius: 14, borderWidth: 1.5, backgroundColor: T.panel2, alignItems: 'center', justifyContent: 'center' },
   avatarLgText: { fontFamily: FONTS.xbold, fontSize: 18 },
 
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 130 },
+  detailLabel: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 130 },
   detailValue: { color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
-  catPick: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, marginRight: 6, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  catPick: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: T.border, marginRight: 6, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
   actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
-  destructiveBtn: { backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  destructiveBtn: { backgroundColor: T.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
   btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
-  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  secText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 12 },
   inlineInput: {
-    backgroundColor: SAC.panel2,
+    backgroundColor: T.panel2,
     borderColor: GRAD.to,
     borderWidth: 1,
     borderRadius: 5,
     paddingHorizontal: 6,
     paddingVertical: 3,
-    color: SAC.text,
+    color: T.text,
     fontSize: 11,
     fontFamily: FONTS.med,
   },
   textInput: {
     backgroundColor: 'rgba(255,255,255,0.06)',
-    borderColor: SAC.border,
+    borderColor: T.border,
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    color: SAC.text,
+    color: T.text,
     fontSize: 13,
     fontFamily: FONTS.med,
     marginTop: 6,

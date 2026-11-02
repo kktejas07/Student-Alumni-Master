@@ -471,7 +471,7 @@ export function VisitorIntelligenceView() {
             onPress={() => setAutoRefresh(!autoRefresh)}
             style={[s.toggleBtn, autoRefresh && s.toggleBtnActive]}
           >
-            <Activity size={14} color={autoRefresh ? '#10B981' : SAC.muted} />
+            <Activity size={14} color={autoRefresh ? '#10B981' : T.muted} />
             <Text style={[s.toggleBtnText, autoRefresh && { color: '#10B981' }]}>
               {autoRefresh ? 'Live Pulse (10s)' : 'Pulse Paused'}
             </Text>
@@ -495,14 +495,14 @@ export function VisitorIntelligenceView() {
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <RefreshCw size={13} color="#C4B5FD" />
-              <Text style={{ color: SAC.text, fontSize: 13, fontFamily: FONTS.med }}>Refresh</Text>
+              <Text style={{ color: T.text, fontSize: 13, fontFamily: FONTS.med }}>Refresh</Text>
             </View>
           </SecondaryButton>
 
           <GradientButton size="sm" onPress={handleExportCSV} loading={exporting}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Download size={14} color="#fff" />
-              <Text style={{ color: SAC.text, fontSize: 13, fontFamily: FONTS.bold }}>Export CSV</Text>
+              <Text style={{ color: T.text, fontSize: 13, fontFamily: FONTS.bold }}>Export CSV</Text>
             </View>
           </GradientButton>
         </View>
@@ -531,7 +531,7 @@ export function VisitorIntelligenceView() {
                 </View>
                 <Pressable onPress={() => dismissAlert(al.id)} style={s.alertBannerDismiss}>
                   <Text style={s.alertBannerDismissText}>Dismiss</Text>
-                  <X size={12} color={SAC.muted} />
+                  <X size={12} color={T.muted} />
                 </Pressable>
               </View>
             );
@@ -636,11 +636,11 @@ export function VisitorIntelligenceView() {
           {/* Filters & Search Toolbar */}
           <Card style={s.filterBar}>
             <View style={s.searchWrap}>
-              <Search size={15} color={SAC.muted} />
+              <Search size={15} color={T.muted} />
               <TextInput
                 style={s.searchInput}
                 placeholder="Search by IP, City, Inferred Name, Email, or Hardware Fingerprint..."
-                placeholderTextColor={SAC.dim}
+                placeholderTextColor={T.dim}
                 value={searchQuery}
                 onChangeText={(val) => {
                   setSearchQuery(val);
@@ -649,7 +649,7 @@ export function VisitorIntelligenceView() {
               />
               {searchQuery ? (
                 <Pressable onPress={() => { setSearchQuery(''); fetchVisitorsList(1); }}>
-                  <X size={15} color={SAC.muted} />
+                  <X size={15} color={T.muted} />
                 </Pressable>
               ) : null}
             </View>
@@ -720,13 +720,13 @@ export function VisitorIntelligenceView() {
           {loading ? (
             <Card style={{ padding: 40, alignItems: 'center', gap: 12 }}>
               <ActivityIndicator size="large" color="#A78BFA" />
-              <Text style={{ color: SAC.muted, fontSize: 14 }}>Scanning live visitor telemetry & network traces...</Text>
+              <Text style={{ color: T.muted, fontSize: 14 }}>Scanning live visitor telemetry & network traces...</Text>
             </Card>
           ) : visitorsList.length === 0 ? (
             <Card style={{ padding: 40, alignItems: 'center', gap: 10 }}>
-              <Radar size={36} color={SAC.dim} />
-              <Text style={{ color: SAC.text, fontSize: 16, fontFamily: FONTS.bold }}>No Visitors Matching Filter</Text>
-              <Text style={{ color: SAC.muted, fontSize: 13, textAlign: 'center', maxWidth: 400 }}>
+              <Radar size={36} color={T.dim} />
+              <Text style={{ color: T.text, fontSize: 16, fontFamily: FONTS.bold }}>No Visitors Matching Filter</Text>
+              <Text style={{ color: T.muted, fontSize: 13, textAlign: 'center', maxWidth: 400 }}>
                 Try adjusting your search query, status, or module filters to view matching visitor sessions.
               </Text>
             </Card>
@@ -769,10 +769,10 @@ export function VisitorIntelligenceView() {
 
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
                             <Text style={s.visitorSubMeta}>
-                              <MapPin size={11} color={SAC.muted} /> {geo.city || 'Unknown'}, {geo.country || 'Global'}
+                              <MapPin size={11} color={T.muted} /> {geo.city || 'Unknown'}, {geo.country || 'Global'}
                             </Text>
                             <Text style={s.visitorSubMeta}>
-                              <Server size={11} color={SAC.muted} /> {v.ip || '127.0.0.1'} {geo.isp ? `(${geo.isp})` : ''}
+                              <Server size={11} color={T.muted} /> {v.ip || '127.0.0.1'} {geo.isp ? `(${geo.isp})` : ''}
                             </Text>
                             {v.inferred_email && (
                               <Text style={[s.visitorSubMeta, { color: '#93C5FD' }]}>
@@ -792,7 +792,7 @@ export function VisitorIntelligenceView() {
                           </Text>
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                          <Cpu size={12} color={SAC.dim} />
+                          <Cpu size={12} color={T.dim} />
                           <Text style={s.fpText}>
                             FP: <Text style={{ fontFamily: 'monospace' }}>{v.device_fingerprint?.slice(0, 14)}...</Text>
                             {dev.cpu_cores ? ` • ${dev.cpu_cores} Cores` : ''}
@@ -816,8 +816,8 @@ export function VisitorIntelligenceView() {
                         <SecondaryButton size="sm" onPress={() => openDossier(v.session_id)}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                             <Eye size={13} color={T.text} />
-                            <Text style={{ color: SAC.text, fontSize: 12.5, fontFamily: FONTS.semi }}>Dossier</Text>
-                            <ChevronRight size={13} color={SAC.muted} />
+                            <Text style={{ color: T.text, fontSize: 12.5, fontFamily: FONTS.semi }}>Dossier</Text>
+                            <ChevronRight size={13} color={T.muted} />
                           </View>
                         </SecondaryButton>
                       </View>
@@ -838,14 +838,14 @@ export function VisitorIntelligenceView() {
                       disabled={pagination.page <= 1}
                       onPress={() => fetchVisitorsList(pagination.page - 1)}
                     >
-                      <Text style={{ color: SAC.text, fontSize: 12 }}>← Previous</Text>
+                      <Text style={{ color: T.text, fontSize: 12 }}>← Previous</Text>
                     </SecondaryButton>
                     <SecondaryButton
                       size="sm"
                       disabled={pagination.page >= pagination.total_pages}
                       onPress={() => fetchVisitorsList(pagination.page + 1)}
                     >
-                      <Text style={{ color: SAC.text, fontSize: 12 }}>Next →</Text>
+                      <Text style={{ color: T.text, fontSize: 12 }}>Next →</Text>
                     </SecondaryButton>
                   </View>
                 </View>
@@ -865,9 +865,9 @@ export function VisitorIntelligenceView() {
               <View style={{ gap: 4 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <MousePointer size={18} color="#F59E0B" />
-                  <Text style={{ color: SAC.text, fontSize: 18, fontFamily: FONTS.bold }}>Visual Click Heatmap & Element Density</Text>
+                  <Text style={{ color: T.text, fontSize: 18, fontFamily: FONTS.bold }}>Visual Click Heatmap & Element Density</Text>
                 </View>
-                <Text style={{ color: SAC.muted, fontSize: 13 }}>
+                <Text style={{ color: T.muted, fontSize: 13 }}>
                   Real-time click volume, heat intensity rankings, and interaction share across cards, posters, and registration buttons.
                 </Text>
               </View>
@@ -935,7 +935,7 @@ export function VisitorIntelligenceView() {
           {heatmapLoading ? (
             <Card style={{ padding: 36, alignItems: 'center', gap: 12 }}>
               <ActivityIndicator size="large" color="#F59E0B" />
-              <Text style={{ color: SAC.muted, fontSize: 13 }}>Calculating visual click heat map & interaction share...</Text>
+              <Text style={{ color: T.muted, fontSize: 13 }}>Calculating visual click heat map & interaction share...</Text>
             </Card>
           ) : (
             <View style={{ gap: 10 }}>
@@ -956,12 +956,12 @@ export function VisitorIntelligenceView() {
 
                         <View style={{ flex: 1 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            <Text style={{ fontSize: 15, fontFamily: FONTS.bold, color: SAC.text }}>{spot.element_text}</Text>
+                            <Text style={{ fontSize: 15, fontFamily: FONTS.bold, color: T.text }}>{spot.element_text}</Text>
                             <span style={{ fontSize: '11px', fontWeight: 800, padding: '2px 8px', borderRadius: '100px', background: bg, color, border: `1px solid ${border}` }}>
                               {isHot ? '🔥 HOT' : (isWarm ? '⚡ WARM' : '❄️ COOL')}
                             </span>
                           </View>
-                          <Text style={{ fontSize: 12, color: SAC.muted, marginTop: 2 }}>
+                          <Text style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
                             Target ID: <Text style={{ fontFamily: 'monospace', color: '#C4B5FD' }}>{spot.element_id}</Text> · Route: <Text style={{ color: '#38BDF8' }}>{spot.path}</Text>
                           </Text>
                         </View>
@@ -970,13 +970,13 @@ export function VisitorIntelligenceView() {
                       {/* Click Count & Progress Bar */}
                       <View style={{ alignItems: 'flex-end', minWidth: 160 }}>
                         <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: T.text }}>
-                          {spot.click_count} <Text style={{ fontSize: 12, color: SAC.muted, fontWeight: 'normal' }}>clicks</Text>
+                          {spot.click_count} <Text style={{ fontSize: 12, color: T.muted, fontWeight: 'normal' }}>clicks</Text>
                         </Text>
 
                         <View style={{ width: 140, height: 6, borderRadius: 3, backgroundColor: T.panel2, marginTop: 6, overflow: 'hidden' }}>
                           <View style={{ width: `${Math.min(spot.click_share_pct * 2.5, 100)}%`, height: '100%', backgroundColor: color, borderRadius: 3 }} />
                         </View>
-                        <Text style={{ fontSize: 11, color: SAC.muted, marginTop: 2 }}>
+                        <Text style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
                           {spot.click_share_pct}% total interaction share
                         </Text>
                       </View>
@@ -993,9 +993,9 @@ export function VisitorIntelligenceView() {
               <View style={{ gap: 4 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Clock size={18} color={T.purple} />
-                  <Text style={{ color: SAC.text, fontSize: 18, fontFamily: FONTS.bold }}>Day x Hour Traffic Heatmap</Text>
+                  <Text style={{ color: T.text, fontSize: 18, fontFamily: FONTS.bold }}>Day x Hour Traffic Heatmap</Text>
                 </View>
-                <Text style={{ color: SAC.muted, fontSize: 13 }}>
+                <Text style={{ color: T.muted, fontSize: 13 }}>
                   30-day session volume by weekday and hour. Cell darkness = session count.
                 </Text>
               </View>
@@ -1003,14 +1003,14 @@ export function VisitorIntelligenceView() {
                 <View style={{ flexDirection: 'row', gap: 18 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <CircleDot size={13} color={T.ok} />
-                    <Text style={{ fontSize: 12, color: SAC.muted }}>
+                    <Text style={{ fontSize: 12, color: T.muted }}>
                       Peak: <Text style={{ fontFamily: FONTS.bold, color: T.text }}>{trafficHeat.peak ? `${trafficHeat.peak.day} ${String(trafficHeat.peak.hour).padStart(2, '0')}:00` : '—'}</Text>
                       <Text style={{ color: T.ok }}> ({trafficHeat.peak?.sessions ?? 0} sessions)</Text>
                     </Text>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <CircleDot size={13} color={T.dim} />
-                    <Text style={{ fontSize: 12, color: SAC.muted }}>
+                    <Text style={{ fontSize: 12, color: T.muted }}>
                       Quietest: <Text style={{ fontFamily: FONTS.bold, color: T.text }}>{trafficHeat.quiet ? `${trafficHeat.quiet.day} ${String(trafficHeat.quiet.hour).padStart(2, '0')}:00` : '—'}</Text>
                     </Text>
                   </View>
@@ -1021,13 +1021,13 @@ export function VisitorIntelligenceView() {
             {trafficLoading ? (
               <View style={{ height: 220, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
                 <ActivityIndicator size="large" color={T.purple} />
-                <Text style={{ color: SAC.muted, fontSize: 13 }}>Building day x hour session grid...</Text>
+                <Text style={{ color: T.muted, fontSize: 13 }}>Building day x hour session grid...</Text>
               </View>
             ) : trafficHeat?.matrix ? (
               <DayHourHeatmap data={trafficHeat} surface={T.bg} border={T.border} panel2={T.panel2} />
             ) : (
               <View style={{ height: 220, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: SAC.dim ?? SAC.muted, fontSize: 13 }}>No session volume recorded in the last 30 days.</Text>
+                <Text style={{ color: T.dim ?? T.muted, fontSize: 13 }}>No session volume recorded in the last 30 days.</Text>
               </View>
             )}
           </Card>
@@ -1093,7 +1093,7 @@ export function VisitorIntelligenceView() {
 
                   <View style={s.moduleFooter}>
                     <Text style={s.moduleDwellText}>
-                      ⏱️ Avg Dwell: <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{fmtDuration(m.avg_duration_sec)}</Text>
+                      ⏱️ Avg Dwell: <Text style={{ color: T.text, fontFamily: FONTS.bold }}>{fmtDuration(m.avg_duration_sec)}</Text>
                     </Text>
                     <Text style={s.moduleDwellText}>
                       📄 {m.total_pageviews || 0} page impressions
@@ -1127,8 +1127,8 @@ export function VisitorIntelligenceView() {
                 {(hardwareData?.os_distribution || []).map((item: any) => (
                   <View key={item.label}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <Text style={{ color: SAC.text, fontSize: 13, fontFamily: FONTS.med }}>{item.label}</Text>
-                      <Text style={{ color: SAC.muted, fontSize: 13 }}>{item.pct}% ({item.count})</Text>
+                      <Text style={{ color: T.text, fontSize: 13, fontFamily: FONTS.med }}>{item.label}</Text>
+                      <Text style={{ color: T.muted, fontSize: 13 }}>{item.pct}% ({item.count})</Text>
                     </View>
                     <View style={s.barTrack}>
                       <View style={[s.barFill, { width: `${item.pct}%`, backgroundColor: '#3B82F6' }]} />
@@ -1148,8 +1148,8 @@ export function VisitorIntelligenceView() {
                 {(hardwareData?.browser_distribution || []).map((item: any) => (
                   <View key={item.label}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <Text style={{ color: SAC.text, fontSize: 13, fontFamily: FONTS.med }}>{item.label}</Text>
-                      <Text style={{ color: SAC.muted, fontSize: 13 }}>{item.pct}% ({item.count})</Text>
+                      <Text style={{ color: T.text, fontSize: 13, fontFamily: FONTS.med }}>{item.label}</Text>
+                      <Text style={{ color: T.muted, fontSize: 13 }}>{item.pct}% ({item.count})</Text>
                     </View>
                     <View style={s.barTrack}>
                       <View style={[s.barFill, { width: `${item.pct}%`, backgroundColor: '#F59E0B' }]} />
@@ -1207,7 +1207,7 @@ export function VisitorIntelligenceView() {
           {funnelLoading ? (
             <Card style={{ padding: 36, alignItems: 'center', gap: 12 }}>
               <ActivityIndicator size="large" color="#A78BFA" />
-              <Text style={{ color: SAC.muted, fontSize: 13 }}>Building conversion funnel...</Text>
+              <Text style={{ color: T.muted, fontSize: 13 }}>Building conversion funnel...</Text>
             </Card>
           ) : (
             <View style={s.funnelGrid}>
@@ -1224,7 +1224,7 @@ export function VisitorIntelligenceView() {
                             <View style={{ flex: 1 }} />
                             <View style={{ alignItems: 'center', paddingVertical: 2 }}>
                               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                                <ArrowDown size={11} color={SAC.dim} />
+                                <ArrowDown size={11} color={T.dim} />
                                 <Text style={[s.funnelDropText, { color: '#F87171' }]}>
                                   {prev.drop_off != null ? `-${prev.drop_off} drop off` : ''}
                                 </Text>
@@ -1299,21 +1299,21 @@ export function VisitorIntelligenceView() {
           {geoLoading ? (
             <Card style={{ padding: 36, alignItems: 'center', gap: 12 }}>
               <ActivityIndicator size="large" color="#60A5FA" />
-              <Text style={{ color: SAC.muted, fontSize: 13 }}>Mapping visitor origins...</Text>
+              <Text style={{ color: T.muted, fontSize: 13 }}>Mapping visitor origins...</Text>
             </Card>
           ) : (
             <View style={s.geoGrid}>
               <Card style={{ flex: 1.4, minWidth: 380, padding: 20 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Text style={s.hwCardTitle}>Global Dot-Map</Text>
-                  <Text style={{ color: SAC.muted, fontSize: 12 }}>
+                  <Text style={{ color: T.muted, fontSize: 12 }}>
                     {geoSummary?.total_visitors ?? 0} visitors
                   </Text>
                 </View>
                 {geoSummary?.points?.length ? (
                   <GeoDotMap points={geoSummary.points} surface={T.bg} />
                 ) : (
-                  <Text style={{ color: SAC.muted, fontSize: 13, marginTop: 12 }}>
+                  <Text style={{ color: T.muted, fontSize: 13, marginTop: 12 }}>
                     No geo-resolved origins in the selected window yet.
                   </Text>
                 )}
@@ -1354,7 +1354,7 @@ export function VisitorIntelligenceView() {
                     </View>
                   ))}
                   {(geoSummary?.countries || []).length === 0 && (
-                    <Text style={{ color: SAC.muted, fontSize: 13 }}>No country data yet.</Text>
+                    <Text style={{ color: T.muted, fontSize: 13 }}>No country data yet.</Text>
                   )}
                 </View>
               </Card>
@@ -1376,7 +1376,7 @@ export function VisitorIntelligenceView() {
           {acqLoading ? (
             <Card style={{ padding: 36, alignItems: 'center', gap: 12 }}>
               <ActivityIndicator size="large" color="#F59E0B" />
-              <Text style={{ color: SAC.muted, fontSize: 13 }}>Aggregating acquisition channels...</Text>
+              <Text style={{ color: T.muted, fontSize: 13 }}>Aggregating acquisition channels...</Text>
             </Card>
           ) : (
             <View style={s.hwGrid}>
@@ -1404,7 +1404,7 @@ export function VisitorIntelligenceView() {
                     </View>
                   ))}
                   {(acqData?.channels || []).length === 0 && (
-                    <Text style={{ color: SAC.muted, fontSize: 13 }}>No channel data yet.</Text>
+                    <Text style={{ color: T.muted, fontSize: 13 }}>No channel data yet.</Text>
                   )}
                 </View>
               </Card>
@@ -1423,7 +1423,7 @@ export function VisitorIntelligenceView() {
                     </View>
                   ))}
                   {(acqData?.top_referrers || []).length === 0 && (
-                    <Text style={{ color: SAC.muted, fontSize: 13 }}>
+                    <Text style={{ color: T.muted, fontSize: 13 }}>
                       Majority direct navigation & bookmarks.
                     </Text>
                   )}
@@ -1447,7 +1447,7 @@ export function VisitorIntelligenceView() {
                     </View>
                   ))}
                   {(acqData?.utm_campaigns || []).length === 0 && (
-                    <Text style={{ color: SAC.muted, fontSize: 13 }}>No tagged UTM campaigns in window.</Text>
+                    <Text style={{ color: T.muted, fontSize: 13 }}>No tagged UTM campaigns in window.</Text>
                   )}
                 </View>
               </Card>
@@ -1471,7 +1471,7 @@ export function VisitorIntelligenceView() {
                     </View>
                   ))}
                   {(acqData?.top_landings || []).length === 0 && (
-                    <Text style={{ color: SAC.muted, fontSize: 13 }}>No landing data yet.</Text>
+                    <Text style={{ color: T.muted, fontSize: 13 }}>No landing data yet.</Text>
                   )}
                 </View>
               </Card>
@@ -1511,11 +1511,11 @@ export function VisitorIntelligenceView() {
             {dossierLoading ? (
               <View style={{ padding: 60, alignItems: 'center' }}>
                 <ActivityIndicator size="large" color="#A78BFA" />
-                <Text style={{ color: SAC.muted, marginTop: 12 }}>Loading visitor journey stream...</Text>
+                <Text style={{ color: T.muted, marginTop: 12 }}>Loading visitor journey stream...</Text>
               </View>
             ) : !dossier?.session ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <Text style={{ color: SAC.text }}>Visitor session record not found.</Text>
+                <Text style={{ color: T.text }}>Visitor session record not found.</Text>
               </View>
             ) : (
               <ScrollView style={{ flex: 1, padding: 18 }} showsVerticalScrollIndicator={false}>
@@ -1643,7 +1643,7 @@ export function VisitorIntelligenceView() {
                   ) : null}
 
                   {(!dossier.events || dossier.events.length === 0) ? (
-                    <Text style={{ color: SAC.muted, fontSize: 13, padding: 12 }}>
+                    <Text style={{ color: T.muted, fontSize: 13, padding: 12 }}>
                       Initial landing captured at {dossier.session.landing_page}. Event trail will populate as visitor navigates.
                     </Text>
                   ) : (
@@ -1663,7 +1663,7 @@ export function VisitorIntelligenceView() {
                             </View>
 
                             <Text style={s.timelinePath}>
-                              Path: <Text style={{ color: SAC.text }}>{ev.path}</Text>
+                              Path: <Text style={{ color: T.text }}>{ev.path}</Text>
                               {ev.element_text ? ` • Element: "${ev.element_text}"` : ''}
                               {ev.element_id ? ` (#${ev.element_id})` : ''}
                             </Text>
@@ -1868,7 +1868,7 @@ function DayHourHeatmap({ data, surface, border, panel2 }: {
 const s = StyleSheet.create({
   container: {
     gap: 16,
-    backgroundColor: SAC.bgPage,
+    backgroundColor: T.bgPage,
   },
   headerRow: {
     flexDirection: 'row',
@@ -1925,12 +1925,12 @@ const s = StyleSheet.create({
     letterSpacing: 0.5,
   },
   headerTitle: {
-    color: SAC.text,
+    color: T.text,
     fontSize: 22,
     fontFamily: FONTS.bold,
   },
   headerSub: {
-    color: SAC.muted,
+    color: T.muted,
     fontSize: 13,
     marginTop: 4,
     maxWidth: 700,
@@ -1948,9 +1948,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: SAC.panel2,
+    backgroundColor: T.panel2,
     borderWidth: 1,
-    borderColor: SAC.border,
+    borderColor: T.border,
   },
   toggleBtnActive: {
     backgroundColor: 'rgba(16,185,129,0.08)',
@@ -1959,7 +1959,7 @@ const s = StyleSheet.create({
   toggleBtnText: {
     fontSize: 12.5,
     fontFamily: FONTS.med,
-    color: SAC.muted,
+    color: T.muted,
   },
   kpiGrid: {
     flexDirection: 'row',
@@ -1985,18 +1985,18 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   kpiLabel: {
-    color: SAC.muted,
+    color: T.muted,
     fontSize: 12,
     fontFamily: FONTS.med,
   },
   kpiValue: {
-    color: SAC.text,
+    color: T.text,
     fontSize: 22,
     fontFamily: FONTS.xbold,
     marginTop: 2,
   },
   kpiSub: {
-    color: SAC.dim,
+    color: T.dim,
     fontSize: 11.5,
   },
   kpiSubGreen: {
@@ -2016,13 +2016,13 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: SAC.panel2,
+    backgroundColor: T.panel2,
     borderWidth: 1,
-    borderColor: SAC.border,
+    borderColor: T.border,
   },
   searchInput: {
     flex: 1,
-    color: SAC.text,
+    color: T.text,
     fontSize: 13.5,
     outlineStyle: 'none' as any,
   },
@@ -2038,9 +2038,9 @@ const s = StyleSheet.create({
     gap: 4,
     padding: 3,
     borderRadius: 10,
-    backgroundColor: SAC.panel2,
+    backgroundColor: T.panel2,
     borderWidth: 1,
-    borderColor: SAC.border,
+    borderColor: T.border,
   },
   selectPill: {
     paddingHorizontal: 10,
@@ -2053,10 +2053,10 @@ const s = StyleSheet.create({
   selectPillText: {
     fontSize: 12,
     fontFamily: FONTS.med,
-    color: SAC.muted,
+    color: T.muted,
   },
   selectPillTextActive: {
-    color: SAC.text,
+    color: T.text,
     fontFamily: FONTS.bold,
   },
   visitorCard: {
@@ -2073,9 +2073,9 @@ const s = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: SAC.panel2,
+    backgroundColor: T.panel2,
     borderWidth: 1,
-    borderColor: SAC.border,
+    borderColor: T.border,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -2093,27 +2093,27 @@ const s = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#10B981',
     borderWidth: 1.5,
-    borderColor: SAC.bg,
+    borderColor: T.bg,
   },
   visitorName: {
-    color: SAC.text,
+    color: T.text,
     fontSize: 15,
     fontFamily: FONTS.bold,
   },
   visitorSubMeta: {
-    color: SAC.muted,
+    color: T.muted,
     fontSize: 12,
   },
   visitorHardwareCol: {
     minWidth: 220,
   },
   hardwareText: {
-    color: SAC.text,
+    color: T.text,
     fontSize: 12.5,
     fontFamily: FONTS.med,
   },
   fpText: {
-    color: SAC.muted,
+    color: T.muted,
     fontSize: 11.5,
   },
   visitorActionCol: {
@@ -2138,7 +2138,7 @@ const s = StyleSheet.create({
     fontFamily: FONTS.bold,
   },
   durationText: {
-    color: SAC.dim,
+    color: T.dim,
     fontSize: 11,
     marginTop: 4,
   },
@@ -2150,16 +2150,16 @@ const s = StyleSheet.create({
     paddingHorizontal: 4,
   },
   paginationText: {
-    color: SAC.muted,
+    color: T.muted,
     fontSize: 13,
   },
   sectionH1: {
-    color: SAC.text,
+    color: T.text,
     fontSize: 18,
     fontFamily: FONTS.bold,
   },
   sectionSub: {
-    color: SAC.muted,
+    color: T.muted,
     fontSize: 13,
     marginTop: 2,
   },
@@ -2188,12 +2188,12 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   moduleTitle: {
-    color: SAC.text,
+    color: T.text,
     fontSize: 15,
     fontFamily: FONTS.bold,
   },
   moduleDesc: {
-    color: SAC.muted,
+    color: T.muted,
     fontSize: 12,
     marginTop: 2,
   },
@@ -2203,25 +2203,25 @@ const s = StyleSheet.create({
     marginTop: 16,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: SAC.border,
+    borderTopColor: T.border,
   },
   moduleMetric: {
     alignItems: 'center',
   },
   moduleMetricVal: {
-    color: SAC.text,
+    color: T.text,
     fontSize: 16,
     fontFamily: FONTS.bold,
   },
   moduleMetricLbl: {
-    color: SAC.dim,
+    color: T.dim,
     fontSize: 11,
     marginTop: 2,
   },
   ratioTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: SAC.panel2,
+    backgroundColor: T.panel2,
     flexDirection: 'row',
     overflow: 'hidden',
   },
@@ -2239,10 +2239,10 @@ const s = StyleSheet.create({
     marginTop: 12,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: SAC.border,
+    borderTopColor: T.border,
   },
   moduleDwellText: {
-    color: SAC.muted,
+    color: T.muted,
     fontSize: 11.5,
   },
   hwGrid: {
@@ -2261,14 +2261,14 @@ const s = StyleSheet.create({
     gap: 8,
   },
   hwCardTitle: {
-    color: SAC.text,
+    color: T.text,
     fontSize: 15,
     fontFamily: FONTS.bold,
   },
   barTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: SAC.panel2,
+    backgroundColor: T.panel2,
     overflow: 'hidden',
   },
   barFill: {
@@ -2281,17 +2281,17 @@ const s = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: SAC.border,
+    borderBottomColor: T.border,
   },
   gpuText: {
-    color: SAC.text,
+    color: T.text,
     fontSize: 12.5,
     fontFamily: FONTS.med,
     flex: 1,
     marginRight: 10,
   },
   gpuCount: {
-    color: SAC.muted,
+    color: T.muted,
     fontSize: 12,
   },
   geoGrid: {
@@ -2305,7 +2305,7 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: SAC.border,
+    borderBottomColor: T.border,
   },
   modalOverlay: {
     position: 'absolute' as any,
@@ -2324,16 +2324,16 @@ const s = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: SAC.panel2,
+    backgroundColor: T.panel2,
   },
   modalContent: {
     width: '100%',
     maxWidth: 780,
     maxHeight: '85%',
-    backgroundColor: SAC.cardSolid,
+    backgroundColor: T.cardSolid,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: SAC.border2,
+    borderColor: T.border2,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.5,
@@ -2345,24 +2345,24 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 18,
     borderBottomWidth: 1,
-    borderBottomColor: SAC.border,
-    backgroundColor: SAC.panel2,
+    borderBottomColor: T.border,
+    backgroundColor: T.panel2,
   },
   dossierAvatar: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: SAC.panel2,
+    backgroundColor: T.panel2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dossierTitle: {
-    color: SAC.text,
+    color: T.text,
     fontSize: 17,
     fontFamily: FONTS.bold,
   },
   dossierSub: {
-    color: SAC.muted,
+    color: T.muted,
     fontSize: 12,
     marginTop: 2,
   },
@@ -2370,7 +2370,7 @@ const s = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: SAC.panel2,
+    backgroundColor: T.panel2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2393,18 +2393,18 @@ const s = StyleSheet.create({
   dossierItem: {
     flex: 1,
     minWidth: 200,
-    backgroundColor: SAC.panel2,
+    backgroundColor: T.panel2,
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: SAC.border,
+    borderColor: T.border,
   },
   dossierItemLabel: {
-    color: SAC.dim,
+    color: T.dim,
     fontSize: 11.5,
   },
   dossierItemVal: {
-    color: SAC.text,
+    color: T.text,
     fontSize: 13.5,
     fontFamily: FONTS.med,
     marginTop: 4,
@@ -2430,27 +2430,27 @@ const s = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#A78BFA',
     borderWidth: 2,
-    borderColor: SAC.cardSolid,
+    borderColor: T.cardSolid,
   },
   timelineBody: {
-    backgroundColor: SAC.panel2,
+    backgroundColor: T.panel2,
     padding: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: SAC.border,
+    borderColor: T.border,
   },
   timelineEventName: {
-    color: SAC.text,
+    color: T.text,
     fontSize: 13,
     fontFamily: FONTS.bold,
   },
   timelineTime: {
-    color: SAC.dim,
+    color: T.dim,
     fontSize: 11.5,
     marginLeft: 'auto' as any,
   },
   timelinePath: {
-    color: SAC.muted,
+    color: T.muted,
     fontSize: 12,
     marginTop: 4,
   },
@@ -2474,7 +2474,7 @@ const s = StyleSheet.create({
   alertNavBadgeText: {
     fontSize: 11.5,
     fontFamily: FONTS.bold,
-    color: SAC.text,
+    color: T.text,
   },
   alertBanner: {
     borderRadius: 12,
@@ -2484,12 +2484,12 @@ const s = StyleSheet.create({
   alertBannerTitle: {
     fontSize: 13.5,
     fontFamily: FONTS.bold,
-    color: SAC.text,
+    color: T.text,
     flex: 1,
   },
   alertBannerMsg: {
     fontSize: 12.5,
-    color: SAC.muted,
+    color: T.muted,
     marginTop: 4,
     flex: 1,
   },
@@ -2505,7 +2505,7 @@ const s = StyleSheet.create({
   alertBannerDismissText: {
     fontSize: 11.5,
     fontFamily: FONTS.bold,
-    color: SAC.muted,
+    color: T.muted,
   },
 
   // VR4 — funnel
@@ -2554,19 +2554,19 @@ const s = StyleSheet.create({
     fontFamily: FONTS.bold,
   },
   funnelInsightLbl: {
-    color: SAC.dim,
+    color: T.dim,
     fontSize: 11,
     fontFamily: FONTS.bold,
     letterSpacing: 0.6,
     marginBottom: 4,
   },
   funnelInsightBig: {
-    color: SAC.text,
+    color: T.text,
     fontSize: 26,
     fontFamily: FONTS.bold,
   },
   funnelInsightSub: {
-    color: SAC.muted,
+    color: T.muted,
     fontSize: 12.5,
     marginTop: 4,
   },
@@ -2584,7 +2584,7 @@ const s = StyleSheet.create({
     fontFamily: FONTS.bold,
   },
   funnelInsightBody: {
-    color: SAC.muted,
+    color: T.muted,
     fontSize: 12.5,
     marginTop: 4,
   },
@@ -2599,7 +2599,7 @@ const s = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: SAC.border,
+    borderTopColor: T.border,
   },
   geoLegendRow: {
     flexDirection: 'row',
@@ -2607,7 +2607,7 @@ const s = StyleSheet.create({
     gap: 6,
   },
   geoLegendText: {
-    color: SAC.muted,
+    color: T.muted,
     fontSize: 11.5,
   },
 
@@ -2616,13 +2616,13 @@ const s = StyleSheet.create({
     marginBottom: 14,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: SAC.panel2,
+    backgroundColor: T.panel2,
     borderWidth: 1,
-    borderColor: SAC.border,
+    borderColor: T.border,
     gap: 6,
   },
   pageFlowTitle: {
-    color: SAC.dim,
+    color: T.dim,
     fontSize: 10.5,
     fontFamily: FONTS.bold,
     letterSpacing: 0.8,
@@ -2631,23 +2631,23 @@ const s = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 10,
-    backgroundColor: SAC.panel,
+    backgroundColor: T.panel,
     borderWidth: 1,
-    borderColor: SAC.border,
+    borderColor: T.border,
     gap: 1,
   },
   pageFlowChipHover: {
-    borderColor: SAC.purple,
-    backgroundColor: SAC.cardSolid,
+    borderColor: T.purple,
+    backgroundColor: T.cardSolid,
   },
   pageFlowChipPath: {
-    color: SAC.text,
+    color: T.text,
     fontSize: 12,
     fontFamily: FONTS.bold,
     maxWidth: 160,
   },
   pageFlowChipMeta: {
-    color: SAC.dim,
+    color: T.dim,
     fontSize: 10.5,
   },
 });

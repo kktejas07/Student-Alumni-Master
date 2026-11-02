@@ -28,22 +28,22 @@ import { request } from '@/src/models/services/api';
 const Field = (props: any) => (
   <TextInput
     style={[{
-      backgroundColor: SAC.cardSolid,
-      color: SAC.text,
+      backgroundColor: T.cardSolid,
+      color: T.text,
       borderWidth: 1,
-      borderColor: SAC.border,
+      borderColor: T.border,
       borderRadius: 9,
       padding: 10,
       fontSize: 13,
       fontFamily: FONTS.regular,
     }, props.style]}
-    placeholderTextColor={SAC.dim}
+    placeholderTextColor={T.dim}
     {...props}
   />
 );
 
 const Label = ({ children }: { children: React.ReactNode }) => (
-  <Text style={{ color: SAC.muted, fontSize: 11, marginBottom: 5, fontFamily: FONTS.bold, letterSpacing: 0.3 }}>{children}</Text>
+  <Text style={{ color: T.muted, fontSize: 11, marginBottom: 5, fontFamily: FONTS.bold, letterSpacing: 0.3 }}>{children}</Text>
 );
 
 const CATEGORIES = [
@@ -176,13 +176,13 @@ export function CouponsView() {
     <ScrollView
       style={{ flex: 1 }}
       contentContainerStyle={{ paddingBottom: 40 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={SAC.violet} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={T.violet} />}
     >
       {/* Header */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <View>
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 24, color: SAC.text }}>Coupons</Text>
-          <Text style={{ fontSize: 13, color: SAC.muted, marginTop: 2 }}>Manage all platform discount codes</Text>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 24, color: T.text }}>Coupons</Text>
+          <Text style={{ fontSize: 13, color: T.muted, marginTop: 2 }}>Manage all platform discount codes</Text>
         </View>
         <GradientButton onPress={() => setEditing({ discount_type: 'percentage', category: 'marketplace' })}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -212,11 +212,11 @@ export function CouponsView() {
               onPress={() => setActiveCategory(cat.id)}
               style={[s.tab, isActive && s.tabActive]}
             >
-              <Icon size={14} color={isActive ? '#FFF' : (cat.color || SAC.muted)} />
+              <Icon size={14} color={isActive ? '#FFF' : (cat.color || T.muted)} />
               <Text style={[s.tabText, isActive && { color: '#FFF' }]}>{cat.label}</Text>
               {cat.id !== 'all' && (
-                <View style={[s.badge, { backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : (cat.color || SAC.muted) + '22' }]}>
-                  <Text style={[s.badgeText, { color: isActive ? '#FFF' : (cat.color || SAC.muted) }]}>{categoryCounts[cat.id] || 0}</Text>
+                <View style={[s.badge, { backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : (cat.color || T.muted) + '22' }]}>
+                  <Text style={[s.badgeText, { color: isActive ? '#FFF' : (cat.color || T.muted) }]}>{categoryCounts[cat.id] || 0}</Text>
                 </View>
               )}
             </Pressable>
@@ -225,22 +225,22 @@ export function CouponsView() {
       </View>
 
       {/* Search */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16, backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border, borderRadius: 10, paddingHorizontal: 12 }}>
-        <Search size={16} color={SAC.muted} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16, backgroundColor: T.cardSolid, borderWidth: 1, borderColor: T.border, borderRadius: 10, paddingHorizontal: 12 }}>
+        <Search size={16} color={T.muted} />
         <TextInput
           value={search}
           onChangeText={setSearch}
           placeholder="Search coupons..."
-          placeholderTextColor={SAC.dim}
-          style={{ flex: 1, padding: '12px 0', color: SAC.text, fontSize: 14, fontFamily: FONTS.regular, outlineStyle: 'none' } as any}
+          placeholderTextColor={T.dim}
+          style={{ flex: 1, padding: '12px 0', color: T.text, fontSize: 14, fontFamily: FONTS.regular, outlineStyle: 'none' } as any}
         />
-        {search ? <Pressable onPress={() => setSearch('')}><X size={16} color={SAC.muted} /></Pressable> : null}
+        {search ? <Pressable onPress={() => setSearch('')}><X size={16} color={T.muted} /></Pressable> : null}
       </View>
 
       {/* Edit Form */}
       {editing && (
         <Card style={{ marginBottom: 16 }}>
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text, marginBottom: 12 }}>{editing._id ? 'Edit Coupon' : 'Create Coupon'}</Text>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: T.text, marginBottom: 12 }}>{editing._id ? 'Edit Coupon' : 'Create Coupon'}</Text>
           <View style={{ gap: 12 }}>
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <View style={{ flex: 2 }}>
@@ -252,7 +252,7 @@ export function CouponsView() {
                 <select
                   value={editing.category || 'marketplace'}
                   onChange={(e) => setEditing({ ...editing, category: e.target.value })}
-                  style={{ backgroundColor: SAC.cardSolid, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 9, padding: 10, fontSize: 13, fontFamily: FONTS.regular, width: '100%', outline: 'none' } as any}
+                  style={{ backgroundColor: T.cardSolid, color: T.text, borderWidth: 1, borderColor: T.border, borderRadius: 9, padding: 10, fontSize: 13, fontFamily: FONTS.regular, width: '100%', outline: 'none' } as any}
                 >
                   <option value="marketplace">Marketplace</option>
                   <option value="partner">Partner</option>
@@ -267,7 +267,7 @@ export function CouponsView() {
                 <select
                   value={editing.event_id || ''}
                   onChange={(e) => setEditing({ ...editing, event_id: e.target.value || null })}
-                  style={{ backgroundColor: SAC.cardSolid, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 9, padding: 10, fontSize: 13, fontFamily: FONTS.regular, width: '100%', outline: 'none' } as any}
+                  style={{ backgroundColor: T.cardSolid, color: T.text, borderWidth: 1, borderColor: T.border, borderRadius: 9, padding: 10, fontSize: 13, fontFamily: FONTS.regular, width: '100%', outline: 'none' } as any}
                 >
                   <option value="">All Events (global)</option>
                   {showcases.map((sc: any) => (
@@ -280,7 +280,7 @@ export function CouponsView() {
                 <select
                   value={editing.discount_type || 'percentage'}
                   onChange={(e) => setEditing({ ...editing, discount_type: e.target.value, duration_months: e.target.value !== 'duration' ? null : (editing.duration_months || 3) })}
-                  style={{ backgroundColor: SAC.cardSolid, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 9, padding: 10, fontSize: 13, fontFamily: FONTS.regular, width: '100%', outline: 'none' } as any}
+                  style={{ backgroundColor: T.cardSolid, color: T.text, borderWidth: 1, borderColor: T.border, borderRadius: 9, padding: 10, fontSize: 13, fontFamily: FONTS.regular, width: '100%', outline: 'none' } as any}
                 >
                   <option value="percentage">Percentage (%)</option>
                   <option value="fixed">Fixed (₹)</option>
@@ -295,7 +295,7 @@ export function CouponsView() {
                   <select
                     value={String(editing.duration_months || 3)}
                     onChange={(e) => setEditing({ ...editing, duration_months: Number(e.target.value) })}
-                    style={{ backgroundColor: SAC.cardSolid, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 9, padding: 10, fontSize: 13, fontFamily: FONTS.regular, width: '100%', outline: 'none' } as any}
+                    style={{ backgroundColor: T.cardSolid, color: T.text, borderWidth: 1, borderColor: T.border, borderRadius: 9, padding: 10, fontSize: 13, fontFamily: FONTS.regular, width: '100%', outline: 'none' } as any}
                   >
                     <option value="1">1 Month</option>
                     <option value="2">2 Months</option>
@@ -320,7 +320,7 @@ export function CouponsView() {
                   const vname = vendors.find((v: any) => v.vendor_id === vid)?.name || '';
                   setEditing({ ...editing, vendor_id: vid || null, vendor_name: vname || null });
                 }}
-                style={{ backgroundColor: SAC.cardSolid, color: SAC.text, borderWidth: 1, borderColor: SAC.border, borderRadius: 9, padding: 10, fontSize: 13, fontFamily: FONTS.regular, width: '100%', outline: 'none' } as any}
+                style={{ backgroundColor: T.cardSolid, color: T.text, borderWidth: 1, borderColor: T.border, borderRadius: 9, padding: 10, fontSize: 13, fontFamily: FONTS.regular, width: '100%', outline: 'none' } as any}
               >
                 <option value="">All Vendors (global)</option>
                 {vendors.map((v: any) => (
@@ -358,7 +358,7 @@ export function CouponsView() {
                   {editing.locked ? 'Locked (unavailable)' : 'Unlocked (active)'}
                 </Text>
               </Pressable>
-              <Text style={{ fontSize: 11, color: SAC.muted }}>Locked coupons can't be used at checkout</Text>
+              <Text style={{ fontSize: 11, color: T.muted }}>Locked coupons can't be used at checkout</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <View style={{ flex: 1 }}>
@@ -381,7 +381,7 @@ export function CouponsView() {
               </View>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
-              <SecondaryButton onPress={() => setEditing(null)}><Text style={{ color: SAC.text }}>Cancel</Text></SecondaryButton>
+              <SecondaryButton onPress={() => setEditing(null)}><Text style={{ color: T.text }}>Cancel</Text></SecondaryButton>
               <GradientButton onPress={() => saveCoupon(editing)}><Text style={{ color: '#FFF' }}>{editing._id ? 'Update' : 'Create'}</Text></GradientButton>
             </View>
           </View>
@@ -390,18 +390,18 @@ export function CouponsView() {
 
       {/* Coupon List */}
       {loading ? (
-        <ActivityIndicator color={SAC.violet} style={{ marginTop: 40 }} />
+        <ActivityIndicator color={T.violet} style={{ marginTop: 40 }} />
       ) : filtered.length === 0 ? (
         <EmptyState icon={Tag} title="No coupons found" sub={search ? 'Try a different search' : 'Create your first coupon to get started'} />
       ) : (
         <View style={{ gap: 10 }}>
           {filtered.map(coupon => {
-            const catColor = CATEGORY_COLORS[coupon.category] || SAC.muted;
+            const catColor = CATEGORY_COLORS[coupon.category] || T.muted;
             return (
               <Card key={coupon._id || coupon.code} style={{ padding: 14 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   {coupon.logo_url ? (
-                    <img src={coupon.logo_url} alt="" style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'cover', border: `1px solid ${SAC.border}` } as any} />
+                    <img src={coupon.logo_url} alt="" style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'cover', border: `1px solid ${T.border}` } as any} />
                   ) : (
                     <View style={[s.categoryDot, { backgroundColor: catColor + '22', borderColor: catColor + '44' }]}>
                       <Tag size={14} color={catColor} />
@@ -409,7 +409,7 @@ export function CouponsView() {
                   )}
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>{coupon.code}</Text>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: T.text }}>{coupon.code}</Text>
                       <View style={[s.categoryBadge, { backgroundColor: catColor + '18', borderColor: catColor + '33' }]}>
                         <Text style={{ fontSize: 10, fontWeight: '700', color: catColor, textTransform: 'uppercase', letterSpacing: 0.5 }}>{coupon.category || 'marketplace'}</Text>
                       </View>
@@ -420,7 +420,7 @@ export function CouponsView() {
                         </View>
                       )}
                     </View>
-                    <Text style={{ fontSize: 12, color: SAC.muted, marginTop: 2 }}>
+                    <Text style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
                       {coupon.discount_type === 'percentage' ? `${coupon.discount_value}% off` :
                        coupon.discount_type === 'duration' ? `${coupon.duration_months || '?'} month${(coupon.duration_months || 0) !== 1 ? 's' : ''} access` :
                        `₹${coupon.discount_value} off`}
@@ -428,7 +428,7 @@ export function CouponsView() {
                       {coupon.min_order_value ? ` · Min ₹${coupon.min_order_value}` : ''}
                     </Text>
                     {coupon.description ? (
-                      <Text style={{ fontSize: 11, color: SAC.dim, marginTop: 2 }} numberOfLines={1}>{coupon.description}</Text>
+                      <Text style={{ fontSize: 11, color: T.dim, marginTop: 2 }} numberOfLines={1}>{coupon.description}</Text>
                     ) : null}
                     {coupon.website_url ? (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
@@ -444,7 +444,7 @@ export function CouponsView() {
                     ) : null}
                   </View>
                   <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                    <Text style={{ fontSize: 11, color: SAC.muted }}>Used: {coupon.uses_count || 0}{coupon.max_uses ? `/${coupon.max_uses}` : ''}</Text>
+                    <Text style={{ fontSize: 11, color: T.muted }}>Used: {coupon.uses_count || 0}{coupon.max_uses ? `/${coupon.max_uses}` : ''}</Text>
                     <View style={{ flexDirection: 'row', gap: 4 }}>
                       <Pressable onPress={() => setEditing(coupon)} style={s.actionBtn}>
                         <Pencil size={13} color="#A78BFA" />

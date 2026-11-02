@@ -26,7 +26,7 @@ import {
   GraduationCap, Building2, Sparkles, GripVertical,
   ImagePlus, RefreshCw, Search,
 } from 'lucide-react-native';
-import { SAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   TopTabs, SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox,
@@ -72,6 +72,7 @@ type TabId = (typeof TAB_OPTIONS)[number]['id'];
  * Root
  * ────────────────────────────────────────────────────────────────── */
 export function PartnersView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const sac = useSAC();
   const T = useThemedCrudStyles();
   Object.assign(s, resolveColors(s, T));
   const { toast, flash, hide } = useToast();
@@ -215,7 +216,7 @@ export function PartnersView({ sub, onSub }: { sub?: string; onSub?: (s: string)
           />
           <SearchField value={q} onChange={setQ} placeholder="Search by name…" width={280} />
           <Pressable onPress={load} style={crud.refreshBtn}>
-            <RefreshCw size={11} color={SAC.muted} />
+            <RefreshCw size={11} color={sac.muted} />
             <Text style={crud.refreshText}>Refresh</Text>
           </Pressable>
         </View>
@@ -340,7 +341,7 @@ function PartnerRow({
         {/* Drag handle (web only) */}
         {Platform.OS === 'web' && !canFilter && (
           <View style={s.handle}>
-            <GripVertical size={14} color={SAC.dim} />
+            <GripVertical size={14} color={sac.dim} />
           </View>
         )}
 
@@ -356,14 +357,14 @@ function PartnerRow({
             disabled={globalIdx === 0}
             style={[s.arrowBtn, globalIdx === 0 && s.arrowBtnDisabled]}
           >
-            <ArrowUp size={12} color={globalIdx === 0 ? SAC.dim : SAC.muted} />
+            <ArrowUp size={12} color={globalIdx === 0 ? sac.dim : sac.muted} />
           </Pressable>
           <Pressable
             onPress={onMoveDown}
             disabled={globalIdx === totalCount - 1}
             style={[s.arrowBtn, globalIdx === totalCount - 1 && s.arrowBtnDisabled]}
           >
-            <ArrowDown size={12} color={globalIdx === totalCount - 1 ? SAC.dim : SAC.muted} />
+            <ArrowDown size={12} color={globalIdx === totalCount - 1 ? sac.dim : sac.muted} />
           </Pressable>
         </View>
 
@@ -372,7 +373,7 @@ function PartnerRow({
           {partner.logo_url ? (
             <Image source={{ uri: resolveImageUrl(partner.logo_url) }} style={s.logoImg} resizeMode="contain" />
           ) : (
-            <ImagePlus size={18} color={SAC.dim} />
+            <ImagePlus size={18} color={sac.dim} />
           )}
         </View>
 
@@ -505,7 +506,7 @@ function PartnerEditor({
                 value={form.name}
                 onChangeText={(v) => update('name', v)}
                 placeholder="e.g. Acme University, Bright Pvt Ltd"
-                placeholderTextColor={SAC.dim}
+                placeholderTextColor={sac.dim}
                 style={[crud.input, { marginTop: 8 }]}
               />
             </View>
@@ -530,7 +531,7 @@ function PartnerEditor({
                         },
                       ]}
                     >
-                      <Icon size={13} color={active ? m.color : SAC.muted} />
+                      <Icon size={13} color={active ? m.color : sac.muted} />
                       <Text style={[s.catPickText, active && { color: m.color }]}>{m.label}</Text>
                     </Pressable>
                   );
@@ -577,7 +578,7 @@ function PartnerEditor({
                   value={String(form.display_order)}
                   onChangeText={(v) => update('display_order', parseInt(v) || 0)}
                   keyboardType="numeric"
-                  placeholderTextColor={SAC.dim}
+                  placeholderTextColor={sac.dim}
                   style={[crud.input, { marginTop: 8 }]}
                 />
                 <Text style={[crud.muted, { marginTop: 4 }]}>Lower numbers appear first. (You can drag to reorder after saving.)</Text>
@@ -614,7 +615,7 @@ function LogoPicker({
             <Text style={crud.muted}>Logo uploaded · {Math.round((value.length / 1000))} KB (base64)</Text>
             <View style={{ flexDirection: 'row', gap: 6 }}>
               <SecondaryButton size="sm" onPress={onPick}>
-                <Upload size={11} color={SAC.muted} />
+                <Upload size={11} color={sac.muted} />
                 <Text style={crud.secText}>Replace</Text>
               </SecondaryButton>
               <SecondaryButton size="sm" danger onPress={onClear}>
@@ -649,7 +650,7 @@ const s = StyleSheet.create({
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 12, paddingHorizontal: 14,
-    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12,
+    backgroundColor: sac.card, borderColor: sac.border, borderWidth: 1, borderRadius: 12,
     ...(Platform.OS === 'web' ? ({ transitionDuration: '160ms' } as any) : {}),
   },
   rowInactive: { opacity: 0.62, backgroundColor: 'rgba(255,255,255,0.02)' },
@@ -663,7 +664,7 @@ const s = StyleSheet.create({
   arrowCol: { gap: 3 },
   arrowBtn: {
     width: 22, height: 18, borderRadius: 6,
-    backgroundColor: SAC.cardSolid, borderColor: SAC.border, borderWidth: 1,
+    backgroundColor: sac.cardSolid, borderColor: sac.border, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
@@ -690,19 +691,19 @@ const s = StyleSheet.create({
   catPick: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10,
-    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
+    borderWidth: 1, borderColor: sac.border, backgroundColor: sac.cardSolid,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  catPickText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  catPickText: { color: sac.muted, fontFamily: FONTS.bold, fontSize: 12 },
 
   /* logo picker */
   logoDrop: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 14, borderRadius: 10, borderWidth: 1, borderStyle: 'dashed',
-    borderColor: SAC.border2, backgroundColor: SAC.cardSolid,
+    borderColor: sac.border2, backgroundColor: sac.cardSolid,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  logoDropDark: { backgroundColor: SAC.panel2 },
+  logoDropDark: { backgroundColor: sac.panel2 },
   logoDropIcon: {
     width: 42, height: 42, borderRadius: 10,
     backgroundColor: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1,
@@ -713,8 +714,8 @@ const s = StyleSheet.create({
   logoPreview: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 12, borderRadius: 10, borderWidth: 1,
-    borderColor: SAC.border, backgroundColor: '#fff',
+    borderColor: sac.border, backgroundColor: '#fff',
   },
-  logoPreviewDark: { backgroundColor: '#0a0f1e', borderColor: SAC.border2 },
+  logoPreviewDark: { backgroundColor: '#0a0f1e', borderColor: sac.border2 },
   logoPreviewImg: { width: 110, height: 50 },
 });

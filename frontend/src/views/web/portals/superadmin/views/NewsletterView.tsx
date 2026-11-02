@@ -692,7 +692,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 {commBroadcasting ? 'Sending...' : 'Broadcast Community Invites'}
               </Text>
             </SecondaryButton>
-            <SecondaryButton onPress={load}><RefreshCw size={12} color={SAC.muted} /><Text style={st.secText}>Refresh</Text></SecondaryButton>
+            <SecondaryButton onPress={load}><RefreshCw size={12} color={T.muted} /><Text style={st.secText}>Refresh</Text></SecondaryButton>
           </View>
         </View>
       </Card>
@@ -709,11 +709,11 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
           {/* Tabs */}
           <View style={st.tabRow}>
             <Pressable onPress={() => setActiveTab('bulk')} style={[st.tab, activeTab === 'bulk' && st.tabActive]}>
-              <Megaphone size={13} color={activeTab === 'bulk' ? '#fff' : SAC.muted} />
+              <Megaphone size={13} color={activeTab === 'bulk' ? '#fff' : T.muted} />
               <Text style={[st.tabText, activeTab === 'bulk' && st.tabTextActive]}>Bulk Newsletter</Text>
             </Pressable>
             <Pressable onPress={() => setActiveTab('individual')} style={[st.tab, activeTab === 'individual' && st.tabActive]}>
-              <User size={13} color={activeTab === 'individual' ? '#fff' : SAC.muted} />
+              <User size={13} color={activeTab === 'individual' ? '#fff' : T.muted} />
               <Text style={[st.tabText, activeTab === 'individual' && st.tabTextActive]}>Individual</Text>
             </Pressable>
           </View>
@@ -749,8 +749,8 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                         <Megaphone size={14} color="#A78BFA" />
                       </View>
                       <View>
-                        <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 }}>AI Live Platform Digest Drafter</Text>
-                        <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>Ingests real-time jobs, hackathons, and member updates</Text>
+                        <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 13 }}>AI Live Platform Digest Drafter</Text>
+                        <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 11 }}>Ingests real-time jobs, hackathons, and member updates</Text>
                       </View>
                     </View>
 
@@ -766,7 +766,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                       {aiDrafting ? <ActivityIndicator size="small" color="#fff" /> : (
                         <>
                           <RefreshCw size={12} color="#fff" />
-                          <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Draft with AI (Live Data)</Text>
+                          <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 12 }}>Draft with AI (Live Data)</Text>
                         </>
                       )}
                     </Pressable>
@@ -794,7 +794,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                       </View>
 
                       {/* A/B Subject Variant Pills */}
-                      <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5 }}>A/B Subject Variants (click to use):</Text>
+                      <Text style={{ color: T.muted, fontFamily: FONTS.bold, fontSize: 10.5 }}>A/B Subject Variants (click to use):</Text>
                       <View style={{ gap: 4 }}>
                         {aiDraftResult.subject_variants?.map((v: string, idx: number) => (
                           <Pressable
@@ -803,7 +803,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                             style={{
                               padding: 6, borderRadius: 6,
                               backgroundColor: form.subject === v ? 'rgba(124,58,237,0.3)' : 'rgba(0,0,0,0.25)',
-                              borderColor: form.subject === v ? '#7C3AED' : SAC.border,
+                              borderColor: form.subject === v ? '#7C3AED' : T.border,
                               borderWidth: 1
                             }}
                           >
@@ -855,7 +855,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                             active && { backgroundColor: 'rgba(124,58,237,0.28)', borderColor: '#7C3AED', transform: [{ scale: 1.02 }] },
                           ]}
                         >
-                          <Text style={{ fontSize: 11.5, fontFamily: active ? FONTS.bold : FONTS.med, color: active ? '#fff' : SAC.muted }}>
+                          <Text style={{ fontSize: 11.5, fontFamily: active ? FONTS.bold : FONTS.med, color: active ? '#fff' : T.muted }}>
                             {aud.icon} {aud.label}
                           </Text>
                         </Pressable>
@@ -865,18 +865,18 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 </View>
 
                 <Field label="Subject *" hint="Appears in the email subject line & WhatsApp bold title.">
-                  <TextInput style={st.input} value={form.subject} onChangeText={(v) => set('subject', v)} placeholder="e.g. Join us at ECHO 2026!" placeholderTextColor={SAC.dim} />
+                  <TextInput style={st.input} value={form.subject} onChangeText={(v) => set('subject', v)} placeholder="e.g. Join us at ECHO 2026!" placeholderTextColor={T.dim} />
                 </Field>
                 <Field label="Hero Image" hint="Upload a banner/poster, or paste a direct image URL. Shown full-width at top of email and as WhatsApp image header.">
                   <View style={{ gap: 8 }}>
                     {form.hero_image ? (
-                      <View style={{ borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: SAC.border }}>
+                      <View style={{ borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: T.border }}>
                         <Image source={{ uri: resolveImageUrl(form.hero_image) }} style={{ width: '100%', height: 140 }} resizeMode="cover" />
-                        <View style={{ flexDirection: 'row', gap: 8, padding: 8, backgroundColor: SAC.panel2, alignItems: 'center' }}>
+                        <View style={{ flexDirection: 'row', gap: 8, padding: 8, backgroundColor: T.panel2, alignItems: 'center' }}>
                           {Platform.OS === 'web' && (
                             <label style={{ cursor: 'pointer' }}>
                               <span style={{
-                                backgroundColor: 'rgba(123,61,191,0.30)', color: SAC.text,
+                                backgroundColor: 'rgba(123,61,191,0.30)', color: T.text,
                                 padding: '5px 10px', borderRadius: '6px',
                                 fontFamily: FONTS.semi, fontSize: '11px',
                               }}>
@@ -920,14 +920,14 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                       value={form.hero_image.startsWith('blob:') ? '' : form.hero_image}
                       onChangeText={(v) => set('hero_image', v)}
                       placeholder="…or paste an image URL (https://…)"
-                      placeholderTextColor={SAC.dim}
+                      placeholderTextColor={T.dim}
                       autoCapitalize="none"
                       autoCorrect={false}
                     />
                   </View>
                 </Field>
                 <Field label="Intro" hint="One or two welcoming sentences.">
-                  <TextInput style={st.input} value={form.intro} onChangeText={(v) => set('intro', v)} placeholder="Hi everyone, we're excited to share what's coming up…" placeholderTextColor={SAC.dim} />
+                  <TextInput style={st.input} value={form.intro} onChangeText={(v) => set('intro', v)} placeholder="Hi everyone, we're excited to share what's coming up…" placeholderTextColor={T.dim} />
                 </Field>
                 <Field label="Message" hint="The main newsletter body (rich text).">
                   <LexicalEditor
@@ -939,12 +939,12 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <View style={{ flex: 1 }}>
                     <Field label="CTA Text">
-                      <TextInput style={st.input} value={form.cta_text} onChangeText={(v) => set('cta_text', v)} placeholder="Register Now" placeholderTextColor={SAC.dim} />
+                      <TextInput style={st.input} value={form.cta_text} onChangeText={(v) => set('cta_text', v)} placeholder="Register Now" placeholderTextColor={T.dim} />
                     </Field>
                   </View>
                   <View style={{ flex: 1 }}>
                     <Field label="CTA URL">
-                      <TextInput style={st.input} value={form.cta_url} onChangeText={(v) => set('cta_url', v)} placeholder="https://…" placeholderTextColor={SAC.dim} autoCapitalize="none" />
+                      <TextInput style={st.input} value={form.cta_url} onChangeText={(v) => set('cta_url', v)} placeholder="https://…" placeholderTextColor={T.dim} autoCapitalize="none" />
                     </Field>
                   </View>
                 </View>
@@ -986,12 +986,12 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                   <View style={{ flexDirection: 'row', gap: 10 }}>
                     <View style={{ flex: 1 }}>
                       <Field label="Schedule Date *" hint="Format: YYYY-MM-DD">
-                        <TextInput style={st.input} value={scheduleDate} onChangeText={setScheduleDate} placeholder="e.g. 2026-08-15" placeholderTextColor={SAC.dim} />
+                        <TextInput style={st.input} value={scheduleDate} onChangeText={setScheduleDate} placeholder="e.g. 2026-08-15" placeholderTextColor={T.dim} />
                       </Field>
                     </View>
                     <View style={{ flex: 1 }}>
                       <Field label={`Schedule Time (${platformTz}) *`} hint="Format: HH:MM (24h)">
-                        <TextInput style={st.input} value={scheduleTime} onChangeText={setScheduleTime} placeholder="e.g. 14:30" placeholderTextColor={SAC.dim} />
+                        <TextInput style={st.input} value={scheduleTime} onChangeText={setScheduleTime} placeholder="e.g. 14:30" placeholderTextColor={T.dim} />
                       </Field>
                     </View>
                   </View>
@@ -1045,13 +1045,13 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 {/* User search */}
                 <Field label="Search User *" hint="Type a name or email to find the user.">
                   <View style={st.searchWrap}>
-                    <Search size={14} color={SAC.dim} style={st.searchIcon} />
+                    <Search size={14} color={T.dim} style={st.searchIcon} />
                     <TextInput
                       style={[st.input, { paddingLeft: 36 }]}
                       value={indUserQuery}
                       onChangeText={handleUserSearch}
                       placeholder="Search by name or email…"
-                      placeholderTextColor={SAC.dim}
+                      placeholderTextColor={T.dim}
                       autoCapitalize="none"
                     />
                   </View>
@@ -1088,13 +1088,13 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 {indSelectedUser && (
                   <>
                     <Field label="Title *" hint="Notification title.">
-                      <TextInput style={st.input} value={indForm.title} onChangeText={(v) => setIndForm((f) => ({ ...f, title: v }))} placeholder="e.g. Your session is confirmed!" placeholderTextColor={SAC.dim} />
+                      <TextInput style={st.input} value={indForm.title} onChangeText={(v) => setIndForm((f) => ({ ...f, title: v }))} placeholder="e.g. Your session is confirmed!" placeholderTextColor={T.dim} />
                     </Field>
                     <Field label="Body *" hint="Notification message.">
                       <LexicalEditor value={indForm.body} onChange={(v) => setIndForm((f) => ({ ...f, body: v }))} />
                     </Field>
                     <Field label="Link URL (optional)" hint="Opens when user taps the notification.">
-                      <TextInput style={st.input} value={indForm.cta_url} onChangeText={(v) => setIndForm((f) => ({ ...f, cta_url: v }))} placeholder="https://…" placeholderTextColor={SAC.dim} autoCapitalize="none" />
+                      <TextInput style={st.input} value={indForm.cta_url} onChangeText={(v) => setIndForm((f) => ({ ...f, cta_url: v }))} placeholder="https://…" placeholderTextColor={T.dim} autoCapitalize="none" />
                     </Field>
 
                     {/* Channel toggles */}
@@ -1145,7 +1145,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
             </View>
           )}
 
-          <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: SAC.border, gap: 10 }}>
+          <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: T.border, gap: 10 }}>
             <SectionLabel>SEND TEST EMAIL</SectionLabel>
             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
               <TextInput
@@ -1153,7 +1153,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 value={testEmail}
                 onChangeText={setTestEmail}
                 placeholder="test@example.com"
-                placeholderTextColor={SAC.dim}
+                placeholderTextColor={T.dim}
                 autoCapitalize="none"
                 keyboardType="email-address"
               />
@@ -1161,12 +1161,12 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 <Text style={st.secText}>Send Test</Text>
               </SecondaryButton>
             </View>
-            <Text style={{ color: SAC.dim, fontSize: 11, fontFamily: 'System' }}>
+            <Text style={{ color: T.dim, fontSize: 11, fontFamily: 'System' }}>
               Sends a real preview email to the address above using the current form content.
             </Text>
           </View>
 
-          <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: SAC.border, gap: 10 }}>
+          <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: T.border, gap: 10 }}>
             <SectionLabel>SEND TEST WHATSAPP</SectionLabel>
             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
               <TextInput
@@ -1174,7 +1174,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 value={testPhone}
                 onChangeText={setTestPhone}
                 placeholder="+1 609 651 4555"
-                placeholderTextColor={SAC.dim}
+                placeholderTextColor={T.dim}
                 autoCapitalize="none"
                 keyboardType="phone-pad"
               />
@@ -1182,7 +1182,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 <Text style={st.secText}>Send Test</Text>
               </SecondaryButton>
             </View>
-            <Text style={{ color: SAC.dim, fontSize: 11, fontFamily: 'System' }}>
+            <Text style={{ color: T.dim, fontSize: 11, fontFamily: 'System' }}>
               Sends a real WhatsApp message to the number above. Requires OpenWA configured in Settings → Integrations.
             </Text>
           </View>
@@ -1332,7 +1332,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 function ChannelPill({ icon: Icon, label, active, onToggle }: { icon: any; label: string; active: boolean; onToggle: () => void }) {
   return (
     <Pressable onPress={onToggle} style={[st.channelPill, active && st.channelPillActive]}>
-      <Icon size={13} color={active ? '#fff' : SAC.muted} />
+      <Icon size={13} color={active ? '#fff' : T.muted} />
       <Text style={[st.channelPillText, active && st.channelPillTextActive]}>{label}</Text>
     </Pressable>
   );
@@ -1355,33 +1355,33 @@ function StatPill({ icon: Icon, label, kind = 'success' }: { icon: any; label: s
 
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
-  sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
-  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
+  title: { color: T.text, fontFamily: FONTS.xbold, fontSize: 16 },
+  sub: { color: T.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
+  secText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  muted: { color: T.muted, fontFamily: FONTS.med, fontSize: 12 },
   kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  label: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.5, marginBottom: 4 },
-  hint: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginBottom: 4, lineHeight: 15 },
+  label: { color: T.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.5, marginBottom: 4 },
+  hint: { color: T.dim, fontFamily: FONTS.med, fontSize: 11, marginBottom: 4, lineHeight: 15 },
   input: {
     height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)',
-    color: SAC.text, fontFamily: FONTS.med, fontSize: 13, paddingHorizontal: 12,
-    borderWidth: 1, borderColor: SAC.border,
+    color: T.text, fontFamily: FONTS.med, fontSize: 13, paddingHorizontal: 12,
+    borderWidth: 1, borderColor: T.border,
   },
   checkRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     padding: 10, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1, borderColor: SAC.border,
+    borderWidth: 1, borderColor: T.border,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   checkbox: {
-    width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: SAC.muted,
+    width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: T.muted,
     alignItems: 'center', justifyContent: 'center',
   },
   checkboxOn: { backgroundColor: GRAD.from, borderColor: GRAD.from },
-  checkLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
-  checkSub: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
-  btnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5, marginLeft: 6 },
+  checkLabel: { color: T.text, fontFamily: FONTS.bold, fontSize: 12.5 },
+  checkSub: { color: T.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
+  btnText: { color: T.text, fontFamily: FONTS.bold, fontSize: 12.5, marginLeft: 6 },
   confirmBox: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 10,
     padding: 10, borderRadius: 10, backgroundColor: 'rgba(252,211,77,0.08)',
@@ -1393,12 +1393,12 @@ const st = StyleSheet.create({
     padding: 12, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.10)',
     borderWidth: 1, borderColor: 'rgba(124,58,237,0.35)',
   },
-  editBannerTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
-  editBannerSub: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1, lineHeight: 15 },
+  editBannerTitle: { color: T.text, fontFamily: FONTS.bold, fontSize: 12.5 },
+  editBannerSub: { color: T.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1, lineHeight: 15 },
   editBannerCancel: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 9, paddingVertical: 5, borderRadius: 7,
-    borderWidth: 1, borderColor: SAC.border, backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1, borderColor: T.border, backgroundColor: 'rgba(255,255,255,0.04)',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   editBannerCancelText: { color: '#94a3b8', fontFamily: FONTS.bold, fontSize: 10.5 },
@@ -1408,52 +1408,52 @@ const st = StyleSheet.create({
   },
   campRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: SAC.border,
+    paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: T.border,
   },
-  campTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
-  campMeta: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
+  campTitle: { color: T.text, fontFamily: FONTS.bold, fontSize: 12.5 },
+  campMeta: { color: T.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
   // Tabs
   tabRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   tab: {
     flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: 8, borderWidth: 1, borderColor: SAC.border, backgroundColor: 'transparent',
+    borderRadius: 8, borderWidth: 1, borderColor: T.border, backgroundColor: 'transparent',
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   tabActive: { backgroundColor: GRAD.from, borderColor: GRAD.from },
-  tabText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  tabTextActive: { color: SAC.text },
+  tabText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  tabTextActive: { color: T.text },
   // Channel toggles
   channelSection: { marginTop: 4 },
-  channelLabel: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.5, marginBottom: 6 },
+  channelLabel: { color: T.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.5, marginBottom: 6 },
   channelRow: { flexDirection: 'row', gap: 8 },
   channelPill: {
     flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 8, borderWidth: 1, borderColor: SAC.border, backgroundColor: 'transparent',
+    borderRadius: 8, borderWidth: 1, borderColor: T.border, backgroundColor: 'transparent',
     ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } as any : {}),
   },
   channelPillActive: { backgroundColor: 'rgba(124,58,237,0.2)', borderColor: '#7C3AED' },
-  channelPillText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  channelPillTextActive: { color: SAC.text },
+  channelPillText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  channelPillTextActive: { color: T.text },
   // User search
   searchWrap: { position: 'relative' },
   searchIcon: { position: 'absolute', left: 12, top: 13, zIndex: 1 },
   searchResults: {
-    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 10,
+    backgroundColor: T.card, borderColor: T.border, borderWidth: 1, borderRadius: 10,
     maxHeight: 180, overflow: 'hidden',
   },
   searchResultItem: {
     flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: SAC.border,
+    borderBottomWidth: 1, borderBottomColor: T.border,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
-  searchResultName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
-  searchResultEmail: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
-  searchResultRole: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10, textTransform: 'capitalize' },
+  searchResultName: { color: T.text, fontFamily: FONTS.bold, fontSize: 12.5 },
+  searchResultEmail: { color: T.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
+  searchResultRole: { color: T.muted, fontFamily: FONTS.med, fontSize: 10, textTransform: 'capitalize' },
   selectedUser: {
     flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 10,
     backgroundColor: 'rgba(124,58,237,0.08)', borderWidth: 1, borderColor: 'rgba(124,58,237,0.25)',
   },
-  selectedUserName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
-  selectedUserEmail: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
+  selectedUserName: { color: T.text, fontFamily: FONTS.bold, fontSize: 13 },
+  selectedUserEmail: { color: T.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   selectedUserClear: { color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 12 },
 });

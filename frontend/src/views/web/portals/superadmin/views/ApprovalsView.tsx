@@ -59,7 +59,7 @@ function ReviewPanel({ item, onClose, onApprove, onReject }: {
                 <Text style={rpst.sub}>Approve or reject this {item.kind} request</Text>
               </View>
             </View>
-            <Pressable onPress={onClose} style={rpst.xBtn}><X size={16} color={SAC.muted} /></Pressable>
+            <Pressable onPress={onClose} style={rpst.xBtn}><X size={16} color={T.muted} /></Pressable>
           </View>
 
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 14, paddingBottom: 20 }}>
@@ -79,17 +79,17 @@ function ReviewPanel({ item, onClose, onApprove, onReject }: {
 
             <View style={rpst.detailCard}>
               <View style={rpst.detailRow}>
-                <Briefcase size={13} color={SAC.muted} />
+                <Briefcase size={13} color={T.muted} />
                 <Text style={rpst.detailLabel}>Type</Text>
                 <Text style={rpst.detailVal}>{kindLabel(item.kind)}</Text>
               </View>
               <View style={rpst.detailRow}>
-                <MapPin size={13} color={SAC.muted} />
+                <MapPin size={13} color={T.muted} />
                 <Text style={rpst.detailLabel}>Details</Text>
                 <Text style={rpst.detailVal} numberOfLines={2}>{item.meta}</Text>
               </View>
               <View style={rpst.detailRow}>
-                <Clock size={13} color={SAC.muted} />
+                <Clock size={13} color={T.muted} />
                 <Text style={rpst.detailLabel}>Requested</Text>
                 <Text style={rpst.detailVal}>Pending review</Text>
               </View>
@@ -104,7 +104,7 @@ function ReviewPanel({ item, onClose, onApprove, onReject }: {
                 <TextInput
                   style={rpst.rejectInput}
                   placeholder="The applicant will see this. Keep it kind & specific."
-                  placeholderTextColor={SAC.dim}
+                  placeholderTextColor={T.dim}
                   value={rejectReason}
                   onChangeText={setRejectReason}
                   multiline
@@ -143,24 +143,24 @@ function ReviewPanel({ item, onClose, onApprove, onReject }: {
 
 const rpst = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { flex: 1, backgroundColor: SAC.panel2 },
+  backdrop: { flex: 1, backgroundColor: T.panel2 },
   panel: {
-    backgroundColor: SAC.bg2, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: T.bg2, borderTopLeftRadius: 20, borderTopRightRadius: 20,
     padding: 20, maxHeight: '80%', minHeight: 340,
-    borderTopWidth: 1, borderTopColor: SAC.border,
+    borderTopWidth: 1, borderTopColor: T.border,
   },
   head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
   title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
-  sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
+  sub: { color: T.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   xBtn: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
   profile: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 4 },
   name: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 17 },
   detailCard: {
-    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
+    backgroundColor: T.card, borderColor: T.border, borderWidth: 1,
     borderRadius: 12, padding: 14, gap: 12,
   },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  detailLabel: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, width: 60 },
+  detailLabel: { color: T.muted, fontFamily: FONTS.med, fontSize: 12, width: 60 },
   detailVal: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
   rejectBox: {
     backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.25)',
@@ -168,13 +168,13 @@ const rpst = StyleSheet.create({
   },
   rejectTitle: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12.5 },
   rejectInput: {
-    height: 80, borderRadius: 10, backgroundColor: SAC.panel2,
+    height: 80, borderRadius: 10, backgroundColor: T.panel2,
     color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5,
     padding: 12, textAlignVertical: 'top',
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   primaryText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
-  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  secText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 12 },
   dangerText: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 },
 });
 
@@ -321,12 +321,12 @@ export function ApprovalsView() {
                     />
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 5 }}>
-                    <Icon size={11} color={SAC.muted} />
+                    <Icon size={11} color={T.muted} />
                     <Text numberOfLines={1} style={s.meta}>{a.meta}</Text>
                   </View>
                 </View>
                 <SecondaryButton size="sm" onPress={() => setReviewItem(a)}>
-                  <Eye size={12} color={SAC.muted} />
+                  <Eye size={12} color={T.muted} />
                   <Text style={s.secText}>Review</Text>
                 </SecondaryButton>
                 <GradientButton size="sm" onPress={() => onApprove(a.id, a.who)}>
@@ -336,7 +336,7 @@ export function ApprovalsView() {
                 <SecondaryButton size="sm" danger onPress={() => onReject(a.id, a.who)}>
                   <Text style={s.dangerText}>Reject</Text>
                 </SecondaryButton>
-                <ChevronRight size={14} color={SAC.dim} />
+                <ChevronRight size={14} color={T.dim} />
               </Animated.View>
             );
           })}
@@ -351,24 +351,24 @@ export function ApprovalsView() {
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
   title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
-  sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
+  sub:   { color: T.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
 
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 14, paddingHorizontal: 16,
-    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12,
+    backgroundColor: T.card, borderColor: T.border, borderWidth: 1, borderRadius: 12,
   },
   rowSel: { borderColor: GRAD.ring, backgroundColor: 'rgba(245,158,11,0.04)' },
   check: {
-    width: 18, height: 18, borderRadius: 5, borderWidth: 1.4, borderColor: SAC.border2,
+    width: 18, height: 18, borderRadius: 5, borderWidth: 1.4, borderColor: T.border2,
     alignItems: 'center', justifyContent: 'center',
   },
   checkOn: { backgroundColor: GRAD.to, borderColor: GRAD.to },
 
   name: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13.5 },
-  meta: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
+  meta: { color: T.muted, fontFamily: FONTS.med, fontSize: 11.5 },
 
   primaryText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 11.5 },
-  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+  secText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
   dangerText: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 11.5 },
 });

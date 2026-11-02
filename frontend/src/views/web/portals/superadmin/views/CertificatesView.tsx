@@ -186,7 +186,7 @@ function RegistryTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <View style={[s.inputRow, { flex: 1 }]}>
-            <Search size={15} color={SAC.muted} />
+            <Search size={15} color={T.muted} />
             <TextInput
               value={q}
               onChangeText={(t) => { setQ(t); }}
@@ -368,7 +368,7 @@ function IssueTab({ onSaved }: { onSaved: (s?: string) => void }) {
         <View style={s.field}>
           <Text style={s.label}>Recipient Email *</Text>
           <View style={s.inputRow}>
-            <Mail size={15} color={SAC.muted} />
+            <Mail size={15} color={T.muted} />
             <TextInput
               value={email}
               onChangeText={setEmail}
@@ -384,7 +384,7 @@ function IssueTab({ onSaved }: { onSaved: (s?: string) => void }) {
         <View style={s.field}>
           <Text style={s.label}>Certificate Title *</Text>
           <View style={s.inputRow}>
-            <Award size={15} color={SAC.muted} />
+            <Award size={15} color={T.muted} />
             <TextInput
               value={title}
               onChangeText={setTitle}
@@ -398,7 +398,7 @@ function IssueTab({ onSaved }: { onSaved: (s?: string) => void }) {
         <View style={s.field}>
           <Text style={s.label}>Issuer</Text>
           <View style={s.inputRow}>
-            <Sparkles size={15} color={SAC.muted} />
+            <Sparkles size={15} color={T.muted} />
             <TextInput
               value={issuer}
               onChangeText={setIssuer}
@@ -814,7 +814,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
             <View style={s.field}>
               <Text style={s.label}>Recipient Email *</Text>
               <View style={s.inputRow}>
-                <Mail size={15} color={SAC.muted} />
+                <Mail size={15} color={T.muted} />
                 <TextInput
                   value={email}
                   onChangeText={setEmail}
@@ -829,7 +829,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
             <View style={s.field}>
               <Text style={s.label}>Certificate Title *</Text>
               <View style={s.inputRow}>
-                <Award size={15} color={SAC.muted} />
+                <Award size={15} color={T.muted} />
                 <TextInput
                   value={title}
                   onChangeText={setTitle}
@@ -891,7 +891,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                     <FolderOpen size={14} color="#A78BFA" />
                     <Text style={s.fileName} numberOfLines={1}>{f.name}</Text>
                     <Text style={s.fileSize}>{(f.size / 1024 / 1024).toFixed(1)} MB</Text>
-                    <Pressable onPress={() => setCsvZipFiles(csvZipFiles.filter((_, j) => j !== i))}><X size={14} color={SAC.muted} /></Pressable>
+                    <Pressable onPress={() => setCsvZipFiles(csvZipFiles.filter((_, j) => j !== i))}><X size={14} color={T.muted} /></Pressable>
                   </View>
                 ))}
               </View>
@@ -908,7 +908,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                 <FileText size={14} color="#10B981" />
                 <Text style={s.fileName} numberOfLines={1}>{csvCsvFile.name}</Text>
                 <Text style={s.fileSize}>{(csvCsvFile.size / 1024).toFixed(0)} KB</Text>
-                <Pressable onPress={() => setCsvCsvFile(null)}><X size={14} color={SAC.muted} /></Pressable>
+                <Pressable onPress={() => setCsvCsvFile(null)}><X size={14} color={T.muted} /></Pressable>
               </View>
             )}
 
@@ -1138,11 +1138,11 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
             {files.map((f, i) => (
               <View key={i} style={s.fileRow}>
-                <FileText size={14} color={SAC.muted} />
+                <FileText size={14} color={T.muted} />
                 <Text style={s.fileName} numberOfLines={1}>{f.name}</Text>
                 <Text style={s.fileSize}>{(f.size / 1024 / 1024).toFixed(1)} MB</Text>
                 <Pressable onPress={() => setFiles(files.filter((_, j) => j !== i))}>
-                  <X size={14} color={SAC.muted} />
+                  <X size={14} color={T.muted} />
                 </Pressable>
               </View>
             ))}
@@ -1155,7 +1155,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
             <Text style={s.fileName} numberOfLines={1}>{zipFile.name}</Text>
             <Text style={s.fileSize}>{(zipFile.size / 1024 / 1024).toFixed(1)} MB</Text>
             <Pressable onPress={() => setZipFile(null)}>
-              <X size={14} color={SAC.muted} />
+              <X size={14} color={T.muted} />
             </Pressable>
           </View>
         )}
@@ -1402,7 +1402,7 @@ function ExternalTab({ onSaved }: { onSaved: (s?: string) => void }) {
         <View style={s.field}>
           <Text style={s.label}>Recipient Email *</Text>
           <View style={s.inputRow}>
-            <Mail size={15} color={SAC.muted} />
+            <Mail size={15} color={T.muted} />
             <TextInput value={email} onChangeText={setEmail} placeholder="student@college.edu" placeholderTextColor="#475569" autoCapitalize="none" keyboardType="email-address" style={s.input} />
           </View>
         </View>
@@ -1410,7 +1410,7 @@ function ExternalTab({ onSaved }: { onSaved: (s?: string) => void }) {
         <View style={s.field}>
           <Text style={s.label}>Certificate Title *</Text>
           <View style={s.inputRow}>
-            <Award size={15} color={SAC.muted} />
+            <Award size={15} color={T.muted} />
             <TextInput value={title} onChangeText={setTitle} placeholder="e.g. Python for Everybody" placeholderTextColor="#475569" style={s.input} />
           </View>
         </View>
@@ -1418,7 +1418,7 @@ function ExternalTab({ onSaved }: { onSaved: (s?: string) => void }) {
         <View style={s.field}>
           <Text style={s.label}>Credential URL *</Text>
           <View style={s.inputRow}>
-            <Link2 size={15} color={SAC.muted} />
+            <Link2 size={15} color={T.muted} />
             <TextInput value={url} onChangeText={setUrl} placeholder="https://www.udemy.com/certificate/UC-..." placeholderTextColor="#475569" autoCapitalize="none" autoCorrect={false} style={s.input} />
             <Pressable onPress={classify} style={s.miniBtn}>
               {classifying ? <ActivityIndicator size={12} color="#A78BFA" /> : <Sparkles size={14} color="#A78BFA" />}
@@ -1510,7 +1510,7 @@ function VerifyTab({ onSaved }: { onSaved: (s?: string) => void }) {
         <View style={s.field}>
           <Text style={s.label}>Verification Code</Text>
           <View style={s.inputRow}>
-            <ShieldCheck size={15} color={SAC.muted} />
+            <ShieldCheck size={15} color={T.muted} />
             <TextInput value={code} onChangeText={setCode} placeholder="SA-ABCD-1234" placeholderTextColor="#475569" autoCapitalize="characters" autoCorrect={false} style={[s.input, s.monoInput]} />
             <GradientButton onPress={lookup} loading={busy} size="sm">
               <View style={s.btnInner}><Search size={14} color="#fff" /><Text style={s.btnTextSm}>Verify</Text></View>
@@ -1523,7 +1523,7 @@ function VerifyTab({ onSaved }: { onSaved: (s?: string) => void }) {
         <View style={s.field}>
           <Text style={s.label}>Or look up by recipient email</Text>
           <View style={s.inputRow}>
-            <User size={15} color={SAC.muted} />
+            <User size={15} color={T.muted} />
             <TextInput value={email} onChangeText={setEmail} placeholder="student@college.edu" placeholderTextColor="#475569" autoCapitalize="none" keyboardType="email-address" style={s.input} />
             <GradientButton onPress={byRecipient} loading={busy} size="sm">
               <View style={s.btnInner}><Search size={14} color="#fff" /><Text style={s.btnTextSm}>Find</Text></View>
@@ -1605,9 +1605,9 @@ function InfoRow({ label, value, mono }: { label: string; value?: string; mono?:
 
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 19 },
-  sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 6, lineHeight: 19, maxWidth: 620 },
-  hint: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, lineHeight: 18, marginBottom: 14 },
+  title: { color: T.text, fontFamily: FONTS.xbold, fontSize: 19 },
+  sub: { color: T.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 6, lineHeight: 19, maxWidth: 620 },
+  hint: { color: T.muted, fontFamily: FONTS.med, fontSize: 12, lineHeight: 18, marginBottom: 14 },
   field: { marginBottom: 12 },
   label: { color: '#cbd5e1', fontFamily: FONTS.bold, fontSize: 11.5, marginBottom: 6 },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#1e293b', borderRadius: 10, paddingHorizontal: 12 },
@@ -1649,11 +1649,11 @@ const s = StyleSheet.create({
   fileName: { flex: 1, color: '#cbd5e1', fontFamily: FONTS.med, fontSize: 12 },
   fileSize: { color: '#64748b', fontFamily: FONTS.med, fontSize: 11 },
   btnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  btnText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13 },
-  btnTextSm: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12 },
+  btnText: { color: T.text, fontFamily: FONTS.xbold, fontSize: 13 },
+  btnTextSm: { color: T.text, fontFamily: FONTS.xbold, fontSize: 12 },
   regHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 },
-  regTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
-  regSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, lineHeight: 18, marginTop: 4 },
+  regTitle: { color: T.text, fontFamily: FONTS.xbold, fontSize: 15 },
+  regSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 12, lineHeight: 18, marginTop: 4 },
   countPill: { backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.28)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
   countText: { color: '#c4b5fd', fontFamily: FONTS.xbold, fontSize: 11.5 },
   regFilters: { gap: 8, marginBottom: 12 },
@@ -1677,6 +1677,6 @@ const s = StyleSheet.create({
   regCopyText: { color: '#64748b', fontFamily: FONTS.bold, fontSize: 10.5 },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 16, gap: 14 },
   pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: '#0f172a', borderRadius: 8, borderWidth: 1, borderColor: '#1e293b', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  pageBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
-  pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
+  pageBtnText: { color: T.text, fontFamily: FONTS.bold, fontSize: 12 },
+  pageInfo: { color: T.muted, fontFamily: FONTS.med, fontSize: 12 },
 });
