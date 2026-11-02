@@ -9,7 +9,7 @@ import {
   Image as ImageIcon, Save, X, Upload, Trash2, TrendingUp, RefreshCw
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SAC, FONTS, useSAC, resolveColors } from '../tokens';
+import { SAC, FONTS, useSAC, resolveColors, pristineOf } from '../tokens';
 import { GRAD, useToast, Toast } from '../applekit';
 import { usePortalData, postPortal, fetchPortal } from '@/src/lib/portalApi';
 import { resolveImageUrl } from '@/src/models/services/api';
@@ -78,7 +78,7 @@ function titleCase(v?: string | null): string {
 
 export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void }) {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const user = useAuthStore((st) => st.user);
   const firstName = (user?.full_name || 'Admin').split(' ')[0];
 

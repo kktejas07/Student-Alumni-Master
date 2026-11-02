@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Modal } from 'react-native';
 import { Bot, Sparkles, Play, ShieldCheck, Database, CheckCircle, Code, Layers, FileText, Zap, RefreshCw, Users, Plus, Trash2, Pencil, X, Megaphone, Target, ArrowRight, Globe, Mail, Phone, ExternalLink, Gift, UserCheck, Building2, Search, Send, Clock, LayoutGrid, Columns, Award, DollarSign, Radio, FileCheck, Share2, PenTool, MapPin, Mic } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import { Badge } from '../atoms';
 import { postPortal, getPortal, putPortal, deletePortal } from '@/src/lib/portalApi';
 import { useToast, Toast } from '../applekit';
@@ -10,7 +10,7 @@ import { CICDEvaluatorView } from './CICDEvaluatorView';
 
 export function AutonomousAgentsView() {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const { toast, flash, hide } = useToast();
 
   // Autonomous Goodies Harvester & Multi-Spec Outreach State

@@ -22,7 +22,7 @@ import {
   Pencil, Eye, EyeOff, RefreshCw, Filter, Download, FileText, Globe,
   Square, SquareCheck, CheckSquare, ShieldCheck, LayoutGrid, Send, Tag, FileDown,
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   TopTabs, SearchField, StatusPill, GradientPill, Toast, useToast, EmptyState,
@@ -66,7 +66,7 @@ type TabId = 'upload' | 'manual' | 'history' | 'browse';
 
 export function ImportsView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const [tab, setTab] = useSubTab<TabId>(['browse', 'upload', 'manual', 'history'], 'browse', { sub, onSub });
   const { toast, flash, hide } = useToast();
   const [refreshKey, setRefreshKey] = useState(0);

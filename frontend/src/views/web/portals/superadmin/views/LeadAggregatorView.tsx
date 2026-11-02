@@ -6,13 +6,13 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Target } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import { Card, IconBox, GRAD } from '../applekit';
 import { LeadAggregatorDashboard } from '@/src/views/web/LeadAggregatorDashboard';
 
 export function LeadAggregatorView() {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
 
   return (
     <View style={{ gap: 14 }}>

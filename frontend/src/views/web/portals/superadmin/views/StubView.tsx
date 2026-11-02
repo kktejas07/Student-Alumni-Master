@@ -4,11 +4,11 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Sparkles } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 
 export function StubView({ title, note }: { title: string; note: string }) {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   return (
     <View style={s.wrap}>
       <View style={s.icon}><Sparkles size={26} color={T.accent} /></View>

@@ -15,7 +15,7 @@ import {
   Store, Plus, Pencil, KeyRound, Mail, Trash2, RefreshCw, Search, X,
   Wallet, ShoppingBag, Package,
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, SectionLabel, StatusPill,
   KpiTile, EmptyState, useToast, Toast,
@@ -47,7 +47,7 @@ const invRaw = (v: any) => v ?? 0;
 
 export function VendorsView() {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const { toast, flash, hide } = useToast();
 
   const [vendors, setVendors] = useState<any[]>([]);

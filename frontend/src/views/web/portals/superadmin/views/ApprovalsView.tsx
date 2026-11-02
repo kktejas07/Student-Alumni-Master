@@ -14,7 +14,7 @@ import {
 } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import Svg, { Rect, Circle, Path } from 'react-native-svg';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import { Av } from '../atoms';
 import {
   GRAD, GradientButton, SecondaryButton, TopTabs, SearchField,
@@ -281,7 +281,7 @@ const rpst = StyleSheet.create({
     backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.25)',
     borderWidth: 1, borderRadius: 12, padding: 14,
   },
-  rejectTitle: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12.5 },
+  rejectTitle: { color: SAC.danger, fontFamily: FONTS.bold, fontSize: 12.5 },
   rejectInput: {
     height: 80, borderRadius: 10, backgroundColor: SAC.panel2,
     color: SAC.text, fontFamily: FONTS.med, fontSize: 12.5,
@@ -290,13 +290,13 @@ const rpst = StyleSheet.create({
   },
   primaryText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  dangerText: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 },
+  dangerText: { color: SAC.danger, fontFamily: FONTS.bold, fontSize: 12 },
   trailCard: {
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
     borderRadius: 12, padding: 14,
   },
   trailHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  trailTitle: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12.5 },
+  trailTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
   trailEmpty: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11.5 },
   trailRow: { flexDirection: 'row', gap: 10 },
   trailGutter: { width: 12, alignItems: 'center' },
@@ -310,7 +310,7 @@ const rpst = StyleSheet.create({
 
 export function ApprovalsView() {
   const T = useSAC();
-  Object.assign(rpst, resolveColors(rpst, T));
+  Object.assign(rpst, resolveColors(pristineOf(rpst), T));
   const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/approvals', FALLBACK);
   const [tab, setTab] = useState<'all' | 'overdue' | 'college' | 'mentor' | 'event'>('all');
   const [actioned, setActioned] = useState<Record<string, 'approved' | 'rejected'>>({});
@@ -485,12 +485,12 @@ export function ApprovalsView() {
           </View>
           <View style={s.slaDivider} />
           <View style={s.slaStat}>
-            <Text style={[s.slaStatValue, { color: '#FCD34D' }]}>{counts.due_soon || 0}</Text>
+            <Text style={[s.slaStatValue, { color: T.amber }]}>{counts.due_soon || 0}</Text>
             <Text style={s.slaStatLabel}>DUE SOON</Text>
           </View>
           <View style={s.slaDivider} />
           <View style={s.slaStat}>
-            <Text style={[s.slaStatValue, { color: '#86EFAC' }]}>
+            <Text style={[s.slaStatValue, { color: T.ok }]}>
               {Math.max((counts.all || 0) - (counts.overdue || 0) - (counts.due_soon || 0), 0)}
             </Text>
             <Text style={s.slaStatLabel}>ON TRACK</Text>

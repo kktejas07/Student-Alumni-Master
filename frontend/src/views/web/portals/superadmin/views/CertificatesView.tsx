@@ -22,7 +22,7 @@ import {
   Sparkles, Link2, X, AlertTriangle, CheckCircle2, User, FileUp, FileText,
   FolderOpen, RefreshCw, Copy, Trash2,
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import {
   GRAD, GradientButton, Card, IconBox, SectionLabel,
   TopTabs, Toast, useToast,
@@ -41,7 +41,7 @@ const TAB_IDS: TabId[] = ['templates', 'registry', 'issue', 'bulk', 'files', 'ex
 
 export function CertificatesView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const [tab, setTab] = useSubTab<TabId>(TAB_IDS, 'templates', { sub, onSub });
   const { toast, flash, hide } = useToast();
 

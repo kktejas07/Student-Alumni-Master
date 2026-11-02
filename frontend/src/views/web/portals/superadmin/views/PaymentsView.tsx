@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions, TextInput, ScrollView, Modal } from 'react-native';
 import { ArrowDown, ArrowUp, Wallet, CreditCard, Download, IndianRupee, TrendingUp, AlertTriangle, BadgePercent, Edit3, Trash2, X, Check, Zap } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import { GRAD, Card, IconBox, KpiTile, StatusPill, GradientButton, SecondaryButton, SectionLabel, useToast, Toast } from '../applekit';
 import { usePortalData } from '@/src/lib/portalApi';
 import { request } from '@/src/models/services/api';
@@ -158,9 +158,9 @@ const edst = StyleSheet.create({
 
 export function PaymentsView() {
   const T = useSAC();
-  Object.assign(edst, resolveColors(edst, T));
-  Object.assign(st, resolveColors(st, T));
-  Object.assign(setSt, resolveColors(setSt, T));
+  Object.assign(edst, resolveColors(pristineOf(edst), T));
+  Object.assign(st, resolveColors(pristineOf(st), T));
+  Object.assign(setSt, resolveColors(pristineOf(setSt), T));
   const { toast, flash, hide } = useToast();
   const [exporting, setExporting] = useState(false);
   const [payoutLoading, setPayoutLoading] = useState(false);
@@ -384,19 +384,19 @@ export function PaymentsView() {
                 <View style={setSt.sumRow}>
                   <View style={setSt.sumTile}>
                     <Text style={setSt.sumLabel}>Total Collected</Text>
-                    <Text style={[setSt.sumVal, { color: '#86EFAC' }]}>₹{(settlements?.totals?.gross || 0).toLocaleString('en-IN')}</Text>
+                    <Text style={[setSt.sumVal, { color: T.ok }]}>₹{(settlements?.totals?.gross || 0).toLocaleString('en-IN')}</Text>
                   </View>
                   <View style={setSt.sumTile}>
                     <Text style={setSt.sumLabel}>Razorpay Fees</Text>
-                    <Text style={[setSt.sumVal, { color: '#FCA5A5' }]}>-₹{(settlements?.totals?.fees || 0).toLocaleString('en-IN')}</Text>
+                    <Text style={[setSt.sumVal, { color: T.danger }]}>-₹{(settlements?.totals?.fees || 0).toLocaleString('en-IN')}</Text>
                   </View>
                   <View style={setSt.sumTile}>
                     <Text style={setSt.sumLabel}>GST (18%)</Text>
-                    <Text style={[setSt.sumVal, { color: '#FCA5A5' }]}>-₹{(settlements?.totals?.tax || 0).toLocaleString('en-IN')}</Text>
+                    <Text style={[setSt.sumVal, { color: T.danger }]}>-₹{(settlements?.totals?.tax || 0).toLocaleString('en-IN')}</Text>
                   </View>
                   <View style={setSt.sumTile}>
                     <Text style={setSt.sumLabel}>Net Settled</Text>
-                    <Text style={[setSt.sumVal, { color: '#93C5FD' }]}>₹{(settlements?.totals?.settled || 0).toLocaleString('en-IN')}</Text>
+                    <Text style={[setSt.sumVal, { color: T.sky }]}>₹{(settlements?.totals?.settled || 0).toLocaleString('en-IN')}</Text>
                   </View>
                 </View>
 
@@ -487,7 +487,7 @@ const st = StyleSheet.create({
   evDot: { width: 8, height: 8, borderRadius: 4 },
   evName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
   evMeta: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
-  evAmt: { color: '#86EFAC', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  evAmt: { color: SAC.ok, fontFamily: FONTS.xbold, fontSize: 12.5 },
   editBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(245,158,11,0.10)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.30)' },
   editBtnText: { color: GRAD.to, fontFamily: FONTS.bold, fontSize: 10.5 },
 });
@@ -508,8 +508,8 @@ const setSt = StyleSheet.create({
   },
   rowTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
   rowMeta: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10, marginTop: 2 },
-  rowAmtGreen: { color: '#86EFAC', fontFamily: FONTS.xbold, fontSize: 13 },
-  rowAmtRed: { color: '#FCA5A5', fontFamily: FONTS.med, fontSize: 10.5 },
-  rowStatus: { color: '#93C5FD', fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 0.4, marginTop: 2 },
+  rowAmtGreen: { color: SAC.ok, fontFamily: FONTS.xbold, fontSize: 13 },
+  rowAmtRed: { color: SAC.danger, fontFamily: FONTS.med, fontSize: 10.5 },
+  rowStatus: { color: SAC.sky, fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 0.4, marginTop: 2 },
   statusDot: { width: 7, height: 7, borderRadius: 4 },
 });
