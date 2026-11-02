@@ -761,7 +761,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                       start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
                       style={{ width: '100%', height: h, borderTopLeftRadius: 5, borderTopRightRadius: 5, opacity: isLast ? 1 : 0.7 }}
                     />
-                    <Text style={[s.barMonth, isLast && { color: '#F4F4FA', fontFamily: FONTS.bold }]}>{m.month}</Text>
+                    <Text style={[s.barMonth, isLast && { color: SAC.text, fontFamily: FONTS.bold }]}>{m.month}</Text>
                   </View>
                 );
               })}
@@ -817,29 +817,29 @@ const s = StyleSheet.create({
     paddingHorizontal: 22, paddingVertical: 18,
   },
   heroKicker: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1.2, marginBottom: 6 },
-  heroTitle:  { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 19, letterSpacing: -0.4 },
+  heroTitle:  { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 19, letterSpacing: -0.4 },
   heroPrimary: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10, backgroundColor: SAC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   heroPrimaryText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12 },
   heroSec: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10,    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
-  heroSecText: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
+  heroSecText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
 
   card: { backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 18 },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15, letterSpacing: -0.2 },
+  cardTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15, letterSpacing: -0.2 },
   cardSub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
   linkRight: { color: SAC.accentBright, fontFamily: FONTS.bold, fontSize: 11.5 },
 
   activityRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   activityIcon: { width: 34, height: 34, borderRadius: 9, backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  activityText: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 13 },
+  activityText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
   activitySub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
   activityDot: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11 },
   activityTime: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11 },
 
-  distLabel: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12.5 },
-  distPct:   { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  distLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
+  distPct:   { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12.5 },
   distCount: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 5 },
-  distTrack: { height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.04)', overflow: 'hidden' },
+  distTrack: { height: 5, borderRadius: 3, backgroundColor: 'rgba(20,23,38,0.04)', overflow: 'hidden' },
   distFill:  { height: '100%', borderRadius: 3 },
   revAmount: { color: SAC.accentBright, fontFamily: FONTS.xbold, fontSize: 12.5 },
 
@@ -863,7 +863,7 @@ const s = StyleSheet.create({
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
     borderRadius: 14, padding: 14,
   },
-  adManagerTitle: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 13 },
+  adManagerTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
   adEditBtn: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
     backgroundColor: SAC.primary,
@@ -877,17 +877,17 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? { position: 'fixed' } as any : {}),
   },
   adEditorModal: {
-    backgroundColor: '#101019', borderColor: SAC.border, borderWidth: 1,
+    backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1,
     borderRadius: 16, padding: 20, width: '90%', maxWidth: 440,
     gap: 8,
     ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.60)' } as any : {}),
   },
-  adEditorTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
+  adEditorTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
   adFieldLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, marginTop: 6 },
   adFieldInput: {
     backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1,
     borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
-    color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
+    color: SAC.text, fontFamily: FONTS.med, fontSize: 13,
   },
   adEmptyDrop: {
     alignItems: 'center', gap: 8, paddingVertical: 22, paddingHorizontal: 12,
