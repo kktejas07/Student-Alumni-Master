@@ -74,8 +74,8 @@ export function SuperAdminPortalRN() {
   }, []);
 
   const onLogout = async () => {
-    router.replace('/welcome');
     try { await logout(); } catch {}
+    router.replace('/welcome');
   };
   const nav = (id: string) => go(id);
   const subFor = () => ({ sub, onSub: (s: string) => go(active, s) });
