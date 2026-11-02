@@ -3153,8 +3153,16 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
         else:
             state_by_user[other] = st
 
-    # Pull a healthy candidate set
-    base_query: dict = {"_id": {"$ne": user["_id"]}}
+    # Pull a healthy candidate set. Only surface *real* backend users:
+    # registered accounts have a password_hash and are not admin-imported
+    # contact rows. Imported CSV rows carry `imported: True` and no
+    # password_hash, so the Network page never shows unregistered/seeded
+    # contacts as discoverable people.
+    base_query: dict = {
+        "_id": {"$ne": user["_id"]},
+        "imported": {"$ne": True},
+        "password_hash": {"$exists": True},
+    }
     is_search = bool(q and q.strip())
     if is_search:
         rx = {"$regex": re.escape(q.strip()), "$options": "i"}
@@ -3232,7 +3240,10 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
         by_college = cards
 
     # Section: mentors (approved)
-    mentor_q: dict = {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved"}
+    # Same "real user" filter as the discover pool: never surface
+    # admin-imported contact rows in the Recommended Mentors section.
+    mentor_q: dict = {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved",
+                      "imported": {"$ne": True}, "password_hash": {"$exists": True}}
     if is_search:
         mentor_rx = {"$regex": re.escape(q.strip()), "$options": "i"}
         mentor_q["$or"] = [
@@ -3321,11 +3332,17 @@ async def network_counts(user: dict = Depends(get_current_user)):
 
     industry = mentors + alumni (the two roles the frontend's "Industry"
     pill maps to), so the pill badge matches what the filtered list shows.
+
+    Counts only *real* registered users (same filter as
+    /network/discover): excludes admin-imported contact rows and anyone
+    without a password_hash, so the pill number equals the people the
+    discover list can actually surface.
     """
+    real_user = {"imported": {"$ne": True}, "password_hash": {"$exists": True}}
     counts = await asyncio.gather(
-        db.users.count_documents({"role": "student"}),
-        db.users.count_documents({"role": "alumni"}),
-        db.users.count_documents({"role": "mentor", "mentor_status": "approved"}),
+        db.users.count_documents({**{"role": "student"}, **real_user}),
+        db.users.count_documents({**{"role": "alumni"}, **real_user}),
+        db.users.count_documents({**{"role": "mentor", "mentor_status": "approved"}, **real_user}),
     )
     students, alumni, mentors = counts
     return {
