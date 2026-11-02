@@ -106,7 +106,7 @@ const makeCardHoverShadow = (dark: boolean) => Platform.OS === 'web'
 
 const makeStyles = (dark: boolean) => StyleSheet.create({
   card: {
-    backgroundColor: dark ? '#0A0A2A' : '#FFFFFF',
+    backgroundColor: dark ? '#14141F' : '#FFFFFF',
     borderColor: dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)',
     borderWidth: 1,
     borderRadius: RADIUS.card,
@@ -118,7 +118,7 @@ const makeStyles = (dark: boolean) => StyleSheet.create({
   },
   cardHover: {
     backgroundColor: dark ? 'rgba(26, 30, 50, 0.90)' : 'rgba(241, 245, 249, 0.90)',
-    borderColor: dark ? 'rgba(129, 140, 248, 0.30)' : 'rgba(99, 102, 241, 0.30)',
+    borderColor: dark ? 'rgba(167, 139, 250, 0.30)' : 'rgba(98, 70, 232, 0.30)',
     ...makeCardHoverShadow(dark),
   },
   body: {

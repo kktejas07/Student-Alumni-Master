@@ -2,7 +2,7 @@
 /**
  * DashboardView — Pixel-perfect implementation of the Complete Student Alumni
  * Web Dashboard specification (Bundle 2).
- * 
+ *
  * Contains:
  *  - HackWave 3.0 & Voice of Generations Hero Carousel with live indicators
  *  - 5 Collab Exclusive Coupon Cards with shimmer sweep
@@ -537,7 +537,7 @@ export function DashboardView() {
               <div style={{ fontSize: '12.5px', color: C.textSecondary, marginTop: '8px' }}>0 applied</div>
             </div>
             <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: isDark ? 'rgba(124,92,252,.14)' : 'rgba(124,92,252,.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: isDark ? '#A78BFA' : '#7C5CFC' }}>
-              
+
             </span>
           </div>
         </div>
@@ -551,7 +551,7 @@ export function DashboardView() {
               <div style={{ fontSize: '12.5px', color: C.textSecondary, marginTop: '8px' }}>Connections</div>
             </div>
             <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: isDark ? 'rgba(16, 185, 129, 0.13)' : 'rgba(16, 185, 129, 0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: isDark ? '#34D399' : '#059669' }}>
-              
+
             </span>
           </div>
         </div>
@@ -565,7 +565,7 @@ export function DashboardView() {
               <div style={{ fontSize: '12.5px', color: C.textSecondary, marginTop: '8px' }}>Registered</div>
             </div>
             <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: isDark ? 'rgba(240, 97, 107, 0.13)' : 'rgba(240, 97, 107, 0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: isDark ? '#F0616B' : '#E11D48' }}>
-              
+
             </span>
           </div>
         </div>
@@ -708,21 +708,21 @@ export function DashboardView() {
               <div className="db-card" style={{ background: C.bgCard, padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '400px', border: `1px solid ${C.borderCard}` }}>
                 <div style={{ fontSize: '18px', fontWeight: 600, color: C.textPrimary, marginBottom: '12px' }}>Confirm Application</div>
                 <div style={{ fontSize: '14px', color: C.textSecondary, marginBottom: '24px', lineHeight: '1.5' }}>
-                  We redirected you to the external application page for <span style={{ color: C.textPrimary, fontWeight: 600 }}>{applyModalJob.title}</span> at <span style={{ color: C.textPrimary, fontWeight: 600 }}>{applyModalJob.company}</span>. 
+                  We redirected you to the external application page for <span style={{ color: C.textPrimary, fontWeight: 600 }}>{applyModalJob.title}</span> at <span style={{ color: C.textPrimary, fontWeight: 600 }}>{applyModalJob.company}</span>.
                   <br /><br />
                   Once you finish submitting your details there, confirm it here to track its progress in your dashboard.
                 </div>
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                  <button 
+                  <button
                     onClick={() => setApplyModalJob(null)}
                     style={{ padding: '10px 16px', borderRadius: '8px', background: 'transparent', color: C.textSecondary, border: 'none', cursor: 'pointer', fontWeight: 600 }}
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     onClick={async () => {
                       try {
-                        await request(`/student/internships/${applyModalJob.id || applyModalJob.job_id}/apply`, { 
+                        await request(`/student/internships/${applyModalJob.id || applyModalJob.job_id}/apply`, {
                           method: 'POST',
                           body: { student_email: authUser?.email || undefined }
                         });
@@ -864,7 +864,7 @@ export function DashboardView() {
                 const c = colors[idx % colors.length];
                 const matchPct = Math.min(100, Math.max(0, Math.round((m.match_score || 0) * 100)));
                 const sub = `${m.company || 'Unknown'} · ${m.location || 'Remote'}${m.stipend ? ' · ' + m.stipend : ''}`;
-                
+
                 return (
                 <div key={m.id || idx} style={{ display: 'grid', gridTemplateColumns: '38px minmax(0, 1fr) 92px max-content', gap: '13px', alignItems: 'center', borderRadius: '11px', padding: '10px 11px', background: C.bgCardAlt, border: `1px solid ${C.borderItem}` }}>
                   <span style={{ width: '38px', height: '38px', borderRadius: '10px', background: c.bg, color: c.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 700 }}>
@@ -880,7 +880,7 @@ export function DashboardView() {
                     </div>
                     <div style={{ fontSize: '11px', color: C.textSecondary }}>{matchPct}% match</div>
                   </div>
-                  <button 
+                  <button
                     disabled={m.applied}
                     onClick={() => {
                       if (m.applied) return;
@@ -1082,7 +1082,11 @@ export function DashboardView() {
                 <div style={{ fontSize: '14px', lineHeight: 1.6, color: C.textSecondary, marginBottom: '20px' }}>
                   You're on the right track! Consistent action can take you from <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>36%</strong> to <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>92%</strong> readiness in 18 weeks.
                 </div>
-                <button style={{ width: '100%', padding: '11px', fontSize: '13.5px', fontWeight: 600, color: isDark ? '#A78BFA' : '#7C5CFC', border: `1px solid ${C.insightBorder}`, background: 'transparent', borderRadius: '9px', cursor: 'pointer' }}>
+                <button
+                  type="button"
+                  onClick={() => portalNav?.navigate('career-ai')}
+                  style={{ width: '100%', padding: '11px', fontSize: '13.5px', fontWeight: 600, color: isDark ? '#A78BFA' : '#7C5CFC', border: `1px solid ${C.insightBorder}`, background: 'transparent', borderRadius: '9px', cursor: 'pointer' }}
+                >
                   View Full Analysis
                 </button>
               </div>
@@ -1125,7 +1129,7 @@ export function DashboardView() {
                 <span style={{ fontSize: '11px', fontWeight: 700, color: isDark ? '#34D399' : '#059669', background: isDark ? 'rgba(52,211,153,0.12)' : 'rgba(52,211,153,0.10)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '4px 8px' }}>FEATURED</span>
               </div>
               <div style={{ fontSize: '17px', fontWeight: 700, color: C.textPrimary }}>Resume & Mock Interview Pass</div>
-              
+
               <div style={{ background: C.proTipBg, border: `1px solid ${C.proTipBorder}`, borderRadius: '12px', padding: '12px 14px' }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: C.textSecondary, marginBottom: '4px' }}>PRO TIP</div>
                 <div style={{ fontSize: '13px', color: C.proTipText, lineHeight: 1.5 }}>
@@ -1158,7 +1162,7 @@ export function DashboardView() {
                 <span style={{ fontSize: '11px', fontWeight: 700, color: isDark ? '#34D399' : '#059669', background: isDark ? 'rgba(52,211,153,0.12)' : 'rgba(52,211,153,0.10)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '4px 8px' }}>LIVE OFFER</span>
               </div>
               <div style={{ fontSize: '17px', fontWeight: 700, color: C.textPrimary }}>VIP Gate Pass & Meal Voucher</div>
-              
+
               <div style={{ background: C.proTipBg, border: `1px solid ${C.proTipBorder}`, borderRadius: '12px', padding: '12px 14px' }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: C.textSecondary, marginBottom: '4px' }}>PRO TIP</div>
                 <div style={{ fontSize: '13px', color: C.proTipText, lineHeight: 1.5 }}>
@@ -1191,7 +1195,7 @@ export function DashboardView() {
                 <span style={{ fontSize: '11px', fontWeight: 700, color: isDark ? '#F59E0B' : '#D97706', background: isDark ? 'rgba(245,179,66,0.12)' : 'rgba(245,179,66,0.10)', border: '1px solid rgba(245,179,66,0.3)', borderRadius: '6px', padding: '4px 8px' }}>POPULAR</span>
               </div>
               <div style={{ fontSize: '17px', fontWeight: 700, color: C.textPrimary }}>1-on-1 Mentor Session Credit</div>
-              
+
               <div style={{ background: C.proTipBg, border: `1px solid ${C.proTipBorder}`, borderRadius: '12px', padding: '12px 14px' }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: C.textSecondary, marginBottom: '4px' }}>PRO TIP</div>
                 <div style={{ fontSize: '13px', color: C.proTipText, lineHeight: 1.5 }}>
@@ -1224,7 +1228,7 @@ export function DashboardView() {
                 <span style={{ fontSize: '11px', fontWeight: 700, color: isDark ? '#A78BFA' : '#7C5CFC', background: isDark ? 'rgba(124,92,252,0.15)' : 'rgba(124,92,252,0.10)', border: '1px solid rgba(124,92,252,0.3)', borderRadius: '6px', padding: '4px 8px' }}>GRANT PERK</span>
               </div>
               <div style={{ fontSize: '17px', fontWeight: 700, color: C.textPrimary }}>$1,000 Cloud Credits & Legal Support</div>
-              
+
               <div style={{ background: C.proTipBg, border: `1px solid ${C.proTipBorder}`, borderRadius: '12px', padding: '12px 14px' }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: C.textSecondary, marginBottom: '4px' }}>PRO TIP</div>
                 <div style={{ fontSize: '13px', color: C.proTipText, lineHeight: 1.5 }}>
@@ -1257,7 +1261,7 @@ export function DashboardView() {
                 <span style={{ fontSize: '11px', fontWeight: 700, color: isDark ? '#34D399' : '#059669', background: isDark ? 'rgba(52,211,153,0.12)' : 'rgba(52,211,153,0.10)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '4px 8px' }}>WELLNESS PERK</span>
               </div>
               <div style={{ fontSize: '17px', fontWeight: 700, color: C.textPrimary }}>Annual Health & Telehealth Pass</div>
-              
+
               <div style={{ background: C.proTipBg, border: `1px solid ${C.proTipBorder}`, borderRadius: '12px', padding: '12px 14px' }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: C.textSecondary, marginBottom: '4px' }}>PRO TIP</div>
                 <div style={{ fontSize: '13.5px', color: C.proTipText, lineHeight: 1.5 }}>

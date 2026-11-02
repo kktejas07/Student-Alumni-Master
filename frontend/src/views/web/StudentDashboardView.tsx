@@ -534,7 +534,10 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
         {/* ── PREDICTIONS & READINESS ESTIMATES ── */}
         <View style={[s.grid2, !isWide && s.grid2Narrow]}>
           <View style={{ flex: 1 }}>
-            <PredictionTimeline data={data?.predictions ?? null} />
+            <PredictionTimeline
+              data={data?.predictions ?? null}
+              onViewAnalysis={() => router.push('/career-ai' as any)}
+            />
           </View>
           <View style={{ width: isWide ? 280 : undefined }}>
             <ReadinessEstimates data={data?.readiness_estimates ?? null} />

@@ -37,8 +37,8 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
 
   // Light-theme variants for the neon status colors (wash out on white)
   const green  = isDark ? COLORS.green   : '#059669';
-  const purple = isDark ? COLORS.purple   : '#4F46E5';
-  const purpleL = isDark ? COLORS.purpleL : '#4338CA';
+  const purple = isDark ? COLORS.primary : COLORS.primaryDark;
+  const purpleL = isDark ? COLORS.primaryLight : COLORS.primaryDark;
   const textSub = isDark ? COLORS.textSub : 'rgba(15,23,42,0.85)';
   const text2   = isDark ? COLORS.text2   : 'rgba(15,23,42,0.8)';
   const dim     = isDark ? COLORS.dim     : 'rgba(15,23,42,0.5)';
@@ -183,7 +183,7 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
 
 const makeStyles = (dark: boolean) => StyleSheet.create({
   card: {
-    backgroundColor: dark ? '#0A0A2A' : '#FFFFFF',
+    backgroundColor: dark ? '#14141F' : '#FFFFFF',
     borderColor: dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15,23,42,0.08)',
     borderWidth: 1,
     borderRadius: RADIUS.card,
