@@ -138,8 +138,8 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   }, [isEmbedded, initialized, user, router]);
 
   const { width: winW } = useWindowDimensions();
-  const isLarge = winW >= 1024;
-  const isTablet = winW >= 680;
+  const isLarge = winW >= (isEmbedded ? 1280 : 1024);
+  const isTablet = winW >= (isEmbedded ? 960 : 680);
 
   /* ── State ── */
   const [loading, setLoading] = useState(true);
@@ -179,7 +179,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   /* ── Derived ── */
   const allMilestones = useMemo(() => roadmap.milestones || [], [roadmap]);
   const pendingMilestones = useMemo(() => allMilestones.filter(m => !m.completed), [allMilestones]);
-  const firstPendingIdx = useMemo(() => allMilestones.findIndex(m => !m.completed), [allMilestones]);
+  const nextMilestone = pendingMilestones[0] || null;
 
   /* ── Fetch Data ── */
   const fetch = useCallback(async (force = false) => {
@@ -304,7 +304,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   return (
     <View style={{ flex: 1, width: '100%', overflow: 'hidden' }}>
         <LinearGradient
-          colors={['#FFFFFF', '#F8FAFC', '#EFF6FF', '#E2E8F0']}
+          colors={['#08080F', '#0B1020', '#111827', '#08080F']}
           locations={[0, 0.3, 0.7, 1]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -414,12 +414,15 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
               {/* Panel 2: Next Milestone */}
               <View style={s.heroPanel}>
-                <Text style={s.heroPanelLabel}>Next Milestone</Text>
-                <Text style={s.heroPanelTitle} numberOfLines={2}>Build your professional resume</Text>
-                <View style={s.heroProgressTrack}>
-                  <View style={[s.heroProgressFill, { width: '60%' }]} />
-                </View>
-                <Text style={s.heroPanelSub}>60% Completed</Text>
+                <Text style={s.heroPanelLabel}>
+                  {nextMilestone ? 'Next Milestone' : allMilestones.length ? 'Roadmap Complete' : 'Next Milestone'}
+                </Text>
+                <Text style={s.heroPanelTitle} numberOfLines={2}>
+                  {nextMilestone?.title || (allMilestones.length ? 'All milestones complete' : 'No milestone planned yet')}
+                </Text>
+                <Text style={s.heroPanelSub} numberOfLines={3}>
+                  {nextMilestone?.description || nextMilestone?.completion_rule || (allMilestones.length ? 'You have completed every step in this roadmap.' : 'Your roadmap will show its first milestone here.')}
+                </Text>
               </View>
 
               {/* Panel 3: Estimated Achievement */}
@@ -449,7 +452,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
         </View>
       </LinearGradient>
 
-      {/* ══════════════ 3. KPI STRIP (5 Cards in 1 Row) ══════════════ */}
+      {/* ══════════════ 3. KPI STRIP ══════════════ */}
       <View style={s.kpiRow}>
         <MetricCard
           label="READINESS SCORE"
@@ -459,7 +462,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           subText={readinessLevel}
           iconElement={<CompletionRing pct={readinessScore} size={18} stroke={2.5} color={C.purpleL} trackColor="transparent" hideText={true} />}
           onPress={() => { setExplainTab('readiness'); setShowExplainModal(true); }}
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 155 }}
         />
         <MetricCard
           label="TARGET READINESS"
@@ -467,7 +470,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           color={C.teal}
           subText="Industry Ready"
           iconElement={<Target size={16} color={C.teal} />}
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 155 }}
         />
         <MetricCard
           label="CAREER LEVEL"
@@ -475,7 +478,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           color={C.amber}
           subText="Current Level"
           iconElement={<Award size={16} color={C.amber} />}
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 155 }}
         />
         <MetricCard
           label="PROFILE STRENGTH"
@@ -483,7 +486,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           color={C.blue}
           subText="Profile Score"
           iconElement={<Shield size={16} color={C.blue} />}
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 155 }}
         />
         <MetricCard
           label="SKILL STREAK 🔥"
@@ -491,7 +494,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           color={C.red}
           subText="Start your streak!"
           iconElement={<Flame size={16} color={C.red} fill={C.red} />}
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 155 }}
         />
       </View>
 
@@ -506,7 +509,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
 
       {/* ══════════════ 5. ROW 1: SKILLS BREAKDOWN & NEXT BEST ACTIONS ══════════════ */}
-      <View style={s.twoColRow}>
+      <View style={[s.twoColRow, !isLarge && { flexDirection: 'column' }]}>
         {/* Left (50%): Skills Breakdown */}
         <View style={s.colCard}>
           <View style={s.cardHeader}>
@@ -571,7 +574,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
       </View>
 
       {/* ══════════════ 6. ROW 2: AI INSIGHTS & GOAL SIMULATOR ══════════════ */}
-      <View style={s.twoColRow}>
+      <View style={[s.twoColRow, !isLarge && { flexDirection: 'column' }]}>
         {/* Left (50%): AI Insights */}
         <View style={s.colCard}>
           <View style={s.cardHeader}>
@@ -640,12 +643,9 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
         onViewAll={() => router.push('/student-portal?tab=profile' as any)}
       />
 
-      {/* ══════════════ 8. ROW 3: THIS WEEK'S FOCUS & RECRUITER VIEW ══════════════ */}
-      <View style={s.twoColRow}>
-        {/* Left (50%): Goal Simulator — toggle the ranked actions and preview the readiness gain */}
-        <CareerGoalSimulator currentReadiness={readinessScore} collapsible={false} />
-
-        {/* Right (50%): Recruiter View (Beta) */}
+      {/* ══════════════ 8. RECRUITER VIEW ══════════════ */}
+      <View style={[s.twoColRow, !isLarge && { flexDirection: 'column' }]}>
+        {/* Recruiter View (Beta) */}
         <View style={s.colCard}>
           <View style={s.cardHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -1046,19 +1046,6 @@ const s = StyleSheet.create({
     fontSize: 14,
     marginVertical: 2,
   },
-  heroProgressTrack: {
-    height: 6,
-    width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginVertical: 6,
-  },
-  heroProgressFill: {
-    height: '100%',
-    backgroundColor: C.purpleL,
-    borderRadius: 3,
-  },
   heroEtaValue: {
     color: C.purpleXL,
     fontFamily: FT.xbold,
@@ -1170,7 +1157,7 @@ const s = StyleSheet.create({
   kpiRow: {
     flexDirection: 'row',
     gap: SPACING.md,
-    flexWrap: Platform.OS === 'web' ? ('nowrap' as any) : 'wrap',
+    flexWrap: 'wrap',
   },
 
   /* 2-Column Section Cards */
@@ -1182,7 +1169,7 @@ const s = StyleSheet.create({
   colCard: {
     flex: 1,
     backgroundColor: '#0A0A2A',
-    borderColor: 'rgba(0,0,0,0.07)',
+    borderColor: C.border,
     borderWidth: 1,
     borderRadius: RADIUS.card,
     padding: SPACING.lg,
