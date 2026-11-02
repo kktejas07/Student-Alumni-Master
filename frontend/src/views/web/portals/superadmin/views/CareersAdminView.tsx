@@ -64,10 +64,10 @@ const Field = (props: any) => (
   <TextInput
     style={[
       {
-        backgroundColor: T.cardSolid,
-        color: T.text,
+        backgroundColor: SAC.cardSolid,
+        color: SAC.text,
         borderWidth: 1,
-        borderColor: T.border,
+        borderColor: SAC.border,
         borderRadius: 9,
         padding: 10,
         fontSize: 13,
@@ -76,7 +76,7 @@ const Field = (props: any) => (
       },
       props.style,
     ]}
-    placeholderTextColor={T.dim}
+    placeholderTextColor={SAC.dim}
     {...props}
   />
 );
@@ -84,7 +84,7 @@ const Field = (props: any) => (
 const Label = ({ children }: { children: React.ReactNode }) => (
   <Text
     style={{
-      color: T.muted,
+      color: SAC.muted,
       fontSize: 11,
       marginBottom: 5,
       fontFamily: FONTS.bold,
@@ -1173,7 +1173,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     borderBottomWidth: 1,
-    borderBottomColor: T.border,
+    borderBottomColor: SAC.border,
     paddingBottom: 10,
   },
   tabButton: {
@@ -1183,18 +1183,18 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: T.cardSolid,
+    backgroundColor: SAC.cardSolid,
     borderWidth: 1,
-    borderColor: T.border,
+    borderColor: SAC.border,
   },
   tabButtonActive: {
-    backgroundColor: T.accent,
-    borderColor: T.accent,
+    backgroundColor: SAC.accent,
+    borderColor: SAC.accent,
   },
   tabButtonText: {
     fontSize: 13,
     fontFamily: FONTS.semiBold,
-    color: T.muted,
+    color: SAC.muted,
   },
   tabButtonTextActive: {
     color: '#FFFFFF',
@@ -1213,17 +1213,17 @@ const s = StyleSheet.create({
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: T.cardSolid,
+    backgroundColor: SAC.cardSolid,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: T.border,
+    borderColor: SAC.border,
     paddingHorizontal: 10,
     width: 280,
   },
   searchInput: {
     flex: 1,
     height: 36,
-    color: T.text,
+    color: SAC.text,
     fontSize: 13,
     fontFamily: FONTS.regular,
     outlineWidth: 0 as any,
@@ -1238,17 +1238,17 @@ const s = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
-    backgroundColor: T.cardSolid,
+    backgroundColor: SAC.cardSolid,
     borderWidth: 1,
-    borderColor: T.border,
+    borderColor: SAC.border,
   },
   statusChipActive: {
-    backgroundColor: T.accent,
-    borderColor: T.accent,
+    backgroundColor: SAC.accent,
+    borderColor: SAC.accent,
   },
   statusChipText: {
     fontSize: 12,
-    color: T.muted,
+    color: SAC.muted,
     fontFamily: FONTS.medium,
   },
   statusChipTextActive: {
@@ -1277,11 +1277,11 @@ const s = StyleSheet.create({
   thRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: T.border,
+    borderBottomColor: SAC.border,
     paddingVertical: 10,
   },
   th: {
-    color: T.dim,
+    color: SAC.dim,
     fontSize: 11,
     fontFamily: FONTS.bold,
     letterSpacing: 0.5,
@@ -1291,21 +1291,21 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: T.border,
+    borderBottomColor: SAC.border,
     paddingVertical: 12,
   },
   td: {
-    color: T.text,
+    color: SAC.text,
     fontSize: 13,
     fontFamily: FONTS.regular,
   },
   roleTitle: {
-    color: T.text,
+    color: SAC.text,
     fontSize: 13.5,
     fontFamily: FONTS.semiBold,
   },
   roleSub: {
-    color: T.dim,
+    color: SAC.dim,
     fontSize: 11.5,
     fontFamily: FONTS.regular,
     marginTop: 2,
@@ -1317,7 +1317,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(124, 92, 252, 0.15)',
   },
   applicantCountText: {
-    color: T.accent,
+    color: SAC.accent,
     fontSize: 12,
     fontFamily: FONTS.bold,
   },
@@ -1330,9 +1330,9 @@ const s = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 6,
-    backgroundColor: T.cardSolid,
+    backgroundColor: SAC.cardSolid,
     borderWidth: 1,
-    borderColor: T.border,
+    borderColor: SAC.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1354,10 +1354,10 @@ const s = StyleSheet.create({
     width: '100%',
     maxWidth: 820,
     maxHeight: '90%',
-    backgroundColor: T.bg,
+    backgroundColor: SAC.bg,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: T.border,
+    borderColor: SAC.border,
     overflow: 'hidden',
   },
   modalHeader: {
@@ -1366,10 +1366,10 @@ const s = StyleSheet.create({
     alignItems: 'center',
     padding: 18,
     borderBottomWidth: 1,
-    borderBottomColor: T.border,
+    borderBottomColor: SAC.border,
   },
   modalTitle: {
-    color: T.text,
+    color: SAC.text,
     fontSize: 17,
     fontFamily: FONTS.bold,
   },
@@ -1397,16 +1397,16 @@ const s = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
-    backgroundColor: T.cardSolid,
+    backgroundColor: SAC.cardSolid,
     borderWidth: 1,
-    borderColor: T.border,
+    borderColor: SAC.border,
   },
   choiceChipActive: {
-    backgroundColor: T.accent,
-    borderColor: T.accent,
+    backgroundColor: SAC.accent,
+    borderColor: SAC.accent,
   },
   choiceChipText: {
-    color: T.muted,
+    color: SAC.muted,
     fontSize: 12,
     fontFamily: FONTS.medium,
   },
@@ -1425,7 +1425,7 @@ const s = StyleSheet.create({
     height: 20,
     borderRadius: 5,
     borderWidth: 1.5,
-    borderColor: T.border,
+    borderColor: SAC.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1435,19 +1435,19 @@ const s = StyleSheet.create({
     gap: 12,
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: T.border,
+    borderTopColor: SAC.border,
   },
 
   // Review section
   reviewSection: {
-    backgroundColor: T.cardSolid,
+    backgroundColor: SAC.cardSolid,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: T.border,
+    borderColor: SAC.border,
     padding: 14,
   },
   reviewSectionTitle: {
-    color: T.text,
+    color: SAC.text,
     fontSize: 13,
     fontFamily: FONTS.bold,
     marginBottom: 10,
@@ -1461,13 +1461,13 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: T.bg,
+    backgroundColor: SAC.bg,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
   },
   profileVal: {
-    color: T.text,
+    color: SAC.text,
     fontSize: 12.5,
     fontFamily: FONTS.medium,
   },
@@ -1480,7 +1480,7 @@ const s = StyleSheet.create({
     borderRadius: 8,
   },
   coverLetterBox: {
-    backgroundColor: T.bg,
+    backgroundColor: SAC.bg,
     borderRadius: 8,
     padding: 12,
   },
@@ -1496,7 +1496,7 @@ const s = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: T.accent,
+    backgroundColor: SAC.accent,
     marginTop: 5,
   },
 });

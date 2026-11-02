@@ -1947,8 +1947,8 @@ function EditRow({ label, value, onChange }: { label: string; value: string; onC
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
-  sub:   { color: T.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
-  muted: { color: T.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
+  sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
+  muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   err: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 },
   
   // Stats row
@@ -1957,14 +1957,14 @@ const s = StyleSheet.create({
   },
   statCard: {
     flex: 1, minWidth: 120, flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: T.cardSolid, borderRadius: 12, borderWidth: 1, borderColor: T.border,
+    backgroundColor: SAC.cardSolid, borderRadius: 12, borderWidth: 1, borderColor: SAC.border,
     padding: 12,
   },
   statIcon: {
     width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
   },
-  statValue: { fontFamily: FONTS.xbold, fontSize: 18, color: T.text },
-  statLabel: { fontFamily: FONTS.med, fontSize: 11, color: T.muted, marginTop: 2 },
+  statValue: { fontFamily: FONTS.xbold, fontSize: 18, color: SAC.text },
+  statLabel: { fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginTop: 2 },
 
   catBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -1974,13 +1974,13 @@ const s = StyleSheet.create({
 
   // Upload
   dropZone: {
-    backgroundColor: T.card, borderColor: T.border, borderWidth: 1, borderRadius: 14,
+    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14,
     borderStyle: 'dashed', padding: 40, alignItems: 'center', gap: 10,
     ...(Platform.OS === 'web' ? ({ transitionDuration: '150ms' } as any) : {}),
   },
   dropIcon: { width: 56, height: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   dropTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15, marginTop: 6 },
-  dropSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 12 },
+  dropSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 
   summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   fileName: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 14 },
@@ -1989,26 +1989,26 @@ const s = StyleSheet.create({
   },
   sumStat: {
     flex: 1, minWidth: 80, paddingVertical: 10, paddingHorizontal: 12,
-    backgroundColor: T.cardSolid, borderRadius: 10, borderColor: T.border, borderWidth: 1,
+    backgroundColor: SAC.cardSolid, borderRadius: 10, borderColor: SAC.border, borderWidth: 1,
     alignItems: 'center', gap: 2,
   },
   sumVal: { fontFamily: FONTS.xbold, fontSize: 18 },
-  sumLabel: { color: T.muted, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.4 },
+  sumLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.4 },
 
   mapRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
-  mapSrc: { color: T.text, fontFamily: FONTS.med, fontSize: 12, width: 220,
+  mapSrc: { color: SAC.text, fontFamily: FONTS.med, fontSize: 12, width: 220,
     ...(Platform.OS === 'web' ? ({ fontFamily: 'SpaceMono, "SF Mono", monospace' } as any) : {}) },
-  mapUnused: { backgroundColor: 'rgba(255,255,255,0.04)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, borderWidth: 1, borderColor: T.border },
-  mapUnusedText: { color: T.dim, fontFamily: FONTS.bold, fontSize: 10.5 },
+  mapUnused: { backgroundColor: 'rgba(255,255,255,0.04)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, borderWidth: 1, borderColor: SAC.border },
+  mapUnusedText: { color: SAC.dim, fontFamily: FONTS.bold, fontSize: 10.5 },
 
   tableHead: {
     flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 10,
-    backgroundColor: 'rgba(255,255,255,0.03)', borderBottomWidth: 1, borderBottomColor: T.border,
+    backgroundColor: 'rgba(255,255,255,0.03)', borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
-  th: { color: T.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.2, paddingRight: 10 },
+  th: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.2, paddingRight: 10 },
   tableRow: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: T.border,
+    borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
   tableRowErr: { backgroundColor: 'rgba(239,68,68,0.04)' },
   td: { color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 11.5, paddingRight: 10 },
@@ -2016,24 +2016,24 @@ const s = StyleSheet.create({
   commitRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
   commitTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13 },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  checkBox: { width: 16, height: 16, borderRadius: 5, borderWidth: 1.4, borderColor: T.border2, alignItems: 'center', justifyContent: 'center' },
-  checkLabel: { color: T.text, fontFamily: FONTS.bold, fontSize: 11.5 },
+  checkBox: { width: 16, height: 16, borderRadius: 5, borderWidth: 1.4, borderColor: SAC.border2, alignItems: 'center', justifyContent: 'center' },
+  checkLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5 },
 
   // Manual
   manualGrid: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' as any },
   formGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 },
   formField: { flex: 1, minWidth: 180, gap: 6 },
-  formLabel: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+  formLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
   formInput: {
     color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
-    backgroundColor: T.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: T.border,
+    backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
     paddingHorizontal: 12, paddingVertical: 10,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   previewBigVal: { fontFamily: FONTS.xbold, fontSize: 18 },
   previewRule: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, borderRadius: 9, backgroundColor: 'rgba(245,158,11,0.08)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)' },
   previewRuleText: { color: GRAD.to, fontFamily: FONTS.xbold, fontSize: 11.5, flex: 1 },
-  previewLbl: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+  previewLbl: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
   previewVal: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
   warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(251,191,36,0.08)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.30)' },
 
@@ -2049,19 +2049,19 @@ const s = StyleSheet.create({
     paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
-  viewModeBtnText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  viewModeBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
   toggleBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 9, paddingVertical: 4, borderRadius: 7,
-    borderWidth: 1, borderColor: T.border, backgroundColor: T.cardSolid,
+    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  toggleBtnText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  toggleBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
   
   // File list
   fileRow: {
     flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8,
-    backgroundColor: T.cardSolid, borderWidth: 1, borderColor: T.border,
+    backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border,
   },
   clearBtn: {
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6,
@@ -2076,32 +2076,32 @@ const s = StyleSheet.create({
   // Pagination
   paginationRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 12, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: T.border,
+    paddingVertical: 12, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: SAC.border,
     flexWrap: 'wrap', gap: 10,
   },
   perPageBtn: {
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6,
-    borderWidth: 1, borderColor: T.border, backgroundColor: T.cardSolid,
+    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   perPageBtnActive: {
     borderColor: GRAD.from, backgroundColor: 'rgba(124,58,237,0.15)',
   },
-  perPageText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  perPageText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
   perPageTextActive: { color: '#C4B5FD' },
   pageBtn: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
-    borderWidth: 1, borderColor: T.border, backgroundColor: T.cardSolid,
+    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   pageBtnDisabled: { opacity: 0.4 },
-  pageBtnText: { color: T.text, fontFamily: FONTS.bold, fontSize: 12 },
+  pageBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
 
   /* selection mode */
   selectBox: {
     position: 'absolute', top: 14, left: 14, width: 28, height: 28, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center', zIndex: 12,
-    backgroundColor: T.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
+    backgroundColor: SAC.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   selectedHalo: {
@@ -2129,11 +2129,11 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  secText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   userRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 11, paddingHorizontal: 14,
-    backgroundColor: T.card, borderColor: T.border, borderWidth: 1, borderRadius: 12,
+    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
   avatar: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
@@ -2144,70 +2144,70 @@ const s = StyleSheet.create({
   runCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 12, paddingHorizontal: 14,
-    backgroundColor: T.card, borderColor: T.border, borderWidth: 1, borderRadius: 12,
+    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
   miniPill: { paddingHorizontal: 7, paddingVertical: 2.5, borderRadius: 999, borderWidth: 1 },
   miniPillText: { fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 0.3 },
-  miniLabel: { color: T.muted, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.4 },
+  miniLabel: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.4 },
   kpiVal: { fontFamily: FONTS.xbold, fontSize: 22, marginTop: 4 },
 
   // Modal
   modalBg: {
-    flex: 1, backgroundColor: T.panel2,
+    flex: 1, backgroundColor: SAC.panel2,
     alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
   modalCard: {
     width: '100%', maxWidth: 720, maxHeight: '92%',
-    backgroundColor: T.bg2, borderRadius: 16, borderWidth: 1, borderColor: T.border2,
+    backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2,
     overflow: 'hidden',
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
   },
   modalHero: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 18, borderBottomWidth: 1, borderBottomColor: T.border,
+    padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
   modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
-  modalLabel: { color: T.text, fontFamily: FONTS.bold, fontSize: 12 },
+  modalLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
 
   resultGrid: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  resultTile: { flex: 1, minWidth: 100, padding: 12, borderRadius: 10, backgroundColor: T.cardSolid, borderWidth: 1, borderColor: T.border, alignItems: 'center', gap: 2 },
-  skipRow: { flexDirection: 'row', gap: 10, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: T.border },
+  resultTile: { flex: 1, minWidth: 100, padding: 12, borderRadius: 10, backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', gap: 2 },
+  skipRow: { flexDirection: 'row', gap: 10, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: SAC.border },
 
   // Profile panel
-  avatarLg: { width: 56, height: 56, borderRadius: 14, borderWidth: 1.5, backgroundColor: T.panel2, alignItems: 'center', justifyContent: 'center' },
+  avatarLg: { width: 56, height: 56, borderRadius: 14, borderWidth: 1.5, backgroundColor: SAC.panel2, alignItems: 'center', justifyContent: 'center' },
   avatarLgText: { fontFamily: FONTS.xbold, fontSize: 18 },
 
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  detailLabel: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 130 },
+  detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 130 },
   detailValue: { color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
-  catPick: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: T.border, marginRight: 6, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  catPick: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, marginRight: 6, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
   actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
-  destructiveBtn: { backgroundColor: T.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  destructiveBtn: { backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
   btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
-  secText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   inlineInput: {
-    backgroundColor: T.panel2,
+    backgroundColor: SAC.panel2,
     borderColor: GRAD.to,
     borderWidth: 1,
     borderRadius: 5,
     paddingHorizontal: 6,
     paddingVertical: 3,
-    color: T.text,
+    color: SAC.text,
     fontSize: 11,
     fontFamily: FONTS.med,
   },
   textInput: {
     backgroundColor: 'rgba(255,255,255,0.06)',
-    borderColor: T.border,
+    borderColor: SAC.border,
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    color: T.text,
+    color: SAC.text,
     fontSize: 13,
     fontFamily: FONTS.med,
     marginTop: 6,

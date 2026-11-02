@@ -25,22 +25,22 @@ import { request } from '@/src/models/services/api';
 const Field = (props: any) => (
   <TextInput
     style={[{
-      backgroundColor: T.cardSolid,
-      color: T.text,
+      backgroundColor: SAC.cardSolid,
+      color: SAC.text,
       borderWidth: 1,
-      borderColor: T.border,
+      borderColor: SAC.border,
       borderRadius: 9,
       padding: 10,
       fontSize: 13,
       fontFamily: FONTS.regular,
     }, props.style]}
-    placeholderTextColor={T.dim}
+    placeholderTextColor={SAC.dim}
     {...props}
   />
 );
 
 const Label = ({ children }: { children: React.ReactNode }) => (
-  <Text style={{ color: T.muted, fontSize: 11, marginBottom: 5, fontFamily: FONTS.bold, letterSpacing: 0.3 }}>{children}</Text>
+  <Text style={{ color: SAC.muted, fontSize: 11, marginBottom: 5, fontFamily: FONTS.bold, letterSpacing: 0.3 }}>{children}</Text>
 );
 
 const invRaw = (v: any) => v ?? 0;
@@ -385,20 +385,20 @@ export function VendorsView() {
 
 const s = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' },
-  title: { color: T.text, fontFamily: FONTS.xbold, fontSize: 26, letterSpacing: -0.6, marginTop: 4 },
-  subtitle: { color: T.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 6 },
+  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 26, letterSpacing: -0.6, marginTop: 4 },
+  subtitle: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 6 },
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   formHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  tableHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: T.border, flexWrap: 'wrap' },
+  tableHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: SAC.border, flexWrap: 'wrap' },
   searchWrap: {
     flexDirection: 'row', alignItems: 'center', gap: 7, height: 32, paddingHorizontal: 10,
-    borderRadius: 9, backgroundColor: T.cardSolid, borderWidth: 1, borderColor: T.border,
+    borderRadius: 9, backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border,
     width: 240, maxWidth: '100%',
   },
-  searchInput: { flex: 1, color: T.text, fontFamily: FONTS.med, fontSize: 12, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  searchInput: { flex: 1, color: SAC.text, fontFamily: FONTS.med, fontSize: 12, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   tableBody: { padding: 6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' },
-  th: { color: T.dim, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.6, textTransform: 'uppercase' },
+  th: { color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.6, textTransform: 'uppercase' },
   iconBtn: {
     width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.05)',
