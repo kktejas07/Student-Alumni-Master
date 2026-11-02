@@ -8,6 +8,17 @@ import { Toast } from '@/src/views/web/portals/superadmin/applekit';
 import { GRAD_FROM, GRAD_TO, TabId, TABS } from './settingsTokens';
 import { s } from './settingsStyles';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
+import { ProfileTab } from './settingsProfile';
+import { PlatformTab } from './settingsPlatform';
+import { IntegrationsTab } from './settingsIntegrations';
+import { RolesTab } from './settingsRoles';
+import { NotificationsTab } from './settingsNotifs';
+import { SecurityTab } from './settingsSecurity';
+import { DigitalIdTab } from './settingsDigitalId';
+import { PagesTab } from './settingsPages';
+import { TemplatesTab } from './settingsTemplates';
+import { EchoLandingHeroTab } from './settingsEchoHero';
+import { BrandingTab } from './settingsBranding';
 
 /* ─────────────────────────────────────────────────────────────────
  * Main view

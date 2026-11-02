@@ -12,7 +12,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndic
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Video, Calendar, Users, CheckCircle, Copy, Share2, Trash2, Clock, Plus, Save, ChevronDown, Pencil } from 'lucide-react-native';
-import { SAC, useSAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import { request } from '@/src/models/services/api';
 
 type Meeting = {
@@ -42,6 +42,7 @@ type Meeting = {
 
 export function TeamsMeetingsView() {
   const T = useSAC();
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const router = useRouter();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
@@ -433,7 +434,7 @@ export function TeamsMeetingsView() {
                    value={activeForm.date || ''}
                    onChange={(e: any) => setActiveForm({ ...activeForm, date: e.target.value })}
                    style={{
-                     width: '100%', backgroundColor: '#101019', border: `1px solid ${T.border}`,
+                     width: '100%', backgroundColor: T.panel, border: `1px solid ${T.border}`,
                      borderRadius: 8, padding: '9px 12px', fontFamily: FONTS.med, fontSize: 13,
                      color: T.text, colorScheme: 'dark',
                    }}
@@ -454,7 +455,7 @@ export function TeamsMeetingsView() {
                    value={activeForm.time || ''}
                    onChange={(e: any) => setActiveForm({ ...activeForm, time: e.target.value })}
                    style={{
-                     width: '100%', backgroundColor: '#101019', border: `1px solid ${T.border}`,
+                     width: '100%', backgroundColor: T.panel, border: `1px solid ${T.border}`,
                      borderRadius: 8, padding: '9px 12px', fontFamily: FONTS.med, fontSize: 13,
                      color: T.text, colorScheme: 'dark',
                    }}

@@ -175,6 +175,7 @@ export function ImportsView({ sub, onSub }: { sub?: string; onSub?: (s: string) 
  *  UPLOAD TAB
  * ══════════════════════════════════════════════════════════════════ */
 function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => void; onSwitchTab: (t: TabId) => void; bump: () => void; }) {
+  const T = useSAC();
   const fileRef = useRef<any>(null);
   const [busy, setBusy] = useState(false);
   const [data, setData] = useState<any>(null);
@@ -635,6 +636,7 @@ function SumStat({ label, value, tint }: { label: string; value: number; tint: s
  *  MANUAL ADD TAB — live category preview
  * ══════════════════════════════════════════════════════════════════ */
 function ManualTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const T = useSAC();
   const [form, setForm] = useState<any>({
     first_name: '', last_name: '', email: '', phone: '', linkedin_url: '',
     college: '', degree: '', graduation_year: '', designation: '', company: '',
@@ -764,6 +766,7 @@ function ManualTab({ onSaved }: { onSaved: (s?: string) => void }) {
 }
 
 function FormField({ label, value, onChange, placeholder, full, keyboardType }: any) {
+  const T = useSAC();
   return (
     <View style={[s.formField, full && { flexBasis: '100%' }]}>
       <Text style={s.formLabel}>{label}</Text>
@@ -791,6 +794,7 @@ function PreviewRow({ label, value, pill }: { label: string; value: string; pill
  *  BROWSE TAB — list imported users as Spreadsheet Data Grid or Cards
  * ══════════════════════════════════════════════════════════════════ */
 function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onAction: (text: string) => void }) {
+  const T = useSAC();
   const [cat, setCat] = useState<'all' | CatKey>('all');
   const [accountFilter, setAccountFilter] = useState<'all' | 'registered' | 'unregistered' | 'complete'>('all');
   const [q, setQ] = useState('');
@@ -802,6 +806,8 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(25);
 
   const load = useCallback(async (pageNum = page, limit = perPage) => {
     setBusy(true);
@@ -852,8 +858,9 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
   const items = useMemo(() => {
     let list = data?.items || [];
     if (showPendingOnly) list = list.filter((u: any) => !u.approved);
-    return list;
-  }, [data, showPendingOnly]);
+    const start = (page - 1) * perPage;
+    return list.slice(start, start + perPage);
+  }, [data, showPendingOnly, page, perPage]);
 
   const approve = async (id: string) => {
     try {
@@ -1625,6 +1632,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
  *  HISTORY TAB — past import runs
  * ══════════════════════════════════════════════════════════════════ */
 function HistoryTab() {
+  const T = useSAC();
   const [runs, setRuns] = useState<any[] | null>(null);
   const [detail, setDetail] = useState<any>(null);
 
@@ -1713,6 +1721,7 @@ function HistoryTab() {
  *  PROFILE DETAIL PANEL (side-drawer modal)
  * ══════════════════════════════════════════════════════════════════ */
 function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onClose: () => void; onSaved: () => void }) {
+  const T = useSAC();
   const [data, setData] = useState<any>(null);
   const [edit, setEdit] = useState(false);
   const [draft, setDraft] = useState<any>({});
@@ -1907,6 +1916,7 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
 }
 
 function DetailRow({ Icon, label, value }: { Icon: any; label: string; value: string }) {
+  const T = useSAC();
   return (
     <View style={s.detailRow}>
       <Icon size={13} color={T.muted} />
@@ -1917,6 +1927,7 @@ function DetailRow({ Icon, label, value }: { Icon: any; label: string; value: st
 }
 
 function LinkRow({ Icon, label, value, href }: { Icon: any; label: string; value: string; href?: string }) {
+  const T = useSAC();
   const open = () => { if (href) Linking.openURL(href).catch(() => {}); };
   return (
     <Pressable onPress={href ? open : undefined} style={s.detailRow}>
@@ -1929,6 +1940,7 @@ function LinkRow({ Icon, label, value, href }: { Icon: any; label: string; value
 }
 
 function EditRow({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const T = useSAC();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
       <Text style={[s.detailLabel, { width: 120 }]}>{label}</Text>

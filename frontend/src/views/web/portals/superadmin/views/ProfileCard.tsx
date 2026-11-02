@@ -19,7 +19,7 @@ import {
   Eye, ChevronRight, Calendar, Check, Play, Code, Sparkles,
   ShieldCheck, Trash2, Mail, Building2,
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import { GRAD } from '../applekit';
 
 /** LinkedIn 'in' glyph — `lucide-react-native` doesn't ship the Linkedin icon
@@ -184,7 +184,9 @@ function ActionTooltip({
 /* ─── Component ──────────────────────────────────────────────────── */
 export function ProfileCard(props: ProfileCardProps) {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  // Resolve the shared sheet from a pristine (dark-baked) snapshot so repeated
+  // renders / theme flips stay idempotent — never re-resolve the live sheet.
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const { user, goals, progress, tags, nextSession, socials, onViewProfile, onApprove, onRemove } = props;
   const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown user';
   const cat = CAT_DOT[user.category] || CAT_DOT.student;
@@ -558,7 +560,7 @@ const s = StyleSheet.create({
   card: {
     height: '100%',
     borderRadius: 20, borderWidth: 1, borderColor: PC.cardBorder,
-    backgroundColor: PC.cardBgFrom,
+    backgroundColor: SAC.card,
     ...(Platform.OS === 'web'
       ? ({ boxShadow: '0 0 0 1px rgba(251,146,60,0.06), 0 10px 30px rgba(0,0,0,0.45)', transitionDuration: '200ms', cursor: 'pointer' } as any)
       : { shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } }),
@@ -577,7 +579,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, zIndex: 5,
   },
-  newPillText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
+  newPillText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
 
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
   avatar: {
@@ -585,18 +587,18 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(249,115,22,0.18)',
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 19 },
+  avatarText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 19 },
   statusDot: {
     position: 'absolute', right: -2, bottom: -2,
     width: 14, height: 14, borderRadius: 999,
-    borderWidth: 2, borderColor: PC.bgPage,
+    borderWidth: 2, borderColor: SAC.bgPage,
   },
 
-  name: { color: PC.textPrimary, fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.2 },
+  name: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.2 },
   catDot: { width: 6, height: 6, borderRadius: 4 },
-  catLabel: { color: PC.textMuted, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.4 },
-  degree: { color: PC.textSecondary, fontFamily: FONTS.med, fontSize: 12.5 },
-  idLine: { color: PC.textMuted, fontFamily: FONTS.med, fontSize: 11,
+  catLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.4 },
+  degree: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5 },
+  idLine: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11,
     ...(Platform.OS === 'web' ? ({ fontFamily: 'SpaceMono, "SF Mono", monospace' } as any) : {}) },
 
   statusPill: {
@@ -606,34 +608,34 @@ const s = StyleSheet.create({
   statusInnerDot: { width: 6, height: 6, borderRadius: 4 },
   statusText: { fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.3 },
 
-  goalText: { color: PC.textPrimary, fontFamily: FONTS.med, fontSize: 13, flex: 1 },
-  muted: { color: PC.textMuted, fontFamily: FONTS.med, fontSize: 11, marginLeft: 20 },
+  goalText: { color: SAC.text, fontFamily: FONTS.med, fontSize: 13, flex: 1 },
+  muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginLeft: 20 },
 
-  sectionLabel: { color: PC.textLabel, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.6 },
+  sectionLabel: { color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.6 },
   percent: { color: PC.accentBright, fontFamily: FONTS.xbold, fontSize: 13 },
   progressHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  progressTrack: { height: 6, borderRadius: 99, backgroundColor: PC.trackBg, overflow: 'hidden' },
+  progressTrack: { height: 6, borderRadius: 99, backgroundColor: SAC.tint, overflow: 'hidden' },
   progressFill: { height: 6, borderRadius: 99 },
   progressMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
   playSq: { width: 16, height: 16, borderRadius: 4, backgroundColor: PC.accent, alignItems: 'center', justifyContent: 'center' },
-  metaCount: { color: PC.textPrimary, fontFamily: FONTS.bold, fontSize: 11.5 },
-  metaMuted: { color: PC.textMuted, fontFamily: FONTS.med, fontSize: 11 },
-  metaSep: { width: 1, height: 10, backgroundColor: PC.pillBorder, marginHorizontal: 4 },
+  metaCount: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5 },
+  metaMuted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
+  metaSep: { width: 1, height: 10, backgroundColor: SAC.line, marginHorizontal: 4 },
 
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
   tag: {
     paddingHorizontal: 11, paddingVertical: 4.5, borderRadius: 999,
-    backgroundColor: PC.pillBg, borderWidth: 1, borderColor: PC.pillBorder,
+    backgroundColor: SAC.panel2, borderWidth: 1, borderColor: PC.pillBorder,
   },
-  tagText: { color: PC.textSecondary, fontFamily: FONTS.bold, fontSize: 11 },
+  tagText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
 
   nextCard: {
     marginTop: 14, padding: 12, borderRadius: 12,
-    backgroundColor: 'rgba(249,115,22,0.08)', borderWidth: 1, borderColor: 'rgba(249,115,22,0.22)', gap: 4,
+    backgroundColor: SAC.tint, borderWidth: 1, borderColor: PC.pillBorder, gap: 4,
   },
   nextLabel: { color: PC.accentBright, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.4 },
-  nextDate:  { color: PC.textPrimary, fontFamily: FONTS.bold, fontSize: 12.5, marginTop: 2 },
-  nextTitle: { color: PC.textSecondary, fontFamily: FONTS.med, fontSize: 11.5 },
+  nextDate:  { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5, marginTop: 2 },
+  nextTitle: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
 
   adminRow: { flexDirection: 'row', gap: 8, marginTop: 14 },
   approveBtn: {
@@ -665,7 +667,7 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
 
-  skBox: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6 },
+  skBox: { backgroundColor: SAC.ns18, borderRadius: 6 },
 
   /* Action Tooltips */
   customTooltip: {

@@ -61,6 +61,16 @@ function qualityColor(score: number): { bg: string; bc: string; c: string } {
   return { bg: 'rgba(239,68,68,0.15)', bc: 'rgba(239,68,68,0.35)', c: '#F87171' };
 }
 
+// API fields may come back as objects (per-provider config blobs, etc.);
+// React error #31 fires if such a value is interpolated into JSX.
+function scalar(v: any, fallback?: string): string {
+  if (v == null) return fallback ?? '—';
+  if (typeof v === 'object') {
+    try { return JSON.stringify(v).slice(0, 40); } catch { return fallback ?? '—'; }
+  }
+  return String(v);
+}
+
 type Tab = 'overview' | 'duplicates' | 'insights' | 'external-jobs' | 'ranker' | 'quality' | 'activity' | 'interviews';
 const TABS: { key: Tab; label: string; Icon: any }[] = [
   { key: 'overview', label: 'Overview', Icon: LayoutDashboard },
@@ -514,7 +524,7 @@ export function TalentPoolAgentsView() {
           {/* KPI tiles */}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
             <KpiCard Icon={LayoutDashboard} label="Candidates" value={String(stats?.total ?? '—')} delta={`${stats?.skill_count ?? 0} canonical skills`} color="blue" />
-            <KpiCard Icon={Gauge} label="Avg Quality" value={quality ? `${quality.mean_score}` : '—'} delta={`${quality?.scored ?? 0} scored`} color="green" />
+            <KpiCard Icon={Gauge} label="Avg Quality" value={quality?.mean_score != null ? String(quality.mean_score) : '—'} delta={`${quality?.scored ?? 0} scored`} color="green" />
             <KpiCard Icon={AlertTriangle} label="Needs Attention" value={String(quality?.needs_attention ?? '—')} delta="score < 30" color="red" />
             <KpiCard Icon={Copy} label="Open Duplicate Groups" value={String(dupOpen)} delta="RapidFuzz + RecordLinkage" color="amber" />
             <KpiCard Icon={Briefcase} label="Deadlines ≤ 7d" value={String(deadlines?.count ?? '—')} delta="Naukri / Internshala" color="purple" />
@@ -564,16 +574,16 @@ export function TalentPoolAgentsView() {
                     <View key={a?.name || i} style={s.agentCard}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         <Sparkles size={13} color="#A78BFA" />
-                        <Text style={s.agentName}>{a?.name}</Text>
+                        <Text style={s.agentName}>{typeof a?.name === 'object' ? scalar(a?.name, 'agent') : a?.name}</Text>
                         {a?.available === false
                           ? <Badge label="offline" color="red" />
-                          : <Badge label={a?.status || 'ok'} color="green" />}
+                          : <Badge label={typeof a?.status === 'object' ? scalar(a?.status, 'ok') : (a?.status || 'ok')} color="green" />}
                         <View style={{ flex: 1 }} />
-                        <Badge label={a?.priority || '—'} color="amber" />
+                        <Badge label={typeof a?.priority === 'object' ? scalar(a?.priority, '—') : (a?.priority || '—')} color="amber" />
                       </View>
-                      {a?.available === false ? <Text style={s.agentMeta}>⚠ {a?.reason || 'Agent unavailable'}</Text> : null}
+                      {a?.available === false ? <Text style={s.agentMeta}>⚠ {typeof a?.reason === 'object' ? scalar(a?.reason, 'Agent unavailable') : (a?.reason || 'Agent unavailable')}</Text> : null}
                       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                        <Text style={s.agentCost}>{a?.est_cost_per_month ? a.est_cost_per_month : 'local · $0'}</Text>
+                        <Text style={s.agentCost}>{a?.est_cost_per_month ? (typeof a.est_cost_per_month === 'object' ? scalar(a.est_cost_per_month, 'n/a') : a.est_cost_per_month) : 'local · $0'}</Text>
                         {a?.last_run_at ? <Text style={s.agentCost}>last run {fmtDT(a.last_run_at)}</Text> : null}
                       </View>
                     </View>

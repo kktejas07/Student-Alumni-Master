@@ -277,6 +277,7 @@ export function AnalyticsView() {
 // ── Sub-Components ───────────────────────────────────────────────────────────
 
 function UserGrowthCard({ growth, predictions }: { growth: GrowthPoint[]; predictions: Predictions }) {
+  const T = useSAC();
   const maxVal = Math.max(...growth.map(g => g.count), ...predictions.next_3_months.map(p => p.predicted_signups), 1);
   return (
     <Card style={{ padding: 20, gap: 12, height: 300 }}>
@@ -308,6 +309,7 @@ function UserGrowthCard({ growth, predictions }: { growth: GrowthPoint[]; predic
 }
 
 function RoleDistributionCard({ roles }: { roles: RoleDist[] }) {
+  const T = useSAC();
   const total = roles.reduce((s, r) => s + r.value, 0) || 1;
   return (
     <Card style={{ padding: 20, gap: 14 }}>
@@ -328,6 +330,7 @@ function RoleDistributionCard({ roles }: { roles: RoleDist[] }) {
 }
 
 function ActiveHoursCard({ hours }: { hours: { hour: number; count: number }[] }) {
+  const T = useSAC();
   const maxCount = Math.max(...hours.map(h => h.count), 1);
   const grid = Array.from({ length: 24 }, (_, i) => {
     const found = hours.find(h => h.hour === i);
@@ -364,6 +367,7 @@ function ActiveHoursCard({ hours }: { hours: { hour: number; count: number }[] }
 }
 
 function RetentionCard({ cohorts }: { cohorts: { cohort: string; week: string; users: number }[] }) {
+  const T = useSAC();
   if (cohorts.length === 0) return (
     <Card style={{ padding: 20, gap: 12 }}>
       <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>User Retention</Text>
@@ -426,6 +430,7 @@ function AcquisitionCard({ sources }: { sources: { source: string; sessions: num
 }
 
 function EngagementCard({ engagement }: { engagement: Engagement }) {
+  const T = useSAC();
   const maxDAU = Math.max(...engagement.daily_active_series.map(d => d.count), 1);
   return (
     <Card style={{ padding: 20, gap: 12, height: 280 }}>
@@ -455,6 +460,7 @@ function EngagementCard({ engagement }: { engagement: Engagement }) {
 }
 
 function DeviceCard({ devices }: { devices: DeviceData }) {
+  const T = useSAC();
   const renderBars = (items: { label: string; value: number; pct: number }[], color: string) => (
     <View style={{ gap: 6 }}>
       {items.slice(0, 5).map((item, i) => (
@@ -487,6 +493,7 @@ function DeviceCard({ devices }: { devices: DeviceData }) {
 }
 
 function GeographyCard({ geo }: { geo: GeoData }) {
+  const T = useSAC();
   return (
     <Card style={{ padding: 20, gap: 14 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -528,6 +535,7 @@ function GeographyCard({ geo }: { geo: GeoData }) {
 }
 
 function FunnelCard({ funnel }: { funnel: FunnelStage[] }) {
+  const T = useSAC();
   const maxVal = funnel.length > 0 ? funnel[0].v : 1;
   return (
     <Card style={{ padding: 20, gap: 12 }}>
@@ -556,6 +564,7 @@ function FunnelCard({ funnel }: { funnel: FunnelStage[] }) {
 }
 
 function ErrorTrackingCard({ errors }: { errors: ErrorData }) {
+  const T = useSAC();
   return (
     <Card style={{ padding: 20, gap: 12 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -591,6 +600,7 @@ function ErrorTrackingCard({ errors }: { errors: ErrorData }) {
 }
 
 function PredictionsCard({ predictions }: { predictions: Predictions }) {
+  const T = useSAC();
   const trendColor = predictions.trend === 'growing' ? '#22C55E' : predictions.trend === 'declining' ? '#EF4444' : '#F59E0B';
   return (
     <Card style={{ padding: 20, gap: 12 }}>
@@ -630,6 +640,7 @@ function PredictionsCard({ predictions }: { predictions: Predictions }) {
 }
 
 function ActivityFeedCard({ items }: { items: ActivityItem[] }) {
+  const T = useSAC();
   const typeColors: Record<string, string> = { signup: '#22C55E', booking: '#F59E0B', echo_reg: '#8B5CF6', event_reg: '#3B82F6' };
   return (
     <Card style={{ padding: 20, gap: 10, maxHeight: 380 }}>
@@ -658,6 +669,7 @@ function ActivityFeedCard({ items }: { items: ActivityItem[] }) {
 }
 
 function TopCollegesCard({ colleges }: { colleges: College[] }) {
+  const T = useSAC();
   return (
     <Card style={{ padding: 20, gap: 10, maxHeight: 380 }}>
       <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>Top Colleges</Text>
@@ -683,6 +695,7 @@ function TopCollegesCard({ colleges }: { colleges: College[] }) {
 // ── Shared mini-chart primitives ─────────────────────────────────────────────
 
 function PhStat({ value, label }: { value: string | number; label: string }) {
+  const T = useSAC();
   return (
     <View style={{ flex: 1, minWidth: 130, padding: 12, borderRadius: 10, backgroundColor: 'rgba(29,74,255,0.1)' }}>
       <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: '#1D4AFF' }}>{value}</Text>
@@ -702,6 +715,7 @@ function BarList({ items, color, limit, maxWidth = 100, labelLines, fade = false
   emptyText?: string;
   gap?: number;
 }) {
+  const T = useSAC();
   if (items.length === 0) {
     return emptyText ? <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.dim }}>{emptyText}</Text> : null;
   }
@@ -721,6 +735,7 @@ function BarList({ items, color, limit, maxWidth = 100, labelLines, fade = false
 
 /** Titled bar group; renders nothing when empty. */
 function BarSection({ title, items, color }: { title: string; items: { label: string; value: number }[]; color: string }) {
+  const T = useSAC();
   if (items.length === 0) return null;
   return (
     <View>
@@ -731,6 +746,7 @@ function BarSection({ title, items, color }: { title: string; items: { label: st
 }
 
 function PostHogOverview({ ph }: { ph: PostHogData }) {
+  const T = useSAC();
   const t = ph.totals_30d || { events: 0, users: 0, pageviews: 0 };
   const s = ph.sessions || { sessions: 0, users: 0, has_session_data: false };
   return (
@@ -766,6 +782,7 @@ function PostHogOverview({ ph }: { ph: PostHogData }) {
 }
 
 function PostHogTrendsCard({ ph }: { ph: PostHogData }) {
+  const T = useSAC();
   const series = ph.daily_series || [];
   const maxVal = Math.max(...series.map(d => d.events), ...series.map(d => d.users), 1);
   return (
@@ -835,6 +852,7 @@ function PostHogSourcesCard({ ph }: { ph: PostHogData }) {
 }
 
 function PostHogCountriesCard({ ph }: { ph: PostHogData }) {
+  const T = useSAC();
   const countries = ph.countries || [];
   return (
     <Card style={{ padding: 20, gap: 12 }}>
@@ -860,6 +878,7 @@ function PostHogCountriesCard({ ph }: { ph: PostHogData }) {
 }
 
 function PostHogDevicesCard({ ph }: { ph: PostHogData }) {
+  const T = useSAC();
   const devices = ph.devices || { by_os: [], by_browser: [], by_device: [] };
   return (
     <Card style={{ padding: 20, gap: 14 }}>
@@ -884,6 +903,7 @@ function PostHogDevicesCard({ ph }: { ph: PostHogData }) {
 // ── GA4 Extra Cards ──────────────────────────────────────────────────────────
 
 function GaDailyCard({ series }: { series: { date: string; count: number }[] }) {
+  const T = useSAC();
   const maxVal = Math.max(...series.map(s => s.count), 1);
   return (
     <Card style={{ padding: 20, gap: 12 }}>
@@ -901,6 +921,7 @@ function GaDailyCard({ series }: { series: { date: string; count: number }[] }) 
 }
 
 function GaDevicesCard({ devices }: { devices: FirebaseData['devices'] }) {
+  const T = useSAC();
   return (
     <Card style={{ padding: 20, gap: 14 }}>
       <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>GA4 Devices</Text>
