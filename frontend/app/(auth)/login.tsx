@@ -21,7 +21,8 @@ import { Mail, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowRight, Sparkle
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { getBaseUrl } from '@/src/lib/env';
 import { api } from '@/src/models/services/api';
-import { initFirebaseAuth, signInWithGoogle } from '@/src/lib/firebaseAuth';
+import { initFirebaseAuth, signInWithGoogle, isFirebaseWebConfigComplete } from '@/src/lib/firebaseAuth';
+import { friendlyNetworkError } from '@/src/lib/networkErrors';
 
 const BASE = getBaseUrl();
 
@@ -167,16 +168,11 @@ function WebLoginScreen() {
   const [googleClientId, setGoogleClientId] = useState('');
   const [googleLoginEnabled, setGoogleLoginEnabled] = useState(false);
   const [oauthConfigLoaded, setOauthConfigLoaded] = useState(false);
-
-  // Holds the oauth-config load so the Google button can await it. Without
-  // this, clicking Continue with Google before the config fetch resolves
-  // makes the lazy init fallback see an empty build-time config and report
-  // "not configured" even though configuration is on its way.
-  const configLoadRef = useRef<Promise<void> | null>(null);
+  const [firebaseReady, setFirebaseReady] = useState(false);
 
   // Fetch OAuth Config on mount and initialize Firebase Auth
   useEffect(() => {
-    const load: Promise<void> = fetch(`${BASE}/api/auth/oauth-config`)
+    fetch(`${BASE}/api/auth/oauth-config`)
       .then((r) => r.json())
       .then(async (data) => {
         if (data?.google_client_id) {
@@ -187,13 +183,17 @@ function WebLoginScreen() {
         } else {
           setGoogleLoginEnabled(false);
         }
-        if (data?.firebase?.apiKey) {
-          await initFirebaseAuth({
-            apiKey: data.firebase.apiKey,
-            authDomain: data.firebase.authDomain,
-            projectId: data.firebase.projectId,
-            appId: data.firebase.appId,
+        const firebaseConfig = data?.firebase;
+        if (isFirebaseWebConfigComplete(firebaseConfig)) {
+          const initialized = await initFirebaseAuth({
+            apiKey: firebaseConfig.apiKey,
+            authDomain: firebaseConfig.authDomain,
+            projectId: firebaseConfig.projectId,
+            appId: firebaseConfig.appId,
           });
+          setFirebaseReady(initialized);
+        } else {
+          setFirebaseReady(false);
         }
         setOauthConfigLoaded(true);
       })
@@ -201,28 +201,27 @@ function WebLoginScreen() {
         setGoogleLoginEnabled(false);
         setOauthConfigLoaded(true);
       });
-    configLoadRef.current = load;
-    return () => { configLoadRef.current = null; };
   }, []);
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setErrorMsg('');
     try {
-      // Wait for the runtime OAuth/Firebase configuration to finish loading
-      // before the sign-in flow decides whether Firebase is configured.
-      await configLoadRef.current;
+      if (!firebaseReady) throw new Error('Firebase Auth is not ready. Check the Google sign-in configuration and try again.');
+      // Use a popup so Firebase returns the credential directly to this page.
+      // Redirect sign-in relies on cross-origin storage at authDomain, which
+      // browsers can block when the app uses a custom domain.
       const result = await signInWithGoogle();
-      if (result) {
-        await processGoogleAuth({
-          id_token: result.idToken,
-          email: result.email,
-          full_name: result.name,
-          picture: result.picture,
-        });
-      } else {
+      if (!result) {
         setLoading(false);
+        return;
       }
+      await processGoogleAuth({
+        id_token: result.idToken,
+        email: result.email,
+        full_name: result.name,
+        picture: result.picture,
+      });
     } catch (err: any) {
       setLoading(false);
       if (err?.message?.includes('Firebase') || !googleClientId) {
@@ -446,6 +445,9 @@ function WebLoginScreen() {
                   <button
                     type="button"
                     onClick={() => handleGoogleSignIn()}
+                    disabled={loading}
+                    aria-busy={loading}
+                    data-testid="google-signin-button"
                     className="social-btn"
                     style={{
                       display: 'flex',
@@ -461,7 +463,8 @@ function WebLoginScreen() {
                       padding: '14px',
                       marginTop: 26,
                       width: '100%',
-                      cursor: 'pointer'
+                      cursor: loading ? 'wait' : 'pointer',
+                      opacity: loading ? 0.7 : 1
                     }}
                   >
                     <svg width="18" height="18" viewBox="0 0 48 48" style={{ flex: 'none' }}>
@@ -470,7 +473,7 @@ function WebLoginScreen() {
                       <path fill="#FBBC05" d="M11.86 28.48A13.4 13.4 0 0 1 11.15 24c0-1.56.27-3.07.71-4.48v-5.6h-7.2A21.9 21.9 0 0 0 2 24c0 3.55.85 6.9 2.66 10.08l7.2-5.6Z"></path>
                       <path fill="#EA4335" d="M24 10.6c3.18 0 6.04 1.1 8.29 3.23l6.2-6.2C34.73 4.1 29.84 2 24 2 14.98 2 7.3 6.8 4.66 13.92l7.2 5.6C13.56 14.4 18.35 10.6 24 10.6Z"></path>
                     </svg>
-                    Continue with Google
+                    {loading ? 'Connecting to Google…' : 'Continue with Google'}
                   </button>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '22px 0' }}>

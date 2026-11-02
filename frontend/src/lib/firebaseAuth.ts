@@ -58,7 +58,6 @@ export async function initFirebaseAuth(config: {
     return false;
   }
 }
-
 export async function signInWithGoogle(): Promise<{ idToken: string; email: string; name: string; picture: string } | null> {
   if (!_firebaseAuth) {
     const lazyConfig = {
