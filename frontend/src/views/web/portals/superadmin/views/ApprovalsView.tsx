@@ -581,7 +581,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 10, marginTop: 12,
   },
   slaStat: { alignItems: 'center', minWidth: 54 },
-  slaStatValue: { color: '#FCA5A5', fontFamily: FONTS.xbold, fontSize: 17 },
+  slaStatValue: { color: SAC.danger, fontFamily: FONTS.xbold, fontSize: 17 },
   slaStatLabel: { color: SAC.dim, fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 0.6, marginTop: 2 },
   slaDivider: { width: 1, height: 26, backgroundColor: SAC.border2 },
   slaHint: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 },
@@ -596,5 +596,5 @@ const s = StyleSheet.create({
 
   primaryText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 11.5 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
-  dangerText: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 11.5 },
+  dangerText: { color: SAC.danger, fontFamily: FONTS.bold, fontSize: 11.5 },
 });

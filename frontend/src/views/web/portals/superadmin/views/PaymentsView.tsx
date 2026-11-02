@@ -291,7 +291,7 @@ export function PaymentsView() {
                   {t.status === 'pending'
                     ? <StatusPill kind="warn" label="PENDING" />
                     : <StatusPill kind={t.type === 'refund' ? 'danger' : t.type === 'payout' ? 'info' : 'success'} label={t.type.toUpperCase()} />}
-                  <Text style={[st.txAmount, { color: isOut ? '#FCA5A5' : '#86EFAC' }]}>
+                  <Text style={[st.txAmount, { color: isOut ? T.danger : T.ok }]}>
                     {isOut ? '-' : '+'}₹{t.amount.toLocaleString('en-IN')}
                   </Text>
                 </View>
@@ -312,8 +312,8 @@ export function PaymentsView() {
               <Text style={st.gradKicker}>STRIPE BALANCE</Text>
               {data.has_live_stripe && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(34,197,94,0.2)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                  <Zap size={10} color="#86EFAC" />
-                  <Text style={{ color: '#86EFAC', fontFamily: FONTS.bold, fontSize: 9 }}>LIVE</Text>
+                  <Zap size={10} color="#fff" />
+                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 9 }}>LIVE</Text>
                 </View>
               )}
             </View>

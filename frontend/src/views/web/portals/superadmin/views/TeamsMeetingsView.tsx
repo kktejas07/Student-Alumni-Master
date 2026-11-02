@@ -301,7 +301,7 @@ export function TeamsMeetingsView() {
                 <Text style={s.cardTitle}>{m.subject}</Text>
                 <View style={[s.statusBadge, { backgroundColor: m.is_mock ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)' }]}>
                   <View style={[s.dot, { backgroundColor: m.is_mock ? '#F59E0B' : '#10B981' }]} />
-                  <Text style={[s.statusText, { color: m.is_mock ? '#FCD34D' : '#34D399' }]}>
+                  <Text style={[s.statusText, { color: m.is_mock ? T.amber : T.ok }]}>
                     {m.is_mock ? 'Mock' : 'Active'}
                   </Text>
                 </View>

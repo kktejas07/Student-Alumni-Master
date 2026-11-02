@@ -209,8 +209,8 @@ function EventModal({
 
             {!!err && (
               <View style={mst.err}>
-                <AlertTriangle size={12} color="#FCA5A5" />
-                <Text style={{ color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 11.5 }}>{err}</Text>
+                <AlertTriangle size={12} color={T.danger} />
+                <Text style={{ color: T.danger, fontFamily: FONTS.bold, fontSize: 11.5 }}>{err}</Text>
               </View>
             )}
           </ScrollView>
@@ -218,8 +218,8 @@ function EventModal({
           <View style={mst.foot}>
             {isEdit ? (
               <Pressable onPress={remove} disabled={saving} style={mst.delBtn}>
-                <Trash2 size={13} color="#FCA5A5" />
-                <Text style={{ color: '#FCA5A5', fontFamily: FONTS.xbold, fontSize: 12 }}>Delete</Text>
+                <Trash2 size={13} color={T.danger} />
+                <Text style={{ color: T.danger, fontFamily: FONTS.xbold, fontSize: 12 }}>Delete</Text>
               </Pressable>
             ) : <View />}
             <View style={{ flex: 1 }} />
