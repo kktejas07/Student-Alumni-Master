@@ -96,7 +96,7 @@ function PayoutTiersEditor({ visible, onClose }: { visible: boolean; onClose: ()
         <View style={edst.modal}>
           <View style={edst.head}>
             <Text style={edst.title}>Payout Tiers</Text>
-            <Pressable onPress={onClose} style={edst.xBtn}><X size={16} color={SAC.muted} /></Pressable>
+            <Pressable onPress={onClose} style={edst.xBtn}><X size={16} color={T.muted} /></Pressable>
           </View>
 
           <ScrollView style={{ maxHeight: 340 }}>
@@ -108,7 +108,7 @@ function PayoutTiersEditor({ visible, onClose }: { visible: boolean; onClose: ()
                   <Text style={edst.ts}>{t.cut_percent}% cut</Text>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 6 }}>
-                  <Pressable onPress={() => startEdit(i)} style={edst.smBtn}><Edit3 size={12} color={SAC.muted} /></Pressable>
+                  <Pressable onPress={() => startEdit(i)} style={edst.smBtn}><Edit3 size={12} color={T.muted} /></Pressable>
                   <Pressable onPress={() => remove(i)} style={edst.smBtn}><Trash2 size={12} color="#FCA5A5" /></Pressable>
                 </View>
               </View>
@@ -117,14 +117,14 @@ function PayoutTiersEditor({ visible, onClose }: { visible: boolean; onClose: ()
 
           <View style={edst.form}>
             <Text style={edst.formTitle}>{editIdx !== null ? 'Edit tier' : 'New tier'}</Text>
-            <TextInput style={edst.input} placeholder="Name" placeholderTextColor={SAC.dim} value={form.name} onChangeText={v => setForm(s => ({ ...s, name: v }))} />
+            <TextInput style={edst.input} placeholder="Name" placeholderTextColor={T.dim} value={form.name} onChangeText={v => setForm(s => ({ ...s, name: v }))} />
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TextInput style={[edst.input, { flex: 1 }]} placeholder="Cut %" placeholderTextColor={SAC.dim} value={String(form.cut_percent)} onChangeText={v => setForm(s => ({ ...s, cut_percent: Number(v) || 0 }))} keyboardType="numeric" />
-              <TextInput style={[edst.input, { flex: 1 }]} placeholder="Color hex" placeholderTextColor={SAC.dim} value={form.color} onChangeText={v => setForm(s => ({ ...s, color: v }))} />
+              <TextInput style={[edst.input, { flex: 1 }]} placeholder="Cut %" placeholderTextColor={T.dim} value={String(form.cut_percent)} onChangeText={v => setForm(s => ({ ...s, cut_percent: Number(v) || 0 }))} keyboardType="numeric" />
+              <TextInput style={[edst.input, { flex: 1 }]} placeholder="Color hex" placeholderTextColor={T.dim} value={form.color} onChangeText={v => setForm(s => ({ ...s, color: v }))} />
             </View>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
               <SecondaryButton onPress={() => { setForm({ name: '', cut_percent: 50, color: '#F59E0B', sort_order: 0 }); setEditIdx(null); onClose(); }} style={{ flex: 1 }}>
-                <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
+                <Text style={{ color: T.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
               </SecondaryButton>
               <GradientButton onPress={save} loading={loading} disabled={!form.name} style={{ flex: 1 }}>
                 <Check size={13} color="#fff" /><Text style={{ color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 }}>{editIdx !== null ? 'Update' : 'Add'}</Text>
@@ -138,18 +138,18 @@ function PayoutTiersEditor({ visible, onClose }: { visible: boolean; onClose: ()
 }
 
 const edst = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: SAC.panel2, justifyContent: 'center', padding: 20 },
+  overlay: { flex: 1, backgroundColor: T.panel2, justifyContent: 'center', padding: 20 },
   modal: { backgroundColor: '#1a1a2e', borderRadius: 16, padding: 18, maxWidth: 440, width: '100%', alignSelf: 'center' },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
   xBtn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  tierRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: SAC.border },
+  tierRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: T.border },
   dot: { width: 8, height: 8, borderRadius: 4 },
   tn: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12.5 },
-  ts: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
+  ts: { color: T.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
   smBtn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
   form: { marginTop: 14, gap: 8 },
-  formTitle: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.5 },
+  formTitle: { color: T.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.5 },
   input: { height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5, paddingHorizontal: 12 },
 });
 
@@ -224,7 +224,7 @@ export function PaymentsView() {
             <Text style={st.title}>Payments</Text>
             <Text style={st.sub}>Stripe ledger, mentor payouts and refund queue across the platform.</Text>
           </View>
-          <SecondaryButton onPress={doExport} loading={exporting}><Download size={12} color={SAC.muted} /><Text style={st.secText}>{exporting ? 'Exporting…' : 'Export CSV'}</Text></SecondaryButton>
+          <SecondaryButton onPress={doExport} loading={exporting}><Download size={12} color={T.muted} /><Text style={st.secText}>{exporting ? 'Exporting…' : 'Export CSV'}</Text></SecondaryButton>
         </View>
       </Card>
 
@@ -361,9 +361,9 @@ export function PaymentsView() {
             {settlements.available === false ? (
               <View style={{ paddingVertical: 30, alignItems: 'center' }}>
                 {settlementsLoading ? (
-                  <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 13 }}>Loading settlements...</Text>
+                  <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 13 }}>Loading settlements...</Text>
                 ) : (
-                  <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 13 }}>
+                  <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 13 }}>
                     {settlements.error || 'Razorpay not connected. Connect via Integrations to view settlements.'}
                   </Text>
                 )}
@@ -393,7 +393,7 @@ export function PaymentsView() {
                 {/* Settlement list */}
                 <ScrollView style={{ maxHeight: 340 }}>
                   {(settlements?.settlements || []).length === 0 ? (
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', paddingVertical: 24 }}>
+                    <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', paddingVertical: 24 }}>
                       No settlements found.
                     </Text>
                   ) : (
@@ -431,9 +431,9 @@ export function PaymentsView() {
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
-  sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 760 },
-  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
+  sub: { color: T.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 760 },
+  secText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  muted: { color: T.muted, fontFamily: FONTS.med, fontSize: 11.5 },
   iconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
 
   kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
@@ -443,11 +443,11 @@ const st = StyleSheet.create({
 
   txRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: SAC.border,
+    paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: T.border,
   },
   txIcon: { width: 30, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   txDesc: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12.5 },
-  txMeta: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 2 },
+  txMeta: { color: T.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 2 },
   txAmount: { fontFamily: FONTS.xbold, fontSize: 13, minWidth: 90, textAlign: 'right' },
 
   gradCard: { borderRadius: 16, padding: 18, gap: 4 },
@@ -463,7 +463,7 @@ const st = StyleSheet.create({
 
   tierDot: { width: 8, height: 8, borderRadius: 4 },
   tierName: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
-  tierSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
+  tierSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 10.5 },
   tierCutPill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
@@ -472,32 +472,32 @@ const st = StyleSheet.create({
   tierCut: { color: GRAD.to, fontFamily: FONTS.xbold, fontSize: 12 },
   evRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: SAC.border,
+    paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: T.border,
   },
   evDot: { width: 8, height: 8, borderRadius: 4 },
-  evName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
-  evMeta: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
+  evName: { color: T.text, fontFamily: FONTS.bold, fontSize: 12.5 },
+  evMeta: { color: T.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
   evAmt: { color: '#86EFAC', fontFamily: FONTS.xbold, fontSize: 12.5 },
   editBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(245,158,11,0.10)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.30)' },
   editBtnText: { color: GRAD.to, fontFamily: FONTS.bold, fontSize: 10.5 },
 });
 
 const setSt = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: SAC.panel2, justifyContent: 'center', padding: 20 },
+  overlay: { flex: 1, backgroundColor: T.panel2, justifyContent: 'center', padding: 20 },
   modal: { backgroundColor: '#1a1a2e', borderRadius: 16, padding: 18, maxWidth: 560, width: '100%', alignSelf: 'center' },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
+  title: { color: T.text, fontFamily: FONTS.xbold, fontSize: 15 },
   xBtn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.08)' },
   sumRow: { flexDirection: 'row', gap: 10, marginBottom: 16, flexWrap: 'wrap' },
-  sumTile: { flex: 1, minWidth: 110, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: SAC.border },
-  sumLabel: { color: SAC.muted, fontFamily: FONTS.semi, fontSize: 10, letterSpacing: 0.4 },
-  sumVal: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16, marginTop: 4 },
+  sumTile: { flex: 1, minWidth: 110, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: T.border },
+  sumLabel: { color: T.muted, fontFamily: FONTS.semi, fontSize: 10, letterSpacing: 0.4 },
+  sumVal: { color: T.text, fontFamily: FONTS.xbold, fontSize: 16, marginTop: 4 },
   row: {
     flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
-    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: SAC.border,
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: T.border,
   },
-  rowTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
-  rowMeta: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10, marginTop: 2 },
+  rowTitle: { color: T.text, fontFamily: FONTS.bold, fontSize: 12.5 },
+  rowMeta: { color: T.dim, fontFamily: FONTS.med, fontSize: 10, marginTop: 2 },
   rowAmtGreen: { color: '#86EFAC', fontFamily: FONTS.xbold, fontSize: 13 },
   rowAmtRed: { color: '#FCA5A5', fontFamily: FONTS.med, fontSize: 10.5 },
   rowStatus: { color: '#93C5FD', fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 0.4, marginTop: 2 },

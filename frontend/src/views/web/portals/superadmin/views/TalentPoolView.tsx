@@ -270,7 +270,7 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     switch (s) { case 'linkedin': return 'LI'; case 'csv': return 'CSV'; case 'platform': return 'PL'; case 'import': return 'IMP'; default: return s; }
   };
   const sourceColor = (s: string) => {
-    switch (s) { case 'linkedin': return '#0A66C2'; case 'csv': return '#22C55E'; case 'platform': return '#8B5CF6'; case 'import': return '#F59E0B'; default: return SAC.muted; }
+    switch (s) { case 'linkedin': return '#0A66C2'; case 'csv': return '#22C55E'; case 'platform': return '#8B5CF6'; case 'import': return '#F59E0B'; default: return T.muted; }
   };
 
   return (
@@ -312,32 +312,32 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       {message ? (
         <View style={s.msgBar}>
           <Text style={s.msgText} numberOfLines={2}>{message}</Text>
-          <Pressable onPress={() => setMessage('')}><XCircle size={14} color={SAC.muted} /></Pressable>
+          <Pressable onPress={() => setMessage('')}><XCircle size={14} color={T.muted} /></Pressable>
         </View>
       ) : null}
 
       {/* Toolbar */}
       <View style={s.toolbar}>
         <View style={s.searchWrap}>
-          <Search size={14} color={SAC.muted} />
+          <Search size={14} color={T.muted} />
           <TextInput style={s.searchInput} value={search} onChangeText={setSearch}
-            placeholder="Search by name, skills, company, location..." placeholderTextColor={SAC.muted}
+            placeholder="Search by name, skills, company, location..." placeholderTextColor={T.muted}
             onSubmitEditing={() => goToPage(1)} />
         </View>
 
         {/* View mode toggle */}
-        <View style={{ flexDirection: 'row', backgroundColor: SAC.card, borderRadius: 8, padding: 3, borderWidth: 1, borderColor: SAC.border }}>
+        <View style={{ flexDirection: 'row', backgroundColor: T.card, borderRadius: 8, padding: 3, borderWidth: 1, borderColor: T.border }}>
           <Pressable
             onPress={() => setViewMode('spreadsheet')}
             style={[s.viewModeBtn, viewMode === 'spreadsheet' && { backgroundColor: '#8B5CF6' }]}
           >
-            <Text style={[s.viewModeBtnText, viewMode === 'spreadsheet' && { color: SAC.text }]}>Spreadsheet</Text>
+            <Text style={[s.viewModeBtnText, viewMode === 'spreadsheet' && { color: T.text }]}>Spreadsheet</Text>
           </Pressable>
           <Pressable
             onPress={() => setViewMode('grid')}
             style={[s.viewModeBtn, viewMode === 'grid' && { backgroundColor: '#8B5CF6' }]}
           >
-            <Text style={[s.viewModeBtnText, viewMode === 'grid' && { color: SAC.text }]}>Cards</Text>
+            <Text style={[s.viewModeBtnText, viewMode === 'grid' && { color: T.text }]}>Cards</Text>
           </Pressable>
         </View>
 
@@ -396,7 +396,7 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
           <Text style={s.emptySub}>Import a file or sync LinkedIn to get started</Text>
         </View>
       ) : viewMode === 'spreadsheet' ? (
-        <View style={{ backgroundColor: SAC.card, borderRadius: 12, borderWidth: 1, borderColor: SAC.border, overflow: 'hidden' }}>
+        <View style={{ backgroundColor: T.card, borderRadius: 12, borderWidth: 1, borderColor: T.border, overflow: 'hidden' }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={true}>
             <View>
               <View style={s.tableHead}>
@@ -491,7 +491,7 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                           </Text>
                         </View>
                       ) : (
-                        <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5, paddingLeft: 7 }}>— unscored</Text>
+                        <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 10.5, paddingLeft: 7 }}>— unscored</Text>
                       )}
                     </View>
 
@@ -517,7 +517,7 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                           <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold, fontSize: 10 }}>{certId}</Text>
                         </View>
                       ) : (
-                        <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
+                        <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
                       )}
                     </View>
 
@@ -531,10 +531,10 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                         </View>
                       )}
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text numberOfLines={1} style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>
+                        <Text numberOfLines={1} style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 12 }}>
                           {p.full_name || 'Unknown'}
                         </Text>
-                        <Text numberOfLines={1} style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 }}>
+                        <Text numberOfLines={1} style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 10.5 }}>
                           {p.email || p.id.slice(-6)}
                         </Text>
                       </View>
@@ -547,12 +547,12 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                           <Text style={{ color: '#93C5FD', fontFamily: FONTS.bold, fontSize: 10 }}>{p.visa}</Text>
                         </View>
                       ) : (
-                        <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
+                        <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
                       )}
                     </View>
 
                     {/* Recruiter Evaluation: Evaluated Experience */}
-                    <Text style={[s.td, { width: 85, color: SAC.text, fontFamily: FONTS.bold }]}>
+                    <Text style={[s.td, { width: 85, color: T.text, fontFamily: FONTS.bold }]}>
                       {p.exp_level || (p.experience_years != null ? `${p.experience_years}y` : '—')}
                     </Text>
 
@@ -563,12 +563,12 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                           <Text style={{ color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 10 }}>{p.c2c_w2}</Text>
                         </View>
                       ) : (
-                        <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
+                        <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
                       )}
                     </View>
 
                     {/* Recruiter Evaluation: F2F Interview */}
-                    <Text style={[s.td, { width: 80, color: p.f2f?.toLowerCase().includes('yes') ? '#86EFAC' : SAC.muted }]}>
+                    <Text style={[s.td, { width: 80, color: p.f2f?.toLowerCase().includes('yes') ? '#86EFAC' : T.muted }]}>
                       {p.f2f || '—'}
                     </Text>
 
@@ -579,12 +579,12 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                           <Text style={{ color: '#F472B6', fontFamily: FONTS.bold, fontSize: 10 }} numberOfLines={1}>{p.interest_status}</Text>
                         </View>
                       ) : (
-                        <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
+                        <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
                       )}
                     </View>
 
                     {/* Recruiter Evaluation: Preferred Location */}
-                    <Text numberOfLines={1} style={[s.td, { width: 130, color: SAC.muted }]}>
+                    <Text numberOfLines={1} style={[s.td, { width: 130, color: T.muted }]}>
                       {p.preferred_location || p.location || '—'}
                     </Text>
 
@@ -601,12 +601,12 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                     </Text>
 
                     {/* Company */}
-                    <Text numberOfLines={1} style={[s.td, { width: 160, color: SAC.muted }]}>
+                    <Text numberOfLines={1} style={[s.td, { width: 160, color: T.muted }]}>
                       {p.current_company || '—'}
                     </Text>
 
                     {/* Location */}
-                    <Text numberOfLines={1} style={[s.td, { width: 130, color: SAC.muted }]}>
+                    <Text numberOfLines={1} style={[s.td, { width: 130, color: T.muted }]}>
                       {p.location || '—'}
                     </Text>
 
@@ -615,7 +615,7 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                       onPress={(e) => { e.stopPropagation(); if (p.email) (Platform.OS === 'web' ? window.open(`mailto:${p.email}`) : Linking.openURL(`mailto:${p.email}`)); }}
                       style={{ width: 200 }}
                     >
-                      <Text numberOfLines={1} style={[s.td, { color: p.email ? '#93C5FD' : SAC.muted, width: 200 }]}>
+                      <Text numberOfLines={1} style={[s.td, { color: p.email ? '#93C5FD' : T.muted, width: 200 }]}>
                         {p.email || '—'}
                       </Text>
                     </Pressable>
@@ -631,17 +631,17 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                           <Text style={{ color: '#60A5FA', fontFamily: FONTS.med, fontSize: 11 }}>Profile</Text>
                         </Pressable>
                       ) : (
-                        <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
+                        <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
                       )}
                     </View>
 
                     {/* Education */}
                     <View style={{ width: 180 }}>
-                      <Text numberOfLines={1} style={[s.td, { width: 180, color: SAC.text, fontSize: 11 }]}>
+                      <Text numberOfLines={1} style={[s.td, { width: 180, color: T.text, fontSize: 11 }]}>
                         {p.education || '—'}
                       </Text>
                       {p.graduation_year && (
-                        <Text numberOfLines={1} style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 }}>
+                        <Text numberOfLines={1} style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 10 }}>
                           Grad: {p.graduation_year}
                         </Text>
                       )}
@@ -674,7 +674,7 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                         onPress={(e) => { e.stopPropagation(); setDetailProfile(p); setDetailModalVisible(true); }}
                         style={{ paddingHorizontal: 5, paddingVertical: 2.5, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.06)' }}
                       >
-                        <Text style={{ color: SAC.text, fontSize: 10, fontFamily: FONTS.bold }}>View</Text>
+                        <Text style={{ color: T.text, fontSize: 10, fontFamily: FONTS.bold }}>View</Text>
                       </Pressable>
                       <Pressable
                         onPress={(e) => { e.stopPropagation(); openPromoteModal(p); }}
@@ -755,19 +755,19 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 <View style={s.cardDetails}>
                   {p.current_company && (
                     <View style={s.detailRow}>
-                      <Briefcase size={11} color={SAC.muted} />
+                      <Briefcase size={11} color={T.muted} />
                       <Text style={s.detailText} numberOfLines={1}>{p.current_company}</Text>
                     </View>
                   )}
                   {p.location && (
                     <View style={s.detailRow}>
-                      <MapPin size={11} color={SAC.muted} />
+                      <MapPin size={11} color={T.muted} />
                       <Text style={s.detailText} numberOfLines={1}>{p.location}</Text>
                     </View>
                   )}
                   {p.education && (
                     <View style={s.detailRow}>
-                      <GraduationCap size={11} color={SAC.muted} />
+                      <GraduationCap size={11} color={T.muted} />
                       <Text style={s.detailText} numberOfLines={1}>
                         {p.education}{p.graduation_year ? ` · ${p.graduation_year}` : ''}
                       </Text>
@@ -867,12 +867,12 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 <Text style={s.modalTitle}>Promote to Platform User</Text>
                 <Text style={s.sub}>Create a registered user account in the directory</Text>
               </View>
-              <Pressable onPress={() => setPromoteModalVisible(false)}><X size={16} color={SAC.muted} /></Pressable>
+              <Pressable onPress={() => setPromoteModalVisible(false)}><X size={16} color={T.muted} /></Pressable>
             </View>
             <View style={{ padding: 20, gap: 16 }}>
-              <View style={{ padding: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.border }}>
-                <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 }}>{candidateToPromote?.full_name}</Text>
-                <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 }}>{candidateToPromote?.email || 'No email provided'}</Text>
+              <View style={{ padding: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: T.border }}>
+                <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 13 }}>{candidateToPromote?.full_name}</Text>
+                <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 }}>{candidateToPromote?.email || 'No email provided'}</Text>
                 {candidateToPromote?.current_company && (
                   <Text style={{ color: '#93C5FD', fontFamily: FONTS.med, fontSize: 11, marginTop: 2 }}>{candidateToPromote.current_role} @ {candidateToPromote.current_company}</Text>
                 )}
@@ -891,7 +891,7 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                         promoteCategory === cat && { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' }
                       ]}
                     >
-                      <Text style={[s.filterChipText, promoteCategory === cat && { color: SAC.text }]}>
+                      <Text style={[s.filterChipText, promoteCategory === cat && { color: T.text }]}>
                         {cat.toUpperCase()}
                       </Text>
                     </Pressable>
@@ -907,7 +907,7 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 <View style={[s.checkbox, promoteSendInvite && s.checkboxActive]}>
                   {promoteSendInvite && <CheckCircle size={13} color="#8B5CF6" />}
                 </View>
-                <Text style={{ color: SAC.text, fontFamily: FONTS.med, fontSize: 12 }}>
+                <Text style={{ color: T.text, fontFamily: FONTS.med, fontSize: 12 }}>
                   Send branded account claim email immediately
                 </Text>
               </Pressable>
@@ -951,7 +951,7 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                   value={aiInput}
                   onChangeText={setAiInput}
                   placeholder="e.g. https://linkedin.com/in/username or https://github.com/developer"
-                  placeholderTextColor={SAC.muted}
+                  placeholderTextColor={T.muted}
                   multiline
                   style={[s.searchInput, { minHeight: 70, borderRadius: 8, padding: 10, textAlignVertical: 'top' as any }]}
                 />
@@ -963,7 +963,7 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                   value={aiNotes}
                   onChangeText={setAiNotes}
                   placeholder="e.g. Top hackathon finalist, strong system design background"
-                  placeholderTextColor={SAC.muted}
+                  placeholderTextColor={T.muted}
                   style={[s.searchInput, { borderRadius: 8, padding: 10 }]}
                 />
               </View>
@@ -972,7 +972,7 @@ export function TalentPoolView({ sub, onSub }: { sub?: string; onSub?: (s: strin
               {aiCandidateResult && (
                 <View style={{ padding: 14, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.1)', borderColor: '#7C3AED', borderWidth: 1, gap: 8 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 14 }}>{aiCandidateResult.full_name}</Text>
+                    <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 14 }}>{aiCandidateResult.full_name}</Text>
                     <View style={{ backgroundColor: 'rgba(16,185,129,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
                       <Text style={{ color: '#34D399', fontFamily: FONTS.bold, fontSize: 11 }}>{aiCandidateResult.seniority} Level</Text>
                     </View>
@@ -1246,7 +1246,7 @@ function DuplicatesPanel({ notify }: { notify: (m: string) => void }) {
             <View key={g.group_id} style={s.dedupGroupCard}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
                 <Text style={s.sectionLabel}>GROUP · {(g.reasons || []).join(', ') || g.group_id}</Text>
-                <Text style={{ color: SAC.muted, fontSize: 10 }}>{new Date(g.found_at || g.updated_at || 0).toLocaleDateString()}</Text>
+                <Text style={{ color: T.muted, fontSize: 10 }}>{new Date(g.found_at || g.updated_at || 0).toLocaleDateString()}</Text>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -1256,8 +1256,8 @@ function DuplicatesPanel({ notify }: { notify: (m: string) => void }) {
                       <Pressable key={memberKey(m)} onPress={() => setSelKeepers(prev => ({ ...prev, [g.group_id]: String(m.id) }))}
                         style={[s.dedupMemberCard, isKeeper && s.dedupMemberCardKeeper]}>
                         {isKeeper && <View style={{ ...s.dedupKeeperDot }} />}
-                        <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 11 }} numberOfLines={1}>{m.full_name || m.id}</Text>
-                        <Text style={{ color: SAC.muted, fontSize: 10, fontFamily: FONTS.med }} numberOfLines={1}>{m.email || m.collection}</Text>
+                        <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 11 }} numberOfLines={1}>{m.full_name || m.id}</Text>
+                        <Text style={{ color: T.muted, fontSize: 10, fontFamily: FONTS.med }} numberOfLines={1}>{m.email || m.collection}</Text>
                         {isKeeper && <Text style={{ color: '#10B981', fontSize: 10, fontFamily: FONTS.bold }}>KEEPER</Text>}
                       </Pressable>
                     );
@@ -1399,10 +1399,10 @@ function ActivityPanel({ notify }: { notify: (m: string) => void }) {
         <View style={{ gap: 10 }}>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             <TextInput style={[s.formInput, { flex: 1 }]} value={profileId} onChangeText={setProfileId}
-              placeholder="Filter by profile ID (optional)" placeholderTextColor={SAC.muted} />
+              placeholder="Filter by profile ID (optional)" placeholderTextColor={T.muted} />
             <Pressable style={[s.btn, s.btnOutline]} onPress={load}><Text style={s.btnText}>Filter</Text></Pressable>
           </View>
-          {events.length === 0 ? <Text style={{ color: SAC.muted, fontSize: 12, fontFamily: FONTS.med }}>No events yet</Text> : null}
+          {events.length === 0 ? <Text style={{ color: T.muted, fontSize: 12, fontFamily: FONTS.med }}>No events yet</Text> : null}
           <ScrollView style={{ flex: 1, maxHeight: 400 }} contentContainerStyle={{ gap: 6 }}>
             {events.map((ev: any, i: number) => (
               <View key={i} style={s.listRow}>
@@ -1412,7 +1412,7 @@ function ActivityPanel({ notify }: { notify: (m: string) => void }) {
                     {[ev.actor, ev.object_type, ev.summary].filter(Boolean).join(' · ')}
                   </Text>
                 </View>
-                <Text style={{ color: SAC.muted, fontSize: 10, fontFamily: FONTS.med }}>{ev.created_at ? new Date(ev.created_at).toLocaleString() : ''}</Text>
+                <Text style={{ color: T.muted, fontSize: 10, fontFamily: FONTS.med }}>{ev.created_at ? new Date(ev.created_at).toLocaleString() : ''}</Text>
               </View>
             ))}
           </ScrollView>
@@ -1454,7 +1454,7 @@ function InsightsPanel({ notify }: { notify: (m: string) => void }) {
   return (
     <PanelShell title="Pool Insights (TP27)" subtitle="Weekly cohort analytics · source effectiveness, skill trends, geo, pipeline velocity, conversion funnel">
       <BusyMsg loading={loading} error={err} />
-      {!loading && !latest && <Text style={{ color: SAC.muted, fontSize: 12, fontFamily: FONTS.med }}>No insights yet — run the generator or wait for the weekly scheduler step.</Text>}
+      {!loading && !latest && <Text style={{ color: T.muted, fontSize: 12, fontFamily: FONTS.med }}>No insights yet — run the generator or wait for the weekly scheduler step.</Text>}
       {!loading && latest && (
         <View style={{ gap: 12 }}>
           <Text style={s.sectionLabel}>WEEK OF {new Date(latest.week_start).toLocaleDateString()} · computed {new Date(latest.computed_at).toLocaleString()}</Text>
@@ -1476,7 +1476,7 @@ function InsightsPanel({ notify }: { notify: (m: string) => void }) {
               {latest.payload.skill_trends && (
                 <View>
                   <Text style={s.sectionLabel}>SKILL TRENDS</Text>
-                  <Text style={{ color: SAC.muted, fontSize: 11, fontFamily: FONTS.med, marginTop: 4 }}>
+                  <Text style={{ color: T.muted, fontSize: 11, fontFamily: FONTS.med, marginTop: 4 }}>
                     {JSON.stringify(latest.payload.skill_trends, null, 0)}
                   </Text>
                 </View>
@@ -1484,7 +1484,7 @@ function InsightsPanel({ notify }: { notify: (m: string) => void }) {
               {latest.payload.pipeline_velocity && (
                 <View>
                   <Text style={s.sectionLabel}>PIPELINE VELOCITY</Text>
-                  <Text style={{ color: SAC.muted, fontSize: 11, fontFamily: FONTS.med, marginTop: 4 }}>
+                  <Text style={{ color: T.muted, fontSize: 11, fontFamily: FONTS.med, marginTop: 4 }}>
                     {JSON.stringify(latest.payload.pipeline_velocity, null, 0)}
                   </Text>
                 </View>
@@ -1554,15 +1554,15 @@ function DripPanel({ notify }: { notify: (m: string) => void }) {
           {/* Create form */}
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <TextInput style={[s.formInput, { flex: 1, minWidth: 160 }]} value={campaignName} onChangeText={setCampaignName}
-              placeholder="Campaign name" placeholderTextColor={SAC.muted} />
+              placeholder="Campaign name" placeholderTextColor={T.muted} />
             <TextInput style={[s.formInput, { flex: 1, minWidth: 140 }]} value={openingRef} onChangeText={setOpeningRef}
-              placeholder="Opening ref (optional)" placeholderTextColor={SAC.muted} />
+              placeholder="Opening ref (optional)" placeholderTextColor={T.muted} />
             <Pressable style={[s.btn, s.btnPrimary]} onPress={createCampaign} disabled={busy}>
               <UserPlus size={12} color="#fff" /><Text style={s.btnText}>Create</Text>
             </Pressable>
           </View>
           {/* Campaign list */}
-          {campaigns.length === 0 && <Text style={{ color: SAC.muted, fontSize: 12, fontFamily: FONTS.med }}>No drip campaigns yet.</Text>}
+          {campaigns.length === 0 && <Text style={{ color: T.muted, fontSize: 12, fontFamily: FONTS.med }}>No drip campaigns yet.</Text>}
           <ScrollView style={{ flex: 1, maxHeight: 300 }} contentContainerStyle={{ gap: 8 }}>
             {campaigns.map((c: any) => (
               <View key={c.id} style={s.listRow}>
@@ -1661,7 +1661,7 @@ function ExternalJobsPanel({ notify }: { notify: (m: string) => void }) {
             </View>
           )}
           {listings.length === 0 && deadlines.length === 0 && (
-            <Text style={{ color: SAC.muted, fontSize: 12, fontFamily: FONTS.med }}>No listings fetched yet.</Text>
+            <Text style={{ color: T.muted, fontSize: 12, fontFamily: FONTS.med }}>No listings fetched yet.</Text>
           )}
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
             <Pressable style={[s.btn, s.btnPrimary]} onPress={refetch} disabled={fetching}>
@@ -1716,11 +1716,11 @@ function RankerPanel({ notify }: { notify: (m: string) => void }) {
     <PanelShell title="Candidate Ranker (TP19)" subtitle="ML model · daily retrain via TP23 scheduler · fallback: cold-start cosine scoring">
       <BusyMsg loading={loading} error={err} />
       <View style={{ gap: 10, marginBottom: 12 }}>
-        <TextInput style={s.formInput} value={jobTitle} onChangeText={setJobTitle} placeholder="Job title (e.g. Full Stack Developer)" placeholderTextColor={SAC.muted} />
-        <TextInput style={s.formInput} value={skills} onChangeText={setSkills} placeholder="Comma-separated skills (e.g. React, Node, PostgreSQL)" placeholderTextColor={SAC.muted} />
+        <TextInput style={s.formInput} value={jobTitle} onChangeText={setJobTitle} placeholder="Job title (e.g. Full Stack Developer)" placeholderTextColor={T.muted} />
+        <TextInput style={s.formInput} value={skills} onChangeText={setSkills} placeholder="Comma-separated skills (e.g. React, Node, PostgreSQL)" placeholderTextColor={T.muted} />
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TextInput style={[s.formInput, { flex: 1 }]} value={minExp} onChangeText={setMinExp} placeholder="Min years" placeholderTextColor={SAC.muted} keyboardType="numeric" />
-          <TextInput style={[s.formInput, { flex: 1 }]} value={maxExp} onChangeText={setMaxExp} placeholder="Max years" placeholderTextColor={SAC.muted} keyboardType="numeric" />
+          <TextInput style={[s.formInput, { flex: 1 }]} value={minExp} onChangeText={setMinExp} placeholder="Min years" placeholderTextColor={T.muted} keyboardType="numeric" />
+          <TextInput style={[s.formInput, { flex: 1 }]} value={maxExp} onChangeText={setMaxExp} placeholder="Max years" placeholderTextColor={T.muted} keyboardType="numeric" />
         </View>
         <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end' }}>
           <Pressable style={[s.btn, s.btnOutline]} onPress={retrain} disabled={loading}>
@@ -1733,7 +1733,7 @@ function RankerPanel({ notify }: { notify: (m: string) => void }) {
         </View>
       </View>
       {meta && (
-        <Text style={{ color: SAC.muted, fontSize: 11, fontFamily: FONTS.med, marginBottom: 8 }}>
+        <Text style={{ color: T.muted, fontSize: 11, fontFamily: FONTS.med, marginBottom: 8 }}>
           model: {meta.model} · labels: {meta.labels} · health: {JSON.stringify(meta.health)}
         </Text>
       )}
@@ -1829,9 +1829,9 @@ function InterviewsPanel({ notify }: { notify: (m: string) => void }) {
           <View>
             <Text style={s.sectionLabel}>SCHEDULE NEW INTERVIEW</Text>
             <View style={{ gap: 8, marginTop: 8, flexWrap: 'wrap', flexDirection: 'row' }}>
-              <TextInput style={[s.formInput, { flex: 1, minWidth: 120 }]} value={schedProfile} onChangeText={setSchedProfile} placeholder="Profile ID" placeholderTextColor={SAC.muted} />
-              <TextInput style={[s.formInput, { flex: 1, minWidth: 160 }]} value={schedStart} onChangeText={setSchedStart} placeholder="Start (ISO or blank = 2h)" placeholderTextColor={SAC.muted} />
-              <TextInput style={[s.formInput, { flex: 1, minWidth: 140 }]} value={schedInvitee} onChangeText={setSchedInvitee} placeholder="Invitee email" placeholderTextColor={SAC.muted} />
+              <TextInput style={[s.formInput, { flex: 1, minWidth: 120 }]} value={schedProfile} onChangeText={setSchedProfile} placeholder="Profile ID" placeholderTextColor={T.muted} />
+              <TextInput style={[s.formInput, { flex: 1, minWidth: 160 }]} value={schedStart} onChangeText={setSchedStart} placeholder="Start (ISO or blank = 2h)" placeholderTextColor={T.muted} />
+              <TextInput style={[s.formInput, { flex: 1, minWidth: 140 }]} value={schedInvitee} onChangeText={setSchedInvitee} placeholder="Invitee email" placeholderTextColor={T.muted} />
               <View style={{ flexDirection: 'row', gap: 4 }}>
                 {(['auto', 'gcal', 'ms365', 'ics'] as const).map(c => (
                   <Pressable key={c} style={[s.filterChip, schedCal === c && s.filterChipActive]} onPress={() => setSchedCal(c)}>
@@ -1855,7 +1855,7 @@ function InterviewsPanel({ notify }: { notify: (m: string) => void }) {
                   </Pressable>
                 ))}
               </View>
-              <TextInput style={s.formInput} value={fbNotes} onChangeText={setFbNotes} placeholder="Notes (optional)" placeholderTextColor={SAC.muted} />
+              <TextInput style={s.formInput} value={fbNotes} onChangeText={setFbNotes} placeholder="Notes (optional)" placeholderTextColor={T.muted} />
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 6 }}>
                 <Pressable style={[s.btn, s.btnOutline]} onPress={() => { setFbInterview(null); setFbDecision(''); }}><Text style={s.btnText}>Cancel</Text></Pressable>
                 <Pressable style={[s.btn, s.btnPrimary]} onPress={submitFeedback} disabled={schedBusy}><Text style={s.btnText}>Submit</Text></Pressable>
@@ -1863,7 +1863,7 @@ function InterviewsPanel({ notify }: { notify: (m: string) => void }) {
             </View>
           )}
           {/* List */}
-          {interviews.length === 0 && <Text style={{ color: SAC.muted, fontSize: 12, fontFamily: FONTS.med }}>No interviews yet.</Text>}
+          {interviews.length === 0 && <Text style={{ color: T.muted, fontSize: 12, fontFamily: FONTS.med }}>No interviews yet.</Text>}
           <ScrollView style={{ flex: 1, maxHeight: 300 }} contentContainerStyle={{ gap: 6 }}>
             {interviews.map((iv: any, i: number) => (
               <View key={i} style={s.listRow}>
@@ -1952,7 +1952,7 @@ function SkillsPanel({ notify }: { notify: (m: string) => void }) {
                 {top.slice(0, 20).map((sk: any, i: number) => (
                   <View key={i} style={s.listRow}>
                     <Text style={[s.listRowTitle, { flex: 1 }]} numberOfLines={1}>{sk.canonical}</Text>
-                    <Text style={{ color: SAC.muted, fontSize: 11 }}>{sk.usage_count} uses</Text>
+                    <Text style={{ color: T.muted, fontSize: 11 }}>{sk.usage_count} uses</Text>
                   </View>
                 ))}
               </ScrollView>
@@ -1962,8 +1962,8 @@ function SkillsPanel({ notify }: { notify: (m: string) => void }) {
           <View>
             <Text style={s.sectionLabel}>PROMOTE TO CANONICAL</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-              <TextInput style={[s.formInput, { flex: 1, minWidth: 120 }]} value={canonInput} onChangeText={setCanonInput} placeholder="Canonical name" placeholderTextColor={SAC.muted} />
-              <TextInput style={[s.formInput, { flex: 1, minWidth: 140 }]} value={aliasInput} onChangeText={setAliasInput} placeholder="Comma-separated aliases" placeholderTextColor={SAC.muted} />
+              <TextInput style={[s.formInput, { flex: 1, minWidth: 120 }]} value={canonInput} onChangeText={setCanonInput} placeholder="Canonical name" placeholderTextColor={T.muted} />
+              <TextInput style={[s.formInput, { flex: 1, minWidth: 140 }]} value={aliasInput} onChangeText={setAliasInput} placeholder="Comma-separated aliases" placeholderTextColor={T.muted} />
               <Pressable style={[s.btn, s.btnPrimary]} onPress={promote}><Tags size={12} color="#fff" /><Text style={s.btnText}>Promote</Text></Pressable>
             </View>
           </View>
@@ -1972,7 +1972,7 @@ function SkillsPanel({ notify }: { notify: (m: string) => void }) {
             <Text style={s.sectionLabel}>CANONICALIZE TEST (raw alias → canonical)</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, alignItems: 'flex-start' }}>
               <View style={{ flex: 1, gap: 6 }}>
-                <TextInput style={s.formInput} value={canonTest} onChangeText={setCanonTest} placeholder="e.g. react, nodejs, typescript" placeholderTextColor={SAC.muted} />
+                <TextInput style={s.formInput} value={canonTest} onChangeText={setCanonTest} placeholder="e.g. react, nodejs, typescript" placeholderTextColor={T.muted} />
                 {canonResult.length > 0 && (
                   <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap' }}>
                     {canonResult.map((c, i) => (
@@ -2054,7 +2054,7 @@ function CompliancePanel({ notify }: { notify: (m: string) => void }) {
             <View>
               <Text style={s.sectionLabel}>ATS / CRM PUSH (TP31)</Text>
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                <Text style={{ color: SAC.muted, fontSize: 11, fontFamily: FONTS.med }}>
+                <Text style={{ color: T.muted, fontSize: 11, fontFamily: FONTS.med }}>
                   Enabled: {ats.enabled_ats?.length || 0} · Last push: {ats.last_push_at ? new Date(ats.last_push_at).toLocaleString() : '—'}
                 </Text>
                 <Pressable style={[s.btn, s.btnOutline]} onPress={atsPush}>
@@ -2191,7 +2191,7 @@ function ProfileDetailModal({
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 8, backgroundColor: '#8B5CF6' }}
               >
                 <UserPlus size={13} color="#fff" />
-                <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>
+                <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 12 }}>
                   {p.source_platform_user_id ? 'Re-Sync Platform User' : 'Promote to Platform User'}
                 </Text>
               </Pressable>
@@ -2225,14 +2225,14 @@ function ProfileDetailModal({
               <View style={{ marginTop: 8, gap: 8 }}>
                 {p.email && (
                   <Pressable style={s.modalDetailRow} onPress={() => { if (Platform.OS === 'web') (window as any).open(`mailto:${p.email}`); else Linking.openURL(`mailto:${p.email!}`); }}>
-                    <Mail size={13} color={SAC.muted} />
+                    <Mail size={13} color={T.muted} />
                     <Text style={s.modalDetailLabel}>Email</Text>
                     <Text style={[s.modalDetailValue, { color: GRAD.to, textDecorationLine: 'underline' }]}>{p.email}</Text>
                   </Pressable>
                 )}
                 {p.location && (
                   <View style={s.modalDetailRow}>
-                    <MapPin size={13} color={SAC.muted} />
+                    <MapPin size={13} color={T.muted} />
                     <Text style={s.modalDetailLabel}>Location</Text>
                     <Text style={s.modalDetailValue}>{p.location}</Text>
                   </View>
@@ -2252,20 +2252,20 @@ function ProfileDetailModal({
               <Text style={s.modalSectionLabel}>META</Text>
               <View style={{ marginTop: 8, gap: 8 }}>
                 <View style={s.modalDetailRow}>
-                  <Calendar size={13} color={SAC.muted} />
+                  <Calendar size={13} color={T.muted} />
                   <Text style={s.modalDetailLabel}>Source</Text>
                   <Text style={s.modalDetailValue}>{p.source.toUpperCase()}</Text>
                 </View>
                 {p.imported_at && (
                   <View style={s.modalDetailRow}>
-                    <Calendar size={13} color={SAC.muted} />
+                    <Calendar size={13} color={T.muted} />
                     <Text style={s.modalDetailLabel}>Imported</Text>
                     <Text style={s.modalDetailValue}>{new Date(p.imported_at).toLocaleDateString()}</Text>
                   </View>
                 )}
                 {p.last_synced_at && (
                   <View style={s.modalDetailRow}>
-                    <Calendar size={13} color={SAC.muted} />
+                    <Calendar size={13} color={T.muted} />
                     <Text style={s.modalDetailLabel}>Last synced</Text>
                     <Text style={s.modalDetailValue}>{new Date(p.last_synced_at).toLocaleDateString()}</Text>
                   </View>
@@ -2282,31 +2282,31 @@ function ProfileDetailModal({
 const s = StyleSheet.create({
   root: { flex: 1 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 22 },
-  sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 2 },
+  title: { color: T.text, fontFamily: FONTS.xbold, fontSize: 22 },
+  sub: { color: T.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 2 },
   headerActions: { flexDirection: 'row', gap: 8 },
   btn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
-  btnOutline: { backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: SAC.border },
+  btnOutline: { backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: T.border },
   btnPrimary: { backgroundColor: '#8B5CF6' },
-  btnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
+  btnText: { color: T.text, fontFamily: FONTS.bold, fontSize: 12 },
   msgBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(139,92,246,0.1)', borderRadius: 8, padding: 10, marginBottom: 12 },
   msgText: { color: '#A78BFA', fontFamily: FONTS.med, fontSize: 12, flex: 1 },
   toolbar: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
-  searchWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.border, borderRadius: 10, paddingHorizontal: 12, height: 38, gap: 8 },
-  searchInput: { flex: 1, color: SAC.text, fontSize: 13, fontFamily: FONTS.med, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  searchWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: T.card, borderWidth: 1, borderColor: T.border, borderRadius: 10, paddingHorizontal: 12, height: 38, gap: 8 },
+  searchInput: { flex: 1, color: T.text, fontSize: 13, fontFamily: FONTS.med, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   filterBtns: { flexDirection: 'row', gap: 4 },
-  filterChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.border },
+  filterChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: T.card, borderWidth: 1, borderColor: T.border },
   filterChipActive: { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' },
-  filterChipText: { color: SAC.muted, fontSize: 11, fontFamily: FONTS.bold },
-  filterChipTextActive: { color: SAC.text },
+  filterChipText: { color: T.muted, fontSize: 11, fontFamily: FONTS.bold },
+  filterChipTextActive: { color: T.text },
   bulkBar: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(139,92,246,0.08)', borderRadius: 8, padding: 8, marginBottom: 10 },
   bulkText: { color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 12, marginRight: 8 },
   bulkBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 },
-  bulkBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11 },
+  bulkBtnText: { color: T.text, fontFamily: FONTS.bold, fontSize: 11 },
   selectAllBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, paddingHorizontal: 4, marginBottom: 8 },
-  selectAllText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
+  selectAllText: { color: T.muted, fontFamily: FONTS.med, fontSize: 11 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingBottom: 40 },
-  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: SAC.card },
+  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: T.card },
   avatarPlaceholder: {
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: 'rgba(139,92,246,0.2)', alignItems: 'center', justifyContent: 'center',
@@ -2319,109 +2319,109 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center',
     borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)',
   },
-  modalAvatarInitial: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 18 },
+  modalAvatarInitial: { color: T.text, fontFamily: FONTS.bold, fontSize: 18 },
   modalBg: {
-    flex: 1, backgroundColor: SAC.panel2,
+    flex: 1, backgroundColor: T.panel2,
     alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
   modalCard: {
     width: '100%', maxWidth: 540, maxHeight: '92%',
-    backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2, overflow: 'hidden',
+    backgroundColor: T.bg2, borderRadius: 16, borderWidth: 1, borderColor: T.border2, overflow: 'hidden',
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
   },
   modalHero: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, paddingRight: 12 },
-  modalTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
+  modalTitle: { color: T.text, fontFamily: FONTS.xbold, fontSize: 16 },
   modalRole: { color: 'rgba(255,255,255,0.75)', fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   modalCompany: { color: 'rgba(255,255,255,0.55)', fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
-  modalCloseBtn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: SAC.panel2, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  modalSectionLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.8 },
+  modalCloseBtn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: T.panel2, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  modalSectionLabel: { color: T.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.8 },
   modalBio: { color: '#CBD5E1', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 19, marginTop: 8 },
   modalAboutText: { color: '#CBD5E1', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 19, marginTop: 8 },
   modalDetailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  modalDetailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, width: 90 },
-  modalDetailValue: { color: SAC.text, fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
+  modalDetailLabel: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11, width: 90 },
+  modalDetailValue: { color: T.text, fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   modalSkillsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
   modalSkillChip: { backgroundColor: 'rgba(139,92,246,0.15)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(139,92,246,0.25)' },
   modalSkillChipText: { color: '#A78BFA', fontSize: 11, fontFamily: FONTS.bold },
   card: {
     width: 'calc(33.333% - 8px)' as any, minWidth: 300, flex: 1,
-    backgroundColor: SAC.card, borderRadius: 12, borderWidth: 1, borderColor: SAC.border,
+    backgroundColor: T.card, borderRadius: 12, borderWidth: 1, borderColor: T.border,
     padding: 14, flexDirection: 'row', gap: 10,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   cardInactive: { opacity: 0.45 },
   selectWrap: { paddingTop: 2 },
-  checkbox: { width: 16, height: 16, borderRadius: 4, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', justifyContent: 'center' },
+  checkbox: { width: 16, height: 16, borderRadius: 4, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center' },
   checkboxActive: { borderColor: '#8B5CF6', backgroundColor: 'rgba(139,92,246,0.15)' },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 4 },
-  cardName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 14, flex: 1 },
+  cardName: { color: T.text, fontFamily: FONTS.bold, fontSize: 14, flex: 1 },
   sourceBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 0.5 },
   sourceBadgeText: { fontSize: 9, fontFamily: FONTS.bold, letterSpacing: 0.3 },
-  cardHeadline: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginBottom: 6, lineHeight: 15 },
+  cardHeadline: { color: T.muted, fontFamily: FONTS.med, fontSize: 11, marginBottom: 6, lineHeight: 15 },
   cardDetails: { gap: 3, marginBottom: 6 },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   detailText: { color: '#94A3B8', fontFamily: FONTS.med, fontSize: 11, flex: 1 },
   skillsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 8 },
   skillChip: { backgroundColor: 'rgba(139,92,246,0.12)', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
   skillChipText: { color: '#A78BFA', fontSize: 10, fontFamily: FONTS.bold },
-  moreSkills: { color: SAC.muted, fontSize: 10, alignSelf: 'center' },
+  moreSkills: { color: T.muted, fontSize: 10, alignSelf: 'center' },
   cardActions: { flexDirection: 'row', gap: 6, alignItems: 'center' },
   actionBtn: { backgroundColor: '#0A66C2', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 },
-  actionBtnText: { color: SAC.text, fontSize: 10, fontFamily: FONTS.bold },
+  actionBtnText: { color: T.text, fontSize: 10, fontFamily: FONTS.bold },
   iconBtn: { width: 28, height: 28, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
   emptyTitle: { color: '#E2E8F0', fontFamily: FONTS.bold, fontSize: 15 },
-  emptySub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 4 },
+  emptySub: { color: T.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 4 },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, gap: 14 },
-  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.card, borderRadius: 8, borderWidth: 1, borderColor: SAC.border },
-  pageBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
-  pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
+  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border },
+  pageBtnText: { color: T.text, fontFamily: FONTS.bold, fontSize: 12 },
+  pageInfo: { color: T.muted, fontFamily: FONTS.med, fontSize: 12 },
   viewModeBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
-  viewModeBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  viewModeBtnText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11 },
   tableHead: {
     flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 10,
-    backgroundColor: 'rgba(255,255,255,0.03)', borderBottomWidth: 1, borderBottomColor: SAC.border,
+    backgroundColor: 'rgba(255,255,255,0.03)', borderBottomWidth: 1, borderBottomColor: T.border,
   },
-  th: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.2, paddingRight: 10 },
+  th: { color: T.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.2, paddingRight: 10 },
   tableRow: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: SAC.border,
+    borderBottomWidth: 1, borderBottomColor: T.border,
   },
-  td: { color: SAC.text, fontFamily: FONTS.med, fontSize: 11.5, paddingRight: 10 },
+  td: { color: T.text, fontFamily: FONTS.med, fontSize: 11.5, paddingRight: 10 },
   // ── TP agent suite panel styles ──
   panelCard: {
-    flex: 1, backgroundColor: SAC.card, borderRadius: 14, borderWidth: 1, borderColor: SAC.border,
+    flex: 1, backgroundColor: T.card, borderRadius: 14, borderWidth: 1, borderColor: T.border,
     padding: 18, gap: 14, overflow: 'hidden',
   },
   panelHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  panelTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
-  panelSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
+  panelTitle: { color: T.text, fontFamily: FONTS.xbold, fontSize: 15 },
+  panelSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   kpiRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   kpiTile: {
     backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 12,
-    borderWidth: 1, borderColor: SAC.border, minWidth: 100, flex: 1, gap: 4,
+    borderWidth: 1, borderColor: T.border, minWidth: 100, flex: 1, gap: 4,
   },
-  kpiValue: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 18 },
-  kpiLabel: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 },
-  sectionLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.8 },
+  kpiValue: { color: T.text, fontFamily: FONTS.xbold, fontSize: 18 },
+  kpiLabel: { color: T.muted, fontFamily: FONTS.med, fontSize: 10 },
+  sectionLabel: { color: T.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.8 },
   formInput: {
-    flex: 1, color: SAC.text, fontSize: 12, fontFamily: FONTS.med,
-    backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: SAC.border,
+    flex: 1, color: T.text, fontSize: 12, fontFamily: FONTS.med,
+    backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: T.border,
     borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   agentCard: {
     width: 190, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 12,
-    borderWidth: 1, borderColor: SAC.border, padding: 12, gap: 5,
+    borderWidth: 1, borderColor: T.border, padding: 12, gap: 5,
   },
   agentCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6 },
-  agentCardName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12, flex: 1, flexShrink: 1 },
-  agentCardMeta: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
+  agentCardName: { color: T.text, fontFamily: FONTS.bold, fontSize: 12, flex: 1, flexShrink: 1 },
+  agentCardMeta: { color: T.muted, fontFamily: FONTS.med, fontSize: 10.5 },
   pill: {
     paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 4, borderWidth: 1,
   },
@@ -2429,21 +2429,21 @@ const s = StyleSheet.create({
   dataTableHead: {
     flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 8,
     backgroundColor: 'rgba(255,255,255,0.04)', borderTopLeftRadius: 10, borderTopRightRadius: 10,
-    borderBottomWidth: 1, borderBottomColor: SAC.border,
+    borderBottomWidth: 1, borderBottomColor: T.border,
   },
-  dataTh: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.6 },
+  dataTh: { color: T.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.6 },
   dataTableRow: {
     flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 8,
-    borderBottomWidth: 0.5, borderBottomColor: SAC.border,
+    borderBottomWidth: 0.5, borderBottomColor: T.border,
   },
-  dataTd: { color: SAC.text, fontFamily: FONTS.med, fontSize: 11 },
+  dataTd: { color: T.text, fontFamily: FONTS.med, fontSize: 11 },
   dedupGroupCard: {
     backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, borderWidth: 1,
-    borderColor: SAC.border, padding: 14, gap: 10,
+    borderColor: T.border, padding: 14, gap: 10,
   },
   dedupMemberCard: {
     width: 140, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8,
-    borderWidth: 1, borderColor: SAC.border, padding: 10, gap: 3, position: 'relative',
+    borderWidth: 1, borderColor: T.border, padding: 10, gap: 3, position: 'relative',
   },
   dedupMemberCardKeeper: {
     borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.08)',
@@ -2455,10 +2455,10 @@ const s = StyleSheet.create({
   listRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10,
     backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8,
-    borderWidth: 1, borderColor: SAC.border, padding: 10,
+    borderWidth: 1, borderColor: T.border, padding: 10,
   },
-  listRowTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
-  listRowSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 2 },
+  listRowTitle: { color: T.text, fontFamily: FONTS.bold, fontSize: 12 },
+  listRowSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 2 },
   rankBadge: {
     width: 48, height: 48, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',

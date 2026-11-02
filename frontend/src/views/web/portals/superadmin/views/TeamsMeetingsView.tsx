@@ -262,8 +262,8 @@ export function TeamsMeetingsView() {
   if (loading) {
     return (
       <View style={{ alignItems: 'center', paddingVertical: 60 }}>
-        <ActivityIndicator size="large" color={SAC.violet} />
-        <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 12 }}>Loading Teams meetings…</Text>
+        <ActivityIndicator size="large" color={T.violet} />
+        <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 12 }}>Loading Teams meetings…</Text>
       </View>
     );
   }
@@ -273,7 +273,7 @@ export function TeamsMeetingsView() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.titleRow}>
-          <Video size={24} color={SAC.violetLt} />
+          <Video size={24} color={T.violetLt} />
           <Text style={s.h1}>Microsoft Teams Meetings</Text>
         </View>
         <Text style={s.hSub}>Create, manage, and track attendance for Teams meetings with seat-limited registration.</Text>
@@ -288,7 +288,7 @@ export function TeamsMeetingsView() {
       {/* Meetings List */}
       {meetings.length === 0 ? (
         <View style={s.empty}>
-          <Calendar size={48} color={SAC.muted} />
+          <Calendar size={48} color={T.muted} />
           <Text style={s.emptyTitle}>No meetings yet</Text>
           <Text style={s.emptySub}>Create your first Teams meeting to get started.</Text>
         </View>
@@ -308,18 +308,18 @@ export function TeamsMeetingsView() {
 
               <View style={s.cardMeta}>
                 <View style={s.metaRow}>
-                  <Clock size={12} color={SAC.muted} />
+                  <Clock size={12} color={T.muted} />
                   <Text style={s.metaText}>{formatDate(m.start_time)} · {m.duration_minutes} min</Text>
                 </View>
                 {m.seat_limit && (
                   <View style={s.metaRow}>
-                    <Users size={12} color={SAC.muted} />
+                    <Users size={12} color={T.muted} />
                     <Text style={s.metaText}>{m.registrations?.length || 0}/{m.seat_limit} seats filled</Text>
                   </View>
                 )}
                 {m.attendees?.length > 0 && (
                   <View style={s.metaRow}>
-                    <Users size={12} color={SAC.muted} />
+                    <Users size={12} color={T.muted} />
                     <Text style={s.metaText}>{m.attendees.length} required attendees</Text>
                   </View>
                 )}
@@ -328,7 +328,7 @@ export function TeamsMeetingsView() {
               {m.join_url && (
                 <Pressable onPress={() => copyUrl(m.join_url)} style={s.urlRow}>
                   <Text style={s.urlText} numberOfLines={1}>{m.join_url}</Text>
-                  <Copy size={12} color={SAC.muted} />
+                  <Copy size={12} color={T.muted} />
                 </Pressable>
               )}
 
@@ -384,7 +384,7 @@ export function TeamsMeetingsView() {
               <Text style={s.modalTitle}>{editingMeeting ? 'Edit Teams Meeting' : 'Create Teams Meeting'}</Text>
 
               <Text style={s.inputLabel}>Title</Text>
-              <TextInput placeholder="e.g. Career Workshop: Startups 101" placeholderTextColor={SAC.muted}
+              <TextInput placeholder="e.g. Career Workshop: Startups 101" placeholderTextColor={T.muted}
                 style={s.input} value={editingMeeting ? editForm.title : form.title} onChangeText={(t) => {
                   if (editingMeeting) setEditForm({ ...editForm, title: t }); else setForm({ ...form, title: t });
                 }} />
@@ -394,7 +394,7 @@ export function TeamsMeetingsView() {
                  <Text style={s.dropdownText} numberOfLines={1}>
                    {events.find(e => e.slug === activeForm.event_slug)?.title || (activeForm.event_slug ? activeForm.event_slug : 'Select an event…')}
                  </Text>
-                 <ChevronDown size={14} color={SAC.muted} />
+                 <ChevronDown size={14} color={T.muted} />
                </Pressable>
                {eventOpen && (
                  <Modal transparent visible={eventOpen} animationType="fade" onRequestClose={() => setEventOpen(false)}>
@@ -433,9 +433,9 @@ export function TeamsMeetingsView() {
                    value={activeForm.date || ''}
                    onChange={(e: any) => setActiveForm({ ...activeForm, date: e.target.value })}
                    style={{
-                     width: '100%', backgroundColor: '#101019', border: `1px solid ${SAC.border}`,
+                     width: '100%', backgroundColor: '#101019', border: `1px solid ${T.border}`,
                      borderRadius: 8, padding: '9px 12px', fontFamily: FONTS.med, fontSize: 13,
-                     color: SAC.text, colorScheme: 'dark',
+                     color: T.text, colorScheme: 'dark',
                    }}
                  />
                ) : (
@@ -443,7 +443,7 @@ export function TeamsMeetingsView() {
                    <Text style={s.dropdownText}>
                      {dateOptions.find(d => d.value === activeForm.date)?.label || 'Select date'}
                    </Text>
-                   <ChevronDown size={14} color={SAC.muted} />
+                   <ChevronDown size={14} color={T.muted} />
                  </Pressable>
                )}
 
@@ -454,9 +454,9 @@ export function TeamsMeetingsView() {
                    value={activeForm.time || ''}
                    onChange={(e: any) => setActiveForm({ ...activeForm, time: e.target.value })}
                    style={{
-                     width: '100%', backgroundColor: '#101019', border: `1px solid ${SAC.border}`,
+                     width: '100%', backgroundColor: '#101019', border: `1px solid ${T.border}`,
                      borderRadius: 8, padding: '9px 12px', fontFamily: FONTS.med, fontSize: 13,
-                     color: SAC.text, colorScheme: 'dark',
+                     color: T.text, colorScheme: 'dark',
                    }}
                  />
                ) : (
@@ -464,14 +464,14 @@ export function TeamsMeetingsView() {
                    <Text style={s.dropdownText}>
                      {timeOptions.find(t => t.value === activeForm.time)?.label || 'Select time'}
                    </Text>
-                   <ChevronDown size={14} color={SAC.muted} />
+                   <ChevronDown size={14} color={T.muted} />
                  </Pressable>
                )}
 
               <Text style={s.inputLabel}>Duration</Text>
               <Pressable onPress={() => setDurationOpen(true)} style={s.dropdown}>
                 <Text style={s.dropdownText}>{durationOptions.find(d => d === activeForm.duration)?.toString() || '60'} minutes</Text>
-                <ChevronDown size={14} color={SAC.muted} />
+                <ChevronDown size={14} color={T.muted} />
               </Pressable>
               {durationOpen && (
                 <Modal transparent visible={durationOpen} animationType="fade" onRequestClose={() => setDurationOpen(false)}>
@@ -493,31 +493,31 @@ export function TeamsMeetingsView() {
               )}
 
               <Text style={s.inputLabel}>Seat Limit (leave blank for unlimited)</Text>
-              <TextInput placeholder="e.g. 50" placeholderTextColor={SAC.muted}
+              <TextInput placeholder="e.g. 50" placeholderTextColor={T.muted}
                 style={s.input} value={editingMeeting ? editForm.seat_limit : form.seat_limit} onChangeText={(t) => {
                   if (editingMeeting) setEditForm({ ...editForm, seat_limit: t }); else setForm({ ...form, seat_limit: t });
                 }} keyboardType="numeric" />
 
               <Text style={s.inputLabel}>Attendee Emails (comma-separated)</Text>
-              <TextInput placeholder="attendee1@college.edu, attendee2@college.edu" placeholderTextColor={SAC.muted}
+              <TextInput placeholder="attendee1@college.edu, attendee2@college.edu" placeholderTextColor={T.muted}
                 style={s.input} value={editingMeeting ? editForm.attendee_emails : form.attendee_emails} onChangeText={(t) => {
                   if (editingMeeting) setEditForm({ ...editForm, attendee_emails: t }); else setForm({ ...form, attendee_emails: t });
                 }} />
 
               <Text style={s.inputLabel}>Organizer Email (required for real Teams meetings)</Text>
-              <TextInput placeholder="organizer@college.edu" placeholderTextColor={SAC.muted} autoCapitalize="none"
+              <TextInput placeholder="organizer@college.edu" placeholderTextColor={T.muted} autoCapitalize="none"
                 style={s.input} value={editingMeeting ? editForm.organizer_email : form.organizer_email} onChangeText={(t) => {
                   if (editingMeeting) setEditForm({ ...editForm, organizer_email: t }); else setForm({ ...form, organizer_email: t });
                 }} />
 
               <Text style={s.inputLabel}>Teams Join Link (optional — paste a link you created manually in Teams)</Text>
-              <TextInput placeholder="https://teams.microsoft.com/l/meetup-join/..." placeholderTextColor={SAC.muted} autoCapitalize="none"
+              <TextInput placeholder="https://teams.microsoft.com/l/meetup-join/..." placeholderTextColor={T.muted} autoCapitalize="none"
                 style={s.input} value={editingMeeting ? editForm.manual_join_url || '' : form.manual_join_url || ''} onChangeText={(t) => {
                   if (editingMeeting) setEditForm({ ...editForm, manual_join_url: t }); else setForm({ ...form, manual_join_url: t });
                 }} />
 
               <Text style={s.inputLabel}>Description (optional)</Text>
-              <TextInput placeholder="Meeting description or agenda" placeholderTextColor={SAC.muted}
+              <TextInput placeholder="Meeting description or agenda" placeholderTextColor={T.muted}
                 style={[s.input, { height: 80, textAlignVertical: 'top' }]}
                 value={editingMeeting ? editForm.description : form.description} onChangeText={(t) => {
                   if (editingMeeting) setEditForm({ ...editForm, description: t }); else setForm({ ...form, description: t });
@@ -634,86 +634,86 @@ const s = StyleSheet.create({
   root: { flex: 1, padding: 20 },
   header: { marginBottom: 24 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
-  h1: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.3 },
-  hSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 13, lineHeight: 20 },
+  h1: { color: T.text, fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.3 },
+  hSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 13, lineHeight: 20 },
   createBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: SAC.violet, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 18,
+    backgroundColor: T.violet, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 18,
     marginBottom: 20, alignSelf: 'flex-start',
   },
   createBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14 },
   grid: { gap: 16 },
   card: {
-    backgroundColor: SAC.panel, borderRadius: 16, borderWidth: 1, borderColor: SAC.line,
+    backgroundColor: T.panel, borderRadius: 16, borderWidth: 1, borderColor: T.line,
     padding: 18, gap: 12,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 16, flex: 1 },
+  cardTitle: { color: T.text, fontFamily: FONTS.bold, fontSize: 16, flex: 1 },
   statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
   dot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.5 },
   cardMeta: { gap: 6 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  metaText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
+  metaText: { color: T.muted, fontFamily: FONTS.med, fontSize: 12 },
   urlRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
   },
-  urlText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, flex: 1 },
+  urlText: { color: T.muted, fontFamily: FONTS.med, fontSize: 12, flex: 1 },
   cardActions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   actionBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8,
-    borderWidth: 1, borderColor: SAC.line,
+    borderWidth: 1, borderColor: T.line,
   },
-  actionBtnText: { color: SAC.violetLt, fontFamily: FONTS.bold, fontSize: 12 },
+  actionBtnText: { color: T.violetLt, fontFamily: FONTS.bold, fontSize: 12 },
   empty: { alignItems: 'center', paddingVertical: 60, gap: 12 },
-  emptyTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 16 },
-  emptySub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center' },
+  emptyTitle: { color: T.text, fontFamily: FONTS.bold, fontSize: 16 },
+  emptySub: { color: T.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
-  modalContent: { backgroundColor: SAC.panel, borderRadius: 18, padding: 24, width: '90%', maxWidth: 520, borderWidth: 1, borderColor: SAC.line },
-  modalTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 18, marginBottom: 4 },
-  modalSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginBottom: 18 },
-  inputLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12, marginBottom: 4 },
+  modalContent: { backgroundColor: T.panel, borderRadius: 18, padding: 24, width: '90%', maxWidth: 520, borderWidth: 1, borderColor: T.line },
+  modalTitle: { color: T.text, fontFamily: FONTS.xbold, fontSize: 18, marginBottom: 4 },
+  modalSub: { color: T.muted, fontFamily: FONTS.med, fontSize: 12.5, marginBottom: 18 },
+  inputLabel: { color: T.muted, fontFamily: FONTS.bold, fontSize: 12, marginBottom: 4 },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.line,
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, color: SAC.text,
+    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: T.line,
+    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, color: T.text,
     fontFamily: FONTS.med, fontSize: 14, marginBottom: 14,
   },
   dropdown: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.line,
+    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: T.line,
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, marginBottom: 14,
   },
-  dropdownText: { color: SAC.text, fontFamily: FONTS.med, fontSize: 14 },
+  dropdownText: { color: T.text, fontFamily: FONTS.med, fontSize: 14 },
   dropdownOption: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 6 },
   dropdownOptionSelected: { backgroundColor: 'rgba(139,92,246,0.15)' },
-  dropdownOptionText: { color: SAC.text, fontFamily: FONTS.med, fontSize: 13 },
+  dropdownOptionText: { color: T.text, fontFamily: FONTS.med, fontSize: 13 },
   dropdownOptionTextSelected: { color: '#8B5CF6', fontFamily: FONTS.bold, fontSize: 13 },
   modalActions: { flexDirection: 'row', gap: 12, marginTop: 8 },
-  modalCancelBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.line },
-  modalCancelText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 14 },
+  modalCancelBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: T.line },
+  modalCancelText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 14 },
   modalSaveBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingVertical: 12, borderRadius: 10, backgroundColor: SAC.violet },
+    paddingVertical: 12, borderRadius: 10, backgroundColor: T.violet },
   modalSaveText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14 },
   regStats: { flexDirection: 'row', gap: 16, marginBottom: 16 },
   statItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 13 },
-  regRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: SAC.line },
-  regName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
-  regEmail: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
-  regDate: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
+  statText: { color: T.muted, fontFamily: FONTS.med, fontSize: 13 },
+  regRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: T.line },
+  regName: { color: T.text, fontFamily: FONTS.bold, fontSize: 13 },
+  regEmail: { color: T.muted, fontFamily: FONTS.med, fontSize: 11 },
+  regDate: { color: T.muted, fontFamily: FONTS.med, fontSize: 11 },
   inviteSection: { marginTop: 8, gap: 8 },
-  inviteLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  inviteLabel: { color: T.muted, fontFamily: FONTS.bold, fontSize: 12 },
   inviteUrlRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 10,
   },
-  inviteUrl: { color: SAC.text, fontFamily: FONTS.med, fontSize: 12, flex: 1 },
-  inviteCopyBtn: { backgroundColor: SAC.violet, borderRadius: 8, padding: 6 },
+  inviteUrl: { color: T.text, fontFamily: FONTS.med, fontSize: 12, flex: 1 },
+  inviteCopyBtn: { backgroundColor: T.violet, borderRadius: 8, padding: 6 },
   inviteEmailBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: SAC.violet, borderRadius: 10, paddingVertical: 10,
+    backgroundColor: T.violet, borderRadius: 10, paddingVertical: 10,
     justifyContent: 'center',
   },
   inviteEmailBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },

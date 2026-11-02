@@ -331,7 +331,7 @@ export function UserDirectoryView({
                 style={[st.chip, mCat === t.slug && st.chipActive]}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  {(() => { const Ic = MENTOR_TAX_ICONS[t.icon]; return Ic ? <Ic size={11} color={mCat === t.slug ? '#fff' : SAC.muted} /> : null; })()}
+                  {(() => { const Ic = MENTOR_TAX_ICONS[t.icon]; return Ic ? <Ic size={11} color={mCat === t.slug ? '#fff' : T.muted} /> : null; })()}
                   <Text style={[st.chipText, mCat === t.slug && st.chipTextActive]} numberOfLines={1}>
                     {t.label} ({t.count})
                   </Text>
@@ -365,7 +365,7 @@ export function UserDirectoryView({
                 onPress={() => setViewMode('grid')}
                 style={[st.viewModeBtn, viewMode === 'grid' && st.viewModeBtnActive]}
               >
-                <LayoutGrid size={13} color={viewMode === 'grid' ? '#fff' : SAC.muted} />
+                <LayoutGrid size={13} color={viewMode === 'grid' ? '#fff' : T.muted} />
                 <Text style={[st.viewModeBtnText, viewMode === 'grid' && { color: '#fff' }]}>Grid</Text>
               </Pressable>
             </ActionTooltip>
@@ -375,7 +375,7 @@ export function UserDirectoryView({
                 onPress={() => setViewMode('table')}
                 style={[st.viewModeBtn, viewMode === 'table' && st.viewModeBtnActive]}
               >
-                <List size={13} color={viewMode === 'table' ? '#fff' : SAC.muted} />
+                <List size={13} color={viewMode === 'table' ? '#fff' : T.muted} />
                 <Text style={[st.viewModeBtnText, viewMode === 'table' && { color: '#fff' }]}>Table</Text>
               </Pressable>
             </ActionTooltip>
@@ -388,7 +388,7 @@ export function UserDirectoryView({
               onPress={() => setShowExportModal(true)}
               style={st.toggleBtn}
             >
-              <FileDown size={12} color={SAC.muted} />
+              <FileDown size={12} color={T.muted} />
               <Text style={st.toggleBtnText}>Export CSV</Text>
             </Pressable>
           </ActionTooltip>
@@ -400,7 +400,7 @@ export function UserDirectoryView({
               onPress={() => { setSelectMode(!selectMode); if (selectMode) clearSelection(); }}
               style={[st.toggleBtn, selectMode && { borderColor: GRAD.to, backgroundColor: 'rgba(245,158,11,0.10)' }]}
             >
-              <CheckSquare size={11} color={selectMode ? GRAD.to : SAC.muted} />
+              <CheckSquare size={11} color={selectMode ? GRAD.to : T.muted} />
               <Text style={[st.toggleBtnText, selectMode && { color: GRAD.to }]}>
                 {selectMode ? 'Cancel' : 'Select'}
               </Text>
@@ -415,7 +415,7 @@ export function UserDirectoryView({
                 onPress={() => setPendingOnly(!pendingOnly)}
                 style={st.toggleBtn}
               >
-                <Filter size={11} color={pendingOnly ? GRAD.to : SAC.muted} />
+                <Filter size={11} color={pendingOnly ? GRAD.to : T.muted} />
                 <Text style={[st.toggleBtnText, pendingOnly && { color: GRAD.to }]}>
                   {pendingOnly ? 'Showing pending' : 'Show pending'}
                 </Text>
@@ -538,10 +538,10 @@ export function UserDirectoryView({
           </Pressable>
           <View style={{ flex: 1 }} />
           <SecondaryButton onPress={() => bulkRun('approve', 'Approved')}>
-            <ShieldCheck size={12} color={SAC.muted} /><Text style={st.secText}>Approve</Text>
+            <ShieldCheck size={12} color={T.muted} /><Text style={st.secText}>Approve</Text>
           </SecondaryButton>
           <SecondaryButton onPress={() => bulkRun('disable', 'Disabled')}>
-            <ShieldOff size={12} color={SAC.muted} /><Text style={st.secText}>Disable</Text>
+            <ShieldOff size={12} color={T.muted} /><Text style={st.secText}>Disable</Text>
           </SecondaryButton>
           <SecondaryButton danger onPress={() => setDeleteTarget({ count: selectedIds.length, isBulk: true })}>
             <Trash2 size={12} color={'#FCA5A5'} /><Text style={[st.secText, { color: '#FCA5A5' }]}>Delete</Text>
@@ -703,7 +703,7 @@ function UserDirectoryTable({
                       </Pressable>
                     </ActionTooltip>
                   ) : (
-                    <Text style={{ color: SAC.muted, fontSize: 11, fontFamily: FONTS.med }}>{idx + 1}</Text>
+                    <Text style={{ color: T.muted, fontSize: 11, fontFamily: FONTS.med }}>{idx + 1}</Text>
                   )}
                 </View>
 
@@ -721,7 +721,7 @@ function UserDirectoryTable({
                           onPress={(e: any) => { e?.stopPropagation?.(); copyText(u.email, 'email'); }}
                           style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}
                         >
-                          <Mail size={10} color={SAC.muted} />
+                          <Mail size={10} color={T.muted} />
                           <Text style={st.tableEmail} numberOfLines={1}>{u.email}</Text>
                         </Pressable>
                       </ActionTooltip>
@@ -731,8 +731,8 @@ function UserDirectoryTable({
 
                 {/* College / Institution */}
                 <View style={{ width: 200, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Building2 size={13} color={isCollegePending ? SAC.muted : '#FDBA74'} />
-                  <Text style={[st.tableCellText, isCollegePending && { color: SAC.muted, fontStyle: 'italic' }]} numberOfLines={2}>
+                  <Building2 size={13} color={isCollegePending ? T.muted : '#FDBA74'} />
+                  <Text style={[st.tableCellText, isCollegePending && { color: T.muted, fontStyle: 'italic' }]} numberOfLines={2}>
                     {college}
                   </Text>
                 </View>
@@ -741,7 +741,7 @@ function UserDirectoryTable({
                 <View style={{ width: 140, paddingHorizontal: 8 }}>
                   <Text style={st.tableCellText} numberOfLines={1}>{u.degree || '—'}</Text>
                   {u.graduation_year ? (
-                    <Text style={{ color: SAC.muted, fontSize: 11, fontFamily: FONTS.med, marginTop: 2 }}>
+                    <Text style={{ color: T.muted, fontSize: 11, fontFamily: FONTS.med, marginTop: 2 }}>
                       Batch {u.graduation_year}
                     </Text>
                   ) : null}
@@ -754,7 +754,7 @@ function UserDirectoryTable({
                       <Text style={st.careerPillText} numberOfLines={1}>🎯 {u.career_path}</Text>
                     </View>
                   ) : (
-                    <Text style={{ color: SAC.muted, fontSize: 11.5, fontFamily: FONTS.med }}>—</Text>
+                    <Text style={{ color: T.muted, fontSize: 11.5, fontFamily: FONTS.med }}>—</Text>
                   )}
                 </View>
 
@@ -764,7 +764,7 @@ function UserDirectoryTable({
                     <Text style={{ color: u.onboarding_completed ? '#86EFAC' : '#FCD34D', fontSize: 10, fontFamily: FONTS.bold }}>
                       {u.onboarding_completed ? '✓ Onboarded' : '⏳ Incomplete'}
                     </Text>
-                    <Text style={{ color: SAC.text, fontSize: 10.5, fontFamily: FONTS.xbold }}>{completion}%</Text>
+                    <Text style={{ color: T.text, fontSize: 10.5, fontFamily: FONTS.xbold }}>{completion}%</Text>
                   </View>
                   <View style={st.progressBarTrack}>
                     <View
@@ -992,7 +992,7 @@ function MenuItem({ icon: Icon, label, onPress, danger }: any) {
       st.menuItem,
       hovered && Platform.OS === 'web' ? { backgroundColor: 'rgba(245,158,11,0.10)' } : null,
     ]}>
-      <Icon size={12} color={danger ? '#FCA5A5' : SAC.muted} />
+      <Icon size={12} color={danger ? '#FCA5A5' : T.muted} />
       <Text style={[st.menuLabel, danger && { color: '#FCA5A5' }]}>{label}</Text>
     </Pressable>
   );
@@ -1044,7 +1044,7 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
               <Text style={st.muted}>{role.toUpperCase()} · {data?.college || data?.company || 'No affiliation'}</Text>
             </View>
             <Pressable onPress={onClose} style={{ padding: 6 }}>
-              <X size={16} color={SAC.muted} />
+              <X size={16} color={T.muted} />
             </Pressable>
           </View>
 
@@ -1073,8 +1073,8 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
 
             {confirmDel && (
               <View style={st.warnBox}>
-                <AlertTriangle size={13} color={SAC.red} />
-                <Text style={{ color: SAC.red, fontSize: 11, fontFamily: FONTS.med, flex: 1 }}>
+                <AlertTriangle size={13} color={T.red} />
+                <Text style={{ color: T.red, fontSize: 11, fontFamily: FONTS.med, flex: 1 }}>
                   Are you sure? This will delete the user account.
                 </Text>
                 <Pressable onPress={del} style={st.destructiveBtn}>
@@ -1084,7 +1084,7 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
             )}
           </ScrollView>
 
-          <View style={[st.modalHero, { borderTopWidth: 1, borderTopColor: SAC.border, justifyContent: 'space-between' }]}>
+          <View style={[st.modalHero, { borderTopWidth: 1, borderTopColor: T.border, justifyContent: 'space-between' }]}>
             {!confirmDel ? (
               <SecondaryButton danger onPress={() => setConfirmDel(true)}>
                 <Trash2 size={12} color={'#FCA5A5'} /><Text style={[st.secText, { color: '#FCA5A5' }]}>Delete</Text>
@@ -1113,7 +1113,7 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
 function DetailRow({ icon: Icon, label, value }: any) {
   return (
     <View style={st.detailRow}>
-      <Icon size={14} color={SAC.muted} />
+      <Icon size={14} color={T.muted} />
       <Text style={st.detailLabel}>{label}</Text>
       <Text style={st.detailValue} numberOfLines={1}>{value}</Text>
     </View>
@@ -1128,7 +1128,7 @@ function EditRow({ label, value, onChange }: any) {
         value={String(value || '')}
         onChangeText={onChange}
         style={st.formInput}
-        placeholderTextColor={SAC.muted}
+        placeholderTextColor={T.muted}
       />
     </View>
   );
@@ -1189,7 +1189,7 @@ function ExportConfirmModal({
                     onPress={onClose}
                     style={{ padding: 4 }}
                   >
-                    <X size={16} color={SAC.muted} />
+                    <X size={16} color={T.muted} />
                   </Pressable>
                 </View>
                 <Text style={st.exportModalSub}>
@@ -1227,7 +1227,7 @@ function ExportConfirmModal({
               </View>
 
               <View style={{ borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', paddingTop: 10, marginTop: 4 }}>
-                <Text style={{ color: SAC.muted, fontSize: 11, fontFamily: FONTS.med, lineHeight: 15 }}>
+                <Text style={{ color: T.muted, fontSize: 11, fontFamily: FONTS.med, lineHeight: 15 }}>
                   Includes: Name, Email, Phone, College, Degree, Batch, Career Track, Onboarding Progress %, and Account Status.
                 </Text>
               </View>
@@ -1305,7 +1305,7 @@ function DeleteConfirmModal({
                     onPress={onClose}
                     style={{ padding: 4 }}
                   >
-                    <X size={16} color={SAC.muted} />
+                    <X size={16} color={T.muted} />
                   </Pressable>
                 </View>
                 <Text style={st.deleteModalSub}>
@@ -1328,7 +1328,7 @@ function DeleteConfirmModal({
                   <Text style={{ color: '#FCA5A5', fontSize: 12, fontFamily: FONTS.bold }}>
                     Warning: Accidental Deletion Prevention
                   </Text>
-                  <Text style={{ color: SAC.muted, fontSize: 11, fontFamily: FONTS.med, lineHeight: 15 }}>
+                  <Text style={{ color: T.muted, fontSize: 11, fontFamily: FONTS.med, lineHeight: 15 }}>
                     {isBulk
                       ? `Deleting ${count} accounts will immediately remove their profiles, career tracking data, and access permissions.`
                       : `Deleting this profile will remove their records and login access from the active directory.`}
@@ -1393,7 +1393,7 @@ function RejectMentorModal({
               <Text style={st.secText}>{target.name || target.email || target.id}</Text>
             </View>
             <Pressable title="Close dialog" accessibilityLabel="Close reject dialog" onPress={onClose} style={{ padding: 4 }}>
-              <X size={16} color={SAC.muted} />
+              <X size={16} color={T.muted} />
             </Pressable>
           </View>
           <View style={{ padding: 18, gap: 10 }}>
@@ -1407,7 +1407,7 @@ function RejectMentorModal({
               value={reason}
               onChangeText={setReason}
               placeholder="Why is this mentor being rejected?"
-              placeholderTextColor={SAC.muted}
+              placeholderTextColor={T.muted}
               maxLength={600}
             />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -1440,19 +1440,19 @@ function RejectMentorModal({
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: -0.2 },
-  sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 2 },
-  muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
+  sub: { color: T.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 2 },
+  muted: { color: T.muted, fontFamily: FONTS.med, fontSize: 11.5 },
   kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
   browseHead: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
 
   /* View Switcher */
   viewSwitcher: {
     flexDirection: 'row',
-    backgroundColor: SAC.cardSolid,
+    backgroundColor: T.cardSolid,
     borderRadius: 8,
     padding: 3,
     borderWidth: 1,
-    borderColor: SAC.border,
+    borderColor: T.border,
   },
   viewModeBtn: {
     flexDirection: 'row',
@@ -1467,7 +1467,7 @@ const st = StyleSheet.create({
     backgroundColor: GRAD.to,
   },
   viewModeBtnText: {
-    color: SAC.muted,
+    color: T.muted,
     fontFamily: FONTS.bold,
     fontSize: 11,
   },
@@ -1481,10 +1481,10 @@ const st = StyleSheet.create({
   toggleBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7,
-    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
+    borderWidth: 1, borderColor: T.border, backgroundColor: T.cardSolid,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  toggleBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  toggleBtnText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11 },
 
   /* Data Table Styles */
   tableHeadRow: {
@@ -1538,7 +1538,7 @@ const st = StyleSheet.create({
     fontSize: 12.5,
   },
   tableEmail: {
-    color: SAC.muted,
+    color: T.muted,
     fontFamily: FONTS.med,
     fontSize: 11,
   },
@@ -1622,7 +1622,7 @@ const st = StyleSheet.create({
   menuTrigger: {
     position: 'absolute', top: 14, right: 14, width: 28, height: 28, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: SAC.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
+    backgroundColor: T.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
     zIndex: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
@@ -1643,7 +1643,7 @@ const st = StyleSheet.create({
   selectBox: {
     position: 'absolute', top: 14, left: 14, width: 28, height: 28, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: SAC.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
+    backgroundColor: T.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
     zIndex: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
@@ -1677,45 +1677,45 @@ const st = StyleSheet.create({
   /* MT2 — taxonomy filter chips */
   chip: {
     paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: SAC.border,
+    backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: T.border,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   chipActive: { backgroundColor: 'rgba(249,115,22,0.18)', borderColor: GRAD.to, borderWidth: 1 },
-  chipText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+  chipText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
   chipTextActive: { color: '#F4F4FA' },
 
   /* modal */
   modalBg: {
-    flex: 1, backgroundColor: SAC.panel2,
+    flex: 1, backgroundColor: T.panel2,
     alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
   modalCard: {
     width: '100%', maxWidth: 540, maxHeight: '92%',
-    backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2, overflow: 'hidden',
+    backgroundColor: T.bg2, borderRadius: 16, borderWidth: 1, borderColor: T.border2, overflow: 'hidden',
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
   },
-  modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
+  modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: T.border },
   modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
 
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 130 },
+  detailLabel: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 130 },
   detailValue: { color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   formInput: {
     flex: 1, color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
-    backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
+    backgroundColor: T.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: T.border,
     paddingHorizontal: 12, paddingVertical: 9,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
-  destructiveBtn: { backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  destructiveBtn: { backgroundColor: T.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)' },
   btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
-  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  secText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 12 },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, gap: 14 },
-  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.card, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   pageBtnText: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
-  pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
+  pageInfo: { color: T.muted, fontFamily: FONTS.med, fontSize: 12 },
 
   /* Premium Export Modal */
   exportModalCard: {
@@ -1750,7 +1750,7 @@ const st = StyleSheet.create({
     letterSpacing: -0.2,
   },
   exportModalSub: {
-    color: SAC.muted,
+    color: T.muted,
     fontFamily: FONTS.med,
     fontSize: 12.5,
     marginTop: 3,
@@ -1770,7 +1770,7 @@ const st = StyleSheet.create({
     justifyContent: 'space-between',
   },
   exportInfoLabel: {
-    color: SAC.muted,
+    color: T.muted,
     fontFamily: FONTS.bold,
     fontSize: 11.5,
   },
@@ -1826,7 +1826,7 @@ const st = StyleSheet.create({
     letterSpacing: -0.2,
   },
   deleteModalSub: {
-    color: SAC.muted,
+    color: T.muted,
     fontFamily: FONTS.med,
     fontSize: 12.5,
     marginTop: 3,

@@ -146,27 +146,27 @@ function EventModal({
               <Text style={mst.sub}>{isEdit ? `Editing "${editing?.title}"` : 'Create a new event across the platform'}</Text>
             </View>
             <Pressable onPress={onClose} style={mst.closeBtn}>
-              <X size={16} color={SAC.muted} />
+              <X size={16} color={T.muted} />
             </Pressable>
           </View>
 
           <ScrollView style={{ maxHeight: 460 }} contentContainerStyle={{ gap: 12, padding: 18 }}>
             <Field label="Title *">
               <TextInput value={form.title} onChangeText={(v) => set('title', v)}
-                placeholder="e.g. AI in Hiring 2026" placeholderTextColor={SAC.dim} style={mst.input} />
+                placeholder="e.g. AI in Hiring 2026" placeholderTextColor={T.dim} style={mst.input} />
             </Field>
 
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={{ flex: 1 }}>
                 <Field label={isEdit ? 'New start date / time' : 'Start date / time'}>
                   <TextInput value={form.start_date} onChangeText={(v) => set('start_date', v)}
-                    placeholder="2026-07-15T18:00" placeholderTextColor={SAC.dim} style={mst.input} />
+                    placeholder="2026-07-15T18:00" placeholderTextColor={T.dim} style={mst.input} />
                 </Field>
               </View>
               <View style={{ width: 150 }}>
                 <Field label="Capacity">
                   <TextInput value={form.capacity} onChangeText={(v) => set('capacity', v.replace(/[^0-9]/g, ''))}
-                    keyboardType="numeric" placeholder="200" placeholderTextColor={SAC.dim} style={mst.input} />
+                    keyboardType="numeric" placeholder="200" placeholderTextColor={T.dim} style={mst.input} />
                 </Field>
               </View>
             </View>
@@ -180,7 +180,7 @@ function EventModal({
               <View style={{ flex: 1 }}>
                 <Field label="Venue / City">
                   <TextInput value={form.venue} onChangeText={(v) => set('venue', v)}
-                    placeholder="Bengaluru / Online" placeholderTextColor={SAC.dim} style={mst.input} />
+                    placeholder="Bengaluru / Online" placeholderTextColor={T.dim} style={mst.input} />
                 </Field>
               </View>
             </View>
@@ -195,14 +195,14 @@ function EventModal({
               <View style={{ width: 150 }}>
                 <Field label="Price (₹, blank = free)">
                   <TextInput value={form.price} onChangeText={(v) => set('price', v.replace(/[^0-9.]/g, ''))}
-                    keyboardType="numeric" placeholder="0" placeholderTextColor={SAC.dim} style={mst.input} />
+                    keyboardType="numeric" placeholder="0" placeholderTextColor={T.dim} style={mst.input} />
                 </Field>
               </View>
             </View>
 
             <Field label="Description">
               <TextInput value={form.description} onChangeText={(v) => set('description', v)}
-                multiline numberOfLines={3} placeholder="Short summary…" placeholderTextColor={SAC.dim}
+                multiline numberOfLines={3} placeholder="Short summary…" placeholderTextColor={T.dim}
                 style={[mst.input, { minHeight: 70, paddingTop: 9, textAlignVertical: 'top' as any }]} />
             </Field>
 
@@ -223,7 +223,7 @@ function EventModal({
             ) : <View />}
             <View style={{ flex: 1 }} />
             <SecondaryButton onPress={onClose}>
-              <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
+              <Text style={{ color: T.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
             </SecondaryButton>
             <GradientButton onPress={save} loading={saving}>
               <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 }}>
@@ -253,7 +253,7 @@ function Segmented({ value, onChange, options }: { value: string; onChange: (v: 
         const active = o === value;
         return (
           <Pressable key={o} onPress={() => onChange(o)} style={[mst.segBtn, active && mst.segOn]}>
-            <Text style={{ color: active ? '#fff' : SAC.muted, fontFamily: FONTS.xbold, fontSize: 11 }}>{o}</Text>
+            <Text style={{ color: active ? '#fff' : T.muted, fontFamily: FONTS.xbold, fontSize: 11 }}>{o}</Text>
           </Pressable>
         );
       })}
@@ -373,14 +373,14 @@ export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) =
                   </View>
                   <Text numberOfLines={2} style={st.cTitle}>{e.title}</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <CalIcon size={11} color={SAC.muted} />
+                    <CalIcon size={11} color={T.muted} />
                     <Text style={st.meta}>{e.date}</Text>
                     <Text style={st.dot}>·</Text>
-                    <MapPin size={11} color={SAC.muted} />
+                    <MapPin size={11} color={T.muted} />
                     <Text style={st.meta}>{e.city}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <UsersIcon size={11} color={SAC.muted} />
+                    <UsersIcon size={11} color={T.muted} />
                     <Text style={st.meta}>{e.attending}/{e.capacity} attending · {pct}%</Text>
                   </View>
                   <View style={st.barTrack}>
@@ -414,10 +414,10 @@ export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) =
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
-  sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 760 },
+  sub: { color: T.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 760 },
   btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
-  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
+  secText: { color: T.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  muted: { color: T.muted, fontFamily: FONTS.med, fontSize: 12 },
 
   kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
   browseHead: { flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: 'space-between', flexWrap: 'wrap' },
@@ -432,25 +432,25 @@ const st = StyleSheet.create({
   },
   cover: { height: 96, borderBottomWidth: 1, alignItems: 'center', justifyContent: 'center' },
   cTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 14.5, lineHeight: 18 },
-  meta: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
-  dot: { color: SAC.dim, fontSize: 11 },
+  meta: { color: T.muted, fontFamily: FONTS.med, fontSize: 11.5 },
+  dot: { color: T.dim, fontSize: 11 },
   barTrack: { height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden', marginTop: 2 },
   barFill: { height: '100%', borderRadius: 3 },
 
-  modalBg: { flex: 1, backgroundColor: SAC.panel2, alignItems: 'center', justifyContent: 'center', padding: 20 },
-  modalCard: { width: '100%', maxWidth: 560, maxHeight: '92%', backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2, overflow: 'hidden' },
-  modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
+  modalBg: { flex: 1, backgroundColor: T.panel2, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  modalCard: { width: '100%', maxWidth: 560, maxHeight: '92%', backgroundColor: T.bg2, borderRadius: 16, borderWidth: 1, borderColor: T.border2, overflow: 'hidden' },
+  modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: T.border },
   modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
-  input: { flex: 1, color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13, backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border, paddingHorizontal: 12, paddingVertical: 10 },
+  input: { flex: 1, color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13, backgroundColor: T.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: T.border, paddingHorizontal: 12, paddingVertical: 10 },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 100 },
+  detailLabel: { color: T.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 100 },
   detailValue: { color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
 });
 
 const mst = StyleSheet.create({
   bg: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  bgPress: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: SAC.panel2 },
+  bgPress: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: T.panel2 },
   card: {
     width: '100%', maxWidth: 620,
     backgroundColor: '#1A0F05', borderColor: 'rgba(251,146,60,0.20)', borderWidth: 1, borderRadius: 16,
@@ -458,13 +458,13 @@ const mst = StyleSheet.create({
   },
   head: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
-  sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
+  sub: { color: T.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   closeBtn: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
               backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  label: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.4 },
+  label: { color: T.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.4 },
   input: {
     height: 38, paddingHorizontal: 12, color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
-    backgroundColor: SAC.panel2, borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 10,
+    backgroundColor: T.panel2, borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 10,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   err: {

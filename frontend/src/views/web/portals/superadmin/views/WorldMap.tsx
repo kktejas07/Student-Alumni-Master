@@ -4,7 +4,7 @@
  */
 import React, { useMemo } from 'react';
 import { View, Text, Platform, StyleSheet } from 'react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS } from '../tokens';
 
 type CountryDatum = { country: string; code: string; count: number; pct?: number };
 
@@ -52,7 +52,7 @@ function WebMap({ data, color, title }: { data: CountryDatum[]; color: string; t
   if (!WorldMapComp || mapData.length === 0) {
     return (
       <View style={{ padding: 20, alignItems: 'center', justifyContent: 'center', minHeight: 200 }}>
-        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.dim }}>
           {mapData.length === 0 ? 'No geographic data available' : 'Loading map...'}
         </Text>
       </View>
@@ -74,11 +74,11 @@ function WebMap({ data, color, title }: { data: CountryDatum[]; color: string; t
       </View>
       {/* Legend */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 }}>
-        <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim }}>Low</Text>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: T.dim }}>Low</Text>
         {[0.1, 0.3, 0.5, 0.7, 0.9].map((v, i) => (
           <View key={i} style={{ width: 18, height: 8, borderRadius: 2, backgroundColor: color + ['33', '66', '99', 'CC', ''][i] }} />
         ))}
-        <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim }}>High</Text>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: T.dim }}>High</Text>
       </View>
     </View>
   );
@@ -92,7 +92,7 @@ function NativeList({ data, color, maxItems }: { data: CountryDatum[]; color: st
       {data.slice(0, maxItems).map((d, i) => (
         <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <View style={{ height: 6, width: `${(d.count / maxCount) * 100}%`, maxWidth: 120, borderRadius: 3, backgroundColor: color, opacity: 1 - i * 0.06 }} />
-          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }}>{d.country}</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.muted, flex: 1 }}>{d.country}</Text>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color }}>{d.count}</Text>
         </View>
       ))}
@@ -102,6 +102,7 @@ function NativeList({ data, color, maxItems }: { data: CountryDatum[]; color: st
 
 // ── Main component ──────────────────────────────────────────────────────────
 export function WorldMap({ data, title, color = '#1D4AFF', maxItems = 10 }: WorldMapProps) {
+  const T = useSAC();
   const maxCount = Math.max(...data.map((d) => d.count), 1);
 
   // On web, try to render the world map; fall back to list on failure
