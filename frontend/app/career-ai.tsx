@@ -55,24 +55,24 @@ import {
   HorizontalRoadmap,
   AIInsightBubble,
 } from '@/src/views/web/career';
-import { FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
+import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
 
 /* ────────── Design tokens ────────── */
 const C = {
-  bg: '#08080F',
-  bgCard: '#101019',
-  bgCardH: '#14141F',
-  border: 'rgba(255, 255, 255, 0.08)',
-  border2: 'rgba(255, 255, 255, 0.14)',
-  text: '#FFFFFF',
-  text2: 'rgba(255, 255, 255, 0.95)',
-  textSub: 'rgba(255, 255, 255, 0.85)',
-  dim: 'rgba(255, 255, 255, 0.70)',
-  purple: '#4F46E5',
-  purple2: '#6366F1',
-  purpleL: '#818CF8',
-  purpleXL: '#A5B4FC',
-  teal: '#2DD4BF',
+  bg: COLORS.bg,
+  bgCard: COLORS.surface1,
+  bgCardH: COLORS.surface2,
+  border: COLORS.border,
+  border2: COLORS.borderHi,
+  text: COLORS.text,
+  text2: COLORS.text2,
+  textSub: COLORS.textSub,
+  dim: COLORS.dim,
+  purple: COLORS.primary,
+  purple2: COLORS.primary,
+  purpleL: COLORS.primaryLight,
+  purpleXL: '#C4B5FD',
+  teal: COLORS.green,
   blue: '#60A5FA',
   amber: '#F59E0B',
   red: '#F87171',
@@ -95,7 +95,7 @@ const SKILL_META = [
   { key: 'Technical Excellence',       label: 'Technical Excellence',       short: 'Technical Excellence',       color: '#38BDF8', Icon: Code, status: 'Strong' },
   { key: 'Professional Communication', label: 'Professional Communication', short: 'Professional Communication', color: '#60A5FA', Icon: MessageSquare, status: 'Developing' },
   { key: 'Leadership & Collaboration', label: 'Leadership & Collaboration', color: '#2DD4BF', Icon: Award, status: 'Needs Work' },
-  { key: 'Career Preparation',         label: 'Projects & Practical Skills',color: '#818CF8', Icon: Folder, status: 'Strong' },
+  { key: 'Career Preparation',         label: 'Projects & Practical Skills',color: COLORS.primaryLight, Icon: Folder, status: 'Strong' },
   { key: 'Personal Brand',             label: 'Personal Brand',             short: 'Personal Brand',             color: '#F59E0B', Icon: Star, status: 'Developing' },
   { key: 'Industry Presence',          label: 'Industry Presence',          short: 'Industry Presence',          color: '#EC4899', Icon: UserIcon, status: 'Needs Work' },
 ];
@@ -304,8 +304,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   return (
     <View style={{ flex: 1, width: '100%', overflow: 'hidden' }}>
         <LinearGradient
-          colors={['#08080F', '#0B1020', '#111827', '#08080F']}
-          locations={[0, 0.3, 0.7, 1]}
+          colors={['#08080F', '#0C0E1F', '#08080F']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[StyleSheet.absoluteFillObject, { zIndex: -1 }]}
@@ -924,7 +923,7 @@ const s = StyleSheet.create({
     backgroundColor: C.purple2,
   },
   reportBtnHover: {
-    backgroundColor: '#6366F1',
+    backgroundColor: COLORS.primaryDark,
   },
   reportBtnText: {
     color: '#FFF',
@@ -1002,7 +1001,7 @@ const s = StyleSheet.create({
   heroPanel: {
     flex: 1,
     minWidth: 160,
-    backgroundColor: '#0A0A2A',
+    backgroundColor: C.bgCardH,
     borderColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
     borderRadius: RADIUS.card,
@@ -1060,7 +1059,7 @@ const s = StyleSheet.create({
     marginTop: 8,
   },
   continueBtnHover: {
-    backgroundColor: '#6366F1',
+    backgroundColor: COLORS.primaryDark,
   },
   continueBtnText: {
     color: '#FFF',
@@ -1101,7 +1100,7 @@ const s = StyleSheet.create({
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: '#818CF8',
+    backgroundColor: COLORS.primaryLight,
     opacity: 0.5,
   },
   heroStar3: {
@@ -1111,7 +1110,7 @@ const s = StyleSheet.create({
     width: 2,
     height: 2,
     borderRadius: 1,
-    backgroundColor: '#0A0A2A',
+    backgroundColor: C.bgCardH,
     opacity: 0.4,
   },
   heroStar4: {
@@ -1168,7 +1167,7 @@ const s = StyleSheet.create({
   },
   colCard: {
     flex: 1,
-    backgroundColor: '#0A0A2A',
+    backgroundColor: C.bgCardH,
     borderColor: C.border,
     borderWidth: 1,
     borderRadius: RADIUS.card,

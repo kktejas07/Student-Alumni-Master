@@ -99,7 +99,7 @@ const CARD_HOVER_SHADOW = Platform.OS === 'web'
 
 const s = StyleSheet.create({
   card: {
-    backgroundColor: '#0A0A2A',
+    backgroundColor: '#14141F',
     borderColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
     borderRadius: RADIUS.card,
@@ -111,7 +111,7 @@ const s = StyleSheet.create({
   },
   cardHover: {
     backgroundColor: 'rgba(26, 30, 50, 0.90)',
-    borderColor: 'rgba(129, 140, 248, 0.30)',
+    borderColor: 'rgba(167, 139, 250, 0.30)',
     ...CARD_HOVER_SHADOW,
   },
   body: {

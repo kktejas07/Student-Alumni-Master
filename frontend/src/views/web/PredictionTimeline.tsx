@@ -118,13 +118,13 @@ export function PredictionTimeline({
               <Svg width="100%" height={160} viewBox="0 0 480 160" preserveAspectRatio="none">
                 <Defs>
                   <SvgLinearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-                    <Stop offset="0%" stopColor="#818CF8" />
-                    <Stop offset="50%" stopColor="#6366F1" />
-                    <Stop offset="100%" stopColor="#A5B4FC" />
+                    <Stop offset="0%" stopColor="#A78BFA" />
+                    <Stop offset="50%" stopColor="#7C5CFC" />
+                    <Stop offset="100%" stopColor="#C4B5FD" />
                   </SvgLinearGradient>
                   <SvgLinearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <Stop offset="0%" stopColor="#4F46E5" stopOpacity={0.35} />
-                    <Stop offset="100%" stopColor="#4F46E5" stopOpacity={0.0} />
+                    <Stop offset="0%" stopColor="#7C5CFC" stopOpacity={0.35} />
+                    <Stop offset="100%" stopColor="#7C5CFC" stopOpacity={0.0} />
                   </SvgLinearGradient>
                 </Defs>
 
@@ -190,7 +190,7 @@ export function PredictionTimeline({
 
 const s = StyleSheet.create({
   card: {
-    backgroundColor: '#0A0A2A',
+    backgroundColor: '#14141F',
     borderColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
     borderRadius: RADIUS.card,
