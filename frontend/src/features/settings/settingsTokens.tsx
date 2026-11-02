@@ -1,6 +1,6 @@
 // settings constants: TOOL_DOCS provider-docs map, GRAD_* colour tokens, TABS + DEFAULT_SYSTEM_OPTIONS, the shared types — split verbatim from SettingsView.tsx (audit Step 6c).
 // @ts-nocheck
-import { UserCog, Sliders, Plug, Shield, Bell, Lock, IdCard, Sparkles, FileText } from 'lucide-react-native';
+import { UserCog, Sliders, Plug, Shield, Bell, Lock, IdCard, Sparkles, FileText, History } from 'lucide-react-native';
 
 /* ─────────────────────────────────────────────────────────────────
  * Provider docs map — used by the "How to get credentials" link in
@@ -85,7 +85,8 @@ export const GRAD_BG   = ['rgba(251,146,60,0.20)', 'rgba(245,158,11,0.10)'] as c
  * ───────────────────────────────────────────────────────────────── */
 export type TabId =
   | 'profile' | 'platform' | 'integrations' | 'roles'
-  | 'notifications' | 'security' | 'digital-id' | 'pages' | 'templates' | 'branding' | 'echo-hero';
+  | 'notifications' | 'security' | 'digital-id' | 'pages' | 'templates' | 'branding' | 'echo-hero'
+  | 'changelog';
 
 export type Tool = {
   id: string; name: string; category: string; icon: string; tint: string;
@@ -115,6 +116,7 @@ export const TABS: { id: TabId; label: string; icon: any }[] = [
   { id: 'security',      label: 'Security',            icon: Lock },
   { id: 'digital-id',    label: 'Digital ID',          icon: IdCard },
   { id: 'pages',         label: 'Pages',               icon: FileText },
+  { id: 'changelog',     label: 'Changelog',           icon: History },
 ];
 
 export const DEFAULT_SYSTEM_OPTIONS: Record<string, { value: string; label: string }[]> = {

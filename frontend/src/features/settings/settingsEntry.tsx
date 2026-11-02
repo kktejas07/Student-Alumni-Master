@@ -8,6 +8,18 @@ import { Toast } from '@/src/views/web/portals/superadmin/applekit';
 import { GRAD_FROM, GRAD_TO, TabId, TABS } from './settingsTokens';
 import { s } from './settingsStyles';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
+import { ProfileTab } from './settingsProfile';
+import { PlatformTab } from './settingsPlatform';
+import { IntegrationsTab } from './settingsIntegrations';
+import { RolesTab } from './settingsRoles';
+import { NotificationsTab } from './settingsNotifs';
+import { SecurityTab } from './settingsSecurity';
+import { DigitalIdTab } from './settingsDigitalId';
+import { PagesTab } from './settingsPages';
+import { TemplatesTab } from './settingsTemplates';
+import { EchoLandingHeroTab } from './settingsEchoHero';
+import { BrandingTab } from './settingsBranding';
+import { ChangelogTab } from './settingsChangelog';
 
 /* ─────────────────────────────────────────────────────────────────
  * Main view
@@ -16,7 +28,7 @@ export function SettingsView({ sub, onSub }: { sub?: string; onSub?: (s: string)
   const T = useSAC();
   Object.assign(s, resolveColors(s, T));
   const [tab, setTab] = useSubTab<TabId>(
-    ['profile', 'platform', 'integrations', 'roles', 'notifications', 'security', 'digital-id', 'pages', 'templates', 'echo-hero', 'branding'],
+    ['profile', 'platform', 'integrations', 'roles', 'notifications', 'security', 'digital-id', 'pages', 'templates', 'echo-hero', 'branding', 'changelog'],
     'profile',
     { sub, onSub },
   );
@@ -52,6 +64,7 @@ export function SettingsView({ sub, onSub }: { sub?: string; onSub?: (s: string)
         {tab === 'templates'     && <TemplatesTab onSaved={flashToast} />}
         {tab === 'echo-hero'     && <EchoLandingHeroTab onSaved={flashToast} />}
         {tab === 'branding'      && <BrandingTab onSaved={flashToast} />}
+        {tab === 'changelog'     && <ChangelogTab onSaved={flashToast} />}
       </View>
       <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hideToast} />
     </View>

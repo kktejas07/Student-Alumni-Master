@@ -173,7 +173,25 @@ class AgentSchedulerService:
         # promo auto-expiry, recurring promo cloning, analytics compaction.
         await self._run_marketing_suite(db, now_iso, cycle_results)
 
+        # 7. Approval SLA digest (AP1): daily overdue-approval email.
+        # Off unless APPROVAL_SLA_SCHEDULER_ENABLED=1.
+        await self._run_approval_sla(db, now_iso, cycle_results)
+
         return cycle_results
+
+    async def _run_approval_sla(self, db, now_iso, cycle_results):
+        """Runs the approval SLA digest step. Never raises — a failing digest
+        must not take down the agent cycle."""
+        if db is None:
+            return
+        try:
+            from services.agents.approval_sla_scheduler import approval_sla_agent_run
+            out = await approval_sla_agent_run(db)
+            cycle_results["approval_sla"] = {"ok": True, "ran": out.get("ran", []),
+                                             "skipped": out.get("skipped", {}),
+                                             "result": out.get("result")}
+        except Exception as e:
+            cycle_results["approval_sla"] = {"ok": False, "error": str(e)}
 
     async def _run_marketing_suite(self, db, now_iso, cycle_results):
         """Drives the PT5/PT6/PM6/PM7 marketing sub-agent registry from the

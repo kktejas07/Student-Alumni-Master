@@ -31,6 +31,7 @@ import { useConfirm } from '@/src/views/components';
 import * as Linking from 'expo-linking';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 import { EchoCertificateStudio } from './EchoCertificateStudio';
+import { CertificatePdfPreview } from './CertificatePdfPreview';
 import { request } from '@/src/models/services/api';
 import { getBaseUrl } from '@/src/lib/env';
 
@@ -337,6 +338,20 @@ function IssueTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [pdfPreviewKey, setPdfPreviewKey] = useState(0);
+
+  const previewBody = () => ({
+    recipient_email: email.trim(),
+    title: title.trim(),
+    issuer: issuer.trim() || 'Student Alumni',
+  });
+
+  const openPdfPreview = () => {
+    if (!title.trim()) { setError('Enter a certificate title first.'); return; }
+    setShowPdfPreview(true);
+    setPdfPreviewKey((k) => k + 1);
+  };
 
   const issue = async () => {
     setError(null); setResult(null);
@@ -345,7 +360,7 @@ function IssueTab({ onSaved }: { onSaved: (s?: string) => void }) {
     try {
       const r = await request('/certificates/issue', {
         method: 'POST',
-        body: JSON.stringify({ recipient_email: email.trim(), title: title.trim(), issuer: issuer.trim() || 'Student Alumni' }),
+        body: JSON.stringify(previewBody()),
       });
       setResult(r);
       onSaved('Certificate issued');
@@ -419,6 +434,21 @@ function IssueTab({ onSaved }: { onSaved: (s?: string) => void }) {
         <GradientButton onPress={issue} loading={busy}>
           <View style={s.btnInner}><Award size={15} color="#fff" /><Text style={s.btnText}>{busy ? 'Issuing...' : 'Issue Certificate'}</Text></View>
         </GradientButton>
+
+        <Pressable onPress={openPdfPreview} style={({ hovered }: any) => [s.previewBtn, hovered && { borderColor: '#A78BFA' }]}>
+          <FileText size={14} color="#A78BFA" />
+          <Text style={s.previewBtnText}>Preview PDF (with verification QR)</Text>
+        </Pressable>
+
+        {showPdfPreview && (
+          <View style={{ marginTop: 12 }}>
+            <CertificatePdfPreview
+              body={previewBody()}
+              reloadKey={pdfPreviewKey}
+              onClose={() => setShowPdfPreview(false)}
+            />
+          </View>
+        )}
 
         {result && (
           <View style={s.resultBox}>
@@ -1626,6 +1656,8 @@ const s = StyleSheet.create({
   infoLabel: { width: 84, color: '#64748b', fontFamily: FONTS.bold, fontSize: 11, paddingTop: 2 },
   infoValue: { flex: 1, color: '#e2e8f0', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 },
   linkBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)', backgroundColor: 'rgba(167,139,250,0.08)', alignSelf: 'flex-start', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  previewBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(167,139,250,0.28)', backgroundColor: 'rgba(167,139,250,0.08)', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  previewBtnText: { color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 12.5 },
   linkBtnText: { color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 12 },
   bulkRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: 'rgba(30,41,59,0.6)' },
   bulkEmail: { flex: 1, color: '#cbd5e1', fontFamily: FONTS.med, fontSize: 12 },

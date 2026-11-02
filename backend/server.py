@@ -200,6 +200,13 @@ async def _lifespan(application):
         _safe_create_index(db.token_blacklist, "jti", unique=True, sparse=True),
         _safe_create_index(db.certificates, "verification_code", unique=True),
         _safe_create_index(db.certificates, "recipient_email"),
+        _safe_create_index(db.payment_refunds, "payment_id"),
+        _safe_create_index(db.payment_refunds, [("created_at", -1)]),
+        _safe_create_index(db.approval_audit_trail, [("at", -1)]),
+        _safe_create_index(db.approval_audit_trail, [("item_id", 1), ("at", -1)]),
+        _safe_create_index(db.platform_briefings, [("generated_at", -1)]),
+        _safe_create_index(db.settings_changelog, [("at", -1)]),
+        _safe_create_index(db.settings_changelog, [("section", 1), ("at", -1)]),
         _safe_create_index(db.email_suppressions, "email", unique=True),
         _safe_create_index(db.email_quality_events, [("created_at", -1)]),
         _safe_create_index(db.echo_showcases, "slug", unique=True, sparse=True),
@@ -254,6 +261,27 @@ async def _lifespan(application):
         _safe_create_index(db.sa_ai_resume_reviews, [("user_id", 1), ("status", 1)]),
         _safe_create_index(db.sa_marketplace_purchases, [("user_id", 1), ("ts", -1)]),
         _safe_create_index(db.sa_marketplace_purchases, [("user_id", 1), ("service", 1), ("ts", 1)]),
+        # Talent Pool agent suite (TP15-TP32)
+        _safe_create_index(db.outreach_campaigns, "status"),
+        _safe_create_index(db.outreach_campaigns, [("created_at", -1)]),
+        _safe_create_index(db.outreach_messages, "token", unique=True, sparse=True),
+        _safe_create_index(db.outreach_messages, [("campaign_id", 1), ("profile_id", 1)]),
+        _safe_create_index(db.canonical_skills, "canonical", unique=True, sparse=True),
+        _safe_create_index(db.talent_pool_consent, "email"),
+        _safe_create_index(db.talent_pool_consent, "profile_id"),
+        _safe_create_index(db.talent_pool_consent, "status"),
+        _safe_create_index(db.erasure_log, [("erased_at", -1)]),
+        _safe_create_index(db.talent_pool_activity_log, [("startTime", -1)]),
+        _safe_create_index(db.talent_pool_activity_log, "object.id"),
+        _safe_create_index(db.talent_pool_activity_log, "action"),
+        _safe_create_index(db.scheduler_logs, [("agent", 1), ("started_at", -1)]),
+        _safe_create_index(db.settings, "id", unique=True),
+        _safe_create_index(db.external_job_listings, "dedup_hash"),
+        _safe_create_index(db.external_job_listings, [("is_active", 1), ("created_at", -1)]),
+        _safe_create_index(db.whatsapp_message_log, "external_id"),
+        _safe_create_index(db.whatsapp_message_log, "status"),
+        _safe_create_index(db.interview_feedback, [("candidate_id", 1), ("created_at", -1)]),
+        _safe_create_index(db.ats_field_mappings, "system"),
         # Partners & Promotions marketing suite (PT5/PT6/PM6/PM7)
         _safe_create_index(db.partner_event_daily, [("partner_id", 1), ("day", 1)], unique=True),
         _safe_create_index(db.promotion_event_daily, [("promo_id", 1), ("day", 1)], unique=True),
@@ -357,6 +385,14 @@ async def _lifespan(application):
             agent_scheduler.start(db=db)
         except Exception as _e:
             logger.warning("Could not start 30-minute Agent Scheduler: %s", _e)
+
+        # Weekly platform health briefing (AI4): Monday 09:00 IST cron.
+        # Opt-in via HEALTH_BRIEFING_CRON_ENABLED=1.
+        try:
+            from services.agents.health_briefing_scheduler import start_health_briefing_scheduler
+            start_health_briefing_scheduler()
+        except Exception as _e:
+            logger.warning("Could not start weekly health briefing cron: %s", _e)
 
         # Talent Pool agent suite (TP23): opt-in startup catch-up run
         # (TP_RUN_ON_STARTUP=1). The 30-min cycle covers the steady state.
@@ -2155,6 +2191,26 @@ api_router.include_router(admin_colleges_router)
 # analytics, connections, alumni pipeline + autonomous agent suite surface
 from features.mentor_admin import router as mentor_admin_router
 api_router.include_router(mentor_admin_router)
+
+# Refund management (PY1) — full/partial refunds via Stripe/Razorpay + ledger
+from features.routers.admin.refunds import router as admin_refunds_router
+api_router.include_router(admin_refunds_router)
+
+# Revenue analytics (PY4) — trend / by-source / top events with period deltas
+from features.routers.admin.revenue import router as admin_revenue_router
+api_router.include_router(admin_revenue_router)
+
+# Approval SLA tracking + audit trail (AP1 / AP4)
+from features.routers.admin.approvals import router as admin_approvals_router
+api_router.include_router(admin_approvals_router)
+
+# Weekly platform health briefings (AI4)
+from features.routers.admin.briefings import router as admin_briefings_router
+api_router.include_router(admin_briefings_router)
+
+# Settings changelog + rollback (ST2)
+from features.routers.admin.settings_changelog import router as admin_settings_changelog_router
+api_router.include_router(admin_settings_changelog_router)
 
 # Talent Pool — searchable candidate profiles (LinkedIn, CSV, platform opt-in)
 from features.talent_pool import router as talent_pool_router
