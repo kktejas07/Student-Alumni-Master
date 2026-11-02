@@ -42,7 +42,10 @@ export function AIInsightsView() {
   };
   return (
     <View>
-      <View style={s.banner}>
+      {/* Weekly platform health briefing (AI4) */}
+      <WeeklyBriefing />
+
+      <View style={[s.banner, { marginTop: 14 }]}>
         <View style={s.bIcon}><Sparkles size={16} color={T.accent} /></View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.bTitle}>Platform Briefing · Powered by Claude</Text>

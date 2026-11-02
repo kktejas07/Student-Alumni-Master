@@ -68,6 +68,243 @@ def _last_n_days(n: int) -> List[str]:
     return [(today - timedelta(days=i)).isoformat() for i in range(n - 1, -1, -1)]
 
 
+# ---------------------------------------------------------------------------
+# Date ranges + period comparison (AN1)
+# ---------------------------------------------------------------------------
+RANGE_PRESETS = {"7d": 7, "30d": 30, "90d": 90}
+RANGE_LABELS = {
+    "7d": "Last 7 days",
+    "30d": "Last 30 days",
+    "90d": "Last 90 days",
+    "ytd": "Year to date",
+    "custom": "Custom range",
+}
+
+
+def _parse_day(value: Any) -> Optional[datetime]:
+    """Parse a YYYY-MM-DD string (or ISO datetime) into a UTC midnight."""
+    if not value:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def resolve_date_range(
+    range_key: Optional[str] = None,
+    start: Optional[str] = None,
+    end: Optional[str] = None,
+    now: Optional[datetime] = None,
+) -> Dict[str, Any]:
+    """Resolve a requested range into an explicit half-open window.
+
+    Returns the current window (start inclusive, end_exclusive) and the
+    immediately preceding window of the same length, so the dashboard can
+    overlay "previous period" without a second round-trip.
+    """
+    now = now or datetime.now(timezone.utc)
+    key = (range_key or "30d").strip().lower()
+    if key not in RANGE_PRESETS and key not in ("ytd", "custom"):
+        key = "30d"
+
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow = today + timedelta(days=1)
+
+    if key == "ytd":
+        period_start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        period_end = tomorrow
+    elif key == "custom":
+        period_start = _parse_day(start) or (today - timedelta(days=29))
+        period_end = (_parse_day(end) + timedelta(days=1)) if _parse_day(end) else tomorrow
+        if period_end <= period_start:
+            period_end = period_start + timedelta(days=1)
+    else:
+        days = RANGE_PRESETS[key]
+        period_start = today - timedelta(days=days - 1)
+        period_end = tomorrow
+
+    span = period_end - period_start
+    prev_end = period_start
+    prev_start = period_start - span
+
+    return {
+        "key": key,
+        "label": RANGE_LABELS.get(key, RANGE_LABELS["30d"]),
+        "start": period_start.isoformat(),
+        "end": period_end.isoformat(),
+        "days": max(1, span.days),
+        "previous_start": prev_start.isoformat(),
+        "previous_end": prev_end.isoformat(),
+    }
+
+
+def _window_match(date_fields: List[str], start: datetime, end_exclusive: datetime) -> Dict[str, Any]:
+    """$or window over several candidate date fields, datetime and ISO string."""
+    s_iso = start.isoformat()
+    e_iso = end_exclusive.isoformat()
+    conds: List[Dict[str, Any]] = []
+    for f in date_fields:
+        conds.append({f: {"$gte": start, "$lt": end_exclusive}})
+        conds.append({f: {"$gte": s_iso, "$lt": e_iso}})
+    return {"$or": conds}
+
+
+def _doc_date(doc: Dict[str, Any], date_fields: List[str]) -> Optional[datetime]:
+    for f in date_fields:
+        dt = _to_aware_dt(doc.get(f))
+        if dt:
+            return dt
+    return None
+
+
+def _doc_amount(doc: Dict[str, Any], paths: List[str]) -> float:
+    for p in paths:
+        cur: Any = doc
+        ok = True
+        for part in p.split("."):
+            if isinstance(cur, dict) and part in cur:
+                cur = cur[part]
+            else:
+                ok = False
+                break
+        if ok and isinstance(cur, (int, float)):
+            return float(cur)
+    return 0.0
+
+
+# Revenue sources shared by the period breakdown and the comparison window.
+REVENUE_SOURCES = [
+    ("Mentor sessions", "bookings",
+     {"status": {"$in": ["completed", "confirmed", "paid", "done"]}},
+     ["amount_paid"], ["completed_at", "created_at"], False),
+    ("Event registrations", "echo_registrations",
+     {"payment.status": "paid"},
+     ["fee", "payment.amount"], ["payment.paid_at", "created_at"], True),
+    ("Marketplace", "echo_orders",
+     {"status": "paid", "payment_status": {"$ne": "free"}},
+     ["final_amount", "amount"], ["paid_at", "created_at"], False),
+    ("Other payments", "payments",
+     {}, ["amount"], ["created_at"], False),
+]
+
+
+async def _revenue_between(db, start: datetime, end_exclusive: datetime) -> Dict[str, Any]:
+    """Revenue actually recorded inside a window, split by day and by source."""
+    daily: Dict[str, float] = {}
+    by_source: List[Dict[str, Any]] = []
+    total = 0.0
+    for label, coll, match, amount_paths, date_fields, dedupe in REVENUE_SOURCES:
+        window = _window_match(date_fields, start, end_exclusive)
+        try:
+            docs = await db[coll].find({**match, **window}).to_list(5000)
+        except Exception:
+            docs = []
+        seen: set = set()
+        source_total = 0.0
+        for doc in docs:
+            if dedupe:
+                pid = (doc.get("payment") or {}).get("payment_id") or ""
+                if pid.startswith("ADMIN_PAY_"):
+                    continue
+                if pid:
+                    if pid in seen:
+                        continue
+                    seen.add(pid)
+            amount = _doc_amount(doc, amount_paths)
+            if amount <= 0:
+                continue
+            source_total += amount
+            dt = _doc_date(doc, date_fields)
+            if dt:
+                day = dt.date().isoformat()
+                daily[day] = daily.get(day, 0.0) + amount
+        if source_total > 0:
+            by_source.append({"label": label, "value": round(source_total, 2)})
+        total += source_total
+    return {
+        "total": round(total, 2),
+        "by_source": by_source,
+        "daily": daily,
+    }
+
+
+async def _period_metrics(db, start: datetime, end_exclusive: datetime) -> Dict[str, Any]:
+    """Signups, active users, bookings and revenue for one window."""
+    window = {"$gte": start, "$lt": end_exclusive}
+
+    new_signups = await db.users.count_documents({"created_at": window})
+    new_bookings = await db.bookings.count_documents({"created_at": window})
+
+    try:
+        active_rows = await db.activity_events.aggregate([
+            {"$match": {"ts": window}},
+            {"$group": {"_id": "$user_id"}},
+            {"$count": "total"},
+        ]).to_list(1)
+        active_users = active_rows[0]["total"] if active_rows else 0
+    except Exception:
+        active_users = 0
+
+    revenue = await _revenue_between(db, start, end_exclusive)
+
+    # Per-day series so the dashboard can overlay the previous period.
+    days: List[str] = []
+    cursor = start
+    while cursor < end_exclusive:
+        days.append(cursor.date().isoformat())
+        cursor += timedelta(days=1)
+
+    signups_by_day: Dict[str, int] = {}
+    try:
+        for row in await db.users.aggregate([
+            {"$match": {"created_at": window}},
+            {"$group": {"_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}}, "n": {"$sum": 1}}},
+        ]).to_list(400):
+            signups_by_day[row["_id"]] = row["n"]
+    except Exception:
+        pass
+
+    active_by_day: Dict[str, int] = {}
+    try:
+        for row in await db.activity_events.aggregate([
+            {"$match": {"ts": window}},
+            {"$group": {"_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$ts"}}, "n": {"$sum": 1}}},
+        ]).to_list(400):
+            active_by_day[row["_id"]] = row["n"]
+    except Exception:
+        pass
+
+    daily = [{
+        "date": day,
+        "signups": signups_by_day.get(day, 0),
+        "activity_events": active_by_day.get(day, 0),
+        "revenue": round(revenue["daily"].get(day, 0.0), 2),
+    } for day in days]
+
+    return {
+        "signups": new_signups,
+        "active_users": active_users,
+        "bookings": new_bookings,
+        "revenue": revenue["total"],
+        "revenue_by_source": revenue["by_source"],
+        "daily": daily,
+    }
+
+
+def _pct_change(current: float, previous: float) -> Optional[float]:
+    """Percentage change vs the previous period; None when there is no base."""
+    if previous in (0, 0.0):
+        return None
+    return round((current - previous) / previous * 100, 1)
+
+
 async def _sum_since(collection, match: Dict[str, Any], field: str, date_fields: List[str], since: datetime) -> float:
     """Sum a numeric field over documents whose first available date field is
     >= `since`. Dates may be stored as datetimes or ISO strings, so both are
@@ -445,12 +682,60 @@ async def get_analytics_for(db, user: dict) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Comprehensive Super Admin Analytics — real data from all sources
 # ---------------------------------------------------------------------------
-async def super_admin_full_analytics(db) -> Dict[str, Any]:
+async def super_admin_full_analytics(
+    db,
+    range_key: Optional[str] = None,
+    start: Optional[str] = None,
+    end: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Full analytics payload for the Super Admin dashboard.
     All data is real, sourced from MongoDB collections + Firebase + PostHog.
+
+    `range_key` (7d/30d/90d/ytd/custom) scopes the `period` block — the KPIs
+    for the selected window, the immediately preceding window of equal length,
+    and the percentage delta between them.
     """
     now = datetime.now(timezone.utc)
+    period = resolve_date_range(range_key, start, end, now=now)
+    period_start = datetime.fromisoformat(period["start"])
+    period_end = datetime.fromisoformat(period["end"])
+    prev_start = datetime.fromisoformat(period["previous_start"])
+    prev_end = datetime.fromisoformat(period["previous_end"])
+    period_metrics = await _period_metrics(db, period_start, period_end)
+    previous_metrics = await _period_metrics(db, prev_start, prev_end)
+
+    def _delta(key: str) -> Optional[float]:
+        return _pct_change(period_metrics[key], previous_metrics[key])
+
+    period_block = {
+        "range": period,
+        "current": {
+            "signups": period_metrics["signups"],
+            "active_users": period_metrics["active_users"],
+            "bookings": period_metrics["bookings"],
+            "revenue": period_metrics["revenue"],
+            "revenue_by_source": period_metrics["revenue_by_source"],
+            "daily": period_metrics["daily"],
+        },
+        "previous": {
+            "signups": previous_metrics["signups"],
+            "active_users": previous_metrics["active_users"],
+            "bookings": previous_metrics["bookings"],
+            "revenue": previous_metrics["revenue"],
+            "revenue_by_source": previous_metrics["revenue_by_source"],
+            "daily": previous_metrics["daily"],
+        },
+        "delta_pct": {
+            "signups": _delta("signups"),
+            "active_users": _delta("active_users"),
+            "bookings": _delta("bookings"),
+            "revenue": _delta("revenue"),
+        },
+        "previous_label": (
+            f"{prev_start.date().isoformat()} → {(prev_end - timedelta(days=1)).date().isoformat()}"
+        ),
+    }
     thirty_days_ago = now - timedelta(days=30)
     ninety_days_ago = now - timedelta(days=90)
     current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -680,6 +965,7 @@ async def super_admin_full_analytics(db) -> Dict[str, Any]:
 
     return {
         "generated_at": now.isoformat(),
+        "period": period_block,
         "kpis": {
             "total_signups": total_signups,
             "active_users_30d": active_users_30d,

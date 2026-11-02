@@ -12,6 +12,8 @@ import { GRAD, Card, IconBox, KpiTile, StatusPill, GradientButton, SecondaryButt
 import { usePortalData } from '@/src/lib/portalApi';
 import { request } from '@/src/models/services/api';
 import { getBaseUrl } from '@/src/lib/env';
+import { RefundsPanel } from './RefundsPanel';
+import { RevenueAnalytics } from './RevenueAnalytics';
 
 type Tx = { id: string; date: string; desc: string; type: string; amount: number; by: string; status: string };
 type Tier = { id?: string; tier: string; cut: string; count: number; color?: string };
@@ -240,8 +242,13 @@ export function PaymentsView() {
         <KpiTile Icon={CreditCard}     label="NET REVENUE"     value={data.kpi.net}     delta={`${data.bookings_count || 0} bookings`} deltaKind="success" />
       </View>
 
-      {/* Event revenue breakdown */}
-      {(data.echo?.events?.length || 0) > 0 && (
+      {/* Revenue analytics (PY4) */}
+      <RevenueAnalytics />
+
+      {/* Refund management (PY1) */}
+      <RefundsPanel />
+
+      {/* Event revenue breakdown */}      {(data.echo?.events?.length || 0) > 0 && (
         <Card>
           <View style={st.cardHead}>
             <Text style={st.cardTitle}>Event Revenue</Text>

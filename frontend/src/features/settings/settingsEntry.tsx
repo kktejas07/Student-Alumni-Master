@@ -27,7 +27,7 @@ export function SettingsView({ sub, onSub }: { sub?: string; onSub?: (s: string)
   const T = useSAC();
   Object.assign(s, resolveColors(s, T));
   const [tab, setTab] = useSubTab<TabId>(
-    ['profile', 'platform', 'integrations', 'roles', 'notifications', 'security', 'digital-id', 'pages', 'templates', 'echo-hero', 'branding'],
+    ['profile', 'platform', 'integrations', 'roles', 'notifications', 'security', 'digital-id', 'pages', 'templates', 'echo-hero', 'branding', 'changelog'],
     'profile',
     { sub, onSub },
   );
@@ -63,6 +63,7 @@ export function SettingsView({ sub, onSub }: { sub?: string; onSub?: (s: string)
         {tab === 'templates'     && <TemplatesTab onSaved={flashToast} />}
         {tab === 'echo-hero'     && <EchoLandingHeroTab onSaved={flashToast} />}
         {tab === 'branding'      && <BrandingTab onSaved={flashToast} />}
+        {tab === 'changelog'     && <ChangelogTab onSaved={flashToast} />}
       </View>
       <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hideToast} />
     </View>

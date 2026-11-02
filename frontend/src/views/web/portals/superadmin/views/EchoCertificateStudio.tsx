@@ -6,12 +6,13 @@ import {
 import {
   Award, Sparkles, Printer, Download, CheckCircle2, ShieldCheck,
   Upload, Layers, Sliders, RefreshCw, Copy, FileText, Image as ImageIcon,
-  UserCheck, Building2, GraduationCap, Star, Palette
+  UserCheck, Building2, GraduationCap, Star, Palette, QrCode
 } from 'lucide-react-native';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { Badge } from '../atoms';
 import { GradientButton, SecondaryButton, Card, IconBox } from '../applekit';
 import { request } from '@/src/models/services/api';
+import { CertificatePdfPreview } from './CertificatePdfPreview';
 
 type EventSeries = 'echo_2026' | 'axiss_2026' | 'sa_platform';
 
@@ -354,6 +355,10 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
   const [auditResult, setAuditResult] = useState<any>(null);
   const [skillsResult, setSkillsResult] = useState<any>(null);
 
+  // ── PDF preview (CR2) ──
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [pdfPreviewKey, setPdfPreviewKey] = useState(0);
+
   // Agent 1: AI Citation Drafter
   const runAiCitationDrafter = async () => {
     setAiDrafting(true);
@@ -447,32 +452,34 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
     : TEMPLATES.filter((t) => t.category.toLowerCase().includes(activeEventFilter.toLowerCase()));
 
   // Issue into Platform MongoDB Registry
+  const certificatePayload = () => ({
+    recipient_name: recipientName,
+    recipient_email: recipientEmail,
+    certification_name: `${title} (${programme})`,
+    verification_code: certId,
+    issue_date: issueDate,
+    institution: institution,
+    department: department,
+    role: role,
+    citation: citation,
+    branch: department.includes('CSE') ? 'CSE' : department.includes('IT') ? 'IT' : department.includes('ECE') ? 'ECE' : 'ALL',
+    metadata: {
+      template_id: selectedTemplateId,
+      series_prefix: currentTpl.seriesPrefix,
+      programme: programme,
+      term: term,
+      signatory1: { name: sig1Name, title: sig1Title },
+      signatory2: showSignatory2 ? { name: sig2Name, title: sig2Title } : null
+    }
+  });
+
   const issueToPlatformRegistry = async () => {
     setIssuing(true);
     try {
       await request('/certificates/issue', {
         method: 'POST',
         auth: true,
-        body: {
-          recipient_name: recipientName,
-          recipient_email: recipientEmail,
-          certification_name: `${title} (${programme})`,
-          verification_code: certId,
-          issue_date: issueDate,
-          institution: institution,
-          department: department,
-          role: role,
-          citation: citation,
-          branch: department.includes('CSE') ? 'CSE' : department.includes('IT') ? 'IT' : department.includes('ECE') ? 'ECE' : 'ALL',
-          metadata: {
-            template_id: selectedTemplateId,
-            series_prefix: currentTpl.seriesPrefix,
-            programme: programme,
-            term: term,
-            signatory1: { name: sig1Name, title: sig1Title },
-            signatory2: showSignatory2 ? { name: sig2Name, title: sig2Title } : null
-          }
-        }
+        body: certificatePayload(),
       });
       if (onSaved) onSaved(`Certificate ${certId} issued and verifiable at /certificates/verify/${certId}`);
     } catch (e: any) {
@@ -480,6 +487,11 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
     } finally {
       setIssuing(false);
     }
+  };
+
+  const openPdfPreview = () => {
+    setShowPdfPreview(true);
+    setPdfPreviewKey((k) => k + 1);
   };
 
   const handlePrint = () => {
@@ -707,6 +719,13 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
 
               {/* Action Buttons */}
               <View style={{ gap: 8, marginTop: 14 }}>
+                <SecondaryButton onPress={openPdfPreview}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <QrCode size={15} color="#fff" />
+                    <Text style={s.secBtnText}>Preview PDF (with QR)</Text>
+                  </View>
+                </SecondaryButton>
+
                 <GradientButton onPress={issueToPlatformRegistry} loading={issuing}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <ShieldCheck size={15} color="#fff" />
@@ -838,6 +857,15 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
           </Card>
         </View>
       </View>
+
+      {/* Server-rendered PDF preview with verification QR (CR2) */}
+      {showPdfPreview && (
+        <CertificatePdfPreview
+          body={certificatePayload()}
+          reloadKey={pdfPreviewKey}
+          onClose={() => setShowPdfPreview(false)}
+        />
+      )}
     </View>
   );
 }

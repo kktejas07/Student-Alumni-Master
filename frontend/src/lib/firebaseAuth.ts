@@ -43,7 +43,7 @@ export async function initFirebaseAuth(config: {
 
   try {
     const { initializeApp, getApp, getApps } = await import('firebase/app');
-    const { getAuth, GoogleAuthProvider, GithubAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, PhoneAuthProvider, signInWithPhoneNumber } = await import('firebase/auth');
+    const { getAuth, GoogleAuthProvider, GithubAuthProvider, signInWithPopup, PhoneAuthProvider, signInWithPhoneNumber } = await import('firebase/auth');
 
     // CONFIG SAFETY: only reuse an existing Firebase app whose configuration
     // EXACTLY matches the provided web configuration (apiKey + projectId).
@@ -68,8 +68,6 @@ export async function initFirebaseAuth(config: {
       GithubAuthProvider,
       PhoneAuthProvider,
       signInWithPopup,
-      signInWithRedirect,
-      getRedirectResult,
       signInWithPhoneNumber,
     };
     return true;
@@ -77,7 +75,6 @@ export async function initFirebaseAuth(config: {
     return false;
   }
 }
-
 export async function signInWithGoogle(): Promise<{ idToken: string; email: string; name: string; picture: string } | null> {
   if (!_firebaseAuth) {
     const lazyConfig = {
@@ -138,32 +135,4 @@ export async function signInWithGitHub(): Promise<{ idToken: string; email: stri
     if (e?.code === 'auth/popup-closed-by-user') return null;
     throw e;
   }
-}
-
-/** Use a full-page redirect to avoid popup blockers and COOP popup polling errors. */
-export async function signInWithGoogleRedirect(): Promise<void> {
-  if (!_firebaseAuth) {
-    const initialized = await initFirebaseAuth({
-      apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
-      authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
-      projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '',
-      appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '',
-    });
-    if (!initialized) throw new Error('Firebase Auth could not be initialized. Check the web configuration.');
-  }
-  await _firebaseAuth.signInWithRedirect(_firebaseAuth.auth, new _firebaseAuth.GoogleAuthProvider());
-}
-
-/** Read the Firebase user after returning from Google, then exchange its ID token with the backend. */
-export async function consumeGoogleRedirectResult(): Promise<{ idToken: string; email: string; name: string; picture: string } | null> {
-  if (!_firebaseAuth) return null;
-  const result = await _firebaseAuth.getRedirectResult(_firebaseAuth.auth);
-  const user = result?.user;
-  if (!user) return null;
-  return {
-    idToken: await user.getIdToken(),
-    email: user.email || '',
-    name: user.displayName || '',
-    picture: user.photoURL || '',
-  };
 }
