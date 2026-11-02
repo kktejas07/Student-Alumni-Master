@@ -209,6 +209,9 @@ export const api = {
   oauthGoogle: (payload: { id_token?: string; email?: string; full_name?: string; picture?: string; role?: string }) =>
     request<any>('/auth/google', { method: 'POST', body: payload, auth: false }),
 
+  oauthFirebase: (payload: { id_token: string; email?: string; full_name?: string; picture?: string; role?: string }) =>
+    request<any>('/auth/firebase', { method: 'POST', body: payload, auth: false }),
+
   oauthLinkedIn: (payload: { email: string; full_name: string; picture?: string; role?: string }) =>
     request<any>('/auth/linkedin', { method: 'POST', body: payload, auth: false }),
 
