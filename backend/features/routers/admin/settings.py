@@ -616,7 +616,8 @@ async def _live_test(tool_id: str, creds: Dict[str, str]) -> tuple[bool, str]:
             r = await _get("https://api.openai.com/v1/models", headers={"Authorization": f"Bearer {api_key}", **headers_json})
             return (r.status_code == 200, "Verified — API key accepted" if r.status_code == 200 else f"OpenAI: HTTP {r.status_code}")
         if tool_id == "claude":
-            r = await _get("https://api.anthropic.com/v1/models", headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", **headers_json})
+            base = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com").rstrip("/")
+            r = await _get(f"{base}/v1/models", headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", **headers_json})
             return (r.status_code == 200, "Verified — Anthropic key accepted" if r.status_code == 200 else f"Anthropic: HTTP {r.status_code}")
         if tool_id == "gemini":
             r = await _get(f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}")
@@ -2256,20 +2257,21 @@ async def pages_ai_assist(body: AiAssistRequest, authorization: Optional[str] = 
     if claude_cfg and claude_cfg["api_key"]:
         try:
             import aiohttp
+            claude_base = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com").rstrip("/")
             headers = {
                 "x-api-key": claude_cfg["api_key"],
                 "anthropic-version": "2023-06-01",
                 "Content-Type": "application/json",
             }
             req_body = {
-                "model": "claude-sonnet-4-5-20250929",
+                "model": os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-5-20250929"),
                 "max_tokens": 4000,
                 "system": system,
                 "messages": [{"role": "user", "content": prompt}],
             }
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    "https://api.anthropic.com/v1/messages",
+                    f"{claude_base}/v1/messages",
                     headers=headers,
                     json=req_body,
                     timeout=aiohttp.ClientTimeout(total=60),
