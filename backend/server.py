@@ -254,27 +254,10 @@ async def _lifespan(application):
         _safe_create_index(db.sa_ai_resume_reviews, [("user_id", 1), ("status", 1)]),
         _safe_create_index(db.sa_marketplace_purchases, [("user_id", 1), ("ts", -1)]),
         _safe_create_index(db.sa_marketplace_purchases, [("user_id", 1), ("service", 1), ("ts", 1)]),
-        # Talent Pool agent suite (TP15-TP32)
-        _safe_create_index(db.outreach_campaigns, "status"),
-        _safe_create_index(db.outreach_campaigns, [("created_at", -1)]),
-        _safe_create_index(db.outreach_messages, "token", unique=True, sparse=True),
-        _safe_create_index(db.outreach_messages, [("campaign_id", 1), ("profile_id", 1)]),
-        _safe_create_index(db.canonical_skills, "canonical", unique=True, sparse=True),
-        _safe_create_index(db.talent_pool_consent, "email"),
-        _safe_create_index(db.talent_pool_consent, "profile_id"),
-        _safe_create_index(db.talent_pool_consent, "status"),
-        _safe_create_index(db.erasure_log, [("erased_at", -1)]),
-        _safe_create_index(db.talent_pool_activity_log, [("startTime", -1)]),
-        _safe_create_index(db.talent_pool_activity_log, "object.id"),
-        _safe_create_index(db.talent_pool_activity_log, "action"),
-        _safe_create_index(db.scheduler_logs, [("agent", 1), ("started_at", -1)]),
-        _safe_create_index(db.settings, "id", unique=True),
-        _safe_create_index(db.external_job_listings, "dedup_hash"),
-        _safe_create_index(db.external_job_listings, [("is_active", 1), ("created_at", -1)]),
-        _safe_create_index(db.whatsapp_message_log, "external_id"),
-        _safe_create_index(db.whatsapp_message_log, "status"),
-        _safe_create_index(db.interview_feedback, [("candidate_id", 1), ("created_at", -1)]),
-        _safe_create_index(db.ats_field_mappings, "system"),
+        # Partners & Promotions marketing suite (PT5/PT6/PM6/PM7)
+        _safe_create_index(db.partner_event_daily, [("partner_id", 1), ("day", 1)], unique=True),
+        _safe_create_index(db.promotion_event_daily, [("promo_id", 1), ("day", 1)], unique=True),
+        _safe_create_index(db.promotion_ab_sessions, "client_key", unique=True),
     ]
     await asyncio.gather(*index_tasks, return_exceptions=True)
 

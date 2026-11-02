@@ -67,51 +67,11 @@ class AgentSchedulerService:
                 name="CodeHealthAgent — Codebase Auditor & Auto-Fix Loop Agent",
                 description="Continuously audits codebase against development standards and surfaces findings with Code Health Score."
             ),
-            "bgv_reverify": SchedulerAgentTask(
-                agent_id="bgv_reverify",
-                name="BGV Re-Verification Agent (BV9)",
-                description="Weekly re-scan of candidates last scanned >180 days; delta + status-change alerts.",
+            "marketing_suite": SchedulerAgentTask(
+                agent_id="marketing_suite",
+                name="Marketing Agent Suite (PT5/PT6/PM6/PM7)",
+                description="Daily partner contract expiry, promo auto-expiry, recurring promo cloning, analytics compaction & A/B auto-settle.",
                 cadence_minutes=60,
-            ),
-            "bgv_degree_mill": SchedulerAgentTask(
-                agent_id="bgv_degree_mill",
-                name="Degree-Mill Intelligence Agent (BV10)",
-                description="Daily UGC/AICTE watchlist cross-reference against platform users.",
-                cadence_minutes=60,
-            ),
-            "bgv_linkedin": SchedulerAgentTask(
-                agent_id="bgv_linkedin",
-                name="LinkedIn Validator Agent (BV11)",
-                description="Weekly validation of 200 user LinkedIn profiles; proposes for admin review.",
-                cadence_minutes=60,
-            ),
-            "bgv_compliance": SchedulerAgentTask(
-                agent_id="bgv_compliance",
-                name="BGV Compliance Agent (BV12)",
-                description="Daily consent-expiry, retention, RTBF processing & monthly report.",
-                cadence_minutes=60,
-            ),
-            "bgv_anomaly": SchedulerAgentTask(
-                agent_id="bgv_anomaly",
-                name="BGV Anomaly Detection Agent (BV13)",
-                description="6-hour window: z-score, dup-PAN, volume, geo & temporal clustering.",
-                cadence_minutes=60,
-            ),
-            "bgv_partner_onboarding": SchedulerAgentTask(
-                agent_id="bgv_partner_onboarding",
-                name="BGV Partner Onboarding Agent (BV14)",
-                description="Sandbox keys, idle nudges, VALIDATED promotion, quota alerts.",
-                cadence_minutes=60,
-            ),
-            "talent_suite": SchedulerAgentTask(
-                agent_id="talent_suite",
-                name="Talent Pool Agent Suite Scheduler (TP23)",
-                description="Self-gating runs of TP15-TP32 sub-agents (quality, taxonomy, PII, drips, dedup, insights, external jobs, WhatsApp, ATS, calendar).",
-            ),
-            "mentor_suite": SchedulerAgentTask(
-                agent_id="mentor_suite",
-                name="Mentor Agent Suite Scheduler (MT8-MT14)",
-                description="Self-gating runs of the mentor suite: auto-categorization, engagement scores, quality flags, content digests, availability gaps, milestone badges.",
             ),
         }
 
@@ -209,104 +169,38 @@ class AgentSchedulerService:
             t5.last_error = str(e)
             cycle_results["code_health"] = {"ok": False, "error": str(e)}
 
-        # 6–11. BGV Autonomous Agents (BV9–BV14). Each self-gates on its own
-        # cadence (weekly / daily / 6h), so calling every 30-min cycle is safe.
-        await self._run_bgv_agents(db, now_iso, cycle_results)
-
-        # 12. Talent Pool agent suite (TP23). The registry self-gates each
-        # step on cadence + env flags; missing/optional modules skip cleanly.
-        await self._run_talent_suite(db, now_iso, cycle_results)
-
-        # 13. Mentor agent suite (MT8–MT14). Same self-gating registry pattern.
-        await self._run_mentor_suite(db, now_iso, cycle_results)
+        # 6. Marketing agent suite (PT5/PT6/PM6/PM7): partner contract expiry,
+        # promo auto-expiry, recurring promo cloning, analytics compaction.
+        await self._run_marketing_suite(db, now_iso, cycle_results)
 
         return cycle_results
 
-    async def _run_talent_suite(self, db, now_iso, cycle_results):
-        """Drives the TP15-TP32 sub-agent registry from the house cycle.
-        Never raises — a single agent's failure must not take down the cycle."""
-        task = self._tasks.get("talent_suite")
-        if task:
-            task.status = "RUNNING"
-        try:
-            from services.agents.talent_scheduler import talent_scheduler_agent
-            out = await talent_scheduler_agent.run(db)
-            if task:
-                task.status = "SUCCESS"
-                task.total_runs += 1
-                task.last_run_at = now_iso
-                task.next_run_at = self._next_cycle_at
-                task.last_summary = f"Talent suite: {len(out.get('ran', []))} steps ran, " \
-                                    f"{len(out.get('skipped', {}))} gated/skipped."
-            cycle_results["talent_suite"] = {"ok": True, "ran": out.get("ran", []),
-                                             "skipped": out.get("skipped", {})}
-        except Exception as e:
-            if task:
-                task.status = "FAILED"
-                task.last_error = str(e)
-            cycle_results["talent_suite"] = {"ok": False, "error": str(e)}
-
-    async def _run_mentor_suite(self, db, now_iso, cycle_results):
-        """Drives the MT8–MT14 sub-agent registry from the house cycle.
-        Never raises — a single agent's failure must not take down the cycle."""
-        task = self._tasks.get("mentor_suite")
-        if task:
-            task.status = "RUNNING"
-        try:
-            from services.agents.mentor_scheduler import mentor_scheduler_agent
-            out = await mentor_scheduler_agent.run(db)
-            if task:
-                task.status = "SUCCESS"
-                task.total_runs += 1
-                task.last_run_at = now_iso
-                task.next_run_at = self._next_cycle_at
-                task.last_summary = f"Mentor suite: {len(out.get('ran', []))} steps ran, " \
-                                    f"{len(out.get('skipped', {}))} gated/skipped."
-            cycle_results["mentor_suite"] = {"ok": True, "ran": out.get("ran", []),
-                                             "skipped": out.get("skipped", {})}
-        except Exception as e:
-            if task:
-                task.status = "FAILED"
-                task.last_error = str(e)
-            cycle_results["mentor_suite"] = {"ok": False, "error": str(e)}
-
-    async def _run_bgv_agents(self, db, now_iso, cycle_results):
-        """Runs the six BGV agents; each no-ops (not-due) until its cadence elapses."""
+    async def _run_marketing_suite(self, db, now_iso, cycle_results):
+        """Drives the PT5/PT6/PM6/PM7 marketing sub-agent registry from the
+        house cycle. Never raises — a single agent's failure must not take
+        down the cycle."""
         if db is None:
             return
-        from services.agents.bgv_reverification_agent import bgv_reverify_agent
-        from services.agents.degree_mill_intelligence_agent import degree_mill_intelligence_agent
-        from services.agents.linkedin_validator_agent import linkedin_validator_agent
-        from services.agents.bgv_compliance_agent import bgv_compliance_agent
-        from services.agents.bgv_anomaly_agent import bgv_anomaly_agent
-        from services.agents.bgv_partner_onboarding_agent import bgv_partner_onboarding_agent
-
-        agents = [
-            ("bgv_reverify", "BGV Re-Verification Agent (BV9)", bgv_reverify_agent),
-            ("bgv_degree_mill", "Degree-Mill Intelligence Agent (BV10)", degree_mill_intelligence_agent),
-            ("bgv_linkedin", "LinkedIn Validator Agent (BV11)", linkedin_validator_agent),
-            ("bgv_compliance", "BGV Compliance Agent (BV12)", bgv_compliance_agent),
-            ("bgv_anomaly", "BGV Anomaly Detection Agent (BV13)", bgv_anomaly_agent),
-            ("bgv_partner_onboarding", "BGV Partner Onboarding Agent (BV14)", bgv_partner_onboarding_agent),
-        ]
-        for agent_id, name, agent in agents:
-            task = self._tasks.get(agent_id)
+        task = self._tasks.get("marketing_suite")
+        if task:
+            task.status = "RUNNING"
+        try:
+            from services.agents.marketing_scheduler import marketing_scheduler_agent
+            out = await marketing_scheduler_agent.run(db)
             if task:
-                task.status = "RUNNING"
-            try:
-                out = await agent.run(db)
-                if task:
-                    task.status = "SUCCESS"
-                    task.total_runs += 1
-                    task.last_run_at = now_iso
-                    task.next_run_at = self._next_cycle_at
-                    task.last_summary = out.message
-                cycle_results[agent_id] = {"ok": True, "message": out.message}
-            except Exception as e:
-                if task:
-                    task.status = "FAILED"
-                    task.last_error = str(e)
-                cycle_results[agent_id] = {"ok": False, "error": str(e)}
+                task.status = "SUCCESS"
+                task.total_runs += 1
+                task.last_run_at = now_iso
+                task.next_run_at = self._next_cycle_at
+                task.last_summary = f"Marketing suite: {len(out.get('ran', []))} steps ran, " \
+                                    f"{len(out.get('skipped', {}))} gated/skipped."
+            cycle_results["marketing_suite"] = {"ok": True, "ran": out.get('ran', []),
+                                                "skipped": out.get("skipped", {})}
+        except Exception as e:
+            if task:
+                task.status = "FAILED"
+                task.last_error = str(e)
+            cycle_results["marketing_suite"] = {"ok": False, "error": str(e)}
 
     async def _loop(self, db=None):
         logger.info("[AgentScheduler] Started 30-minute recurring multi-agent worker.")
