@@ -650,7 +650,7 @@ const s = StyleSheet.create({
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 12, paddingHorizontal: 14,
-    backgroundColor: sac.card, borderColor: sac.border, borderWidth: 1, borderRadius: 12,
+    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12,
     ...(Platform.OS === 'web' ? ({ transitionDuration: '160ms' } as any) : {}),
   },
   rowInactive: { opacity: 0.62, backgroundColor: 'rgba(255,255,255,0.02)' },
@@ -664,7 +664,7 @@ const s = StyleSheet.create({
   arrowCol: { gap: 3 },
   arrowBtn: {
     width: 22, height: 18, borderRadius: 6,
-    backgroundColor: sac.cardSolid, borderColor: sac.border, borderWidth: 1,
+    backgroundColor: SAC.cardSolid, borderColor: SAC.border, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
@@ -691,19 +691,19 @@ const s = StyleSheet.create({
   catPick: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10,
-    borderWidth: 1, borderColor: sac.border, backgroundColor: sac.cardSolid,
+    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  catPickText: { color: sac.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  catPickText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
 
   /* logo picker */
   logoDrop: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 14, borderRadius: 10, borderWidth: 1, borderStyle: 'dashed',
-    borderColor: sac.border2, backgroundColor: sac.cardSolid,
+    borderColor: SAC.border2, backgroundColor: SAC.cardSolid,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  logoDropDark: { backgroundColor: sac.panel2 },
+  logoDropDark: { backgroundColor: SAC.panel2 },
   logoDropIcon: {
     width: 42, height: 42, borderRadius: 10,
     backgroundColor: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1,
@@ -714,8 +714,8 @@ const s = StyleSheet.create({
   logoPreview: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 12, borderRadius: 10, borderWidth: 1,
-    borderColor: sac.border, backgroundColor: '#fff',
+    borderColor: SAC.border, backgroundColor: '#fff',
   },
-  logoPreviewDark: { backgroundColor: '#0a0f1e', borderColor: sac.border2 },
+  logoPreviewDark: { backgroundColor: '#0a0f1e', borderColor: SAC.border2 },
   logoPreviewImg: { width: 110, height: 50 },
 });
