@@ -624,6 +624,7 @@ function PromoEditor({
   onClose: () => void;
   onSaved: (p: Promotion, mode: 'created' | 'updated') => void;
 }) {
+  const sac = useSAC();
   const [form, setForm] = useState<Partial<Promotion>>(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

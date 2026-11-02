@@ -387,6 +387,7 @@ function PartnerRow({
   onDelete: () => void;
   canFilter: boolean;
 }) {
+  const sac = useSAC();
   const cat = CAT_META[partner.category];
   const Icon = cat.Icon;
   const tier = TIER_META[partner.tier || 'standard'] || TIER_META.standard;
@@ -942,6 +943,7 @@ function LogoPicker({
   hint: string;
   dark?: boolean;
 }) {
+  const sac = useSAC();
   return (
     <View style={{ marginTop: 8, gap: 8 }}>
       {value ? (
