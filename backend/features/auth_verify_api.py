@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Response
 from core.config import frontend_base_url
 from core.email import send_email
 from db import db
-from server import create_access_token, create_refresh_token, get_current_user
+from server import create_access_token, create_refresh_token
 
 router = APIRouter()
 
