@@ -1120,7 +1120,7 @@ async def deals_ai_generate(
     chat = (
         LlmChat(api_key=api_key, session_id=f"deals-trending-{uuid.uuid4().hex[:8]}",
                 system_message=system)
-        .with_model("anthropic", "claude-sonnet-4-5-20250929")
+        .with_model("anthropic", os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5"))
     )
 
     try:
@@ -1212,7 +1212,7 @@ async def deals_ai_generate(
             "generated_count": len(normalized),
             "generated_at": now,
             "expires_at": expires_at,
-            "model": "claude-sonnet-4-5",
+            "model": os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5"),
         }},
         upsert=True,
     )
@@ -1222,7 +1222,7 @@ async def deals_ai_generate(
         "cached": False,
         "generated_count": len(normalized),
         "expires_at": expires_at.isoformat(),
-        "model": "claude-sonnet-4-5",
+        "model": os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5"),
         "deals": normalized,
     }
 

@@ -345,7 +345,7 @@ async def session_prep(body: Dict[str, Any] = None,
                     "weakest skills + current roadmap milestone. No fluff, no "
                     "preamble, only the bulleted list."
                 ),
-            ).with_model("anthropic", "claude-3-5-sonnet-20241022").with_max_tokens(450)
+            ).with_model("anthropic", os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5")).with_max_tokens(450)
             prompt = (
                 f"Mentee: {name} · Goal: {target} · Progress: {progress}% "
                 f"({done}/{total} milestones)\n"

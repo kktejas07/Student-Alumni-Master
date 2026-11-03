@@ -229,7 +229,7 @@ async def _call_anthropic(text: str) -> List[str]:
                 "anthropic-version": "2023-06-01",
             },
             json={
-                "model": os.environ.get("ANTHROPIC_MODEL", "claude-3-5-sonnet-latest"),
+                "model": os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5"),
                 "max_tokens": 2000,
                 "messages": [{
                     "role": "user",

@@ -24,10 +24,17 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+# Root .env holds the LLM gateway config (ANTHROPIC_API_KEY / ANTHROPIC_BASE_URL / ANTHROPIC_MODEL)
+load_dotenv(ROOT_DIR.parent / '.env')
 
 import os
 import socket
 import logging
+
+# Agent K & all emergentintegrations code expect EMERGENT_LLM_KEY. When unset,
+# fall back to the BroCode/Anthropic gateway key so every agent has a default.
+if not os.environ.get("EMERGENT_LLM_KEY") and os.environ.get("ANTHROPIC_API_KEY"):
+    os.environ["EMERGENT_LLM_KEY"] = os.environ["ANTHROPIC_API_KEY"]
 
 # --- GLOBALLY PATCH DNS TO PREVENT 34-SECOND IPv6 HANGS ON WINDOWS ---
 import sys

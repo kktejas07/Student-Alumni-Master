@@ -140,7 +140,7 @@ async def get_claude_chat(session_id: str, system_message: str):
         api_key=os.environ["EMERGENT_LLM_KEY"],
         session_id=session_id,
         system_message=system_message,
-    ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+    ).with_model("anthropic", os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5"))
 
 
 # ═══════════════════════════════════════════════════════════════════════════
