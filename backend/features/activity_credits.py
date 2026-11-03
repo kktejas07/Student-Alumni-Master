@@ -1193,7 +1193,7 @@ async def _coach_llm_reply(ctx: Dict[str, Any],
         chat = (LlmChat(api_key=api_key,
                         session_id=f"coach-{uuid.uuid4().hex[:8]}",
                         system_message=COACH_SYSTEM)
-                 .with_model("anthropic", "claude-sonnet-4-5-20250929"))
+                 .with_model("anthropic", os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5")))
         out = await chat.send_message(
             UserMessage(text=_coach_user_prompt(ctx, message)))
         return (out or "").strip() or None

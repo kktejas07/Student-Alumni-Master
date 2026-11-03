@@ -380,7 +380,7 @@ async def _claude(system: str, prompt: str, session: str = "courses-ai") -> str:
     from emergentintegrations.llm.chat import LlmChat, UserMessage
     chat = (LlmChat(api_key=api_key, session_id=f"{session}-{uuid.uuid4().hex[:6]}",
                      system_message=system)
-            .with_model("anthropic", "claude-sonnet-4-5-20250929"))
+            .with_model("anthropic", os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5")))
     msg = UserMessage(text=prompt)
     res = await chat.send_message(msg)
     return str(res)

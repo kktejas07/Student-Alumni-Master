@@ -174,7 +174,7 @@ async def daily_brief(req: BriefRequest, current_user: dict = Depends(get_curren
     session_id = f"brief-{role}-{uuid4().hex[:8]}"
     chat = (
         LlmChat(api_key=api_key, session_id=session_id, system_message=system)
-        .with_model("anthropic", "claude-sonnet-4-5-20250929")
+        .with_model("anthropic", os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5"))
     )
 
     try:
@@ -189,7 +189,7 @@ async def daily_brief(req: BriefRequest, current_user: dict = Depends(get_curren
     out = {
         "brief": text,
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "model": "claude-sonnet-4-5",
+        "model": os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5"),
         "role": role,
         "user_id": str(user["_id"]),
         "user_name": user.get("full_name"),

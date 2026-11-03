@@ -397,7 +397,7 @@ MARKETPLACE = [
      "auth_fields": [_f("api_key","Helicone API Key","password","sk-helicone-xxxxxxxx")]},
     {"id": "agent-k",         "name": "Agent K (Studio)","category": "AI · Agents","icon": "robot-happy-outline",    "tint": "#F59E0B", "description": "Built-in AI assistant powered by Emergent LLM Key.","auth_type": "api_key", "popular": True,
      "auth_fields": [_f("emergent_key","Emergent LLM Key","password","emk_xxxxxxxx","From Emergent → Profile → Universal Key"),
-                     _f("default_model","Default Model","text","claude-sonnet-4.5")]},
+                     _f("default_model","Default Model","text","claude-sonnet-5-5")]},
     # ── Career-platform-specific data APIs ────────────────────
     {"id": "proxycurl",       "name": "Proxycurl (LinkedIn)","category": "Sourcing","icon": "linkedin",              "tint": "#0A66C2", "description": "Pull LinkedIn profile data via Proxycurl API.",   "auth_type": "api_key",
      "auth_fields": [_f("api_key","Proxycurl Bearer","password","xxxxxxxx","From nubela.co/proxycurl")]},
@@ -469,6 +469,59 @@ async def ensure_postal_webhook_secret() -> str:
 def postal_webhook_url(secret: str) -> str:
     return f"{_public_base_url()}/api/webhooks/postal?token={secret}"
 
+
+# ── AI Model Catalog — exposes all available models + the active default ──
+AI_MODELS = [
+    {"id": "claude-opus-5-5",      "name": "Claude Opus 5.5",   "family": "opus",   "tier": "highest-capability"},
+    {"id": "claude-sonnet-5-5",    "name": "Claude Sonnet 5.5", "family": "sonnet", "tier": "balanced (default)"},
+    {"id": "claude-haiku-5-5",     "name": "Claude Haiku 5.5",  "family": "haiku",  "tier": "fastest"},
+    {"id": "claude-fable-5-1",     "name": "Claude Fable 5.1",  "family": "fable",  "tier": "fast"},
+]
+
+@router.get("/admin/ai/models")
+async def ai_models(authorization: Optional[str] = Header(None)):
+    """List all available Claude models and the active default.
+
+    The active default is whatever ANTHROPIC_MODEL resolves to (env or .env);
+    unset falls back to claude-sonnet-5-5. Any model in the catalog can be
+    selected as the default via the ANTHROPIC_MODEL env var.
+    """
+    active = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5")
+    gateway = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com")
+    has_key = bool(os.environ.get("ANTHROPIC_API_KEY"))
+    return {
+        "provider": "brocode" if "brocode" in gateway.lower() else "anthropic",
+        "gateway": gateway,
+        "key_configured": has_key,
+        "default_model": active,
+        "models": [
+            {**m, "active": (m["id"] == active)} for m in AI_MODELS
+        ],
+    }
+
+@router.patch("/admin/ai/models/default")
+async def set_default_ai_model(
+    body: Dict[str, str],
+    authorization: Optional[str] = Header(None),
+):
+    """Set the default Claude model (ANTHROPIC_MODEL). Persists to backend/.env."""
+    user = await _resolve_user(authorization)
+    if not user or "admin" not in str(user.get("role", "")).lower():
+        raise HTTPException(403, "Admin access required")
+    model_id = (body.get("model") or "").strip()
+    valid = {m["id"] for m in AI_MODELS}
+    if model_id not in valid:
+        raise HTTPException(400, f"Unknown model. Valid: {sorted(valid)}")
+    env_file = Path(__file__).resolve().parents[3] / ".env"
+    try:
+        lines = env_file.read_text().splitlines() if env_file.exists() else []
+        new_lines = [l for l in lines if not l.startswith("ANTHROPIC_MODEL=")]
+        new_lines.append(f"ANTHROPIC_MODEL={model_id}")
+        env_file.write_text("\n".join(new_lines) + "\n")
+    except OSError as e:
+        raise HTTPException(500, f"Could not persist to .env: {e}")
+    os.environ["ANTHROPIC_MODEL"] = model_id
+    return {"ok": True, "default_model": model_id}
 
 @router.get("/marketplace/tools")
 async def list_tools(authorization: Optional[str] = Header(None)):
@@ -2151,7 +2204,7 @@ async def pages_ai_assist(body: AiAssistRequest, authorization: Optional[str] = 
                     session_id=f"pages-ai-{uuid4().hex[:8]}",
                     system_message=system,
                 )
-                .with_model("anthropic", "claude-sonnet-4-5-20250929")
+                .with_model("anthropic", os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5"))
             )
             try:
                 reply = await chat.send_message(UserMessage(text=prompt))
@@ -2264,7 +2317,7 @@ async def pages_ai_assist(body: AiAssistRequest, authorization: Optional[str] = 
                 "Content-Type": "application/json",
             }
             req_body = {
-                "model": os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-5-20250929"),
+                "model": os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5"),
                 "max_tokens": 4000,
                 "system": system,
                 "messages": [{"role": "user", "content": prompt}],
