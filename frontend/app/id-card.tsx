@@ -19,7 +19,7 @@ import {
   ArrowLeft, Sparkles, Briefcase, Award, Clock,
 } from 'lucide-react-native';
 import QRCode from 'react-native-qrcode-svg';
-import { request } from '@/src/models/services/api';
+import { request, tokenStore } from '@/src/models/services/api';
 import { Colors as C } from '@/src/theme';
 import { useToast } from '@/src/views/components';
 
@@ -60,11 +60,21 @@ export default function DigitalIDScreen() {
       const r = await request<IDCard>('/users/me/id-card');
       setCard(r);
     } catch (e: any) {
+      const msg = (e?.message || '').toLowerCase();
+      if (msg.includes('not authenticated') || msg.includes('401') || msg.includes('unauthorized')
+        || msg.includes('expired') || msg.includes('revoked') || msg.includes('invalid token')) {
+        // Session lost — clear dead tokens and bounce to login instead of
+        // showing a raw "Token expired" message with a Try-again dead end.
+        setLoading(false);
+        await tokenStore.clear().catch(() => {});
+        try { router.replace('/(auth)/login'); } catch {}
+        return;
+      }
       setErr(e.message || 'Failed to load ID card');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => { load(); }, [load]);
 

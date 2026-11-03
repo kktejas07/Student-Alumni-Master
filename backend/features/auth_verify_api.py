@@ -3,14 +3,31 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 
 from core.config import frontend_base_url
 from core.email import send_email
 from db import db
-from server import create_access_token, get_current_user
+from server import create_access_token, create_refresh_token, get_current_user
 
 router = APIRouter()
+
+
+def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
+    """Mirror auth.py's refresh cookie so OTP sign-in yields a persistent
+    30-day refresh credential, not just a 15-minute access token."""
+    import os
+    is_prod = os.getenv("ENV") == "production"
+    response.set_cookie(
+        key="scd_refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=is_prod,
+        samesite="lax",
+        path="/api/auth",
+        max_age=30 * 24 * 3600,
+    )
+
 
 # ----------------------------------------------------------------------------
 # Email Verification
@@ -135,10 +152,11 @@ async def send_email_otp(payload: dict):
 
 
 @router.post("/auth/verify-email-otp")
-async def verify_email_otp(payload: dict):
+async def verify_email_otp(payload: dict, response: Response):
     """Verify a 6-digit email OTP (sent via /auth/email-otp/send). On success,
-    marks the email verified and returns a short-lived auth token for
-    passwordless sign-in (or a plain success for pure verification).
+    marks the email verified and returns a short-lived auth token plus a
+    30-day refresh token (body + HttpOnly cookie) for passwordless sign-in,
+    so the session can be renewed past the 15-minute access-token window.
     """
     email = (payload.get("email") or "").strip().lower()
     otp = (payload.get("otp") or "").strip()
@@ -177,11 +195,16 @@ async def verify_email_otp(payload: dict):
 
     result: dict[str, Any] = {"status": "ok", "message": "Email verified successfully"}
     if user:
-        # Use the platform's standard access-token factory so the token carries
-        # the required `type: "access"` + `exp` claims (get_current_user rejects
-        # anything without them).
+        # Use the platform's standard token factories so the tokens carry the
+        # required `type` + `exp` claims (get_current_user / refresh reject
+        # anything without them). Issue a real refresh token too — without it
+        # the client has no way to renew past the 15-minute access window.
         token = create_access_token(str(user["_id"]), email, user.get("role"))
-        result["token"] = token
+        refresh_token = create_refresh_token(str(user["_id"]))
+        _set_refresh_cookie(response, refresh_token)
+        result["token"] = token          # legacy field — access token
+        result["access_token"] = token
+        result["refresh_token"] = refresh_token
         result["user"] = {
             "id": str(user["_id"]),
             "email": email,
