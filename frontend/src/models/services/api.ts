@@ -284,7 +284,7 @@ export const api = {
     ),
 
   verifyEmailOtp: (email: string, otp: string) =>
-    request<{ status: string; message: string; token?: string; user?: any }>(
+    request<{ status: string; message: string; token?: string; access_token?: string; refresh_token?: string; user?: any }>(
       '/auth/verify-email-otp', { method: 'POST', body: { email, otp }, auth: false }
     ),
 
