@@ -8,6 +8,38 @@ import { api, tokenStore } from '@/src/models/services/api';
 import type { User } from '@/src/models/entities';
 import { debugLog } from '@/src/utils/debugLog';
 
+function clearBrowserAuthCredentials() {
+  const failures: unknown[] = [];
+
+  try {
+    window.localStorage.clear();
+  } catch (error) {
+    failures.push(error);
+  }
+
+  try {
+    window.sessionStorage.clear();
+  } catch (error) {
+    failures.push(error);
+  }
+
+  if (typeof document !== 'undefined') {
+    for (const name of ['token', 'session', 'access_token', 'refresh_token', 'scd_access_token', 'scd_refresh_token']) {
+      for (const path of ['/', '/api/auth']) {
+        try {
+          document.cookie = `${name}=; Max-Age=0; Path=${path}; SameSite=Lax`;
+        } catch (error) {
+          failures.push(error);
+        }
+      }
+    }
+  }
+
+  if (failures.length) {
+    console.error('[AUTH ERROR] Failed to clear some browser auth credentials:', failures);
+  }
+}
+
 interface AuthState {
   user: User | null;
   loading: boolean;
@@ -50,11 +82,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const token = await tokenStore.getAccess();
       if (token) {
-        // eslint-disable-next-line no-console
         debugLog('[AUTH DEBUG] Access token restored from storage. Fetching profile...');
         try {
           const user = await api.me();
-          // eslint-disable-next-line no-console
           debugLog(`[AUTH DEBUG] Auth initialized. User: ${user?.full_name} (${user?.role})`);
           if (Platform.OS === 'web' && typeof window !== 'undefined' && user) {
             try {
@@ -93,12 +123,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             } catch { }
           }
         }
-        // eslint-disable-next-line no-console
         debugLog('[AUTH DEBUG] No stored access token found. Guest mode.');
         set({ initialized: true, loading: false });
       }
     } catch {
-      // eslint-disable-next-line no-console
       console.warn('[AUTH WARN] Token validation failed on init. Clearing tokens.');
       await tokenStore.clear();
       set({ user: null, initialized: true, loading: false });
@@ -107,13 +135,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   login: async (email, password) => {
     set({ loading: true, error: null });
-    // eslint-disable-next-line no-console
     debugLog(`[AUTH DEBUG] Attempting login for ${email}...`);
     try {
       const res = await api.login(email, password);
       // 2FA challenge — caller must navigate to /two-fa-challenge
       if (res?.requires_2fa) {
-        // eslint-disable-next-line no-console
         debugLog(`[AUTH DEBUG] 2FA required for ${email}. Challenge ID: ${res.challenge_id}`);
         set({ loading: false });
         return {
@@ -125,12 +151,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         };
       }
       await tokenStore.setTokens(res.access_token, res.refresh_token);
-      // eslint-disable-next-line no-console
       debugLog(`[AUTH DEBUG] Login successful. Welcome ${res.user?.full_name}!`);
       set({ user: res.user, loading: false });
       return { ok: true, user: res.user };
     } catch (e: any) {
-      // eslint-disable-next-line no-console
       console.error(`[AUTH ERROR] Login failed for ${email}: ${e.message}`);
       set({ error: e.message, loading: false });
       throw e;
@@ -191,6 +215,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     // Snapshot user before clearing so we can fire analytics with role/email_domain
     const u = get().user;
+    set({ user: null, loading: false, initialized: true, error: null, photoOverride: null });
     try {
       const analytics = (await import('@/src/lib/analytics')).default;
       analytics.track?.('auth_logout', {
@@ -210,12 +235,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch { }
     try {
       await api.logout();
-    } catch { }
+    } catch (error) {
+      console.warn('[AUTH WARN] Backend logout request failed; clearing local credentials.', error);
+    }
     await tokenStore.clear();
-    try {
-      if (Platform.OS === 'web' && typeof window !== 'undefined') window.localStorage.removeItem('sa.consent.v1');
-    } catch { }
-    set({ user: null });
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      clearBrowserAuthCredentials();
+      window.location.replace('/');
+      return;
+    }
   },
 
   setUser: (user) => {
