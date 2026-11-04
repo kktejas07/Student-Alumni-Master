@@ -3337,7 +3337,7 @@ app.add_middleware(
     allow_origin_regex=os.getenv("ALLOWED_ORIGIN_REGEX") or None,
     # Explicit method/header lists — "*" is overly permissive
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Request-Id", "Accept"],
+    allow_headers=["*"],
     expose_headers=["Content-Length", "X-Request-Id"],
 )
 
