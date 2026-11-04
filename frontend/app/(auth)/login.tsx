@@ -79,7 +79,7 @@ export default function LoginScreen() {
 
 function WebLoginScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ email?: string }>();
+  const params = useLocalSearchParams<{ email?: string; returnTo?: string }>();
   const { width } = useWindowDimensions();
   const isTablet = width < 1024;
   const isMobile = width < 768;
@@ -94,6 +94,22 @@ function WebLoginScreen() {
 
   const setUser = useAuthStore((s) => s.setUser);
   const setTokens = useAuthStore((s) => s.setTokens);
+  const returnTo = typeof params.returnTo === 'string' && params.returnTo.startsWith('/')
+    ? params.returnTo
+    : '';
+
+  const redirectAfterLogin = (role?: string) => {
+    if (returnTo) {
+      router.replace(returnTo as any);
+      return;
+    }
+    const r = (role || '').toLowerCase();
+    if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+    else if (r === 'mentor') router.replace('/mentor-portal');
+    else if (r === 'college') router.replace('/college-portal');
+    else if (r === 'alumni') router.replace('/alumni-portal');
+    else router.replace('/student-portal/dashboard');
+  };
 
   // Auto-play Carousel
   useEffect(() => {
@@ -255,12 +271,7 @@ function WebLoginScreen() {
         if (checkRes && !checkRes.exists) {
           router.replace(`/get-started?email=${encodeURIComponent(emailToUse)}`);
         } else {
-          const r = (res.user.role || '').toLowerCase();
-          if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
-          else if (r === 'mentor') router.replace('/mentor-portal');
-          else if (r === 'college') router.replace('/college-portal');
-          else if (r === 'alumni') router.replace('/alumni-portal');
-          else router.replace('/student-portal/dashboard');
+          redirectAfterLogin(res.user.role);
         }
       } else {
         setErrorMsg('Google Sign-In failed. Please try again.');
@@ -316,12 +327,7 @@ function WebLoginScreen() {
 
       setLoading(false);
 
-      const r = (data.user?.role || '').toLowerCase();
-      if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
-      else if (r === 'mentor') router.replace('/mentor-portal');
-      else if (r === 'college') router.replace('/college-portal');
-      else if (r === 'alumni') router.replace('/alumni-portal');
-      else router.replace('/student-portal/dashboard');
+      redirectAfterLogin(data.user?.role);
     } catch (err: any) {
       setErrorMsg(err?.message || 'Network error — please check connection or credentials.');
       setLoading(false);

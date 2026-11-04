@@ -33,6 +33,7 @@ import { EchoImg } from '@/src/views/web/components/EchoChrome';
 import { useToast } from '@/src/views/components';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { getBaseUrl } from '@/src/lib/env';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 // ── Status badge colors ─────────────────────────────────────────────────────
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
@@ -825,6 +826,8 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const router = useRouter();
   const toast = useToast();
+  const authUser = useAuthStore((state) => state.user);
+  const authInitialized = useAuthStore((state) => state.initialized);
 
   // Section visibility — defaults to showing everything when not configured.
   const sections = (data?.sections && typeof data.sections === 'object') ? data.sections : {};
@@ -898,6 +901,14 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
   const timeline: any[] = data?.timeline || [];
   const partners: any[] = data?.partners || [];
   const canonicalSlug: string = data?.slug || slug || '';
+  const openRegistration = () => {
+    if (!authInitialized) return;
+    if (!authUser) {
+      router.push({ pathname: '/login', params: { returnTo: `/student-portal/${canonicalSlug}` } } as any);
+      return;
+    }
+    router.push(`/echo/${canonicalSlug}/register` as any);
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -911,13 +922,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
             onBack={onBack}
             canonicalSlug={canonicalSlug}
             showRegistration={showSection('registration') && (data?.registration?.enabled !== false) && (data?.event_status_badge !== 'Completed')}
-            onRegister={() => {
-              if (Platform.OS === 'web') {
-                window.location.assign(`/echo/${canonicalSlug}/register`);
-              } else {
-                router.push(`/echo/${canonicalSlug}/register` as any);
-              }
-            }}
+            onRegister={openRegistration}
             onShare={() => setShareModalOpen(true)}
           />
         </FadeInView>
@@ -937,13 +942,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {showSection('registration') && (data?.registration?.enabled !== false) && (data?.event_status_badge !== 'Completed') && (
               <Pressable
-                onPress={() => {
-                  if (Platform.OS === 'web') {
-                    window.location.assign(`/echo/${canonicalSlug}/register`);
-                  } else {
-                    router.push(`/echo/${canonicalSlug}/register` as any);
-                  }
-                }}
+                onPress={openRegistration}
                 style={{ borderRadius: 20, overflow: 'hidden' }}
               >
                 <LinearGradient colors={['#059669', '#047857']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.floatingPill}>

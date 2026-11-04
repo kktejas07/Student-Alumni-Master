@@ -21,6 +21,7 @@ import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { EchoTicketsConfirmationPage } from './EchoTicketsConfirmationPage';
 import { prizePoolDisplayText } from './prizePool';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 
 interface EchoEventsPageProps {
@@ -63,6 +64,8 @@ function EventCardBanner({ poster, title, isDark }: { poster?: string; title: st
 export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoEventsPageProps) {
   const router = useRouter();
   const { isDark } = useTheme();
+  const authUser = useAuthStore((state) => state.user);
+  const authInitialized = useAuthStore((state) => state.initialized);
 
   // Update body background on theme change
   useEffect(() => {
@@ -77,6 +80,12 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
   const [view, setView] = useState<'list' | 'detail' | 'reg'>(initialView);
   const [selectedSlug, setSelectedSlug] = useState<string>(initialSlug || '');
   const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    if (view === 'reg' && authInitialized && !authUser) {
+      router.replace({ pathname: '/login', params: { returnTo: `/student-portal/${selectedSlug}` } });
+    }
+  }, [authInitialized, authUser, router, selectedSlug, view]);
 
   useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -420,6 +429,14 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
     const nextSlug = targetSlug !== undefined ? targetSlug : selectedSlug;
     if (targetSlug !== undefined && targetSlug !== selectedSlug) {
       setSelectedSlug(targetSlug);
+    }
+    if (targetView === 'detail' && nextSlug) {
+      router.push(`/echo/${nextSlug}` as any);
+      return;
+    }
+    if (targetView === 'reg' && nextSlug) {
+      router.replace({ pathname: '/login', params: { returnTo: `/student-portal/${nextSlug}` } });
+      return;
     }
     setView(targetView);
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -2312,7 +2329,48 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
       {/* ────────────────────────────────────────────────────────── */}
       {/* VIEW 3: EVENT REGISTRATION FORM VIEW                      */}
       {/* ────────────────────────────────────────────────────────── */}
-      {view === 'reg' && (
+      {view === 'reg' && !authInitialized && (
+        <div className="ev-anim-in" style={{ position: 'relative', zIndex: 1, maxWidth: '800px', width: '100%', margin: '0 auto', padding: '140px 24px', textAlign: 'center', color: 'var(--muted)' }}>
+          Checking your sign-in status…
+        </div>
+      )}
+
+      {view === 'reg' && authInitialized && !authUser && (
+        <div className="ev-anim-in" style={{ position: 'relative', zIndex: 1, maxWidth: '620px', width: '100%', margin: '0 auto', padding: '120px 24px', textAlign: 'center' }}>
+          <div style={{ padding: '38px 28px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '20px', boxShadow: '0 18px 50px rgba(0,0,0,.18)' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--violet-lt)', marginBottom: '12px' }}>ECHO REGISTRATION</div>
+            <h1 style={{ fontSize: '30px', lineHeight: 1.15, fontWeight: 800, color: 'var(--text)', margin: '0 0 12px' }}>Sign in to register</h1>
+            <p style={{ fontSize: '15px', lineHeight: 1.6, color: 'var(--muted)', margin: '0 auto 26px', maxWidth: '460px' }}>
+              Please sign in to your Student Alumni account before registering for this ECHO event.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => router.push('/login')}
+                style={{ border: 0, borderRadius: '100px', padding: '12px 24px', background: 'var(--violet)', color: '#FFFFFF', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Sign in
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/login')}
+                style={{ border: '1px solid var(--line2)', borderRadius: '100px', padding: '12px 24px', background: 'var(--panel2)', color: 'var(--text)', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Sign in to register
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => go('detail', activeEvent?.slug || selectedSlug)}
+              style={{ marginTop: '22px', border: 0, background: 'transparent', color: 'var(--muted)', fontSize: '13px', cursor: 'pointer' }}
+            >
+              Back to event
+            </button>
+          </div>
+        </div>
+      )}
+
+      {view === 'reg' && authInitialized && authUser && (
         notFound || (!loading && !activeEvent) ? (
           <div className="ev-anim-in" style={{ position: 'relative', zIndex: 1, maxWidth: '800px', width: '100%', margin: '0 auto', padding: '120px 24px', textAlign: 'center' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#F87171', fontSize: '28px', marginBottom: '20px' }}>
@@ -3096,4 +3154,3 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
 }
 
 export default EchoEventsPage;
-

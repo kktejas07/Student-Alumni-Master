@@ -70,7 +70,6 @@ async function refreshAccessToken(): Promise<string | null> {
       const res = await fetch(`${BASE_URL}/api/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(refreshToken ? { refresh_token: refreshToken } : {}),
       });
       if (!res.ok) return null;
@@ -126,7 +125,6 @@ export async function request<T>(
     const res = await fetch(fullUrl, {
       method,
       headers,
-      credentials: 'include',
       body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
     });
 
@@ -147,7 +145,6 @@ export async function request<T>(
         const r2 = await fetch(fullUrl, {
           method,
           headers: { ...headers, Authorization: `Bearer ${fresh}` },
-          credentials: 'include',
           body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
         });
         const t = await r2.text();
