@@ -1,15 +1,16 @@
 // @ts-nocheck
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
-import EchoEventsPage from '@/src/views/web/echo/EchoEventsPage';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { EchoShowcaseView } from '@/src/views/web/portals/student/views/EchoShowcaseView';
 
 export default function EchoShowcasePage() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
+  const router = useRouter();
 
   return (
     <View style={s.container}>
-      <EchoEventsPage initialView="detail" initialSlug={slug} />
+      <EchoShowcaseView slug={slug} onBack={() => router.push('/echo')} />
     </View>
   );
 }
