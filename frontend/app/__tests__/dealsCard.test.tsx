@@ -108,7 +108,7 @@ describe('DealCard', () => {
 
   it('Claim Deal triggers onClaim with the deal', async () => {
     const onClaim = jest.fn();
-    const res = await render(<DealCard d={deal} onClaim={onClaim} />);
+    const { container } = await render(<DealCard d={deal} onClaim={onClaim} />);
 
     // Host tree: the pressable's onPress fires onClaim with the deal.
     let cta: any = null;
@@ -117,7 +117,7 @@ describe('DealCard', () => {
       if (n.type === 'pressable') { cta = n; return; }
       (n.children || []).forEach(walkKids);
     };
-    const json = (res as any).toJSON();
+    const json = (container as any).toJSON();
     walkKids(Array.isArray(json) ? json[0] : json);
     expect(cta?.props?.onPress).toBeInstanceOf(Function);
     cta.props.onPress();

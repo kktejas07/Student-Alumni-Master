@@ -27,7 +27,6 @@ import { friendlyNetworkError } from '@/src/lib/networkErrors';
 const BASE = getBaseUrl();
 
 const REGISTERED_EMAILS = [
-  'vallabhneelkant12@gmail.com',
   'devender@snist.ac.in',
   'aisha@iitb.ac.in',
   'arjun@vnrvjiet.in',
@@ -530,7 +529,7 @@ function WebLoginScreen() {
               )}
 
               {/* Password Input Block */}
-              {(emailStatus === 'registered' || password.length > 0 || errorMsg === 'Please enter your password.' || (email.includes('@') && emailStatus !== 'new')) && (
+              {(emailStatus === 'registered' || password.length > 0) && (
                 <div style={{ marginTop: 18 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 9 }}>
                     <span style={{ fontSize: 12, fontWeight: '700', letterSpacing: '1.3px', color: '#8A8A9E' }}>PASSWORD</span>
