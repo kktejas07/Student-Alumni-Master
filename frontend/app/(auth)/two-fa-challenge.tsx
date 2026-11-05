@@ -32,6 +32,7 @@ export default function TwoFAChallenge() {
   const challengeId = String(params.challenge_id || '');
   const email = String(params.user_email || '');
   const allowBackup = String(params.methods || '').includes('backup');
+  const isRememberMe = params.remember_me === 'true';
 
   const [mode, setMode] = useState<'totp' | 'backup'>('totp');
   const [totp, setTotp] = useState(['', '', '', '', '', '']);
@@ -81,7 +82,7 @@ export default function TwoFAChallenge() {
     setVerifying(true);
     setState('idle');
     try {
-      const user = await verifyTwoFA(challengeId, code);
+      const user = await verifyTwoFA(challengeId, code, isRememberMe);
       setState('success');
       toast.success('Verified', `Signed in as ${user.email}`);
       setTimeout(() => home(user), 400);

@@ -92,6 +92,7 @@ function WebLoginScreen() {
   const [errorMsg, setErrorMsg] = useState('');
   const [activeSlide, setActiveSlide] = useState(0);
   const [emailStatus, setEmailStatus] = useState<'idle' | 'invalid' | 'registered' | 'new'>('idle');
+  const [rememberMe, setRememberMe] = useState(false);
 
   const setUser = useAuthStore((s) => s.setUser);
   const setTokens = useAuthStore((s) => s.setTokens);
@@ -264,7 +265,7 @@ function WebLoginScreen() {
 
       if (res && res.user && res.access_token) {
         setUser(res.user);
-        setTokens(res.access_token, res.refresh_token);
+        setTokens(res.access_token, res.refresh_token, rememberMe);
         setLoading(false);
 
         if (checkRes && !checkRes.exists) {
@@ -321,8 +322,21 @@ function WebLoginScreen() {
       }
 
       const data = await res.json();
+      if (data?.requires_2fa) {
+        router.push({
+          pathname: '/(auth)/two-fa-challenge',
+          params: {
+            challenge_id: data.challenge_id,
+            user_email: data.user_email || cleanEmail,
+            methods: (data.methods || ['totp']).join(','),
+            remember_me: String(rememberMe),
+          },
+        });
+        setLoading(false);
+        return;
+      }
       setUser(data.user);
-      setTokens(data.access_token, data.refresh_token);
+      setTokens(data.access_token, data.refresh_token, rememberMe);
 
       setLoading(false);
 
@@ -557,6 +571,36 @@ function WebLoginScreen() {
                   </div>
                 </div>
               )}
+
+              {/* Remember Me Checkbox */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 16, marginBottom: 2 }}>
+                <input
+                  type="checkbox"
+                  id="remember-me"
+                  data-testid="remember-me-checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  style={{
+                    width: 16,
+                    height: 16,
+                    accentColor: '#7C5CFC',
+                    cursor: 'pointer',
+                    borderRadius: 4,
+                  }}
+                />
+                <label
+                  htmlFor="remember-me"
+                  data-testid="remember-me-label"
+                  style={{
+                    fontSize: 13.5,
+                    color: '#A0A0B2',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                  }}
+                >
+                  Remember me
+                </label>
+              </div>
 
               {/* Submit Button */}
               <button

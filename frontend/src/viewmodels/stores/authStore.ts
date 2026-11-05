@@ -14,11 +14,11 @@ interface AuthState {
   initialized: boolean;
   error: string | null;
   init: () => Promise<void>;
-  login: (email: string, password: string) => Promise<
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<
     { ok: true; user: User }
     | { ok: false; requires_2fa: true; challenge_id: string; user_email: string; methods: string[] }
   >;
-  oauthLogin: (provider: 'google' | 'linkedin', payload: { email: string; full_name: string; picture?: string; role?: string }) => Promise<User>;
+  oauthLogin: (provider: 'google' | 'linkedin', payload: { email: string; full_name: string; picture?: string; role?: string }, rememberMe?: boolean) => Promise<User>;
   register: (payload: {
     email: string;
     password: string;
@@ -29,11 +29,11 @@ interface AuthState {
   refreshUser: () => Promise<User | null>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
-  setTokens: (access: string, refresh?: string) => Promise<void>;
+  setTokens: (access: string, refresh?: string, rememberMe?: boolean) => Promise<void>;
   photoOverride: string | null;
   setPhotoOverride: (photo: string | null) => void;
   // 2FA
-  verifyTwoFA: (challenge_id: string, code: string) => Promise<User>;
+  verifyTwoFA: (challenge_id: string, code: string, rememberMe?: boolean) => Promise<User>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -101,11 +101,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  verifyTwoFA: async (challenge_id, code) => {
+  verifyTwoFA: async (challenge_id, code, rememberMe) => {
     set({ loading: true, error: null });
     try {
       const res = await api.twoFAVerify(challenge_id, code);
-      await tokenStore.setTokens(res.access_token, res.refresh_token);
+      await tokenStore.setTokens(res.access_token, res.refresh_token, rememberMe);
       set({ user: res.user, loading: false });
       return res.user;
     } catch (e: any) {
@@ -114,13 +114,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  oauthLogin: async (provider, payload) => {
+  oauthLogin: async (provider, payload, rememberMe) => {
     set({ loading: true, error: null });
     try {
       const res = provider === 'google'
         ? await api.oauthGoogle(payload)
         : await api.oauthLinkedIn(payload);
-      await tokenStore.setTokens(res.access_token, res.refresh_token);
+      await tokenStore.setTokens(res.access_token, res.refresh_token, rememberMe);
       set({ user: res.user, loading: false });
       return res.user;
     } catch (e: any) {
@@ -183,7 +183,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   setUser: (user) => set({ user }),
-  setTokens: async (access, refresh) => {
-    await tokenStore.setTokens(access, refresh || '');
+  setTokens: async (access, refresh, rememberMe) => {
+    await tokenStore.setTokens(access, refresh || '', rememberMe);
   },
 }));

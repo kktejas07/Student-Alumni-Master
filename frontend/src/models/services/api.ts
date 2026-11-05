@@ -9,52 +9,197 @@ import { debugLog } from '@/src/utils/debugLog';
 
 const BASE_URL = getBaseUrl();
 
-const TOKEN_KEY = 'scd_access_token';
-const REFRESH_KEY = 'scd_refresh_token';
+export const TOKEN_KEY = 'scd_access_token';
+export const REFRESH_KEY = 'scd_refresh_token';
+export const REMEMBER_KEY = 'scd_remember_me';
 
-// ----- Token storage (SecureStore on native, in-memory + localStorage on web) -----
-async function setItem(key: string, value: string) {
-  if (Platform.OS === 'web') {
-    try {
-      window.localStorage.setItem(key, value);
-    } catch {}
-    return;
+// ----- Token storage (SecureStore on native, sessionStorage/localStorage on web) -----
+
+function getWebSessionStorage(): Storage | null {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
   }
-  await SecureStore.setItemAsync(key, value);
+}
+
+function getWebLocalStorage(): Storage | null {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Migrate legacy web tokens from localStorage to sessionStorage.
+ *
+ * Prior to Remember Me, all web sessions were saved unconditionally into
+ * localStorage. To enforce session-only defaults:
+ * 1. If localStorage has tokens but REMEMBER_KEY !== 'true', they are legacy tokens.
+ * 2. If both access and refresh tokens are valid non-empty strings, copy them
+ *    to sessionStorage for the active tab, then remove them from localStorage.
+ * 3. Incomplete or invalid token pairs are purged from localStorage.
+ */
+export function migrateLegacyWebTokens(): void {
+  const local = getWebLocalStorage();
+  const session = getWebSessionStorage();
+  if (!local || !session) return;
+
+  try {
+    const isRemembered = local.getItem(REMEMBER_KEY) === 'true';
+    if (isRemembered) {
+      // User opted into persistent storage via Remember Me; do not migrate
+      return;
+    }
+
+    const legacyAccess = local.getItem(TOKEN_KEY);
+    const legacyRefresh = local.getItem(REFRESH_KEY);
+
+    if (legacyAccess || legacyRefresh) {
+      const validPair =
+        Boolean(legacyAccess && legacyAccess.trim()) &&
+        Boolean(legacyRefresh && legacyRefresh.trim());
+
+      if (validPair) {
+        // Preserve active session for current tab in sessionStorage
+        session.setItem(TOKEN_KEY, legacyAccess!.trim());
+        session.setItem(REFRESH_KEY, legacyRefresh!.trim());
+      }
+
+      // Purge old persistent copies from localStorage
+      local.removeItem(TOKEN_KEY);
+      local.removeItem(REFRESH_KEY);
+      local.removeItem(REMEMBER_KEY);
+    }
+  } catch {
+    // Storage access restricted/unavailable
+  }
 }
 
 async function getItem(key: string): Promise<string | null> {
   if (Platform.OS === 'web') {
-    try {
-      return window.localStorage.getItem(key);
-    } catch {
-      return null;
+    migrateLegacyWebTokens();
+
+    const session = getWebSessionStorage();
+    if (session) {
+      try {
+        const val = session.getItem(key);
+        if (val) return val;
+      } catch {}
     }
+
+    const local = getWebLocalStorage();
+    if (local) {
+      try {
+        if (local.getItem(REMEMBER_KEY) === 'true') {
+          return local.getItem(key);
+        }
+      } catch {}
+    }
+
+    return null;
   }
   return await SecureStore.getItemAsync(key);
 }
 
-async function deleteItem(key: string) {
-  if (Platform.OS === 'web') {
-    try {
-      window.localStorage.removeItem(key);
-    } catch {}
-    return;
+async function setWebTokens(access: string, refresh: string, rememberMe?: boolean) {
+  const session = getWebSessionStorage();
+  const local = getWebLocalStorage();
+
+  let persistent = false;
+  if (typeof rememberMe === 'boolean') {
+    persistent = rememberMe;
+  } else {
+    // Retain existing active storage mode (e.g. during token refresh)
+    const hasRememberFlag = local?.getItem(REMEMBER_KEY) === 'true';
+    const hasSessionTokens = Boolean(session?.getItem(TOKEN_KEY) || session?.getItem(REFRESH_KEY));
+    persistent = hasRememberFlag && !hasSessionTokens;
   }
-  await SecureStore.deleteItemAsync(key);
+
+  if (persistent) {
+    if (local) {
+      try {
+        local.setItem(TOKEN_KEY, access);
+        local.setItem(REFRESH_KEY, refresh);
+        local.setItem(REMEMBER_KEY, 'true');
+      } catch {}
+    }
+    // Clean up sessionStorage to avoid dual/stale sessions
+    if (session) {
+      try {
+        session.removeItem(TOKEN_KEY);
+        session.removeItem(REFRESH_KEY);
+      } catch {}
+    }
+  } else {
+    // Session-only mode
+    if (session) {
+      try {
+        session.setItem(TOKEN_KEY, access);
+        session.setItem(REFRESH_KEY, refresh);
+      } catch {}
+    }
+    // Remove persistent copies from localStorage
+    if (local) {
+      try {
+        local.removeItem(TOKEN_KEY);
+        local.removeItem(REFRESH_KEY);
+        local.removeItem(REMEMBER_KEY);
+      } catch {}
+    }
+  }
+}
+
+async function clearWebTokens() {
+  const session = getWebSessionStorage();
+  const local = getWebLocalStorage();
+
+  if (session) {
+    try {
+      session.removeItem(TOKEN_KEY);
+      session.removeItem(REFRESH_KEY);
+      session.removeItem(REMEMBER_KEY);
+    } catch {}
+  }
+  if (local) {
+    try {
+      local.removeItem(TOKEN_KEY);
+      local.removeItem(REFRESH_KEY);
+      local.removeItem(REMEMBER_KEY);
+    } catch {}
+  }
 }
 
 export const tokenStore = {
   getAccess: () => getItem(TOKEN_KEY),
   getRefresh: () => getItem(REFRESH_KEY),
-  setTokens: async (access: string, refresh: string) => {
-    await setItem(TOKEN_KEY, access);
-    await setItem(REFRESH_KEY, refresh);
+  setTokens: async (access: string, refresh: string, rememberMe?: boolean) => {
+    if (Platform.OS === 'web') {
+      await setWebTokens(access, refresh, rememberMe);
+      return;
+    }
+    await SecureStore.setItemAsync(TOKEN_KEY, access);
+    await SecureStore.setItemAsync(REFRESH_KEY, refresh);
   },
   clear: async () => {
-    await deleteItem(TOKEN_KEY);
-    await deleteItem(REFRESH_KEY);
+    if (Platform.OS === 'web') {
+      await clearWebTokens();
+      return;
+    }
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await SecureStore.deleteItemAsync(REFRESH_KEY);
   },
+  isPersistent: async (): Promise<boolean> => {
+    if (Platform.OS === 'web') {
+      const local = getWebLocalStorage();
+      return Boolean(local && local.getItem(REMEMBER_KEY) === 'true');
+    }
+    return true; // Native SecureStore is inherently persistent
+  },
+  migrateLegacyWebTokens,
 };
 
 // ----- HTTP wrapper -----
