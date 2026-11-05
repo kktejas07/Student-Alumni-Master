@@ -3134,39 +3134,6 @@ async def seed_admin():
 
 
 # ----------------------------------------------------------------------------
-# Auth — Logout (token revocation)
-# ----------------------------------------------------------------------------
-@api_router.post("/auth/logout")
-async def logout(request: Request, user: dict = Depends(get_current_user)):
-    """Invalidate the current access token by adding its JTI to the blacklist.
-
-    The blacklist entry auto-expires via MongoDB TTL index when the token
-    itself would have expired, so the collection stays bounded.
-    """
-    auth = request.headers.get("Authorization", "")
-    try:
-        payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        jti = payload.get("jti")
-        exp = payload.get("exp")
-        if jti:
-            expires_at = datetime.fromtimestamp(exp, tz=timezone.utc) if exp else (
-                datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-            )
-            try:
-                await db.token_blacklist.insert_one({
-                    "jti": jti,
-                    "user_id": str(user["_id"]),
-                    "expires_at": expires_at,
-                    "revoked_at": datetime.now(timezone.utc),
-                })
-            except Exception:
-                pass  # Duplicate JTI insert is fine — token already revoked
-    except Exception:
-        pass  # Token already invalid; logout is still successful
-    return {"status": "logged_out"}
-
-
-# ----------------------------------------------------------------------------
 # Mount router & CORS middleware
 # ----------------------------------------------------------------------------
 from portals import router as portals_router

@@ -51,9 +51,11 @@ function StudentPortalInner() {
 
   useEffect(() => { if (tab) setActive(tab as StudentNavId); }, [tab]);
 
-  const onLogout = async () => {
-    try { await logout(); } catch {}
-    router.replace('/welcome');
+  const onLogout = () => {
+    void logout().catch((error) => {
+      console.warn('[AUTH WARN] Logout failed.', error);
+    });
+    router.replace('/');
   };
   const handleNav = (id: StudentNavId, params?: { q?: string; detailCourse?: any }) => {
     if (id !== active) go(id);
