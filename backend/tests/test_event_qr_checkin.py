@@ -22,7 +22,13 @@ from httpx import AsyncClient, ASGITransport
 
 from server import app
 from core.security import JWT_SECRET, JWT_ALGORITHM
-from features.echo_showcase import _parse_ticket
+import sys
+try:
+    import echo_showcase
+    sys.modules["features.echo_showcase"] = echo_showcase
+    _parse_ticket = echo_showcase._parse_ticket
+except ImportError:
+    from features.echo_showcase import _parse_ticket
 
 
 # ---------------------------------------------------------------------------

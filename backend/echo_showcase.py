@@ -6490,10 +6490,11 @@ def _parse_ticket(ticket: str) -> dict:
     if t.startswith("http://") or t.startswith("https://"):
         t = t.split("/echo/scan/", 1)[-1]
     t = unquote(t)
+    t = t.split("?")[0].split("#")[0].strip().rstrip("/")
     if t.startswith("ECHO:"):
         parts = t.split("|")
         if len(parts) >= 3:
-            return {"slug": parts[0][5:], "user_key": parts[1], "reg_id": parts[2]}
+            return {"slug": parts[0][5:], "user_key": parts[1], "reg_id": parts[2].strip().rstrip("/")}
         return {}
     return {"reg_id": t}
 
@@ -6692,6 +6693,10 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
             "id": {"$regex": f"^{escaped}$", "$options": "i"},
             **( {"slug": parsed["slug"]} if parsed.get("slug") else {} ),
         })
+        if not reg and len(reg_id) == 8:
+            reg = await db.echo_registrations.find_one({
+                "id": {"$regex": f"^{escaped}", "$options": "i"},
+            })
     if not reg:
         raise HTTPException(status_code=404, detail="Ticket not found in registrations")
 
@@ -6726,6 +6731,14 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
     if first_checkin:
         await db.echo_registrations.update_one(
             {"_id": reg["_id"]}, {"$inc": {"checked_in_count": 1}}
+        )
+
+    # If team registration and first_checkin, also check in all child team members
+    if first_checkin and (reg.get("registration_type") == "team" or reg.get("team_members")):
+        team_update = {"checked_in_at": now_iso, "scanned_location": address or "Checked in with Team Pass"}
+        await db.echo_registrations.update_many(
+            {"parent_reg_id": reg.get("id"), "$or": [{"checked_in_at": None}, {"checked_in_at": {"$exists": False}}]},
+            {"$set": team_update, "$inc": {"checked_in_count": 1}},
         )
 
     # Send check-in email (fire-and-forget)
