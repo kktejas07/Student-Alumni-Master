@@ -2,6 +2,14 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 export function getBaseUrl() {
+  if (
+    Platform.OS === 'web' &&
+    typeof window !== 'undefined' &&
+    ['localhost', '127.0.0.1'].includes(window.location.hostname)
+  ) {
+    return '';
+  }
+
   const envUrl = process.env.EXPO_PUBLIC_BACKEND_URL?.replace(/\/+$/, '');
 
   if (envUrl) {

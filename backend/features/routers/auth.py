@@ -682,28 +682,26 @@ async def refresh_token(request: Request, response: Response, payload: Optional[
 
 
 @router.post("/auth/logout")
-async def logout(request: Request, response: Response, user: dict = Depends(get_current_user)):
-    """Revokes the current access token and refresh token, clearing session cookies."""
+async def logout(request: Request, response: Response):
+    """Revoke available session tokens and always clear the refresh cookie."""
     token_str = bearer_token(request.headers.get("Authorization", "")) or ""
-    if token_str:
-        payload = decode_payload_silent(token_str)
-        if payload:
-            jti = payload.get("jti")
-            exp = payload.get("exp")
-            if jti:
-                expires_at = datetime.fromtimestamp(exp, tz=timezone.utc) if exp else (
-                    datetime.now(timezone.utc) + timedelta(minutes=15)
-                )
-                try:
-                    await db.token_blacklist.insert_one({
-                        "jti": jti,
-                        "user_id": str(user["_id"]),
-                        "expires_at": expires_at,
-                        "revoked_at": datetime.now(timezone.utc),
-                        "reason": "logout",
-                    })
-                except Exception:
-                    pass
+    access_payload = decode_payload_silent(token_str, token_type="access")
+    access_user_id = str(access_payload.get("sub")) if access_payload and access_payload.get("sub") else None
+    if access_payload and access_payload.get("jti") and access_user_id:
+        exp = access_payload.get("exp")
+        expires_at = datetime.fromtimestamp(exp, tz=timezone.utc) if exp else (
+            datetime.now(timezone.utc) + timedelta(minutes=15)
+        )
+        try:
+            await db.token_blacklist.insert_one({
+                "jti": access_payload["jti"],
+                "user_id": access_user_id,
+                "expires_at": expires_at,
+                "revoked_at": datetime.now(timezone.utc),
+                "reason": "logout",
+            })
+        except Exception:
+            pass
 
     # Revoke refresh token if provided in cookie or payload
     cookie_refresh = request.cookies.get("scd_refresh_token")
@@ -715,8 +713,8 @@ async def logout(request: Request, response: Response, user: dict = Depends(get_
         pass
     token_to_revoke = cookie_refresh or body_refresh
     if token_to_revoke:
-        rf_payload = decode_payload_silent(token_to_revoke)
-        if rf_payload:
+        rf_payload = decode_payload_silent(token_to_revoke, token_type="refresh")
+        if rf_payload and rf_payload.get("sub"):
             rf_jti = rf_payload.get("jti")
             if rf_jti:
                 rf_exp = rf_payload.get("exp")
@@ -726,7 +724,7 @@ async def logout(request: Request, response: Response, user: dict = Depends(get_
                 try:
                     await db.token_blacklist.insert_one({
                         "jti": rf_jti,
-                        "user_id": str(user["_id"]),
+                        "user_id": str(rf_payload["sub"]),
                         "expires_at": rf_expires_at,
                         "revoked_at": datetime.now(timezone.utc),
                         "reason": "logout",

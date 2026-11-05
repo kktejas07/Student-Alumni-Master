@@ -126,6 +126,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
 
   // Track whether registration has been completed
   const [registrationDone, setRegistrationDone] = useState(false);
+  const [completionError, setCompletionError] = useState<string | null>(null);
 
   /**
    * handleGoToDashboard — Final Step 16 "Go to dashboard" Handler
@@ -139,6 +140,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const handleGoToDashboard = async () => {
     if (isNavigating) return;
     setIsNavigating(true);
+    setCompletionError(null);
+    let sessionReady = false;
 
     try {
       // 1. Resolve email with cascading fallbacks
@@ -191,12 +194,20 @@ function WebOnboardingEngine({ router }: { router: any }) {
       const effectiveName = userName || finalEmail.split('@')[0];
       const safeDob = userDob || '2004-01-01';
 
-      // 2. Check existing session / tokens
-      let currentUser = useAuthStore.getState().user;
-      let currentToken = await tokenStore.getAccess();
+      // Only trust an existing session after the backend validates its token.
+      let currentUser = null;
+      let currentToken: string | null = null;
+      const storedToken = await tokenStore.getAccess();
+      if (storedToken) {
+        try {
+          currentUser = await api.me();
+          if (currentUser) currentToken = storedToken;
+        } catch {
+          await tokenStore.clear();
+        }
+      }
 
       if (!currentUser || !currentToken) {
-        // Attempt registration
         try {
           const regRes = await api.register({
             email: finalEmail,
@@ -205,38 +216,37 @@ function WebOnboardingEngine({ router }: { router: any }) {
             role: effectiveRole,
             dob: safeDob,
           });
-
-          if (regRes && regRes.user) {
-            currentUser = regRes.user;
-            setUser(regRes.user);
-            if (regRes.access_token) {
-              currentToken = regRes.access_token;
-              await setTokens(regRes.access_token, regRes.refresh_token || '');
-            }
+          if (!regRes?.user || !regRes?.access_token) {
+            throw new Error('Registration did not return a valid session. Please sign in.');
           }
+          currentUser = regRes.user;
+          currentToken = regRes.access_token;
+          await setTokens(regRes.access_token, regRes.refresh_token || '');
+          setUser(regRes.user);
         } catch (regErr: any) {
-          // If already registered, attempt login
           try {
             const loginRes = await api.login(finalEmail, userPassword || 'SAOnboarded2026!');
-            if (loginRes && loginRes.user) {
-              currentUser = loginRes.user;
-              setUser(loginRes.user);
+            if (loginRes?.requires_2fa) {
+              throw new Error('This account requires two-factor verification. Please sign in from the login page.');
             }
-          } catch (loginErr) {
-            console.warn('[ONBOARDING] Login recovery error ignored:', loginErr);
+            if (!loginRes?.user || !loginRes?.access_token) {
+              throw new Error('Sign-in did not return a valid session. Please try signing in again.');
+            }
+            currentUser = loginRes.user;
+            currentToken = loginRes.access_token;
+            await setTokens(loginRes.access_token, loginRes.refresh_token || '');
+            setUser(loginRes.user);
+          } catch (loginErr: any) {
+            console.warn('[ONBOARDING] Login recovery failed:', loginErr);
+            throw new Error(loginErr?.message || regErr?.message || 'Unable to create or sign in to your account.');
           }
         }
       }
 
-      if (!currentUser) {
-        currentUser = {
-          email: finalEmail,
-          full_name: effectiveName,
-          role: effectiveRole,
-          onboarding_completed: true,
-        };
-        setUser(currentUser);
+      if (!currentUser || !currentToken) {
+        throw new Error('Your account could not be authenticated. Please sign in with your email and password.');
       }
+      sessionReady = true;
 
       setRegistrationDone(true);
 
@@ -283,15 +293,17 @@ function WebOnboardingEngine({ router }: { router: any }) {
         await AsyncStorage.removeItem('sa_onboarding_state');
       } catch { }
 
-    } catch (err) {
-      console.warn('[ONBOARDING] Error in onboarding completion ignored:', err);
+    } catch (err: any) {
+      console.warn('[ONBOARDING] Account completion failed:', err);
+      setCompletionError(err?.message || 'Unable to sign in. Please check your credentials and try again.');
     } finally {
       setIsNavigating(false);
-      // 5. Unconditional redirect
-      if (typeof window !== 'undefined') {
-        window.location.href = '/dashboard';
-      } else {
-        router.replace('/dashboard' as any);
+      if (sessionReady) {
+        if (typeof window !== 'undefined') {
+          window.location.href = '/dashboard';
+        } else {
+          router.replace('/dashboard' as any);
+        }
       }
     }
   };
@@ -2355,6 +2367,11 @@ function WebOnboardingEngine({ router }: { router: any }) {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              {completionError && (
+                <div role="alert" style={{ flexBasis: '100%', border: '1px solid rgba(239,68,68,.45)', borderRadius: '10px', background: 'rgba(239,68,68,.1)', padding: '12px 16px', color: '#FCA5A5', fontSize: '14px' }}>
+                  {completionError}
+                </div>
+              )}
               <span
                 onClick={handleGoToDashboard}
                 className="ob-cta"

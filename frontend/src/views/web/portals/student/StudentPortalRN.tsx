@@ -51,9 +51,9 @@ function StudentPortalInner() {
 
   useEffect(() => { if (tab) setActive(tab as StudentNavId); }, [tab]);
 
-  const onLogout = async () => {
-    router.replace('/welcome');
-    try { await logout(); } catch {}
+  const onLogout = () => {
+    void logout().catch(() => null);
+    router.replace('/');
   };
   const handleNav = (id: StudentNavId, params?: { q?: string; detailCourse?: any }) => {
     if (id !== active) go(id);

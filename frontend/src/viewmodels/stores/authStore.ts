@@ -10,17 +10,26 @@ import { debugLog } from '@/src/utils/debugLog';
 
 function clearBrowserAuthCredentials() {
   const failures: unknown[] = [];
+  const keys = [
+    'token',
+    'session',
+    'access_token',
+    'refresh_token',
+    'auth_tokens',
+    'scd_access_token',
+    'scd_refresh_token',
+    'sa_user',
+    'sa_user_email',
+    'user_email',
+  ];
 
-  try {
-    window.localStorage.clear();
-  } catch (error) {
-    failures.push(error);
-  }
-
-  try {
-    window.sessionStorage.clear();
-  } catch (error) {
-    failures.push(error);
+  for (const storageName of ['localStorage', 'sessionStorage'] as const) {
+    try {
+      const storage = window[storageName];
+      for (const key of keys) storage.removeItem(key);
+    } catch (error) {
+      failures.push(error);
+    }
   }
 
   if (typeof document !== 'undefined') {
@@ -80,55 +89,38 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (get().initialized) return;
     set({ loading: true });
     try {
+      if (await tokenStore.isLoggedOut()) {
+        await tokenStore.clear();
+        if (Platform.OS === 'web' && typeof window !== 'undefined') clearBrowserAuthCredentials();
+        set({ user: null, initialized: true, loading: false });
+        return;
+      }
+
       const token = await tokenStore.getAccess();
       if (token) {
         debugLog('[AUTH DEBUG] Access token restored from storage. Fetching profile...');
-        try {
-          const user = await api.me();
-          debugLog(`[AUTH DEBUG] Auth initialized. User: ${user?.full_name} (${user?.role})`);
-          if (Platform.OS === 'web' && typeof window !== 'undefined' && user) {
-            try {
-              window.localStorage.setItem('sa_user', JSON.stringify(user));
-              if (user.email) window.localStorage.setItem('sa_user_email', user.email);
-            } catch { }
-          }
-          set({ user, initialized: true, loading: false });
-        } catch (meErr) {
-          // If api.me() fails, check for cached session before clearing tokens
-          if (Platform.OS === 'web' && typeof window !== 'undefined') {
-            const cachedUser = window.localStorage.getItem('sa_user');
-            if (cachedUser) {
-              try {
-                const parsed = JSON.parse(cachedUser);
-                if (parsed) {
-                  set({ user: parsed, initialized: true, loading: false });
-                  return;
-                }
-              } catch { }
-            }
-          }
-          throw meErr;
-        }
-      } else {
-        // Check for cached user in localStorage even if token is pending
+        const user = await api.me();
+        if (!user) throw new Error('Unable to verify the current user');
+        debugLog(`[AUTH DEBUG] Auth initialized. User: ${user.full_name} (${user.role})`);
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          const cachedUser = window.localStorage.getItem('sa_user');
-          if (cachedUser) {
-            try {
-              const parsed = JSON.parse(cachedUser);
-              if (parsed) {
-                set({ user: parsed, initialized: true, loading: false });
-                return;
-              }
-            } catch { }
-          }
+          try {
+            window.localStorage.setItem('sa_user', JSON.stringify(user));
+            if (user.email) window.localStorage.setItem('sa_user_email', user.email);
+          } catch { }
+        }
+        set({ user, initialized: true, loading: false });
+      } else {
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.localStorage.removeItem('sa_user');
+          window.localStorage.removeItem('sa_user_email');
         }
         debugLog('[AUTH DEBUG] No stored access token found. Guest mode.');
-        set({ initialized: true, loading: false });
+        set({ user: null, initialized: true, loading: false });
       }
     } catch {
       console.warn('[AUTH WARN] Token validation failed on init. Clearing tokens.');
-      await tokenStore.clear();
+      try { await tokenStore.clear(); } catch { }
+      if (Platform.OS === 'web' && typeof window !== 'undefined') clearBrowserAuthCredentials();
       set({ user: null, initialized: true, loading: false });
     }
   },
@@ -217,6 +209,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const u = get().user;
     set({ user: null, loading: false, initialized: true, error: null, photoOverride: null });
     try {
+      await tokenStore.markLoggedOut();
+    } catch (error) {
+      console.warn('[AUTH WARN] Could not persist the logged-out state.', error);
+    }
+    try {
       const analytics = (await import('@/src/lib/analytics')).default;
       analytics.track?.('auth_logout', {
         role: u?.role || null,
@@ -225,24 +222,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       analytics.reset?.();
     } catch { }
     try {
-      // Best-effort backend log so logout shows up in auth_events too
+      // Best-effort backend log so logout shows up in auth_events too.
       const { trackAuth } = await import('@/src/lib/authAnalytics');
-      await trackAuth({
+      void trackAuth({
         event: 'session_revoked',
         email: u?.email,
         extra: { reason: 'user_logout' },
-      });
+      }).catch(() => null);
     } catch { }
     try {
       await api.logout();
     } catch (error) {
       console.warn('[AUTH WARN] Backend logout request failed; clearing local credentials.', error);
-    }
-    await tokenStore.clear();
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      clearBrowserAuthCredentials();
-      window.location.replace('/');
-      return;
+    } finally {
+      try {
+        await tokenStore.clear();
+      } catch (error) {
+        console.warn('[AUTH WARN] Could not clear secure token storage.', error);
+      }
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        clearBrowserAuthCredentials();
+      }
+      set({ user: null, loading: false, initialized: true, error: null, photoOverride: null });
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.location.replace('/');
+      }
     }
   },
 

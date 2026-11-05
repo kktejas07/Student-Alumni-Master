@@ -8,6 +8,8 @@ if (!Array.prototype.toReversed) {
 
 const { getDefaultConfig } = require("expo/metro-config");
 const path = require('path');
+const http = require('http');
+const https = require('https');
 const { FileStore } = require('metro-cache');
 
 const projectRoot = __dirname;
@@ -16,6 +18,42 @@ const config = getDefaultConfig(projectRoot);
 config.projectRoot = projectRoot;
 config.watchFolders = [projectRoot];
 config.resolver.useWatchman = false;
+
+const defaultEnhanceMiddleware = config.server.enhanceMiddleware;
+const backendOrigin = process.env.SA_BACKEND_URL || 'http://127.0.0.1:8001';
+config.server.enhanceMiddleware = (middleware, metroServer) => {
+  const metroMiddleware = defaultEnhanceMiddleware(middleware, metroServer);
+  return (req, res, next) => {
+    let pathname;
+    try {
+      pathname = new URL(req.url || '/', 'http://localhost').pathname;
+    } catch {
+      return metroMiddleware(req, res, next);
+    }
+
+    if (pathname !== '/api' && !pathname.startsWith('/api/') && !pathname.startsWith('/uploads/')) {
+      return metroMiddleware(req, res, next);
+    }
+
+    const target = new URL(req.url || '/', backendOrigin);
+    const transport = target.protocol === 'https:' ? https : http;
+    const proxyRequest = transport.request(target, {
+      method: req.method,
+      headers: { ...req.headers, host: target.host },
+    }, (proxyResponse) => {
+      res.writeHead(proxyResponse.statusCode || 502, proxyResponse.headers);
+      proxyResponse.pipe(res);
+    });
+
+    proxyRequest.on('error', () => {
+      if (!res.headersSent) {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+      }
+      res.end(JSON.stringify({ detail: 'Backend unavailable' }));
+    });
+    req.pipe(proxyRequest);
+  };
+};
 
 // Stable on-disk cache store inside the project directory
 const root = process.env.METRO_CACHE_ROOT || path.join(projectRoot, '.metro-cache');

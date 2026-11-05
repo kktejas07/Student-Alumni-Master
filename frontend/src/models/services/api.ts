@@ -11,6 +11,7 @@ const BASE_URL = getBaseUrl();
 
 const TOKEN_KEY = 'scd_access_token';
 const REFRESH_KEY = 'scd_refresh_token';
+const LOGGED_OUT_KEY = 'scd_logged_out';
 
 // ----- Token storage (SecureStore on native, in-memory + localStorage on web) -----
 async function setItem(key: string, value: string) {
@@ -47,9 +48,12 @@ async function deleteItem(key: string) {
 export const tokenStore = {
   getAccess: () => getItem(TOKEN_KEY),
   getRefresh: () => getItem(REFRESH_KEY),
+  isLoggedOut: async () => (await getItem(LOGGED_OUT_KEY)) === '1',
+  markLoggedOut: () => setItem(LOGGED_OUT_KEY, '1'),
   setTokens: async (access: string, refresh: string) => {
     await setItem(TOKEN_KEY, access);
     await setItem(REFRESH_KEY, refresh);
+    await deleteItem(LOGGED_OUT_KEY);
   },
   clear: async () => {
     await deleteItem(TOKEN_KEY);
@@ -63,6 +67,7 @@ export const tokenStore = {
 let refreshInFlight: Promise<string | null> | null = null;
 
 async function refreshAccessToken(): Promise<string | null> {
+  if (await tokenStore.isLoggedOut()) return null;
   if (refreshInFlight) return refreshInFlight;
   refreshInFlight = (async () => {
     const refreshToken = await tokenStore.getRefresh();
@@ -76,6 +81,7 @@ async function refreshAccessToken(): Promise<string | null> {
       if (!res.ok) return null;
       const data = await res.json();
       if (!data.access_token) return null;
+      if (await tokenStore.isLoggedOut()) return null;
       const newRefresh = data.refresh_token || refreshToken || '';
       await tokenStore.setTokens(data.access_token, newRefresh);
       return data.access_token;
