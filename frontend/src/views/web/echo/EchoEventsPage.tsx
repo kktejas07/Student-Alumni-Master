@@ -431,11 +431,15 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
       setSelectedSlug(targetSlug);
     }
     if (targetView === 'detail' && nextSlug) {
-      router.push(`/echo/${nextSlug}` as any);
+      router.replace(`/echo/${nextSlug}` as any);
       return;
     }
     if (targetView === 'reg' && nextSlug) {
-      router.replace({ pathname: '/login', params: { returnTo: `/student-portal/${nextSlug}` } });
+      if (authUser) {
+        router.push(`/echo/${nextSlug}/register` as any);
+      } else {
+        router.replace({ pathname: '/login', params: { returnTo: `/student-portal/${nextSlug}` } });
+      }
       return;
     }
     setView(targetView);
