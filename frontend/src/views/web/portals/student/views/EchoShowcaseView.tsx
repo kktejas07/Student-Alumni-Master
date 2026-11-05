@@ -87,6 +87,9 @@ const DEFAULT_SHOWCASE: any = {
 function Lightbox({ images, startIndex, onClose }: { images: any[]; startIndex: number; onClose: () => void }) {
   const [idx, setIdx] = useState(startIndex);
   const img = images[idx];
+  const imageUrl = typeof img === 'string'
+    ? img
+    : img?.url || img?.src || img?.image_url || img?.path;
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
@@ -107,8 +110,8 @@ function Lightbox({ images, startIndex, onClose }: { images: any[]; startIndex: 
           <Pressable style={lb.close} onPress={onClose}>
             <X size={18} color="#fff" />
           </Pressable>
-          {img?.url ? (
-            <Image source={{ uri: resolveImageUrl(img.url) }} style={lb.img} resizeMode="contain" />
+          {imageUrl ? (
+            <Image source={{ uri: resolveImageUrl(imageUrl) }} style={lb.img} resizeMode="contain" />
           ) : (
             <View style={[lb.img, { backgroundColor: 'rgba(99,102,241,0.20)', alignItems: 'center', justifyContent: 'center' }]}>
               <ZoomIn size={40} color={PALETTE.muted} />
@@ -796,10 +799,13 @@ const sh = StyleSheet.create({
 
 // ── Gallery Placeholder Cell ────────────────────────────────────────────────
 function GalleryCell({ img, onPress, style }: { img: any; onPress: () => void; style: any }) {
+  const imageUrl = typeof img === 'string'
+    ? img
+    : img?.url || img?.src || img?.image_url || img?.path;
   return (
     <Pressable onPress={onPress} style={[gc.cell, style]}>
-      {img?.url ? (
-        <Image source={{ uri: resolveImageUrl(img.url) }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+      {imageUrl ? (
+        <Image source={{ uri: resolveImageUrl(imageUrl) }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
       ) : (
         <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(99,102,241,0.12)', alignItems: 'center', justifyContent: 'center' }]}>
           <ZoomIn size={24} color={PALETTE.dim} />
@@ -833,7 +839,9 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
   const sections = (data?.sections && typeof data.sections === 'object') ? data.sections : {};
 
   // Must be before early returns (Rules of Hooks)
-  const gallery: any[] = data?.gallery || [];
+  const gallery: any[] = Array.isArray(data?.gallery)
+    ? data.gallery
+    : (Array.isArray(data?.gallery_images) ? data.gallery_images : []);
 
   const showSection = (key: string) => sections[key] !== false;
 
