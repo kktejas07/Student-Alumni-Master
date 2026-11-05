@@ -48,6 +48,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (get().initialized) return;
     set({ loading: true });
     try {
+      if (await tokenStore.isLoggedOut()) {
+        await tokenStore.clear();
+        set({ user: null, initialized: true, loading: false });
+        return;
+      }
+
       const token = await tokenStore.getAccess();
       if (token) {
         // eslint-disable-next-line no-console
@@ -155,6 +161,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     // Snapshot user before clearing so we can fire analytics with role/email_domain
     const u = get().user;
+    set({ user: null, loading: false, initialized: true, error: null, photoOverride: null });
+    try {
+      await tokenStore.markLoggedOut();
+    } catch (error) {
+      console.warn('[AUTH WARN] Could not persist the logged-out state.', error);
+    }
     try {
       const analytics = (await import('@/src/lib/analytics')).default;
       analytics.track?.('auth_logout', {
@@ -166,20 +178,55 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       // Best-effort backend log so logout shows up in auth_events too
       const { trackAuth } = await import('@/src/lib/authAnalytics');
-      await trackAuth({
+      void trackAuth({
         event: 'session_revoked',
         email: u?.email,
         extra: { reason: 'user_logout' },
+      }).catch((error) => {
+        console.warn('[AUTH WARN] Could not record the logout event.', error);
       });
     } catch {}
     try {
       await api.logout();
-    } catch {}
-    await tokenStore.clear();
-    try {
-      if (Platform.OS === 'web' && typeof window !== 'undefined') window.localStorage.removeItem('sa.consent.v1');
-    } catch {}
-    set({ user: null });
+    } catch (error) {
+      console.warn('[AUTH WARN] Backend logout request failed; clearing local credentials.', error);
+    } finally {
+      try {
+        await tokenStore.clear();
+      } catch (error) {
+        console.warn('[AUTH WARN] Could not clear secure token storage.', error);
+      }
+      try {
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          for (const storageName of ['localStorage', 'sessionStorage'] as const) {
+            try {
+              const storage = window[storageName];
+              for (const key of [
+                'token',
+                'session',
+                'access_token',
+                'refresh_token',
+                'auth_tokens',
+                'scd_access_token',
+                'scd_refresh_token',
+                'scd_remember_me',
+                'sa_user',
+                'sa_user_email',
+                'user_email',
+                'sa.consent.v1',
+              ]) {
+                storage.removeItem(key);
+              }
+            } catch (error) {
+              console.warn(`[AUTH WARN] Could not clear browser ${storageName}.`, error);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('[AUTH WARN] Could not access browser storage.', error);
+      }
+      set({ user: null, loading: false, initialized: true, error: null, photoOverride: null });
+    }
   },
 
   setUser: (user) => set({ user }),

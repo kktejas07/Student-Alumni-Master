@@ -737,29 +737,38 @@ async def refresh_token(request: Request, response: Response, payload: Optional[
 
 
 @router.post("/auth/logout")
-async def logout(request: Request, response: Response, user: dict = Depends(get_current_user)):
-    """Revokes the current access token and refresh token, clearing session cookies."""
+async def logout(request: Request, response: Response):
+    """Revoke available session tokens and always clear the refresh cookie."""
     auth = request.headers.get("Authorization", "")
     token_str = auth[7:].strip() if auth.startswith("Bearer ") else ""
-    if token_str:
+
+    def decode_logout_token(token: str, expected_type: str) -> Optional[dict]:
         try:
-            payload = jwt.decode(token_str, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-            jti = payload.get("jti")
-            exp = payload.get("exp")
-            if jti:
-                expires_at = datetime.fromtimestamp(exp, tz=timezone.utc) if exp else (
-                    datetime.now(timezone.utc) + timedelta(minutes=15)
-                )
-                try:
-                    await db.token_blacklist.insert_one({
-                        "jti": jti,
-                        "user_id": str(user["_id"]),
-                        "expires_at": expires_at,
-                        "revoked_at": datetime.now(timezone.utc),
-                        "reason": "logout",
-                    })
-                except Exception:
-                    pass
+            payload = jwt.decode(
+                token,
+                JWT_SECRET,
+                algorithms=[JWT_ALGORITHM],
+                options={"verify_exp": False},
+            )
+        except jwt.InvalidTokenError:
+            return None
+        return payload if payload.get("type") == expected_type else None
+
+    access_payload = decode_logout_token(token_str, "access") if token_str else None
+    access_user_id = str(access_payload.get("sub")) if access_payload and access_payload.get("sub") else None
+    if access_payload and access_payload.get("jti") and access_user_id:
+        exp = access_payload.get("exp")
+        expires_at = datetime.fromtimestamp(exp, tz=timezone.utc) if exp else (
+            datetime.now(timezone.utc) + timedelta(minutes=15)
+        )
+        try:
+            await db.token_blacklist.insert_one({
+                "jti": access_payload["jti"],
+                "user_id": access_user_id,
+                "expires_at": expires_at,
+                "revoked_at": datetime.now(timezone.utc),
+                "reason": "logout",
+            })
         except Exception:
             pass
 
@@ -773,8 +782,8 @@ async def logout(request: Request, response: Response, user: dict = Depends(get_
         pass
     token_to_revoke = cookie_refresh or body_refresh
     if token_to_revoke:
-        try:
-            rf_payload = jwt.decode(token_to_revoke, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        rf_payload = decode_logout_token(token_to_revoke, "refresh")
+        if rf_payload and rf_payload.get("sub"):
             rf_jti = rf_payload.get("jti")
             if rf_jti:
                 rf_exp = rf_payload.get("exp")
@@ -784,15 +793,13 @@ async def logout(request: Request, response: Response, user: dict = Depends(get_
                 try:
                     await db.token_blacklist.insert_one({
                         "jti": rf_jti,
-                        "user_id": str(user["_id"]),
+                        "user_id": str(rf_payload["sub"]),
                         "expires_at": rf_expires_at,
                         "revoked_at": datetime.now(timezone.utc),
                         "reason": "logout",
                     })
                 except Exception:
                     pass
-        except Exception:
-            pass
 
     _clear_refresh_cookie(response)
     return {"status": "logged_out"}

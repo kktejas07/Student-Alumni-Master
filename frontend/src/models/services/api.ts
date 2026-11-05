@@ -12,6 +12,7 @@ const BASE_URL = getBaseUrl();
 export const TOKEN_KEY = 'scd_access_token';
 export const REFRESH_KEY = 'scd_refresh_token';
 export const REMEMBER_KEY = 'scd_remember_me';
+const LOGGED_OUT_KEY = 'scd_logged_out';
 
 // ----- Token storage (SecureStore on native, sessionStorage/localStorage on web) -----
 
@@ -176,13 +177,48 @@ async function clearWebTokens() {
 export const tokenStore = {
   getAccess: () => getItem(TOKEN_KEY),
   getRefresh: () => getItem(REFRESH_KEY),
+  isLoggedOut: async () => {
+    if (Platform.OS === 'web') {
+      const session = getWebSessionStorage();
+      const local = getWebLocalStorage();
+      try {
+        return session?.getItem(LOGGED_OUT_KEY) === '1' || local?.getItem(LOGGED_OUT_KEY) === '1';
+      } catch {
+        return false;
+      }
+    }
+    return (await SecureStore.getItemAsync(LOGGED_OUT_KEY)) === '1';
+  },
+  markLoggedOut: async () => {
+    if (Platform.OS === 'web') {
+      const session = getWebSessionStorage();
+      const local = getWebLocalStorage();
+      let saved = false;
+      for (const storage of [session, local]) {
+        if (!storage) continue;
+        try {
+          storage.setItem(LOGGED_OUT_KEY, '1');
+          saved = true;
+        } catch {}
+      }
+      if (!saved) throw new Error('Unable to persist the logged-out state.');
+      return;
+    }
+    await SecureStore.setItemAsync(LOGGED_OUT_KEY, '1');
+  },
   setTokens: async (access: string, refresh: string, rememberMe?: boolean) => {
     if (Platform.OS === 'web') {
       await setWebTokens(access, refresh, rememberMe);
+      for (const storage of [getWebSessionStorage(), getWebLocalStorage()]) {
+        try {
+          storage?.removeItem(LOGGED_OUT_KEY);
+        } catch {}
+      }
       return;
     }
     await SecureStore.setItemAsync(TOKEN_KEY, access);
     await SecureStore.setItemAsync(REFRESH_KEY, refresh);
+    await SecureStore.deleteItemAsync(LOGGED_OUT_KEY);
   },
   clear: async () => {
     if (Platform.OS === 'web') {
@@ -208,6 +244,7 @@ export const tokenStore = {
 let refreshInFlight: Promise<string | null> | null = null;
 
 async function refreshAccessToken(): Promise<string | null> {
+  if (await tokenStore.isLoggedOut()) return null;
   if (refreshInFlight) return refreshInFlight;
   refreshInFlight = (async () => {
     const refreshToken = await tokenStore.getRefresh();
@@ -220,6 +257,7 @@ async function refreshAccessToken(): Promise<string | null> {
       if (!res.ok) return null;
       const data = await res.json();
       if (!data.access_token) return null;
+      if (await tokenStore.isLoggedOut()) return null;
       const newRefresh = data.refresh_token || refreshToken || '';
       await tokenStore.setTokens(data.access_token, newRefresh);
       return data.access_token;

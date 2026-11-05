@@ -129,6 +129,17 @@ def test_route_table_is_visible():
     assert privileged > 100, f"only {privileged} privileged routes found"
 
 
+def test_logout_route_is_unique_and_does_not_require_access_token():
+    matches = [
+        (endpoint, dependant)
+        for path, methods, endpoint, dependant in _flat_routes()
+        if path == "/api/auth/logout" and "POST" in (methods or ())
+    ]
+    assert len(matches) == 1, f"expected one POST /api/auth/logout route, found {len(matches)}"
+    endpoint, dependant = matches[0]
+    assert not _is_protected(endpoint, dependant), "logout must work with expired access tokens"
+
+
 def test_privileged_routes_require_auth():
     offenders = []
     for method, path, endpoint, dependant in _privileged_routes():
