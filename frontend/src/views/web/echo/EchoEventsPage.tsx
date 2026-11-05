@@ -305,7 +305,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
                 partners: item.partners || existing.partners || [],
                 sponsors: item.sponsors || existing.sponsors || [],
                 perks: item.perks || existing.perks || [],
-                poster_banner: item.hero_image_url || item.banner_url || item.poster_url || existing.poster_banner || '',
+                poster_banner: item.hero_image_url || item.banner_url || item.poster_url || item.hero_banners?.[0] || existing.poster_banner || '',
                 categories: item.categories || existing.categories || [],
                 speakers: item.speakers || existing.speakers || [],
                 gallery_images: item.gallery_images || item.gallery || existing.gallery_images || [],
@@ -386,7 +386,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
             partners: item.partners || [],
             sponsors: item.sponsors || [],
             perks: item.perks || [],
-            poster_banner: item.hero_image_url || item.banner_url || item.poster_url || '',
+            poster_banner: item.hero_image_url || item.banner_url || item.poster_url || item.hero_banners?.[0] || '',
             categories: item.categories || [],
             speakers: item.speakers || [],
             gallery_images: item.gallery_images || item.gallery || [],
@@ -1683,6 +1683,30 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
               <div className="ev-detail-desc" style={{ fontSize: '15px', lineHeight: 1.6, color: 'var(--muted)', margin: '8px 0 18px', maxWidth: '680px' }}>
                 {activeEvent.description}
               </div>
+
+              {Array.isArray(activeEvent.gallery_images) && activeEvent.gallery_images.length > 0 && (
+                <div style={{ marginTop: '28px' }}>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#FFFFFF', marginBottom: '14px' }}>
+                    Moments from the Event
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+                    {activeEvent.gallery_images.map((image: any, index: number) => {
+                      const imageUrl = typeof image === 'string'
+                        ? image
+                        : image?.url || image?.src || image?.image_url || image?.path;
+                      if (!imageUrl) return null;
+                      return (
+                        <img
+                          key={`${imageUrl}-${index}`}
+                          src={resolveImageUrl(imageUrl)}
+                          alt={`${activeEvent.title} gallery image ${index + 1}`}
+                          style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)' }}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Pill Tags */}
               <div className="ev-detail-pills" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '22px' }}>
