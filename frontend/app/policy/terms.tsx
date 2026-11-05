@@ -4,7 +4,8 @@ import { View, StyleSheet, ScrollView, useWindowDimensions, Platform } from 'rea
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
-import { FileText, Check, AlertTriangle, Info, Download } from 'lucide-react-native';
+import { FileText, Check, Info, Download } from 'lucide-react-native';
+import { COLORS } from '@/src/theme/tokens';
 
 const IS_WEB = Platform.OS === 'web';
 
@@ -41,18 +42,20 @@ function TermsOfServicePage() {
       setActiveSection(currentSection);
     };
 
+    document.addEventListener('scroll', handleScroll, true);
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    handleScroll();
+    return () => {
+      document.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   const handleJump = (id: string) => {
     if (IS_WEB) {
       const el = document.getElementById(id);
       if (el) {
-        window.scrollTo({
-          top: el.getBoundingClientRect().top + window.scrollY - 108,
-          behavior: 'smooth',
-        });
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
   };
@@ -76,6 +79,7 @@ function TermsOfServicePage() {
             color: #F4F4FA !important;
             border-left-color: #7C5CFC !important;
           }
+          .terms-section { scroll-margin-top: 108px; }
         `
       }} />
 
@@ -88,16 +92,16 @@ function TermsOfServicePage() {
       <SAWatermark fixed={true} right={-60} top={80} opacity={0.12} size={780} glow={true} />
       <Navbar />
 
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <div className="pt-32 pb-20 px-6 max-w-[1400px] mx-auto w-full relative z-10">
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <div className="pb-20 px-6 max-w-[1400px] mx-auto w-full relative z-10" style={{ paddingTop: 144 }}>
           
           {/* Header */}
           <div className="max-w-[780px] mb-8">
             <span className="inline-flex items-center gap-2 text-xs font-bold tracking-widest text-[#A78BFA] bg-[#7C5CFC]/18 rounded-full px-4 py-1.5 uppercase">
-              <FileText size={13} color="#A78BFA" />
+              <FileText size={13} color={COLORS.primaryLight} />
               LEGAL · TERMS OF USE
             </span>
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.1] mt-5 mb-4">
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight mt-5 mb-4" style={{ lineHeight: 1.3, overflow: 'visible' }}>
               Terms of Use
             </h1>
             <p className="text-base sm:text-lg text-[#8A8A9E] leading-relaxed mb-6">
@@ -115,10 +119,10 @@ function TermsOfServicePage() {
           </div>
 
           {/* Main Layout Grid */}
-          <div className={`grid gap-10 ${isMobile ? 'grid-cols-1' : 'grid-cols-12'}`} style={{ alignItems: 'start' }}>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 32, alignItems: isMobile ? 'stretch' : 'flex-start' }}>
             
             {/* Sticky Sidebar Navigation (Web) */}
-            <div className={`md:col-span-4 ${isMobile ? 'hidden' : 'block'}`} style={{ position: 'sticky', top: 92 }}>
+            <div style={{ display: isMobile ? 'none' : 'block', position: isMobile ? 'static' : 'sticky', top: 92, width: 260, flexShrink: 0 }}>
               <div className="text-xs font-bold tracking-wider text-[#6A6A7E] mb-3.5">ON THIS PAGE</div>
               {JUMP_SECTIONS.map((sec) => (
                 <button
@@ -133,9 +137,9 @@ function TermsOfServicePage() {
             </div>
 
             {/* Document Content */}
-            <div className="md:col-span-8 space-y-10 text-[15px] leading-relaxed text-[#8A8A9E] max-w-[780px]">
+            <div className="space-y-10 text-[15px] leading-relaxed text-[#8A8A9E] max-w-[780px]" style={{ flex: 1, minWidth: 0 }}>
               
-              <div id="tm-0" className="border-t border-[#1F1F30] pt-7 space-y-4">
+              <div id="tm-0" className="terms-section border-t border-[#1F1F30] pt-7 space-y-4">
                 <div className="flex items-baseline gap-3">
                   <span className="text-xs font-bold text-[#6A6A7E]">01</span>
                   <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Agreement and eligibility</h2>
@@ -145,21 +149,21 @@ function TermsOfServicePage() {
                 </p>
                 <div className="space-y-3 pt-2">
                   <div className="flex items-start gap-3">
-                    <Check size={15} color="#A78BFA" className="mt-1 flex-shrink-0" />
+                    <Check size={15} color={COLORS.primaryLight} className="mt-1 flex-shrink-0" />
                     <span>You must be at least 16 to hold an account in your own name; between 13 and 18 you need verifiable parental consent.</span>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Check size={15} color="#A78BFA" className="mt-1 flex-shrink-0" />
+                    <Check size={15} color={COLORS.primaryLight} className="mt-1 flex-shrink-0" />
                     <span>Student accounts require a verified college affiliation. Alumni accounts require proof of graduation.</span>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Check size={15} color="#A78BFA" className="mt-1 flex-shrink-0" />
+                    <Check size={15} color={COLORS.primaryLight} className="mt-1 flex-shrink-0" />
                     <span>One account per person. Accounts are personal and may not be sold or transferred.</span>
                   </div>
                 </div>
               </div>
 
-              <div id="tm-1" className="border-t border-[#1F1F30] pt-7 space-y-4">
+              <div id="tm-1" className="terms-section border-t border-[#1F1F30] pt-7 space-y-4">
                 <div className="flex items-baseline gap-3">
                   <span className="text-xs font-bold text-[#6A6A7E]">02</span>
                   <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">What the service is — and is not</h2>
@@ -168,7 +172,7 @@ function TermsOfServicePage() {
                   We provide tools: a career roadmap, mentor introductions, job and internship matching, event registration, verified identity and a rentals marketplace.
                 </p>
                 <div className="flex items-start gap-3 border border-[#2C2A52] rounded-xl bg-[#7C5CFC]/7 p-4">
-                  <Info size={16} color="#A78BFA" className="mt-0.5 flex-shrink-0" />
+                  <Info size={16} color={COLORS.primaryLight} className="mt-0.5 flex-shrink-0" />
                   <div>
                     <div className="text-sm font-semibold text-white mb-1">No guarantee of outcome</div>
                     <div className="text-xs sm:text-sm text-[#8A8A9E]">
@@ -178,28 +182,28 @@ function TermsOfServicePage() {
                 </div>
               </div>
 
-              <div id="tm-2" className="border-t border-[#1F1F30] pt-7 space-y-4">
+              <div id="tm-2" className="terms-section border-t border-[#1F1F30] pt-7 space-y-4">
                 <div className="flex items-baseline gap-3">
                   <span className="text-xs font-bold text-[#6A6A7E]">03</span>
                   <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Your responsibilities</h2>
                 </div>
                 <div className="space-y-3 pt-2">
                   <div className="flex items-start gap-3">
-                    <Check size={15} color="#A78BFA" className="mt-1 flex-shrink-0" />
+                    <Check size={15} color={COLORS.primaryLight} className="mt-1 flex-shrink-0" />
                     <span>Keep your information accurate — particularly academic details, which others rely on.</span>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Check size={15} color="#A78BFA" className="mt-1 flex-shrink-0" />
+                    <Check size={15} color={COLORS.primaryLight} className="mt-1 flex-shrink-0" />
                     <span>Do not impersonate anyone, misstate your qualifications, or forge a verification document.</span>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Check size={15} color="#A78BFA" className="mt-1 flex-shrink-0" />
+                    <Check size={15} color={COLORS.primaryLight} className="mt-1 flex-shrink-0" />
                     <span>Do not scrape, crawl, resell or bulk-export data about other users.</span>
                   </div>
                 </div>
               </div>
 
-              <div id="tm-3" className="border-t border-[#1F1F30] pt-7 space-y-4">
+              <div id="tm-3" className="terms-section border-t border-[#1F1F30] pt-7 space-y-4">
                 <div className="flex items-baseline gap-3">
                   <span className="text-xs font-bold text-[#6A6A7E]">04</span>
                   <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Payments, refunds and cancellations</h2>
@@ -209,7 +213,7 @@ function TermsOfServicePage() {
                 </p>
               </div>
 
-              <div id="tm-4" className="border-t border-[#1F1F30] pt-7 space-y-4">
+              <div id="tm-4" className="terms-section border-t border-[#1F1F30] pt-7 space-y-4">
                 <div className="flex items-baseline gap-3">
                   <span className="text-xs font-bold text-[#6A6A7E]">05</span>
                   <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Your content and our platform</h2>
@@ -219,7 +223,7 @@ function TermsOfServicePage() {
                 </p>
               </div>
 
-              <div id="tm-5" className="border-t border-[#1F1F30] pt-7 space-y-4">
+              <div id="tm-5" className="terms-section border-t border-[#1F1F30] pt-7 space-y-4">
                 <div className="flex items-baseline gap-3">
                   <span className="text-xs font-bold text-[#6A6A7E]">06</span>
                   <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Liability</h2>
@@ -229,7 +233,7 @@ function TermsOfServicePage() {
                 </p>
               </div>
 
-              <div id="tm-6" className="border-t border-[#1F1F30] pt-7 space-y-4">
+              <div id="tm-6" className="terms-section border-t border-[#1F1F30] pt-7 space-y-4">
                 <div className="flex items-baseline gap-3">
                   <span className="text-xs font-bold text-[#6A6A7E]">07</span>
                   <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Suspension and termination</h2>
@@ -239,7 +243,7 @@ function TermsOfServicePage() {
                 </p>
               </div>
 
-              <div id="tm-7" className="border-t border-[#1F1F30] pt-7 space-y-4">
+              <div id="tm-7" className="terms-section border-t border-[#1F1F30] pt-7 space-y-4">
                 <div className="flex items-baseline gap-3">
                   <span className="text-xs font-bold text-[#6A6A7E]">08</span>
                   <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Governing law and disputes</h2>
@@ -263,11 +267,15 @@ function TermsOfServicePage() {
 const styles = StyleSheet.create({
   outerWrap: {
     flex: 1,
-    backgroundColor: '#0A0A14',
+    backgroundColor: COLORS.bg,
     minHeight: '100vh' as any,
+  },
+  scroll: {
+    flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
+    paddingBottom: 80,
   },
 });
 
