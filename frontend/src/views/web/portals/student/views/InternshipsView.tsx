@@ -265,6 +265,20 @@ export function InternshipsView() {
   const [sendingReferral, setSendingReferral] = useState(false);
   const [myReferrals, setMyReferrals] = useState<any[]>([]);
 
+  // Dedupe referral_accepted events to one per referral per session
+  const acceptedTrackedRef = React.useRef<Set<string>>(new Set());
+  const markReferralAccepted = useCallback((req: any) => {
+    if (!req || (req.status !== 'accepted' && req.status !== 'referred')) return;
+    if (acceptedTrackedRef.current.has(req.id)) return;
+    acceptedTrackedRef.current.add(req.id);
+    track('referral_accepted', {
+      referral_id: req.id,
+      job_id: req.job_id,
+      company: req.job_company,
+      status: req.status,
+    });
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -283,20 +297,6 @@ export function InternshipsView() {
   const myReferralFor = useCallback((jobId: string, alumniId: string) => {
     return myReferrals.find((x: any) => x.job_id === jobId && x.alumni_id === alumniId) || null;
   }, [myReferrals]);
-
-  // Dedupe referral_accepted events to one per referral per session
-  const acceptedTrackedRef = React.useRef<Set<string>>(new Set());
-  const markReferralAccepted = useCallback((req: any) => {
-    if (!req || (req.status !== 'accepted' && req.status !== 'referred')) return;
-    if (acceptedTrackedRef.current.has(req.id)) return;
-    acceptedTrackedRef.current.add(req.id);
-    track('referral_accepted', {
-      referral_id: req.id,
-      job_id: req.job_id,
-      company: req.job_company,
-      status: req.status,
-    });
-  }, []);
 
   const loadFeed = useCallback(async (opts?: { append?: boolean; refresh?: boolean; pageOverride?: number }) => {
     const append = opts?.append || false;
