@@ -13,6 +13,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, Pressable, StyleSheet, Platform, Modal, ScrollView, TextInput, ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import {
@@ -26,6 +27,7 @@ import {
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { useSubTab, type SubTabControlProps } from '../../portalUrl';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox, KpiTile,
@@ -63,14 +65,26 @@ function LinkedinGlyph({ size = 13, color = '#38BDF8' }: { size?: number; color?
   );
 }
 
-type BGVMainTab = 'directory' | 'scanner' | 'fake_unis' | 'api_register' | 'reminders';
+type BGVMainTab = 'directory' | 'visa_radar' | 'enterprise_keys' | 'scanner' | 'fake_unis' | 'api_register' | 'reminders';
 type VerticalType = 'all' | 'real' | 'test' | 'unregistered';
 type LinkedInFilterType = 'all' | 'yes' | 'no';
 
-export function BGVAccountVerticalsView() {
+const BGV_TABS: readonly BGVMainTab[] = [
+  'directory',
+  'visa_radar',
+  'enterprise_keys',
+  'scanner',
+  'fake_unis',
+  'api_register',
+  'reminders',
+];
+
+export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {}) {
   const T = useSAC();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   Object.assign(st, resolveColors(st, T));
-  const [bgvTab, setBgvTab] = useState<BGVMainTab>('directory');
+  const [bgvTab, setBgvTab] = useSubTab(BGV_TABS, 'directory', { sub, onSub });
   const [vertical, setVertical] = useState<VerticalType>('all');
   const [countryFilter, setCountryFilter] = useState<string>('all');
   const [linkedInFilter, setLinkedInFilter] = useState<LinkedInFilterType>('all');
