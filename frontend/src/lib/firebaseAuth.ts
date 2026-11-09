@@ -11,6 +11,21 @@ let _firebaseApp: any = null;
 // auth flow always runs against the exact configuration provided to it.
 const AUTH_APP_NAME = 'studentalumni-auth';
 
+/**
+ * `initFirebaseAuth` can technically run with just apiKey+projectId, but Google
+ * sign-in also needs `authDomain` (the OAuth handler host) and `appId` (the
+ * registered web app). The login page uses this to avoid advertising a Google
+ * button that cannot work.
+ */
+export function isFirebaseWebConfigComplete(
+  config: { apiKey?: string; authDomain?: string; projectId?: string; appId?: string } | null | undefined
+): boolean {
+  if (!config) return false;
+  return Boolean(
+    config.apiKey && config.authDomain && config.projectId && config.appId
+  );
+}
+
 export function getFirebaseAuth() {
   return _firebaseAuth;
 }
