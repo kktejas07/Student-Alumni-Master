@@ -1666,7 +1666,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
         {activeTab === 'home' && (
           <>
             {/* ── 01. HERO SECTION ── */}
-            <View style={[styles.heroSection, { paddingHorizontal: containerPadding, flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 24 : 50, paddingTop: isMobile ? 80 : 90 }]}>
+            <View style={[styles.heroSection, { paddingHorizontal: containerPadding, flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 24 : 50, paddingTop: isMobile ? 104 : 116 }]}>
               <View style={[styles.heroLeftCol, { minWidth: isMobile ? 0 : 320, maxWidth: '100%' as any }]}>
                 <View style={[styles.heroChip, { className: 'sa-float-slow' } as any]}>
                   <Svg width="14" height="14" viewBox="0 0 16 16" style={{ marginRight: 6 }}>

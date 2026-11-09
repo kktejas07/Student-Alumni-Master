@@ -7,6 +7,7 @@ import { WebOnlyRoute } from '@/src/lib/nativeGuard';
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { api } from '@/src/models/services/api';
+import { PublicHeader } from '@/src/views/web/components/PublicHeader';
 
 const THEME_VARS = {
   '--bg': '#05060F',
@@ -41,20 +42,10 @@ function MarketplaceIndexPage() {
 
   return (
     <div style={{ ...THEME_VARS, minHeight: '100vh', background: '#05060F', color: '#F4F5FB' }}>
-      {/* Header */}
-      <header style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000, backgroundColor: 'rgba(10,10,20,0.94)', backdropFilter: 'blur(16px)', borderBottom: '1px solid #1F1F30', height: 64, display: 'flex', alignItems: 'center', padding: '0 24px' }}>
-        <div style={{ maxWidth: 1400, width: '100%', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <a href="/echo" style={{ fontSize: 20, fontWeight: 800, color: '#F4F5FB', textDecoration: 'none', letterSpacing: '-0.5px' }}>
-            <span style={{ color: '#A78BFA' }}>ECHO</span> Marketplace
-          </a>
-          <nav style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-            <a href="/echo" style={{ fontSize: 14, fontWeight: 600, color: '#9AA0B4', textDecoration: 'none' }}>Events</a>
-            <a href="/marketplace" style={{ fontSize: 14, fontWeight: 600, color: '#A78BFA', textDecoration: 'none' }}>Marketplace</a>
-          </nav>
-        </div>
-      </header>
+      {/* Standardized Public Header (Announcement Ticker + Navbar) */}
+      <PublicHeader activeTab="marketplace" />
 
-      <div style={{ paddingTop: 100, maxWidth: 1000, width: '100%', margin: '0 auto', padding: '100px 20px 60px' }}>
+      <div style={{ maxWidth: 1000, width: '100%', margin: '0 auto', padding: '124px 20px 60px' }}>
         {/* Back link */}
         <a href="/echo" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.07)', borderRadius: 20, padding: '7px 14px', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: 13, fontWeight: 500, textDecoration: 'none', marginBottom: 24 }}>
           ← Back to ECHO
