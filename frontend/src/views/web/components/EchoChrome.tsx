@@ -16,8 +16,8 @@ import '@/src/nexus-glow-styles.css';
 /** Height to clear the fixed marketing navbar (matches Hero's pt-36/pt-48). */
 export const ECHO_TOP_PADDING = 120;
 
-export function EchoHeader() {
-  return <Navbar />;
+export function EchoHeader(props: any) {
+  return <Navbar {...props} />;
 }
 
 export function EchoFooter() {
