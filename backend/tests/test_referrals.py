@@ -17,7 +17,7 @@ from fastapi import FastAPI
 
 from core.db import db
 from core.security import JWT_SECRET, JWT_ALGORITHM
-from routers.referrals import router as referrals_router
+from features.routers.referrals import router as referrals_router
 from services.company_norm import company_key, extract_company_name
 
 app = FastAPI()

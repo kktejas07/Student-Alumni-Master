@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, ScanLine, Check, X, Camera, Keyboard, Ticket } from '@/src/views/web/portals/student/iconShims';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
+import { getBaseUrl } from '@/src/lib/env';
 
 // ── QR Camera Scanner (html5-qrcode) ────────────────────────────────────────
 function QRScanner({ onScan, onClose }: { onScan: (code: string) => void; onClose: () => void }) {
@@ -138,7 +139,7 @@ export default function EchoScanPage() {
     let mounted = true;
     (async () => {
       try {
-        const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+        const base = getBaseUrl();
         const { tokenStore } = await import('@/src/models/services/api');
         const token = await tokenStore.getAccess();
         if (!token) { if (mounted) setAccessCheck('denied'); return; }
@@ -183,7 +184,7 @@ export default function EchoScanPage() {
     if (!codeUpper) return;
     setLoading(true);
     setResult(null);
-    const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+    const base = getBaseUrl();
     const { tokenStore } = await import('@/src/models/services/api');
     const token = await tokenStore.getAccess();
     const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };

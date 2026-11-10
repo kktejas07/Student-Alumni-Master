@@ -5,46 +5,94 @@
  * Renders pending approvals (colleges / mentors / events) with
  * review slide panel, inline approve/reject, bulk actions.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Modal, ScrollView, Platform } from 'react-native';
 import {
   Building2, UserCheck, Calendar, ShieldCheck, ChevronRight, Eye, EyeOff,
-  CheckCircle2, Inbox, X, Mail, Phone, MapPin, Briefcase, GraduationCap,
+  CheckCircle2, X, Mail, Phone, MapPin, Briefcase, GraduationCap,
   Clock, AlertTriangle, ExternalLink,
 } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import Svg, { Rect, Circle, Path } from 'react-native-svg';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import { Av } from '../atoms';
 import {
   GRAD, GradientButton, SecondaryButton, TopTabs, SearchField,
   StatusPill, Toast, useToast, EmptyState, IconBox, Card,
 } from '../applekit';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
+import { request } from '@/src/models/services/api';
 
 type Approval = {
   id: string; kind: 'college' | 'mentor' | 'event'; who: string; who2: string;
   meta: string; priority: 'high' | 'med' | 'low'; color: string;
+  pending_hours?: number; sla_hours?: number; due_at?: string | null;
+  remaining_hours?: number; overdue?: boolean;
+  sla_state?: 'on_track' | 'due_soon' | 'overdue';
 };
-type Counts = { all: number; college: number; mentor: number; event: number };
+type Counts = {
+  all: number; college: number; mentor: number; event: number;
+  overdue?: number; due_soon?: number;
+};
+type AuditEntry = {
+  id: string; action: string; kind: string; item_id: string; label: string;
+  at: string; actor?: { email?: string; name?: string }; detail?: any;
+};
 
-const FALLBACK = { items: [] as Approval[], counts: { all: 0, college: 0, mentor: 0, event: 0 } as Counts };
+const FALLBACK = {
+  items: [] as Approval[],
+  counts: { all: 0, college: 0, mentor: 0, event: 0 } as Counts,
+};
 
 const kindIcon  = (k: Approval['kind']) => (k === 'college' ? Building2 : k === 'mentor' ? UserCheck : Calendar);
 const kindLabel = (k: Approval['kind']) => (k === 'college' ? 'COLLEGE' : k === 'mentor' ? 'MENTOR' : 'EVENT');
 const priorityKind = (p: Approval['priority']) => (p === 'high' ? 'danger' : p === 'med' ? 'warn' : 'neutral') as const;
+
+function ApprovalsEmptyArt() {
+  const T = useSAC();
+  return (
+    <Svg width={44} height={44} viewBox="0 0 44 44">
+      <Rect x={9} y={9} width={26} height={26} rx={7} fill="none" stroke={T.line2} strokeDasharray="3 3" />
+      <Circle cx={22} cy={21} r={6.5} fill={T.tint} stroke={T.violet} strokeWidth={1.6} />
+      <Path d="M19.5 21l1.8 1.8 3.4-3.6" fill="none" stroke={T.violet} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
 
 function ReviewPanel({ item, onClose, onApprove, onReject }: {
   item: Approval | null;
   onClose: () => void;
   onApprove: (id: string, label?: string) => void;
   onReject: (id: string, label?: string) => void;
+  onEscalate: (item: Approval) => void;
 }) {
   const [confirmReject, setConfirmReject] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [trail, setTrail] = useState<AuditEntry[]>([]);
+  const [showTrail, setShowTrail] = useState(true);
+
+  // AP4: every action on this item, oldest-first, from the append-only log.
+  useEffect(() => {
+    if (!item) { setTrail([]); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const r: any = await request<any>(
+          `/admin/approvals/audit?kind=${item.kind}&item_id=${item.id}&limit=50`,
+          { method: 'GET', auth: true },
+        );
+        if (!cancelled) setTrail(r?.entries || []);
+      } catch {
+        if (!cancelled) setTrail([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [item?.id, item?.kind]);
 
   if (!item) return null;
 
   const Icon = kindIcon(item.kind);
+  const badge = slaBadge(item);
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
@@ -67,12 +115,13 @@ function ReviewPanel({ item, onClose, onApprove, onReject }: {
               <Av initials={item.who2} size={56} color={item.color} />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={rpst.name}>{item.who}</Text>
-                <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+                <View style={{ flexDirection: 'row', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
                   <StatusPill label={kindLabel(item.kind)} kind="warn" />
                   <StatusPill
                     label={item.priority === 'high' ? 'HIGH PRIORITY' : item.priority === 'med' ? 'MEDIUM' : 'LOW'}
                     kind={priorityKind(item.priority)}
                   />
+                  <StatusPill label={badge.label} kind={badge.kind} />
                 </View>
               </View>
             </View>
@@ -89,11 +138,77 @@ function ReviewPanel({ item, onClose, onApprove, onReject }: {
                 <Text style={rpst.detailVal} numberOfLines={2}>{item.meta}</Text>
               </View>
               <View style={rpst.detailRow}>
+                <Timer size={13} color={item.overdue ? '#F87171' : SAC.muted} />
+                <Text style={rpst.detailLabel}>Pending</Text>
+                <Text style={[rpst.detailVal, item.overdue && { color: '#F87171' }]}>
+                  {fmtDuration(item.pending_hours)}
+                </Text>
+              </View>
+              <View style={rpst.detailRow}>
                 <Clock size={13} color={SAC.muted} />
-                <Text style={rpst.detailLabel}>Requested</Text>
-                <Text style={rpst.detailVal}>Pending review</Text>
+                <Text style={rpst.detailLabel}>SLA</Text>
+                <Text style={rpst.detailVal}>
+                  {item.sla_hours || '—'}h · due {fmtTimestamp(item.due_at || '')}
+                </Text>
               </View>
             </View>
+
+            {/* AP4 — audit trail timeline */}
+            <View style={rpst.trailCard}>
+              <Pressable onPress={() => setShowTrail((v) => !v)} style={rpst.trailHead}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                  <History size={13} color={SAC.muted} />
+                  <Text style={rpst.trailTitle}>Audit trail</Text>
+                  <StatusPill label={`${trail.length}`} kind="neutral" />
+                </View>
+                <ChevronRight
+                  size={14}
+                  color={SAC.dim}
+                  style={{ transform: [{ rotate: showTrail ? '90deg' : '0deg' }] }}
+                />
+              </Pressable>
+
+              {showTrail && (
+                <View style={{ marginTop: 10, gap: 0 }}>
+                  {trail.length === 0 ? (
+                    <Text style={rpst.trailEmpty}>No actions recorded yet.</Text>
+                  ) : (
+                    trail.slice().reverse().map((e, i) => {
+                      const meta = ACTION_META[e.action] || { label: e.action, color: SAC.muted };
+                      return (
+                        <View key={e.id || `${e.at}-${i}`} style={rpst.trailRow}>
+                          <View style={rpst.trailGutter}>
+                            <View style={[rpst.trailDot, { backgroundColor: meta.color }]} />
+                            {i < trail.length - 1 && <View style={rpst.trailLine} />}
+                          </View>
+                          <View style={{ flex: 1, minWidth: 0, paddingBottom: 12 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                              <Text style={[rpst.trailAction, { color: meta.color }]}>{meta.label}</Text>
+                              {e.actor?.name ? (
+                                <Text style={rpst.trailActor}>by {e.actor.name}</Text>
+                              ) : null}
+                            </View>
+                            <Text style={rpst.trailTime}>{fmtTimestamp(e.at)}</Text>
+                            {e.detail?.note ? (
+                              <Text style={rpst.trailNote}>{e.detail.note}</Text>
+                            ) : null}
+                          </View>
+                        </View>
+                      );
+                    })
+                  )}
+                </View>
+              )}
+            </View>
+
+            {item.overdue && (
+              <SecondaryButton onPress={() => onEscalate(item)}>
+                <ArrowUpRight size={13} color="#FB923C" />
+                <Text style={{ color: '#FB923C', fontFamily: FONTS.bold, fontSize: 12 }}>
+                  Escalate this overdue approval
+                </Text>
+              </SecondaryButton>
+            )}
 
             {confirmReject ? (
               <View style={rpst.rejectBox}>
@@ -150,39 +265,54 @@ const rpst = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: SAC.border,
   },
   head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
-  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
-  xBtn: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
+  xBtn: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(20,23,38,0.05)' },
   profile: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 4 },
-  name: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 17 },
+  name: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 17 },
   detailCard: {
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
     borderRadius: 12, padding: 14, gap: 12,
   },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   detailLabel: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, width: 60 },
-  detailVal: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
+  detailVal: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
   rejectBox: {
     backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.25)',
     borderWidth: 1, borderRadius: 12, padding: 14,
   },
-  rejectTitle: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12.5 },
+  rejectTitle: { color: SAC.danger, fontFamily: FONTS.bold, fontSize: 12.5 },
   rejectInput: {
     height: 80, borderRadius: 10, backgroundColor: SAC.panel2,
-    color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5,
+    color: SAC.text, fontFamily: FONTS.med, fontSize: 12.5,
     padding: 12, textAlignVertical: 'top',
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
-  primaryText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
+  primaryText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  dangerText: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 },
+  dangerText: { color: SAC.danger, fontFamily: FONTS.bold, fontSize: 12 },
+  trailCard: {
+    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
+    borderRadius: 12, padding: 14,
+  },
+  trailHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  trailTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
+  trailEmpty: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11.5 },
+  trailRow: { flexDirection: 'row', gap: 10 },
+  trailGutter: { width: 12, alignItems: 'center' },
+  trailDot: { width: 8, height: 8, borderRadius: 4, marginTop: 4 },
+  trailLine: { flex: 1, width: 1.5, backgroundColor: SAC.border, marginTop: 3 },
+  trailAction: { fontFamily: FONTS.bold, fontSize: 11.5 },
+  trailActor: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
+  trailTime: { color: SAC.dim, fontFamily: FONTS.mono, fontSize: 10, marginTop: 2 },
+  trailNote: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 4 },
 });
 
 export function ApprovalsView() {
   const T = useSAC();
-  Object.assign(rpst, resolveColors(rpst, T));
+  Object.assign(rpst, resolveColors(pristineOf(rpst), T));
   const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/approvals', FALLBACK);
-  const [tab, setTab] = useState<'all' | 'college' | 'mentor' | 'event'>('all');
+  const [tab, setTab] = useState<'all' | 'overdue' | 'college' | 'mentor' | 'event'>('all');
   const [actioned, setActioned] = useState<Record<string, 'approved' | 'rejected'>>({});
   const [selection, setSelection] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
@@ -196,7 +326,8 @@ export function ApprovalsView() {
     const q = search.trim().toLowerCase();
     return items.filter((a) => {
       if (actioned[a.id]) return false;
-      if (tab !== 'all' && a.kind !== tab) return false;
+      if (tab === 'overdue' && !a.overdue) return false;
+      if (tab !== 'all' && tab !== 'overdue' && a.kind !== tab) return false;
       if (q && !(`${a.who} ${a.meta}`.toLowerCase().includes(q))) return false;
       return true;
     });
@@ -209,6 +340,50 @@ export function ApprovalsView() {
   });
   const selectAll = () => setSelection(new Set(list.map((a) => a.id)));
   const clearSel  = () => setSelection(new Set());
+
+  // AP4 — record that the review panel was opened.
+  const openReview = useCallback(async (item: Approval) => {
+    setReviewItem(item);
+    try {
+      await postPortal(`/admin/approvals/${item.kind}/${item.id}/view`);
+    } catch {
+      // Viewing is best-effort; never block the panel on a logging failure.
+    }
+  }, []);
+
+  const onEscalate = async (item: Approval) => {
+    try {
+      const r: any = await postPortal(`/admin/approvals/${item.kind}/${item.id}/escalate`, {
+        body: { note: `Pending ${fmtDuration(item.pending_hours)} against a ${item.sla_hours}h SLA` },
+      });
+      flash(r?.message || 'Escalated');
+      setReviewItem(null);
+    } catch (e: any) {
+      flash(e?.message || 'Failed to escalate', 'error');
+    }
+  };
+
+  const exportAuditCsv = async () => {
+    try {
+      const { tokenStore } = await import('@/src/models/services/api');
+      const { getBaseUrl } = await import('@/src/lib/env');
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(`${getBaseUrl()}/api/admin/approvals/audit.csv`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!resp.ok) throw new Error(`Export failed (${resp.status})`);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'approval_audit_trail.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      flash('Audit trail exported');
+    } catch (e: any) {
+      flash(e?.message || 'Export failed', 'error');
+    }
+  };
 
   const onApprove = async (id: string, label?: string) => {
     setActioned((p) => ({ ...p, [id]: 'approved' }));
@@ -247,6 +422,7 @@ export function ApprovalsView() {
 
   const tabs = [
     { id: 'all',     label: 'All Pending', count: counts.all },
+    { id: 'overdue', label: 'Overdue',    count: counts.overdue || 0, icon: AlertTriangle },
     { id: 'college', label: 'Colleges',    count: counts.college, icon: Building2 },
     { id: 'mentor',  label: 'Mentors',     count: counts.mentor,  icon: UserCheck },
     { id: 'event',   label: 'Events',      count: counts.event,   icon: Calendar  },
@@ -255,7 +431,13 @@ export function ApprovalsView() {
   return (
     <View style={{ gap: 14 }}>
       {/* Review slide panel */}
-      <ReviewPanel item={reviewItem} onClose={() => setReviewItem(null)} onApprove={onApprove} onReject={onReject} />
+      <ReviewPanel
+        item={reviewItem}
+        onClose={() => setReviewItem(null)}
+        onApprove={onApprove}
+        onReject={onReject}
+        onEscalate={onEscalate}
+      />
 
       {/* Header */}
       <Card>
@@ -264,11 +446,17 @@ export function ApprovalsView() {
             <IconBox><CheckCircle2 size={14} color={GRAD.to} /></IconBox>
             <View>
               <Text style={s.title}>Approvals queue</Text>
-              <Text style={s.sub}>{counts.all} item{counts.all === 1 ? '' : 's'} waiting · review and approve in bulk or individually</Text>
+              <Text style={s.sub}>
+                {counts.all} item{counts.all === 1 ? '' : 's'} waiting · review and approve in bulk or individually
+              </Text>
             </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <SearchField value={search} onChange={setSearch} placeholder="Search by name or meta…" width={240} />
+            <SecondaryButton onPress={exportAuditCsv}>
+              <Download size={12} color={SAC.muted} />
+              <Text style={s.secText}>Export trail</Text>
+            </SecondaryButton>
             {selection.size > 0 ? (
               <>
                 <SecondaryButton onPress={clearSel}>
@@ -288,6 +476,30 @@ export function ApprovalsView() {
             )}
           </View>
         </View>
+
+        {/* SLA summary strip (AP1) */}
+        <View style={s.slaStrip}>
+          <View style={s.slaStat}>
+            <Text style={s.slaStatValue}>{counts.overdue || 0}</Text>
+            <Text style={s.slaStatLabel}>OVERDUE</Text>
+          </View>
+          <View style={s.slaDivider} />
+          <View style={s.slaStat}>
+            <Text style={[s.slaStatValue, { color: T.amber }]}>{counts.due_soon || 0}</Text>
+            <Text style={s.slaStatLabel}>DUE SOON</Text>
+          </View>
+          <View style={s.slaDivider} />
+          <View style={s.slaStat}>
+            <Text style={[s.slaStatValue, { color: T.ok }]}>
+              {Math.max((counts.all || 0) - (counts.overdue || 0) - (counts.due_soon || 0), 0)}
+            </Text>
+            <Text style={s.slaStatLabel}>ON TRACK</Text>
+          </View>
+          <View style={{ flex: 1 }} />
+          <Text style={s.slaHint}>
+            SLA · colleges 48h · mentors 24h · events 72h
+          </Text>
+        </View>
       </Card>
 
       {/* Tabs */}
@@ -296,7 +508,7 @@ export function ApprovalsView() {
       {/* List */}
       {list.length === 0 ? (
         <EmptyState
-          icon={Inbox}
+          icon={() => <ApprovalsEmptyArt />}
           title="Nothing here right now"
           sub={search ? 'No items match your search.' : 'New approvals will appear here as they come in.'}
         />
@@ -305,8 +517,9 @@ export function ApprovalsView() {
           {list.map((a) => {
             const Icon = kindIcon(a.kind);
             const selected = selection.has(a.id);
+            const badge = slaBadge(a);
             return (
-              <Animated.View key={a.id} entering={FadeInDown.duration(160)} style={[s.row, selected && s.rowSel]}>
+              <Animated.View key={a.id} entering={FadeInDown.duration(160)} style={[s.row, selected && s.rowSel, a.overdue && s.rowOverdue]}>
                 <Pressable onPress={() => toggleSel(a.id)} style={[s.check, selected && s.checkOn]}>
                   {selected && <CheckCircle2 size={11} color="#fff" />}
                 </Pressable>
@@ -319,14 +532,15 @@ export function ApprovalsView() {
                       label={a.priority === 'high' ? 'HIGH' : a.priority === 'med' ? 'MED' : 'LOW'}
                       kind={priorityKind(a.priority)}
                     />
+                    <StatusPill label={badge.label} kind={badge.kind} />
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 5 }}>
-                    <Icon size={11} color={SAC.muted} />
+                    <Icon size={11} color={T.muted} />
                     <Text numberOfLines={1} style={s.meta}>{a.meta}</Text>
                   </View>
                 </View>
-                <SecondaryButton size="sm" onPress={() => setReviewItem(a)}>
-                  <Eye size={12} color={SAC.muted} />
+                <SecondaryButton size="sm" onPress={() => openReview(a)}>
+                  <Eye size={12} color={T.muted} />
                   <Text style={s.secText}>Review</Text>
                 </SecondaryButton>
                 <GradientButton size="sm" onPress={() => onApprove(a.id, a.who)}>
@@ -336,7 +550,7 @@ export function ApprovalsView() {
                 <SecondaryButton size="sm" danger onPress={() => onReject(a.id, a.who)}>
                   <Text style={s.dangerText}>Reject</Text>
                 </SecondaryButton>
-                <ChevronRight size={14} color={SAC.dim} />
+                <ChevronRight size={14} color={T.dim} />
               </Animated.View>
             );
           })}
@@ -350,7 +564,7 @@ export function ApprovalsView() {
 
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
-  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
+  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
   sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
 
   row: {
@@ -359,16 +573,28 @@ const s = StyleSheet.create({
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12,
   },
   rowSel: { borderColor: GRAD.ring, backgroundColor: 'rgba(245,158,11,0.04)' },
+  rowOverdue: { borderColor: 'rgba(239,68,68,0.55)', backgroundColor: 'rgba(239,68,68,0.05)' },
+
+  slaStrip: {
+    flexDirection: 'row', alignItems: 'center', gap: 14, flexWrap: 'wrap',
+    paddingVertical: 12, paddingHorizontal: 14,
+    backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 10, marginTop: 12,
+  },
+  slaStat: { alignItems: 'center', minWidth: 54 },
+  slaStatValue: { color: SAC.danger, fontFamily: FONTS.xbold, fontSize: 17 },
+  slaStatLabel: { color: SAC.dim, fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 0.6, marginTop: 2 },
+  slaDivider: { width: 1, height: 26, backgroundColor: SAC.border2 },
+  slaHint: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 },
   check: {
     width: 18, height: 18, borderRadius: 5, borderWidth: 1.4, borderColor: SAC.border2,
     alignItems: 'center', justifyContent: 'center',
   },
   checkOn: { backgroundColor: GRAD.to, borderColor: GRAD.to },
 
-  name: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13.5 },
+  name: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13.5 },
   meta: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
 
-  primaryText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 11.5 },
+  primaryText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 11.5 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
-  dangerText: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 11.5 },
+  dangerText: { color: SAC.danger, fontFamily: FONTS.bold, fontSize: 11.5 },
 });

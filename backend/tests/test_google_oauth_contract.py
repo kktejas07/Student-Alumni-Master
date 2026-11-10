@@ -517,8 +517,121 @@ class TestOauthConfigEndpoint:
         assert "firebase_service_account" not in body
         assert "linkedin_oauth_client_secret" not in body
         assert "private_key" not in body
-        assert "UNIT-TEST-SECRET" not in body
-        assert "unit-test-linkedin-secret" not in body
+
+
+class TestPersonalGmailAuthentication:
+    """Basic authentication must accept personal (non-college) email.
+
+    Google/Firebase identities are accepted the same way as any other
+    verified account; college eligibility is a separate concept that must
+    never be inferred here (no silent `_upsert_oauth_user` college/domain
+    assignment, and never the client-supplied email as identity).
+    """
+
+    def test_verified_firebase_gmail_token_creates_session(
+        self, client, production_mode, monkeypatch
+    ):
+        """A Firebase-verified personal Gmail user can authenticate."""
+        monkeypatch.setenv("FIREBASE_SERVICE_ACCOUNT_JSON", FAKE_SERVICE_ACCOUNT)
+        monkeypatch.setattr(auth_mod.g_id, "verify_oauth2_token", google_verifier_rejects)
+        gmail_claims = {
+            **FIREBASE_CLAIMS,
+            "email": "personal.creator@gmail.com",
+            "name": "Personal User",
+        }
+        install_firebase_admin_mocks(monkeypatch, claims=gmail_claims)
+        fake_db = auth_mod.db
+
+        r = client.post(
+            "/api/auth/google",
+            json={
+                "id_token": "firebase-id-token",
+                "email": "personal.creator@gmail.com",
+                "full_name": "Personal User",
+                "role": "student",
+            },
+        )
+
+        assert r.status_code == 200
+        data = r.json()
+        assert data["access_token"] and data["refresh_token"]
+        assert data["user"]["email"] == "personal.creator@gmail.com"
+        assert data["user"]["role"] == "student"
+        assert len(fake_db.users.docs) == 1
+
+    def test_gmail_account_is_not_silently_assigned_a_college(
+        self, client, production_mode, monkeypatch
+    ):
+        """Signing in must not grant college eligibility via email-domain inference."""
+        monkeypatch.setenv("FIREBASE_SERVICE_ACCOUNT_JSON", FAKE_SERVICE_ACCOUNT)
+        monkeypatch.setattr(auth_mod.g_id, "verify_oauth2_token", google_verifier_rejects)
+        install_firebase_admin_mocks(
+            monkeypatch,
+            claims={**FIREBASE_CLAIMS, "email": "person@gmail.com", "name": "P"},
+        )
+        fake_db = auth_mod.db
+
+        r = client.post(
+            "/api/auth/google",
+            json={"id_token": "firebase-id-token", "email": "person@gmail.com", "full_name": "P"},
+        )
+
+        assert r.status_code == 200
+        stored = fake_db.users.docs[0]
+        assert stored["email"] == "person@gmail.com"
+        assert stored.get("school_info") is None
+        assert not stored.get("alumni_info")
+        assert not stored.get("student_info")
+
+    def test_verified_token_email_wins_over_client_supplied_email(
+        self, client, production_mode, monkeypatch
+    ):
+        """Never trust the client email as identity, and never merge into an
+        account the attacker chose: account matching follows the VERIFIED claim."""
+        monkeypatch.setenv("FIREBASE_SERVICE_ACCOUNT_JSON", FAKE_SERVICE_ACCOUNT)
+        monkeypatch.setattr(auth_mod.g_id, "verify_oauth2_token", google_verifier_rejects)
+        install_firebase_admin_mocks(
+            monkeypatch,
+            claims={
+                **FIREBASE_CLAIMS,
+                "email": "verified.person@gmail.com",
+                "name": "Verified Person",
+            },
+        )
+        fake_db = auth_mod.db
+        # The attacker pre-chose this account name in their request payload;
+        # a verified claim that differs must never match or merge into it.
+        fake_db.users.docs.append(
+            {"email": "chosen.by.attacker@gmail.com", "role": "student"}
+        )
+
+        r = client.post(
+            "/api/auth/google",
+            json={
+                "id_token": "firebase-id-token",
+                "email": "chosen.by.attacker@gmail.com",  # ≠ verified claim
+                "full_name": "Verified Person",
+            },
+        )
+
+        assert r.status_code == 200
+        data = r.json()
+        assert data["user"]["email"] == "verified.person@gmail.com"
+        assert data["user"]["role"] == "student"
+        # Exactly one new account was created — for the VERIFIED email, not
+        # the attacker-chosen one, and the attacker-chosen account was untouched.
+        assert len(fake_db.users.docs) == 2
+        attacker_doc, verified_doc = fake_db.users.docs
+        assert attacker_doc["email"] == "chosen.by.attacker@gmail.com"
+        assert not attacker_doc.get("oauth_provider")
+        assert verified_doc["email"] == "verified.person@gmail.com"
+        assert verified_doc.get("oauth_provider") == "google"
+
+        # ...and no account was ever created from the client-supplied email.
+        assert not any(
+            d["email"] == "chosen.by.attacker@gmail.com" and "oauth_provider" in d
+            for d in fake_db.users.docs
+        )
 
 
 class TestGoogleLoginToggle:

@@ -332,6 +332,31 @@ export async function request<T>(
   }
 }
 
+/**
+ * Fetch a binary endpoint (CSV / XLSX / PDF) with auth headers and trigger a
+ * web download via an object URL. `request()` above only handles JSON, so the
+ * BGV batch-report / directory-export buttons use this instead.
+ */
+export async function downloadFileAsBlob(path: string, filename: string): Promise<void> {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+  const token = await tokenStore.getAccess();
+  const res = await fetch(`${BASE_URL}/api${path}`, {
+    method: 'GET',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error(`Download failed (${res.status})`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 export const api = {
   // Auth
   register: (payload: {
@@ -412,7 +437,7 @@ export const api = {
     ),
 
   verifyEmailOtp: (email: string, otp: string) =>
-    request<{ status: string; message: string; token?: string; user?: any }>(
+    request<{ status: string; message: string; token?: string; access_token?: string; refresh_token?: string; user?: any }>(
       '/auth/verify-email-otp', { method: 'POST', body: { email, otp }, auth: false }
     ),
 
@@ -586,7 +611,14 @@ export const api = {
   }) => request<any>('/mentor/bookings', { method: 'POST', body: payload }),
   rescheduleBooking: (id: string, slotStartIso: string) =>
     request<any>(`/bookings/${id}/reschedule`, { method: 'POST', body: { slot_start_iso: slotStartIso } }),
-  networkDiscover: (q?: string) => request<any>(`/network/discover${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  networkDiscover: (q?: string, page?: number) => {
+    const qs: string[] = [];
+    if (q) qs.push(`q=${encodeURIComponent(q)}`);
+    if (page && page > 1) qs.push(`page=${page}`);
+    const suffix = qs.length ? `?${qs.join('&')}` : '';
+    return request<any>(`/network/discover${suffix}`);
+  },
+  networkCounts: () => request<any>('/network/counts'),
   networkConnections: () => request<any>('/network/connections'),
   networkRequests: () => request<any>('/network/requests'),
   sendConnectionRequest: (otherId: string, message?: string) =>
@@ -964,6 +996,48 @@ export const api = {
     request<any>(`/bgv/verify-public/${encodeURIComponent(identifier)}`),
   downloadBGVReportPdf: (identifier: string) =>
     request<any>(`/bgv/report/pdf/${encodeURIComponent(identifier)}`),
+
+  // ── BV4–BV8: batch scan, scan history, health-check, export, consent ─────
+  createBatchScan: (payload: { candidates?: any[]; csv?: string; consent_gate?: boolean }) =>
+    request<any>('/bgv/integrations/batch-scan', { method: 'POST', body: payload }),
+  getBatchScanStatus: (jobId: string) =>
+    request<any>(`/bgv/integrations/batch-scan/${encodeURIComponent(jobId)}/status`),
+  batchScanReportPath: (jobId: string, format = 'xlsx') =>
+    `/bgv/integrations/batch-scan/${encodeURIComponent(jobId)}/report?format=${format}`,
+  listScanHistory: (params: { page?: number; page_size?: number; status?: string; email?: string; name?: string; scan_type?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.page) qs.append('page', String(params.page));
+    if (params.page_size) qs.append('page_size', String(params.page_size));
+    if (params.status) qs.append('status', params.status);
+    if (params.email) qs.append('email', params.email);
+    if (params.name) qs.append('name', params.name);
+    if (params.scan_type) qs.append('scan_type', params.scan_type);
+    const s = qs.toString();
+    return request<any>(`/bgv/integrations/scan-history${s ? `?${s}` : ''}`);
+  },
+  getScanHistoryStats: () =>
+    request<any>('/bgv/integrations/scan-history/stats'),
+  getScanHistoryDossier: (dossierId: string) =>
+    request<any>(`/bgv/integrations/scan-history/${encodeURIComponent(dossierId)}`),
+  runIntegrationHealthCheck: () =>
+    request<any>('/bgv/integrations/health-check'),
+  exportDirectory: (params: { vertical?: string; country?: string; has_linkedin?: string; q?: string; format?: string } = {}) => {
+    const qs = new URLSearchParams();
+    qs.append('vertical', params.vertical || 'all');
+    qs.append('country', params.country || 'all');
+    qs.append('has_linkedin', params.has_linkedin || 'all');
+    if (params.q) qs.append('q', params.q);
+    qs.append('format', params.format || 'csv');
+    return `/bgv/admin/export?${qs.toString()}`;
+  },
+  getConsentDashboard: () =>
+    request<any>('/bgv/consent/dashboard'),
+  requestConsent: (payload: { email: string; candidate_name?: string; scope?: string[] }) =>
+    request<any>('/bgv/consent/request', { method: 'POST', body: payload }),
+  getConsentStatus: (email: string) =>
+    request<any>(`/bgv/consent/status/${encodeURIComponent(email)}`),
+  revokeConsent: (payload: { email: string; reason?: string }) =>
+    request<any>('/bgv/consent/revoke', { method: 'POST', body: payload }),
 
   // ── Blog & Community ──────────────────────────────────────────────────────
   listBlogPosts: (category?: string, search?: string) => {

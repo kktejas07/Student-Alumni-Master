@@ -101,8 +101,7 @@ export default function ChatScreen() {
       if (result.canceled === false) {
         setSelectedFiles(prev => [...prev, ...result.assets]);
       }
-    } catch (err) {
-      console.log('Error picking document', err);
+    } catch {
     }
   };
 
