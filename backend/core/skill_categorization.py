@@ -6,7 +6,6 @@ logger = logging.getLogger(__name__)
 from enum import Enum
 from datetime import datetime, timezone
 
-MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 DB_NAME = os.environ.get("DB_NAME", "student_alumni_db")
 from db import client as _mongo
 db = _mongo[DB_NAME]
@@ -202,7 +201,7 @@ async def get_claude_chat(session_id: str, system_message: str):
         api_key=api_key,
         session_id=session_id,
         system_message=system_message,
-    ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+    ).with_model("anthropic", os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5"))
 
 async def categorize_skill(skill_name: str) -> dict:
     """Categorize a skill via taxonomy, DB cache, or AI fallback."""

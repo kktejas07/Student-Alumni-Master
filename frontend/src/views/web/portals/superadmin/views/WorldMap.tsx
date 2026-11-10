@@ -4,7 +4,7 @@
  */
 import React, { useMemo } from 'react';
 import { View, Text, Platform, StyleSheet } from 'react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS } from '../tokens';
 
 type CountryDatum = { country: string; code: string; count: number; pct?: number };
 
@@ -102,6 +102,7 @@ function NativeList({ data, color, maxItems }: { data: CountryDatum[]; color: st
 
 // ── Main component ──────────────────────────────────────────────────────────
 export function WorldMap({ data, title, color = '#1D4AFF', maxItems = 10 }: WorldMapProps) {
+  const T = useSAC();
   const maxCount = Math.max(...data.map((d) => d.count), 1);
 
   // On web, try to render the world map; fall back to list on failure

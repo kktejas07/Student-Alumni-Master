@@ -6,7 +6,7 @@
  * active hours heat map, retention, page views, error tracking, predictions,
  * session duration, activity feed, top colleges.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ScrollView,
 } from 'react-native';
@@ -16,12 +16,18 @@ import {
   BarChart3, Users, TrendingUp, Activity, Calendar, Download, RefreshCw,
   Globe, Monitor, Smartphone, Sparkles, Eye,
   Clock, FileText, AlertTriangle, Zap, Timer, Target, Radar, Layers,
+  MessageSquare,
 } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS } from '../tokens';
 import { Card, KpiTile, GRAD, SecondaryButton, StatusPill, LoadingBox, TopTabs } from '../applekit';
 import { usePortalData } from '@/src/lib/portalApi';
 import { WorldMap } from './WorldMap';
 import { VisitorIntelligenceView } from './VisitorIntelligenceView';
+import { ContactAnalyticsView } from './ContactAnalyticsView';
+import {
+  PeriodToolbar, PeriodComparisonCard, EMPTY_PERIOD, formatDelta, deltaKind,
+  type RangeKey, type PeriodBlock,
+} from './AnalyticsPeriod';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 type KPIs = {
@@ -76,6 +82,7 @@ type AnalyticsData = {
   role_distribution: RoleDist[]; engagement: Engagement; devices: DeviceData;
   geography: GeoData; funnel: FunnelStage[]; recent_activity: ActivityItem[];
   top_colleges: College[]; firebase: FirebaseData; posthog: PostHogData; errors: ErrorData; predictions: Predictions;
+  period: PeriodBlock;
 };
 
 const FALLBACK: AnalyticsData = {
@@ -88,6 +95,7 @@ const FALLBACK: AnalyticsData = {
   posthog: { configured: false, reason: '', realtime_active: 0, totals_30d: { events: 0, users: 0, pageviews: 0 }, daily_series: [], top_events: [], top_paths: [], sources: [], countries: [], devices: { by_os: [], by_browser: [], by_device: [] }, sessions: { sessions: 0, users: 0, has_session_data: false } },
   errors: { total_errors_30d: 0, auth_errors: 0, activity_errors: 0, recent: [] },
   predictions: { next_3_months: [], trend: 'stable', growth_rate_pct: 0 },
+  period: EMPTY_PERIOD,
 };
 
 const fmt = (n: number) => n >= 1000000 ? `${(n / 1000000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
@@ -99,13 +107,37 @@ const timeAgo = (iso: string) => { if (!iso) return ''; const diff = Date.now() 
 
 // ── Main Component ───────────────────────────────────────────────────────────
 export function AnalyticsView() {
+  const T = useSAC();
   const { width } = useWindowDimensions();
   const stack = width < 1100;
-  const [analyticsMode, setAnalyticsMode] = useState<'platform' | 'visitors'>('platform');
-  const { data, loading, refresh } = usePortalData<AnalyticsData>('/admin/super/analytics', FALLBACK, 15_000);
+  const [analyticsMode, setAnalyticsMode] = useState<'platform' | 'visitors' | 'contact'>('platform');
+  const [range, setRange] = useState<RangeKey>('30d');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+  const [compare, setCompare] = useState(false);
+
+  const analyticsPath = useMemo(() => {
+    const params = new URLSearchParams({ range });
+    if (range === 'custom') {
+      if (customStart) params.set('start', customStart);
+      if (customEnd) params.set('end', customEnd);
+    }
+    return `/admin/super/analytics?${params.toString()}`;
+  }, [range, customStart, customEnd]);
+
+  const { data, loading, refresh } = usePortalData<AnalyticsData>(analyticsPath, FALLBACK, 15_000);
   const d = data || FALLBACK;
   const fb = d.firebase || FALLBACK.firebase;
   const ph = d.posthog || FALLBACK.posthog;
+  const period = d.period || EMPTY_PERIOD;
+  const deltas = period.delta_pct || EMPTY_PERIOD.delta_pct;
+
+  const onPeriodChange = useCallback((next: { range: RangeKey; start: string; end: string; compare: boolean }) => {
+    setRange(next.range);
+    if (next.start) setCustomStart(next.start);
+    if (next.end) setCustomEnd(next.end);
+    setCompare(next.compare);
+  }, []);
 
   const handleExport = useCallback(() => {
     if (Platform.OS !== 'web' || !data) return;
@@ -146,11 +178,14 @@ export function AnalyticsView() {
         tabs={[
           { id: 'platform', label: 'Platform Growth & System Metrics', icon: BarChart3 },
           { id: 'visitors', label: 'Live Visitor Telemetry & Modular Radar', icon: Radar },
+          { id: 'contact', label: 'Contact Analytics', icon: MessageSquare },
         ]}
       />
 
       {analyticsMode === 'visitors' ? (
         <VisitorIntelligenceView />
+      ) : analyticsMode === 'contact' ? (
+        <ContactAnalyticsView />
       ) : (
         <Animated.View entering={FadeIn.duration(200)} style={{ gap: 14 }}>
           {/* Header */}
@@ -161,7 +196,7 @@ export function AnalyticsView() {
           </View>
           <View>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#F3F4F6' }}>Analytics Dashboard</Text>
-            <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: T.muted }}>
               {d.generated_at ? `Updated ${timeAgo(d.generated_at)}` : 'Loading...'}
               {fb.realtime_active.configured ? ` · ${fb.realtime_active.active_users} online now` : ''}
             </Text>
@@ -170,13 +205,22 @@ export function AnalyticsView() {
         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
           <StatusPill kind="success" label="Live" />
           <Pressable onPress={refresh} style={{ padding: 6, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)' }}>
-            <RefreshCw size={14} color={SAC.muted} />
+            <RefreshCw size={14} color={T.muted} />
           </Pressable>
           {Platform.OS === 'web' && (
-            <SecondaryButton onPress={handleExport}><Download size={12} color="#fff" /><Text style={{ color: SAC.text, fontFamily: FONTS.med, fontSize: 11 }}>Export</Text></SecondaryButton>
+            <SecondaryButton onPress={handleExport}><Download size={12} color="#fff" /><Text style={{ color: T.text, fontFamily: FONTS.med, fontSize: 11 }}>Export</Text></SecondaryButton>
           )}
         </View>
       </Card>
+
+      {/* Date range + previous-period comparison */}
+      <PeriodToolbar
+        range={range}
+        start={customStart}
+        end={customEnd}
+        compare={compare}
+        onChange={onPeriodChange}
+      />
 
       {/* KPI Strip */}
       <View style={{ flexDirection: stack ? 'column' : 'row', gap: 12, flexWrap: 'wrap' }}>
@@ -187,6 +231,50 @@ export function AnalyticsView() {
         <View style={{ flex: 1, minWidth: 140 }}><KpiTile Icon={Target} label="ENGAGEMENT" value={`${fb.engagement.engagement_rate}%`} delta={`${fb.engagement.bounce_rate}% bounce`} deltaKind={fb.engagement.engagement_rate > 50 ? 'success' : 'danger'} /></View>
         <View style={{ flex: 1, minWidth: 140 }}><KpiTile Icon={AlertTriangle} label="ERRORS (30d)" value={String(d.errors.total_errors_30d)} delta={`${d.errors.auth_errors} auth`} deltaKind={d.errors.total_errors_30d > 50 ? 'danger' : 'success'} /></View>
       </View>
+
+      {/* Selected-window KPIs with period-over-period deltas */}
+      <View style={{ flexDirection: stack ? 'column' : 'row', gap: 12, flexWrap: 'wrap' }}>
+        <View style={{ flex: 1, minWidth: 150 }}>
+          <KpiTile
+            Icon={Users}
+            label={`SIGNUPS · ${period.range.label.toUpperCase()}`}
+            value={fmt(period.current.signups)}
+            delta={`${formatDelta(deltas.signups)} vs previous`}
+            deltaKind={deltaKind(deltas.signups)}
+          />
+        </View>
+        <View style={{ flex: 1, minWidth: 150 }}>
+          <KpiTile
+            Icon={Activity}
+            label={`ACTIVE · ${period.range.label.toUpperCase()}`}
+            value={fmt(period.current.active_users)}
+            delta={`${formatDelta(deltas.active_users)} vs previous`}
+            deltaKind={deltaKind(deltas.active_users)}
+          />
+        </View>
+        <View style={{ flex: 1, minWidth: 150 }}>
+          <KpiTile
+            Icon={Calendar}
+            label={`BOOKINGS · ${period.range.label.toUpperCase()}`}
+            value={fmt(period.current.bookings)}
+            delta={`${formatDelta(deltas.bookings)} vs previous`}
+            deltaKind={deltaKind(deltas.bookings)}
+          />
+        </View>
+        <View style={{ flex: 1, minWidth: 150 }}>
+          <KpiTile
+            Icon={TrendingUp}
+            label={`REVENUE · ${period.range.label.toUpperCase()}`}
+            value={fmtCurrency(period.current.revenue)}
+            delta={`${formatDelta(deltas.revenue)} vs previous`}
+            deltaKind={deltaKind(deltas.revenue)}
+          />
+        </View>
+      </View>
+
+      {/* Previous-period overlay */}
+      <PeriodComparisonCard period={period} compare={compare} metric="signups" />
+      <PeriodComparisonCard period={period} compare={compare} metric="revenue" />
 
       {/* Growth + Roles */}
       <View style={{ flexDirection: stack ? 'column' : 'row', gap: 14 }}>
@@ -271,6 +359,7 @@ export function AnalyticsView() {
 // ── Sub-Components ───────────────────────────────────────────────────────────
 
 function UserGrowthCard({ growth, predictions }: { growth: GrowthPoint[]; predictions: Predictions }) {
+  const T = useSAC();
   const maxVal = Math.max(...growth.map(g => g.count), ...predictions.next_3_months.map(p => p.predicted_signups), 1);
   return (
     <Card style={{ padding: 20, gap: 12, height: 300 }}>
@@ -283,9 +372,9 @@ function UserGrowthCard({ growth, predictions }: { growth: GrowthPoint[]; predic
           const h = Math.max(4, (g.count / maxVal) * 180);
           return (
             <View key={i} style={{ flex: 1, alignItems: 'center', gap: 3 }}>
-              <Text style={{ fontFamily: FONTS.med, fontSize: 8, color: SAC.dim }}>{g.count || ''}</Text>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 8, color: T.dim }}>{g.count || ''}</Text>
               <LinearGradient colors={i === growth.length - 1 ? [GRAD.from, GRAD.to] : ['#4B5563', '#374151']} style={{ width: '80%', height: h, borderRadius: 3 }} />
-              <Text style={{ fontFamily: FONTS.med, fontSize: 8, color: SAC.dim }}>{g.month}</Text>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 8, color: T.dim }}>{g.month}</Text>
             </View>
           );
         })}
@@ -302,6 +391,7 @@ function UserGrowthCard({ growth, predictions }: { growth: GrowthPoint[]; predic
 }
 
 function RoleDistributionCard({ roles }: { roles: RoleDist[] }) {
+  const T = useSAC();
   const total = roles.reduce((s, r) => s + r.value, 0) || 1;
   return (
     <Card style={{ padding: 20, gap: 14 }}>
@@ -309,7 +399,7 @@ function RoleDistributionCard({ roles }: { roles: RoleDist[] }) {
       {roles.map((r, i) => (
         <View key={i} style={{ gap: 4 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>{r.label}</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.text }}>{r.label}</Text>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: r.color }}>{r.value.toLocaleString()} ({Math.round(r.value / total * 100)}%)</Text>
           </View>
           <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
@@ -322,6 +412,7 @@ function RoleDistributionCard({ roles }: { roles: RoleDist[] }) {
 }
 
 function ActiveHoursCard({ hours }: { hours: { hour: number; count: number }[] }) {
+  const T = useSAC();
   const maxCount = Math.max(...hours.map(h => h.count), 1);
   const grid = Array.from({ length: 24 }, (_, i) => {
     const found = hours.find(h => h.hour === i);
@@ -339,29 +430,30 @@ function ActiveHoursCard({ hours }: { hours: { hour: number; count: number }[] }
           const bg = `rgba(245,158,11,${Math.max(0.08, intensity * 0.9)})`;
           return (
             <Pressable key={h.hour} style={{ width: 32, height: 32, borderRadius: 6, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontFamily: FONTS.med, fontSize: 8, color: intensity > 0.5 ? '#fff' : SAC.muted }}>{h.hour}</Text>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 8, color: intensity > 0.5 ? '#fff' : T.muted }}>{h.hour}</Text>
             </Pressable>
           );
         })}
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>Less</Text>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.dim }}>Less</Text>
         <View style={{ flexDirection: 'row', gap: 2 }}>
           {[0.1, 0.3, 0.5, 0.7, 0.9].map((v, i) => (
             <View key={i} style={{ width: 16, height: 8, borderRadius: 2, backgroundColor: `rgba(245,158,11,${v})` }} />
           ))}
         </View>
-        <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>More</Text>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.dim }}>More</Text>
       </View>
     </Card>
   );
 }
 
 function RetentionCard({ cohorts }: { cohorts: { cohort: string; week: string; users: number }[] }) {
+  const T = useSAC();
   if (cohorts.length === 0) return (
     <Card style={{ padding: 20, gap: 12 }}>
       <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>User Retention</Text>
-      <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No retention data available yet. Configure Firebase Analytics to see retention cohorts.</Text>
+      <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.dim }}>No retention data available yet. Configure Firebase Analytics to see retention cohorts.</Text>
     </Card>
   );
   const grouped = cohorts.reduce<Record<string, { week: string; users: number }[]>>((acc, c) => {
@@ -374,7 +466,7 @@ function RetentionCard({ cohorts }: { cohorts: { cohort: string; week: string; u
       <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>User Retention</Text>
       {Object.entries(grouped).slice(0, 4).map(([cohort, weeks]) => (
         <View key={cohort} style={{ gap: 4 }}>
-          <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim }}>{cohort}</Text>
+          <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: T.dim }}>{cohort}</Text>
           <View style={{ flexDirection: 'row', gap: 2 }}>
             {weeks.map((w, i) => {
               const pct = (w.users / maxUsers) * 100;
@@ -384,7 +476,7 @@ function RetentionCard({ cohorts }: { cohorts: { cohort: string; week: string; u
                   <View style={{ width: '100%', height: 12, borderRadius: 3, backgroundColor: `${color}33` }}>
                     <View style={{ width: `${pct}%`, height: '100%', borderRadius: 3, backgroundColor: color }} />
                   </View>
-                  <Text style={{ fontFamily: FONTS.med, fontSize: 8, color: SAC.dim }}>{w.week}</Text>
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 8, color: T.dim }}>{w.week}</Text>
                 </View>
               );
             })}
@@ -420,12 +512,13 @@ function AcquisitionCard({ sources }: { sources: { source: string; sessions: num
 }
 
 function EngagementCard({ engagement }: { engagement: Engagement }) {
+  const T = useSAC();
   const maxDAU = Math.max(...engagement.daily_active_series.map(d => d.count), 1);
   return (
     <Card style={{ padding: 20, gap: 12, height: 280 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>Engagement (30 Days)</Text>
-        <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>{engagement.unique_active_users_30d} unique users</Text>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: T.muted }}>{engagement.unique_active_users_30d} unique users</Text>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 100, paddingTop: 8 }}>
         {engagement.daily_active_series.slice(-30).map((d, i) => (
@@ -435,11 +528,11 @@ function EngagementCard({ engagement }: { engagement: Engagement }) {
         ))}
       </View>
       <View style={{ gap: 6, marginTop: 4 }}>
-        <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>Top Activities</Text>
+        <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: T.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>Top Activities</Text>
         {engagement.top_categories.slice(0, 4).map((c, i) => (
           <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <View style={{ height: 6, width: `${c.pct}%`, maxWidth: 120, borderRadius: 3, backgroundColor: '#3B82F6' }} />
-            <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, flex: 1 }}>{c.category}</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: T.muted, flex: 1 }}>{c.category}</Text>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#3B82F6' }}>{c.count}</Text>
           </View>
         ))}
@@ -449,12 +542,13 @@ function EngagementCard({ engagement }: { engagement: Engagement }) {
 }
 
 function DeviceCard({ devices }: { devices: DeviceData }) {
+  const T = useSAC();
   const renderBars = (items: { label: string; value: number; pct: number }[], color: string) => (
     <View style={{ gap: 6 }}>
       {items.slice(0, 5).map((item, i) => (
         <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <View style={{ height: 6, width: `${item.pct}%`, maxWidth: 100, borderRadius: 3, backgroundColor: color, opacity: 1 - i * 0.15 }} />
-          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }}>{item.label}</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.muted, flex: 1 }}>{item.label}</Text>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color }}>{item.pct}%</Text>
         </View>
       ))}
@@ -469,18 +563,19 @@ function DeviceCard({ devices }: { devices: DeviceData }) {
             <View key={i} style={{ flex: 1, alignItems: 'center', padding: 10, borderRadius: 8, backgroundColor: 'rgba(139,92,246,0.1)' }}>
               {k.label === 'Desktop' ? <Monitor size={16} color="#8B5CF6" /> : <Smartphone size={16} color="#8B5CF6" />}
               <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6', marginTop: 4 }}>{k.pct}%</Text>
-              <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>{k.label}</Text>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.muted }}>{k.label}</Text>
             </View>
           ))}
         </View>
       )}
-      {devices.by_os.length > 0 && <View><Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>By OS</Text>{renderBars(devices.by_os, '#8B5CF6')}</View>}
-      {devices.by_browser.length > 0 && <View><Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>By Browser</Text>{renderBars(devices.by_browser, '#A78BFA')}</View>}
+      {devices.by_os.length > 0 && <View><Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: T.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>By OS</Text>{renderBars(devices.by_os, '#8B5CF6')}</View>}
+      {devices.by_browser.length > 0 && <View><Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: T.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>By Browser</Text>{renderBars(devices.by_browser, '#A78BFA')}</View>}
     </Card>
   );
 }
 
 function GeographyCard({ geo }: { geo: GeoData }) {
+  const T = useSAC();
   return (
     <Card style={{ padding: 20, gap: 14 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -492,22 +587,22 @@ function GeographyCard({ geo }: { geo: GeoData }) {
           <WorldMap data={geo.countries} title="" color="#14B8A6" />
           {/* Top countries bar */}
           <View style={{ gap: 4 }}>
-            <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>Top Countries</Text>
+            <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: T.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>Top Countries</Text>
             {geo.countries.slice(0, 6).map((c, i) => (
               <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, flex: 1 }}>{c.country}</Text>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: T.muted, flex: 1 }}>{c.country}</Text>
                 <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#14B8A6' }}>{c.count}</Text>
-                <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim }}>{c.pct}%</Text>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: T.dim }}>{c.pct}%</Text>
               </View>
             ))}
           </View>
         </>
       ) : (
-        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No geographic data yet</Text>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.dim }}>No geographic data yet</Text>
       )}
       {geo.cities.length > 0 && (
         <View style={{ marginTop: 4 }}>
-          <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>Top Cities</Text>
+          <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: T.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>Top Cities</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
             {geo.cities.slice(0, 5).map((c, i) => (
               <View key={i} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(20,184,166,0.1)', borderWidth: 1, borderColor: 'rgba(20,184,166,0.2)' }}>
@@ -522,6 +617,7 @@ function GeographyCard({ geo }: { geo: GeoData }) {
 }
 
 function FunnelCard({ funnel }: { funnel: FunnelStage[] }) {
+  const T = useSAC();
   const maxVal = funnel.length > 0 ? funnel[0].v : 1;
   return (
     <Card style={{ padding: 20, gap: 12 }}>
@@ -532,10 +628,10 @@ function FunnelCard({ funnel }: { funnel: FunnelStage[] }) {
         return (
           <View key={i} style={{ gap: 4 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>{s.label}</Text>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.text }}>{s.label}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: s.color }}>{s.v.toLocaleString()}</Text>
-                <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{Math.round(pct)}%</Text>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.dim }}>{Math.round(pct)}%</Text>
                 {dropoff > 0 && <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: '#EF4444' }}>-{dropoff}%</Text>}
               </View>
             </View>
@@ -550,6 +646,7 @@ function FunnelCard({ funnel }: { funnel: FunnelStage[] }) {
 }
 
 function ErrorTrackingCard({ errors }: { errors: ErrorData }) {
+  const T = useSAC();
   return (
     <Card style={{ padding: 20, gap: 12 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -559,22 +656,22 @@ function ErrorTrackingCard({ errors }: { errors: ErrorData }) {
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <View style={{ flex: 1, padding: 10, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.1)' }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 18, color: '#EF4444' }}>{errors.total_errors_30d}</Text>
-          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>Total Errors</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.muted }}>Total Errors</Text>
         </View>
         <View style={{ flex: 1, padding: 10, borderRadius: 8, backgroundColor: 'rgba(245,158,11,0.1)' }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 18, color: '#F59E0B' }}>{errors.auth_errors}</Text>
-          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>Auth Errors</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.muted }}>Auth Errors</Text>
         </View>
       </View>
       {errors.recent.length > 0 && (
         <View style={{ gap: 6, marginTop: 4 }}>
-          <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>Recent Errors</Text>
+          <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: T.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>Recent Errors</Text>
           {errors.recent.slice(0, 4).map((e, i) => (
             <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }}>
               <View style={{ width: 3, height: 24, borderRadius: 2, backgroundColor: '#EF4444' }} />
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.text }} numberOfLines={1}>{e.message}</Text>
-                <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim }}>{e.user} · {timeAgo(e.timestamp)}</Text>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: T.text }} numberOfLines={1}>{e.message}</Text>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: T.dim }}>{e.user} · {timeAgo(e.timestamp)}</Text>
               </View>
             </View>
           ))}
@@ -585,6 +682,7 @@ function ErrorTrackingCard({ errors }: { errors: ErrorData }) {
 }
 
 function PredictionsCard({ predictions }: { predictions: Predictions }) {
+  const T = useSAC();
   const trendColor = predictions.trend === 'growing' ? '#22C55E' : predictions.trend === 'declining' ? '#EF4444' : '#F59E0B';
   return (
     <Card style={{ padding: 20, gap: 12 }}>
@@ -595,27 +693,27 @@ function PredictionsCard({ predictions }: { predictions: Predictions }) {
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <View style={{ flex: 1, padding: 10, borderRadius: 8, backgroundColor: 'rgba(167,139,250,0.1)' }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: trendColor }}>{predictions.growth_rate_pct > 0 ? '+' : ''}{predictions.growth_rate_pct}%</Text>
-          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>Growth Rate</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.muted }}>Growth Rate</Text>
         </View>
         <View style={{ flex: 1, padding: 10, borderRadius: 8, backgroundColor: 'rgba(167,139,250,0.1)' }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: trendColor }}>{predictions.trend}</Text>
-          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>Trend</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.muted }}>Trend</Text>
         </View>
       </View>
       {predictions.next_3_months.length > 0 && (
         <View style={{ gap: 6, marginTop: 4 }}>
-          <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>Next 3 Months</Text>
+          <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: T.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>Next 3 Months</Text>
           {predictions.next_3_months.map((p, i) => (
             <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
-              <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.text }}>{p.month}</Text>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: T.text }}>{p.month}</Text>
               <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#A78BFA' }}>~{p.predicted_signups} signups</Text>
-              <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{fmt(p.cumulative)} total</Text>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.dim }}>{fmt(p.cumulative)} total</Text>
             </View>
           ))}
         </View>
       )}
       <View style={{ marginTop: 4, padding: 8, borderRadius: 6, backgroundColor: 'rgba(167,139,250,0.05)' }}>
-        <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.muted }}>
                      {predictions.trend === 'growing' ? 'User growth is accelerating. Consider scaling infrastructure.' : predictions.trend === 'declining' ? '📉 Growth is slowing. Review acquisition channels.' : '📊 Growth is stable. Focus on retention and engagement.'}
         </Text>
       </View>
@@ -624,6 +722,7 @@ function PredictionsCard({ predictions }: { predictions: Predictions }) {
 }
 
 function ActivityFeedCard({ items }: { items: ActivityItem[] }) {
+  const T = useSAC();
   const typeColors: Record<string, string> = { signup: '#22C55E', booking: '#F59E0B', echo_reg: '#8B5CF6', event_reg: '#3B82F6' };
   return (
     <Card style={{ padding: 20, gap: 10, maxHeight: 380 }}>
@@ -639,34 +738,35 @@ function ActivityFeedCard({ items }: { items: ActivityItem[] }) {
           <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' }}>
             <View style={{ width: 3, height: 32, borderRadius: 2, backgroundColor: typeColors[item.type] || '#6B7280' }} />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.text }} numberOfLines={1}>{item.title}</Text>
-              {item.subtitle ? <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{item.subtitle}</Text> : null}
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.text }} numberOfLines={1}>{item.title}</Text>
+              {item.subtitle ? <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.dim }}>{item.subtitle}</Text> : null}
             </View>
-            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{timeAgo(item.timestamp)}</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.dim }}>{timeAgo(item.timestamp)}</Text>
           </View>
         ))}
-        {items.length === 0 && <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim, textAlign: 'center', padding: 20 }}>No recent activity</Text>}
+        {items.length === 0 && <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.dim, textAlign: 'center', padding: 20 }}>No recent activity</Text>}
       </ScrollView>
     </Card>
   );
 }
 
 function TopCollegesCard({ colleges }: { colleges: College[] }) {
+  const T = useSAC();
   return (
     <Card style={{ padding: 20, gap: 10, maxHeight: 380 }}>
       <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>Top Colleges</Text>
       <ScrollView style={{ flex: 1 }}>
         {colleges.map((c, i) => (
           <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' }}>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.dim, width: 20 }}>{i + 1}</Text>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: T.dim, width: 20 }}>{i + 1}</Text>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.text }} numberOfLines={1}>{c.name}</Text>
-              <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{c.students} students · {c.alumni} alumni</Text>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.text }} numberOfLines={1}>{c.name}</Text>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.dim }}>{c.students} students · {c.alumni} alumni</Text>
             </View>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: GRAD.from }}>{c.total}</Text>
           </View>
         ))}
-        {colleges.length === 0 && <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim, textAlign: 'center', padding: 20 }}>No college data yet</Text>}
+        {colleges.length === 0 && <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.dim, textAlign: 'center', padding: 20 }}>No college data yet</Text>}
       </ScrollView>
     </Card>
   );
@@ -677,10 +777,11 @@ function TopCollegesCard({ colleges }: { colleges: College[] }) {
 // ── Shared mini-chart primitives ─────────────────────────────────────────────
 
 function PhStat({ value, label }: { value: string | number; label: string }) {
+  const T = useSAC();
   return (
     <View style={{ flex: 1, minWidth: 130, padding: 12, borderRadius: 10, backgroundColor: 'rgba(29,74,255,0.1)' }}>
       <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: '#1D4AFF' }}>{value}</Text>
-      <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>{label}</Text>
+      <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.muted }}>{label}</Text>
     </View>
   );
 }
@@ -696,8 +797,9 @@ function BarList({ items, color, limit, maxWidth = 100, labelLines, fade = false
   emptyText?: string;
   gap?: number;
 }) {
+  const T = useSAC();
   if (items.length === 0) {
-    return emptyText ? <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>{emptyText}</Text> : null;
+    return emptyText ? <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.dim }}>{emptyText}</Text> : null;
   }
   const max = Math.max(...items.map(i => i.value), 1);
   return (
@@ -705,7 +807,7 @@ function BarList({ items, color, limit, maxWidth = 100, labelLines, fade = false
       {items.slice(0, limit).map((item, i) => (
         <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <View style={{ height: 6, width: `${(item.value / max) * 100}%`, maxWidth, borderRadius: 3, backgroundColor: color, ...(fade ? { opacity: 1 - i * 0.15 } : {}) }} />
-          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }} numberOfLines={labelLines}>{item.label}</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.muted, flex: 1 }} numberOfLines={labelLines}>{item.label}</Text>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color }}>{fmt(item.value)}</Text>
         </View>
       ))}
@@ -715,16 +817,18 @@ function BarList({ items, color, limit, maxWidth = 100, labelLines, fade = false
 
 /** Titled bar group; renders nothing when empty. */
 function BarSection({ title, items, color }: { title: string; items: { label: string; value: number }[]; color: string }) {
+  const T = useSAC();
   if (items.length === 0) return null;
   return (
     <View>
-      <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>{title}</Text>
+      <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: T.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>{title}</Text>
       <BarList items={items} color={color} limit={5} fade gap={6} />
     </View>
   );
 }
 
 function PostHogOverview({ ph }: { ph: PostHogData }) {
+  const T = useSAC();
   const t = ph.totals_30d || { events: 0, users: 0, pageviews: 0 };
   const s = ph.sessions || { sessions: 0, users: 0, has_session_data: false };
   return (
@@ -743,7 +847,7 @@ function PostHogOverview({ ph }: { ph: PostHogData }) {
         )}
       </View>
       {!ph.configured ? (
-        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim, lineHeight: 18 }}>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.dim, lineHeight: 18 }}>
           {ph.reason || 'Connect PostHog to see product analytics. Add a personal API key (phx_) with query:read under Settings → Integrations → PostHog.'}
         </Text>
       ) : (
@@ -760,13 +864,14 @@ function PostHogOverview({ ph }: { ph: PostHogData }) {
 }
 
 function PostHogTrendsCard({ ph }: { ph: PostHogData }) {
+  const T = useSAC();
   const series = ph.daily_series || [];
   const maxVal = Math.max(...series.map(d => d.events), ...series.map(d => d.users), 1);
   return (
     <Card style={{ padding: 20, gap: 12, height: 260 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>PostHog Daily Activity (30d)</Text>
-        <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>events vs users</Text>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: T.muted }}>events vs users</Text>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 150, paddingTop: 8 }}>
         {series.slice(-30).map((d, i) => (
@@ -781,11 +886,11 @@ function PostHogTrendsCard({ ph }: { ph: PostHogData }) {
       <View style={{ flexDirection: 'row', gap: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
           <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: '#1D4AFF' }} />
-          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>Events</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.muted }}>Events</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
           <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: '#A78BFA' }} />
-          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>Unique users</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.muted }}>Unique users</Text>
         </View>
       </View>
     </Card>
@@ -829,6 +934,7 @@ function PostHogSourcesCard({ ph }: { ph: PostHogData }) {
 }
 
 function PostHogCountriesCard({ ph }: { ph: PostHogData }) {
+  const T = useSAC();
   const countries = ph.countries || [];
   return (
     <Card style={{ padding: 20, gap: 12 }}>
@@ -842,18 +948,19 @@ function PostHogCountriesCard({ ph }: { ph: PostHogData }) {
           <View style={{ gap: 4 }}>
             {countries.slice(0, 6).map((c, i) => (
               <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }}>{c.country}</Text>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.muted, flex: 1 }}>{c.country}</Text>
                 <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#1D4AFF' }}>{fmt(c.count)}</Text>
               </View>
             ))}
           </View>
         </>
-      ) : <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No geo data</Text>}
+      ) : <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.dim }}>No geo data</Text>}
     </Card>
   );
 }
 
 function PostHogDevicesCard({ ph }: { ph: PostHogData }) {
+  const T = useSAC();
   const devices = ph.devices || { by_os: [], by_browser: [], by_device: [] };
   return (
     <Card style={{ padding: 20, gap: 14 }}>
@@ -864,7 +971,7 @@ function PostHogDevicesCard({ ph }: { ph: PostHogData }) {
             <View key={i} style={{ flex: 1, alignItems: 'center', padding: 10, borderRadius: 8, backgroundColor: 'rgba(29,74,255,0.1)' }}>
               {d.label === 'Desktop' ? <Monitor size={16} color="#1D4AFF" /> : d.label === 'Mobile' ? <Smartphone size={16} color="#1D4AFF" /> : <Activity size={16} color="#1D4AFF" />}
               <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6', marginTop: 4 }}>{fmt(d.value)}</Text>
-              <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>{d.label}</Text>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: T.muted }}>{d.label}</Text>
             </View>
           ))}
         </View>
@@ -878,6 +985,7 @@ function PostHogDevicesCard({ ph }: { ph: PostHogData }) {
 // ── GA4 Extra Cards ──────────────────────────────────────────────────────────
 
 function GaDailyCard({ series }: { series: { date: string; count: number }[] }) {
+  const T = useSAC();
   const maxVal = Math.max(...series.map(s => s.count), 1);
   return (
     <Card style={{ padding: 20, gap: 12 }}>
@@ -889,19 +997,20 @@ function GaDailyCard({ series }: { series: { date: string; count: number }[] }) 
           </View>
         ))}
       </View>
-      {series.length === 0 && <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>Configure GA4 Property ID + service account to see daily active users</Text>}
+      {series.length === 0 && <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.dim }}>Configure GA4 Property ID + service account to see daily active users</Text>}
     </Card>
   );
 }
 
 function GaDevicesCard({ devices }: { devices: FirebaseData['devices'] }) {
+  const T = useSAC();
   return (
     <Card style={{ padding: 20, gap: 14 }}>
       <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>GA4 Devices</Text>
       <BarSection title="By OS" items={devices.by_os} color='#3B82F6' />
       <BarSection title="By Browser" items={devices.by_browser} color='#A78BFA' />
       <BarSection title="By Device" items={devices.by_device} color='#60A5FA' />
-      {devices.by_os.length === 0 && devices.by_browser.length === 0 && <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>Configure GA4 to see device breakdown</Text>}
+      {devices.by_os.length === 0 && devices.by_browser.length === 0 && <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.dim }}>Configure GA4 to see device breakdown</Text>}
     </Card>
   );
 }

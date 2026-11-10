@@ -13,5 +13,5 @@ if (-not (Test-Path $VENV_PYTHON)) {
 Write-Host "Using: $VENV_PYTHON"
 & $VENV_PYTHON --version
 
-Write-Host "Starting uvicorn on http://127.0.0.1:8002 ..."
-& $VENV_PYTHON -m uvicorn server:app --reload --port 8002
+Write-Host "Starting uvicorn on http://127.0.0.1:8000 ..."
+& $VENV_PYTHON -m uvicorn server:app --reload --port 8000

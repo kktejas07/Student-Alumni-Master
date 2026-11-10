@@ -1,0 +1,10 @@
+# Scoped lint override for audit Step 5b.
+#
+# The 16 segment files under features/echo_events/ are verbatim source cuts
+# of features/echo_showcase.py, exec'd into that module's own namespace at
+# import time (single-module semantics: they reference names defined in
+# sibling segments). F821 ("undefined name") is expected and cannot be
+# satisfied per-file; E9/F63/F7/F82 stay active everywhere else, including
+# the stub itself.
+[lint.per-file-ignores]
+"features/echo_events/*.py" = ["F821"]

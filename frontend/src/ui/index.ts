@@ -14,3 +14,4 @@ export { Modal } from './Modal';
 export { PortalShell } from './shell/PortalShell';
 export type { PortalConfig, NavItem, NavGroup, NavEntry, PortalShellProps } from './shell/types';
 export * from './motion';
+export { BrandLogo, brandColor, brandInitials, BRAND_LOGO_PALETTE, type BrandLogoProps } from './BrandLogo';

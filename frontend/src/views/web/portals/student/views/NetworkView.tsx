@@ -115,6 +115,10 @@ export function NetworkView() {
     handleConfirmBooking,
     fetchNetworkData,
     loadDiscover,
+    loadMoreDiscover,
+    roleCounts,
+    discoverPage,
+    loadingMore,
     handleDatabaseSearch,
     loadRequests,
     loadConnections,
@@ -283,17 +287,20 @@ export function NetworkView() {
                 industry: 'Industry'
               };
               const isSelected = filter === f;
+              const liveCount = roleCounts
+                ? (f === 'everyone' ? roleCounts.total : f === 'students' ? roleCounts.students : f === 'alumnis' ? roleCounts.alumni : f === 'mentors' ? roleCounts.mentors : roleCounts.industry)
+                : null;
               return (
-              <Pressable 
+              <Pressable
                 key={f}
-                onPress={() => setFilter(f as FilterType)} 
+                onPress={() => setFilter(f as FilterType)}
                 style={[
                   s.subFilterChip,
                   {
-                    backgroundColor: isSelected 
+                    backgroundColor: isSelected
                       ? (isDark ? 'rgba(20, 184, 166, 0.15)' : 'rgba(13, 148, 136, 0.12)')
                       : (isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF'),
-                    borderColor: isSelected 
+                    borderColor: isSelected
                       ? (isDark ? 'rgba(20, 184, 166, 0.35)' : 'rgba(13, 148, 136, 0.35)')
                       : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'),
                   }
@@ -302,7 +309,7 @@ export function NetworkView() {
                 <Text style={[
                   s.subFilterText,
                   {
-                    color: isSelected 
+                    color: isSelected
                       ? (isDark ? '#5EEAD4' : '#0F766E')
                       : (isDark ? 'rgba(255,255,255,0.75)' : '#475569'),
                     fontFamily: isSelected ? FONTS.bold : FONTS.semi,
@@ -310,6 +317,21 @@ export function NetworkView() {
                 ]}>
                   {filterLabels[f] || f}
                 </Text>
+                {liveCount != null && (
+                  <View style={{
+                    marginLeft: 6,
+                    minWidth: 18,
+                    height: 18,
+                    borderRadius: 9,
+                    paddingVertical: 0,
+                    paddingHorizontal: 5,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: isSelected ? (isDark ? 'rgba(94,234,212,0.15)' : 'rgba(13,148,136,0.1)') : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.05)'),
+                  }}>
+                    <Text style={{ fontSize: 11, fontFamily: FONTS.bold, color: isSelected ? (isDark ? '#5EEAD4' : '#0F766E') : (isDark ? 'rgba(255,255,255,0.55)' : '#64748B') }}>{liveCount}</Text>
+                  </View>
+                )}
               </Pressable>
               );
             })}
@@ -532,6 +554,36 @@ export function NetworkView() {
                     </View>
                   ))}
                 </View>
+              )}
+
+              {activeSection?.has_more && showMatchedInterest && (
+                <Pressable
+                  onPress={loadMoreDiscover}
+                  disabled={loadingMore}
+                  style={({ pressed }) => ({
+                    marginTop: 12,
+                    backgroundColor: isDark ? 'rgba(20,184,166,0.08)' : 'rgba(20,184,166,0.06)',
+                    borderColor: isDark ? 'rgba(20,184,166,0.25)' : 'rgba(13,148,136,0.2)',
+                    borderWidth: 1,
+                    borderRadius: 10,
+                    paddingVertical: 10,
+                    paddingHorizontal: 14,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    opacity: loadingMore ? 0.5 : pressed ? 0.85 : 1,
+                  })}
+                >
+                  {loadingMore ? (
+                    <ActivityIndicator size="small" color="#0D9488" />
+                  ) : (
+                    <ChevronDown size={14} color={isDark ? '#5EEAD4' : '#0D9488'} />
+                  )}
+                  <Text style={{ fontSize: 13, fontFamily: FONTS.semi, color: isDark ? '#5EEAD4' : '#0F766E' }}>
+                    {loadingMore ? 'Loading…' : 'Load More'}
+                  </Text>
+                </Pressable>
               )}
             </View>
           )}

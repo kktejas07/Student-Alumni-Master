@@ -217,3 +217,30 @@ describe('signInWithGoogle — diagnostics and popup flow', () => {
     await expect(signInWithGoogle()).rejects.toThrow('auth/api-key-not-valid');
   });
 });
+
+describe('isFirebaseWebConfigComplete — Google button readiness gate', () => {
+  test('true only when apiKey, authDomain, projectId and appId are all present', async () => {
+    const { isFirebaseWebConfigComplete } = await freshModule();
+
+    expect(isFirebaseWebConfigComplete(WEB_CONFIG)).toBe(true);
+  });
+
+  test('false when the config is null/undefined or entirely empty', async () => {
+    const { isFirebaseWebConfigComplete } = await freshModule();
+
+    expect(isFirebaseWebConfigComplete(null)).toBe(false);
+    expect(isFirebaseWebConfigComplete(undefined)).toBe(false);
+    expect(isFirebaseWebConfigComplete({})).toBe(false);
+  });
+
+  test.each(['apiKey', 'authDomain', 'projectId', 'appId'] as const)(
+    'false when %s is missing or blank',
+    async (field) => {
+      const { isFirebaseWebConfigComplete } = await freshModule();
+      const partial: any = { ...WEB_CONFIG };
+      delete partial[field];
+      expect(isFirebaseWebConfigComplete(partial)).toBe(false);
+      expect(isFirebaseWebConfigComplete({ ...WEB_CONFIG, [field]: '' })).toBe(false);
+    }
+  );
+});

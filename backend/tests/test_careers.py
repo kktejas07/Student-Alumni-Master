@@ -3,8 +3,8 @@ import httpx
 import uuid
 import os
 from fastapi import FastAPI
-from routers.careers import router as careers_router
-from jobs_feed import router as jobs_feed_router
+from features.routers.careers import router as careers_router
+from features.jobs_feed import router as jobs_feed_router
 from core.security import create_access_token
 from core.db import db
 

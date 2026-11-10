@@ -60,7 +60,7 @@ import re
 from cachetools import TTLCache, cached
 from pathlib import Path
 
-from core.deps import get_current_user, require_role, require_admin_role
+from core.deps import get_current_user, require_role, require_admin_role, bearer_token, decode_payload_silent
 from pydantic import BaseModel
 
 # Instantiate TTL Caches for high-traffic endpoints
@@ -76,6 +76,7 @@ from tier_logic import (
     student_suggestions_for_tier,
 )
 from core.db import db as _db
+from core.query_helpers import nonempty
 from db import fetch_users_with_mock_limit
 
 router = APIRouter()
@@ -431,17 +432,12 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
     # ── Profile lookup ──────────────────────────────────────────────
     student = None
     if not student_email:
-        auth = request.headers.get("Authorization", "")
-        if auth.startswith("Bearer "):
+        payload = decode_payload_silent(bearer_token(request.headers.get("Authorization", "")))
+        if payload and "sub" in payload:
             try:
-                import jwt
-                from core.security import JWT_SECRET, JWT_ALGORITHM
-                from bson import ObjectId
-                payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
-                if "sub" in payload:
-                    me = await _db.users.find_one({"_id": ObjectId(payload["sub"])})
-                    if me:
-                        student_email = me.get("email")
+                me = await _db.users.find_one({"_id": ObjectId(payload["sub"])})
+                if me:
+                    student_email = me.get("email")
             except Exception:
                 pass
 
@@ -617,7 +613,7 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
         branch_q = {"role": "alumni", "alumni_info.branch_or_stream": d["_id"], **college_query}
         try:
             branch_alumni = await _db.users.count_documents(branch_q)
-            branch_placed = await _db.users.count_documents({**branch_q, "alumni_info.current_employer": {"$nin": [None, "", "—", "-"]}})
+            branch_placed = await _db.users.count_documents({**branch_q, "alumni_info.current_employer": nonempty("—", "-")})
         except Exception:
             branch_alumni, branch_placed = 0, 0
         dept_placement.append({
@@ -708,7 +704,7 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
     # Calculate real placement rate (based on alumni with current employer)
     placed_alumni_cnt = await _db.users.count_documents({
         "role": "alumni",
-        "alumni_info.current_employer": {"$nin": [None, "", "—", "-"]},
+        "alumni_info.current_employer": nonempty("—", "-"),
         **college_query
     })
     placement_pct_num = int((placed_alumni_cnt / alumni_cnt) * 100) if alumni_cnt > 0 else 0
@@ -775,14 +771,13 @@ async def super_admin_overview(user: dict = Depends(require_role('admin'))):
 
     # KPIs
     kpis = [
-        {"id": "colleges",   "icon": "Building2",     "label": "Total Colleges",      "value": str(len(colleges)), "delta": "↑ growing"},
-        {"id": "students",   "icon": "GraduationCap", "label": "Total Students",      "value": f"{students:,}",    "delta": "↑ active"},
-        {"id": "mentors",    "icon": "UserCheck",     "label": "Active Mentors",      "value": str(mentors),       "delta": f"+ {pending_mentors} pending"},
-        {"id": "alumni",     "icon": "Users",         "label": "Alumni Network",      "value": f"{alumni:,}",      "delta": "↑ joined"},
-        {"id": "revenue",    "icon": "CreditCard",    "label": "Revenue This Month",  "value": _money(revenue_amt), "delta": "↑ 12% MoM"},
-        {"id": "events",     "icon": "Calendar",      "label": "Active Events",       "value": str(events),        "delta": "↑ this week"},
-        {"id": "approvals",  "icon": "CheckCircle",   "label": "Pending Approvals",   "value": str(pending_mentors), "delta": "review needed"},
-        {"id": "engagement", "icon": "BarChart3",     "label": "Platform Engagement", "value": "78%",              "delta": "↑ 3 pts"},
+        {"id": "colleges",   "icon": "Building2",     "label": "Total Colleges",      "value": str(len(colleges)), "delta": "distinct institutions"},
+        {"id": "students",   "icon": "GraduationCap", "label": "Total Students",      "value": f"{students:,}",    "delta": "on platform"},
+        {"id": "mentors",    "icon": "UserCheck",     "label": "Active Mentors",      "value": str(mentors),       "delta": f"{pending_mentors} pending"},
+        {"id": "alumni",     "icon": "Users",         "label": "Alumni Network",      "value": f"{alumni:,}",      "delta": "on platform"},
+        {"id": "revenue",    "icon": "CreditCard",    "label": "Revenue This Month",  "value": _money(revenue_amt), "delta": "paid registrations"},
+        {"id": "events",     "icon": "Calendar",      "label": "Active Events",       "value": str(events),        "delta": "scheduled"},
+        {"id": "approvals",  "icon": "CheckCircle",   "label": "Pending Approvals",   "value": str(pending_mentors), "delta": "review needed" if pending_mentors > 0 else "all clear"},
     ]
 
     # Recent activity from bookings + new users
@@ -855,10 +850,10 @@ async def super_admin_overview(user: dict = Depends(require_role('admin'))):
 
     return {
         "admin": {
-            "name": "Super Admin",
-            "email": "admin@studentalumni.in",
-            "initials": "SA",
-            "role": "Platform Admin · Full Access",
+            "name": user.get("full_name") or "Admin",
+            "email": user.get("email") or "",
+            "initials": _initials(user.get("full_name") or "Admin"),
+            "role": f"{user.get('role', 'admin').replace('_', ' ').title()} · Platform",
         },
         "kpis": kpis,
         "recentActivity": recent[:5],
@@ -1600,64 +1595,114 @@ async def export_payments_csv(user: dict = Depends(require_role('admin'))):
 
 @router.get("/admin/super/approvals")
 async def super_approvals(user: dict = Depends(require_role('admin'))):
-    """All pending items: mentors + colleges (from colleges_meta) + events."""
+    """All pending items: mentors + colleges (from colleges_meta) + events.
+
+    Each item carries its SLA state (AP1): pending duration, the SLA window it
+    is measured against, and an `overdue` flag once the window is breached.
+    """
+    from features.routers.admin.approvals import SLA_HOURS, _pending_items
+
+    now = datetime.now(timezone.utc)
+    sla_state = {
+        i["id"]: i
+        for i in await _pending_items()
+    }
+
     items: List[Dict[str, Any]] = []
 
     # Pending mentors
     cur = _db.users.find({"role": "mentor", "mentor_status": "pending"})
     async for m in cur:
         mi = m.get("mentor_info") or {}
+        item_id = str(m["_id"])
+        sla = sla_state.get(item_id, {})
         items.append({
-            "id": str(m["_id"]),
+            "id": item_id,
             "kind": "mentor",
             "who": m.get("full_name") or "—",
             "who2": _initials(m.get("full_name") or ""),
             "meta": f"{mi.get('job_title', 'Mentor')}, {mi.get('organization', '—')} · {mi.get('years_of_experience', 5)} yrs",
             "priority": "high",
             "color": _color_for(m.get("full_name", "")),
+            "pending_hours": sla.get("pending_hours", 0),
+            "sla_hours": SLA_HOURS["mentor"],
+            "due_at": sla.get("due_at"),
+            "remaining_hours": sla.get("remaining_hours", 0),
+            "overdue": bool(sla.get("overdue")),
+            "sla_state": sla.get("state", "on_track"),
         })
 
     # Pending colleges
     pcur = _db.colleges_meta.find({"status": "pending"})
     async for c in pcur:
+        item_id = str(c["_id"])
+        sla = sla_state.get(item_id, {})
         items.append({
-            "id": str(c["_id"]),
+            "id": item_id,
             "kind": "college",
             "who": c.get("name", "—"),
             "who2": _initials(c.get("name", "")),
             "meta": f"{c.get('mou_kind', 'Onboarding')} · {c.get('mou', 'Standard')} MoU · {c.get('annual_fee', '₹2.4L/yr')}",
             "priority": c.get("priority", "med"),
             "color": _color_for(c.get("name", "")),
+            "pending_hours": sla.get("pending_hours", 0),
+            "sla_hours": SLA_HOURS["college"],
+            "due_at": sla.get("due_at"),
+            "remaining_hours": sla.get("remaining_hours", 0),
+            "overdue": bool(sla.get("overdue")),
+            "sla_state": sla.get("state", "on_track"),
         })
 
     # Pending events (start_date > 30 days from now)
     ev_cur = _db.events.find({
-        "start_date": {"$gt": datetime.now(timezone.utc) + timedelta(days=30)},
+        "start_date": {"$gt": now + timedelta(days=30)},
     }).limit(2)
     async for ev in ev_cur:
+        item_id = str(ev["_id"])
+        sla = sla_state.get(item_id, {})
         items.append({
-            "id": str(ev["_id"]),
+            "id": item_id,
             "kind": "event",
             "who": ev.get("title", "Event"),
             "who2": _initials(ev.get("title", "")),
             "meta": f"{ev.get('mode', 'Online')} · Capacity {ev.get('capacity', 1000)}",
             "priority": "low",
             "color": _color_for(ev.get("title", "")),
+            "pending_hours": sla.get("pending_hours", 0),
+            "sla_hours": SLA_HOURS["event"],
+            "due_at": sla.get("due_at"),
+            "remaining_hours": sla.get("remaining_hours", 0),
+            "overdue": bool(sla.get("overdue")),
+            "sla_state": sla.get("state", "on_track"),
         })
+
+    # Overdue items first — they need attention soonest.
+    items.sort(key=lambda x: (not x["overdue"], -x["pending_hours"]))
 
     return {"items": items, "counts": {
         "all": len(items),
         "college": sum(1 for x in items if x["kind"] == "college"),
         "mentor":  sum(1 for x in items if x["kind"] == "mentor"),
         "event":   sum(1 for x in items if x["kind"] == "event"),
-    }}
+        "overdue": sum(1 for x in items if x["overdue"]),
+        "due_soon": sum(1 for x in items if x["sla_state"] == "due_soon"),
+    }, "sla_hours": SLA_HOURS}
 
 
 @router.get("/admin/super/analytics")
-async def super_analytics(user: dict = Depends(require_role('admin'))):
-    """Platform analytics — real data from MongoDB + Firebase + PostHog."""
-    from analytics import super_admin_full_analytics
-    return await super_admin_full_analytics(_db)
+async def super_analytics(
+    range: str = Query("30d", pattern="^(7d|30d|90d|ytd|custom)$"),
+    start: Optional[str] = Query(None),
+    end: Optional[str] = Query(None),
+    user: dict = Depends(require_role('admin')),
+):
+    """Platform analytics — real data from MongoDB + Firebase + PostHog.
+
+    `range` scopes the period block (current window, previous window of the
+    same length, and the % delta between them).
+    """
+    from features.analytics import super_admin_full_analytics
+    return await super_admin_full_analytics(_db, range_key=range, start=start, end=end)
 
 
 @router.get("/admin/super/ai-insights")
@@ -1916,7 +1961,7 @@ async def college_analytics(college_name: Optional[str] = None, user: dict = Dep
         return float(m.group(1)) if m else None
 
     placed_alumni = await _db.users.find(
-        {"role": "alumni", "alumni_info.current_employer": {"$nin": [None, "", "—", "-"]}, **college_query},
+        {"role": "alumni", "alumni_info.current_employer": nonempty("—", "-"), **college_query},
         {"alumni_info": 1},
     ).to_list(2000)
     recorded_lpa = [l for l in (_to_lpa((d.get("alumni_info") or {}).get("package_lpa")) for d in placed_alumni) if l]
@@ -2629,7 +2674,7 @@ async def create_workflow(req: WorkflowCreateRequest, user: dict = Depends(requi
 async def fire_workflow_event_endpoint(event_type: str = Body(...), payload: Optional[Dict[str, Any]] = Body(None)):
     """Manually fire a workflow event. All workflows with matching event_triggers will run."""
     try:
-        from workflow_automation import fire_workflow_event as _fire
+        from features.workflow_automation import fire_workflow_event as _fire
         results = await _fire(event_type, payload or {})
         return {"ok": True, "event_type": event_type, "workflows_triggered": len(results), "results": results}
     except Exception as e:
@@ -2637,7 +2682,7 @@ async def fire_workflow_event_endpoint(event_type: str = Body(...), payload: Opt
 
 
 # ── Step registry: single source of truth lives in workflow_automation ──
-from workflow_automation import STEP_REGISTRY  # noqa: E402
+from features.workflow_automation import STEP_REGISTRY  # noqa: E402
 
 
 @router.post("/admin/super/workflows/{wf_id}/run")
@@ -2730,6 +2775,18 @@ async def delete_workflow(wf_id: str, user: dict = Depends(require_role('admin')
     return {"ok": True, "deleted": wf_id}
 
 
+async def _log_approval_action(action: str, kind: str, item_id: str, label: str, user: dict, detail: Optional[Dict[str, Any]] = None):
+    """Append an entry to the immutable approval audit trail (AP4)."""
+    try:
+        from features.routers.admin.approvals import _write_audit
+        await _write_audit(
+            action=action, kind=kind, item_id=item_id, label=label,
+            user=user, detail=detail or {},
+        )
+    except Exception:
+        pass
+
+
 @router.post("/admin/super/approvals/{user_id}/approve")
 async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))):
     """Approve a pending mentor, college, or event."""
@@ -2738,9 +2795,11 @@ async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))
         oid = ObjectId(user_id)
         res = await _db.users.update_one({"_id": oid, "role": "mentor"}, {"$set": {"mentor_status": "approved", "approved_at": datetime.now(timezone.utc)}})
         if res.matched_count > 0:
+            await _log_approval_action("approved", "mentor", user_id, user.get("full_name") or "", user)
             return {"ok": True, "kind": "mentor"}
         res2 = await _db.colleges_meta.update_one({"_id": oid}, {"$set": {"status": "active", "approved_at": datetime.now(timezone.utc)}})
         if res2.matched_count > 0:
+            await _log_approval_action("approved", "college", user_id, "", user)
             return {"ok": True, "kind": "college"}
     except Exception:
         pass
@@ -2751,6 +2810,7 @@ async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))
         {"$set": {"status": "active", "approved_at": datetime.now(timezone.utc)}}
     )
     if res.matched_count > 0:
+        await _log_approval_action("approved", "college", user_id, user_id, user)
         return {"ok": True, "kind": "college"}
 
     # Try events by title
@@ -2759,6 +2819,7 @@ async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))
         {"$set": {"status": "live", "approved_at": datetime.now(timezone.utc)}}
     )
     if res3.matched_count > 0:
+        await _log_approval_action("approved", "event", user_id, user_id, user)
         return {"ok": True, "kind": "event"}
 
     raise HTTPException(404, "Not found")
@@ -2768,18 +2829,21 @@ async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))
 async def reject_user(user_id: str, user: dict = Depends(require_role('admin'))):
     try:
         oid = ObjectId(user_id)
-        res = await _db.users.update_one({"_id": oid, "role": "mentor"}, {"$set": {"mentor_status": "rejected"}})
+        res = await _db.users.update_one({"_id": oid, "role": "mentor"}, {"$set": {"mentor_status": "rejected", "rejected_at": datetime.now(timezone.utc)}})
         if res.matched_count > 0:
+            await _log_approval_action("rejected", "mentor", user_id, user.get("full_name") or "", user)
             return {"ok": True, "kind": "mentor"}
-        res2 = await _db.colleges_meta.update_one({"_id": oid}, {"$set": {"status": "rejected"}})
+        res2 = await _db.colleges_meta.update_one({"_id": oid}, {"$set": {"status": "rejected", "rejected_at": datetime.now(timezone.utc)}})
         if res2.matched_count > 0:
+            await _log_approval_action("rejected", "college", user_id, "", user)
             return {"ok": True, "kind": "college"}
     except Exception:
         pass
 
     # Try by name
-    res = await _db.colleges_meta.update_one({"name": user_id}, {"$set": {"status": "rejected"}})
+    res = await _db.colleges_meta.update_one({"name": user_id}, {"$set": {"status": "rejected", "rejected_at": datetime.now(timezone.utc)}})
     if res.matched_count > 0:
+        await _log_approval_action("rejected", "college", user_id, user_id, user)
         return {"ok": True, "kind": "college"}
 
     # Try events by title
@@ -2788,6 +2852,7 @@ async def reject_user(user_id: str, user: dict = Depends(require_role('admin')))
         {"$set": {"status": "cancelled", "rejected_at": datetime.now(timezone.utc)}}
     )
     if res3.matched_count > 0:
+        await _log_approval_action("rejected", "event", user_id, user_id, user)
         return {"ok": True, "kind": "event"}
 
     raise HTTPException(404, "Not found")
