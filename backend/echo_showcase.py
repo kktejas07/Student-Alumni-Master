@@ -29,7 +29,7 @@ import secrets
 import mimetypes
 from pathlib import Path
 from datetime import datetime, timezone, date as _date
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile, Query, Body
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -407,6 +407,22 @@ async def _require_admin(request: Request):
         raise HTTPException(status_code=401, detail="Invalid token")
     if payload.get("role") not in ("admin", "super_admin"):
         raise HTTPException(status_code=403, detail="Admin only")
+    return payload
+
+
+async def _require_super_admin(request: Request):
+    """Require an existing Super Admin account for lifecycle status changes."""
+    payload = await _require_admin(request)
+    user_id = payload.get("sub") or payload.get("user_id")
+    try:
+        user = await _get_db(request).users.find_one({"_id": ObjectId(str(user_id))})
+    except Exception:
+        user = None
+    if not user or not (
+        user.get("is_super_admin") is True
+        or (user.get("role") or "").lower() == "super_admin"
+    ):
+        raise HTTPException(status_code=403, detail="Super Admin access required")
     return payload
 
 
@@ -3017,7 +3033,7 @@ class ShowcaseCreateSchema(BaseModel):
     college: Optional[str] = ""
     category: Optional[str] = "college-event"
     status: Optional[str] = "draft"           # draft | published | archived
-    event_status_badge: Optional[str] = "Upcoming"  # Upcoming | Live | Completed
+    event_status_badge: Optional[str] = "Upcoming"
     hero_image_url: Optional[str] = None
     hero_cover_url: Optional[str] = None
     hero_thumbnail_url: Optional[str] = None
@@ -3115,6 +3131,11 @@ class ShowcaseUpdateSchema(BaseModel):
     perks: Optional[List[PerkItem]] = None
     ticker_messages: Optional[List[TickerMessage]] = None
     cyber_conclave: Optional[CyberConclaveConfig] = None
+
+
+class ShowcaseStatusUpdateSchema(BaseModel):
+    event_status_badge: str
+    registration_enabled: Optional[bool] = True
 
 
 # ── Seed Default Data ────────────────────────────────────────────────────────
@@ -7004,18 +7025,27 @@ async def admin_list_showcases(request: Request, _=Depends(_require_admin)):
     if len(docs) == 0:
         await seed_echo_showcase(db)
         docs = await db.echo_showcases.find({}).sort("created_at", -1).to_list(200)
-    return {"items": [_ser(d) for d in docs]}
+    try:
+        await _require_super_admin(request)
+        can_manage_statuses = True
+    except HTTPException:
+        can_manage_statuses = False
+    return {"items": [_ser(d) for d in docs], "can_manage_statuses": can_manage_statuses}
 
 
 @router.post("/admin/showcases")
 async def create_showcase(payload: ShowcaseCreateSchema, request: Request, admin=Depends(_require_admin)):
     db = _get_db(request)
+    if payload.event_status_badge != "Upcoming" or (payload.registration and payload.registration.enabled is False):
+        await _require_super_admin(request)
     existing = await db.echo_showcases.find_one({"slug": payload.slug})
     if existing:
         raise HTTPException(status_code=409, detail="Slug already exists")
     doc = payload.model_dump()
     doc["sections"] = {**DEFAULT_SECTIONS, **(doc.get("sections") or {})}
     doc["registration"] = doc.get("registration") or {"enabled": True, "fee": 0, "currency": "INR"}
+    if doc.get("event_status_badge") == "Completed":
+        doc["registration"].update({"enabled": False, "temporary_open": False, "temporary_close_at": ""})
     doc["created_at"] = _now()
     doc["updated_at"] = _now()
     doc["created_by"] = admin.get("sub") or admin.get("user_id") or "admin"
@@ -7028,6 +7058,42 @@ async def create_showcase(payload: ShowcaseCreateSchema, request: Request, admin
 async def update_showcase(showcase_id: str, payload: ShowcaseUpdateSchema, request: Request, _=Depends(_require_admin)):
     db = _get_db(request)
     update = {k: v for k, v in payload.model_dump().items() if v is not None}
+    current = await db.echo_showcases.find_one({"_id": _oid(showcase_id)})
+    if not current:
+        raise HTTPException(status_code=404, detail="Showcase not found")
+
+    # Existing admins retain CMS editing access, but only Super Admins may
+    # change the event lifecycle badge or whether registration is enabled.
+    lifecycle_changed = (
+        "event_status_badge" in update
+        and update["event_status_badge"] != current.get("event_status_badge", "Upcoming")
+    )
+    registration = update.get("registration")
+    current_registration = current.get("registration") or {}
+    registration_changed = (
+        isinstance(registration, dict)
+        and registration.get("enabled", current_registration.get("enabled", True))
+        != current_registration.get("enabled", True)
+    )
+    if lifecycle_changed or registration_changed:
+        await _require_super_admin(request)
+
+    if registration_changed:
+        next_registration = {**current_registration, **registration}
+        if next_registration.get("enabled") is False:
+            next_registration["temporary_open"] = False
+            next_registration["temporary_close_at"] = ""
+            update["registration"] = next_registration
+        else:
+            candidate = {**current, **update, "registration": next_registration}
+            await _assert_registration_open(db, candidate)
+    if lifecycle_changed and update["event_status_badge"] == "Completed":
+        # A completed event cannot keep accepting new registrations.
+        current_reg_value = update.get("registration") or current_registration
+        if current_reg_value.get("enabled", True):
+            current_reg_value = {**current_reg_value, "enabled": False, "temporary_open": False, "temporary_close_at": ""}
+            update["registration"] = current_reg_value
+
     update["updated_at"] = _now()
     result = await db.echo_showcases.update_one({"_id": _oid(showcase_id)}, {"$set": update})
     if result.matched_count == 0:
@@ -7039,6 +7105,51 @@ async def update_showcase(showcase_id: str, payload: ShowcaseUpdateSchema, reque
         recon = await _reconcile_coupons_for_paid(db, doc or {})
         outcome["coupon_sync"] = recon
     return outcome
+
+
+@router.patch("/admin/showcases/{showcase_id}/statuses")
+async def update_showcase_statuses(
+    showcase_id: str,
+    payload: ShowcaseStatusUpdateSchema,
+    request: Request,
+    _=Depends(_require_super_admin),
+):
+    """Save lifecycle and registration status from the Super Admin CMS."""
+    db = _get_db(request)
+    current = await db.echo_showcases.find_one({"_id": _oid(showcase_id)})
+    if not current:
+        raise HTTPException(status_code=404, detail="Showcase not found")
+    badge_clean = (payload.event_status_badge or "").strip()
+    badge_lower = badge_clean.lower()
+    if badge_clean == "Completed" or "closed" in badge_lower:
+        registration_enabled = False
+    elif "open" in badge_lower:
+        registration_enabled = True
+    else:
+        registration_enabled = bool(payload.registration_enabled) and badge_clean != "Completed"
+
+    if registration_enabled:
+        candidate = {
+            **current,
+            "event_status_badge": badge_clean,
+            "registration": {**(current.get("registration") or {}), "enabled": True, "temporary_open": False, "temporary_close_at": ""},
+        }
+        await _assert_registration_open(db, candidate)
+    values = {
+        "event_status_badge": badge_clean,
+        "registration.enabled": registration_enabled,
+        "updated_at": _now(),
+    }
+    if not registration_enabled:
+        values["registration.temporary_open"] = False
+        values["registration.temporary_close_at"] = ""
+    result = await db.echo_showcases.update_one(
+        {"_id": _oid(showcase_id)}, {"$set": values}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Showcase not found")
+    doc = await db.echo_showcases.find_one({"_id": _oid(showcase_id)})
+    return _ser(doc or {})
 
 
 class TemporaryOpenSchema(BaseModel):
@@ -7058,11 +7169,24 @@ async def temporary_open_showcase(
     temporary_close_at timestamp = now + duration. A background sweep (and the
     registration gate itself) auto-closes the showcase once that window passes.
     """
+    await _require_super_admin(request)
     from datetime import timedelta
     db = _get_db(request)
     minutes = max(1, min(int(payload.duration_minutes or 60), 7 * 24 * 60))  # 1 min .. 7 days
     now = datetime.now(timezone.utc)
     close_at = now + timedelta(minutes=minutes)
+    current = await db.echo_showcases.find_one({"_id": _oid(showcase_id)})
+    if not current:
+        raise HTTPException(status_code=404, detail="Showcase not found")
+    await _assert_registration_open(db, {
+        **current,
+        "registration": {
+            **(current.get("registration") or {}),
+            "enabled": True,
+            "temporary_open": True,
+            "temporary_close_at": close_at.isoformat(),
+        },
+    })
 
     result = await db.echo_showcases.update_one(
         {"_id": _oid(showcase_id)},

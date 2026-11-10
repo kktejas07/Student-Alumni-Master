@@ -37,10 +37,13 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 // ── Status badge colors ─────────────────────────────────────────────────────
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
-  'Completed':  { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.30)', text: '#34D399', dot: '#10B981' },
-  'Live':       { bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.30)',   text: '#FCA5A5', dot: '#EF4444' },
-  'Upcoming':   { bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.30)',  text: '#FCD34D', dot: '#F59E0B' },
-  'default':    { bg: 'rgba(99,102,241,0.12)',  border: 'rgba(99,102,241,0.30)',  text: '#A5B4FC', dot: '#6366F1' },
+  'Completed':            { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.30)', text: '#34D399', dot: '#10B981' },
+  'Not Completed':        { bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.30)',  text: '#FCD34D', dot: '#F59E0B' },
+  'Registrations Open':   { bg: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.30)',  text: '#93C5FD', dot: '#3B82F6' },
+  'Registrations Closed': { bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.30)',   text: '#FCA5A5', dot: '#EF4444' },
+  'Live':                 { bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.30)',   text: '#FCA5A5', dot: '#EF4444' },
+  'Upcoming':             { bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.30)',  text: '#FCD34D', dot: '#F59E0B' },
+  'default':              { bg: 'rgba(99,102,241,0.12)',  border: 'rgba(99,102,241,0.30)',  text: '#A5B4FC', dot: '#6366F1' },
 };
 
 const STAT_ICONS: Record<string, any> = {
@@ -264,6 +267,11 @@ function HeroBannerCarousel({ banners, data, isWide, onBack, canonicalSlug, show
             <View style={bc.deadlinePill}>
               <Clock size={11} color="#FBBF24" />
               <Text style={bc.deadlineText}>Registration closes: {data.registration.deadline}</Text>
+            </View>
+          ) : null}
+          {data?.registration?.enabled === false ? (
+            <View style={{ alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.32)' }}>
+              <Text style={{ color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.7 }}>REGISTRATION CLOSED</Text>
             </View>
           ) : null}
 
