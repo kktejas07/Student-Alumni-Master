@@ -7,12 +7,13 @@ import { displayName } from '@/src/lib/portalHome';
 import type { NavItem, PortalConfig } from '@/src/ui/shell/types';
 
 export type CollegeNavId =
-  | 'dashboard' | 'students' | 'alumni' | 'mentors' | 'events' | 'create-event'
+  | 'dashboard' | 'career-ai' | 'students' | 'alumni' | 'mentors' | 'events' | 'create-event'
   | 'announcements' | 'analytics' | 'ai-insights' | 'career-intel'
   | 'placements' | 'profile';
 
 export const NAV: (NavItem & { id: CollegeNavId })[] = [
   { id: 'dashboard',     label: 'Dashboard',     Icon: LayoutDashboard },
+  { id: 'career-ai',     label: 'Career AI',     Icon: Sparkles, spark: true },
   { id: 'students',      label: 'Students',      Icon: GraduationCap },
   { id: 'alumni',        label: 'Alumni',        Icon: Users },
   { id: 'mentors',       label: 'Mentors',       Icon: UserCheck, countKey: 'mentors', alert: true },
