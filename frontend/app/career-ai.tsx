@@ -180,6 +180,8 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
     if (!isEmbedded && initialized && user) {
       if (user.role === 'alumni') router.replace('/alumni-portal?tab=career-ai' as any);
       else if (user.role === 'student') router.replace('/student-portal?tab=career-ai' as any);
+      else if (user.role === 'college') router.replace('/college-portal?tab=career-ai' as any);
+      else if (user.role === 'mentor') router.replace('/mentor-portal?tab=career-ai' as any);
     }
   }, [isEmbedded, initialized, user, router]);
 
@@ -685,7 +687,13 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
       <HorizontalRoadmap
         milestones={allMilestones}
         targetRole={targetRole}
-        onViewAll={() => router.push('/student-portal?tab=profile' as any)}
+        onViewAll={() => {
+          const path = user?.role === 'alumni' ? '/alumni-portal?tab=profile' :
+                       user?.role === 'college' ? '/college-portal?tab=profile' :
+                       user?.role === 'mentor' ? '/mentor-portal?tab=profile' :
+                       '/student-portal?tab=profile';
+          router.push(path as any);
+        }}
       />
 
       {/* ══════════════ 8. ROW 3: THIS WEEK'S FOCUS & RECRUITER VIEW ══════════════ */}

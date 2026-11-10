@@ -5,10 +5,11 @@ import {
 import { displayName, displayInitials } from '@/src/lib/portalHome';
 import type { NavItem, PortalConfig } from '@/src/ui/shell/types';
 
-export type NavId = 'dashboard' | 'students' | 'sessions' | 'requests' | 'network' | 'earnings' | 'feedback' | 'event' | 'availability' | 'profile' | 'ai-studio';
+export type NavId = 'dashboard' | 'career-ai' | 'students' | 'sessions' | 'requests' | 'network' | 'earnings' | 'feedback' | 'event' | 'availability' | 'profile' | 'ai-studio';
 
 export const NAV: (NavItem & { id: NavId })[] = [
   { id: 'dashboard',    label: 'Dashboard',        Icon: LayoutDashboard },
+  { id: 'career-ai',    label: 'Career AI',        Icon: Sparkles, spark: true },
   { id: 'ai-studio',    label: 'AI Studio',        Icon: Sparkles, spark: true },
   { id: 'students',     label: 'My Connections',   Icon: Users,    countKey: 'students' },
   { id: 'sessions',     label: 'Sessions',         Icon: Calendar, countKey: 'sessions' },
