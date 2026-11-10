@@ -235,26 +235,7 @@ const CATEGORY_OPTIONS = [
   'career-guidance', 'industrial-visit', 'placement-training',
 ];
 const STATUS_OPTIONS = ['draft', 'published', 'archived'];
-const STATUS_BADGE_OPTIONS = [
-  'Completed',
-  'Not Completed',
-  'Registrations Open',
-  'Registrations Closed',
-  'Upcoming',
-  'Live',
-];
-
-const getEventBadgeKind = (badge?: string): any => {
-  if (!badge) return 'neutral';
-  const b = badge.toLowerCase().trim();
-  if (b.includes('completed') && !b.includes('not')) return 'success';
-  if (b.includes('not completed') || b === 'not completed') return 'warn';
-  if (b.includes('open')) return 'info';
-  if (b.includes('closed')) return 'danger';
-  if (b === 'live') return 'danger';
-  if (b === 'upcoming') return 'warn';
-  return 'warn';
-};
+const STATUS_BADGE_OPTIONS = ['Upcoming', 'Live', 'Completed'];
 const SPONSOR_TIER_OPTIONS = ['Title Sponsor', 'Platinum Sponsor', 'Gold Sponsor', 'Silver Sponsor', 'Associate Sponsor', 'Partner'];
 const GALLERY_LAYOUT_OPTIONS = ['grid', 'masonry', 'mixed', 'featured-grid', 'carousel'];
 const VIDEO_PLATFORM_OPTIONS = ['youtube', 'vimeo', 'mp4'];
@@ -2045,9 +2026,7 @@ function MediaLibraryPanel() {
 }
 
 // ── Showcase Card ─────────────────────────────────────────────────────────────
-function ShowcaseCard({ item, onEdit, onDelete, onPublish, onDraft, onArchive, onPreview, busy, onQuickStatusChange }: any) {
-  const [showQuickStatus, setShowQuickStatus] = useState(false);
-
+function ShowcaseCard({ item, onEdit, onDelete, onPublish, onDraft, onArchive, onPreview, busy }: any) {
   const viewShowcase = () => {
     if (Platform.OS === 'web') {
       window.open(`/echo/${item.slug}`, '_blank');
@@ -2061,33 +2040,10 @@ function ShowcaseCard({ item, onEdit, onDelete, onPublish, onDraft, onArchive, o
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>{item.title}</Text>
             <StatusPill label={(item.status || 'draft').toUpperCase()} kind={STATUS_PILL_MAP[item.status] || 'neutral'} />
-            
-            {/* Clickable Event Status Badge */}
-            {item.event_status_badge ? (
-              <Pressable
-                onPress={() => setShowQuickStatus((prev) => !prev)}
-                accessibilityLabel="Change event status"
-                style={({ hovered }: any) => [
-                  Platform.OS === 'web' ? ({ cursor: 'pointer', opacity: hovered ? 0.8 : 1 } as any) : null,
-                ]}
-              >
-                <StatusPill label={item.event_status_badge} kind={getEventBadgeKind(item.event_status_badge)} />
-              </Pressable>
-            ) : null}
-
-            {/* Registrations Closed badge if registration is disabled and not already indicated by event_status_badge */}
-            {(!item.registration || item.registration?.enabled === false || String(item.registration?.enabled).toLowerCase() === 'false') &&
-              item.event_status_badge !== 'Registrations Closed' &&
-              item.event_status_badge !== 'Completed' ? (
-                <Pressable
-                  onPress={() => setShowQuickStatus((prev) => !prev)}
-                  accessibilityLabel="Change registration status"
-                  style={({ hovered }: any) => [
-                    Platform.OS === 'web' ? ({ cursor: 'pointer', opacity: hovered ? 0.8 : 1 } as any) : null,
-                  ]}
-                >
-                  <StatusPill label="Registrations Closed" kind="danger" />
-                </Pressable>
+            {(!item.registration || item.registration?.enabled === false || String(item.registration?.enabled).toLowerCase() === 'false') ? (
+              <StatusPill label="Registrations Closed" kind="danger" />
+            ) : item.event_status_badge ? (
+              <StatusPill label={item.event_status_badge} kind={item.event_status_badge === 'Live' ? 'danger' : item.event_status_badge === 'Completed' ? 'success' : 'warn'} />
             ) : null}
           </View>
           {item.subtitle ? <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: SAC.muted }} numberOfLines={1}>{item.subtitle}</Text> : null}
@@ -2097,84 +2053,8 @@ function ShowcaseCard({ item, onEdit, onDelete, onPublish, onDraft, onArchive, o
             {item.category ? <Text style={cs.meta}>{item.category}</Text> : null}
             <Text style={cs.meta}>/{item.slug}</Text>
           </View>
-
-          {/* Quick Status Bar (One-click status change directly on card) */}
-          {showQuickStatus && (
-            <View style={{
-              marginTop: 10,
-              padding: 10,
-              backgroundColor: 'rgba(255,255,255,0.035)',
-              borderRadius: 10,
-              borderWidth: 1,
-              borderColor: 'rgba(245,158,11,0.3)',
-              flexDirection: 'row',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: 8,
-            }}>
-              <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted, marginRight: 2 }}>
-                Change Status:
-              </Text>
-              {STATUS_BADGE_OPTIONS.map((opt) => {
-                const isCur = item.event_status_badge === opt;
-                return (
-                  <Pressable
-                    key={opt}
-                    disabled={busy === item._id}
-                    onPress={() => {
-                      onQuickStatusChange?.(item, opt);
-                      setShowQuickStatus(false);
-                    }}
-                    style={({ hovered }: any) => [
-                      {
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 5,
-                        paddingHorizontal: 10,
-                        paddingVertical: 5,
-                        borderRadius: 999,
-                        borderWidth: 1,
-                        borderColor: isCur ? SAC.accent : 'rgba(255,255,255,0.14)',
-                        backgroundColor: isCur
-                          ? 'rgba(245,158,11,0.22)'
-                          : hovered
-                          ? 'rgba(255,255,255,0.08)'
-                          : 'rgba(255,255,255,0.03)',
-                      },
-                      Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : null,
-                    ]}
-                  >
-                    <Text style={{
-                      fontFamily: FONTS.bold,
-                      fontSize: 11,
-                      color: isCur ? SAC.text : SAC.muted,
-                    }}>
-                      {isCur ? `✔ ${opt}` : opt}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-              <Pressable
-                onPress={() => setShowQuickStatus(false)}
-                style={({ hovered }: any) => [
-                  { paddingHorizontal: 8, paddingVertical: 4 },
-                  Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : null,
-                ]}
-              >
-                <Text style={{ color: SAC.dim, fontSize: 11, fontFamily: FONTS.med }}>Cancel</Text>
-              </Pressable>
-            </View>
-          )}
         </View>
         <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <Tip label="Change status">
-            <Pressable
-              onPress={() => setShowQuickStatus((prev) => !prev)}
-              style={[cs.iconBtn, showQuickStatus && { backgroundColor: 'rgba(245,158,11,0.2)', borderColor: SAC.accent }]}
-            >
-              <CheckCircle size={14} color={showQuickStatus ? SAC.accent : SAC.muted} />
-            </Pressable>
-          </Tip>
           <Tip label="View live page">
             <Pressable onPress={viewShowcase} style={[cs.iconBtn, { backgroundColor: 'rgba(124,58,237,0.12)', borderColor: 'rgba(167,139,250,0.25)' }]}>
               <Globe size={14} color="#A78BFA" />
@@ -2273,12 +2153,10 @@ const EMPTY: any = {
 const AUTOSAVE_KEY = 'echo_cms_autosave';
 
 // ── Showcase Editor Modal ─────────────────────────────────────────────────────
-function ShowcaseModal({ visible, editing, onClose, onSave, onSaveStatuses, canManageStatuses, saving, flash, onPreview }: any) {
+function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPreview }: any) {
   const { confirm } = useConfirm();
   const [tab, setTab] = useState<FormTab>('general');
   const [form, setForm] = useState<any>({ ...EMPTY });
-  const [savedEventStatus, setSavedEventStatus] = useState('Upcoming');
-  const [savedRegistrationEnabled, setSavedRegistrationEnabled] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [activeUploads, setActiveUploads] = useState(0);
@@ -2293,8 +2171,6 @@ function ShowcaseModal({ visible, editing, onClose, onSave, onSaveStatuses, canM
   useEffect(() => {
     const initial = editing ? { ...editing } : { ...EMPTY };
     setForm(initial);
-    setSavedEventStatus(initial.event_status_badge || 'Upcoming');
-    setSavedRegistrationEnabled((initial.registration || {}).enabled !== false);
     setTab('general');
     setIsDirty(false);
     setLastSaved(null);
@@ -2425,7 +2301,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, onSaveStatuses, canM
           </LinearGradient>
 
           {/* Tab bar */}
-          <View style={{ borderBottomWidth: 1, borderBottomColor: SAC.border, width: '100%', minWidth: 0, overflow: 'hidden' as any }}>
+          <View style={{ borderBottomWidth: 1, borderBottomColor: SAC.border }}>
             <TopTabs tabs={FORM_TABS} active={tab} onChange={setTab as any} />
           </View>
 
@@ -2476,41 +2352,8 @@ function ShowcaseModal({ visible, editing, onClose, onSave, onSaveStatuses, canM
                   </FieldRow>
                 </View>
                 <View style={{ flex: 1, minWidth: 160 }}>
-                  <FieldRow label="Event Status">
-                    {canManageStatuses
-                      ? <SelectNative
-                          value={form.event_status_badge || 'Upcoming'}
-                          onChange={(v: string) => {
-                            set('event_status_badge', v);
-                            const vLower = v.toLowerCase();
-                            if (vLower.includes('closed') || v === 'Completed') {
-                              set('registration', {
-                                ...(form.registration || {}),
-                                enabled: false,
-                                temporary_open: false,
-                                temporary_close_at: '',
-                              });
-                            } else if (vLower.includes('open')) {
-                              set('registration', {
-                                ...(form.registration || {}),
-                                enabled: true,
-                              });
-                            }
-                          }}
-                          options={STATUS_BADGE_OPTIONS}
-                        />
-                      : <Text style={{ color: SAC.text, fontFamily: FONTS.semi, fontSize: 13 }}>{form.event_status_badge || 'Upcoming'} · Super Admin only</Text>}
-                  </FieldRow>
-                </View>
-                <View style={{ flex: 1, minWidth: 160 }}>
-                  <FieldRow label="Registration Status">
-                    {canManageStatuses
-                      ? <SelectNative value={(form.registration || {}).enabled === false ? 'Closed' : 'Open'} onChange={(v: string) => set('registration', {
-                          ...(form.registration || {}),
-                          enabled: v === 'Open',
-                          ...(v === 'Closed' ? { temporary_open: false, temporary_close_at: '' } : {}),
-                        })} options={['Open', 'Closed']} />
-                      : <Text style={{ color: SAC.text, fontFamily: FONTS.semi, fontSize: 13 }}>{(form.registration || {}).enabled === false ? 'Closed' : 'Open'} · Super Admin only</Text>}
+                  <FieldRow label="Event Status Badge">
+                    <SelectNative value={form.event_status_badge} onChange={(v: string) => set('event_status_badge', v)} options={STATUS_BADGE_OPTIONS} />
                   </FieldRow>
                 </View>
                 <View style={{ flex: 1, minWidth: 160 }}>
@@ -2519,146 +2362,6 @@ function ShowcaseModal({ visible, editing, onClose, onSave, onSaveStatuses, canM
                   </FieldRow>
                 </View>
               </View>
-
-              {/* Quick Status Bar Presets (One-click status change in modal) */}
-              {canManageStatuses && (
-                <View style={{
-                  marginTop: 6,
-                  marginBottom: 16,
-                  backgroundColor: 'rgba(255,255,255,0.025)',
-                  borderWidth: 1,
-                  borderColor: SAC.border,
-                  borderRadius: 12,
-                  padding: 12,
-                  gap: 8,
-                }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted, letterSpacing: 0.5 }}>
-                      QUICK STATUS BAR (ONE-CLICK PRESETS)
-                    </Text>
-                    <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
-                      Selected: <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{form.event_status_badge || 'Upcoming'}</Text>
-                    </Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                    {STATUS_BADGE_OPTIONS.map((opt) => {
-                      const isSel = (form.event_status_badge || 'Upcoming') === opt;
-                      const isCompleted = opt === 'Completed';
-                      const isNotCompleted = opt === 'Not Completed';
-                      const isRegOpen = opt === 'Registrations Open';
-                      const isRegClosed = opt === 'Registrations Closed';
-
-                      let activeBc = SAC.accent;
-                      let activeBg = 'rgba(245,158,11,0.2)';
-                      let activeColor = '#FCD34D';
-
-                      if (isCompleted) {
-                        activeBc = '#10B981';
-                        activeBg = 'rgba(16,185,129,0.22)';
-                        activeColor = '#6EE7B7';
-                      } else if (isNotCompleted) {
-                        activeBc = '#F59E0B';
-                        activeBg = 'rgba(245,158,11,0.22)';
-                        activeColor = '#FCD34D';
-                      } else if (isRegOpen) {
-                        activeBc = '#3B82F6';
-                        activeBg = 'rgba(59,130,246,0.22)';
-                        activeColor = '#93C5FD';
-                      } else if (isRegClosed) {
-                        activeBc = '#EF4444';
-                        activeBg = 'rgba(239,68,68,0.22)';
-                        activeColor = '#FCA5A5';
-                      }
-
-                      return (
-                        <Pressable
-                          key={opt}
-                          onPress={() => {
-                            set('event_status_badge', opt);
-                            const optLower = opt.toLowerCase();
-                            if (optLower.includes('closed') || opt === 'Completed') {
-                              set('registration', {
-                                ...(form.registration || {}),
-                                enabled: false,
-                                temporary_open: false,
-                                temporary_close_at: '',
-                              });
-                            } else if (optLower.includes('open')) {
-                              set('registration', {
-                                ...(form.registration || {}),
-                                enabled: true,
-                              });
-                            }
-                          }}
-                          style={({ hovered }: any) => [
-                            {
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              gap: 6,
-                              paddingHorizontal: 12,
-                              paddingVertical: 7,
-                              borderRadius: 999,
-                              borderWidth: 1,
-                              borderColor: isSel ? activeBc : 'rgba(255,255,255,0.12)',
-                              backgroundColor: isSel ? activeBg : (hovered ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.03)'),
-                            },
-                            Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : null,
-                          ]}
-                        >
-                          {isCompleted && <CheckCircle size={13} color={isSel ? activeColor : SAC.muted} />}
-                          {isNotCompleted && <Clock size={13} color={isSel ? activeColor : SAC.muted} />}
-                          {isRegOpen && <Sparkles size={13} color={isSel ? activeColor : SAC.muted} />}
-                          {isRegClosed && <Lock size={13} color={isSel ? activeColor : SAC.muted} />}
-                          {opt === 'Upcoming' && <Calendar size={13} color={isSel ? activeColor : SAC.muted} />}
-                          {opt === 'Live' && <Zap size={13} color={isSel ? activeColor : SAC.muted} />}
-                          <Text style={{
-                            fontFamily: FONTS.bold,
-                            fontSize: 12,
-                            color: isSel ? activeColor : SAC.muted,
-                          }}>
-                            {opt}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                </View>
-              )}
-              {canManageStatuses && editing?._id && (
-                <View style={{ marginTop: 4, marginBottom: 16, flexDirection: 'row', justifyContent: 'flex-end' }}>
-                  <Pressable
-                    onPress={async () => {
-                      const statuses = {
-                        event_status_badge: form.event_status_badge || 'Upcoming',
-                        registration_enabled: (form.registration || {}).enabled !== false,
-                      };
-                      const saved = await onSaveStatuses?.(statuses);
-                      if (saved) {
-                        setSavedEventStatus(saved.event_status_badge || statuses.event_status_badge);
-                        setSavedRegistrationEnabled((saved.registration || {}).enabled !== false);
-                        setForm((prev: any) => ({
-                          ...prev,
-                          event_status_badge: saved.event_status_badge || statuses.event_status_badge,
-                          registration: {
-                            ...(prev.registration || {}),
-                            enabled: (saved.registration || {}).enabled !== false,
-                            temporary_open: (saved.registration || {}).temporary_open || false,
-                            temporary_close_at: (saved.registration || {}).temporary_close_at || '',
-                          },
-                        }));
-                      }
-                    }}
-                    disabled={saving || (
-                      (form.event_status_badge || 'Upcoming') === savedEventStatus &&
-                      ((form.registration || {}).enabled !== false) === savedRegistrationEnabled
-                    )}
-                    style={{ borderWidth: 1, borderColor: SAC.border, borderRadius: 9, paddingHorizontal: 14, paddingVertical: 9, opacity: saving ? 0.55 : 1 }}
-                    accessibilityRole="button"
-                  >
-                    <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Save Status Changes</Text>
-                  </Pressable>
-                </View>
-              )}
               <FieldRow label="CTA Button Text">
                 <Field value={form.cta_button_text} onChangeText={(v: string) => set('cta_button_text', v)} placeholder="View Upcoming Events" />
               </FieldRow>
@@ -2973,9 +2676,26 @@ function ShowcaseModal({ visible, editing, onClose, onSave, onSaveStatuses, canM
             {tab === 'registration' && <>
               <Card style={{ marginBottom: 16, padding: 20, gap: 12 }}>
                 <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Registration & Payment</Text>
-                <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 }}>
-                  Registration is {(form.registration || {}).enabled === false ? 'closed' : 'open'}. Manage its status from the General tab.
-                </Text>
+                <FieldRow label="Registrations Enabled">
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Pressable onPress={() => {
+                      const cur = form.registration || {};
+                      const nextEnabled = !cur.enabled;
+                      set('registration', {
+                        ...cur,
+                        enabled: nextEnabled,
+                        ...(nextEnabled ? {} : { temporary_open: false, temporary_close_at: '' }),
+                      });
+                    }} style={{
+                      width: 44, height: 24, borderRadius: 12, padding: 2, backgroundColor: (form.registration || {}).enabled ? '#10B981' : '#334155',
+                    }}>
+                      <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', transform: [{ translateX: (form.registration || {}).enabled ? 20 : 0 }] }} />
+                    </Pressable>
+                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 }}>
+                      Allow users to register + pay on the public page
+                    </Text>
+                  </View>
+                </FieldRow>
 
                 <View style={{ borderTopWidth: 1, borderTopColor: SAC.border, paddingTop: 12, gap: 8 }}>
                   <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>Open temporarily (auto-close)</Text>
@@ -3003,7 +2723,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, onSaveStatuses, canM
                     <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>minutes</Text>
                     <Pressable
                       onPress={onTemporaryOpen}
-                      disabled={tempOpening || !editing?._id || !canManageStatuses}
+                      disabled={tempOpening || !editing?._id}
                       style={{
                         flexDirection: 'row', alignItems: 'center', gap: 6,
                         backgroundColor: tempOpening || !editing?._id ? 'rgba(16,185,129,0.2)' : '#059669',
@@ -7016,7 +6736,6 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
 
   const [pageTab, setPageTab] = useSubTab<PageTab>(['registrations', 'scan-monitor', 'all', 'create', 'drafts', 'interns', 'volunteers', 'media'], 'registrations', { sub, onSub });
   const [items, setItems] = useState<any[]>([]);
-  const [canManageStatuses, setCanManageStatuses] = useState(false);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -7096,7 +6815,6 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
     try {
       const res = await api.adminListEchoShowcases();
       setItems(res?.items || []);
-      setCanManageStatuses(res?.can_manage_statuses === true);
     } catch {
       flash('Failed to load showcases');
     } finally {
@@ -7168,41 +6886,6 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
     }
   };
 
-  const onSaveStatuses = async (statuses: { event_status_badge: string; registration_enabled: boolean }) => {
-    if (!editing?._id || !canManageStatuses) return null;
-    setSaving(true);
-    try {
-      const updated = await api.updateEchoShowcaseStatuses(editing._id, statuses);
-      flash('Event and registration statuses saved');
-      await load();
-      return updated;
-    } catch (e: any) {
-      flash(e?.message || 'Status update failed');
-      return null;
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const onQuickStatusChange = async (item: any, newStatus: string) => {
-    setBusy(item._id);
-    try {
-      const isRegClosed = newStatus === 'Completed' || newStatus.toLowerCase().includes('closed');
-      const isRegOpen = newStatus.toLowerCase().includes('open');
-      const regEnabled = isRegClosed ? false : (isRegOpen ? true : ((item.registration || {}).enabled !== false));
-      await api.updateEchoShowcaseStatuses(item._id, {
-        event_status_badge: newStatus,
-        registration_enabled: regEnabled,
-      });
-      flash(`Status for "${item.title}" updated to "${newStatus}"`);
-      await load();
-    } catch (e: any) {
-      flash(e?.message || 'Status update failed');
-    } finally {
-      setBusy(null);
-    }
-  };
-
   const onPublish = async (item: any) => {
     setBusy(item._id);
     try { await api.publishEchoShowcase(item._id); flash(`"${item.title}" published`); await load(); }
@@ -7261,7 +6944,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
       </View>
 
       {/* Page-level navigation tabs */}
-      <View style={{ marginBottom: 20, width: '100%', minWidth: 0, overflow: 'hidden' as any }}>
+      <View style={{ marginBottom: 20 }}>
         <TopTabs tabs={PAGE_TABS} active={pageTab} onChange={setPageTab} />
       </View>
 
@@ -7339,8 +7022,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
             <>
               {paged.map((item) => (
                 <ShowcaseCard key={item._id} item={item} onEdit={onEdit} onDelete={onDelete}
-                  onPublish={onPublish} onDraft={onDraft} onArchive={onArchive} onPreview={onPreview} busy={busy}
-                  onQuickStatusChange={onQuickStatusChange} />
+                  onPublish={onPublish} onDraft={onDraft} onArchive={onArchive} onPreview={onPreview} busy={busy} />
               ))}
               {/* Pagination */}
               {filtered.length > PER_PAGE && (
@@ -7401,7 +7083,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
       )}
 
       {/* Showcase Editor Modal */}
-      <ShowcaseModal visible={modalOpen} editing={editing} onClose={onClose} onSave={onSave} onSaveStatuses={onSaveStatuses} canManageStatuses={canManageStatuses} saving={saving} flash={flash} onPreview={(html: string) => setPreviewHtml(html)} />
+      <ShowcaseModal visible={modalOpen} editing={editing} onClose={onClose} onSave={onSave} saving={saving} flash={flash} onPreview={(html: string) => setPreviewHtml(html)} />
 
       {/* Ticket Preview Modal */}
       <Modal visible={!!previewHtml} transparent animationType="fade" onRequestClose={() => setPreviewHtml(null)}>

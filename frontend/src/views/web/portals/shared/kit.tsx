@@ -18,7 +18,7 @@ import {
   ActivityIndicator, Animated as RNAnimated, Easing, useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Check, Search, AlertTriangle, Info, Loader, X, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { Check, Search, AlertTriangle, Info, Loader, X } from 'lucide-react-native';
 
 /* ─────────────────────────────────────────────────────────────────
  * Types
@@ -484,7 +484,7 @@ export function createKit(config: KitConfig) {
     );
   }
 
-  /* ── TopTabs — segment control with smooth scroll navigation (gradient on active) ─────────── */
+  /* ── TopTabs — segment control (gradient on active) ─────────── */
   function TopTabs<T extends string>({
     tabs, active, onChange,
   }: {
@@ -492,108 +492,9 @@ export function createKit(config: KitConfig) {
     active: T;
     onChange: (id: T) => void;
   }) {
-    const scrollRef = useRef<any>(null);
-    const [canScrollLeft, setCanScrollLeft] = useState(false);
-    const [canScrollRight, setCanScrollRight] = useState(tabs.length > 5);
-
-    const checkScroll = (x: number, cWidth: number, lWidth: number) => {
-      setCanScrollLeft(x > 6);
-      setCanScrollRight(x + lWidth < cWidth - 6);
-    };
-
-    const handleScroll = (e: any) => {
-      const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-      if (contentOffset && contentSize && layoutMeasurement) {
-        checkScroll(contentOffset.x, contentSize.width, layoutMeasurement.width);
-      }
-    };
-
-    const scrollByAmount = (amount: number) => {
-      if (!scrollRef.current) return;
-      if (Platform.OS === 'web') {
-        const node = scrollRef.current.getScrollableNode?.() || scrollRef.current;
-        if (node && typeof node.scrollBy === 'function') {
-          node.scrollBy({ left: amount, behavior: 'smooth' });
-          return;
-        }
-      }
-      if (typeof scrollRef.current.scrollTo === 'function') {
-        scrollRef.current.scrollTo({ x: amount, animated: true });
-      }
-    };
-
-    // Support mouse wheel horizontal scrolling on web
-    const onWheel = (e: any) => {
-      if (Platform.OS === 'web' && scrollRef.current) {
-        const node = scrollRef.current.getScrollableNode?.() || scrollRef.current;
-        if (node && typeof node.scrollBy === 'function') {
-          const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-          if (delta !== 0) {
-            node.scrollBy({ left: delta, behavior: 'auto' });
-          }
-        }
-      }
-    };
-
     return (
-      <View style={[k.tabsOuter, { flexDirection: 'row', alignItems: 'center', position: 'relative' }]}>
-        {canScrollLeft && (
-          <Pressable
-            onPress={() => scrollByAmount(-220)}
-            accessibilityLabel="Scroll left"
-            style={({ hovered }: any) => [
-              {
-                paddingHorizontal: 8,
-                alignSelf: 'stretch',
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: hovered ? 'rgba(255,255,255,0.08)' : C.cardSolid,
-                borderTopLeftRadius: 13,
-                borderBottomLeftRadius: 13,
-                borderRightWidth: 1,
-                borderRightColor: C.border,
-                zIndex: 2,
-              },
-              Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : null,
-            ]}
-          >
-            <ChevronLeft size={16} color={C.text} />
-          </Pressable>
-        )}
-        <ScrollView
-          ref={scrollRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          onContentSizeChange={(w) => {
-            if (scrollRef.current) {
-              const node = scrollRef.current.getScrollableNode?.() || scrollRef.current;
-              if (node && node.clientWidth) {
-                checkScroll(node.scrollLeft || 0, w, node.clientWidth);
-              }
-            }
-          }}
-          onLayout={(e) => {
-            const lWidth = e.nativeEvent.layout.width;
-            if (scrollRef.current) {
-              const node = scrollRef.current.getScrollableNode?.() || scrollRef.current;
-              if (node) {
-                checkScroll(node.scrollLeft || 0, node.scrollWidth || 0, lWidth);
-              }
-            }
-          }}
-          {...(Platform.OS === 'web' ? ({ onWheel } as any) : {})}
-          style={[
-            { flex: 1 },
-            Platform.OS === 'web' ? ({
-              overflowX: 'auto',
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-            } as any) : null,
-          ]}
-          contentContainerStyle={{ gap: 6, padding: 6, alignItems: 'center' }}
-        >
+      <View style={k.tabsOuter}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, padding: 6 }}>
           {tabs.map((t) => {
             const isActive = t.id === active;
             const Icon = t.icon;
@@ -632,29 +533,6 @@ export function createKit(config: KitConfig) {
             );
           })}
         </ScrollView>
-        {canScrollRight && (
-          <Pressable
-            onPress={() => scrollByAmount(220)}
-            accessibilityLabel="Scroll right"
-            style={({ hovered }: any) => [
-              {
-                paddingHorizontal: 8,
-                alignSelf: 'stretch',
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: hovered ? 'rgba(255,255,255,0.08)' : C.cardSolid,
-                borderTopRightRadius: 13,
-                borderBottomRightRadius: 13,
-                borderLeftWidth: 1,
-                borderLeftColor: C.border,
-                zIndex: 2,
-              },
-              Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : null,
-            ]}
-          >
-            <ChevronRight size={16} color={C.text} />
-          </Pressable>
-        )}
       </View>
     );
   }
