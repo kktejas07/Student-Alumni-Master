@@ -23,6 +23,9 @@ export default function ManageEvent() {
   // Form State
   const [title, setTitle] = useState('');
   const [capacity, setCapacity] = useState('');
+  const [statusBadge, setStatusBadge] = useState('Upcoming');
+
+  const STATUS_OPTIONS = ['Upcoming', 'Live', 'Completed', 'Not Completed', 'Registrations Open', 'Registrations Closed'];
 
   useEffect(() => {
     if (params.id) {
@@ -37,6 +40,8 @@ export default function ManageEvent() {
       setEvent(res);
       setTitle(res.title || '');
       setCapacity(res.capacity ? String(res.capacity) : '');
+      const b = res.event_status_badge || (params.event_status_badge as string) || 'Upcoming';
+      setStatusBadge(b);
     } catch (e) {
       console.warn(e);
     } finally {
@@ -44,12 +49,24 @@ export default function ManageEvent() {
     }
   };
 
+  const quickSetStatus = async (badge: string) => {
+    try {
+      setStatusBadge(badge);
+      await request(`/events/${params.id}`, { method: 'PATCH', body: { event_status_badge: badge } });
+      toast.success('Status Updated', `Event status set to "${badge}"`);
+      loadEvent();
+    } catch (e: any) {
+      toast.error('Update Failed', e.message || 'Failed to update status');
+    }
+  };
+
   const saveEdits = async () => {
     setSaving(true);
     try {
-      const payload = {
+      const payload: any = {
         title: title.trim(),
         capacity: parseInt(capacity) || 100,
+        event_status_badge: statusBadge,
       };
       await request(`/events/${params.id}`, { method: 'PATCH', body: payload });
       setEditMode(false);
@@ -151,6 +168,36 @@ export default function ManageEvent() {
                     <Trash2 size={16} color="#ef4444" />
                     <Text style={[s.editBtnText, { color: '#ef4444' }]}>Delete</Text>
                   </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Quick Status Bar */}
+              <View style={{ marginTop: 16, marginBottom: 8, gap: 8 }}>
+                <Text style={{ color: PALETTE.muted, fontFamily: FONTS.bold, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                  Event Status Bar (Quick Switch)
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                  {STATUS_OPTIONS.map((st) => {
+                    const sel = (statusBadge || event.event_status_badge || 'Upcoming') === st;
+                    return (
+                      <TouchableOpacity
+                        key={st}
+                        onPress={() => quickSetStatus(st)}
+                        style={[
+                          s.statusChip,
+                          sel && s.statusChipActive,
+                          sel && st === 'Completed' && { backgroundColor: 'rgba(16,185,129,0.25)', borderColor: '#10B981' },
+                          sel && (st === 'Live' || st === 'Registrations Closed' || st === 'Not Completed') && { backgroundColor: 'rgba(239,68,68,0.25)', borderColor: '#EF4444' },
+                          sel && st === 'Registrations Open' && { backgroundColor: 'rgba(16,185,129,0.25)', borderColor: '#10B981' },
+                          sel && st === 'Upcoming' && { backgroundColor: 'rgba(245,158,11,0.25)', borderColor: '#F59E0B' },
+                        ]}
+                      >
+                        <Text style={[s.statusChipText, sel && { color: '#FFFFFF', fontFamily: FONTS.bold }]}>
+                          {st}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
 
@@ -270,6 +317,17 @@ const s = StyleSheet.create({
   btnSolidText: { color: PALETTE.text, fontFamily: FONTS.bold, fontSize: 15 },
 
   attendeeDesc: { color: SC.muted, fontFamily: FONTS.med, fontSize: 14, lineHeight: 22 },
+
+  statusChip: {
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+  },
+  statusChipActive: {
+    backgroundColor: 'rgba(139,92,246,0.25)', borderColor: PALETTE.violet,
+  },
+  statusChipText: {
+    color: SC.muted, fontFamily: FONTS.med, fontSize: 12,
+  },
 
   centerBox: { padding: 60, alignItems: 'center', justifyContent: 'center' },
   loadingText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 15, marginTop: 16 },

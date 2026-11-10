@@ -890,6 +890,10 @@ async def super_events(user: dict = Depends(require_role('admin'))):
         date_str = sd.strftime("%b %d") if isinstance(sd, datetime) else "TBD"
         regs = await _db.event_registrations.count_documents({"event_id": str(ev.get("_id"))})
         is_pending = isinstance(sd, datetime) and sd > now + timedelta(days=30)
+        ev_status = ev.get("status")
+        badge = ev.get("event_status_badge") or ev_status
+        if not badge:
+            badge = "Upcoming" if is_pending else "Live"
         out.append({
             "id": _short_id(ev.get("_id")),
             "title": ev.get("title", "Event"),
@@ -899,7 +903,8 @@ async def super_events(user: dict = Depends(require_role('admin'))):
             "cat": ev.get("category", "Workshop"),
             "attending": regs,
             "capacity": ev.get("capacity") or 1000,
-            "status": "pending" if is_pending else "live",
+            "status": ev_status or ("pending" if is_pending else "live"),
+            "event_status_badge": badge,
             "kind": "paid" if ev.get("price") else "free",
             "price": ev.get("price"),
             "accent": palette[i % len(palette)],
@@ -917,6 +922,8 @@ class EventPayload(BaseModel):
     capacity: Optional[int] = 200
     price: Optional[float] = None          # null/0 → free
     description: Optional[str] = None
+    status: Optional[str] = None
+    event_status_badge: Optional[str] = None
 
 
 def _parse_event_dt(s: Optional[str]) -> Optional[datetime]:
@@ -949,6 +956,8 @@ def _serialize_event(ev: Dict[str, Any]) -> Dict[str, Any]:
         "capacity": ev.get("capacity") or 1000,
         "price": ev.get("price"),
         "description": ev.get("description"),
+        "status": ev.get("status"),
+        "event_status_badge": ev.get("event_status_badge"),
     }
 
 
@@ -963,6 +972,8 @@ async def create_super_event(payload: EventPayload, user: dict = Depends(require
         "capacity": payload.capacity or 200,
         "price": float(payload.price) if payload.price else None,
         "description": payload.description or "",
+        "status": payload.status or "published",
+        "event_status_badge": payload.event_status_badge or "Upcoming",
         "start_date": _parse_event_dt(payload.start_date) or (datetime.now(timezone.utc) + timedelta(days=14)),
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc),
@@ -997,6 +1008,8 @@ async def update_super_event(event_id: str, payload: EventPayload):
     if payload.category is not None:     updates["category"]    = payload.category
     if payload.capacity is not None:     updates["capacity"]    = payload.capacity
     if payload.description is not None:  updates["description"] = payload.description
+    if payload.status is not None:             updates["status"]             = payload.status
+    if payload.event_status_badge is not None: updates["event_status_badge"] = payload.event_status_badge
     # price: explicit zero/null both mean "free"
     if payload.price is not None:
         updates["price"] = float(payload.price) if payload.price else None
@@ -1004,6 +1017,48 @@ async def update_super_event(event_id: str, payload: EventPayload):
     if sd:
         updates["start_date"] = sd
 
+    await _db.events.update_one({"_id": ev["_id"]}, {"$set": updates})
+    ev.update(updates)
+    return {"ok": True, "event": _serialize_event(ev)}
+
+
+class EventStatusPayload(BaseModel):
+    event_status_badge: str
+    status: Optional[str] = None
+
+
+@router.patch("/admin/super/events/{event_id}/status", dependencies=[Depends(require_admin_role)])
+async def patch_super_event_status(event_id: str, payload: EventStatusPayload):
+    ev = None
+    try:
+        ev = await _db.events.find_one({"_id": ObjectId(event_id)})
+    except Exception:
+        ev = None
+    if not ev:
+        async for cand in _db.events.find().limit(200):
+            if _short_id(cand.get("_id")) == event_id:
+                ev = cand
+                break
+    if not ev:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    badge = payload.event_status_badge
+    status = payload.status
+    if not status:
+        if badge in ("Completed", "Not Completed"):
+            status = "completed"
+        elif badge in ("Registrations Closed",):
+            status = "closed"
+        elif badge in ("Live", "Registrations Open"):
+            status = "live"
+        else:
+            status = "upcoming"
+
+    updates = {
+        "event_status_badge": badge,
+        "status": status,
+        "updated_at": datetime.now(timezone.utc),
+    }
     await _db.events.update_one({"_id": ev["_id"]}, {"$set": updates})
     ev.update(updates)
     return {"ok": True, "event": _serialize_event(ev)}
@@ -1851,6 +1906,8 @@ async def college_events_list(college_name: Optional[str] = None, limit: int = 1
         sd = ev.get("start_date")
         date_str = sd.strftime("%b %d") if isinstance(sd, datetime) else "TBD"
         regs = await _db.event_registrations.count_documents({"event_id": str(ev.get("_id"))})
+        ev_status = ev.get("status") or "published"
+        badge = ev.get("event_status_badge") or ev_status or "Upcoming"
         out.append({
             "id": _short_id(ev.get("_id")),
             "title": ev.get("title", "Event"),
@@ -1860,6 +1917,8 @@ async def college_events_list(college_name: Optional[str] = None, limit: int = 1
             "cat": ev.get("category", "Workshop"),
             "attending": regs,
             "capacity": ev.get("capacity") or 500,
+            "status": ev_status,
+            "event_status_badge": badge,
             "kind": "paid" if ev.get("price") else "free",
             "price": ev.get("price"),
             "accent": palette[i % len(palette)],

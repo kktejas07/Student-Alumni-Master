@@ -7125,6 +7125,37 @@ async def archive_showcase(showcase_id: str, request: Request, _=Depends(_requir
     return {"ok": True, "status": "archived"}
 
 
+class ShowcaseStatusUpdateSchema(BaseModel):
+    event_status_badge: str
+    status: Optional[str] = None
+    registration_enabled: Optional[bool] = None
+
+
+@router.patch("/admin/showcases/{showcase_id}/statuses")
+async def update_showcase_statuses(showcase_id: str, payload: ShowcaseStatusUpdateSchema, request: Request, _=Depends(_require_admin)):
+    db = _get_db(request)
+    badge = payload.event_status_badge
+    updates: Dict[str, Any] = {
+        "event_status_badge": badge,
+        "updated_at": _now(),
+    }
+    if payload.status:
+        updates["status"] = payload.status
+    if payload.registration_enabled is not None:
+        updates["registration.enabled"] = payload.registration_enabled
+    else:
+        if badge in ("Completed", "Registrations Closed", "Not Completed"):
+            updates["registration.enabled"] = False
+        elif badge in ("Registrations Open", "Upcoming", "Live"):
+            updates["registration.enabled"] = True
+
+    await db.echo_showcases.update_one(
+        {"_id": _oid(showcase_id)},
+        {"$set": updates}
+    )
+    return {"ok": True, "event_status_badge": badge, "updates": updates}
+
+
 # ── File Upload Endpoint ──────────────────────────────────────────────────────
 
 @router.post("/admin/upload")

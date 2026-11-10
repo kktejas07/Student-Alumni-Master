@@ -18,7 +18,7 @@ import {
   ActivityIndicator, Animated as RNAnimated, Easing, useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Check, Search, AlertTriangle, Info, Loader, X } from 'lucide-react-native';
+import { Check, Search, AlertTriangle, Info, Loader, X, ChevronLeft, ChevronRight } from 'lucide-react-native';
 
 /* ─────────────────────────────────────────────────────────────────
  * Types
@@ -218,7 +218,18 @@ export function createKit(config: KitConfig) {
     },
     pillGradText: { color: C.onGradient, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.4 },
 
-    tabsOuter: { backgroundColor: C.card, borderColor: C.border, borderWidth: 1, borderRadius: 14 },
+    tabsOuter: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: C.card, borderColor: C.border, borderWidth: 1, borderRadius: 14,
+      overflow: 'hidden', position: 'relative',
+    },
+    tabsScrollBtn: {
+      position: 'absolute', top: 0, bottom: 0, width: 28,
+      alignItems: 'center', justifyContent: 'center',
+      backgroundColor: 'rgba(15,10,5,0.75)', zIndex: 20,
+      borderWidth: 1, borderColor: C.border,
+      ...(Platform.OS === 'web' ? ({ cursor: 'pointer', backdropFilter: 'blur(8px)' } as any) : {}),
+    },
     tabActive: {
       flexDirection: 'row', alignItems: 'center', gap: 6,
       paddingHorizontal: 13, paddingVertical: 8, borderRadius: 10,
@@ -484,7 +495,7 @@ export function createKit(config: KitConfig) {
     );
   }
 
-  /* ── TopTabs — segment control (gradient on active) ─────────── */
+  /* ── TopTabs — segment control (gradient on active) with horizontal scrolling ─────────── */
   function TopTabs<T extends string>({
     tabs, active, onChange,
   }: {
@@ -492,9 +503,67 @@ export function createKit(config: KitConfig) {
     active: T;
     onChange: (id: T) => void;
   }) {
+    const scrollRef = useRef<ScrollView>(null);
+    const scrollOffsetRef = useRef<number>(0);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(false);
+
+    const checkScroll = (contentWidth: number, layoutWidth: number) => {
+      setCanScrollLeft(scrollOffsetRef.current > 4);
+      setCanScrollRight(scrollOffsetRef.current + layoutWidth < contentWidth - 4);
+    };
+
+    const handleScroll = (e: any) => {
+      const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
+      scrollOffsetRef.current = contentOffset.x;
+      setCanScrollLeft(contentOffset.x > 4);
+      setCanScrollRight(contentOffset.x + layoutMeasurement.width < contentSize.width - 4);
+    };
+
+    const scrollByDelta = (delta: number) => {
+      const next = Math.max(0, scrollOffsetRef.current + delta);
+      scrollRef.current?.scrollTo({ x: next, animated: true });
+      scrollOffsetRef.current = next;
+    };
+
+    useEffect(() => {
+      if (Platform.OS !== 'web') return;
+      const el = scrollRef.current as any;
+      const domNode = el?.getScrollableNode?.() || el?._node || el;
+      if (!domNode || !domNode.addEventListener) return;
+
+      const onWheel = (ev: WheelEvent) => {
+        if (Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) return;
+        if (ev.deltaY !== 0) {
+          ev.preventDefault();
+          scrollByDelta(ev.deltaY > 0 ? 160 : -160);
+        }
+      };
+      domNode.addEventListener('wheel', onWheel, { passive: false });
+      return () => domNode.removeEventListener('wheel', onWheel);
+    }, []);
+
     return (
       <View style={k.tabsOuter}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, padding: 6 }}>
+        {canScrollLeft && (
+          <Pressable
+            accessibilityLabel="Scroll tabs left"
+            onPress={() => scrollByDelta(-180)}
+            style={[k.tabsScrollBtn, { left: 0 }]}
+          >
+            <ChevronLeft size={15} color={C.text} />
+          </Pressable>
+        )}
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          onContentSizeChange={(cw) => checkScroll(cw, 600)}
+          contentContainerStyle={{ gap: 6, padding: 6, alignItems: 'center' }}
+          style={{ overflow: 'auto' as any }}
+        >
           {tabs.map((t) => {
             const isActive = t.id === active;
             const Icon = t.icon;
@@ -533,6 +602,15 @@ export function createKit(config: KitConfig) {
             );
           })}
         </ScrollView>
+        {canScrollRight && (
+          <Pressable
+            accessibilityLabel="Scroll tabs right"
+            onPress={() => scrollByDelta(180)}
+            style={[k.tabsScrollBtn, { right: 0 }]}
+          >
+            <ChevronRight size={15} color={C.text} />
+          </Pressable>
+        )}
       </View>
     );
   }

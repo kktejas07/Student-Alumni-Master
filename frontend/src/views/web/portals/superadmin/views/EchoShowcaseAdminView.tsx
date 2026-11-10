@@ -235,7 +235,19 @@ const CATEGORY_OPTIONS = [
   'career-guidance', 'industrial-visit', 'placement-training',
 ];
 const STATUS_OPTIONS = ['draft', 'published', 'archived'];
-const STATUS_BADGE_OPTIONS = ['Upcoming', 'Live', 'Completed'];
+const STATUS_BADGE_OPTIONS = ['Upcoming', 'Live', 'Completed', 'Not Completed', 'Registrations Open', 'Registrations Closed'];
+
+function getEventBadgeKind(badge?: string): any {
+  switch (badge) {
+    case 'Live': return 'danger';
+    case 'Completed': return 'success';
+    case 'Registrations Open': return 'success';
+    case 'Registrations Closed': return 'danger';
+    case 'Not Completed': return 'danger';
+    case 'Upcoming': return 'warn';
+    default: return 'neutral';
+  }
+}
 const SPONSOR_TIER_OPTIONS = ['Title Sponsor', 'Platinum Sponsor', 'Gold Sponsor', 'Silver Sponsor', 'Associate Sponsor', 'Partner'];
 const GALLERY_LAYOUT_OPTIONS = ['grid', 'masonry', 'mixed', 'featured-grid', 'carousel'];
 const VIDEO_PLATFORM_OPTIONS = ['youtube', 'vimeo', 'mp4'];
@@ -465,6 +477,31 @@ const cs = StyleSheet.create({
     borderWidth: 1, borderColor: SAC.border,
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
+  quickBadgeChip: {
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  quickBadgeChipActive: {
+    backgroundColor: 'rgba(251,146,60,0.18)', borderColor: '#FB923C',
+  },
+  quickBadgeText: {
+    color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5,
+  },
+});
+
+const ms = StyleSheet.create({
+  statusChip: {
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  statusChipActive: {
+    backgroundColor: 'rgba(251,146,60,0.18)', borderColor: '#FB923C',
+  },
+  statusChipText: {
+    color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5,
   },
 });
 
@@ -2026,7 +2063,7 @@ function MediaLibraryPanel() {
 }
 
 // ── Showcase Card ─────────────────────────────────────────────────────────────
-function ShowcaseCard({ item, onEdit, onDelete, onPublish, onDraft, onArchive, onPreview, busy }: any) {
+function ShowcaseCard({ item, onEdit, onDelete, onPublish, onDraft, onArchive, onPreview, onQuickStatusChange, busy }: any) {
   const viewShowcase = () => {
     if (Platform.OS === 'web') {
       window.open(`/echo/${item.slug}`, '_blank');
@@ -2040,10 +2077,10 @@ function ShowcaseCard({ item, onEdit, onDelete, onPublish, onDraft, onArchive, o
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>{item.title}</Text>
             <StatusPill label={(item.status || 'draft').toUpperCase()} kind={STATUS_PILL_MAP[item.status] || 'neutral'} />
-            {(!item.registration || item.registration?.enabled === false || String(item.registration?.enabled).toLowerCase() === 'false') ? (
+            {(!item.registration || item.registration?.enabled === false || String(item.registration?.enabled).toLowerCase() === 'false') && item.event_status_badge !== 'Completed' && item.event_status_badge !== 'Not Completed' ? (
               <StatusPill label="Registrations Closed" kind="danger" />
             ) : item.event_status_badge ? (
-              <StatusPill label={item.event_status_badge} kind={item.event_status_badge === 'Live' ? 'danger' : item.event_status_badge === 'Completed' ? 'success' : 'warn'} />
+              <StatusPill label={item.event_status_badge} kind={getEventBadgeKind(item.event_status_badge)} />
             ) : null}
           </View>
           {item.subtitle ? <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: SAC.muted }} numberOfLines={1}>{item.subtitle}</Text> : null}
@@ -2052,6 +2089,36 @@ function ShowcaseCard({ item, onEdit, onDelete, onPublish, onDraft, onArchive, o
             {item.venue ? <Text style={cs.meta}>{item.venue}</Text> : null}
             {item.category ? <Text style={cs.meta}>{item.category}</Text> : null}
             <Text style={cs.meta}>/{item.slug}</Text>
+          </View>
+          {/* Quick Status Bar */}
+          <View style={{ marginTop: 6, gap: 4 }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: SAC.dim, letterSpacing: 0.6 }}>
+              STATUS BAR:
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 5, flexWrap: 'wrap' }}>
+              {STATUS_BADGE_OPTIONS.map((badge) => {
+                const currentBadge = item.event_status_badge || 'Upcoming';
+                const isSelected = currentBadge === badge;
+                return (
+                  <Pressable
+                    key={badge}
+                    onPress={() => onQuickStatusChange?.(item, badge)}
+                    style={[
+                      cs.quickBadgeChip,
+                      isSelected && cs.quickBadgeChipActive,
+                      isSelected && badge === 'Completed' && { backgroundColor: 'rgba(16,185,129,0.22)', borderColor: '#10B981' },
+                      isSelected && (badge === 'Live' || badge === 'Registrations Closed' || badge === 'Not Completed') && { backgroundColor: 'rgba(239,68,68,0.22)', borderColor: '#EF4444' },
+                      isSelected && badge === 'Registrations Open' && { backgroundColor: 'rgba(16,185,129,0.22)', borderColor: '#10B981' },
+                      isSelected && badge === 'Upcoming' && { backgroundColor: 'rgba(245,158,11,0.22)', borderColor: '#F59E0B' },
+                    ]}
+                  >
+                    <Text style={[cs.quickBadgeText, isSelected && { color: '#FFFFFF', fontFamily: FONTS.bold }]}>
+                      {badge}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
         </View>
         <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -2353,7 +2420,14 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                 </View>
                 <View style={{ flex: 1, minWidth: 160 }}>
                   <FieldRow label="Event Status Badge">
-                    <SelectNative value={form.event_status_badge} onChange={(v: string) => set('event_status_badge', v)} options={STATUS_BADGE_OPTIONS} />
+                    <SelectNative value={form.event_status_badge} onChange={(v: string) => {
+                      set('event_status_badge', v);
+                      if (v === 'Completed' || v === 'Registrations Closed' || v === 'Not Completed') {
+                        set('registration', { ...(form.registration || {}), enabled: false });
+                      } else if (v === 'Registrations Open' || v === 'Upcoming' || v === 'Live') {
+                        set('registration', { ...(form.registration || {}), enabled: true });
+                      }
+                    }} options={STATUS_BADGE_OPTIONS} />
                   </FieldRow>
                 </View>
                 <View style={{ flex: 1, minWidth: 160 }}>
@@ -2362,6 +2436,38 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   </FieldRow>
                 </View>
               </View>
+              <FieldRow label="Quick Status Bar" hint="1-click preset options for event lifecycle">
+                <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                  {STATUS_BADGE_OPTIONS.map((badge) => {
+                    const sel = form.event_status_badge === badge;
+                    return (
+                      <Pressable
+                        key={badge}
+                        onPress={() => {
+                          set('event_status_badge', badge);
+                          if (badge === 'Completed' || badge === 'Registrations Closed' || badge === 'Not Completed') {
+                            set('registration', { ...(form.registration || {}), enabled: false });
+                          } else if (badge === 'Registrations Open' || badge === 'Upcoming' || badge === 'Live') {
+                            set('registration', { ...(form.registration || {}), enabled: true });
+                          }
+                        }}
+                        style={[
+                          ms.statusChip,
+                          sel && ms.statusChipActive,
+                          sel && badge === 'Completed' && { backgroundColor: 'rgba(16,185,129,0.22)', borderColor: '#10B981' },
+                          sel && (badge === 'Live' || badge === 'Registrations Closed' || badge === 'Not Completed') && { backgroundColor: 'rgba(239,68,68,0.22)', borderColor: '#EF4444' },
+                          sel && badge === 'Registrations Open' && { backgroundColor: 'rgba(16,185,129,0.22)', borderColor: '#10B981' },
+                          sel && badge === 'Upcoming' && { backgroundColor: 'rgba(245,158,11,0.22)', borderColor: '#F59E0B' },
+                        ]}
+                      >
+                        <Text style={[ms.statusChipText, sel && { color: '#FFFFFF', fontFamily: FONTS.xbold }]}>
+                          {badge}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </FieldRow>
               <FieldRow label="CTA Button Text">
                 <Field value={form.cta_button_text} onChangeText={(v: string) => set('cta_button_text', v)} placeholder="View Upcoming Events" />
               </FieldRow>
@@ -6904,6 +7010,23 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
     catch { flash('Failed'); }
     finally { setBusy(null); }
   };
+
+  const onQuickStatusChange = async (item: any, badge: string) => {
+    setBusy(item._id);
+    try {
+      const regEnabled = (badge === 'Completed' || badge === 'Registrations Closed' || badge === 'Not Completed') ? false : true;
+      await api.updateEchoShowcaseStatuses(item._id, {
+        event_status_badge: badge,
+        registration_enabled: regEnabled,
+      });
+      flash(`Showcase status updated to "${badge}"`);
+      await load();
+    } catch (e: any) {
+      flash(e?.message || 'Failed to update status', 'error');
+    } finally {
+      setBusy(null);
+    }
+  };
   const onDelete = async (item: any) => {
     const ok = await confirm({
       title: 'Delete showcase',
@@ -7022,7 +7145,8 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
             <>
               {paged.map((item) => (
                 <ShowcaseCard key={item._id} item={item} onEdit={onEdit} onDelete={onDelete}
-                  onPublish={onPublish} onDraft={onDraft} onArchive={onArchive} onPreview={onPreview} busy={busy} />
+                  onPublish={onPublish} onDraft={onDraft} onArchive={onArchive} onPreview={onPreview}
+                  onQuickStatusChange={onQuickStatusChange} busy={busy} />
               ))}
               {/* Pagination */}
               {filtered.length > PER_PAGE && (

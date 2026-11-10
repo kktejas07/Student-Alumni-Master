@@ -1212,7 +1212,8 @@ async def update_event(event_id: str, body: Dict[str, Any],
         
     allowed = {"title", "description", "event_type", "location_country", "location_city",
                "event_date_start", "event_date_end", "price_type", "price_amount", "currency",
-               "registration_url", "image_url", "capacity", "tags", "organizer_name"}
+               "registration_url", "image_url", "capacity", "tags", "organizer_name",
+               "status", "event_status_badge"}
     update = {k: v for k, v in (body or {}).items() if k in allowed}
     
     if not update:

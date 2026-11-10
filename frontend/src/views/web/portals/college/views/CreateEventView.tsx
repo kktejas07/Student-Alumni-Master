@@ -12,6 +12,7 @@ import { useToast } from '@/src/views/components';
 
 const MODES = ['Online', 'In-person', 'Hybrid'];
 const CATEGORIES = ['Workshop', 'Hackathon', 'Career Fair', 'Talk', 'Networking'];
+const STATUS_OPTIONS = ['Upcoming', 'Live', 'Completed', 'Not Completed', 'Registrations Open', 'Registrations Closed'];
 
 export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void }) {
   const toast = useToast();
@@ -23,6 +24,7 @@ export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void
   const [category, setCategory] = useState('Workshop');
   const [mode, setMode] = useState('Hybrid');
   const [collegeName, setCollegeName] = useState(initialCollegeName);
+  const [eventStatusBadge, setEventStatusBadge] = useState('Upcoming');
   const [startDate, setStartDate] = useState('');
   const [capacity, setCapacity] = useState('200');
   const [price, setPrice] = useState('0');
@@ -42,10 +44,12 @@ export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void
         body: {
           title, category, mode, college_name: collegeName,
           start_date: sd, capacity: parseInt(capacity, 10) || 100, price: parseInt(price, 10) || 0,
+          event_status_badge: eventStatusBadge,
+          status: 'published',
         },
       });
       // request() throws on HTTP errors — reaching here means the POST succeeded.
-      setCreatedEvent({ ...j, title, category, mode });
+      setCreatedEvent({ ...j, title, category, mode, event_status_badge: eventStatusBadge });
       toast.success('Event created', `"${title.trim()}" has been published.`);
       setTimeout(() => {
         onNavigate?.('events');
@@ -76,6 +80,16 @@ export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void
             {CATEGORIES.map((c) => (
               <Pressable key={c} onPress={() => setCategory(c)} style={[s.chip, category === c && s.chipOn]}>
                 <Text style={{ color: category === c ? '#fff' : CC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>{c}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </Field>
+
+        <Field label="Event Status Badge">
+          <View style={s.chipRow}>
+            {STATUS_OPTIONS.map((st) => (
+              <Pressable key={st} onPress={() => setEventStatusBadge(st)} style={[s.chip, eventStatusBadge === st && s.chipOn]}>
+                <Text style={{ color: eventStatusBadge === st ? '#fff' : CC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>{st}</Text>
               </Pressable>
             ))}
           </View>

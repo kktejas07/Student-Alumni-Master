@@ -13,7 +13,7 @@
  */
 import React, { useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions, Modal, TextInput, ScrollView } from 'react-native';
-import { Calendar as CalIcon, MapPin, Users as UsersIcon, ShieldCheck, AlertTriangle, IndianRupee, Sparkles, Plus, X, Trash2 } from 'lucide-react-native';
+import { Calendar as CalIcon, MapPin, Users as UsersIcon, ShieldCheck, AlertTriangle, IndianRupee, Sparkles, Plus, X, Trash2, CheckCircle } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { GRAD, Card, IconBox, KpiTile, StatusPill, GradientButton, SecondaryButton, SearchField, TopTabs, EmptyState, useToast, Toast } from '../applekit';
@@ -22,8 +22,22 @@ import { request } from '@/src/models/services/api';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 import { useConfirm } from '@/src/views/components';
 
-type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; status: string; kind: string; price?: number; accent: string };
+type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; status: string; event_status_badge?: string; kind: string; price?: number; accent: string };
 const FALLBACK = { items: [] as Ev[] };
+
+const STATUS_BADGE_OPTIONS = ['Upcoming', 'Live', 'Completed', 'Not Completed', 'Registrations Open', 'Registrations Closed'] as const;
+
+function getEventBadgeKind(badge?: string): any {
+  switch (badge) {
+    case 'Live': return 'danger';
+    case 'Completed': return 'success';
+    case 'Registrations Open': return 'success';
+    case 'Registrations Closed': return 'danger';
+    case 'Not Completed': return 'danger';
+    case 'Upcoming': return 'warn';
+    default: return 'neutral';
+  }
+}
 
 type Tab = 'all' | 'live' | 'pending' | 'free' | 'paid';
 
@@ -39,11 +53,14 @@ type Editable = {
   capacity: string;     // string in form, parsed on save
   price: string;        // string in form, parsed on save
   description: string;
+  status: string;
+  event_status_badge: string;
 };
 
 const EMPTY: Editable = {
   title: '', start_date: '', mode: 'Online', venue: 'Online',
   category: 'Workshop', capacity: '200', price: '', description: '',
+  status: 'published', event_status_badge: 'Upcoming',
 };
 
 function EventModal({
@@ -74,6 +91,8 @@ function EventModal({
         capacity: String(editing.capacity || 200),
         price: editing.price ? String(editing.price) : '',
         description: editing.description || '',
+        status: editing.status || 'published',
+        event_status_badge: editing.event_status_badge || (editing.status === 'pending' ? 'Upcoming' : 'Live'),
       });
     } else {
       setForm(EMPTY);
@@ -95,6 +114,8 @@ function EventModal({
         category: form.category || 'Workshop',
         capacity: Number(form.capacity) || 200,
         description: form.description || '',
+        status: form.status || 'published',
+        event_status_badge: form.event_status_badge || 'Upcoming',
       };
       if (form.start_date) payload.start_date = form.start_date;
       payload.price = form.price ? Number(form.price) : null;
@@ -199,6 +220,37 @@ function EventModal({
                 </Field>
               </View>
             </View>
+
+            <Field label="Event Status Badge & Lifecycle">
+              <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                {STATUS_BADGE_OPTIONS.map((opt) => {
+                  const sel = form.event_status_badge === opt;
+                  return (
+                    <Pressable
+                      key={opt}
+                      onPress={() => set('event_status_badge', opt)}
+                      style={[
+                        mst.statusChip,
+                        sel && mst.statusChipSelected,
+                        sel && opt === 'Completed' && { backgroundColor: 'rgba(16,185,129,0.22)', borderColor: '#10B981' },
+                        sel && (opt === 'Live' || opt === 'Registrations Closed' || opt === 'Not Completed') && { backgroundColor: 'rgba(239,68,68,0.22)', borderColor: '#EF4444' },
+                        sel && opt === 'Registrations Open' && { backgroundColor: 'rgba(16,185,129,0.22)', borderColor: '#10B981' },
+                        sel && opt === 'Upcoming' && { backgroundColor: 'rgba(245,158,11,0.22)', borderColor: '#F59E0B' },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          mst.statusChipText,
+                          sel && { color: '#FFFFFF', fontFamily: FONTS.xbold },
+                        ]}
+                      >
+                        {opt}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </Field>
 
             <Field label="Description">
               <TextInput value={form.description} onChangeText={(v) => set('description', v)}
@@ -317,6 +369,19 @@ export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) =
     }
   };
 
+  const quickUpdateStatus = async (ev: Ev, badge: string) => {
+    try {
+      await request(`/admin/super/events/${ev.id}/status`, {
+        method: 'PATCH',
+        body: { event_status_badge: badge },
+      });
+      await refresh?.();
+      flash(`Status updated to "${badge}"`);
+    } catch (err: any) {
+      flash(err?.message || 'Failed to update status', 'error');
+    }
+  };
+
   return (
     <View style={{ gap: 14 }}>
       <Card>
@@ -364,8 +429,14 @@ export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) =
                   <CalIcon size={28} color={e.accent} />
                 </View>
                 <View style={{ padding: 14, gap: 8 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <StatusPill label={e.cat} kind="brand" />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <StatusPill label={e.cat} kind="brand" />
+                      <StatusPill
+                        label={e.event_status_badge || (e.status === 'pending' ? 'Upcoming' : 'Live')}
+                        kind={getEventBadgeKind(e.event_status_badge || e.status)}
+                      />
+                    </View>
                     <StatusPill
                       label={e.kind === 'free' ? 'FREE' : `₹${e.price}`}
                       kind={e.kind === 'free' ? 'success' : 'warn'}
@@ -385,6 +456,35 @@ export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) =
                   </View>
                   <View style={st.barTrack}>
                     <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[st.barFill, { width: `${pct}%` as any }]} />
+                  </View>
+                  {/* Quick Status Bar */}
+                  <View style={{ marginTop: 4, gap: 4 }}>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: SAC.dim, letterSpacing: 0.6 }}>
+                      STATUS BAR
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 5, flexWrap: 'wrap' }}>
+                      {STATUS_BADGE_OPTIONS.map((badge) => {
+                        const cur = (e.event_status_badge || (e.status === 'pending' ? 'Upcoming' : 'Live')) === badge;
+                        return (
+                          <Pressable
+                            key={badge}
+                            onPress={() => quickUpdateStatus(e, badge)}
+                            style={[
+                              st.quickChip,
+                              cur && st.quickChipActive,
+                              cur && badge === 'Completed' && { backgroundColor: 'rgba(16,185,129,0.22)', borderColor: '#10B981' },
+                              cur && (badge === 'Live' || badge === 'Registrations Closed' || badge === 'Not Completed') && { backgroundColor: 'rgba(239,68,68,0.22)', borderColor: '#EF4444' },
+                              cur && badge === 'Registrations Open' && { backgroundColor: 'rgba(16,185,129,0.22)', borderColor: '#10B981' },
+                              cur && badge === 'Upcoming' && { backgroundColor: 'rgba(245,158,11,0.22)', borderColor: '#F59E0B' },
+                            ]}
+                          >
+                            <Text style={[st.quickChipText, cur && { color: '#FFFFFF', fontFamily: FONTS.bold }]}>
+                              {badge}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
                   </View>
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
                     {e.status === 'pending'
@@ -436,6 +536,17 @@ const st = StyleSheet.create({
   dot: { color: SAC.dim, fontSize: 11 },
   barTrack: { height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden', marginTop: 2 },
   barFill: { height: '100%', borderRadius: 3 },
+  quickChip: {
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  quickChipActive: {
+    backgroundColor: 'rgba(251,146,60,0.20)', borderColor: '#FB923C',
+  },
+  quickChipText: {
+    color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5,
+  },
 
   modalBg: { flex: 1, backgroundColor: SAC.panel2, alignItems: 'center', justifyContent: 'center', padding: 20 },
   modalCard: { width: '100%', maxWidth: 560, maxHeight: '92%', backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2, overflow: 'hidden' },
@@ -484,4 +595,15 @@ const mst = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
   segOn: { backgroundColor: GRAD.to, borderColor: GRAD.from },
+  statusChip: {
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  statusChipSelected: {
+    backgroundColor: 'rgba(251,146,60,0.18)', borderColor: '#FB923C',
+  },
+  statusChipText: {
+    color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5,
+  },
 });

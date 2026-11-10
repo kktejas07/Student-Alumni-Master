@@ -976,6 +976,8 @@ class EventCreate(BaseModel):
     start_date: Optional[str] = None
     capacity: int = 100
     price: int = 0
+    event_status_badge: Optional[str] = "Upcoming"
+    status: Optional[str] = "published"
 
 
 @router.post("/college/events", dependencies=[Depends(require_role("college", "admin", "super_admin", "superadmin"))])
@@ -984,6 +986,7 @@ async def create_college_event(req: EventCreate):
         sd = datetime.fromisoformat(req.start_date) if req.start_date else _now() + timedelta(days=14)
     except Exception:
         sd = _now() + timedelta(days=14)
+    badge = req.event_status_badge or "Upcoming"
     doc = {
         "title": req.title,
         "category": req.category,
@@ -993,6 +996,8 @@ async def create_college_event(req: EventCreate):
         "registration_deadline": sd - timedelta(days=2),
         "price": req.price,
         "capacity": req.capacity,
+        "status": req.status or "published",
+        "event_status_badge": badge,
         "created_at": _now(),
         "_user_created": True,
     }

@@ -1,11 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Calendar as CalIcon, Plus } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
-import { usePortalData } from '@/src/lib/portalApi';
+import { usePortalData, patchPortal } from '@/src/lib/portalApi';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+
+export const STATUS_OPTIONS = [
+  'Upcoming',
+  'Live',
+  'Completed',
+  'Not Completed',
+  'Registrations Open',
+  'Registrations Closed',
+] as const;
 
 type Ev = {
   id: string;
@@ -18,6 +27,8 @@ type Ev = {
   capacity: number;
   accent: string;
   price?: number | null;
+  status?: string;
+  event_status_badge?: string;
 };
 const FALLBACK = { items: [] as Ev[] };
 
@@ -26,8 +37,22 @@ export function EventsView({ onNavigate }: { onNavigate?: (id: any) => void }) {
   const user = useAuthStore((s) => s.user);
   const collegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || '';
   const path = collegeName ? `/college/events?college_name=${encodeURIComponent(collegeName)}` : '/college/events';
-  const { data } = usePortalData<typeof FALLBACK>(path, FALLBACK);
+  const { data, refresh } = usePortalData<typeof FALLBACK>(path, FALLBACK);
   const events = data?.items || [];
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const quickUpdateStatus = async (e: Ev, badge: string) => {
+    setUpdatingId(e.id);
+    try {
+      await patchPortal(`/events/${e.id}`, { body: { event_status_badge: badge } });
+      refresh();
+    } catch (err) {
+      console.error('Failed to update event status', err);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   return (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
@@ -44,7 +69,50 @@ export function EventsView({ onNavigate }: { onNavigate?: (id: any) => void }) {
             <View style={[s.icon, { backgroundColor: e.accent + '20', borderColor: e.accent + '40' }]}><CalIcon size={20} color={e.accent} /></View>
             <Text numberOfLines={2} style={s.title}>{e.title}</Text>
             <Text style={s.date}>{e.date} · {e.mode}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}><Badge label={`${e.attending} attending`} color="cyan" /></View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+              <Badge label={`${e.attending} attending`} color="cyan" />
+              <Badge
+                label={e.event_status_badge || 'Upcoming'}
+                color={
+                  e.event_status_badge === 'Completed' || e.event_status_badge === 'Registrations Open'
+                    ? 'green'
+                    : (e.event_status_badge === 'Live' || e.event_status_badge === 'Registrations Closed' || e.event_status_badge === 'Not Completed')
+                    ? 'red'
+                    : 'amber'
+                }
+              />
+            </View>
+
+            {/* Quick Status Bar */}
+            <View style={{ marginTop: 10, gap: 4 }}>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: CC.muted, letterSpacing: 0.6 }}>
+                STATUS BAR
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 5, flexWrap: 'wrap' }}>
+                {STATUS_OPTIONS.map((badge) => {
+                  const cur = (e.event_status_badge || 'Upcoming') === badge;
+                  return (
+                    <Pressable
+                      key={badge}
+                      disabled={updatingId === e.id}
+                      onPress={() => quickUpdateStatus(e, badge)}
+                      style={[
+                        s.quickChip,
+                        cur && s.quickChipActive,
+                        cur && (badge === 'Completed' || badge === 'Registrations Open') && { backgroundColor: 'rgba(16,185,129,0.22)', borderColor: '#10B981' },
+                        cur && (badge === 'Live' || badge === 'Registrations Closed' || badge === 'Not Completed') && { backgroundColor: 'rgba(239,68,68,0.22)', borderColor: '#EF4444' },
+                        cur && badge === 'Upcoming' && { backgroundColor: 'rgba(245,158,11,0.22)', borderColor: '#F59E0B' },
+                      ]}
+                    >
+                      <Text style={[s.quickChipText, cur && { color: '#FFFFFF', fontFamily: FONTS.bold }]}>
+                        {badge}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
             <Pressable
               style={s.manage}
               onPress={() => router.push({
@@ -61,6 +129,8 @@ export function EventsView({ onNavigate }: { onNavigate?: (id: any) => void }) {
                   url: '',
                   tags: 'Networking,Career,Academic',
                   price: e.price !== undefined && e.price !== null ? String(e.price) : '',
+                  status: e.status || 'published',
+                  event_status_badge: e.event_status_badge || 'Upcoming',
                 }
               })}
             >
@@ -82,4 +152,20 @@ const s = StyleSheet.create({
   date: { color: CC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 4 },
   manage: { marginTop: 12, height: 32, borderRadius: 8, backgroundColor: CC.card, borderWidth: 1, borderColor: CC.border2, alignItems: 'center', justifyContent: 'center' },
   manageText: { color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 12 },
+  quickChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  quickChipActive: {
+    borderWidth: 1,
+  },
+  quickChipText: {
+    fontSize: 10,
+    fontFamily: FONTS.med,
+    color: CC.muted,
+  },
 });

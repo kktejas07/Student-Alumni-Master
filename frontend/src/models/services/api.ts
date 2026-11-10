@@ -630,6 +630,10 @@ export const api = {
     request<any>(`/echo/admin/showcases/${id}/draft`, { method: 'PATCH' }),
   archiveEchoShowcase: (id: string) =>
     request<any>(`/echo/admin/showcases/${id}/archive`, { method: 'PATCH' }),
+  updateEchoShowcaseStatuses: (id: string, payload: { event_status_badge: string; status?: string; registration_enabled?: boolean }) =>
+    request<any>(`/echo/admin/showcases/${id}/statuses`, { method: 'PATCH', body: payload }),
+  updateSuperEventStatus: (id: string, payload: { event_status_badge: string; status?: string }) =>
+    request<any>(`/admin/super/events/${id}/status`, { method: 'PATCH', body: payload }),
   uploadEchoMedia: (payload: any) => {
     if (typeof FormData !== 'undefined' && payload instanceof FormData) {
       return request<any>('/echo/admin/upload', { method: 'POST', body: payload });

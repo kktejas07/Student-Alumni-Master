@@ -40,6 +40,9 @@ const STATUS_COLORS: Record<string, { bg: string; border: string; text: string; 
   'Completed':  { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.30)', text: '#34D399', dot: '#10B981' },
   'Live':       { bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.30)',   text: '#FCA5A5', dot: '#EF4444' },
   'Upcoming':   { bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.30)',  text: '#FCD34D', dot: '#F59E0B' },
+  'Not Completed': { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.30)', text: '#FCA5A5', dot: '#EF4444' },
+  'Registrations Open': { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.30)', text: '#34D399', dot: '#10B981' },
+  'Registrations Closed': { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.30)', text: '#FCA5A5', dot: '#EF4444' },
   'default':    { bg: 'rgba(99,102,241,0.12)',  border: 'rgba(99,102,241,0.30)',  text: '#A5B4FC', dot: '#6366F1' },
 };
 
