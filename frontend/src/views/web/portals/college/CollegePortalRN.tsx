@@ -23,6 +23,7 @@ import { PlacementsView } from './views/PlacementsView';
 import { ProfileSettingsView as SharedProfileSettingsView } from '../student/views/ProfileSettingsView';
 import { CreateEventView } from './views/CreateEventView';
 import { CollegeNotificationsPanel } from './views/NotificationsPanel';
+import { CareerAIView } from '../student/views/CareerAIView';
 
 export function CollegePortalRN() {
   const router = useRouter();
@@ -70,6 +71,7 @@ export function CollegePortalRN() {
       )}
     >
       {active === 'dashboard'    && <DashboardView onOpenProfile={() => setActive('profile')} onNavigate={setActive} />}
+      {active === 'career-ai'    && <CareerAIView />}
       {active === 'students'     && <StudentsView />}
       {active === 'alumni'       && <AlumniView />}
       {active === 'mentors'      && <MentorsView />}
