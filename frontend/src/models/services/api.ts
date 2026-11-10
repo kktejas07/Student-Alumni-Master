@@ -361,14 +361,22 @@ export const api = {
 
   logout: async () => {
     try {
-      const refreshToken = await tokenStore.getRefresh();
-      await request<any>('/auth/logout', {
+      const [accessToken, refreshToken] = await Promise.all([
+        tokenStore.getAccess(),
+        tokenStore.getRefresh(),
+      ]);
+      const response = await fetch(`${BASE_URL}/api/auth/logout`, {
         method: 'POST',
-        body: refreshToken ? { refresh_token: refreshToken } : {},
-        auth: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        credentials: 'include',
+        body: JSON.stringify(refreshToken ? { refresh_token: refreshToken } : {}),
       });
-    } catch {
-      // Ignore network errors on logout to allow local cleanup
+      if (!response.ok) {
+        throw new Error(`Logout request failed (${response.status})`);
+      }
     } finally {
       await tokenStore.clear();
     }
