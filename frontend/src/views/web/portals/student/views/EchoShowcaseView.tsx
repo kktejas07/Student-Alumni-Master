@@ -875,6 +875,34 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
   const authUser = useAuthStore((state) => state.user);
   const authInitialized = useAuthStore((state) => state.initialized);
 
+  // Dynamic Super Admin section enable/disable controls
+  const [globalSectionsMap, setGlobalSectionsMap] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchGlobalSections = () => {
+      api.getEchoSections()
+        .then((res: any) => {
+          if (mounted && res?.sections_map) setGlobalSectionsMap(res.sections_map);
+        })
+        .catch(() => {});
+    };
+    fetchGlobalSections();
+
+    const handleSync = () => fetchGlobalSections();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('echo-sections-updated', handleSync);
+      window.addEventListener('focus', handleSync);
+    }
+    return () => {
+      mounted = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('echo-sections-updated', handleSync);
+        window.removeEventListener('focus', handleSync);
+      }
+    };
+  }, []);
+
   // Section visibility — defaults to showing everything when not configured.
   const sections = (data?.sections && typeof data.sections === 'object') ? data.sections : {};
 
@@ -883,7 +911,27 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
     ? data.gallery
     : (Array.isArray(data?.gallery_images) ? data.gallery_images : []);
 
-  const showSection = (key: string) => sections[key] !== false;
+  const showSection = (key: string) => {
+    const globalKeyMap: Record<string, string> = {
+      hero: 'hackwave_flagship',
+      flagship: 'hackwave_flagship',
+      about: 'about_event',
+      organizers: 'event_organizer',
+      organizer: 'event_organizer',
+      speakers: 'meet_speakers',
+      sponsors: 'sponsor_spotlight',
+      partners: 'visa_partner',
+      visa: 'visa_partner',
+      merit: 'merit_awards',
+      rewards: 'special_rewards',
+      tickets: 'pass_fee',
+      registration: 'pass_fee',
+      marketplace: 'event_marketplace',
+    };
+    const gKey = globalKeyMap[key] || key;
+    if (globalSectionsMap[gKey] === false) return false;
+    return sections[key] !== false;
+  };
 
   useEffect(() => {
     let mounted = true;

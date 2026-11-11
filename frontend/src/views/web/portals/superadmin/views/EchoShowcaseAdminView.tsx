@@ -166,6 +166,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
+  RotateCcw, CheckCircle2, SlidersHorizontal,
   Pencil, Trash2, Eye, Globe, Archive, Send, X, Zap,
   Star, BookOpen, Upload, MoveUp, MoveDown, Images, FolderOpen,
   Copy, Check, Search, RefreshCw, Plus, PlusCircle, FileText, Link2,
@@ -241,7 +242,7 @@ const GALLERY_LAYOUT_OPTIONS = ['grid', 'masonry', 'mixed', 'featured-grid', 'ca
 const VIDEO_PLATFORM_OPTIONS = ['youtube', 'vimeo', 'mp4'];
 const DOWNLOAD_CATEGORY_OPTIONS = ['Brochure', 'Schedule', 'Certificate', 'Presentation', 'Report', 'Document'];
 
-type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'interns' | 'volunteers' | 'scan-monitor';
+type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'interns' | 'volunteers' | 'scan-monitor' | 'sections-management';
 type StatusFilter = 'all' | 'published' | 'draft' | 'archived';
 type FormTab =
   | 'general' | 'hero' | 'statistics' | 'about' | 'gallery'
@@ -5250,6 +5251,729 @@ function VolunteersPanel() {
 }
 
 
+
+// ── LANDING PAGE & EVENT SECTION MANAGEMENT PANEL ─────────────────────────────
+function LandingPageSectionsPanel() {
+  const { flash } = useToast();
+  const { confirm } = useConfirm();
+  const [sections, setSections] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [editingSection, setEditingSection] = useState<any | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const loadSections = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.getEchoSections();
+      if (res?.sections) {
+        setSections(res.sections);
+      }
+    } catch (err: any) {
+      flash?.('Failed to load sections configuration', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [flash]);
+
+  useEffect(() => {
+    loadSections();
+  }, [loadSections]);
+
+  const enabledCount = sections.filter((s) => s.enabled).length;
+  const disabledCount = sections.filter((s) => !s.enabled).length;
+
+  const handleToggle = async (sec: any) => {
+    if (togglingId) return;
+
+    // Critical section safety confirmation
+    if (sec.enabled && sec.is_critical) {
+      const ok = await confirm({
+        title: `Disable ${sec.name}?`,
+        message: `"${sec.name}" is a core event section. Disabling it will immediately hide it from both the public landing page and student dashboards. Are you sure you want to proceed?`,
+        confirmText: 'Disable Section',
+        danger: true,
+      });
+      if (!ok) return;
+    }
+
+    const nextState = !sec.enabled;
+    setTogglingId(sec.id);
+
+    try {
+      const res = await api.updateEchoSection(sec.id, { enabled: nextState });
+      if (res?.success) {
+        setSections((prev) =>
+          prev.map((item) => (item.id === sec.id ? { ...item, enabled: nextState, updated_at: res?.section?.updated_at || new Date().toISOString() } : item))
+        );
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('echo-sections-updated'));
+        }
+        flash?.(`Section "${sec.name}" is now ${nextState ? 'ENABLED' : 'DISABLED'}!`, 'success');
+      } else {
+        flash?.('Failed to update section status', 'error');
+      }
+    } catch (err: any) {
+      flash?.(err?.message || 'Failed to update section status', 'error');
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const handleEnableAll = async () => {
+    const ok = await confirm({
+      title: 'Enable All Sections?',
+      message: 'This will make all 14 landing page and event sections visible across all public pages and user dashboards.',
+      confirmText: 'Enable All',
+    });
+    if (!ok) return;
+
+    setLoading(true);
+    try {
+      const payload = {
+        sections: sections.map((s) => ({ id: s.id, enabled: true })),
+      };
+      const res = await api.updateEchoSectionsBulk(payload);
+      if (res?.success) {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('echo-sections-updated'));
+        }
+        flash?.('All sections have been enabled!', 'success');
+        await loadSections();
+      }
+    } catch (err: any) {
+      flash?.('Failed to enable all sections', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetDefaults = async () => {
+    const ok = await confirm({
+      title: 'Reset Sections to Defaults?',
+      message: 'This will reset all 14 sections back to their initial default configurations and enable all of them.',
+      confirmText: 'Reset to Defaults',
+      danger: true,
+    });
+    if (!ok) return;
+
+    setLoading(true);
+    try {
+      const res = await api.resetEchoSections();
+      if (res?.success) {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('echo-sections-updated'));
+        }
+        flash?.('All sections reset to defaults!', 'success');
+        await loadSections();
+      }
+    } catch (err: any) {
+      flash?.('Failed to reset sections', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openEditModal = (sec: any) => {
+    setEditingSection(sec);
+    setEditName(sec.name || '');
+    setEditDesc(sec.description || '');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingSection) return;
+    setSavingEdit(true);
+    try {
+      const res = await api.updateEchoSection(editingSection.id, {
+        name: editName,
+        description: editDesc,
+      });
+      if (res?.success) {
+        setSections((prev) =>
+          prev.map((item) => (item.id === editingSection.id ? { ...item, name: editName, description: editDesc, updated_at: res?.section?.updated_at || new Date().toISOString() } : item))
+        );
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('echo-sections-updated'));
+        }
+        flash?.(`Section "${editName}" updated successfully!`, 'success');
+        setEditingSection(null);
+      }
+    } catch (err: any) {
+      flash?.('Failed to update section details', 'error');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const categories = ['all', 'hero', 'content', 'highlight', 'tracks', 'speakers', 'sponsors', 'partners', 'awards', 'pricing', 'footer', 'marketplace'];
+
+  const filteredSections = useMemo(() => {
+    return sections.filter((sec) => {
+      const matchesSearch =
+        !searchQuery.trim() ||
+        sec.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        sec.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCat = categoryFilter === 'all' || sec.category === categoryFilter;
+      return matchesSearch && matchesCat;
+    });
+  }, [sections, searchQuery, categoryFilter]);
+
+  return (
+    <View style={{ gap: 24, paddingBottom: 40 }}>
+      {/* ── HEADER BANNER ── */}
+      <View style={{
+        padding: 24,
+        borderRadius: 20,
+        backgroundColor: '#131528',
+        borderWidth: 1,
+        borderColor: 'rgba(99,102,241,0.25)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <LinearGradient
+          colors={['rgba(99,102,241,0.15)', 'rgba(168,85,247,0.06)', 'transparent']}
+          style={StyleSheet.absoluteFill}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        />
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <View style={{ flex: 1, minWidth: 280 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#6366F1' }} />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1.5, color: '#A5B4FC', textTransform: 'uppercase' }}>
+                LIVE CONTROL CENTER · REAL-TIME SYNC
+              </Text>
+            </View>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 24, color: '#FFFFFF', letterSpacing: -0.5, marginBottom: 8 }}>
+              Landing Page &amp; Event Section Management
+            </Text>
+            <Text style={{ fontFamily: FONTS.regular, fontSize: 14, color: '#94A3B8', lineHeight: 20, maxWidth: 700 }}>
+              Control the visibility and content of all 14 independent sections displayed on the public ECHO Event Marketplace landing page and student dashboards. Changes synchronize instantly across the entire platform without redeploying code.
+            </Text>
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+            <Pressable
+              onPress={handleEnableAll}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                backgroundColor: 'rgba(16,185,129,0.15)',
+                borderWidth: 1,
+                borderColor: 'rgba(16,185,129,0.4)',
+                paddingVertical: 10,
+                paddingHorizontal: 16,
+                borderRadius: 12,
+              }}
+            >
+              <CheckCircle2 size={15} color="#34D399" />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#34D399' }}>Enable All</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={handleResetDefaults}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                backgroundColor: 'rgba(239,68,68,0.12)',
+                borderWidth: 1,
+                borderColor: 'rgba(239,68,68,0.35)',
+                paddingVertical: 10,
+                paddingHorizontal: 16,
+                borderRadius: 12,
+              }}
+            >
+              <RotateCcw size={15} color="#F87171" />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#F87171' }}>Reset Defaults</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={loadSections}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                backgroundColor: 'rgba(255,255,255,0.06)',
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.12)',
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                borderRadius: 12,
+              }}
+            >
+              <RefreshCw size={15} color="#E2E8F0" />
+              <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: '#E2E8F0' }}>Refresh</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* ── METRIC STATS TILES ── */}
+        <View style={{ flexDirection: 'row', gap: 16, marginTop: 24, flexWrap: 'wrap' }}>
+          <View style={{
+            flex: 1,
+            minWidth: 160,
+            backgroundColor: 'rgba(0,0,0,0.3)',
+            borderRadius: 14,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.06)',
+          }}>
+            <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+              Total Sections
+            </Text>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 28, color: '#FFFFFF', marginTop: 4 }}>
+              {sections.length}
+            </Text>
+          </View>
+
+          <View style={{
+            flex: 1,
+            minWidth: 160,
+            backgroundColor: 'rgba(16,185,129,0.08)',
+            borderRadius: 14,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: 'rgba(16,185,129,0.3)',
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10B981' }} />
+              <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#34D399', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                Enabled (Visible)
+              </Text>
+            </View>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 28, color: '#34D399', marginTop: 4 }}>
+              {enabledCount}
+            </Text>
+          </View>
+
+          <View style={{
+            flex: 1,
+            minWidth: 160,
+            backgroundColor: 'rgba(100,116,139,0.08)',
+            borderRadius: 14,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: 'rgba(100,116,139,0.3)',
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#94A3B8' }} />
+              <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                Disabled (Hidden)
+              </Text>
+            </View>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 28, color: '#94A3B8', marginTop: 4 }}>
+              {disabledCount}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* ── SEARCH & FILTER CONTROLS ── */}
+      <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+        <View style={{
+          flex: 1,
+          minWidth: 260,
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: '#131528',
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderRadius: 12,
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+          gap: 10,
+        }}>
+          <Search size={16} color="#94A3B8" />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search sections by name or description..."
+            placeholderTextColor="#64748B"
+            style={{
+              flex: 1,
+              fontFamily: FONTS.regular,
+              fontSize: 13,
+              color: '#FFFFFF',
+            }}
+          />
+          {searchQuery ? (
+            <Pressable onPress={() => setSearchQuery('')}>
+              <X size={15} color="#94A3B8" />
+            </Pressable>
+          ) : null}
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+          {categories.map((cat) => {
+            const active = categoryFilter === cat;
+            return (
+              <Pressable
+                key={cat}
+                onPress={() => setCategoryFilter(cat)}
+                style={{
+                  paddingVertical: 8,
+                  paddingHorizontal: 14,
+                  borderRadius: 100,
+                  backgroundColor: active ? '#6366F1' : 'rgba(255,255,255,0.05)',
+                  borderWidth: 1,
+                  borderColor: active ? '#6366F1' : 'rgba(255,255,255,0.1)',
+                }}
+              >
+                <Text style={{
+                  fontFamily: active ? FONTS.bold : FONTS.medium,
+                  fontSize: 12,
+                  color: active ? '#FFFFFF' : '#94A3B8',
+                  textTransform: 'capitalize',
+                }}>
+                  {cat}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* ── SECTIONS CARDS LIST ── */}
+      {loading ? (
+        <View style={{ paddingVertical: 60, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color="#6366F1" />
+          <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: '#94A3B8', marginTop: 12 }}>
+            Loading section configurations...
+          </Text>
+        </View>
+      ) : filteredSections.length === 0 ? (
+        <View style={{
+          paddingVertical: 60,
+          alignItems: 'center',
+          backgroundColor: '#131528',
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.08)',
+        }}>
+          <SlidersHorizontal size={36} color="#64748B" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#FFFFFF', marginTop: 14 }}>
+            No sections match your filter
+          </Text>
+          <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: '#94A3B8', marginTop: 4 }}>
+            Try resetting your search query or selecting 'All' categories.
+          </Text>
+        </View>
+      ) : (
+        <View style={{
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: 16,
+        }}>
+          {filteredSections.map((sec, idx) => {
+            const isToggling = togglingId === sec.id;
+            const updatedDateStr = sec.updated_at ? new Date(sec.updated_at).toLocaleDateString('en-US', {
+              month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            }) : 'Initial setup';
+
+            return (
+              <View
+                key={sec.id}
+                style={{
+                  flex: 1,
+                  minWidth: 320,
+                  maxWidth: 560,
+                  backgroundColor: '#131528',
+                  borderRadius: 18,
+                  padding: 20,
+                  borderWidth: 1,
+                  borderColor: sec.enabled ? 'rgba(99,102,241,0.22)' : 'rgba(255,255,255,0.07)',
+                  gap: 14,
+                  position: 'relative',
+                }}
+              >
+                {/* Top header row */}
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                      <View style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        backgroundColor: 'rgba(99,102,241,0.2)',
+                        borderWidth: 1,
+                        borderColor: 'rgba(99,102,241,0.4)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#A5B4FC' }}>
+                          {sec.display_order || idx + 1}
+                        </Text>
+                      </View>
+
+                      <View style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                        borderRadius: 6,
+                        backgroundColor: 'rgba(255,255,255,0.06)',
+                      }}>
+                        <Text style={{ fontFamily: FONTS.medium, fontSize: 10.5, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                          {sec.category || 'section'}
+                        </Text>
+                      </View>
+
+                      {sec.is_critical && (
+                        <View style={{
+                          paddingHorizontal: 8,
+                          paddingVertical: 2,
+                          borderRadius: 6,
+                          backgroundColor: 'rgba(245,158,11,0.14)',
+                          borderWidth: 1,
+                          borderColor: 'rgba(245,158,11,0.3)',
+                        }}>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#FBBF24', letterSpacing: 0.5 }}>
+                            CORE
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#FFFFFF', letterSpacing: -0.3 }}>
+                      {sec.name}
+                    </Text>
+                  </View>
+
+                  {/* Status Indicator Badge */}
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    paddingHorizontal: 10,
+                    paddingVertical: 5,
+                    borderRadius: 100,
+                    backgroundColor: sec.enabled ? 'rgba(16,185,129,0.12)' : 'rgba(100,116,139,0.15)',
+                    borderWidth: 1,
+                    borderColor: sec.enabled ? 'rgba(16,185,129,0.35)' : 'rgba(100,116,139,0.3)',
+                  }}>
+                    <View style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: 3.5,
+                      backgroundColor: sec.enabled ? '#10B981' : '#64748B',
+                    }} />
+                    <Text style={{
+                      fontFamily: FONTS.bold,
+                      fontSize: 10.5,
+                      color: sec.enabled ? '#34D399' : '#94A3B8',
+                      letterSpacing: 0.4,
+                    }}>
+                      {sec.enabled ? 'ENABLED' : 'DISABLED'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Section description */}
+                <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: '#94A3B8', lineHeight: 19 }}>
+                  {sec.description}
+                </Text>
+
+                {/* Bottom action row with intuitive toggle */}
+                <View style={{
+                  paddingTop: 12,
+                  borderTopWidth: 1,
+                  borderTopColor: 'rgba(255,255,255,0.06)',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}>
+                  <View style={{ flex: 1, marginRight: 12 }}>
+                    <Text style={{ fontFamily: FONTS.regular, fontSize: 11, color: '#64748B' }}>
+                      Last updated: {updatedDateStr}
+                    </Text>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Pressable
+                      onPress={() => openEditModal(sec)}
+                      style={{
+                        padding: 7,
+                        borderRadius: 8,
+                        backgroundColor: 'rgba(255,255,255,0.05)',
+                        borderWidth: 1,
+                        borderColor: 'rgba(255,255,255,0.08)',
+                      }}
+                      accessibilityLabel="Edit section details"
+                    >
+                      <Pencil size={13} color="#94A3B8" />
+                    </Pressable>
+
+                    {/* Intuitive Enable/Disable Toggle Switch */}
+                    <Pressable
+                      onPress={() => handleToggle(sec)}
+                      disabled={isToggling}
+                      style={{
+                        width: 52,
+                        height: 28,
+                        borderRadius: 14,
+                        backgroundColor: sec.enabled ? '#10B981' : '#334155',
+                        padding: 3,
+                        justifyContent: 'center',
+                        opacity: isToggling ? 0.6 : 1,
+                      }}
+                    >
+                      {isToggling ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <View style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: 11,
+                          backgroundColor: '#FFFFFF',
+                          alignSelf: sec.enabled ? 'flex-end' : 'flex-start',
+                          shadowColor: '#000',
+                          shadowOpacity: 0.2,
+                          shadowRadius: 2,
+                          shadowOffset: { width: 0, height: 1 },
+                        }} />
+                      )}
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+      {/* ── EDIT SECTION MODAL ── */}
+      {editingSection && (
+        <Modal
+          visible={true}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setEditingSection(null)}
+        >
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.75)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}>
+            <View style={{
+              width: '100%',
+              maxWidth: 520,
+              backgroundColor: '#131528',
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: 'rgba(99,102,241,0.3)',
+              padding: 24,
+              gap: 16,
+              shadowColor: '#000',
+              shadowOpacity: 0.4,
+              shadowRadius: 20,
+              shadowOffset: { width: 0, height: 8 },
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 18, color: '#FFFFFF' }}>
+                    Edit Section Details
+                  </Text>
+                  <Text style={{ fontFamily: FONTS.regular, fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
+                    ID: {editingSection.id}
+                  </Text>
+                </View>
+                <Pressable onPress={() => setEditingSection(null)} style={{ padding: 4 }}>
+                  <X size={18} color="#94A3B8" />
+                </Pressable>
+              </View>
+
+              <View style={{ gap: 6 }}>
+                <Text style={{ fontFamily: FONTS.medium, fontSize: 12.5, color: '#E2E8F0' }}>
+                  Section Display Name
+                </Text>
+                <TextInput
+                  value={editName}
+                  onChangeText={setEditName}
+                  style={{
+                    backgroundColor: '#0A0A14',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.12)',
+                    borderRadius: 10,
+                    paddingHorizontal: 14,
+                    paddingVertical: 10,
+                    fontFamily: FONTS.regular,
+                    fontSize: 13.5,
+                    color: '#FFFFFF',
+                  }}
+                />
+              </View>
+
+              <View style={{ gap: 6 }}>
+                <Text style={{ fontFamily: FONTS.medium, fontSize: 12.5, color: '#E2E8F0' }}>
+                  Section Description
+                </Text>
+                <TextInput
+                  value={editDesc}
+                  onChangeText={setEditDesc}
+                  multiline
+                  numberOfLines={4}
+                  style={{
+                    backgroundColor: '#0A0A14',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.12)',
+                    borderRadius: 10,
+                    paddingHorizontal: 14,
+                    paddingVertical: 10,
+                    fontFamily: FONTS.regular,
+                    fontSize: 13.5,
+                    color: '#FFFFFF',
+                    minHeight: 80,
+                    textAlignVertical: 'top',
+                  }}
+                />
+              </View>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+                <Pressable
+                  onPress={() => setEditingSection(null)}
+                  style={{
+                    paddingVertical: 10,
+                    paddingHorizontal: 16,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(255,255,255,0.06)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.1)',
+                  }}
+                >
+                  <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: '#94A3B8' }}>Cancel</Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={handleSaveEdit}
+                  disabled={savingEdit}
+                  style={{
+                    paddingVertical: 10,
+                    paddingHorizontal: 18,
+                    borderRadius: 10,
+                    backgroundColor: '#6366F1',
+                    opacity: savingEdit ? 0.7 : 1,
+                  }}
+                >
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#FFFFFF' }}>
+                    {savingEdit ? 'Saving...' : 'Save Changes'}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+    </View>
+  );
+}
+
+
 // ── Live Scan Monitor Panel ───────────────────────────────────────────────────
 function LiveScanMonitorPanel() {
   const { flash } = useToast();
@@ -7125,6 +7849,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
 
       {/* ── MEDIA LIBRARY ── */}
       {pageTab === 'media' && <MediaLibraryPanel />}
+      {pageTab === 'sections-management' && <LandingPageSectionsPanel />}
       {pageTab === 'scan-monitor' && <LiveScanMonitorPanel />}
 
       {/* ── REGISTRATIONS & PAYMENTS ── */}

@@ -425,6 +425,46 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
     };
   }, [selectedSlug]);
 
+  // Dynamic ECHO section enable/disable controls
+  const [sectionsMap, setSectionsMap] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchSections = () => {
+      api.getEchoSections()
+        .then((res: any) => {
+          if (mounted && res?.sections_map) {
+            setSectionsMap(res.sections_map);
+          }
+        })
+        .catch(() => {});
+    };
+    fetchSections();
+
+    const handleSync = () => fetchSections();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('echo-sections-updated', handleSync);
+      window.addEventListener('focus', handleSync);
+    }
+    return () => {
+      mounted = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('echo-sections-updated', handleSync);
+        window.removeEventListener('focus', handleSync);
+      }
+    };
+  }, []);
+
+  const isSectionEnabled = useCallback(
+    (secId: string) => {
+      if (sectionsMap[secId] !== undefined) {
+        return sectionsMap[secId];
+      }
+      return true; // Default to enabled
+    },
+    [sectionsMap]
+  );
+
   // Fetch hero config from ECHO settings
   useEffect(() => {
     let mounted = true;
@@ -1550,7 +1590,20 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
               </div>
 
               <div className="ev-detail-title" style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.1px', color: '#FFFFFF' }}>
-                {activeEvent.title.split('–')[0]} – <span style={{ color: 'var(--violet-lt)' }}>{activeEvent.college}</span>
+                {(() => {
+                  const college = activeEvent.college || '';
+                  let cleanTitle = activeEvent.title || '';
+                  if (college) {
+                    cleanTitle = cleanTitle.replace(new RegExp(`\\s*[-–—:]\\s*${college}\\s*$`, 'i'), '').trim();
+                  }
+                  if (cleanTitle.includes('–')) cleanTitle = cleanTitle.split('–')[0].trim();
+                  else if (cleanTitle.includes(' - ')) cleanTitle = cleanTitle.split(' - ')[0].trim();
+                  return (
+                    <>
+                      {cleanTitle} – <span style={{ color: 'var(--violet-lt)' }}>{activeEvent.college}</span>
+                    </>
+                  );
+                })()}
               </div>
               <div className="ev-detail-desc" style={{ fontSize: '15px', lineHeight: 1.6, color: 'var(--muted)', margin: '8px 0 18px', maxWidth: '680px' }}>
                 {activeEvent.description}
@@ -1723,6 +1776,8 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
               </div>
             </div>
           )}
+          </div>
+          )}
 
           {/* 2-Column: About Event & Organized By */}
           <div className="ev-dgrid" style={{ display: 'grid', gap: '22px', marginBottom: '28px', width: '100%' }}>
@@ -1852,6 +1907,8 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
               </div>
             );
           })()}
+          </div>
+          )}
           {/* ────────────────────────────────────────────────────────── */}
           {/* A NATIONAL-LEVEL TECH FEST — 7 VERTICALS (BANNER 4)       */}
           {/* ────────────────────────────────────────────────────────── */}
@@ -1935,9 +1992,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
           })()}
 
           {/* ────────────────────────────────────────────────────────── */}
-          {/* MEET THE SPEAKERS                                          */}
+          {/* MEET THE SPEAKERS (Section 7: meet_speakers)               */}
           {/* ────────────────────────────────────────────────────────── */}
-          {activeEvent?.speakers && activeEvent.speakers.length > 0 && (
+          {isSectionEnabled('meet_speakers') && activeEvent?.speakers && activeEvent.speakers.length > 0 && (
             <div style={{ marginBottom: '32px' }}>
               <div style={{ textAlign: 'center', marginBottom: '22px' }}>
                 <div className="ev-detail-speakers-header" style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '-1px', color: '#FFFFFF' }}>Meet the Speakers</div>
@@ -2108,9 +2165,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
           )}
 
           {/* ────────────────────────────────────────────────────────── */}
-          {/* TICKET PRICING & PRIZE POOL                                */}
+          {/* TICKET PRICING & PRIZE POOL (Section 12: pass_fee)         */}
           {/* ────────────────────────────────────────────────────────── */}
-          {(activeEvent?.prize_pool || activeEvent?.individual_fee != null) && (
+          {isSectionEnabled('pass_fee') && (activeEvent?.prize_pool || activeEvent?.individual_fee != null) && (
             <div style={{ marginBottom: '32px', border: '1px solid #F59E0B', borderRadius: '22px', background: 'linear-gradient(135deg, #2D1A04 0%, #1A130B 100%)', padding: '32px 30px' }}>
               <div style={{ textAlign: 'center', marginBottom: '24px' }}>
                 <div style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-1px', color: '#FFFFFF' }}>
@@ -2190,7 +2247,8 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
             </button>
           </div>
 
-          {/* Marketplace CTA Card */}
+          {/* Marketplace CTA Card (Section 14: event_marketplace) */}
+          {isSectionEnabled('event_marketplace') && (
           <a
             href="/marketplace"
             onClick={(e) => { e.preventDefault(); window.location.href = '/marketplace'; }}

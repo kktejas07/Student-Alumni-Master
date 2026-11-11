@@ -801,6 +801,16 @@ export const api = {
   getEchoInvoice: (invoiceNo: string) =>
     request<any>(`/echo/invoices/${invoiceNo}`),
 
+  // ── Echo Landing Page & Event Sections Management ─────────────────────────
+  getEchoSections: () =>
+    request<any>('/echo/sections', { auth: false }),
+  updateEchoSection: (id: string, payload: any) =>
+    request<any>(`/echo/admin/sections/${encodeURIComponent(id)}`, { method: 'PUT', body: payload }),
+  updateEchoSectionsBulk: (payload: any) =>
+    request<any>('/echo/admin/sections/bulk', { method: 'PUT', body: payload }),
+  resetEchoSections: () =>
+    request<any>('/echo/admin/sections/reset', { method: 'POST' }),
+
   // ── Echo Admin Sessions & Volunteers ──────────────────────────────────────
   getEchoSessions: (slug: string) =>
     request<any>(`/echo/admin/${slug}/sessions`),
