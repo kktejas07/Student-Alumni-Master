@@ -143,7 +143,7 @@ export const s = StyleSheet.create({
     fontFamily: FONTS.med,
     fontSize: 11.5,
     lineHeight: 17,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: SAC.tint,
     borderColor: SAC.border,
     borderWidth: 1,
     borderRadius: 10,
@@ -160,7 +160,7 @@ export const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: SAC.tintStrong,
     borderWidth: 1,
     borderColor: 'rgba(251,146,60,0.40)',
     borderRadius: 10,
@@ -203,7 +203,7 @@ export const s = StyleSheet.create({
   },
   pickerOptionText: { color: SAC.text, fontFamily: FONTS.med, fontSize: 13, flex: 1 },
   textInput: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: SAC.tint,
     borderWidth: 1,
     borderColor: SAC.border,
     borderRadius: 8,
@@ -322,7 +322,7 @@ export const s = StyleSheet.create({
   connectedPillText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 0.3 },
   disconnectedPill: {
     marginTop: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: SAC.border,
+    backgroundColor: SAC.tint, borderWidth: 1, borderColor: SAC.border,
   },
   disconnectedPillText: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 0.3 },
   popPill: {
@@ -372,7 +372,7 @@ export const s = StyleSheet.create({
   sessRow: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 12,
     paddingVertical: 12, paddingHorizontal: 12, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: SAC.border,
+    backgroundColor: SAC.tint, borderWidth: 1, borderColor: SAC.border,
   },
   sessIcon: { width: 32, height: 32, marginTop: 2, borderRadius: 8, backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', justifyContent: 'center' },
   activeChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(16,185,129,0.12)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.30)' },

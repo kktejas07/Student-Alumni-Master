@@ -5,7 +5,7 @@ import { View, Text, Pressable, Platform, Modal, ScrollView, TextInput, Activity
 import { ShieldCheck, Users, UserCheck, Sparkles, Search, CheckCircle2, AlertTriangle, Trash2, RefreshCw, Copy, Check, ExternalLink, Award, Mail, Phone, Filter, Send, Download, Globe, Edit3, BellRing, PlayCircle, Layers, XCircle, AlertCircle, Zap, Key, History, FileSpreadsheet, Activity } from 'lucide-react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useSAC, FONTS, resolveColors } from '@/src/views/web/portals/superadmin/tokens';
+import { useSAC, FONTS, resolveColors, pristineOf } from '@/src/views/web/portals/superadmin/tokens';
 import { Card, Toast, useToast } from '@/src/views/web/portals/superadmin/applekit';
 import { api, request, downloadFileAsBlob } from '@/src/models/services/api';
 import { getBaseUrl } from '@/src/lib/env';
@@ -18,7 +18,7 @@ export type LinkedInFilterType = 'all' | 'yes' | 'no';
 
 export function BGVAccountVerticalsView() {
   const T = useSAC();
-  Object.assign(st, resolveColors(st, T));
+  Object.assign(st, resolveColors(pristineOf(st), T));
   const [bgvTab, setBgvTab] = useState<BGVMainTab>('directory');
   const [vertical, setVertical] = useState<VerticalType>('all');
   const [countryFilter, setCountryFilter] = useState<string>('all');
