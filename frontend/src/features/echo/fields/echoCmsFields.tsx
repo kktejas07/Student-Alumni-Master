@@ -1,5 +1,5 @@
+// @ts-nocheck — TODO: fix 1 TS errors then remove
 // field helpers (inputs, selects, icons, tooltips) used by every editor — split verbatim from EchoShowcaseAdminView.tsx (audit Step 6a).
-// @ts-nocheck
 import React, { useState } from 'react';
 import { FONTS, SAC } from '@/src/views/web/portals/superadmin/tokens';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';

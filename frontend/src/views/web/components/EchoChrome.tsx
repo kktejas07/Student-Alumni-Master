@@ -1,10 +1,10 @@
+// @ts-nocheck — TODO: fix 1 TS errors then remove
 /**
  * EchoChrome — shared public header + footer for the /echo and /verify pages.
  *
  * Reuses the exact same Navbar + Footer from the marketing landing page
  * (nexus-glow-landing) with the luxury glowing SA Watermark.
  */
-// @ts-nocheck
 import React, { useState } from 'react';
 import { StyleSheet, View, Image, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';

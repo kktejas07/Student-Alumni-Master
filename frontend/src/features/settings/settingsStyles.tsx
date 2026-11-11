@@ -1,5 +1,5 @@
+// @ts-nocheck — TODO: fix 1 TS errors then remove
 // StyleSheet.create() — the `s` design-token object + the `previewStyles` Lexical-preview styles — split verbatim from SettingsView.tsx (audit Step 6c).
-// @ts-nocheck
 import { StyleSheet, Platform } from 'react-native';
 import { SAC, FONTS } from '@/src/views/web/portals/superadmin/tokens';
 import { GRAD_TO } from './settingsTokens';

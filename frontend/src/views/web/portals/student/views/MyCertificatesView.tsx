@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck — TODO: fix 1 TS errors then remove
 /**
  * Student Portal — My Certificates Hub.
  * Allows students to view, search, sort, and download all their official certificates

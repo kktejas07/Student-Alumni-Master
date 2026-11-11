@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck — TODO: fix 4 TS errors then remove
 /**
  * Student Portal — Lottie-style empty states + success burst.
  *

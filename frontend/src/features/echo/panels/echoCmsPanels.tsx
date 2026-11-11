@@ -1,5 +1,4 @@
 // registrations, volunteers, live scan, internal hiring, and passcode panels — split verbatim from EchoShowcaseAdminView.tsx (audit Step 6a).
-// @ts-nocheck
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getBaseUrl } from '@/src/lib/env';
 import { api, request } from '@/src/models/services/api';

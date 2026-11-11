@@ -1,5 +1,5 @@
+// @ts-nocheck — TODO: fix 1 TS errors then remove
 // TAB 3 — Integrations (connect/disconnect tools, API-key entry modal) — split verbatim from SettingsView.tsx (audit Step 6c).
-// @ts-nocheck
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, Pressable, Modal, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { Plug, Pencil, X, Eye, EyeOff, ExternalLink, AlertTriangle, KeyRound, Search, Sparkles, CheckCircle2 } from 'lucide-react-native';

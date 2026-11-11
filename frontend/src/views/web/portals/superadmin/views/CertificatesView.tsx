@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck — TODO: fix 16 TS errors then remove
 /**
  * Super Admin → Certificates view.
  *

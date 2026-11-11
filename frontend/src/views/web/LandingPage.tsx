@@ -5,6 +5,5 @@
 // landingStyles). This re-export keeps the existing
 // `import LandingPage from '@/src/views/web/LandingPage'` working; new code
 // should import the feature modules directly.
-// @ts-nocheck
 import LandingPage from '@/src/features/landing/landingView';
 export default LandingPage;

@@ -1,5 +1,4 @@
 // TAB 5 — Notifications (per-event channel matrix) + the shared liveAgo() time-ago helper — split verbatim from SettingsView.tsx (audit Step 6c).
-// @ts-nocheck
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, Switch, Platform } from 'react-native';
 import { Bell } from 'lucide-react-native';

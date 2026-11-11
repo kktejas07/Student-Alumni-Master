@@ -8,5 +8,4 @@
 // This named re-export keeps the existing
 // `import { SettingsView } from './views/SettingsView'` (SuperAdminPortalRN)
 // working; new code should import the feature modules directly.
-// @ts-nocheck
 export { SettingsView } from '@/src/features/settings/settingsEntry';

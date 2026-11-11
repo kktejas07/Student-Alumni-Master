@@ -1,5 +1,5 @@
+// @ts-nocheck — TODO: fix 3 TS errors then remove
 // EchoEventsPage — the public ECHO events page (list / detail / register views, tickets confirmation, payment status) — split verbatim from EchoEventsPage.tsx (audit Step 6e).
-// @ts-nocheck
 import { useState, useEffect, useMemo } from 'react';
 import { View, Platform, ActivityIndicator, Linking } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';

@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck — TODO: fix 15 TS errors then remove
 /**
  * Super Admin Portal — Approvals view.
  *

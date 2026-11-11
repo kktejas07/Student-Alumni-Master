@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Refund management (PY1).
  *

@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck — TODO: fix 1 TS errors then remove
 /**
  * AnimatedCard — Pressable wrapper with MD3 hover/press animation.
  * Web: subtle scale + shadow lift on hover; press: scale-down 0.97.

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useNetworkViewState — all non-visual state, data loading and handlers for
  * the portal Network tab. Shared by the student and alumni NetworkView

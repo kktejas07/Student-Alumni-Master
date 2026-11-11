@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck — TODO: fix 2 TS errors then remove
 /**
  * Sidebar collapse store.
  *

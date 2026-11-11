@@ -1,5 +1,4 @@
 // the LandingPage entry component (default export) — split verbatim from LandingPage.tsx (audit Step 6b).
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, useWindowDimensions, Platform } from 'react-native';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';

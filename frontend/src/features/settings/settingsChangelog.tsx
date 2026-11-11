@@ -1,5 +1,4 @@
 // TAB — Settings Changelog (ST2): append-only timeline of platform setting changes with inline old→new diff, filters, CSV export and rollback.
-// @ts-nocheck
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, Pressable, Platform, ScrollView, ActivityIndicator, Modal, TextInput } from 'react-native';
 import {

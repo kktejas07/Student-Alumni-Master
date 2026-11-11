@@ -1,5 +1,5 @@
+// @ts-nocheck — TODO: fix 2 TS errors then remove
 // SettingsView entry component + TopTabBar (the one place `s` is mutated via Object.assign(resolveColors(...))) — split verbatim from SettingsView.tsx (audit Step 6c).
-// @ts-nocheck
 import React, { useState, useRef } from 'react';
 import { View, Text, Pressable, Platform, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';

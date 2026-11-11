@@ -1,5 +1,5 @@
+// @ts-nocheck — TODO: fix 13 TS errors then remove
 // TAB 10 — Templates (email/notification template editor) — split verbatim from SettingsView.tsx (audit Step 6c).
-// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, TextInput } from 'react-native';
 import { Eye } from 'lucide-react-native';

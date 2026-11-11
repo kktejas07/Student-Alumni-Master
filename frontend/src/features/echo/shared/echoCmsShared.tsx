@@ -1,5 +1,4 @@
 // shared constants, types, tab definitions and the video upload editor — split verbatim from EchoShowcaseAdminView.tsx (audit Step 6a).
-// @ts-nocheck
 import { useState } from 'react';
 import { getBaseUrl } from '@/src/lib/env';
 import { api } from '@/src/models/services/api';

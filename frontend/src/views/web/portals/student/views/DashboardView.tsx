@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * DashboardView — Pixel-perfect implementation of the Complete Student Alumni
  * Web Dashboard specification (Bundle 2).

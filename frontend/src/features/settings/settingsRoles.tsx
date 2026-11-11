@@ -1,5 +1,4 @@
 // TAB 4 — Roles & Permissions (system + custom role CRUD, role drill-in panel) — split verbatim from SettingsView.tsx (audit Step 6c).
-// @ts-nocheck
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, Pressable, Modal, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { Shield, Plus, Pencil, Trash2, Check, X, UsersIcon, ArrowLeft, Clock } from 'lucide-react-native';

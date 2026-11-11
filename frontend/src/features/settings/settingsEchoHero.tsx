@@ -1,5 +1,5 @@
+// @ts-nocheck — TODO: fix 7 TS errors then remove
 // TAB 11 — ECHO landing hero (global hero_config editor for the public /echo landing) — split verbatim from SettingsView.tsx (audit Step 6c).
-// @ts-nocheck
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, Pressable, TextInput, Image } from 'react-native';
 import { Plus, Trash2 } from 'lucide-react-native';

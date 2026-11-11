@@ -7,5 +7,4 @@
 // `import { BGVAccountVerticalsView } from './views/BGVAccountVerticalsView'`
 // (SuperAdminPortalRN) working; new code should import the feature modules
 // directly.
-// @ts-nocheck
 export { BGVAccountVerticalsView } from '@/src/features/bgv/bgvView';

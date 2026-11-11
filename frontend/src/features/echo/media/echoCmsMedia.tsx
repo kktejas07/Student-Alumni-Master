@@ -1,5 +1,4 @@
 // the shared media library panel — split verbatim from EchoShowcaseAdminView.tsx (audit Step 6a).
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { api, resolveImageUrl } from '@/src/models/services/api';
 import { useConfirm } from '@/src/views/components';

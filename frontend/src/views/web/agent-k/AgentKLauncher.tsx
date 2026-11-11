@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Agent K Launcher — sidebar feature card.
  *

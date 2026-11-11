@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck — TODO: fix 5 TS errors then remove
 /**
  * Network shell sub-components: NetworkSidebar, TopHero, ChatPhonePopup, BookingDrawer.
  */

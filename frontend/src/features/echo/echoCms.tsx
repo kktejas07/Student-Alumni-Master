@@ -1,5 +1,4 @@
 // the EchoShowcaseAdminView entry component — split verbatim from EchoShowcaseAdminView.tsx (audit Step 6a).
-// @ts-nocheck
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';

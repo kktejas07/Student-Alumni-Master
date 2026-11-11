@@ -1,5 +1,4 @@
 // showcase card, the create/edit modal, and the session passes overview — split verbatim from EchoShowcaseAdminView.tsx (audit Step 6a).
-// @ts-nocheck
 import { useState, useEffect, useRef } from 'react';
 import { getBaseUrl } from '@/src/lib/env';
 import { api } from '@/src/models/services/api';

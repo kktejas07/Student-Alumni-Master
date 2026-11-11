@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Super Admin Portal — Lead Aggregator view.
  * Wraps the shared LeadAggregatorDashboard with the portal's Apple-kit header.
