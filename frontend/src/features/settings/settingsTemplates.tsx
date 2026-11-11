@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 13 TS errors then remove
 // TAB 10 — Templates (email/notification template editor) — split verbatim from SettingsView.tsx (audit Step 6c).
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, TextInput } from 'react-native';
@@ -102,9 +101,9 @@ export function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
             backgroundColor: value === tpl.id ? 'rgba(37,99,235,0.08)' : T.card,
             padding: 14, cursor: 'pointer',
           }}>
-            <View style={{ height: 6, borderRadius: 3, marginBottom: 10, background: tpl.gradient }} />
+            <View style={{ height: 6, borderRadius: 3, marginBottom: 10, background: tpl.gradient } as any} />
             <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: value === tpl.id ? '#93C5FD' : T.text }}>{tpl.name}</Text>
-            <Text style={{ fontFamily: FONTS.medium, fontSize: 11, color: '#64748b', marginTop: 3 }}>{tpl.desc}</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: '#64748b', marginTop: 3 }}>{tpl.desc}</Text>
           </Pressable>
         ))}
       </View>
@@ -115,7 +114,7 @@ export function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
         cursor: 'pointer', marginTop: 4,
       }}>
         <Eye size={13} color="#60A5FA" />
-        <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: '#93C5FD' }}>Preview Template</Text>
+        <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: '#93C5FD' }}>Preview Template</Text>
       </Pressable>
     </View>
   );
@@ -130,7 +129,7 @@ export function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   return (
     <View style={{ gap: 16 }}>
       <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#f1f5f9' }}>Templates & Branding</Text>
-      <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: '#94a3b8' }}>
+      <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: '#94a3b8' }}>
         Configure default templates for passes, invoices, and emails across all events.
       </Text>
 
@@ -141,7 +140,7 @@ export function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
             borderColor: subTab === t.id ? '#2563EB' : T.border,
             backgroundColor: subTab === t.id ? 'rgba(37,99,235,0.12)' : T.card,
           }}>
-            <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: subTab === t.id ? '#93C5FD' : '#94a3b8' }}>{t.label}</Text>
+            <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: subTab === t.id ? '#93C5FD' : '#94a3b8' }}>{t.label}</Text>
           </Pressable>
         ))}
       </View>
@@ -149,7 +148,7 @@ export function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       {subTab === 'pass' && (
         <View style={{ backgroundColor: T.card, borderRadius: 14, borderWidth: 1, borderColor: T.border, padding: 20, gap: 16 }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>Pass / Ticket Templates</Text>
-          <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8' }}>Default entry pass style for all ECHO events.</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: '#94a3b8' }}>Default entry pass style for all ECHO events.</Text>
           <TemplatePicker label="Default Template" previewType="pass" value={defaultTemplate} onChange={setDefaultTemplate} options={[
             { id: 'aurora', name: 'Aurora', desc: 'Dark gradient, glow accents', gradient: 'linear-gradient(135deg,#312e81,#4C1D95)' },
             { id: 'classic', name: 'Classic', desc: 'White + purple header', gradient: 'linear-gradient(135deg,#fff,#f3f4f6)' },
@@ -161,7 +160,7 @@ export function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       {subTab === 'invoice' && (
         <View style={{ backgroundColor: T.card, borderRadius: 14, borderWidth: 1, borderColor: T.border, padding: 20, gap: 16 }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>Invoice Templates</Text>
-          <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8' }}>Default invoice style for paid registrations.</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: '#94a3b8' }}>Default invoice style for paid registrations.</Text>
           <TemplatePicker label="Default Invoice" previewType="invoice" value={invoiceTemplate} onChange={setInvoiceTemplate} options={[
             { id: 'modern', name: 'Modern', desc: 'Gradient header, card layout', gradient: 'linear-gradient(135deg,#2563EB,#1E40AF)' },
             { id: 'minimal', name: 'Minimal', desc: 'Clean white, thin borders', gradient: 'linear-gradient(135deg,#f8fafc,#e2e8f0)' },
@@ -173,7 +172,7 @@ export function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       {subTab === 'email' && (
         <View style={{ backgroundColor: T.card, borderRadius: 14, borderWidth: 1, borderColor: T.border, padding: 20, gap: 16 }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>Email Templates</Text>
-          <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8' }}>Style for transactional emails.</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: '#94a3b8' }}>Style for transactional emails.</Text>
           <TemplatePicker label="Email Style" previewType="pass" value={emailStyle} onChange={setEmailStyle} options={[
             { id: 'modern', name: 'Modern', desc: 'Purple gradient header', gradient: 'linear-gradient(135deg,#2563EB,#1E40AF)' },
             { id: 'minimal', name: 'Minimal', desc: 'Clean, no gradient', gradient: 'linear-gradient(135deg,#f8fafc,#e2e8f0)' },
@@ -184,7 +183,7 @@ export function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
             <TextInput value={emailFooter} onChangeText={setEmailFooter}
               placeholder="Student Alumni Cell — Empowering the next generation of leaders."
               placeholderTextColor="#475569" multiline numberOfLines={3}
-              style={{ backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, padding: 12, color: T.text, fontFamily: FONTS.medium, fontSize: 13, minHeight: 60, textAlignVertical: 'top' }} />
+              style={{ backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, padding: 12, color: T.text, fontFamily: FONTS.med, fontSize: 13, minHeight: 60, textAlignVertical: 'top' }} />
           </View>
         </View>
       )}
@@ -192,12 +191,12 @@ export function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       {subTab === 'branding' && (
         <View style={{ backgroundColor: T.card, borderRadius: 14, borderWidth: 1, borderColor: T.border, padding: 20, gap: 16 }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>Branding</Text>
-          <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8' }}>Brand settings for emails, passes, and invoices.</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: '#94a3b8' }}>Brand settings for emails, passes, and invoices.</Text>
           <View style={{ gap: 8 }}>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>Brand Name</Text>
             <TextInput value={brandName} onChangeText={setBrandName} placeholder="Student Alumni"
               placeholderTextColor="#475569"
-              style={{ backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, padding: 12, color: T.text, fontFamily: FONTS.medium, fontSize: 13 }} />
+              style={{ backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, padding: 12, color: T.text, fontFamily: FONTS.med, fontSize: 13 }} />
           </View>
           <View style={{ gap: 8 }}>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>Brand Color</Text>
@@ -206,12 +205,12 @@ export function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                 style={{ width: 44, height: 40, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'transparent' }} />
               <TextInput value={brandColor} onChangeText={setBrandColor} placeholder="#2563EB"
                 placeholderTextColor="#475569"
-                style={{ flex: 1, backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, padding: 12, color: T.text, fontFamily: FONTS.medium, fontSize: 13 }} />
+                style={{ flex: 1, backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, padding: 12, color: T.text, fontFamily: FONTS.med, fontSize: 13 }} />
             </View>
           </View>
           <View style={{ padding: 16, borderRadius: 12, backgroundColor: brandColor + '18', borderWidth: 1, borderColor: brandColor + '40' }}>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: brandColor }}>Preview</Text>
-            <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
               This is how {brandName} will appear in emails and passes.
             </Text>
           </View>

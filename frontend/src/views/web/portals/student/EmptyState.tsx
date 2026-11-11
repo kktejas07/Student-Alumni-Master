@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 4 TS errors then remove
 /**
  * Student Portal — Lottie-style empty states + success burst.
  *
@@ -156,7 +155,7 @@ function SavedJobsIllu() {
     transform: [
       { translateY: interpolate(drop.value, [0, 1], [-30, 0]) },
       { scale: 0.9 + drop.value * 0.1 },
-    ],
+    ] as any,
     opacity: drop.value,
   }));
   const aRing = useAnimatedStyle(() => ({
@@ -223,7 +222,7 @@ function ApplicationsIllu() {
       { translateX: interpolate(drift.value, [0, 1], [-30, 30]) },
       { translateY: interpolate(drift.value, [0, 1], [12, -12]) },
       { rotate: `${interpolate(drift.value, [0, 1], [-12, 18])}deg` },
-    ],
+    ] as any,
     opacity: interpolate(drift.value, [0, 0.1, 0.85, 1], [0, 1, 1, 0]),
   }));
   return (
@@ -307,7 +306,7 @@ function GenericIllu() {
       withTiming(1, { duration: 900 }), withTiming(0, { duration: 900 }),
     ), -1, false);
   }, [pulse]);
-  const aIcon = useAnimatedStyle(() => ({ transform: [{ scale: 0.92 + pulse.value * 0.16 }, { rotate: `${pulse.value * 12 - 6}deg` }] }));
+  const aIcon = useAnimatedStyle(() => ({ transform: [{ scale: 0.92 + pulse.value * 0.16 }, { rotate: `${pulse.value * 12 - 6}deg` }] as any }));
   return (
     <View style={s.illuBox}>
       <Animated.View style={[s.illuCenter, aIcon]}>
@@ -387,7 +386,7 @@ function ConfettiPiece({ x, color, delay, rot }: { x: number; color: string; del
   const aStyle = useAnimatedStyle(() => {
     const t = (drop.value + delay) % 1;
     return {
-      transform: [{ translateY: t * 130 - 10 }, { rotate: `${rot + t * 360}deg` }],
+      transform: [{ translateY: t * 130 - 10 }, { rotate: `${rot + t * 360}deg` }] as any,
       opacity: t < 0.85 ? 1 : 1 - (t - 0.85) / 0.15,
     };
   });

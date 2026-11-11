@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 8 TS errors then remove
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, ScrollView, Platform, Linking, ActivityIndicator, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -1474,17 +1473,6 @@ const s = StyleSheet.create({
     fontSize: 15,
     letterSpacing: -0.2
   },
-  secBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 1.5,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.06)'
-  },
-  secBadgeText: {
-    color: SC.accentBright,
-    fontFamily: FONTS.xbold,
-    fontSize: 10
-  },
   secSub: {
     color: SC.muted,
     fontFamily: FONTS.med,
@@ -1733,47 +1721,6 @@ const s = StyleSheet.create({
     shadowOffset: { width: -10, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 20
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderBottomColor: SC.border,
-    borderBottomWidth: 1
-  },
-  modalTitle: {
-    color: '#FFFFFF',
-    fontFamily: FONTS.xbold,
-    fontSize: 15
-  },
-  closeBtn: {
-    padding: 4,
-    ...({ cursor: 'pointer' } as any)
-  },
-
-  profileHeaderCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderRadius: 12,
-  },
-  profileBioCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderRadius: 12,
-  },
-  socialIconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderColor: 'rgba(255, 255, 255, 0.09)',
-    borderWidth: 1,
-    ...({ cursor: 'pointer' } as any)
   },
   connectBtnLarge: {
     height: 44,

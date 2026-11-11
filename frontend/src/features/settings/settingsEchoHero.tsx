@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 7 TS errors then remove
 // TAB 11 — ECHO landing hero (global hero_config editor for the public /echo landing) — split verbatim from SettingsView.tsx (audit Step 6c).
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, Pressable, TextInput, Image } from 'react-native';
@@ -39,7 +38,7 @@ export function HeroField({ label, value, onChange, placeholder, multiline }: {
         numberOfLines={multiline ? 3 : undefined}
         style={{
           backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border,
-          padding: 12, color: T.text, fontFamily: FONTS.medium, fontSize: 13,
+          padding: 12, color: T.text, fontFamily: FONTS.med, fontSize: 13,
           minHeight: multiline ? 72 : undefined, textAlignVertical: multiline ? 'top' : undefined,
         }}
       />
@@ -158,7 +157,7 @@ export function EchoLandingHeroTab({ onSaved }: { onSaved: (s?: string) => void 
     return (
       <View style={[cardStyle, { alignItems: 'center', gap: 10 }]}>
         <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#fca5a5' }}>Could not load ECHO settings</Text>
-        <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8', textAlign: 'center' }}>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: '#94a3b8', textAlign: 'center' }}>
           Loading failed — the form stays empty and saving is disabled so no saved value can be overwritten with defaults.
         </Text>
         <Pressable onPress={loadSettings} style={{
@@ -177,7 +176,7 @@ export function EchoLandingHeroTab({ onSaved }: { onSaved: (s?: string) => void 
         borderWidth: 1, borderColor: 'rgba(124,92,252,0.28)',
       }}>
         <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#c4b5fd' }}>Public landing hero — /echo</Text>
-        <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
           Global content shown above the events list on the public ECHO page. CTA buttons keep their
           current destinations (events section / contact page) — only the labels are configurable here.
           Per-event banners, images and downloads are managed in the ECHO Showcase CMS.
@@ -193,7 +192,7 @@ export function EchoLandingHeroTab({ onSaved }: { onSaved: (s?: string) => void 
 
       <View style={cardStyle}>
         <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>Statistics</Text>
-        <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8' }}>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: '#94a3b8' }}>
           The "86 events run · 31 cities · 4.8 rating" style strip under the hero title.
         </Text>
         {stats.map((st, i) => (
@@ -205,7 +204,7 @@ export function EchoLandingHeroTab({ onSaved }: { onSaved: (s?: string) => void 
                 onChangeText={(v) => setStats((prev) => prev.map((p, j) => (j === i ? { ...p, value: v } : p)))}
                 placeholder="86"
                 placeholderTextColor="#475569"
-                style={{ backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, padding: 10, color: T.text, fontFamily: FONTS.medium, fontSize: 12.5 }}
+                style={{ backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, padding: 10, color: T.text, fontFamily: FONTS.med, fontSize: 12.5 }}
               />
             </View>
             <View style={{ flex: 1, gap: 6 }}>
@@ -215,7 +214,7 @@ export function EchoLandingHeroTab({ onSaved }: { onSaved: (s?: string) => void 
                 onChangeText={(v) => setStats((prev) => prev.map((p, j) => (j === i ? { ...p, label: v } : p)))}
                 placeholder="ECHO events across India"
                 placeholderTextColor="#475569"
-                style={{ backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, padding: 10, color: T.text, fontFamily: FONTS.medium, fontSize: 12.5 }}
+                style={{ backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, padding: 10, color: T.text, fontFamily: FONTS.med, fontSize: 12.5 }}
               />
             </View>
             <View style={{ width: 92, gap: 6 }}>
@@ -225,7 +224,7 @@ export function EchoLandingHeroTab({ onSaved }: { onSaved: (s?: string) => void 
                 onChangeText={(v) => setStats((prev) => prev.map((p, j) => (j === i ? { ...p, color: v } : p)))}
                 placeholder="#4B3FD6"
                 placeholderTextColor="#475569"
-                style={{ backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, padding: 10, color: T.text, fontFamily: FONTS.medium, fontSize: 12.5 }}
+                style={{ backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, padding: 10, color: T.text, fontFamily: FONTS.med, fontSize: 12.5 }}
               />
             </View>
             <Pressable onPress={() => setStats((prev) => prev.filter((_, j) => j !== i))} style={{

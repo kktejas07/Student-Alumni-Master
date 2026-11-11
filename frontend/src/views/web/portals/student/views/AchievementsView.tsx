@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 5 TS errors then remove
 /**
  * Student -> Achievements — gamification dashboard with streaks, badges,
  * weekly challenges, and a leaderboard. Wired to existing wallet gamification
@@ -54,6 +53,7 @@ interface LeaderboardEntry {
 interface LeaderboardData {
   entries: LeaderboardEntry[];
   my_rank: number;
+  my_points: number;
 }
 
 /* ── constants ────────────────────────────────────────────────────────── */
@@ -77,6 +77,8 @@ const RARITY_BG: Record<Rarity, string> = {
 
 export function AchievementsView() {
   const P = usePalette();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 700;
   const [streak, setStreak] = useState<StreakData | null>(null);
   const [badges, setBadges] = useState<Badge[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
