@@ -241,3 +241,4 @@ test-results/
 backend/backups/
 frontend/test-results/
 
+.claude/

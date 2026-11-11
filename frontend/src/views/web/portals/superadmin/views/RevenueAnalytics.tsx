@@ -328,7 +328,7 @@ export function RevenueAnalytics() {
             </SecondaryButton>
             <GradientButton onPress={applyCustom} style={{ flex: 1 }}>
               <Calendar size={13} color="#fff" />
-              <Text style={{ color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 }}>Apply</Text>
+              <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Apply</Text>
             </GradientButton>
           </View>
         </View>
@@ -450,7 +450,7 @@ function Kpi({ label, value, delta, icon: Icon }: any) {
 
 const ra = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
+  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 4, lineHeight: 17, maxWidth: 640 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   rangeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14, flexWrap: 'wrap' },
@@ -459,20 +459,20 @@ const ra = StyleSheet.create({
   rangeActive: { backgroundColor: 'rgba(245,158,11,0.18)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.4)' },
   rangeText: { color: SAC.dim, fontFamily: FONTS.bold, fontSize: 11.5 },
   rangeTextActive: { color: '#FCD34D' },
-  dateBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  dateBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 9, backgroundColor: SAC.tint, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   dateBtnText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
-  compareBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  compareBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 9, backgroundColor: SAC.tint, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   compareActive: { backgroundColor: 'rgba(245,158,11,0.14)', borderColor: 'rgba(245,158,11,0.4)' },
   compareText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
   picker: { marginTop: 12, backgroundColor: '#0f172a', borderWidth: 1, borderColor: SAC.border, borderRadius: 12, padding: 14 },
   pickerLabel: { color: SAC.dim, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase' },
-  input: { height: 38, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.06)', color: '#F4F4FA', fontFamily: FONTS.mono, fontSize: 12, paddingHorizontal: 11 },
+  input: { height: 38, borderRadius: 9, backgroundColor: SAC.tint, color: SAC.text, fontFamily: FONTS.mono, fontSize: 12, paddingHorizontal: 11 },
   loadingBox: { alignItems: 'center', gap: 8, paddingVertical: 26 },
   loadingText: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 12 },
   kpiRow: { flexDirection: 'row', gap: 10, marginTop: 14, flexWrap: 'wrap' },
-  kpiCard: { flexGrow: 1, flexBasis: 150, backgroundColor: 'rgba(255,255,255,0.035)', borderWidth: 1, borderColor: SAC.border, borderRadius: 12, padding: 13, gap: 4 },
+  kpiCard: { flexGrow: 1, flexBasis: 150, backgroundColor: SAC.tint, borderWidth: 1, borderColor: SAC.border, borderRadius: 12, padding: 13, gap: 4 },
   kpiLabel: { color: SAC.dim, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', marginTop: 4 },
-  kpiValue: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 17 },
+  kpiValue: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 17 },
   kpiDelta: { fontFamily: FONTS.bold, fontSize: 10.5 },
   refundRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
   refundText: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11 },
@@ -483,15 +483,15 @@ const ra = StyleSheet.create({
   legendText: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10 },
   emptyText: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 12, paddingVertical: 10 },
   srcHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  srcLabel: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12.5 },
+  srcLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
   srcCount: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 },
-  srcValue: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13 },
-  barTrack: { height: 8, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' },
+  srcValue: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13 },
+  barTrack: { height: 8, borderRadius: 999, backgroundColor: SAC.tint, overflow: 'hidden' },
   barFill: { height: 8, borderRadius: 999 },
   eventRow: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: SAC.border },
   eventRank: { width: 26, height: 26, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(245,158,11,0.14)' },
   eventRankText: { color: GRAD.to, fontFamily: FONTS.xbold, fontSize: 11.5 },
-  eventTitle: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12.5 },
+  eventTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12.5 },
   eventMeta: { color: SAC.dim, fontFamily: FONTS.mono, fontSize: 10, marginTop: 2 },
   eventRevenue: { color: '#86EFAC', fontFamily: FONTS.xbold, fontSize: 13 },
 });

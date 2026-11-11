@@ -373,7 +373,7 @@ function UserGrowthCard({ growth, predictions }: { growth: GrowthPoint[]; predic
           return (
             <View key={i} style={{ flex: 1, alignItems: 'center', gap: 3 }}>
               <Text style={{ fontFamily: FONTS.med, fontSize: 8, color: T.dim }}>{g.count || ''}</Text>
-              <LinearGradient colors={i === growth.length - 1 ? [GRAD.from, GRAD.to] : ['#4B5563', '#374151']} style={{ width: '80%', height: h, borderRadius: 3 }} />
+              <LinearGradient colors={i === growth.length - 1 ? [GRAD.from, GRAD.to] : [T.line, T.border]} style={{ width: '80%', height: h, borderRadius: 3 }} />
               <Text style={{ fontFamily: FONTS.med, fontSize: 8, color: T.dim }}>{g.month}</Text>
             </View>
           );
