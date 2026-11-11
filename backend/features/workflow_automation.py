@@ -284,7 +284,7 @@ async def fire_workflow_event(event_type: str, payload: Optional[Dict[str, Any]]
     event_doc = {
         "event_type": event_type,
         "payload": payload,
-        "fired_at": datetime.utcnow(timezone.utc),
+        "fired_at": datetime.now(timezone.utc),
         "workflows_triggered": [],
     }
 
