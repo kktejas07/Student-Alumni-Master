@@ -444,7 +444,7 @@ END:VCALENDAR`;
                     Ticket <strong style={{ color: 'var(--text)', fontWeight: 600 }}>{tId}</strong> is issued against your SA ID and sent to <strong style={{ color: 'var(--violet-lt)' }}>{uEmail}</strong>. Free cancellation until Sep 1.
                   </div>
                   <div style={{ display: 'flex', gap: '9px', flexWrap: 'wrap' }}>
-                    <span onClick={() => { if (onViewTicket) onViewTicket(); else router.push('/platform?role=student&tab=my-tickets'); }} className="tk-btn-hover" style={{ fontSize: '13.5px', fontWeight: 700, background: 'var(--ok)', color: '#04291D', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer' }}>View my ticket</span>
+                    <span onClick={() => { if (onViewTicket) onViewTicket(); else router.push('/student-portal/my-tickets'); }} className="tk-btn-hover" style={{ fontSize: '13.5px', fontWeight: 700, background: 'var(--ok)', color: '#04291D', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer' }}>View my ticket</span>
                     <span onClick={handleAddToCalendar} className="tk-btn-hover" style={{ fontSize: '13.5px', fontWeight: 600, color: addedCal ? 'var(--ok)' : 'var(--muted)', border: '1px solid var(--line2)', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer' }}>
                       {addedCal ? 'Added to calendar ✓' : 'Add to calendar'}
                     </span>
