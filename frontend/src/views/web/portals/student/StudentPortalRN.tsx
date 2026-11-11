@@ -84,11 +84,11 @@ function StudentPortalInner() {
         {active === 'career-ai'       && <CareerAIView />}
         {active === 'internships'     && <InternshipsView />}
         {active === 'network'         && <NetworkView />}
-        {active === 'my-bookings'     && <MyBookingsView />}
-        {active === 'my-tickets'      && <MyTicketsView />}
-        {active === 'my-certificates' && <MyCertificatesView />}
+        {(active === 'my-bookings' || active === 'bookings') && <MyBookingsView />}
+        {(active === 'my-tickets' || active === 'tickets') && <MyTicketsView />}
+        {(active === 'my-certificates' || active === 'certificates') && <MyCertificatesView />}
         {(active === 'myevents' || active === 'events') && <EventsView />}
-        {active === 'my-workshops'    && <MyWorkshopsView />}
+        {(active === 'my-workshops' || active === 'workshops') && <MyWorkshopsView />}
         {(active === 'echo-showcase' || isEchoSlug(active)) && (
           <EchoShowcaseView slug={active === 'echo-showcase' ? undefined : active} onBack={() => handleNav('myevents')} />
         )}
