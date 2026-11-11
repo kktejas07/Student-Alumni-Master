@@ -1,12 +1,21 @@
-// @ts-nocheck
 /**
  * Student -> Help Center — FAQ accordion + support ticket submission form.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, useWindowDimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { HelpCircle, Search, ChevronDown, ChevronUp, Send, CheckCircle, Clock, AlertCircle } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { usePalette } from '../tokens';
+
+/* ── types ────────────────────────────────────────────────────────────── */
+
+interface SupportTicket {
+  id: string;
+  subject: string;
+  category: string;
+  status: string;
+  created_at: string;
+}
 
 /* ── FAQ data ─────────────────────────────────────────────────────────── */
 
@@ -68,15 +77,15 @@ export function HelpCenterView() {
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [tickets, setTickets] = useState<any[]>([]);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [showCatPicker, setShowCatPicker] = useState(false);
 
   /* load existing tickets */
   useEffect(() => {
     (async () => {
       try {
-        const res: any = await request('/support/tickets');
-        setTickets(Array.isArray(res) ? res : res?.tickets || []);
+        const res = await request<SupportTicket[] | { tickets: SupportTicket[] }>('/support/tickets');
+        setTickets(Array.isArray(res) ? res : (res as { tickets: SupportTicket[] })?.tickets || []);
       } catch { /* no tickets endpoint yet — that is fine */ }
     })();
   }, [submitted]);
@@ -273,7 +282,7 @@ const s = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '700' },
 
   searchBox: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, borderWidth: 1, gap: 10, marginBottom: 28 },
-  searchInput: { flex: 1, fontSize: 15, ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}) },
+  searchInput: { flex: 1, fontSize: 15, ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}) },
 
   section: { marginBottom: 28 },
   sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 6 },
@@ -290,7 +299,7 @@ const s = StyleSheet.create({
   successText: { color: '#065F46', fontSize: 13, fontWeight: '600', flex: 1 },
   formCard: { borderRadius: 14, borderWidth: 1, padding: 20 },
   label: { fontSize: 13, fontWeight: '600', marginBottom: 6, marginTop: 14 },
-  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}) },
+  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}) },
   catPicker: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   catDropdown: { borderWidth: 1, borderRadius: 10, marginTop: 4, marginBottom: 4, overflow: 'hidden' },
   catOption: { paddingHorizontal: 14, paddingVertical: 10 },

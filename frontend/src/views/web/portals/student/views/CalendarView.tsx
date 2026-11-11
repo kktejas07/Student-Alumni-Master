@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Student -> Calendar — monthly view of events, bookings, workshops, and deadlines.
  * Color-coded dots: blue = events, green = bookings, purple = workshops.

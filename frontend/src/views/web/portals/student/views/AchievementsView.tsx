@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Student -> Achievements — gamification dashboard with streaks, badges,
  * weekly challenges, and a leaderboard. Wired to existing wallet gamification
@@ -10,16 +9,62 @@ import { Trophy, Flame, Star, Target, Crown, Lock, Award, Zap, TrendingUp, Alert
 import { request } from '@/src/models/services/api';
 import { usePalette } from '../tokens';
 
+/* ── types ────────────────────────────────────────────────────────────── */
+
+type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+
+interface Badge {
+  slug: string;
+  title: string;
+  rarity: Rarity;
+  hint: string;
+  earned: boolean;
+  earned_at?: string;
+}
+
+interface CalendarDay {
+  date: string;
+  active: boolean;
+  recovered?: boolean;
+}
+
+interface StreakData {
+  current_streak: number;
+  best_streak: number;
+  calendar: CalendarDay[];
+}
+
+interface Challenge {
+  id: string;
+  title: string;
+  target: number;
+  progress: number;
+  category: string;
+  reward: number;
+  claimed: boolean;
+}
+
+interface LeaderboardEntry {
+  rank: number;
+  name: string;
+  points: number;
+}
+
+interface LeaderboardData {
+  entries: LeaderboardEntry[];
+  my_rank: number;
+}
+
 /* ── constants ────────────────────────────────────────────────────────── */
 
-const RARITY_COLORS = {
+const RARITY_COLORS: Record<Rarity, string> = {
   common: '#64748B',
   uncommon: '#2DD4BF',
   rare: '#F59E0B',
   epic: '#A78BFA',
   legendary: '#EF4444',
 };
-const RARITY_BG = {
+const RARITY_BG: Record<Rarity, string> = {
   common: 'rgba(100,116,139,0.08)',
   uncommon: 'rgba(45,212,191,0.08)',
   rare: 'rgba(245,158,11,0.08)',
@@ -31,12 +76,10 @@ const RARITY_BG = {
 
 export function AchievementsView() {
   const P = usePalette();
-  const { width } = useWindowDimensions();
-  const isMobile = width < 768;
-  const [streak, setStreak] = useState<any>(null);
-  const [badges, setBadges] = useState<any[]>([]);
-  const [challenges, setChallenges] = useState<any[]>([]);
-  const [leaderboard, setLeaderboard] = useState<any>(null);
+  const [streak, setStreak] = useState<StreakData | null>(null);
+  const [badges, setBadges] = useState<Badge[]>([]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [claimingId, setClaimingId] = useState<string | null>(null);
@@ -51,10 +94,10 @@ export function AchievementsView() {
       request('/wallet/challenges').catch(() => ({ challenges: [] })),
       request(`/wallet/leaderboard?period=${lbPeriod}&scope=college`).catch(() => null),
     ]);
-    if (sk.status === 'fulfilled' && sk.value) setStreak(sk.value);
-    if (bg.status === 'fulfilled') setBadges((bg.value as any)?.badges || []);
-    if (ch.status === 'fulfilled') setChallenges((ch.value as any)?.challenges || []);
-    if (lb.status === 'fulfilled' && lb.value) setLeaderboard(lb.value);
+    if (sk.status === 'fulfilled' && sk.value) setStreak(sk.value as StreakData);
+    if (bg.status === 'fulfilled') setBadges(((bg.value as Record<string, unknown>)?.badges as Badge[]) || []);
+    if (ch.status === 'fulfilled') setChallenges(((ch.value as Record<string, unknown>)?.challenges as Challenge[]) || []);
+    if (lb.status === 'fulfilled' && lb.value) setLeaderboard(lb.value as LeaderboardData);
     setLoading(false);
   }, [lbPeriod]);
 
