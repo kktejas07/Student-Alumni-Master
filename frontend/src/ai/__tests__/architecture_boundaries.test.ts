@@ -7,7 +7,7 @@
  * - Raw hex color literals banned in .tsx files
  */
 
-import { describe, it, expect } from 'vitest';
+/* describe, it, expect are jest globals */
 
 describe('T-1.3 Architecture Boundary Test Suite', () => {
   it('must verify that AI Agent roles do not hold clinical DB imports or grants', () => {

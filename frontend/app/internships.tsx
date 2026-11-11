@@ -707,7 +707,16 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
   },
   metaText: { color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_500Medium', fontSize: 11 },
+  metaChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
+  },
+  metaChipText: { color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_500Medium', fontSize: 11 },
 
+  desc: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_400Regular', fontSize: 12.5, lineHeight: 18, marginTop: 2 },
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
   cardDesc: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_400Regular', fontSize: 12.5, lineHeight: 18 },
   skills: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
   skillChip: {
@@ -736,6 +745,7 @@ const styles = StyleSheet.create({
     ...({ cursor: 'pointer' } as any),
   },
   applyText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  applyBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
 
   empty: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 20 },
   emptyTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 15, marginTop: 14 },

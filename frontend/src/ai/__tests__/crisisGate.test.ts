@@ -3,7 +3,7 @@
  * Enforces 100% recall build-blocking requirement on self-harm corpus.
  */
 
-import { describe, it, expect } from 'vitest';
+/* describe, it, expect are jest globals */
 import { CRISIS_CORPUS } from '../__fixtures__/crisis-corpus';
 import { evaluateCrisisGate } from '../crisisGate';
 
