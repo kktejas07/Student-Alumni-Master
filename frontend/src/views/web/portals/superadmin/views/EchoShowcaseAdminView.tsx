@@ -3983,6 +3983,8 @@ function RegistrationsPanel() {
       {/* Session Passes Overview and ECHO event browser */}
       <SessionPassesOverview events={sessionEvents} onRefresh={load} eventBrowser={eventBrowser} />
 
+      {eventSlug !== 'all' ? (
+      <>
       {/* Search + filter */}
       <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <View style={{ flex: 1, minWidth: 200 }}>
@@ -4307,6 +4309,8 @@ function RegistrationsPanel() {
           </View>
         )}
       </Card>
+      </>
+      ) : null}
 
       {/* Import Tickets Modal */}
       <Modal visible={showImport} transparent animationType="fade" onRequestClose={() => setShowImport(false)}>

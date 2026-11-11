@@ -171,6 +171,10 @@ describe('ECHO admin registrations — event cards filter registration details',
     expect(s).toContain('{eventSlug === \'all\' ? (');
     expect(s).toContain(') : selectedEvent ? (');
     expect(s).toContain('{eventBrowser}');
+    expect(s).toContain('{eventSlug !== \'all\' ? (');
+    expect(s).toContain(') : null}');
+    expect(s).not.toContain('Select an event above to view its registrations and payment details.');
+    expect(s.indexOf('{eventSlug !== \'all\' ? (')).toBeLessThan(s.indexOf('{/* Search + filter */}', s.indexOf('SessionPassesOverview events={sessionEvents}')));
   });
 
   it('retains events with no registrations in the event cards', () => {
