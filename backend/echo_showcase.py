@@ -28,7 +28,7 @@ import json
 import secrets
 import mimetypes
 from pathlib import Path
-from datetime import datetime, timezone, date as _date
+from datetime import datetime, timezone, timedelta, date as _date
 from typing import Any, Dict, List, Optional
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, File, UploadFile, Query, Body
@@ -567,6 +567,10 @@ _ALIAS_MAP = {
     "hackwave3": "snist",
     "hackwave-3": "snist",
     "hackwave-3.0": "snist",
+    # AI Hiring canonical slug and aliases
+    "ai-hiring": "ai-hiring",
+    "ai-in-hiring": "ai-hiring",
+    "ai-hiring-2026": "ai-hiring",
 }
 
 
@@ -577,19 +581,22 @@ def resolve_canonical_slug(slug: str) -> str:
 
 
 def _slug_query(slug: str) -> dict:
-    """Match a showcase by its canonical slug OR any of its legacy aliases."""
+    """Match a showcase by its canonical slug OR any of its legacy aliases or id."""
     s = (slug or "").strip().lower()
     if not s:
         return {}
     canonical = _ALIAS_MAP.get(s, s)
-    return {
-        "$or": [
-            {"slug": canonical},
-            {"slug": s},
-            {"aliases": canonical},
-            {"aliases": s},
-        ]
-    }
+    queries: list[dict] = [
+        {"slug": canonical},
+        {"slug": s},
+        {"aliases": canonical},
+        {"aliases": s},
+        {"id": slug},
+        {"id": s},
+    ]
+    if ObjectId.is_valid(slug):
+        queries.append({"_id": ObjectId(slug)})
+    return {"$or": queries}
 
 
 # ── Payments + invoices helpers ──────────────────────────────────────────────
@@ -929,6 +936,9 @@ async def _assert_registration_open(db, showcase: dict) -> None:
     if slug in ("snist", "hackwave-3.0", "hackwave-3", "hackwave"):
         # For HackWave 3.0 SNIST, deadline is Sep 4, 2026 1:00 PM IST
         deadline = datetime.fromisoformat("2026-09-04T13:00:00+05:30")
+    elif slug in ("ai-hiring", "ai-in-hiring", "ai-hiring-2026"):
+        # AI in Hiring 2026 remains open for registrations
+        deadline = None
     else:
         deadline = _parse_iso(reg_cfg.get("deadline") or showcase.get("reg_closes"))
 
@@ -1818,9 +1828,9 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
     brand = "STUDENT ALUMNI · ECHO"
     organizer = esc(showcase.get("organizer_name") or "Student Alumni Cell")
     title = esc(reg.get("showcase_title") or showcase.get("title") or "Event")
-    event_date = esc(_event_date_label(showcase) or "To be announced")
-    event_time = esc(showcase.get("time") or showcase.get("start_time") or "To be announced")
-    venue = esc(showcase.get("venue") or "To be announced")
+    event_date = esc(_event_date_label(showcase))
+    event_time = esc(showcase.get("time") or "")
+    venue = esc(showcase.get("venue") or "")
     name = esc(reg.get("full_name") or "Attendee")
     email = esc(reg.get("email") or "")
     phone = esc(reg.get("phone") or "")
@@ -2341,7 +2351,7 @@ async def _provision_sa_account(db, reg: dict, showcase: Optional[dict]):
         "skills": [],
         "bio": None,
         "face_image_base64": None,
-        "onboarding_completed": False,
+        "onboarding_completed": True,
         "email_verified": False,
         "account_source": "echo",
         "echo_slug": reg.get("slug"),
@@ -3455,11 +3465,107 @@ SNIST_SHOWCASE_SEED = {
     "created_by": "system"
 }
 
+AI_HIRING_SHOWCASE_SEED = {
+    "title": "AI in Hiring 2026",
+    "slug": "ai-hiring",
+    "aliases": ["ai-in-hiring", "ai-hiring-2026", "ai-hiring"],
+    "subtitle": "National AI Talent Summit · Bridging Academia and Industry Hiring Teams",
+    "description": "Exclusive campus hiring conclave featuring AI resume screening clinics, live technical mock interviews, and on-the-spot internship offers from 30+ recruiting tech companies.",
+    "date": "October 10 – 11, 2026",
+    "time": "09:00 AM – 06:00 PM IST",
+    "venue": "HICC Convention Center, Hitec City, Hyderabad & Virtual Live Stream",
+    "college": "StudentAlumni Global & Partner Colleges",
+    "category": "college-event",
+    "status": "published",
+    "event_status_badge": "Upcoming",
+    "hero_image_url": "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80",
+    "hero_cover_url": "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80",
+    "hero_thumbnail_url": "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80",
+    "hero_bg_url": "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1600&q=80",
+    "hero_banners": [
+        "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80"
+    ],
+    "organizer_name": "StudentAlumni Placement & Career AI Network",
+    "organizer_logo_url": None,
+    "stats": [
+        { "label": "Companies Hiring", "value": "35+", "icon": "briefcase", "display_order": 0 },
+        { "label": "Candidates Shortlisted", "value": "1,500+", "icon": "users", "display_order": 1 },
+        { "label": "Mock Interviewers", "value": "50+", "icon": "speakers", "display_order": 2 },
+        { "label": "Highest CTC Offered", "value": "₹32 LPA", "icon": "trophy", "display_order": 3 },
+        { "label": "Success Rate", "value": "88%", "icon": "feedback", "display_order": 4 }
+    ],
+    "highlights": [
+        { "icon": "briefcase", "title": "On-The-Spot Offers", "description": "35+ companies conducting final round evaluations", "display_order": 0 },
+        { "icon": "code", "title": "AI Coding Sandbox", "description": "Hands-on machine learning evaluations and challenges", "display_order": 1 },
+        { "icon": "network", "title": "Alumni Recruiter Connect", "description": "1-on-1 coffee chats with alumni engineers & hiring managers", "display_order": 2 }
+    ],
+    "about_cards": [
+        { "icon": "book", "title": "Resume Audit", "description": "AI-powered parsing and live feedback from senior recruiters" },
+        { "icon": "network", "title": "Direct Referral", "description": "Top performers tagged directly into alumni referral pools" },
+        { "icon": "trending", "title": "Fast-Track Hiring", "description": "Skip introductory ATS filters and interview directly" }
+    ],
+    "testimonials": [
+        { "name": "Siddharth K.", "branch": "Computer Science", "department": "Computer Science", "year": "Final Year", "quote": "The AI Hiring conclave helped me get placed at Microsoft through alumni mentorship.", "rating": 5, "visible": True, "sort_order": 0 },
+        { "name": "Divya N.", "branch": "AI & Data Science", "department": "AI & Data Science", "year": "Pre-final Year", "quote": "I secured a 6-month paid internship at an AI startup on day one of the event.", "rating": 5, "visible": True, "sort_order": 1 }
+    ],
+    "timeline": [
+        { "icon": "star", "title": "Day 1: Keynote & Recruiter Panels", "description": "Insights on what hiring panels expect in 2026" },
+        { "icon": "code", "title": "Day 1 Afternoon: Live Coding Challenge", "description": "Practical assessment on Python, ML systems, and algorithms" },
+        { "icon": "users", "title": "Day 2 Morning: Mock Interviews", "description": "1-on-1 interviews with FAANG and high-growth startup engineers" },
+        { "icon": "award", "title": "Day 2 Evening: Offer Letters & Swag", "description": "Direct offer distribution and networking mixer" }
+    ],
+    "speakers": [
+        { "name": "Aditya Rao", "position": "VP Talent & Eng Hiring", "company": "Google", "location": "Bengaluru, India", "bio": "Leading tech recruitment and campus hiring for 12+ years.", "is_panel_member": True, "category": "Keynote Speaker", "sort_order": 0, "visible": True },
+        { "name": "Pooja Hegde", "position": "Head of AI Engineering", "company": "NVIDIA", "location": "Hyderabad, India", "bio": "Directs deep learning infrastructure teams and mentors young engineers.", "is_panel_member": True, "category": "Panelist", "sort_order": 1, "visible": True }
+    ],
+    "categories": [
+        { "name": "Software Engineering", "description": "Full-stack, backend, cloud architecture and distributed systems.", "icon": "code", "color": "#3B82F6" },
+        { "name": "AI & Machine Learning", "description": "GenAI, NLP, computer vision, and MLOps positions.", "icon": "brain", "color": "#8B5CF6" },
+        { "name": "Data Analytics", "description": "Business intelligence, quantitative analysis, and data engineering.", "icon": "trending-up", "color": "#10B981" }
+    ],
+    "gallery": [
+        { "url": "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80", "caption": "AI Hiring 2026 Main Poster", "alt": "AI in Hiring 2026", "featured": True, "order": 0, "hero": True },
+        { "url": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80", "caption": "Collaborative Interview Workshop", "alt": "Interview Sessions", "order": 1 }
+    ],
+    "gallery_layout": "grid",
+    "cta_title": "Register for AI in Hiring 2026!",
+    "cta_subtitle": "Meet recruiters, get interviewed, and launch your career in tech.",
+    "cta_button_text": "Register Free",
+    "cta_url": None,
+    "seo_title": "AI in Hiring 2026 — StudentAlumni Career Conclave",
+    "seo_description": "Join AI in Hiring 2026 to interview directly with 35+ tech companies.",
+    "seo_keywords": "AI Hiring, Career Fair, Tech Jobs, Student Alumni, Hyderabad",
+    "sections": dict(DEFAULT_SECTIONS),
+    "registration": {
+        "enabled": True,
+        "fee": 0,
+        "individual_fee": 0,
+        "team_fee": 0,
+        "currency": "INR",
+        "max_seats": 500,
+        "deadline": "2027-12-31T23:59:59+05:30",
+        "payment_note": "Free registration for students with verified college ID.",
+        "payment_url": None,
+        "poster_images": [
+            "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80"
+        ],
+        "contact_phones": [
+            "+91 98765 43210",
+            "+91 91234 56789"
+        ]
+    },
+    "created_at": _now(),
+    "updated_at": _now(),
+    "created_by": "system"
+}
+
 DEFAULT_SHOWCASE_SEED = VNR_SHOWCASE_SEED
 
 
 async def seed_echo_showcase(db: AsyncIOMotorDatabase):
-    """Seed SNIST and VNR showcases if missing, and ensure gallery_layout exists."""
+    """Seed SNIST, VNR, and AI Hiring showcases if missing, and ensure gallery_layout exists."""
     try:
         # 1. Seed SNIST if missing
         snist_existing = await db.echo_showcases.find_one(_slug_query("snist"))
@@ -3478,6 +3584,24 @@ async def seed_echo_showcase(db: AsyncIOMotorDatabase):
             v_doc["updated_at"] = _now()
             await db.echo_showcases.insert_one(v_doc)
             print("[ECHO CMS] Seeded default vnr-echo-2026 showcase")
+
+        # 3. Seed AI Hiring if missing, or update deadline
+        ai_existing = await db.echo_showcases.find_one(_slug_query("ai-hiring"))
+        if not ai_existing:
+            a_doc = dict(AI_HIRING_SHOWCASE_SEED)
+            a_doc["created_at"] = _now()
+            a_doc["updated_at"] = _now()
+            await db.echo_showcases.insert_one(a_doc)
+            print("[ECHO CMS] Seeded default ai-hiring showcase")
+        else:
+            await db.echo_showcases.update_one(
+                _slug_query("ai-hiring"),
+                {"$set": {
+                    "registration.deadline": "2027-12-31T23:59:59+05:30",
+                    "registration.enabled": True,
+                    "status": "published",
+                }}
+            )
 
         await db.echo_showcases.update_many({"gallery_layout": {"$exists": False}}, {"$set": {"gallery_layout": "grid"}})
     except Exception as e:
@@ -3573,8 +3697,49 @@ async def get_showcase(slug: str, request: Request):
         doc = await db.echo_showcases.find_one(_slug_query(slug))
 
     if not doc:
+        # Check platform events collection (db.events)
+        try:
+            ev = None
+            if ObjectId.is_valid(slug):
+                ev = await db.events.find_one({"_id": ObjectId(slug)})
+            if not ev:
+                ev = await db.events.find_one({"$or": [{"id": slug}, {"slug": slug}, {"title": slug}]})
+            if not ev and hasattr(db, "events_v2"):
+                ev = await db.events_v2.find_one({"$or": [{"event_id": slug}, {"slug": slug}]})
+            if ev:
+                posters = [p for p in [ev.get("poster_url"), ev.get("image_url"), ev.get("cover_image")] if p]
+                doc = {
+                    "_id": ev.get("_id"),
+                    "id": str(ev.get("_id") or ev.get("id") or ev.get("event_id") or slug),
+                    "slug": ev.get("slug") or str(ev.get("_id") or slug),
+                    "title": ev.get("title", "Event"),
+                    "subtitle": ev.get("description", ""),
+                    "description": ev.get("description", ""),
+                    "date": str(ev.get("start_date") or ev.get("event_date_start") or ""),
+                    "time": str(ev.get("time") or ""),
+                    "venue": ev.get("venue") or ev.get("location_city") or "Online",
+                    "college": ev.get("college_name") or ev.get("college") or "",
+                    "category": ev.get("category") or ev.get("event_type") or "Event",
+                    "status": ev.get("status") or "published",
+                    "event_status_badge": ev.get("event_status_badge") or "Upcoming",
+                    "hero_image_url": ev.get("image_url") or ev.get("cover_image") or ev.get("poster_url") or "",
+                    "poster_url": ev.get("poster_url") or ev.get("image_url") or ev.get("cover_image") or "",
+                    "banner_url": ev.get("banner_url") or "",
+                    "hero_banners": posters,
+                    "registration": {
+                        "enabled": ev.get("status") != "cancelled",
+                        "fee": ev.get("price") or ev.get("price_amount") or 0,
+                        "currency": "INR",
+                        "poster_images": posters,
+                    }
+                }
+        except Exception as e:
+            print(f"[ECHO CMS] Fallback event lookup warning: {e}")
+
+    if not doc:
         raise HTTPException(status_code=404, detail="Showcase not found")
-    if doc.get("status") != "published":
+    status_str = str(doc.get("status") or "published").lower()
+    if status_str not in ("published", "active", "upcoming", "live"):
         auth = request.headers.get("Authorization", "")
         if not auth.startswith("Bearer "):
             raise HTTPException(status_code=404, detail="Showcase not found")
@@ -3822,6 +3987,12 @@ async def verify_discount_coupon(
     """Verify a discount coupon for an Echo event registration."""
     db = _get_db(request)
     showcase = await db.echo_showcases.find_one(_slug_query(slug))
+    if not showcase and (slug or "").lower().strip() in ("ai-hiring", "ai-in-hiring", "ai-hiring-2026"):
+        a_doc = dict(AI_HIRING_SHOWCASE_SEED)
+        a_doc["created_at"] = _now()
+        a_doc["updated_at"] = _now()
+        await db.echo_showcases.insert_one(a_doc)
+        showcase = await db.echo_showcases.find_one(_slug_query(slug))
     if not showcase:
         raise HTTPException(status_code=404, detail="Showcase not found")
     if showcase.get("status") != "published":
@@ -3876,6 +4047,12 @@ async def register_for_showcase(
             user = None
 
     showcase = await db.echo_showcases.find_one(_slug_query(slug))
+    if not showcase and (slug or "").lower().strip() in ("ai-hiring", "ai-in-hiring", "ai-hiring-2026"):
+        a_doc = dict(AI_HIRING_SHOWCASE_SEED)
+        a_doc["created_at"] = _now()
+        a_doc["updated_at"] = _now()
+        await db.echo_showcases.insert_one(a_doc)
+        showcase = await db.echo_showcases.find_one(_slug_query(slug))
     if not showcase:
         raise HTTPException(status_code=404, detail="Showcase not found")
     if showcase.get("status") != "published":
@@ -3905,16 +4082,19 @@ async def register_for_showcase(
         except Exception:
             pass
 
-    # Case-insensitive dedup — emails are normalized to lowercase so the same
-    # person cannot register twice with different capitalisation.
+    # Case-insensitive email normalization
     from core.email_quality import require_ok
     reg_email = require_ok(payload.email or "")
     user_key = str(user["_id"]) if user else (reg_email or (payload.phone or "").strip() or "anon")
-    existing = await db.echo_registrations.find_one(
-        {"slug": canonical_slug, "user_key": user_key}
-    )
-    if existing:
-        return _ser(existing)
+
+    # Guard against accidental double-clicks within 2 seconds
+    recent_dup = await db.echo_registrations.find_one({
+        "slug": canonical_slug,
+        "user_key": user_key,
+        "created_at": {"$gte": (datetime.now(timezone.utc) - timedelta(seconds=2)).isoformat()},
+    })
+    if recent_dup:
+        return _ser(recent_dup)
 
     # Team name uniqueness check — team names must be unique per event
     registration_type = payload.registration_type or "individual"
@@ -4010,11 +4190,25 @@ async def register_for_showcase(
             for m in payload.team_members
         ]
     
+    # Format user-facing ticket ID
+    ticket_prefix = "SA-TKT"
+    if "ai-hiring" in canonical_slug:
+        ticket_prefix = "SA-AIH"
+    elif "snist" in canonical_slug or "hackwave" in canonical_slug:
+        ticket_prefix = "SA-HW3"
+    elif "vnr" in canonical_slug:
+        ticket_prefix = "SA-VNR"
+    ticket_id = f"{ticket_prefix}-{reg_id[:6].upper()}"
+
     reg = {
         "id": reg_id,
+        "ticket_id": ticket_id,
         "slug": canonical_slug,
-        "showcase_title": showcase.get("title"),
+        "showcase_title": showcase.get("title") or "AI in Hiring 2026",
         "showcase_college": showcase.get("college"),
+        "dates": showcase.get("date") or showcase.get("dates") or "October 10 – 11, 2026",
+        "date": showcase.get("date") or showcase.get("dates") or "October 10 – 11, 2026",
+        "venue": showcase.get("venue") or "HICC Convention Center, Hitec City, Hyderabad",
         "user_key": user_key,
         "user_id": str(user["_id"]) if user else None,
         "full_name": payload.full_name or (user.get("full_name") if user else "") or "Attendee",
@@ -4220,6 +4414,12 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
     db = _get_db(request)
     user = await _resolve_user(request, db)
     showcase = await db.echo_showcases.find_one(_slug_query(slug))
+    if not showcase and (slug or "").lower().strip() in ("ai-hiring", "ai-in-hiring", "ai-hiring-2026"):
+        a_doc = dict(AI_HIRING_SHOWCASE_SEED)
+        a_doc["created_at"] = _now()
+        a_doc["updated_at"] = _now()
+        await db.echo_showcases.insert_one(a_doc)
+        showcase = await db.echo_showcases.find_one(_slug_query(slug))
     if not showcase:
         raise HTTPException(status_code=404, detail="Showcase not found")
     if showcase.get("status") != "published":
@@ -4263,34 +4463,33 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
     email = require_ok(payload.email or "")
     user_key = str(user["_id"]) if user else (email or (payload.phone or "").strip() or "anon")
 
-    existing = await db.echo_registrations.find_one({"slug": canonical_slug, "user_key": user_key})
-    if existing:
-        payment = existing.get("payment") or {}
-        if payment.get("status") == "paid":
-            return {"already": True, "registration": _ser(existing)}
-        # Reuse an existing fresh order ONLY if this registration is still pending
-        # and the session hasn't expired. A failed/expired registration must get a
-        # brand-new Razorpay order — old order ids are dead after ~15 minutes.
-        order_created_raw = (existing.get("payment_order") or {}).get("created_at")
+    # Reuse an existing fresh order ONLY if this user has an unexpired pending order
+    pending_existing = await db.echo_registrations.find_one({
+        "slug": canonical_slug,
+        "user_key": user_key,
+        "status": "pending",
+        "payment.status": "pending",
+    })
+    if pending_existing:
+        order_created_raw = (pending_existing.get("payment_order") or {}).get("created_at")
         order_created = _parse_iso(order_created_raw) if order_created_raw else None
         order_fresh = order_created and (datetime.now(timezone.utc) - order_created).total_seconds() <= ECHO_PAYMENT_SESSION_TTL_SECONDS
-        status_pending = existing.get("status") == "pending" and payment.get("status") == "pending"
-        order_id = (existing.get("payment_order") or {}).get("order_id")
-        if order_id and order_fresh and status_pending:
+        order_id = (pending_existing.get("payment_order") or {}).get("order_id")
+        if order_id and order_fresh:
             return {
                 "already": False,
                 "order_id": order_id,
                 "amount": total_fee,
                 "currency": currency,
                 "key_id": cfg.get("key_id", ""),
-                "receipt": existing.get("id"),
+                "receipt": pending_existing.get("id"),
                 "pending": True,
             }
         # Stale/failed → reset to a fresh pending state below (create a new order).
 
-    # Use the existing registration id as the Razorpay receipt when re-registering
+    # Use the existing pending registration id as the Razorpay receipt when re-registering
     # (failed/expired pending) so the order is attributable to that registration.
-    reg_id = existing.get("id") if existing else secrets.token_hex(6)
+    reg_id = pending_existing.get("id") if pending_existing else secrets.token_hex(6)
     now_iso = _now()
 
     # Create the Razorpay order
@@ -4302,7 +4501,7 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
         raise HTTPException(status_code=502, detail="Payment gateway temporarily unavailable — please try again")
 
     # Persist a pending registration so verify-payment / webhook has a record
-    if not existing:
+    if not pending_existing:
         dob_val = payload.date_of_birth or payload.dob or ""
         
         # Prepare team members data
@@ -4355,7 +4554,7 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
         }
         await db.echo_registrations.insert_one(dict(reg))
     else:
-        reg_id = existing.get("id")
+        reg_id = pending_existing.get("id")
         
         # Prepare team members data for update
         team_members_data = []
@@ -4376,7 +4575,7 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
         # resolve it by order id and the user can pay with the new session.
         # Also update all registration details in case they changed from IND to TEAM or updated info.
         await db.echo_registrations.update_one(
-            {"_id": existing["_id"]},
+            {"_id": pending_existing["_id"]},
             {"$set": {
                 "full_name": payload.full_name,
                 "phone": payload.phone,
@@ -4582,7 +4781,7 @@ async def my_registrations(request: Request, response: Response):
         slug = reg.get("showcase_slug") or reg.get("slug", "")
 
         # Build nested payment object for frontend compatibility
-        payment = dict(reg.get("payment") or {})
+        payment = {}
         if "payment_status" in reg:
             payment["status"] = reg["payment_status"]
         if reg.get("failed_reason"):
@@ -4593,7 +4792,7 @@ async def my_registrations(request: Request, response: Response):
             payment["paid_at"] = reg["paid_at"]
         if reg.get("failed_at"):
             payment["failed_at"] = reg["failed_at"]
-        if reg.get("amount") is not None:
+        if reg.get("amount"):
             payment["amount"] = reg["amount"]
         if reg.get("currency"):
             payment["currency"] = reg["currency"]
@@ -4601,11 +4800,7 @@ async def my_registrations(request: Request, response: Response):
             payment["payment_id"] = reg["razorpay_payment_id"]
         if reg.get("payment_provider"):
             payment["gateway"] = reg["payment_provider"]
-        if reg.get("payment_provider"):
-            payment["gateway"] = reg["payment_provider"]
-            payment["method"] = reg["payment_provider"]
-        elif not payment.get("method"):
-            payment["method"] = "online"
+        payment["method"] = reg.get("payment_provider") or "online"
         reg_ser["payment"] = payment
 
         # Fetch coupons for this registration
@@ -4628,26 +4823,49 @@ async def my_registrations(request: Request, response: Response):
         except Exception:
             pass
 
-        # Fetch event/showcase details for title and banner
+        # Fetch event/showcase details for title, banner, dates, and venue
         showcase = None
         try:
             if slug:
-                showcase = await db.echo_showcases.find_one({"slug": slug})
+                showcase = await db.echo_showcases.find_one(_slug_query(slug))
                 if not showcase:
-                    showcase = await db.event_showcases.find_one({"slug": slug})
+                    showcase = await db.events.find_one({"slug": slug})
         except Exception:
             pass
 
         if showcase:
-            reg_ser["event_title"] = showcase.get("title") or showcase.get("name") or reg_ser.get("event_title")
+            reg_ser["event_title"] = showcase.get("title") or showcase.get("name") or reg_ser.get("event_title") or reg_ser.get("showcase_title")
             reg_ser["showcase_title"] = showcase.get("title") or showcase.get("name") or reg_ser.get("showcase_title")
-            reg_ser["banner_url"] = showcase.get("banner_url") or showcase.get("cover_image") or reg_ser.get("banner_url")
-            reg_ser["date"] = showcase.get("date") or showcase.get("start_date") or reg_ser.get("date") or reg_ser.get("start_date") or ""
-            reg_ser["start_date"] = showcase.get("start_date") or reg_ser.get("start_date") or reg_ser.get("date")
-            reg_ser["end_date"] = showcase.get("end_date") or reg_ser.get("end_date") or ""
-            reg_ser["time"] = showcase.get("time") or reg_ser.get("time") or ""
-            reg_ser["start_time"] = showcase.get("start_time") or reg_ser.get("start_time") or ""
-            reg_ser["venue"] = showcase.get("venue") or reg_ser.get("venue") or ""
+            reg_ser["banner_url"] = showcase.get("banner_url") or showcase.get("hero_image_url") or showcase.get("cover_image") or reg_ser.get("banner_url")
+            reg_ser["dates"] = showcase.get("date") or showcase.get("dates") or reg.get("dates") or reg.get("date")
+            reg_ser["date"] = showcase.get("date") or showcase.get("dates") or reg.get("date") or reg.get("dates")
+            reg_ser["venue"] = showcase.get("venue") or reg.get("venue") or showcase.get("location")
+            reg_ser["start_date"] = showcase.get("start_date") or reg_ser.get("start_date")
+        else:
+            if "ai-hiring" in slug:
+                reg_ser["event_title"] = "AI in Hiring 2026"
+                reg_ser["showcase_title"] = "AI in Hiring 2026"
+                reg_ser["dates"] = "October 10 – 11, 2026"
+                reg_ser["date"] = "October 10 – 11, 2026"
+                reg_ser["venue"] = "HICC Convention Center, Hitec City, Hyderabad"
+
+        # Ensure user-facing ticket_id exists
+        if not reg_ser.get("ticket_id"):
+            prefix = "SA-AIH" if "ai-hiring" in slug else ("SA-HW3" if "snist" in slug or "hackwave" in slug else "SA-TKT")
+            rid = reg_ser.get("id") or "000000"
+            reg_ser["ticket_id"] = f"{prefix}-{rid[:6].upper()}"
+
+        # Ensure payment amount and status are defined
+        fee_val = float(reg.get("fee") or 0)
+        if not reg_ser.get("payment") or not reg_ser["payment"].get("status"):
+            reg_ser["payment"] = reg.get("payment") or {
+                "amount": fee_val,
+                "status": "paid" if fee_val <= 0 or reg.get("status") in ("registered", "confirmed") else "pending",
+                "currency": reg.get("currency", "INR"),
+                "method": "free" if fee_val <= 0 else "online",
+            }
+        elif "amount" not in reg_ser["payment"]:
+            reg_ser["payment"]["amount"] = fee_val
 
         results.append({
             "registration": reg_ser,
@@ -6631,12 +6849,24 @@ async def verify_ticket(payload: TicketVerifySchema, request: Request, _=Depends
         query["id"] = parsed["reg_id"]
 
     reg = await db.echo_registrations.find_one(query)
-    if not reg:
-        # Fallback: raw registration id
-        reg = await db.echo_registrations.find_one({"id": parsed.get("reg_id")})
-    if not reg and parsed.get("reg_id") and len(parsed.get("reg_id")) == 8:
-        # Fallback: short-code manual entry
-        reg = await db.echo_registrations.find_one({"id": {"$regex": f"^{parsed.get('reg_id')}", "$options": "i"}})
+    reg_id_input = parsed.get("reg_id") or ""
+    if not reg and reg_id_input:
+        import re as _re
+        escaped = _re.escape(reg_id_input)
+        candidates = [
+            {"id": {"$regex": f"^{escaped}$", "$options": "i"}},
+            {"ticket_id": {"$regex": f"^{escaped}$", "$options": "i"}},
+        ]
+        if "-" in reg_id_input:
+            suffix = reg_id_input.split("-")[-1].strip()
+            if len(suffix) >= 4:
+                esc_suffix = _re.escape(suffix)
+                candidates.append({"id": {"$regex": f"^{esc_suffix}", "$options": "i"}})
+                candidates.append({"ticket_id": {"$regex": f"{esc_suffix}$", "$options": "i"}})
+        elif len(reg_id_input) in (6, 8, 12):
+            candidates.append({"id": {"$regex": f"^{escaped}", "$options": "i"}})
+            candidates.append({"ticket_id": {"$regex": f"{escaped}$", "$options": "i"}})
+        reg = await db.echo_registrations.find_one({"$or": candidates})
     if not reg:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
@@ -6698,20 +6928,28 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
         query["id"] = reg_id
 
     reg = await db.echo_registrations.find_one(query)
-    # Exact lookup is case-sensitive; ids are stored in mixed case (e.g.
-    # `dc08b4e9a27d`, `9a361543a98b_M1`, `Echo-A6F1B42219E50B32`). Fall back to a
-    # case-insensitive exact match so scans resolve regardless of scanned casing.
+    # Fall back to case-insensitive match by id, ticket_id, or ticket suffix code
     if not reg and reg_id:
         import re as _re
         escaped = _re.escape(reg_id)
-        reg = await db.echo_registrations.find_one({
-            "id": {"$regex": f"^{escaped}$", "$options": "i"},
-            **( {"slug": parsed["slug"]} if parsed.get("slug") else {} ),
-        })
-        if not reg and len(reg_id) == 8:
-            reg = await db.echo_registrations.find_one({
-                "id": {"$regex": f"^{escaped}", "$options": "i"},
-            })
+        candidates = [
+            {"id": {"$regex": f"^{escaped}$", "$options": "i"}},
+            {"ticket_id": {"$regex": f"^{escaped}$", "$options": "i"}},
+        ]
+        if "-" in reg_id:
+            suffix = reg_id.split("-")[-1].strip()
+            if len(suffix) >= 4:
+                esc_suffix = _re.escape(suffix)
+                candidates.append({"id": {"$regex": f"^{esc_suffix}", "$options": "i"}})
+                candidates.append({"ticket_id": {"$regex": f"{esc_suffix}$", "$options": "i"}})
+        elif len(reg_id) in (6, 8, 12):
+            candidates.append({"id": {"$regex": f"^{escaped}", "$options": "i"}})
+            candidates.append({"ticket_id": {"$regex": f"{escaped}$", "$options": "i"}})
+
+        filter_q = {"$or": candidates}
+        if parsed.get("slug"):
+            filter_q["slug"] = parsed["slug"]
+        reg = await db.echo_registrations.find_one(filter_q)
     if not reg:
         raise HTTPException(status_code=404, detail="Ticket not found in registrations")
 
@@ -7138,6 +7376,37 @@ async def archive_showcase(showcase_id: str, request: Request, _=Depends(_requir
         {"$set": {"status": "archived", "updated_at": _now()}}
     )
     return {"ok": True, "status": "archived"}
+
+
+class ShowcaseStatusUpdateSchema(BaseModel):
+    event_status_badge: str
+    status: Optional[str] = None
+    registration_enabled: Optional[bool] = None
+
+
+@router.patch("/admin/showcases/{showcase_id}/statuses")
+async def update_showcase_statuses(showcase_id: str, payload: ShowcaseStatusUpdateSchema, request: Request, _=Depends(_require_admin)):
+    db = _get_db(request)
+    badge = payload.event_status_badge
+    updates: Dict[str, Any] = {
+        "event_status_badge": badge,
+        "updated_at": _now(),
+    }
+    if payload.status:
+        updates["status"] = payload.status
+    if payload.registration_enabled is not None:
+        updates["registration.enabled"] = payload.registration_enabled
+    else:
+        if badge in ("Completed", "Registrations Closed", "Not Completed"):
+            updates["registration.enabled"] = False
+        elif badge in ("Registrations Open", "Upcoming", "Live"):
+            updates["registration.enabled"] = True
+
+    await db.echo_showcases.update_one(
+        {"_id": _oid(showcase_id)},
+        {"$set": updates}
+    )
+    return {"ok": True, "event_status_badge": badge, "updates": updates}
 
 
 # ── File Upload Endpoint ──────────────────────────────────────────────────────
@@ -8172,7 +8441,6 @@ async def delete_intern_candidate(candidate_id: str, request: Request, _=Depends
         raise HTTPException(status_code=404, detail="Candidate not found")
 
     return {"ok": True, "message": "Candidate deleted"}
-
 
 # ── LANDING PAGE & EVENT SECTION MANAGEMENT ──────────────────────────────────
 

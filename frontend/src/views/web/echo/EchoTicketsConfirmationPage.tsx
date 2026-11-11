@@ -26,6 +26,7 @@ interface EchoTicketsConfirmationPageProps {
     amount?: number;
     date?: string;
     venue?: string;
+    qrCodeBase64?: string;
   };
 }
 
@@ -245,6 +246,7 @@ END:VCALENDAR`;
     venue: string;
     date: string;
     status: string;
+    qrCodeBase64?: string;
   } | null>(null);
 
   // Waitlist state in Failure view
@@ -327,8 +329,9 @@ END:VCALENDAR`;
   const aName = ticketInfo?.attendeeName || 'Devender Vutukuru';
   const uEmail = ticketInfo?.email || 'devender@snist.edu.in';
   const pType = ticketInfo?.type || 'Individual Pass (GA)';
-  const pAmount = ticketInfo?.amount ?? 599;
+  const pAmount = ticketInfo?.amount !== undefined ? ticketInfo.amount : (ticketInfo?.eventName?.toLowerCase().includes('ai') ? 0 : 599);
   const pVenue = ticketInfo?.venue || 'Sreenidhi Institute of Science & Technology, Hyderabad';
+  const pDate = ticketInfo?.date || 'October 10 – 11, 2026';
 
   return (
     <div
@@ -427,7 +430,13 @@ END:VCALENDAR`;
                 <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#FFFFFF', letterSpacing: '-.2px' }}>
                   Registration confirmed — you're on the {eName} list
                 </span>
-                <span style={{ position: 'relative', marginLeft: 'auto', fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.2px', color: '#04291D', whiteSpace: 'nowrap' }}>SEP 04</span>
+                <span style={{ position: 'relative', marginLeft: 'auto', fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.2px', color: '#04291D', whiteSpace: 'nowrap' }}>
+                  {(() => {
+                    if (!pDate) return 'OCT 10';
+                    const m = pDate.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(\d{1,2})/i);
+                    return m ? `${m[1].slice(0, 3).toUpperCase()} ${m[2].padStart(2, '0')}` : pDate.slice(0, 6).toUpperCase();
+                  })()}
+                </span>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '128px minmax(0, 1fr)', gap: '28px', alignItems: 'center', padding: '32px 30px 34px' }}>
@@ -441,10 +450,30 @@ END:VCALENDAR`;
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: '25px', fontWeight: 700, letterSpacing: '-.9px' }}>You're going to {eName}.</div>
                   <div style={{ fontSize: '14.5px', lineHeight: 1.65, color: 'var(--muted)', margin: '9px 0 20px' }}>
-                    Ticket <strong style={{ color: 'var(--text)', fontWeight: 600 }}>{tId}</strong> is issued against your SA ID and sent to <strong style={{ color: 'var(--violet-lt)' }}>{uEmail}</strong>. Free cancellation until Sep 1.
+                    Ticket <strong style={{ color: 'var(--text)', fontWeight: 600 }}>{tId}</strong> is issued against your SA ID and sent to <strong style={{ color: 'var(--violet-lt)' }}>{uEmail}</strong>. {pDate?.toLowerCase().includes('oct') ? 'Free cancellation until Oct 05.' : 'Free cancellation until event starts.'}
                   </div>
                   <div style={{ display: 'flex', gap: '9px', flexWrap: 'wrap' }}>
-                    <span onClick={() => { if (onViewTicket) onViewTicket(); else router.push('/student-portal/my-tickets'); }} className="tk-btn-hover" style={{ fontSize: '13.5px', fontWeight: 700, background: 'var(--ok)', color: '#04291D', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer' }}>View my ticket</span>
+                    <span
+                      onClick={() => {
+                        if (onViewTicket) {
+                          onViewTicket();
+                        } else {
+                          setQrModalData({
+                            tId,
+                            eName,
+                            aName,
+                            venue: pVenue,
+                            date: pDate,
+                            status: 'READY (CONFIRMED)',
+                            qrCodeBase64: ticketInfo?.qrCodeBase64,
+                          });
+                        }
+                      }}
+                      className="tk-btn-hover"
+                      style={{ fontSize: '13.5px', fontWeight: 700, background: 'var(--ok)', color: '#04291D', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer' }}
+                    >
+                      View my ticket
+                    </span>
                     <span onClick={handleAddToCalendar} className="tk-btn-hover" style={{ fontSize: '13.5px', fontWeight: 600, color: addedCal ? 'var(--ok)' : 'var(--muted)', border: '1px solid var(--line2)', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer' }}>
                       {addedCal ? 'Added to calendar ✓' : 'Add to calendar'}
                     </span>
@@ -474,7 +503,7 @@ END:VCALENDAR`;
                   </svg>
                 </span>
                 <div style={{ fontSize: '16.5px', fontWeight: 700, letterSpacing: '-.3px' }}>Payment received</div>
-                <div style={{ fontSize: '13.5px', lineHeight: 1.6, color: 'var(--muted)', margin: '7px 0 14px' }}>INR {pAmount.toLocaleString()} via Razorpay. Invoice SA-INV-22981 is ready.</div>
+                <div style={{ fontSize: '13.5px', lineHeight: 1.6, color: 'var(--muted)', margin: '7px 0 14px' }}>INR {pAmount.toLocaleString()} via {pAmount === 0 ? 'Free Pass' : 'Razorpay'}. Invoice SA-INV-{tId.replace(/[^0-9]/g, '').slice(-5) || '22981'} is ready.</div>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <span onClick={handleDownloadInvoice} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700, color: 'var(--ok)', cursor: 'pointer' }}>
@@ -777,7 +806,7 @@ END:VCALENDAR`;
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '16px', marginTop: '22px' }}>
                     <div>
                       <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', opacity: 0.7, marginBottom: '5px' }}>DATE</div>
-                      <div style={{ fontSize: '14px', fontWeight: 700 }}>Sep 04–05</div>
+                      <div style={{ fontSize: '14px', fontWeight: 700 }}>{pDate || 'October 10 – 11, 2026'}</div>
                     </div>
                     <div>
                       <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', opacity: 0.7, marginBottom: '5px' }}>GATES OPEN</div>
@@ -799,17 +828,21 @@ END:VCALENDAR`;
 
                 {/* QR Code & Attendee Info */}
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '18px', padding: '18px 26px 24px', color: '#FFFFFF', flexWrap: 'wrap' }}>
-                  <svg width="76" height="76" viewBox="0 0 46 46" style={{ flex: 'none', borderRadius: '8px' }}>
-                    <rect x="0" y="0" width="46" height="46" rx="6" fill="#FFFFFF" />
-                    <g fill="#2B1E6E">
-                      <rect x="5" y="5" width="12" height="12" rx="2" /><rect x="8" y="8" width="6" height="6" fill="#FFFFFF" />
-                      <rect x="29" y="5" width="12" height="12" rx="2" /><rect x="32" y="8" width="6" height="6" fill="#FFFFFF" />
-                      <rect x="5" y="29" width="12" height="12" rx="2" /><rect x="8" y="32" width="6" height="6" fill="#FFFFFF" />
-                      <rect x="21" y="21" width="4" height="4" /><rect x="29" y="21" width="4" height="4" /><rect x="37" y="25" width="4" height="4" />
-                      <rect x="25" y="29" width="4" height="4" /><rect x="33" y="33" width="8" height="8" /><rect x="21" y="37" width="4" height="4" />
-                      <rect x="21" y="29" width="4" height="4" /><rect x="29" y="37" width="4" height="4" />
-                    </g>
-                  </svg>
+                  <div style={{ background: '#FFFFFF', padding: '6px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+                    {ticketInfo?.qrCodeBase64 ? (
+                      <img
+                        src={ticketInfo.qrCodeBase64.startsWith('data:') ? ticketInfo.qrCodeBase64 : `data:image/png;base64,${ticketInfo.qrCodeBase64}`}
+                        alt="Ticket QR"
+                        style={{ width: '70px', height: '70px', display: 'block', borderRadius: '6px' }}
+                      />
+                    ) : (
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : 'https://studentalumni.ai'}/echo/scan/${tId}`)}`}
+                        alt="Ticket QR"
+                        style={{ width: '70px', height: '70px', display: 'block', borderRadius: '6px' }}
+                      />
+                    )}
+                  </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', opacity: 0.7, marginBottom: '5px' }}>TICKET NUMBER</div>
                     <div style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '.6px' }}>{tId}</div>
@@ -817,7 +850,7 @@ END:VCALENDAR`;
                   </div>
                   <div style={{ textAlign: 'right', flex: 'none' }}>
                     <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', opacity: 0.7, marginBottom: '5px' }}>PAID</div>
-                    <div style={{ fontSize: '16px', fontWeight: 700 }}>₹{pAmount}</div>
+                    <div style={{ fontSize: '16px', fontWeight: 700 }}>{pAmount === 0 ? 'FREE' : `₹${pAmount}`}</div>
                   </div>
                 </div>
               </div>
@@ -1363,18 +1396,20 @@ END:VCALENDAR`;
             <div style={{ fontSize: '13px', color: 'var(--muted)', margin: '0 0 20px' }}>{qrModalData.venue}</div>
 
             {/* QR Code Container */}
-            <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', display: 'inline-block', marginBottom: '20px', boxShadow: '0 8px 30px rgba(124,92,252,0.25)' }}>
-              <svg width="180" height="180" viewBox="0 0 46 46">
-                <rect x="0" y="0" width="46" height="46" fill="#FFFFFF" />
-                <g fill="#101019">
-                  <rect x="3" y="3" width="14" height="14" rx="3" /><rect x="6" y="6" width="8" height="8" fill="#FFFFFF" />
-                  <rect x="29" y="3" width="14" height="14" rx="3" /><rect x="32" y="6" width="8" height="8" fill="#FFFFFF" />
-                  <rect x="3" y="29" width="14" height="14" rx="3" /><rect x="6" y="32" width="8" height="8" fill="#FFFFFF" />
-                  <rect x="21" y="21" width="5" height="5" /><rect x="29" y="21" width="5" height="5" /><rect x="37" y="25" width="5" height="5" />
-                  <rect x="25" y="29" width="5" height="5" /><rect x="33" y="33" width="9" height="9" /><rect x="21" y="37" width="5" height="5" />
-                  <rect x="21" y="29" width="5" height="5" /><rect x="29" y="37" width="5" height="5" />
-                </g>
-              </svg>
+            <div style={{ background: '#FFFFFF', padding: '16px', borderRadius: '16px', display: 'inline-block', marginBottom: '20px', boxShadow: '0 8px 30px rgba(124,92,252,0.25)' }}>
+              {qrModalData.qrCodeBase64 ? (
+                <img
+                  src={qrModalData.qrCodeBase64.startsWith('data:') ? qrModalData.qrCodeBase64 : `data:image/png;base64,${qrModalData.qrCodeBase64}`}
+                  alt="Gate Pass QR"
+                  style={{ width: '180px', height: '180px', display: 'block', borderRadius: '8px' }}
+                />
+              ) : (
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : 'https://studentalumni.ai'}/echo/scan/${qrModalData.tId}`)}`}
+                  alt="Gate Pass QR"
+                  style={{ width: '180px', height: '180px', display: 'block', borderRadius: '8px' }}
+                />
+              )}
             </div>
 
             <div style={{ background: 'var(--panel2)', border: '1px solid var(--line2)', borderRadius: '14px', padding: '14px 18px', textAlign: 'left', marginBottom: '20px', display: 'grid', gap: '8px', fontSize: '13px' }}>
@@ -1396,10 +1431,20 @@ END:VCALENDAR`;
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => {
+                  setQrModalData(null);
+                  onCloseModal?.();
+                  router.push('/student-portal/my-tickets');
+                }}
+                style={{ flex: 1, minWidth: '130px', padding: '12px', background: 'var(--ok)', color: '#04291D', border: 'none', borderRadius: '10px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Go to My Tickets →
+              </button>
               <button
                 onClick={() => addToast('Pass Saved', 'Saved ticket pass to device.', 'ok')}
-                style={{ flex: 1, padding: '12px', background: 'var(--violet)', color: '#FFF', border: 'none', borderRadius: '10px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}
+                style={{ flex: 1, minWidth: '130px', padding: '12px', background: 'var(--violet)', color: '#FFF', border: 'none', borderRadius: '10px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}
               >
                 Save to Device
               </button>
