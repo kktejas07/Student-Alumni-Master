@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Super Admin — Contact Analytics
  *

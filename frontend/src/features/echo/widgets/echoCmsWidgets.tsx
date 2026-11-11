@@ -1,5 +1,4 @@
 // the 15 content editors (stats, testimonials, sponsors, downloads, ...) — split verbatim from EchoShowcaseAdminView.tsx (audit Step 6a).
-// @ts-nocheck
 import { useState } from 'react';
 import { api, resolveImageUrl } from '@/src/models/services/api';
 import { GRAD } from '@/src/views/web/portals/superadmin/applekit';

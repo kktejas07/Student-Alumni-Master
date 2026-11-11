@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck — TODO: fix 28 TS errors then remove
 /**
  * UserDirectoryView — shared reusable directory for Student / Alumni / Mentor
  * (and the catch-all "All Users") menus.

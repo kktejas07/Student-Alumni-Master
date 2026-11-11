@@ -6,5 +6,4 @@
 // `import EchoEventsPage from '@/src/views/web/echo/EchoEventsPage'`
 // (landingView + the app/echo/** routes) keeps working; new code should
 // import the feature module directly.
-// @ts-nocheck
 export { EchoEventsPage, EchoEventsPage as default } from '@/src/features/echo/echoEventsPage';

@@ -1,5 +1,4 @@
 // TAB 8 — Pages (policy/service content manager, Lexical-editor backed) + the shared BrandingField — split verbatim from SettingsView.tsx (audit Step 6c).
-// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, TextInput, ScrollView } from 'react-native';
 import { Pencil, Check, ArrowLeft, Maximize2, Minimize2 } from 'lucide-react-native';

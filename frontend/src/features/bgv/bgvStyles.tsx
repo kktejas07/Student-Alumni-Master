@@ -1,5 +1,5 @@
+// @ts-nocheck — TODO: fix 1 TS errors then remove
 // the `st` design-token stylesheet (mutated at runtime via Object.assign(st, resolveColors(st, T)) in the view entry) — split verbatim from BGVAccountVerticalsView.tsx (audit Step 6d).
-// @ts-nocheck
 import { StyleSheet } from 'react-native';
 import { SAC, FONTS } from '@/src/views/web/portals/superadmin/tokens';
 

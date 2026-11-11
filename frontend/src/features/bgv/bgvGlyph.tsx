@@ -1,5 +1,4 @@
 // LinkedinGlyph — the LinkedIn 'in' badge glyph (web-safe fallback) — split verbatim from BGVAccountVerticalsView.tsx (audit Step 6d).
-// @ts-nocheck
 import { View, Text } from 'react-native';
 
 /** LinkedIn 'in' badge glyph component — bulletproof web-safe fallback */

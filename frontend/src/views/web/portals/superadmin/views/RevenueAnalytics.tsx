@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Revenue analytics dashboard (PY4).
  *

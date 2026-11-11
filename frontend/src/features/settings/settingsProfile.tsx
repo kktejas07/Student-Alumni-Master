@@ -1,5 +1,4 @@
 // TAB 1 — Manage Profile (profile tab, signature card + editor modal) — split verbatim from SettingsView.tsx (audit Step 6c).
-// @ts-nocheck
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, Pressable, Platform, Modal, TextInput, ScrollView } from 'react-native';
 import { Pencil, Check, X, Mail } from 'lucide-react-native';

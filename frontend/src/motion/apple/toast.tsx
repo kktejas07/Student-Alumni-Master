@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck — TODO: fix 1 TS errors then remove
 /**
  * Apple HIG Toast Provider — stacked, swipe-to-dismiss, auto-progress bar.
  *

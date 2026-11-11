@@ -1,5 +1,4 @@
 // theme tokens (DARK_T/LIGHT_T), the global motion-CSS injector, and the STYLES_KEY — split verbatim from LandingPage.tsx (audit Step 6b).
-// @ts-nocheck
 export const DARK_T = {
   bg: '#05060F',
   bg2: '#05060D',

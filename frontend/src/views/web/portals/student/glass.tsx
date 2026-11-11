@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck — TODO: fix 5 TS errors then remove
 /**
  * Student Portal — FinTax360 Glass-Dark primitives (v0.18.0).
  *

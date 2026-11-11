@@ -1,5 +1,4 @@
 // the 5 self-contained sub-components (watermark, scroll counter, marquee, hover-lift card, glow button) — split verbatim from LandingPage.tsx (audit Step 6b).
-// @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useTheme } from '@/src/theme/ThemeContext';

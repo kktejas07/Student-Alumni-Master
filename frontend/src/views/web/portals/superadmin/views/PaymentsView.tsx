@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * PaymentsView — Amber Admin theme.
  * KPI tiles + Stripe ledger + balance card + payout tiers editor, all using applekit primitives.

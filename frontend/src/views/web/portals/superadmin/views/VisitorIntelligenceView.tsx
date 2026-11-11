@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck — TODO: fix 10 TS errors then remove
 /**
  * Super Admin — Visitor Intelligence & Modular Telemetry Dashboard
  *

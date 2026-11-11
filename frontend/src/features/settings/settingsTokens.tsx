@@ -1,5 +1,4 @@
 // settings constants: TOOL_DOCS provider-docs map, GRAD_* colour tokens, TABS + DEFAULT_SYSTEM_OPTIONS, the shared types — split verbatim from SettingsView.tsx (audit Step 6c).
-// @ts-nocheck
 import { UserCog, Sliders, Plug, Shield, Bell, Lock, IdCard, Sparkles, FileText, History } from 'lucide-react-native';
 
 /* ─────────────────────────────────────────────────────────────────

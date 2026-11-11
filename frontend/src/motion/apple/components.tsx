@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck — TODO: fix 1 TS errors then remove
 /**
  * Apple HIG Primitives — bundled in one file for atomic adoption.
  *

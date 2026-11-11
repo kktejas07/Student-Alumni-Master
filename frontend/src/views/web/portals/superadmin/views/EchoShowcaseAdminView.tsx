@@ -4,6 +4,5 @@
 // src/features/echo/ (shared/fields/widgets/media/modal/panels + echoCms).
 // This file re-exports the public surface so existing importers keep working;
 // new code should import from the feature modules directly.
-// @ts-nocheck
 export { triggerExportCsv } from '@/src/features/echo/shared/echoCmsShared';
 export { EchoShowcaseAdminView } from '@/src/features/echo/echoCms';

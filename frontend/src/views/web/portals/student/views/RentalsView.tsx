@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * RentalsView — SA Stay Rentals Marketplace from Bundle 2.
  * 

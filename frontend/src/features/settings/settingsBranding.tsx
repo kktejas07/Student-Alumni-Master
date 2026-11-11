@@ -1,5 +1,4 @@
 // TAB 9 — Branding (logos, favicons, site meta + address/phone/email fields) — split verbatim from SettingsView.tsx (audit Step 6c).
-// @ts-nocheck
 import { useEffect, useState, useRef } from 'react';
 import { View, Text, Pressable, Platform, Image } from 'react-native';
 import { Upload } from 'lucide-react-native';

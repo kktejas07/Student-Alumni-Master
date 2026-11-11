@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck — TODO: fix 6 TS errors then remove
 /**
  * CollegesView — college-card grid in the standard super-admin theme.
  *

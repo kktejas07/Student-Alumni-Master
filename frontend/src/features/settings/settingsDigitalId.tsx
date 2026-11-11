@@ -1,5 +1,5 @@
+// @ts-nocheck — TODO: fix 2 TS errors then remove
 // TAB 7 — Digital ID (branded gradient ID card with copy/share/download) — split verbatim from SettingsView.tsx (audit Step 6c).
-// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, Platform, Image } from 'react-native';
 import { UserCog, Lock, Copy, Share2, Download, QrCode, Building2, ShieldCheck } from 'lucide-react-native';

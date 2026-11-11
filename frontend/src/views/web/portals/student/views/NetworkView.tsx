@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck — TODO: fix 8 TS errors then remove
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, ScrollView, Platform, Linking, ActivityIndicator, Modal } from 'react-native';
 import { useRouter } from 'expo-router';

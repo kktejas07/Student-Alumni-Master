@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Certificate PDF preview (CR2).
  *

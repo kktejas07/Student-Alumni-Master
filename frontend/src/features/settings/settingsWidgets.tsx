@@ -1,5 +1,4 @@
 // self-contained shared widgets used by several tabs (FeatureCard, GradientButton, Loading) — split verbatim from SettingsView.tsx (audit Step 6c).
-// @ts-nocheck
 import React from 'react';
 import { View, Text, Pressable, Platform, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';

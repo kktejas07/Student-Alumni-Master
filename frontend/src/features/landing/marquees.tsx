@@ -1,5 +1,4 @@
 // marquee logo data (colleges + industry) — split verbatim from LandingPage.tsx (audit Step 6b).
-// @ts-nocheck
 export const COLLEGES_MARQUEE = [
   '/logos/mlrit.png',
   '/logos/malla-reddy.png',
