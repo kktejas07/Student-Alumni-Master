@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 38 TS errors then remove
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Modal } from 'react-native';
 import { Bot, Sparkles, Play, ShieldCheck, Database, CheckCircle, Code, Layers, FileText, Zap, RefreshCw, Users, Plus, Trash2, Pencil, X, Megaphone, Target, ArrowRight, Globe, Mail, Phone, ExternalLink, Gift, UserCheck, Building2, Search, Send, Clock, LayoutGrid, Columns, Award, DollarSign, Radio, FileCheck, Share2, PenTool, MapPin, Mic } from 'lucide-react-native';

@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 30 TS errors then remove
 /**
  * Student -> Messages — real-time direct messaging with network contacts.
  * Uses /api/messages endpoints (REST + WebSocket).
@@ -6,7 +5,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Platform, useWindowDimensions } from 'react-native';
 import { MessageSquare, Send, Search, Bot, User, Plus, ArrowLeft, AlertCircle, RefreshCw } from 'lucide-react-native';
-import { request } from '@/src/models/services/api';
+import { request, tokenStore } from '@/src/models/services/api';
 import { usePalette } from '../tokens';
 
 /* -- types ---------------------------------------------------------------- */
@@ -14,6 +13,7 @@ import { usePalette } from '../tokens';
 type Participant = { id: string; name: string; avatar: string | null; role: string };
 type ConvSummary = { id: string; participant: Participant; last_message: string; updated_at: string; unread: number };
 type Message = { id: string; sender_id: string; text: string; created_at: string; read_at?: string | null };
+type Conversation = { id: string; title: string; lastMsg: string; updatedAt: string; messages: Message[]; participant?: Participant; unread?: number };
 
 /* -- helpers -------------------------------------------------------------- */
 
@@ -58,9 +58,16 @@ export function MessagesView() {
   const [error, setError] = useState(false);
   const [searchQ, setSearchQ] = useState('');
   const [showChat, setShowChat] = useState(false);
+  const [, setWsConnected] = useState(false);
+  const [, setShowNewChat] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const myIdRef = useRef<string>('');
+
+  const filtered = conversations.filter(c =>
+    !searchQ || c.title.toLowerCase().includes(searchQ.toLowerCase())
+  );
+  const activeConv = conversations.find(c => c.id === activeId);
 
   /* -- load current user ID ------------------------------------------------ */
   useEffect(() => {
@@ -285,7 +292,7 @@ export function MessagesView() {
             )}
             {/* Error state */}
             {!loading && error && (
-              <Pressable onPress={loadSessions} style={{ alignItems: 'center', paddingTop: 40, gap: 8 }}>
+              <Pressable onPress={loadConversations} style={{ alignItems: 'center', paddingTop: 40, gap: 8 }}>
                 <AlertCircle size={28} color="#EF4444" />
                 <Text style={{ fontSize: 13, color: '#64748B', fontWeight: '600' }}>Failed to load</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -417,11 +424,8 @@ export function MessagesView() {
 
 /* -- styles --------------------------------------------------------------- */
 
-const st = StyleSheet.create({
-  root: { flex: 1, flexDirection: 'row' },
-
-  /* sidebar */
-  sidebar: { width: 320, borderRightWidth: 1, ...(Platform.OS === 'web' ? { height: '100%' } as any : {}) },
+const s = StyleSheet.create({
+  sidebar: { width: 320, borderRightWidth: 1 },
   sideHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 16, paddingBottom: 12 },
   sideTitle: { fontSize: 18, fontWeight: '700', flex: 1 },
   newBtn: { padding: 8, borderRadius: 8 },
@@ -433,10 +437,18 @@ const st = StyleSheet.create({
   convText: { flex: 1 },
   convTitle: { fontSize: 14, fontWeight: '600' },
   convPreview: { fontSize: 12, marginTop: 2, flex: 1 },
-  emptyText: { fontSize: 13, textAlign: 'center' },
+  chatPanel: { flex: 1 },
+  inputBar: { flexDirection: 'row', alignItems: 'flex-end', padding: 12, gap: 10, borderTopWidth: 1 },
+  input: { flex: 1, borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, maxHeight: 100, ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}) },
+  sendBtn: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+});
+
+const st = StyleSheet.create({
+  root: { flex: 1, flexDirection: 'row' },
 
   /* chat */
-  chatPanel: { flex: 1, ...(Platform.OS === 'web' ? { height: '100%' } as any : {}) },
+  chatHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1 },
+  avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   emptyChat: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
   emptyIcon: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   emptyChatTitle: { fontSize: 20, fontWeight: '700', marginBottom: 8 },
@@ -451,9 +463,4 @@ const st = StyleSheet.create({
   bubbleText: { fontSize: 14, lineHeight: 21 },
   bubbleTime: { fontSize: 10, marginTop: 4, textAlign: 'right' },
   typingDots: { paddingHorizontal: 16, paddingVertical: 12 },
-
-  /* input */
-  inputBar: { flexDirection: 'row', alignItems: 'flex-end', padding: 12, gap: 10, borderTopWidth: 1 },
-  input: { flex: 1, borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, maxHeight: 100, ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}) },
-  sendBtn: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
 });
