@@ -1330,6 +1330,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 function ChannelPill({ icon: Icon, label, active, onToggle }: { icon: any; label: string; active: boolean; onToggle: () => void }) {
+  const T = useSAC();
   return (
     <Pressable onPress={onToggle} style={[st.channelPill, active && st.channelPillActive]}>
       <Icon size={13} color={active ? '#fff' : T.muted} />

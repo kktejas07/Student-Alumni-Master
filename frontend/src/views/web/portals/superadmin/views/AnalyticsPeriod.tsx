@@ -9,7 +9,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CalendarDays, Check, GitCompare, TrendingDown, TrendingUp } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, FONTS, useSAC } from '../tokens';
 import { Card } from '../applekit';
 
 export type RangeKey = '7d' | '30d' | '90d' | 'ytd' | 'custom';
@@ -164,6 +164,7 @@ export function PeriodComparisonCard({
   period: PeriodBlock; compare: boolean;
   metric: 'signups' | 'revenue' | 'activity_events';
 }) {
+  const T = useSAC();
   const metricLabel = metric === 'signups' ? 'Signups' : metric === 'revenue' ? 'Revenue' : 'Activity events';
   const isCurrency = metric === 'revenue';
 

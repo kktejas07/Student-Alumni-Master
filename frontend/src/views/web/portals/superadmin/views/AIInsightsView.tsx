@@ -6,6 +6,7 @@ import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import { Badge } from '../atoms';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
 import { useToast, Toast, EmptyState } from '../applekit';
+import { WeeklyBriefing } from './WeeklyBriefing';
 
 type Insight = { id: string; kind: 'risk' | 'opportunity' | 'insight'; icon: string; color: string; title: string; body: string };
 const ICON_MAP: Record<string, any> = { AlertTriangle, TrendingUp, Lightbulb, Zap };

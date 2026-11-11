@@ -152,6 +152,7 @@ function SessionsPanel({ flash }: { flash: (m: string, kind?: any) => void }) {
 
 /* ── MT6 — Connection Map ─────────────────────────────────────────── */
 function ConnectionsPanel({ flash }: { flash: (m: string, kind?: any) => void }) {
+  const T = useSAC();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [mentorId, setMentorId] = useState('');
@@ -312,6 +313,7 @@ function AlumniPanel({ flash }: { flash: (m: string, kind?: any) => void }) {
 
 /* ── MT8–MT14 — Agent Suite Panel ────────────────────────────────── */
 function AgentsPanel({ flash }: { flash: (m: string, kind?: any) => void }) {
+  const T = useSAC();
   const [status, setStatus] = useState<any>(null);
   const [matchGoal, setMatchGoal] = useState('');
   const [matchResult, setMatchResult] = useState<any>(null);
