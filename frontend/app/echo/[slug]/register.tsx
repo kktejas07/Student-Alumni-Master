@@ -13,9 +13,9 @@ export default function EchoRegisterSlugPage() {
 
   React.useEffect(() => {
     if (initialized && !user) {
-      router.replace({ pathname: '/login', params: { returnTo: `/student-portal/${slug}` } });
+      router.replace({ pathname: '/login', params: { returnTo: `/echo/${slug}/register` } });
     }
-  }, [initialized, router, user]);
+  }, [initialized, router, slug, user]);
 
   if (!initialized || !user) {
     return (

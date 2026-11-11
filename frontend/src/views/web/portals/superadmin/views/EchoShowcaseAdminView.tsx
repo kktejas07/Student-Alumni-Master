@@ -3122,6 +3122,7 @@ function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh
 function RegistrationsPanel() {
   const { confirm } = useConfirm();
   const [rows, setRows] = useState<any[]>([]);
+  const [showcases, setShowcases] = useState<any[]>([]);
   const [revenue, setRevenue] = useState<any>({ events: [], totals: {} });
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
@@ -3247,12 +3248,14 @@ function RegistrationsPanel() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [regs, rev] = await Promise.all([
+      const [regs, rev, eventList] = await Promise.all([
         api.adminEchoRegistrations(),
         api.adminEchoRevenue(),
+        api.adminListEchoShowcases(),
       ]);
       setRows(regs?.items || []);
       setRevenue(rev || { events: [], totals: {} });
+      setShowcases(eventList?.items || []);
     } catch {
       flash('Failed to load registrations');
     } finally {
@@ -3543,10 +3546,20 @@ function RegistrationsPanel() {
   const safePage = Math.min(page, totalPages - 1);
   const paged = filtered.slice(safePage * PER_PAGE, safePage * PER_PAGE + PER_PAGE);
 
-  const uniqueEvents = Array.from(new Set(rows.map((r: any) => r.slug).filter(Boolean)))
-    .map((slug) => rows.find((r: any) => r.slug === slug))
-    .filter(Boolean)
-    .map((r: any) => ({ slug: r.slug, title: r.event_title || r.slug }));
+  const eventBySlug = new Map<string, { slug: string; title: string }>();
+  showcases.forEach((event: any) => {
+    if (event.slug) eventBySlug.set(event.slug, { slug: event.slug, title: event.title || event.slug });
+  });
+  rows.forEach((row: any) => {
+    if (row.slug && !eventBySlug.has(row.slug)) {
+      eventBySlug.set(row.slug, { slug: row.slug, title: row.event_title || row.slug });
+    }
+  });
+  const uniqueEvents = Array.from(eventBySlug.values());
+  const sessionEvents = eventSlug === 'all'
+    ? uniqueEvents
+    : uniqueEvents.filter((event) => event.slug === eventSlug);
+  const selectedEvent = uniqueEvents.find((event) => event.slug === eventSlug);
 
   const fmtAmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
   const paid = filtered.filter((r) => r.payment_status === 'paid');
@@ -3791,9 +3804,46 @@ function RegistrationsPanel() {
         </Card>
       )}
 
+      <Card style={{ marginBottom: 16, padding: 16, gap: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <View style={{ flex: 1, minWidth: 220 }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>Event registrations &amp; payments</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted, marginTop: 3 }}>
+              Select an event to view its registered students and payment details.
+            </Text>
+          </View>
+          <select
+            aria-label="Select ECHO event to view registrations"
+            value={eventSlug}
+            onChange={(e: any) => {
+              setEventSlug(e.target.value);
+              setPage(0);
+            }}
+            style={{
+              backgroundColor: '#101019', border: `1px solid ${SAC.border}`,
+              borderRadius: 8, padding: '9px 12px', color: SAC.text,
+              fontSize: 12, fontFamily: 'DM Sans', outline: 'none',
+              cursor: 'pointer', minWidth: 220, maxWidth: '100%',
+            }}
+          >
+            <option value="all" style={{ background: '#1e1b4b', color: SAC.text }}>All ECHO events</option>
+            {uniqueEvents.map((event) => (
+              <option key={event.slug} value={event.slug} style={{ background: '#1e1b4b', color: SAC.text }}>
+                {event.title}
+              </option>
+            ))}
+          </select>
+        </View>
+        {eventSlug !== 'all' && selectedEvent && (
+          <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: '#A78BFA' }}>
+            Showing registrations for {selectedEvent.title}
+          </Text>
+        )}
+      </Card>
+
       {/* Session Passes Overview */}
-      {uniqueEvents.length > 0 && (
-        <SessionPassesOverview events={uniqueEvents} onRefresh={load} />
+      {sessionEvents.length > 0 && (
+        <SessionPassesOverview events={sessionEvents} onRefresh={load} />
       )}
 
       {/* Search + filter */}
@@ -3801,22 +3851,6 @@ function RegistrationsPanel() {
         <View style={{ flex: 1, minWidth: 200 }}>
           <SearchField value={q} onChange={setQ} placeholder="Search attendee, email, event…" />
         </View>
-        {uniqueEvents.length > 1 && (
-          <select
-            value={eventSlug}
-            onChange={(e: any) => setEventSlug(e.target.value)}
-            style={{
-              backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 8, padding: '8px 12px', color: SAC.text, fontSize: 12, fontFamily: 'DM Sans',
-              outline: 'none', cursor: 'pointer', minWidth: 140,
-            }}
-          >
-            <option value="all" style={{ background: '#1e1b4b', color: SAC.text }}>All Events</option>
-            {uniqueEvents.map((ev: any) => (
-              <option key={ev.slug} value={ev.slug} style={{ background: '#1e1b4b', color: SAC.text }}>{ev.title}</option>
-            ))}
-          </select>
-        )}
         <TopTabs
           tabs={[
             { id: 'all', label: 'All' },

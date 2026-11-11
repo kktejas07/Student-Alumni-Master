@@ -6,22 +6,27 @@ import EchoEventsPage from '@/src/views/web/echo/EchoEventsPage';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 export default function EchoRegisterIndexPage() {
-  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { slug, event } = useLocalSearchParams<{ slug?: string | string[]; event?: string | string[] }>();
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const initialized = useAuthStore((state) => state.initialized);
+  const slugParam = Array.isArray(slug) ? slug[0] : slug;
+  const eventParam = Array.isArray(event) ? event[0] : event;
+  const eventSlug = eventParam || slugParam || '';
 
   React.useEffect(() => {
-    if (initialized && !user) router.replace({ pathname: '/login', params: { returnTo: `/student-portal/${slug || 'snist'}` } });
-  }, [initialized, router, slug, user]);
+    if (initialized && eventSlug && !user) {
+      router.replace({ pathname: '/login', params: { returnTo: `/echo/${eventSlug}/register` } });
+    }
+  }, [eventSlug, initialized, router, user]);
 
-  if (!initialized || !user) {
+  if (eventSlug && (!initialized || !user)) {
     return <View style={[s.container, s.loading]}><Text style={s.loadingText}>Please sign in to register for this ECHO event.</Text></View>;
   }
 
   return (
     <View style={s.container}>
-      <EchoEventsPage initialView="reg" initialSlug={slug || 'snist'} />
+      <EchoEventsPage initialView={eventSlug ? 'reg' : 'list'} initialSlug={eventSlug} />
     </View>
   );
 }

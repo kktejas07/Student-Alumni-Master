@@ -83,7 +83,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
 
   useEffect(() => {
     if (view === 'reg' && authInitialized && !authUser) {
-      router.replace({ pathname: '/login', params: { returnTo: `/student-portal/${selectedSlug}` } });
+      router.replace({ pathname: '/login', params: { returnTo: `/echo/${selectedSlug}/register` } });
     }
   }, [authInitialized, authUser, router, selectedSlug, view]);
 
@@ -95,7 +95,16 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
       const viewParam = search.get('view');
 
       if (viewParam === 'register' || viewParam === 'reg' || path.includes('/register')) {
-        const slugFromUrl = eventParam || (path.split('/').filter(Boolean)[1] !== 'register' ? path.split('/').filter(Boolean)[1] : null) || initialSlug || '';
+        const pathSegments = path.split('/').filter(Boolean);
+        const routeSlug = pathSegments[0] === 'echo' && pathSegments[1] !== 'register' && pathSegments[2] === 'register'
+          ? pathSegments[1]
+          : '';
+        const slugFromUrl = eventParam || routeSlug || initialSlug || '';
+        if (pathSegments[0] === 'echo' && pathSegments[1] === 'register' && !slugFromUrl) {
+          setSelectedSlug('');
+          setView('list');
+          return;
+        }
         setSelectedSlug(slugFromUrl);
         setView('reg');
       } else if (viewParam === 'catalog' || viewParam === 'list') {
@@ -438,7 +447,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
       if (authUser) {
         router.push(`/echo/${nextSlug}/register` as any);
       } else {
-        router.replace({ pathname: '/login', params: { returnTo: `/student-portal/${nextSlug}` } });
+        router.replace({ pathname: '/login', params: { returnTo: `/echo/${nextSlug}/register` } });
       }
       return;
     }
@@ -469,7 +478,16 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
       const viewParam = search.get('view');
 
       if (viewParam === 'register' || viewParam === 'reg' || path.includes('/register')) {
-        const slugFromUrl = eventParam || (path.split('/').filter(Boolean)[1] !== 'register' ? path.split('/').filter(Boolean)[1] : null) || '';
+        const pathSegments = path.split('/').filter(Boolean);
+        const routeSlug = pathSegments[0] === 'echo' && pathSegments[1] !== 'register' && pathSegments[2] === 'register'
+          ? pathSegments[1]
+          : '';
+        const slugFromUrl = eventParam || routeSlug || '';
+        if (pathSegments[0] === 'echo' && pathSegments[1] === 'register' && !slugFromUrl) {
+          setSelectedSlug('');
+          setView('list');
+          return;
+        }
         setSelectedSlug(slugFromUrl);
         setView('reg');
       } else if (viewParam === 'catalog' || viewParam === 'list') {
@@ -2358,7 +2376,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
               >
                 <img
                   src={resolveImageUrl(regPosters[regPosterIdx])}
-                  alt={`HackWave Poster ${regPosterIdx + 1}`}
+                  alt={`${activeEvent.title} Poster ${regPosterIdx + 1}`}
                   onClick={() => openLightbox(resolveImageUrl(regPosters[regPosterIdx]))}
                   style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'zoom-in', transition: 'all .4s ease' }}
                 />
