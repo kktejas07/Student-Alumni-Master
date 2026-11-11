@@ -488,6 +488,7 @@ function RetentionCard({ cohorts }: { cohorts: { cohort: string; week: string; u
 }
 
 function PageViewsCard({ pages }: { pages: { path: string; views: number }[] }) {
+  const T = useSAC();
   return (
     <Card style={{ padding: 20, gap: 12 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -500,6 +501,7 @@ function PageViewsCard({ pages }: { pages: { path: string; views: number }[] }) 
 }
 
 function AcquisitionCard({ sources }: { sources: { source: string; sessions: number }[] }) {
+  const T = useSAC();
   return (
     <Card style={{ padding: 20, gap: 12 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -898,6 +900,7 @@ function PostHogTrendsCard({ ph }: { ph: PostHogData }) {
 }
 
 function PostHogEventsCard({ ph }: { ph: PostHogData }) {
+  const T = useSAC();
   const events = ph.top_events || [];
   return (
     <Card style={{ padding: 20, gap: 12 }}>
@@ -908,6 +911,7 @@ function PostHogEventsCard({ ph }: { ph: PostHogData }) {
 }
 
 function PostHogPathsCard({ ph }: { ph: PostHogData }) {
+  const T = useSAC();
   const paths = ph.top_paths || [];
   return (
     <Card style={{ padding: 20, gap: 12 }}>
@@ -921,6 +925,7 @@ function PostHogPathsCard({ ph }: { ph: PostHogData }) {
 }
 
 function PostHogSourcesCard({ ph }: { ph: PostHogData }) {
+  const T = useSAC();
   const sources = ph.sources || [];
   return (
     <Card style={{ padding: 20, gap: 12 }}>
