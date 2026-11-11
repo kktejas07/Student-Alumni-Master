@@ -5,7 +5,7 @@
  * help · avatar. On phones it shows a hamburger that opens a nav sheet.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView, Platform } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Bell, Menu, X, Sun, Moon, MonitorSmartphone } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -51,6 +51,58 @@ function ThemeIcon({ mode, color }: { mode: 'light' | 'dark' | 'system'; color: 
     <View style={{ width: 16, height: 16 }}>
       <Animated.View style={[{ position: 'absolute' }, sun]}><Sun size={16} color={color} /></Animated.View>
       <Animated.View style={[{ position: 'absolute' }, moon]}><Moon size={16} color={color} /></Animated.View>
+    </View>
+  );
+}
+
+function ToolbarTooltip({ label, children }: { label: string; children: React.ReactNode }) {
+  const t = usePortalTheme();
+  const [visible, setVisible] = useState(false);
+  const hoverProps: React.ComponentProps<typeof View> & {
+    onMouseEnter?: () => void;
+    onMouseLeave?: () => void;
+  } = Platform.OS === 'web'
+    ? { onMouseEnter: () => setVisible(true), onMouseLeave: () => setVisible(false) }
+    : {};
+
+  return (
+    <View
+      {...hoverProps}
+      style={{ position: 'relative', zIndex: visible ? 100 : undefined }}
+    >
+      {children}
+      {visible && Platform.OS === 'web' && (
+        <View
+          pointerEvents="none"
+          style={[
+            {
+              position: 'absolute',
+              top: 42,
+              right: 0,
+              paddingHorizontal: 9,
+              paddingVertical: 6,
+              borderRadius: RADIUS.sm,
+              backgroundColor: t.surface2,
+              borderWidth: 1,
+              borderColor: t.border,
+              zIndex: 1000,
+            },
+            web({
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+            }),
+          ]}
+        >
+          <Text
+            numberOfLines={1}
+            style={[
+              { color: t.text, fontFamily: t.typo.body500, fontSize: 11 },
+              web({ whiteSpace: 'nowrap' }),
+            ]}
+          >
+            {label}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -121,24 +173,34 @@ export function TopBar({
 
       {tb.themeToggle !== false && !config.darkOnly && (
         <FadeInView delay={140}>
-          <IconButton
-            Icon={() => <ThemeIcon mode={mode} color={t.textMuted} />}
-            onPress={() => setMode(mode === 'light' ? 'dark' : mode === 'dark' ? 'system' : 'light')}
-            accessibilityLabel={`Theme: ${mode}. Tap to cycle.`} testID="topbar-theme-toggle-btn"
-          />
+          <ToolbarTooltip label={`Switch to ${mode === 'light' ? 'dark' : mode === 'dark' ? 'system' : 'light'} mode`}>
+            <IconButton
+              Icon={() => <ThemeIcon mode={mode} color={t.textMuted} />}
+              onPress={() => setMode(mode === 'light' ? 'dark' : mode === 'dark' ? 'system' : 'light')}
+              accessibilityLabel={`Theme: ${mode}. Tap to cycle.`} testID="topbar-theme-toggle-btn"
+            />
+          </ToolbarTooltip>
         </FadeInView>
       )}
 
       {tb.bell !== false && <FadeInView delay={160}>
-        <IconButton Icon={Bell} badge={badge} active={bellActive} onPress={onBellPress} accessibilityLabel="Notifications" testID="topbar-notifications-btn" color={t.accent} />
+        <ToolbarTooltip label="Notifications">
+          <IconButton Icon={Bell} badge={badge} active={bellActive} onPress={onBellPress} accessibilityLabel="Notifications" testID="topbar-notifications-btn" color={t.accent} />
+        </ToolbarTooltip>
       </FadeInView>}
 
-      {config.tour && <HelpMenu portal={config.tour} />}
+      {config.tour && (
+        <ToolbarTooltip label="Help">
+          <HelpMenu portal={config.tour} />
+        </ToolbarTooltip>
+      )}
 
       <FadeInView delay={200}>
-        <Pressable onPress={() => onNav(config.profileTab)} accessibilityRole="button" accessibilityLabel="View profile settings" testID="topbar-user-avatar-btn" style={web({ cursor: 'pointer' })}>
-          <Avatar name={profile.name} initials={profile.initials} photo={photo} size={36} />
-        </Pressable>
+        <ToolbarTooltip label="Profile">
+          <Pressable onPress={() => onNav(config.profileTab)} accessibilityRole="button" accessibilityLabel="View profile settings" testID="topbar-user-avatar-btn" style={web({ cursor: 'pointer' })}>
+            <Avatar name={profile.name} initials={profile.initials} photo={photo} size={36} />
+          </Pressable>
+        </ToolbarTooltip>
       </FadeInView>
 
       {/* Phone nav sheet */}
@@ -165,4 +227,3 @@ export function TopBar({
     </View>
   );
 }
-
