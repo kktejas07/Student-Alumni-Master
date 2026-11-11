@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Student -> Messages — direct messaging with AI assistant and network contacts.
  * Uses existing /api/ai/chat endpoints. User-to-user DM backend to be added later.
@@ -229,12 +228,12 @@ const s = StyleSheet.create({
   root: { flex: 1, flexDirection: 'row' },
 
   /* sidebar */
-  sidebar: { width: 320, borderRightWidth: 1, ...(Platform.OS === 'web' ? { height: '100%' } : {}) },
+  sidebar: { width: 320, borderRightWidth: 1, ...(Platform.OS === 'web' ? { height: '100%' } as any : {}) },
   sideHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 16, paddingBottom: 12 },
   sideTitle: { fontSize: 18, fontWeight: '700', flex: 1 },
   newBtn: { padding: 8, borderRadius: 8 },
   searchBox: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 12, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, borderWidth: 1, gap: 8, marginBottom: 8 },
-  searchInput: { flex: 1, fontSize: 14, ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}) },
+  searchInput: { flex: 1, fontSize: 14, ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}) },
   convList: { flex: 1 },
   convItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 12, gap: 10 },
   avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
@@ -244,7 +243,7 @@ const s = StyleSheet.create({
   emptyText: { fontSize: 13, textAlign: 'center', marginTop: 40 },
 
   /* chat */
-  chatPanel: { flex: 1, ...(Platform.OS === 'web' ? { height: '100%' } : {}) },
+  chatPanel: { flex: 1, ...(Platform.OS === 'web' ? { height: '100%' } as any : {}) },
   emptyChat: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
   emptyIcon: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   emptyChatTitle: { fontSize: 20, fontWeight: '700', marginBottom: 8 },
@@ -262,6 +261,6 @@ const s = StyleSheet.create({
 
   /* input */
   inputBar: { flexDirection: 'row', alignItems: 'flex-end', padding: 12, gap: 10, borderTopWidth: 1 },
-  input: { flex: 1, borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, maxHeight: 100, ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}) },
+  input: { flex: 1, borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, maxHeight: 100, ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}) },
   sendBtn: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
 });
