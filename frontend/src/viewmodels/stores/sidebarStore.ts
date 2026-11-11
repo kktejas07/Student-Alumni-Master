@@ -45,7 +45,7 @@ export const useSidebarStore = create<SidebarStore>((set, get) => ({
     set({ hydrated: true });
     // Also pull from server (best-effort) — overrides local if present
     try {
-      const r = await request('/user/preferences');
+      const r = await request('/user/preferences') as any;
       if (r && typeof r.sidebar_collapsed === 'boolean') {
         set({ isCollapsed: r.sidebar_collapsed });
       }

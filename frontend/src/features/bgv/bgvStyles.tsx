@@ -19,7 +19,7 @@ export const st = StyleSheet.create({
     color: SAC.text,
     fontSize: 22,
     fontWeight: '700',
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.semi,
   },
   subtitle: {
     color: SAC.b12,

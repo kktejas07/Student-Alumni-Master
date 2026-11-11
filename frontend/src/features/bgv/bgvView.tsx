@@ -812,7 +812,7 @@ export function BGVAccountVerticalsView() {
 
   return (
     <View style={st.container}>
-      <Toast toast={toast} onHide={hide} />
+      <Toast {...toast} onDismiss={hide} />
 
       {/* Top Header & Fast Actions */}
       <View style={st.headerRow}>
@@ -1640,7 +1640,7 @@ export function BGVAccountVerticalsView() {
                 </Text>
               </View>
               <Pressable
-                style={[st.runScanBtn, { background: 'none', backgroundColor: T.b22 }, batchBusy && { opacity: 0.6 }]}
+                style={[st.runScanBtn, { backgroundColor: T.b22 } as any, batchBusy && { opacity: 0.6 }]}
                 onPress={handleStartBatchScan}
                 disabled={batchBusy}
               >
@@ -1773,13 +1773,13 @@ export function BGVAccountVerticalsView() {
 
             {/* Country Readiness Cards Grid */}
             {!visaReadiness?.countries?.length && (
-              <View style={{ padding: 28, borderRadius: 14, border: '1px dashed #475569', alignItems: 'center', gap: 6 }}>
+              <View style={{ padding: 28, borderRadius: 14, border: '1px dashed #475569', alignItems: 'center', gap: 6 } as any}>
                 <Globe size={22} color={T.b12} />
                 <Text style={{ color: T.b12, fontSize: 13 }}>No candidate visa-readiness data yet. Records will appear here once users have country / study-target data.</Text>
               </View>
             )}
             {(visaReadiness?.countries || []).map((c: any, cidx: number) => (
-                <View key={cidx} style={{ padding: 18, background: T.ns23, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, gap: 12 }}>
+                <View key={cidx} style={{ padding: 18, background: T.ns23, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, gap: 12 } as any}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                       <Text style={{ fontSize: 28 }}>{c.flag}</Text>
@@ -1788,7 +1788,7 @@ export function BGVAccountVerticalsView() {
                         <Text style={{ fontSize: 12, color: T.b1, marginTop: 2 }}>{c.top_fields?.length ? c.top_fields.join(' · ') : 'All fields'}</Text>
                       </View>
                     </View>
-                    <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, background: T.b2S015ns, border: '1px solid rgba(16,185,129,0.3)' }}>
+                    <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, background: T.b2S015ns, border: '1px solid rgba(16,185,129,0.3)' } as any}>
                       <Text style={{ fontSize: 12, fontFamily: FONTS.bold, color: T.b8 }}>{c.ready_percentage}% Ready</Text>
                     </View>
                   </View>
@@ -1798,7 +1798,7 @@ export function BGVAccountVerticalsView() {
                     <View style={{ width: `${c.ready_percentage}%`, height: '100%', backgroundColor: T.b8, borderRadius: 3 }} />
                   </View>
 
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', fontSize: 12, color: T.b12 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', fontSize: 12, color: T.b12 } as any}>
                     <Text style={{ color: T.b12, fontSize: 12 }}>Verified Candidates: <Text style={{ color: T.text, fontWeight: 'bold' }}>{c.bgv_verified_count}/{c.total_candidates}</Text></Text>
                     <Text style={{ color: T.b25, fontSize: 12 }}>Top Target: {c.top_fields?.[0]}</Text>
                   </View>
@@ -1827,7 +1827,7 @@ export function BGVAccountVerticalsView() {
             </View>
 
             {/* Quick Generator Box */}
-            <View style={{ padding: 16, background: T.b3S008, border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: 12, gap: 10 }}>
+            <View style={{ padding: 16, background: T.b3S008, border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: 12, gap: 10 } as any}>
               <Text style={{ fontSize: 13, fontFamily: FONTS.bold, color: T.b28 }}>🔑 GENERATE NEW ENTERPRISE RECRUITER API KEY</Text>
               <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
                 <TextInput
@@ -1859,7 +1859,7 @@ export function BGVAccountVerticalsView() {
             {/* API Keys Table */}
             <View style={{ gap: 8, marginTop: 8 }}>
               {apiKeysList.map((k: any, kidx: number) => (
-                <View key={kidx} style={{ padding: 14, background: T.ns23, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <View key={kidx} style={{ padding: 14, background: T.ns23, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' } as any}>
                   <View style={{ gap: 2 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <Text style={{ fontSize: 14, fontFamily: FONTS.bold, color: T.text }}>{k.org_name}</Text>
@@ -1953,7 +1953,7 @@ export function BGVAccountVerticalsView() {
             {healthData ? (
               <View style={{ gap: 14 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <View style={{ padding: '6px 14px', borderRadius: 100, background: healthData.overall === 'UP' ? T.b2G015 : healthData.overall === 'DOWN' ? T.b27S015 : T.b28S015, border: '1px solid ' + (healthData.overall === 'UP' ? T.b2G035 : healthData.overall === 'DOWN' ? T.b27S035 : T.b28S035) }}>
+                  <View style={{ padding: '6px 14px', borderRadius: 100, background: healthData.overall === 'UP' ? T.b2G015 : healthData.overall === 'DOWN' ? T.b27S015 : T.b28S015, border: '1px solid ' + (healthData.overall === 'UP' ? T.b2G035 : healthData.overall === 'DOWN' ? T.b27S035 : T.b28S035) } as any}>
                     <Text style={{ fontSize: 12, fontWeight: 800, color: healthData.overall === 'UP' ? T.b2 : healthData.overall === 'DOWN' ? T.b27 : T.b3 }}>
                       OVERALL: {healthData.overall}
                     </Text>
@@ -1968,9 +1968,9 @@ export function BGVAccountVerticalsView() {
                   {(healthData.providers || []).map((pv: any, i: number) => {
                     const c = pv.status === 'UP' ? T.b2 : pv.status === 'DOWN' ? T.b27 : T.b3;
                     return (
-                      <View key={i} style={{ padding: 12, borderRadius: 12, background: T.ns23, border: '1px solid rgba(255,255,255,0.08)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                      <View key={i} style={{ padding: 12, borderRadius: 12, background: T.ns23, border: '1px solid rgba(255,255,255,0.08)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' } as any}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                          <View style={{ width: 8, height: 8, borderRadius: 4, background: c }} />
+                          <View style={{ width: 8, height: 8, borderRadius: 4, background: c } as any} />
                           <View style={{ gap: 2 }}>
                             <Text style={{ color: T.text, fontSize: 14, fontFamily: FONTS.bold }}>{pv.name}</Text>
                             <Text style={{ color: T.b12, fontSize: 11 }}>{pv.tier ? `Tier ${pv.tier}` : ''}{pv.configured ? '' : ' · not configured'}</Text>
@@ -1990,7 +1990,7 @@ export function BGVAccountVerticalsView() {
             ) : healthBusy ? (
               <ActivityIndicator size="large" color={T.b2} style={{ marginVertical: 30 }} />
             ) : (
-              <View style={{ padding: 28, borderRadius: 14, border: '1px dashed #475569', alignItems: 'center', gap: 6 }}>
+              <View style={{ padding: 28, borderRadius: 14, border: '1px dashed #475569', alignItems: 'center', gap: 6 } as any}>
                 <Activity size={22} color={T.b12} />
                 <Text style={{ color: T.b12, fontSize: 13 }}>Run a health check to see live provider status.</Text>
               </View>
@@ -2029,7 +2029,7 @@ export function BGVAccountVerticalsView() {
                 { label: 'Unique Candidates', value: historyStats?.unique_candidates, color: T.b2 },
                 { label: 'Last Scan', value: historyStats?.last_scan ? new Date(historyStats.last_scan).toLocaleString() : '—', color: T.b25, small: true },
               ].map((t, i) => (
-                <View key={i} style={{ flex: 1, minWidth: 150, padding: 14, borderRadius: 12, background: T.ns22, border: '1px solid rgba(148,163,184,0.15)', gap: 4 }}>
+                <View key={i} style={{ flex: 1, minWidth: 150, padding: 14, borderRadius: 12, background: T.ns22, border: '1px solid rgba(148,163,184,0.15)', gap: 4 } as any}>
                   <Text style={{ color: t.color, fontSize: t.small ? 13 : 22, fontFamily: FONTS.bold }}>{t.value ?? 0}</Text>
                   <Text style={{ color: T.b12, fontSize: 12 }}>{t.label}</Text>
                 </View>
@@ -2051,14 +2051,14 @@ export function BGVAccountVerticalsView() {
             {historyBusy ? (
               <ActivityIndicator size="large" color={T.b1} style={{ marginVertical: 30 }} />
             ) : (history?.items || []).length === 0 ? (
-              <View style={{ padding: 28, borderRadius: 14, border: '1px dashed #475569', alignItems: 'center', gap: 6 }}>
+              <View style={{ padding: 28, borderRadius: 14, border: '1px dashed #475569', alignItems: 'center', gap: 6 } as any}>
                 <History size={22} color={T.b12} />
                 <Text style={{ color: T.b12, fontSize: 13 }}>No scan history yet. Runs will appear here after the first scan.</Text>
               </View>
             ) : (
               <View style={{ gap: 8 }}>
                 {(history?.items || []).map((row: any) => (
-                  <View key={row.dossier_id} style={{ padding: 14, borderRadius: 12, background: T.ns23, border: '1px solid rgba(255,255,255,0.08)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <View key={row.dossier_id} style={{ padding: 14, borderRadius: 12, background: T.ns23, border: '1px solid rgba(255,255,255,0.08)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' } as any}>
                     <View style={{ flex: 1, gap: 3 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         <Text style={{ color: T.text, fontSize: 14, fontFamily: FONTS.bold }}>{row.candidate_name || row.candidate_email || 'Unknown candidate'}</Text>
@@ -2115,7 +2115,7 @@ export function BGVAccountVerticalsView() {
                   </Text>
                   {historyDetail.verifiers_breakdown &&
                     Object.entries(historyDetail.verifiers_breakdown).map(([k, v]: [string, any]) => (
-                      <View key={k} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottom: '1px solid rgba(148,163,184,0.12)' }}>
+                      <View key={k} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottom: '1px solid rgba(148,163,184,0.12)' } as any}>
                         <Text style={{ color: T.b13, fontSize: 12 }}>{k}</Text>
                         <Text style={{ color: v.status === 'PASSED' || v.status === 'CLEAR' ? T.b2 : T.b27, fontSize: 12, fontWeight: '700' }}>{v.status}</Text>
                       </View>
@@ -2158,7 +2158,7 @@ export function BGVAccountVerticalsView() {
                 { label: 'Revoked', value: consentData?.totals?.revoked, color: T.b27 },
                 { label: 'Expiring 30d', value: consentData?.totals?.expiring_30d, color: T.b1 },
               ].map((t, i) => (
-                <View key={i} style={{ flex: 1, minWidth: 110, padding: 14, borderRadius: 12, background: T.ns22, border: '1px solid rgba(148,163,184,0.15)', gap: 4 }}>
+                <View key={i} style={{ flex: 1, minWidth: 110, padding: 14, borderRadius: 12, background: T.ns22, border: '1px solid rgba(148,163,184,0.15)', gap: 4 } as any}>
                   <Text style={{ color: t.color, fontSize: 22, fontFamily: FONTS.bold }}>{t.value ?? 0}</Text>
                   <Text style={{ color: T.b12, fontSize: 12 }}>{t.label}</Text>
                 </View>
@@ -2166,7 +2166,7 @@ export function BGVAccountVerticalsView() {
             </View>
 
             {/* Request consent */}
-            <View style={{ padding: 16, borderRadius: 12, background: T.b2S006, border: '1px solid rgba(16,185,129,0.25)', gap: 10 }}>
+            <View style={{ padding: 16, borderRadius: 12, background: T.b2S006, border: '1px solid rgba(16,185,129,0.25)', gap: 10 } as any}>
               <Text style={{ color: T.b24, fontSize: 13, fontFamily: FONTS.bold }}>🔐 GENERATE CONSENT LINK</Text>
               <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
                 <TextInput style={{ flex: 1, minWidth: 200, height: 38, borderRadius: 8, borderWidth: 1, borderColor: T.ns25, paddingHorizontal: 12, color: T.text, fontSize: 13 }} placeholder="candidate@email.com" value={consentRequestEmail} onChangeText={setConsentRequestEmail} placeholderTextColor={T.b19} />
@@ -2191,7 +2191,7 @@ export function BGVAccountVerticalsView() {
                 <Text style={{ color: T.b19, fontSize: 13, textAlign: 'center', paddingVertical: 10 }}>No consent records yet.</Text>
               ) : (
                 (consentData?.recent || []).map((c: any, i: number) => (
-                  <View key={i} style={{ padding: 12, borderRadius: 10, background: T.ns23, border: '1px solid rgba(255,255,255,0.08)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                  <View key={i} style={{ padding: 12, borderRadius: 10, background: T.ns23, border: '1px solid rgba(255,255,255,0.08)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' } as any}>
                     <View style={{ flex: 1, gap: 2 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         <Text style={{ color: T.text, fontSize: 13, fontFamily: FONTS.bold }}>{c.candidate_name || c.email}</Text>
@@ -2672,7 +2672,7 @@ export function BGVAccountVerticalsView() {
 
               {/* Sample Test Emails List */}
               {purgePreview?.sample_test_emails?.length ? (
-                <View style={{ background: T.b4S008, border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 10, padding: 12, width: '100%', gap: 4 }}>
+                <View style={{ background: T.b4S008, border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 10, padding: 12, width: '100%', gap: 4 } as any}>
                   <Text style={{ fontSize: 11, fontWeight: '700', color: T.b7, letterSpacing: 0.5, marginBottom: 4 }}>
                     SAMPLE TEST EMAILS DETECTED:
                   </Text>

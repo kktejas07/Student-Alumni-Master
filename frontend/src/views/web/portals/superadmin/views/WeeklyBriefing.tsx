@@ -148,7 +148,7 @@ export function WeeklyBriefing() {
     return (
       <Card style={s.card}>
         <View style={s.emptyHead}>
-          <IconBox size={32} tint={GRAD.soft}>
+          <IconBox size={32} tint={GRAD.soft as any}>
             <Sparkles size={16} color={GRAD.to} />
           </IconBox>
           <Text style={s.emptyTitle}>No briefing yet</Text>
@@ -180,7 +180,7 @@ export function WeeklyBriefing() {
       {/* Header */}
       <Card style={s.card}>
         <View style={s.head}>
-          <IconBox size={36} tint={GRAD.soft}>
+          <IconBox size={36} tint={GRAD.soft as any}>
             <Sparkles size={17} color={GRAD.to} />
           </IconBox>
           <View style={{ flex: 1, minWidth: 0 }}>

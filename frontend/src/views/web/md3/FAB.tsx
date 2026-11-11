@@ -13,7 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Layout } from '../../../theme';
 
-const AView = Animated.createAnimatedComponent(Pressable as any);
+const AView: any = Animated.createAnimatedComponent(Pressable as any);
 
 const ReactDOM = Platform.OS === 'web' ? require('react-dom') : null;
 

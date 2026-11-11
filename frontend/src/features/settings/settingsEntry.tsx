@@ -18,6 +18,7 @@ import { PagesTab } from './settingsPages';
 import { TemplatesTab } from './settingsTemplates';
 import { EchoLandingHeroTab } from './settingsEchoHero';
 import { BrandingTab } from './settingsBranding';
+import { ChangelogTab } from './settingsChangelog';
 
 /* ─────────────────────────────────────────────────────────────────
  * Main view
@@ -73,6 +74,7 @@ export function SettingsView({ sub, onSub }: { sub?: string; onSub?: (s: string)
  * Top horizontal tab bar
  * ───────────────────────────────────────────────────────────────── */
 function TopTabBar({ active, onChange }: { active: TabId; onChange: (t: TabId) => void }) {
+  const T = useSAC();
   return (
     <View style={s.tabBarOuter}>
       <ScrollView

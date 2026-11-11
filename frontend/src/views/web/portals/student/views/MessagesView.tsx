@@ -340,8 +340,8 @@ export function MessagesView() {
           </View>
         )}
         {!activeId && messages.length === 0 ? (
-          <View style={s.emptyChat}>
-            <View style={[s.emptyIcon, { backgroundColor: P.violet + '14' }]}>
+          <View style={st.emptyChat}>
+            <View style={[st.emptyIcon, { backgroundColor: P.violet + '14' }]}>
               <MessageSquare size={40} color={P.violet} />
             </View>
             <Text style={[st.emptyChatTitle, { color: P.text }]}>Start a Conversation</Text>

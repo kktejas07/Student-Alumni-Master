@@ -6,7 +6,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { SAC, useSAC, FONTS } from '@/src/views/web/portals/superadmin/tokens';
 import { request } from '@/src/models/services/api';
 import { GRAD_TO } from './settingsTokens';
-import { liveAgo } from './settingsNotifs';
+import { liveAgo, collectSessionHints } from './settingsNotifs';
 import { s } from './settingsStyles';
 import { GradientButton } from './settingsWidgets';
 

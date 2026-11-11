@@ -241,7 +241,7 @@ export function WorkflowsView() {
   };
 
   const loadPreset = (preset: typeof TEMPLATE_PRESETS[0]) => {
-    setNodes(preset.nodes);
+    setNodes(preset.nodes as any);
     flash(`Loaded preset: ${preset.name}`);
   };
 

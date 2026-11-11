@@ -9,19 +9,20 @@
  * These tests pin the request contract so a field rename/drop in the API
  * client can never silently break Google login again.
  */
-jest.mock('expo-secure-store', () => ({
-  setItemAsync: jest.fn(),
-  getItemAsync: jest.fn(async () => null),
-  deleteItemAsync: jest.fn(),
+import { vi } from 'vitest';
+vi.mock('expo-secure-store', () => ({
+  setItemAsync: vi.fn(),
+  getItemAsync: vi.fn(async () => null),
+  deleteItemAsync: vi.fn(),
 }));
-jest.mock('react-native', () => ({
+vi.mock('react-native', () => ({
   Platform: { OS: 'web', select: (o: any) => o.web ?? o.default },
 }));
-jest.mock('@/src/lib/env', () => ({ getBaseUrl: () => 'https://unit.test' }));
+vi.mock('@/src/lib/env', () => ({ getBaseUrl: () => 'https://unit.test' }));
 
 import { api } from '../api';
 
-const fetchMock = jest.fn();
+const fetchMock = vi.fn();
 
 beforeAll(() => {
   (global as any).fetch = fetchMock;

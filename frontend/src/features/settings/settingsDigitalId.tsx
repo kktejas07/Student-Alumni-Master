@@ -71,7 +71,7 @@ export function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
       <Pressable onPress={() => setFlipped(!flipped)} style={{ alignSelf: 'center', width: '100%', maxWidth: 540, ...(Platform.OS === 'web' ? { perspective: 1000, WebkitPerspective: 1000 } as any : {}) }}>
         <View style={{ position: 'relative', height: 440, width: '100%', transformStyle: 'preserve-3d' as any, ...(Platform.OS === 'web' ? { transition: 'transform 0.6s ease', transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)' } as any : {}), ...(Platform.OS !== 'web' ? { opacity: flipped ? 0 : 1 } as any : {}) }}>
           {/* FRONT: Identity */}
-          <View style={{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' as any }}>
+          <View style={{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden' } as any}>
             <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
               <View style={{ position: 'absolute', top: -10, right: -10, opacity: 0.08 }}>
                 <Text style={{ fontSize: 140, fontFamily: FONTS.xbold, color: '#1f1107', letterSpacing: -6 }}>SA</Text>
@@ -122,7 +122,7 @@ export function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
           </View>
 
           {/* BACK: Verification — pre-rotated 180deg so it faces away when parent is at 0deg */}
-          <View style={{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' as any, transform: [{ rotateY: '180deg' }] }}>
+          <View style={{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', transform: [{ rotateY: '180deg' }] } as any}>
             <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
               <View style={{ position: 'absolute', top: -10, right: -10, opacity: 0.08 }}>
                 <Text style={{ fontSize: 140, fontFamily: FONTS.xbold, color: '#1f1107', letterSpacing: -6 }}>SA</Text>

@@ -1429,7 +1429,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
 
                     {/* Status */}
                     <View style={{ width: 90, justifyContent: 'center' }}>
-                      <StatusPill status={u.approved ? 'active' : 'pending'} />
+                      <StatusPill label={u.approved ? 'Active' : 'Pending'} kind={u.approved ? 'success' : 'warn'} />
                     </View>
 
                     {/* Actions & Invite */}
@@ -1473,7 +1473,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
               })}
             </View>
           </ScrollView>
-          <Text style={[s.selectAllText, { textAlign: 'center', paddingVertical: 8 }]}>
+          <Text style={[{ color: SAC.dim, fontSize: 11, fontFamily: FONTS.regular }, { textAlign: 'center', paddingVertical: 8 }]}>
             Showing {items.length} contacts of {totalDisplay} · Double-click cells marked with ✎ to edit inline · Horizontal scroll for full columns
           </Text>
         </Card>
@@ -2199,7 +2199,6 @@ const s = StyleSheet.create({
   destructiveBtn: { backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
   btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
-  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   inlineInput: {
     backgroundColor: SAC.panel2,
     borderColor: GRAD.to,

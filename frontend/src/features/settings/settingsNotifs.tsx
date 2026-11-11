@@ -81,7 +81,7 @@ export function NotificationsTab({ onSaved }: { onSaved: (s?: string) => void })
 /* ═════════════════════════════════════════════════════════════════
  * TAB 6 — Security
  * ═══════════════════════════════════════════════════════════════ */
-async function collectSessionHints() {
+export async function collectSessionHints() {
   const hints: Record<string, any> = {};
   try {
     if (typeof navigator !== 'undefined') {

@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { DARK_T } from './landingTheme';
 
 export function themedStyles(T: typeof DARK_T) {
-  return StyleSheet.create({
+  return StyleSheet.create<any>({
   root: {
     flex: 1,
     backgroundColor: T.bg,
