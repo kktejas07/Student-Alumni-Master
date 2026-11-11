@@ -24,10 +24,9 @@ import {
   Platform, ActivityIndicator, Linking, Modal, Clipboard,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   Search, MapPin, Bookmark, BookmarkCheck, ExternalLink, RefreshCcw,
-  Lock, Sparkles, Briefcase, Globe2, Clock, Users, UserPlus, Calendar, IndianRupee,
+  Lock, Sparkles, Briefcase, Globe2, Clock, Users, UserPlus, Calendar, IndianRupee, ChevronUp, ChevronDown, CheckCircle2,
 } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GRAD } from '../portalkit';
@@ -154,7 +153,7 @@ function CustomDropdown({
         }}
       >
         <Text style={{ color: '#1E293B', fontSize: 12.5, fontFamily: FONTS.med }}>{value}</Text>
-        <MaterialCommunityIcons name={open ? "chevron-up" : "chevron-down"} size={14} color="#475569" />
+        {open ? <ChevronUp size={14} color="#475569" /> : <ChevronDown size={14} color="#475569" />}
       </Pressable>
       {open && (
         <View
@@ -1232,19 +1231,19 @@ ${email}`;
             </Text>
             <View style={{ gap: 8, marginBottom: 20 }}>
               <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
-                <MaterialCommunityIcons name="check-circle" size={14} color="#10B981" />
+                <CheckCircle2 size={14} color="#10B981" />
                 <Text style={{ color: SC.muted, fontSize: 12.5, fontFamily: FONTS.med }}>
                   Your skills in <Text style={{ color: '#FFFFFF' }}>{(whyMatchJob?.tags || []).slice(0, 2).join(', ') || 'related tech'}</Text> match the job tags.
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
-                <MaterialCommunityIcons name="check-circle" size={14} color="#10B981" />
+                <CheckCircle2 size={14} color="#10B981" />
                 <Text style={{ color: SC.muted, fontSize: 12.5, fontFamily: FONTS.med }}>
                   Your academic tier and year are preferred by this recruiter.
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
-                <MaterialCommunityIcons name="check-circle" size={14} color="#10B981" />
+                <CheckCircle2 size={14} color="#10B981" />
                 <Text style={{ color: SC.muted, fontSize: 12.5, fontFamily: FONTS.med }}>
                   Location preference and work mode match your selection.
                 </Text>
