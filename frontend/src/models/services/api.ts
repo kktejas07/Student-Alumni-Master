@@ -721,7 +721,7 @@ export const api = {
   myEchoInvoices: () =>
     request<any>('/echo/my-invoices'),
   myEchoRegistrations: () =>
-    request<any>('/echo/my-registrations'),
+    request<any>(`/echo/my-registrations?_t=${Date.now()}`),
   myMarketplaceOrders: () =>
     request<any>('/echo/my-marketplace-orders'),
   myMarketplaceInvoice: (orderId: string) =>
@@ -797,7 +797,7 @@ export const api = {
   getEchoInvoicePreview: (tplId: string) =>
     request<any>(`/echo/admin/settings/preview/invoice/${tplId}`),
   getEchoTicket: (regId: string) =>
-    request<any>(`/echo/tickets/${regId}?format=json`),
+    request<any>(`/echo/tickets/${regId}?format=json&_t=${Date.now()}`),
   getEchoInvoice: (invoiceNo: string) =>
     request<any>(`/echo/invoices/${invoiceNo}`),
 
