@@ -3,7 +3,7 @@
  * Verifies that Section 7 security vulnerabilities remain permanently fixed.
  */
 
-import { describe, it, expect } from 'vitest';
+/* describe, it, expect are jest globals */
 
 describe('T-1.2 Security Regression Test Suite', () => {
   it('must reject hardcoded default OTP bypass codes', () => {
