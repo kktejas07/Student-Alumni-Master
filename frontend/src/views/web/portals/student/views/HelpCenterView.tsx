@@ -68,6 +68,8 @@ const CATEGORIES = ['General', 'Account', 'Events', 'Payments', 'Technical', 'Ot
 
 export function HelpCenterView() {
   const P = usePalette();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   const [searchQ, setSearchQ] = useState('');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [subject, setSubject] = useState('');
@@ -116,7 +118,7 @@ export function HelpCenterView() {
   };
 
   return (
-    <ScrollView style={s.root} contentContainerStyle={s.container}>
+    <ScrollView style={s.root} contentContainerStyle={[s.container, isMobile && { padding: 16 }]}>
       {/* Header */}
       <View style={s.header}>
         <HelpCircle size={22} color={P.violet} />
@@ -139,7 +141,11 @@ export function HelpCenterView() {
       <View style={s.section}>
         <Text style={[s.sectionTitle, { color: P.text }]}>Frequently Asked Questions</Text>
         {filteredFaqs.length === 0 && (
-          <Text style={[s.emptyText, { color: P.dim }]}>No matching questions found. Try a different search or submit a ticket below.</Text>
+          <View style={{ alignItems: 'center', paddingVertical: 30, gap: 8 }}>
+            <Search size={36} color="#CBD5E1" />
+            <Text style={{ fontSize: 15, fontWeight: '600', color: '#64748B' }}>No matching questions</Text>
+            <Text style={{ fontSize: 12, color: '#94A3B8' }}>Try a different search term or submit a ticket below</Text>
+          </View>
         )}
         {filteredFaqs.map((faq, i) => {
           const isOpen = openFaq === i;

@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, Platform, TextInput, Image, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Calendar as CalIcon, MapPin, Users as UsersIcon, Check, Award, ArrowRight, Globe2, Sparkles, X, Clock, ExternalLink, ShieldCheck } from '../iconShims';
+import { Calendar as CalIcon, MapPin, Users as UsersIcon, Check, Award, ArrowRight, Globe2, Sparkles, X, Clock, ExternalLink, ShieldCheck, ChevronUp, ChevronDown, Search, XCircle, FileText } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GRAD } from '../portalkit';
 import { GlassCard } from '../glass';
 import { Badge } from '../atoms';
 import { fetchPortal, postPortal } from '@/src/lib/portalApi';
 import { request } from '@/src/models/services/api';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SkeletonBlock } from '../motion';
 import { useToast } from '@/src/views/components';
 import { track, trackClick, trackScreen, logger as analyticsLogger } from '@/src/analytics';
@@ -194,7 +193,7 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
         <Text style={{ color: isDark ? '#fff' : '#0F172A', fontSize: 12, fontFamily: FONTS.med }}>
           {selectedOption?.label}
         </Text>
-        <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={15} color={isDark ? 'rgba(255,255,255,0.6)' : '#64748B'} />
+        {open ? <ChevronUp size={15} color={isDark ? 'rgba(255,255,255,0.6)' : '#64748B'} /> : <ChevronDown size={15} color={isDark ? 'rgba(255,255,255,0.6)' : '#64748B'} />}
       </Pressable>
       
       {open && (
@@ -381,7 +380,7 @@ export function EventsView() {
           borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#CBD5E1',
         }
       ]}>
-        <MaterialCommunityIcons name="magnify" size={18} color={isDark ? 'rgba(255,255,255,0.45)' : '#64748B'} style={{ marginRight: 8 }} />
+        <Search size={18} color={isDark ? 'rgba(255,255,255,0.45)' : '#64748B'} style={{ marginRight: 8 }} />
         <TextInput
           value={searchQuery}
           onChangeText={(val) => {
@@ -413,7 +412,7 @@ export function EventsView() {
             testID="myevent-search-clear-btn"
             style={{ padding: 4 }}
           >
-            <MaterialCommunityIcons name="close-circle" size={16} color={isDark ? 'rgba(255,255,255,0.4)' : '#94A3B8'} />
+            <XCircle size={16} color={isDark ? 'rgba(255,255,255,0.4)' : '#94A3B8'} />
           </Pressable>
         )}
       </View>
@@ -806,7 +805,7 @@ export function EventsView() {
                         borderRadius: 6,
                       }}
                     >
-                      <MaterialCommunityIcons name="file-pdf-box" size={16} color="#10B981" />
+                      <FileText size={16} color="#10B981" />
                       <Text style={{ color: isDark ? '#10B981' : '#047857', fontFamily: FONTS.bold, fontSize: 11 }}>Download PDF</Text>
                     </Pressable>
                   </View>

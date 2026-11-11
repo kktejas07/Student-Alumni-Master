@@ -1143,6 +1143,8 @@ from features.referral_engine import router as referral_engine_router  # Wallet 
 api_router.include_router(referral_engine_router)
 from features.gamification_engine import router as gamification_engine_router  # Wallet streaks, wallet badges, weekly challenges, leaderboard (W6)
 api_router.include_router(gamification_engine_router)
+from features.messaging import router as messaging_router  # Real-time DM: REST + WebSocket
+api_router.include_router(messaging_router)
 from features.wallet_security import router as wallet_security_router  # Wallet security: rate limits, audit log, KYC-lite (W8)
 api_router.include_router(wallet_security_router)
 from features.wallet_notifications import router as wallet_notifications_router  # Wallet notifications: inbox feed, prefs, weekly digest (W9)

@@ -4,8 +4,8 @@
  * endpoints (gamification_engine.py).
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from 'react-native';
-import { Trophy, Flame, Star, Target, Crown, Lock, Award, Zap, TrendingUp } from 'lucide-react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { Trophy, Flame, Star, Target, Crown, Lock, Award, Zap, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { usePalette } from '../tokens';
 
@@ -81,11 +81,13 @@ export function AchievementsView() {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [lbPeriod, setLbPeriod] = useState<'weekly' | 'monthly'>('weekly');
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(false);
     const [sk, bg, ch, lb] = await Promise.allSettled([
       request('/wallet/streak').catch(() => null),
       request('/wallet/badges').catch(() => ({ badges: [] })),
@@ -112,8 +114,33 @@ export function AchievementsView() {
 
   if (loading) {
     return (
+      <ScrollView style={s.root} contentContainerStyle={[s.container, isMobile && { padding: 16 }]}>
+        <View style={s.header}>
+          <Trophy size={22} color={P.violet} />
+          <Text style={[s.title, { color: P.text }]}>Achievements</Text>
+        </View>
+        <View style={{ gap: 12 }}>
+          <View style={{ height: 180, backgroundColor: '#E5E7EB', borderRadius: 20 }} />
+          <View style={{ height: 40, backgroundColor: '#E5E7EB', borderRadius: 8, width: '40%' }} />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+            {[1, 2, 3, 4].map(i => (
+              <View key={i} style={{ width: isMobile ? '47%' : 160, height: 140, backgroundColor: '#E5E7EB', borderRadius: 14 }} />
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+    );
+  }
+
+  if (error) {
+    return (
       <View style={[s.root, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={P.violet} />
+        <AlertCircle size={36} color="#EF4444" />
+        <Text style={{ fontSize: 16, fontWeight: '600', color: '#1E293B', marginTop: 10 }}>Something went wrong</Text>
+        <Pressable onPress={load} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, padding: 10 }}>
+          <RefreshCw size={14} color="#7C5CFC" />
+          <Text style={{ fontSize: 13, fontWeight: '600', color: '#7C5CFC' }}>Tap to retry</Text>
+        </Pressable>
       </View>
     );
   }
@@ -123,7 +150,7 @@ export function AchievementsView() {
   const calendar = streak?.calendar || [];
 
   return (
-    <ScrollView style={s.root} contentContainerStyle={s.container}>
+    <ScrollView style={s.root} contentContainerStyle={[s.container, isMobile && { padding: 16 }]}>
       {/* Header */}
       <View style={s.header}>
         <Trophy size={22} color={P.violet} />
@@ -183,7 +210,7 @@ export function AchievementsView() {
             const color = RARITY_COLORS[rarity] || RARITY_COLORS.common;
             const bg = RARITY_BG[rarity] || RARITY_BG.common;
             return (
-              <View key={i} style={[s.badgeCard, { backgroundColor: b.earned ? bg : '#F1F5F9', borderColor: b.earned ? color : '#E2E8F0' }]}>
+              <View key={i} style={[s.badgeCard, isMobile && { width: '47%' }, { backgroundColor: b.earned ? bg : '#F1F5F9', borderColor: b.earned ? color : '#E2E8F0' }]}>
                 {!b.earned && <View style={s.badgeLock}><Lock size={16} color="#94A3B8" /></View>}
                 <View style={[s.badgeIcon, { backgroundColor: b.earned ? color + '20' : '#E2E8F0' }]}>
                   <Star size={20} color={b.earned ? color : '#94A3B8'} />
@@ -198,7 +225,11 @@ export function AchievementsView() {
             );
           })}
           {badges.length === 0 && (
-            <Text style={[s.emptyText, { color: P.dim }]}>No badges available yet. Keep using the platform to unlock them!</Text>
+            <View style={{ alignItems: 'center', paddingVertical: 30, gap: 8, width: '100%' }}>
+              <Trophy size={36} color="#CBD5E1" />
+              <Text style={{ fontSize: 15, fontWeight: '600', color: '#64748B' }}>Start earning!</Text>
+              <Text style={{ fontSize: 12, color: '#94A3B8' }}>Complete activities to unlock badges</Text>
+            </View>
           )}
         </View>
       </View>
