@@ -152,16 +152,28 @@ describe('MyTicketsView — ticket details follow the registered ECHO event', ()
   });
 });
 
-describe('ECHO admin registrations — event selector filters registration details', () => {
-  it('loads all admin showcases and exposes a selector for event-specific registrations', () => {
+describe('ECHO admin registrations — event cards filter registration details', () => {
+  it('loads all admin showcases and opens event-specific registration data from a card', () => {
     const s = read(ECHO_ADMIN);
     expect(s).toContain('api.adminListEchoShowcases()');
-    expect(s).toContain('aria-label="Select ECHO event to view registrations"');
+    expect(s).toContain('onPress={() => {');
+    expect(s).toContain('setEventSlug(event.slug)');
+    expect(s).toContain('event.hero_image_url || event.banner_url || event.poster_url');
+    expect(s).toContain("height: 390");
+    expect(s).toContain("gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))'");
+    expect(s).toContain('onHoverIn={() => setHoveredEventSlug(event.slug)}');
+    expect(s).toContain("cursor: 'pointer'");
+    expect(s).not.toContain('aria-label="Select ECHO event to view registrations"');
     expect(s).toContain("const matchEvent = eventSlug === 'all' || r.slug === eventSlug;");
-    expect(s).toContain('SessionPassesOverview events={sessionEvents}');
+    expect(s).toContain("const visibleRevenueEvents = eventSlug === 'all'");
+    expect(s).toContain('event.slug === eventSlug');
+    expect(s).toContain('SessionPassesOverview events={sessionEvents} onRefresh={load} eventBrowser={eventBrowser}');
+    expect(s).toContain('{eventSlug === \'all\' ? (');
+    expect(s).toContain(') : selectedEvent ? (');
+    expect(s).toContain('{eventBrowser}');
   });
 
-  it('retains events with no registrations in the selector', () => {
+  it('retains events with no registrations in the event cards', () => {
     const s = read(ECHO_ADMIN);
     expect(s).toContain('showcases.forEach((event: any)');
     expect(s).toContain('rows.forEach((row: any)');
