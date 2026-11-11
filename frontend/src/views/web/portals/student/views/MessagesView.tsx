@@ -5,7 +5,7 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Platform } from 'react-native';
-import { MessageSquare, Send, Search, Bot, User, Plus, ArrowLeft } from 'lucide-react-native';
+import { MessageSquare, Send, Search, Bot, User, Plus } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { usePalette } from '../tokens';
 
@@ -34,7 +34,7 @@ export function MessagesView() {
       const res: any = await request('/ai/chat/sessions');
       const sessions = Array.isArray(res) ? res : res?.sessions || [];
       const convs: Conversation[] = sessions.map((s: any) => ({
-        id: s.session_id || s.id || `session-${Math.random().toString(36).slice(2, 8)}`,
+        id: s.session_id || s.id || `session-${Date.now().toString(36)}`,
         title: s.title || 'AI Assistant',
         lastMsg: s.last_message || s.preview || '',
         updatedAt: s.updated_at || s.created_at || new Date().toISOString(),

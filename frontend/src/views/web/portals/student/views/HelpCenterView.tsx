@@ -2,9 +2,9 @@
 /**
  * Student -> Help Center — FAQ accordion + support ticket submission form.
  */
-import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Platform } from 'react-native';
-import { HelpCircle, Search, ChevronDown, ChevronUp, Send, CheckCircle, Clock, AlertCircle, MessageSquare } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator } from 'react-native';
+import { HelpCircle, Search, ChevronDown, ChevronUp, Send, CheckCircle, Clock, AlertCircle } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { usePalette } from '../tokens';
 

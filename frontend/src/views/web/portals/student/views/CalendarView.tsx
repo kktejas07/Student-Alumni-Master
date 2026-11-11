@@ -4,10 +4,9 @@
  * Color-coded dots: blue = events, green = bookings, purple = workshops.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Platform } from 'react-native';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin, Clock, Users, BookOpen, CalendarCheck } from 'lucide-react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from 'react-native';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin, Clock, BookOpen, CalendarCheck } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
-import { SC, FONTS } from '../tokens';
 import { usePalette } from '../tokens';
 
 /* ── helpers ─────────────────────────────────────────────────────────── */

@@ -5,8 +5,8 @@
  * endpoints (gamification_engine.py).
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Platform } from 'react-native';
-import { Trophy, Flame, Star, Target, Crown, Lock, Award, ChevronRight, Zap, TrendingUp } from 'lucide-react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from 'react-native';
+import { Trophy, Flame, Star, Target, Crown, Lock, Award, Zap, TrendingUp } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { usePalette } from '../tokens';
 
