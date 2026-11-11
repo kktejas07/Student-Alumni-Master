@@ -4,9 +4,9 @@
  * Uses /api/messages endpoints (REST + WebSocket).
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Platform } from 'react-native';
-import { MessageSquare, Send, Search, User, Plus, Users, Wifi, WifiOff } from 'lucide-react-native';
-import { request, tokenStore } from '@/src/models/services/api';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Platform, useWindowDimensions } from 'react-native';
+import { MessageSquare, Send, Search, Bot, User, Plus, ArrowLeft, AlertCircle, RefreshCw } from 'lucide-react-native';
+import { request } from '@/src/models/services/api';
 import { usePalette } from '../tokens';
 
 /* -- types ---------------------------------------------------------------- */
@@ -47,17 +47,17 @@ const formatDate = (ts: string) => {
 
 export function MessagesView() {
   const P = usePalette();
-  const [conversations, setConversations] = useState<ConvSummary[]>([]);
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [searchQ, setSearchQ] = useState('');
-  const [wsConnected, setWsConnected] = useState(false);
-  const [showNewChat, setShowNewChat] = useState(false);
-  const [networkUsers, setNetworkUsers] = useState<Participant[]>([]);
-  const [userSearch, setUserSearch] = useState('');
+  const [showChat, setShowChat] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const myIdRef = useRef<string>('');
@@ -137,10 +137,24 @@ export function MessagesView() {
   /* -- load conversations -------------------------------------------------- */
   const loadConversations = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
-      const res: any = await request('/messages/conversations');
-      setConversations(res?.conversations || []);
-    } catch { /* no conversations yet */ }
+      const res: any = await request('/ai/chat/sessions');
+      const sessions = Array.isArray(res) ? res : res?.sessions || [];
+      const convs: Conversation[] = sessions.map((s: any) => ({
+        id: s.session_id || s.id || `session-${Date.now().toString(36)}`,
+        title: s.title || 'AI Assistant',
+        lastMsg: s.last_message || s.preview || '',
+        updatedAt: s.updated_at || s.created_at || new Date().toISOString(),
+        messages: [],
+      }));
+      setConversations(convs);
+      if (convs.length > 0 && !activeId) {
+        setActiveId(convs[0].id);
+      }
+    } catch {
+      setError(true);
+    }
     setLoading(false);
   }, []);
 
@@ -195,19 +209,21 @@ export function MessagesView() {
     setSending(false);
   };
 
-  /* -- new conversation: load network users -------------------------------- */
-  const openNewChat = async () => {
-    setShowNewChat(true);
-    try {
-      const res: any = await request('/network/discover?limit=50');
-      const users = (res?.users || res?.results || []).map((u: any) => ({
-        id: u._id || u.id,
-        name: u.full_name || u.name || u.email || 'User',
-        avatar: u.profile_picture || u.avatar || null,
-        role: u.role || 'student',
-      }));
-      setNetworkUsers(users);
-    } catch { setNetworkUsers([]); }
+  /* new conversation */
+  const startNew = () => {
+    setActiveId(null);
+    setMessages([]);
+    setInput('');
+    if (isMobile) setShowChat(true);
+  };
+
+  const selectConversation = (id: string) => {
+    setActiveId(id);
+    if (isMobile) setShowChat(true);
+  };
+
+  const goBackToList = () => {
+    setShowChat(false);
   };
 
   const startConversation = async (participantId: string) => {
@@ -224,136 +240,101 @@ export function MessagesView() {
     }
   };
 
-  /* -- typing indicator via WebSocket -------------------------------------- */
-  const sendTyping = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN && activeId) {
-      wsRef.current.send(JSON.stringify({ type: 'typing', conversation_id: activeId }));
-    }
-  }, [activeId]);
-
-  const filtered = conversations.filter(c =>
-    !searchQ || (c.participant?.name || '').toLowerCase().includes(searchQ.toLowerCase())
-  );
-
-  const activeConv = conversations.find(c => c.id === activeId);
+  const showSidebar = !isMobile || !showChat;
+  const showChatPanel = !isMobile || showChat;
 
   return (
     <View style={[st.root, { backgroundColor: '#F8FAFC' }]}>
       {/* Sidebar */}
-      <View style={[st.sidebar, { backgroundColor: P.bg1, borderRightColor: P.glassBorder }]}>
-        <View style={st.sideHeader}>
-          <MessageSquare size={20} color={P.violet} />
-          <Text style={[st.sideTitle, { color: P.text }]}>Messages</Text>
-          <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
-            {wsConnected
-              ? <Wifi size={14} color="#10B981" />
-              : <WifiOff size={14} color="#94A3B8" />
-            }
-            <Pressable onPress={openNewChat} style={[st.newBtn, { backgroundColor: P.violet + '14' }]}>
+      {showSidebar && (
+        <View style={[s.sidebar, { backgroundColor: P.bg1, borderRightColor: P.glassBorder }, isMobile && { width: '100%', borderRightWidth: 0 }]}>
+          <View style={s.sideHeader}>
+            <MessageSquare size={20} color={P.violet} />
+            <Text style={[s.sideTitle, { color: P.text }]}>Messages</Text>
+            <Pressable onPress={startNew} style={[s.newBtn, { backgroundColor: P.violet + '14' }]}>
               <Plus size={18} color={P.violet} />
             </Pressable>
           </View>
-        </View>
 
-        {/* Search */}
-        <View style={[st.searchBox, { backgroundColor: P.glassSoft, borderColor: P.glassBorder }]}>
-          <Search size={16} color={P.dim} />
-          <TextInput
-            style={[st.searchInput, { color: P.text }]}
-            placeholder="Search conversations..."
-            placeholderTextColor={P.dim}
-            value={searchQ}
-            onChangeText={setSearchQ}
-          />
-        </View>
+          {/* Search */}
+          <View style={[s.searchBox, { backgroundColor: P.glassSoft, borderColor: P.glassBorder }]}>
+            <Search size={16} color={P.dim} />
+            <TextInput
+              style={[s.searchInput, { color: P.text }]}
+              placeholder="Search conversations..."
+              placeholderTextColor={P.dim}
+              value={searchQ}
+              onChangeText={setSearchQ}
+            />
+          </View>
 
-        <ScrollView style={st.convList}>
-          {loading && <ActivityIndicator size="small" color={P.violet} style={{ marginTop: 20 }} />}
-          {!loading && filtered.length === 0 && (
-            <View style={{ alignItems: 'center', marginTop: 40, paddingHorizontal: 20 }}>
-              <Users size={32} color={P.dim} style={{ marginBottom: 8 }} />
-              <Text style={[st.emptyText, { color: P.dim }]}>No conversations yet</Text>
-              <Text style={{ color: P.muted, fontSize: 12, textAlign: 'center', marginTop: 4 }}>
-                Tap + to start chatting with someone from your network
-              </Text>
-            </View>
-          )}
-          {filtered.map(c => (
-            <Pressable
-              key={c.id}
-              style={[st.convItem, activeId === c.id && { backgroundColor: P.violet + '10' }]}
-              onPress={() => setActiveId(c.id)}
-            >
-              <View style={[st.avatar, { backgroundColor: P.violet + '1A' }]}>
-                <User size={18} color={P.violet} />
-              </View>
-              <View style={st.convText}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={[st.convTitle, { color: P.text }]} numberOfLines={1}>{c.participant?.name || 'User'}</Text>
-                  <Text style={{ fontSize: 10, color: P.dim }}>{formatDate(c.updated_at)}</Text>
-                </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={[st.convPreview, { color: P.muted }]} numberOfLines={1}>{c.last_message || 'Start chatting...'}</Text>
-                  {c.unread > 0 && (
-                    <View style={{ backgroundColor: P.violet, borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2, minWidth: 20, alignItems: 'center' }}>
-                      <Text style={{ color: '#FFF', fontSize: 10, fontWeight: '700' }}>{c.unread}</Text>
+          <ScrollView style={s.convList}>
+            {/* Skeleton loader */}
+            {loading && (
+              <View style={{ padding: 12, gap: 10 }}>
+                {[1, 2, 3].map(i => (
+                  <View key={i} style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#E5E7EB' }} />
+                    <View style={{ flex: 1, gap: 6 }}>
+                      <View style={{ height: 14, backgroundColor: '#E5E7EB', borderRadius: 8, width: '70%' }} />
+                      <View style={{ height: 12, backgroundColor: '#E5E7EB', borderRadius: 8, width: '90%' }} />
                     </View>
-                  )}
-                </View>
+                  </View>
+                ))}
               </View>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </View>
+            )}
+            {/* Error state */}
+            {!loading && error && (
+              <Pressable onPress={loadSessions} style={{ alignItems: 'center', paddingTop: 40, gap: 8 }}>
+                <AlertCircle size={28} color="#EF4444" />
+                <Text style={{ fontSize: 13, color: '#64748B', fontWeight: '600' }}>Failed to load</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <RefreshCw size={12} color="#7C5CFC" />
+                  <Text style={{ fontSize: 12, color: '#7C5CFC', fontWeight: '600' }}>Tap to retry</Text>
+                </View>
+              </Pressable>
+            )}
+            {/* Empty state */}
+            {!loading && !error && filtered.length === 0 && (
+              <View style={{ alignItems: 'center', paddingTop: 40, gap: 8 }}>
+                <MessageSquare size={36} color="#CBD5E1" />
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#64748B' }}>No conversations yet</Text>
+                <Text style={{ fontSize: 12, color: '#94A3B8' }}>Start chatting with your network</Text>
+              </View>
+            )}
+            {!loading && !error && filtered.map(c => (
+              <Pressable
+                key={c.id}
+                style={[s.convItem, activeId === c.id && { backgroundColor: P.violet + '10' }]}
+                onPress={() => selectConversation(c.id)}
+              >
+                <View style={[s.avatar, { backgroundColor: P.violet + '1A' }]}>
+                  <Bot size={18} color={P.violet} />
+                </View>
+                <View style={s.convText}>
+                  <Text style={[s.convTitle, { color: P.text }]} numberOfLines={1}>{c.title}</Text>
+                  <Text style={[s.convPreview, { color: P.muted }]} numberOfLines={1}>{c.lastMsg || 'Start chatting...'}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {/* Chat panel */}
-      <View style={st.chatPanel}>
-        {showNewChat ? (
-          /* New conversation picker */
-          <View style={{ flex: 1, padding: 20 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-              <Pressable onPress={() => setShowNewChat(false)} style={{ marginRight: 12 }}>
-                <Text style={{ color: P.violet, fontWeight: '600' }}>Back</Text>
-              </Pressable>
-              <Text style={{ fontSize: 18, fontWeight: '700', color: P.text }}>New Conversation</Text>
-            </View>
-            <View style={[st.searchBox, { backgroundColor: P.glassSoft, borderColor: P.glassBorder, marginHorizontal: 0, marginBottom: 16 }]}>
-              <Search size={16} color={P.dim} />
-              <TextInput
-                style={[st.searchInput, { color: P.text }]}
-                placeholder="Search people..."
-                placeholderTextColor={P.dim}
-                value={userSearch}
-                onChangeText={setUserSearch}
-              />
-            </View>
-            <ScrollView>
-              {networkUsers
-                .filter(u => !userSearch || u.name.toLowerCase().includes(userSearch.toLowerCase()))
-                .map(u => (
-                  <Pressable
-                    key={u.id}
-                    style={[st.convItem, { paddingVertical: 10 }]}
-                    onPress={() => startConversation(u.id)}
-                  >
-                    <View style={[st.avatar, { backgroundColor: P.violet + '1A' }]}>
-                      <User size={18} color={P.violet} />
-                    </View>
-                    <View>
-                      <Text style={[st.convTitle, { color: P.text }]}>{u.name}</Text>
-                      <Text style={{ fontSize: 11, color: P.muted, textTransform: 'capitalize' }}>{u.role}</Text>
-                    </View>
-                  </Pressable>
-                ))
-              }
-              {networkUsers.length === 0 && (
-                <Text style={{ color: P.dim, textAlign: 'center', marginTop: 20 }}>Loading network...</Text>
-              )}
-            </ScrollView>
+      {showChatPanel && <View style={s.chatPanel}>
+        {/* Mobile back button */}
+        {isMobile && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: P.glassBorder }}>
+            <Pressable onPress={goBackToList} style={{ padding: 6, marginRight: 8 }}>
+              <ArrowLeft size={20} color={P.text} />
+            </Pressable>
+            <Text style={{ fontSize: 16, fontWeight: '600', color: P.text }}>{activeId ? 'Chat' : 'New Chat'}</Text>
           </View>
-        ) : !activeId ? (
-          <View style={st.emptyChat}>
-            <View style={[st.emptyIcon, { backgroundColor: P.violet + '14' }]}>
+        )}
+        {!activeId && messages.length === 0 ? (
+          <View style={s.emptyChat}>
+            <View style={[s.emptyIcon, { backgroundColor: P.violet + '14' }]}>
               <MessageSquare size={40} color={P.violet} />
             </View>
             <Text style={[st.emptyChatTitle, { color: P.text }]}>Start a Conversation</Text>
@@ -410,28 +391,26 @@ export function MessagesView() {
           </>
         )}
 
-        {/* Input bar (shown when in a conversation) */}
-        {activeId && !showNewChat && (
-          <View style={[st.inputBar, { borderTopColor: P.glassBorder }]}>
-            <TextInput
-              style={[st.input, { color: P.text, backgroundColor: P.bg1, borderColor: P.glassBorder }]}
-              placeholder="Type a message..."
-              placeholderTextColor={P.dim}
-              value={input}
-              onChangeText={(t) => { setInput(t); sendTyping(); }}
-              onSubmitEditing={sendMessage}
-              multiline
-            />
-            <Pressable
-              onPress={sendMessage}
-              style={[st.sendBtn, { backgroundColor: input.trim() ? P.violet : P.glassSoft }]}
-              disabled={!input.trim() || sending}
-            >
-              <Send size={18} color={input.trim() ? '#FFFFFF' : P.dim} />
-            </Pressable>
-          </View>
-        )}
-      </View>
+        {/* Input */}
+        <View style={[s.inputBar, { borderTopColor: P.glassBorder }]}>
+          <TextInput
+            style={[s.input, { color: P.text, backgroundColor: P.bg1, borderColor: P.glassBorder }]}
+            placeholder="Type a message..."
+            placeholderTextColor={P.dim}
+            value={input}
+            onChangeText={setInput}
+            onSubmitEditing={sendMessage}
+            multiline
+          />
+          <Pressable
+            onPress={sendMessage}
+            style={[s.sendBtn, { backgroundColor: input.trim() ? P.violet : P.glassSoft }]}
+            disabled={!input.trim() || sending}
+          >
+            <Send size={18} color={input.trim() ? '#FFFFFF' : P.dim} />
+          </Pressable>
+        </View>
+      </View>}
     </View>
   );
 }
