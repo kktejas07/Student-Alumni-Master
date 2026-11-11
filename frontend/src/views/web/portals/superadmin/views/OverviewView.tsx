@@ -79,6 +79,7 @@ function titleCase(v?: string | null): string {
 export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void }) {
   const T = useSAC();
   Object.assign(s, resolveColors(s, T));
+  const themedCard = { backgroundColor: T.card, borderColor: T.border };
   const user = useAuthStore((st) => st.user);
   const firstName = (user?.full_name || 'Admin').split(' ')[0];
 
@@ -620,7 +621,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
             <View
               key={kpi.id}
               className="db-tile sa-stat-card"
-              style={[s.card, { width: stack ? '100%' : '23.5%', minWidth: 200, padding: 18, overflow: 'hidden' }]}
+              style={[s.card, themedCard, { width: stack ? '100%' : '23.5%', minWidth: 200, padding: 18, overflow: 'hidden' }]}
             >
               <View style={{ position: 'relative', zIndex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -650,9 +651,9 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
       {/* Recent Activity + Platform Users */}
       <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
         {/* Recent Activity */}
-        <View style={[s.card, { flex: stack ? undefined : 1.7, overflow: 'hidden' }]} className="db-tile sa-stat-card">
+        <View style={[s.card, themedCard, { flex: stack ? undefined : 1.7, overflow: 'hidden' }]} className="db-tile sa-stat-card">
           <View style={s.cardHead}>
-            <Text style={s.cardTitle}>Recent Activity</Text>
+            <Text style={[s.cardTitle, { color: T.text }]}>Recent Activity</Text>
             <Pressable onPress={() => onNavigate?.('analytics')}><Text style={s.linkRight}>View all</Text></Pressable>
           </View>
           <View style={{ gap: 9, marginTop: 12 }}>
@@ -697,8 +698,8 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
         </View>
 
         {/* Platform Users distribution */}
-        <View style={[s.card, { flex: stack ? undefined : 1, overflow: 'hidden' }]} className="db-tile sa-stat-card">
-          <Text style={s.cardTitle}>Platform Users</Text>
+        <View style={[s.card, themedCard, { flex: stack ? undefined : 1, overflow: 'hidden' }]} className="db-tile sa-stat-card">
+          <Text style={[s.cardTitle, { color: T.text }]}>Platform Users</Text>
           <View style={{ gap: 14, marginTop: 14 }}>
             {analyticsLoading && !analytics ? (
               <View style={s.stateRow}><ActivityIndicator size="small" color={T.dim} /><Text style={s.stateText}>Loading...</Text></View>
@@ -715,10 +716,10 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
             ) : PLATFORM_USERS.map((u) => (
               <View key={u.label}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <Text style={s.distLabel}>{u.label}</Text>
-                  <Text style={s.distPct}>{u.pct}%</Text>
+                  <Text style={[s.distLabel, { color: T.text }]}>{u.label}</Text>
+                  <Text style={[s.distPct, { color: T.text }]}>{u.pct}%</Text>
                 </View>
-                <View style={s.distTrack}>
+                <View style={[s.distTrack, { backgroundColor: T.line }]}>
                   <View style={[s.distFill, { width: `${u.pct}%` as any, backgroundColor: u.color }]} />
                 </View>
                 <Text style={s.distCount}>{u.count.toLocaleString('en-IN')}</Text>
