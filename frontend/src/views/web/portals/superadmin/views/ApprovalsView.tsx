@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 15 TS errors then remove
 /**
  * Super Admin Portal — Approvals view.
  *
@@ -10,7 +9,7 @@ import { View, Text, TextInput, Pressable, StyleSheet, Modal, ScrollView, Platfo
 import {
   Building2, UserCheck, Calendar, ShieldCheck, ChevronRight, Eye, EyeOff,
   CheckCircle2, X, Mail, Phone, MapPin, Briefcase, GraduationCap,
-  Clock, AlertTriangle, ExternalLink,
+  Clock, AlertTriangle, ExternalLink, Timer, History, ArrowUpRight, Download,
 } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import Svg, { Rect, Circle, Path } from 'react-native-svg';
@@ -46,7 +45,31 @@ const FALLBACK = {
 
 const kindIcon  = (k: Approval['kind']) => (k === 'college' ? Building2 : k === 'mentor' ? UserCheck : Calendar);
 const kindLabel = (k: Approval['kind']) => (k === 'college' ? 'COLLEGE' : k === 'mentor' ? 'MENTOR' : 'EVENT');
-const priorityKind = (p: Approval['priority']) => (p === 'high' ? 'danger' : p === 'med' ? 'warn' : 'neutral') as const;
+
+/* ── helpers ──────────────────────────────────────────────── */
+function fmtDuration(h?: number) {
+  if (h == null) return '—';
+  if (h < 1) return `${Math.round(h * 60)}m`;
+  if (h < 24) return `${Math.round(h)}h`;
+  return `${Math.round(h / 24)}d`;
+}
+function fmtTimestamp(iso: string) {
+  if (!iso) return '—';
+  try { return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return iso; }
+}
+function slaBadge(item: Approval) {
+  const st = item.sla_state || (item.overdue ? 'overdue' : 'on_track');
+  if (st === 'overdue') return { label: 'OVERDUE', color: '#F87171', bg: 'rgba(248,113,113,0.12)', kind: 'danger' as const };
+  if (st === 'due_soon') return { label: 'DUE SOON', color: '#FBBF24', bg: 'rgba(251,191,36,0.12)', kind: 'warn' as const };
+  return { label: 'ON TRACK', color: '#34D399', bg: 'rgba(52,211,153,0.12)', kind: 'success' as const };
+}
+const ACTION_META: Record<string, { label: string; color: string }> = {
+  approve: { label: 'Approved', color: '#34D399' },
+  reject: { label: 'Rejected', color: '#F87171' },
+  escalate: { label: 'Escalated', color: '#FB923C' },
+  comment: { label: 'Comment', color: '#93C5FD' },
+};
+const priorityKind = (p: Approval['priority']): 'danger' | 'warn' | 'neutral' => (p === 'high' ? 'danger' : p === 'med' ? 'warn' : 'neutral');
 
 function ApprovalsEmptyArt() {
   const T = useSAC();
@@ -59,7 +82,7 @@ function ApprovalsEmptyArt() {
   );
 }
 
-function ReviewPanel({ item, onClose, onApprove, onReject }: {
+function ReviewPanel({ item, onClose, onApprove, onReject, onEscalate }: {
   item: Approval | null;
   onClose: () => void;
   onApprove: (id: string, label?: string) => void;
@@ -228,7 +251,7 @@ function ReviewPanel({ item, onClose, onApprove, onReject }: {
                   <SecondaryButton onPress={() => { setConfirmReject(false); setRejectReason(''); }} style={{ flex: 1 }}>
                     <Text style={rpst.secText}>Cancel</Text>
                   </SecondaryButton>
-                  <GradientButton onPress={() => { onReject(item.id, item.who); setConfirmReject(false); }} style={{ flex: 1 }} danger>
+                  <GradientButton onPress={() => { onReject(item.id, item.who); setConfirmReject(false); }} style={{ flex: 1 }}>
                     <Text style={rpst.primaryText}>Confirm Reject</Text>
                   </GradientButton>
                 </View>

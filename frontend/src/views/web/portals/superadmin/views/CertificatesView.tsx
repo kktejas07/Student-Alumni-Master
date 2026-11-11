@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 16 TS errors then remove
 /**
  * Super Admin → Certificates view.
  *
@@ -32,7 +31,7 @@ import * as Linking from 'expo-linking';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 import { EchoCertificateStudio } from './EchoCertificateStudio';
 import { CertificatePdfPreview } from './CertificatePdfPreview';
-import { request } from '@/src/models/services/api';
+import { request, resolveImageUrl } from '@/src/models/services/api';
 import { getBaseUrl } from '@/src/lib/env';
 
 type TabId = 'templates' | 'issue' | 'bulk' | 'external' | 'verify' | 'files' | 'registry';
@@ -360,7 +359,7 @@ function IssueTab({ onSaved }: { onSaved: (s?: string) => void }) {
     if (!email.trim() || !title.trim()) { setError('Recipient email and certificate title are required.'); return; }
     setBusy(true);
     try {
-      const r = await request('/certificates/issue', {
+      const r: any = await request('/certificates/issue', {
         method: 'POST',
         body: JSON.stringify(previewBody()),
       });
@@ -376,7 +375,7 @@ function IssueTab({ onSaved }: { onSaved: (s?: string) => void }) {
   return (
     <Animated.View entering={FadeInDown.duration(260)}>
       <Card>
-        <SectionLabel text="Issue Platform Certificate" />
+        <SectionLabel>Issue Platform Certificate</SectionLabel>
         <Text style={s.hint}>
           Generates a unique SA-XXXX-XXXX verification code, stores it in the registry,
           and returns a public /certificates/verify/{'{code}'} URL. Anyone can validate it — no login needed.
@@ -499,7 +498,7 @@ function BulkTab({ onSaved }: { onSaved: (s?: string) => void }) {
     if (!items.length) { setError('Paste at least one row in "email | title" format.'); return; }
     setBusy(true);
     try {
-      const r = await request('/certificates/bulk', {
+      const r: any = await request('/certificates/bulk', {
         method: 'POST',
         body: JSON.stringify({ items }),
       });
@@ -515,7 +514,7 @@ function BulkTab({ onSaved }: { onSaved: (s?: string) => void }) {
   return (
     <Animated.View entering={FadeInDown.duration(260)}>
       <Card>
-        <SectionLabel text="Bulk Issue (up to 1000)" />
+        <SectionLabel>Bulk Issue (up to 1000)</SectionLabel>
         <Text style={s.hint}>
           One recipient per line, format <Text style={s.mono}>email | certificate title</Text>. Every
           row gets its own unique SA code and is immediately verifiable.
@@ -635,7 +634,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       fd.append('recipient_email', email.trim());
       fd.append('title', title.trim());
       fd.append('issuer', 'Student Alumni');
-      const r = await request('/certificates/upload', { method: 'POST', body: fd });
+      const r: any = await request('/certificates/upload', { method: 'POST', body: fd });
       setResult(r);
       onSaved(`Uploaded + issued ${r.verification_code}`);
     } catch (e: any) {
@@ -652,7 +651,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
     try {
       const fd = new FormData();
       files.forEach((f) => fd.append('files', f));
-      const r = await request('/certificates/upload-bulk', { method: 'POST', body: fd });
+      const r: any = await request('/certificates/upload-bulk', { method: 'POST', body: fd });
       setResult(r);
       onSaved(`${r.created} uploaded and issued`);
       setFiles([]);
@@ -670,7 +669,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
     try {
       const fd = new FormData();
       fd.append('file', zipFile);
-      const r = await request('/certificates/upload-zip-archive', { method: 'POST', body: fd });
+      const r: any = await request('/certificates/upload-zip-archive', { method: 'POST', body: fd });
       setResult(r);
       onSaved(`${r.total_extracted} extracted from ZIP (${r.total_recipients} recipients)`);
       setZipFile(null);
@@ -685,7 +684,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
     setError(null); setTestResult(null);
     setBusy(true);
     try {
-      const r = await request('/certificates/test-sample-zip-scan', { method: 'POST' });
+      const r: any = await request('/certificates/test-sample-zip-scan', { method: 'POST' });
       setTestResult(r);
     } catch (e: any) {
       setError(e.message || 'Sample ZIP test scan failed');
@@ -698,7 +697,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
     setError(null); setDispatchResult(null);
     setDispatching(true);
     try {
-      const r = await request('/certificates/dispatch-zip-campaign', {
+      const r: any = await request('/certificates/dispatch-zip-campaign', {
         method: 'POST',
         body: JSON.stringify({ custom_subject: '🎓 Your Official Certificates Have Been Issued!' }),
       });
@@ -816,14 +815,14 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       setCsvError(e.message || 'CSV import failed');
     } finally {
       setCsvBusy(false);
-      setCsvProgress({ row: null, live: false });
+      setCsvProgress({ row: null, live: false, phase: '' });
     }
   };
 
   return (
     <Animated.View entering={FadeInDown.duration(260)}>
       <Card>
-        <SectionLabel text="Upload Certificate Files & ZIP Archives" />
+        <SectionLabel>Upload Certificate Files &amp; ZIP Archives</SectionLabel>
         <Text style={s.hint}>
           Accepts PNG, JPG, JPEG, WEBP, PDF, and ZIP archives (max 15 MB each). Each certificate becomes a
           verifiable registry entry synced with ECHO and the student's My Certificates portal.
@@ -1026,7 +1025,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                     width: csvProgress.phase === 'uploading' ? '40%' : `${csvPct}%`,
                     backgroundColor: csvPct >= 100 ? '#34D399' : csvProgress.phase === 'uploading' ? '#F59E0B' : '#818CF8',
                     transitionDuration: '300ms',
-                  }} />
+                  } as any} />
                 </View>
 
                 {/* File details during upload */}
@@ -1272,7 +1271,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
             <ScrollView style={{ maxHeight: 240, marginVertical: 8 }} nestedScrollEnabled>
               {(result.recipient_groups || []).map((grp: any, i: number) => (
-                <View key={i} style={{ padding: 10, borderRadius: 8, backgroundColor: T.panel2, marginBottom: 8, borderBasis: '100%' }}>
+                <View key={i} style={{ padding: 10, borderRadius: 8, backgroundColor: T.panel2, marginBottom: 8, flexBasis: '100%' } as any}>
                   <Text style={{ color: '#D8B4FE', fontWeight: 'bold', fontSize: 13 }}>
                     👤 {grp.recipient_name} ({grp.recipient_email}) — {grp.certificates?.length || 0} cert(s)
                   </Text>
@@ -1394,7 +1393,7 @@ function ExternalTab({ onSaved }: { onSaved: (s?: string) => void }) {
     if (!url.trim()) { setError('Paste a credential URL first.'); return; }
     setClassifying(true);
     try {
-      const r = await request('/certificates/classify', {
+      const r: any = await request('/certificates/classify', {
         method: 'POST',
         body: JSON.stringify({ credential_url: url.trim() }),
       });
@@ -1427,7 +1426,7 @@ function ExternalTab({ onSaved }: { onSaved: (s?: string) => void }) {
   return (
     <Animated.View entering={FadeInDown.duration(260)}>
       <Card>
-        <SectionLabel text="Store Third-Party Certificate" />
+        <SectionLabel>Store Third-Party Certificate</SectionLabel>
         <Text style={s.hint}>
           For credentials issued by Udemy, Coursera, LinkedIn, CodeSpectra, edX, etc. We classify
           the issuer from the URL and deep-link the verify page to the source — we cannot
@@ -1510,7 +1509,7 @@ function VerifyTab({ onSaved }: { onSaved: (s?: string) => void }) {
     if (!c) { setError('Enter a verification code.'); return; }
     setBusy(true);
     try {
-      const r = await request(`/certificates/verify/${encodeURIComponent(c)}`);
+      const r: any = await request(`/certificates/verify/${encodeURIComponent(c)}`);
       setResult(r);
     } catch {
       setNotFound(true);
@@ -1524,7 +1523,7 @@ function VerifyTab({ onSaved }: { onSaved: (s?: string) => void }) {
     if (!email.trim()) { setError('Enter a recipient email.'); return; }
     setBusy(true);
     try {
-      const r = await request(`/certificates/recipient/${encodeURIComponent(email.trim().toLowerCase())}`);
+      const r: any = await request(`/certificates/recipient/${encodeURIComponent(email.trim().toLowerCase())}`);
       setList(r.certificates || []);
       if (!r.certificates?.length) setNotFound(true);
     } catch (e: any) {
@@ -1537,7 +1536,7 @@ function VerifyTab({ onSaved }: { onSaved: (s?: string) => void }) {
   return (
     <Animated.View entering={FadeInDown.duration(260)}>
       <Card>
-        <SectionLabel text="Verify a Certificate" />
+        <SectionLabel>Verify a Certificate</SectionLabel>
         <Text style={s.hint}>
           Confirm a platform certificate by its SA-XXXX-XXXX code, or list all certificates
           issued to a recipient by email.

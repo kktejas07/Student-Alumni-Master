@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 5 TS errors then remove
 /**
  * Student Portal — FinTax360 Glass-Dark primitives (v0.18.0).
  *
@@ -46,7 +45,6 @@ export function AnimatedAurora({ intensity = 'normal' }: {
   if (Platform.OS === 'web') {
     return (
       <View pointerEvents="none" style={[a.layer]}>
-        {/* @ts-expect-error web-only — styled via inline JSX style sheet */}
         <style>{`
 @keyframes orbA { 0%{transform:translate(0,0)} 50%{transform:translate(15vw,10vh)} 100%{transform:translate(0,0)} }
 @keyframes orbB { 0%{transform:translate(0,0)} 50%{transform:translate(-18vw,12vh)} 100%{transform:translate(0,0)} }
@@ -66,7 +64,6 @@ export function AnimatedAurora({ intensity = 'normal' }: {
           top: '-12%', left: '-10%', width: 540, height: 540,
           backgroundColor: PALETTE.violet,
           opacity: 0.26 * mul,
-          // @ts-expect-error web-only
           filter: 'blur(140px)',
           animation: 'orbA 22s ease-in-out infinite',
         } as any]} />
@@ -74,7 +71,6 @@ export function AnimatedAurora({ intensity = 'normal' }: {
           top: '8%', right: '-14%', width: 500, height: 500,
           backgroundColor: PALETTE.blue,
           opacity: 0.20 * mul,
-          // @ts-expect-error web-only
           filter: 'blur(140px)',
           animation: 'orbB 28s ease-in-out infinite',
         } as any]} />
@@ -82,7 +78,6 @@ export function AnimatedAurora({ intensity = 'normal' }: {
           bottom: '-18%', left: '25%', width: 620, height: 620,
           backgroundColor: PALETTE.teal,
           opacity: 0.16 * mul,
-          // @ts-expect-error web-only
           filter: 'blur(160px)',
           animation: 'orbC 32s ease-in-out infinite',
         } as any]} />
@@ -129,7 +124,6 @@ export function GridOverlay() {
       style={[
         a.layer,
         {
-          // @ts-expect-error web-only
           backgroundImage:
             'linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), ' +
             'linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)',

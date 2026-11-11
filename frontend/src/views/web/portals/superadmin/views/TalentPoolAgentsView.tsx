@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 13 TS errors then remove
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Modal } from 'react-native';
 import {
@@ -176,7 +175,7 @@ export function TalentPoolAgentsView() {
     ]);
     setStats(st);
     setQuality(qu);
-    setDupOpen(du?.open_groups ?? 0);
+    setDupOpen((du as any)?.open_groups ?? 0);
     setDeadlines(dl);
     setAgentStatus(ag);
     setOvLoading(false);
@@ -185,7 +184,7 @@ export function TalentPoolAgentsView() {
   const loadDuplicates = useCallback(async () => {
     setDupLoading(true);
     try {
-      const r = await getPortal(`${API}/duplicates`);
+      const r = await getPortal<any>(`${API}/duplicates`);
       setDupGroups(r?.groups ?? []);
     } catch (e: any) {
       flash?.(e?.message || 'Failed to load duplicates', 'error');
@@ -224,7 +223,7 @@ export function TalentPoolAgentsView() {
         .map((m: any) => `${m.collection}:${m.id}`);
       const reasons = mergeGroup.reasons?.length ? mergeGroup.reasons.join('; ') : 'admin merge';
       await postPortal(`${API}/duplicates/merge`, {
-        group_id: mergeGroup.group_id, keep_ref: keepRef, drop_refs, reasons,
+        body: { group_id: mergeGroup.group_id, keep_ref: keepRef, drop_refs, reasons },
       });
       flash?.('Merged duplicates into keeper');
       setMergeGroup(null);
@@ -240,7 +239,7 @@ export function TalentPoolAgentsView() {
   const loadInsights = useCallback(async () => {
     setInsLoading(true);
     try {
-      const r = await getPortal(`${API}/insights?limit=8`);
+      const r = await getPortal<any>(`${API}/insights?limit=8`);
       setInsights(r?.insights ?? []);
     } catch (e: any) {
       flash?.(e?.message || 'Failed to load insights', 'error');
@@ -266,8 +265,8 @@ export function TalentPoolAgentsView() {
     setExtLoading(true);
     try {
       const [lj, dl] = await Promise.all([
-        getPortal(`${API}/external-jobs?limit=50`).catch(() => null),
-        getPortal(`${API}/external-jobs/deadlines?days=7`).catch(() => null),
+        getPortal<any>(`${API}/external-jobs?limit=50`).catch(() => null),
+        getPortal<any>(`${API}/external-jobs/deadlines?days=7`).catch(() => null),
       ]);
       setListings(lj?.listings ?? []);
       setExtDeadlines(dl);
@@ -349,7 +348,7 @@ export function TalentPoolAgentsView() {
     if (!scoreNowId) return;
     setScoreNowBusy(true);
     try {
-      const r = await postPortal(`${API}/quality/score-now`, { profile_id: scoreNowId });
+      const r = await postPortal(`${API}/quality/score-now`, { body: { profile_id: scoreNowId } });
       flash?.(r?.score != null ? `Scored ${r.score} (missing: ${r?.missing?.join(', ') || 'none'})` : 'Profile not found');
       loadQuality();
     } catch (e: any) {
@@ -366,7 +365,7 @@ export function TalentPoolAgentsView() {
       if (aProfileId) qs.set('profile_id', aProfileId);
       if (aAction) qs.set('action', aAction);
       qs.set('limit', '80');
-      const r = await getPortal(`${API}/activity?${qs.toString()}`);
+      const r = await getPortal<any>(`${API}/activity?${qs.toString()}`);
       setEvents(r?.events ?? []);
     } catch (e: any) {
       flash?.(e?.message || 'Failed to load activity', 'error');
@@ -379,7 +378,7 @@ export function TalentPoolAgentsView() {
     if (!noteProfileId || !noteText.trim()) return;
     setNoteBusy(true);
     try {
-      await postPortal(`${API}/notes`, { profile_id: noteProfileId, note: noteText.trim() });
+      await postPortal(`${API}/notes`, { body: { profile_id: noteProfileId, note: noteText.trim() } });
       flash?.('Note recorded to activity timeline');
       setNoteText('');
       loadActivity();
@@ -394,8 +393,8 @@ export function TalentPoolAgentsView() {
     setILoading(true);
     try {
       const [iv, pl] = await Promise.all([
-        getPortal(`${API}/interviews?limit=50`).catch(() => null),
-        getPortal(`${API}?limit=200`).catch(() => null),
+        getPortal<any>(`${API}/interviews?limit=50`).catch(() => null),
+        getPortal<any>(`${API}?limit=200`).catch(() => null),
       ]);
       setInterviews(iv?.interviews ?? []);
       setProfiles(pl?.items ?? []);
@@ -427,15 +426,17 @@ export function TalentPoolAgentsView() {
     setIBusy(true);
     try {
       const r = await postPortal(`${API}/interviews`, {
-        profile_id: profileId,
-        start: iStart || new Date(Date.now() + 3600_000).toISOString(),
-        duration_min: iDur,
-        organizer_email: iOrganizer || undefined,
-        invitee_email: iInvitee || undefined,
-        location: iLoc,
-        summary: iSummary || undefined,
-        description: '',
-        calendar: iCal,
+        body: {
+          profile_id: profileId,
+          start: iStart || new Date(Date.now() + 3600_000).toISOString(),
+          duration_min: iDur,
+          organizer_email: iOrganizer || undefined,
+          invitee_email: iInvitee || undefined,
+          location: iLoc,
+          summary: iSummary || undefined,
+          description: '',
+          calendar: iCal,
+        },
       });
       if (r?.error) {
         flash?.(`Could not create: ${r.error}`, 'error');
@@ -464,9 +465,7 @@ export function TalentPoolAgentsView() {
     setFbBusy(true);
     try {
       await postPortal(`${API}/interviews/${fbFor.interview_id || fbFor._id}/feedback`, {
-        decision: fbDecision,
-        notes: fbNotes,
-        rating: fbRating === '' ? null : Number(fbRating),
+        body: { decision: fbDecision, notes: fbNotes, rating: fbRating === '' ? null : Number(fbRating) },
       });
       flash?.('Feedback recorded');
       setFbFor(null);
@@ -817,7 +816,7 @@ export function TalentPoolAgentsView() {
                         <View style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.06)' }}>
                           <View style={{ height: 8, borderRadius: 4, backgroundColor: c, width: `${Math.round((Number(n) / max) * 100)}%` }} />
                         </View>
-                        <Text style={s.bandVal}>{n}</Text>
+                        <Text style={s.bandVal}>{String(n)}</Text>
                       </View>
                     );
                   })}

@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 14 TS errors then remove
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform, TextInput as RNTextInput, Modal, ActivityIndicator } from 'react-native';
 import {
@@ -98,7 +97,7 @@ export default function LexicalEditor({ value, onChange }: { value: string; onCh
   if (Platform.OS !== 'web') {
     return (
       <RNTextInput
-        style={fallbackStyle.input}
+        style={fallbackStyle.input as any}
         multiline
         value={value}
         onChangeText={onChange}
@@ -108,54 +107,57 @@ export default function LexicalEditor({ value, onChange }: { value: string; onCh
     );
   }
 
+  // Web-only toolbar — onMouseDown is a web DOM event, cast Pressable
+  const P = Pressable as any;
+
   return (
     <View>
       <View style={wrap.toolbar}>
         <View style={wrap.group}>
-          <Pressable key="bold" onMouseDown={(e) => { e.preventDefault(); exec('bold'); }} style={wrap.btn}>
+          <P key="bold" onMouseDown={(e: any) => { e.preventDefault(); exec('bold'); }} style={wrap.btn}>
             <Bold size={15} color="#94a3b8" />
-          </Pressable>
-          <Pressable key="italic" onMouseDown={(e) => { e.preventDefault(); exec('italic'); }} style={wrap.btn}>
+          </P>
+          <P key="italic" onMouseDown={(e: any) => { e.preventDefault(); exec('italic'); }} style={wrap.btn}>
             <Italic size={15} color="#94a3b8" />
-          </Pressable>
-          <Pressable key="underline" onMouseDown={(e) => { e.preventDefault(); exec('underline'); }} style={wrap.btn}>
+          </P>
+          <P key="underline" onMouseDown={(e: any) => { e.preventDefault(); exec('underline'); }} style={wrap.btn}>
             <Underline size={15} color="#94a3b8" />
-          </Pressable>
-          <Pressable key="strike" onMouseDown={(e) => { e.preventDefault(); exec('strikeThrough'); }} style={wrap.btn}>
+          </P>
+          <P key="strike" onMouseDown={(e: any) => { e.preventDefault(); exec('strikeThrough'); }} style={wrap.btn}>
             <Strikethrough size={15} color="#94a3b8" />
-          </Pressable>
+          </P>
           <View style={{ width: 1, height: 20, backgroundColor: '#334155', marginHorizontal: 4 }} />
-          <Pressable key="h1" onMouseDown={(e) => { e.preventDefault(); handleHeading('h1'); }} style={wrap.btn}>
+          <P key="h1" onMouseDown={(e: any) => { e.preventDefault(); handleHeading('h1'); }} style={wrap.btn}>
             <Heading1 size={15} color="#94a3b8" />
-          </Pressable>
-          <Pressable key="h2" onMouseDown={(e) => { e.preventDefault(); handleHeading('h2'); }} style={wrap.btn}>
+          </P>
+          <P key="h2" onMouseDown={(e: any) => { e.preventDefault(); handleHeading('h2'); }} style={wrap.btn}>
             <Heading2 size={15} color="#94a3b8" />
-          </Pressable>
-          <Pressable key="blockquote" onMouseDown={(e) => { e.preventDefault(); exec('formatBlock', '<blockquote>'); }} style={wrap.btn}>
+          </P>
+          <P key="blockquote" onMouseDown={(e: any) => { e.preventDefault(); exec('formatBlock', '<blockquote>'); }} style={wrap.btn}>
             <Quote size={15} color="#94a3b8" />
-          </Pressable>
+          </P>
           <View style={{ width: 1, height: 20, backgroundColor: '#334155', marginHorizontal: 4 }} />
-          <Pressable key="ul" onMouseDown={(e) => { e.preventDefault(); exec('insertUnorderedList'); }} style={wrap.btn}>
+          <P key="ul" onMouseDown={(e: any) => { e.preventDefault(); exec('insertUnorderedList'); }} style={wrap.btn}>
             <List size={15} color="#94a3b8" />
-          </Pressable>
-          <Pressable key="ol" onMouseDown={(e) => { e.preventDefault(); exec('insertOrderedList'); }} style={wrap.btn}>
+          </P>
+          <P key="ol" onMouseDown={(e: any) => { e.preventDefault(); exec('insertOrderedList'); }} style={wrap.btn}>
             <ListOrdered size={15} color="#94a3b8" />
-          </Pressable>
+          </P>
         </View>
         <View style={wrap.group}>
-          <Pressable key="undo" onMouseDown={(e) => { e.preventDefault(); const el = editorRef.current; if (el) { el.focus(); document.execCommand('undo'); onChange(el.innerHTML); } }} style={wrap.btn}>
+          <P key="undo" onMouseDown={(e: any) => { e.preventDefault(); const el = editorRef.current; if (el) { el.focus(); document.execCommand('undo'); onChange(el.innerHTML); } }} style={wrap.btn}>
             <Undo size={15} color="#94a3b8" />
-          </Pressable>
-          <Pressable key="redo" onMouseDown={(e) => { e.preventDefault(); const el = editorRef.current; if (el) { el.focus(); document.execCommand('redo'); onChange(el.innerHTML); } }} style={wrap.btn}>
+          </P>
+          <P key="redo" onMouseDown={(e: any) => { e.preventDefault(); const el = editorRef.current; if (el) { el.focus(); document.execCommand('redo'); onChange(el.innerHTML); } }} style={wrap.btn}>
             <Redo size={15} color="#94a3b8" />
-          </Pressable>
+          </P>
           <Pressable key="ai" onPress={() => setAiModalVisible(true)} style={wrap.aiBtn}>
             <Sparkles size={14} color="#F59E0B" />
             <Text style={wrap.aiLabel}>AI Assist</Text>
           </Pressable>
         </View>
       </View>
-      <View style={wrap.editorBox} ref={containerRef} />
+      <View style={wrap.editorBox} ref={containerRef as any} />
       <View style={wrap.hintBar}>
         <Text style={wrap.hint}>Supports headings, lists, bold, italic & more</Text>
       </View>
@@ -196,7 +198,7 @@ function AiPromptModal({ visible, onClose, onSend }: { visible: boolean; onClose
               Describe what you want to generate, rewrite, or improve. For example: "Write a paragraph about student benefits" or "Make this more professional".
             </Text>
             <RNTextInput
-              style={aim.input}
+              style={aim.input as any}
               multiline
               value={prompt}
               onChangeText={setPrompt}

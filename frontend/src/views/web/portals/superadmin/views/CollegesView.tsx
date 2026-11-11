@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 6 TS errors then remove
 /**
  * CollegesView — college-card grid in the standard super-admin theme.
  *
@@ -16,7 +15,7 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
   Building2, Search, X, Check, Pencil, Trash2, ShieldCheck, ShieldOff, RefreshCw,
-  AlertTriangle, ExternalLink, Sparkles, Award, MapPin, Users, Globe, BookOpen, Plus, Download, FileDown, BarChart3, GitMerge,
+  AlertTriangle, ExternalLink, Sparkles, Award, MapPin, Users, Globe, BookOpen, Plus, Download, FileDown, BarChart3, GitMerge, Eye,
 } from 'lucide-react-native';
 import Svg, { Circle, Path, Text as SvgText } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -271,8 +270,8 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
       <Card>
         <TopTabs<SubView>
           tabs={[
-            { id: 'browse', label: 'Colleges', Icon: Building2 },
-            { id: 'analytics', label: 'Analytics', Icon: BarChart3 },
+            { id: 'browse', label: 'Colleges', icon: Building2 },
+            { id: 'analytics', label: 'Analytics', icon: BarChart3 },
           ]}
           active={subView}
           onChange={setSubView}
@@ -462,7 +461,7 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
             <ScrollView style={{ maxHeight: '64%' }}>
               <View style={{ padding: 16, gap: 14 }}>
                 {dedupLoading ? (
-                  <LoadingBox label="Scanning college names…" />
+                  <LoadingBox />
                 ) : dedupErr ? (
                   <View style={s.warnBox}>
                     <AlertTriangle size={13} color={T.danger} />
@@ -650,7 +649,7 @@ function StatusDonut({ status }: { status: { label: string; count: number }[] })
 function CollegesAnalytics({ analytics, busy }: { analytics: any; busy: boolean }) {
   const T = useSAC();
   if (busy && !analytics) {
-    return <LoadingBox label="Building geographic analytics…" />;
+    return <LoadingBox />;
   }
   if (!analytics) {
     return (
@@ -1091,7 +1090,7 @@ function StudentTable({ collegeId, stu, busy, page, onPrev, onNext, onOpenStuden
   return (
     <View style={{ gap: 8 }}>
       {busy && !stu ? (
-        <LoadingBox label="Loading students…" />
+        <LoadingBox />
       ) : items.length === 0 ? (
         <EmptyState icon={Users} title="No linked students"
           sub="Students whose college matches this name will appear here as they are imported." />
