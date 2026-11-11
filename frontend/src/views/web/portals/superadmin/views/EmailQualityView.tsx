@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Super Admin → Email Health.
  * 
@@ -17,12 +16,13 @@ import {
   XCircle, Search, Users, TrendingUp, TrendingDown, Eye, Trash2,
   CheckCircle2, Clock, FileText, Download, Filter,
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import {
   GRAD, SecondaryButton, Card, IconBox, SectionLabel,
   StatusPill, Toast, useToast, KpiTile, SearchField,
 } from '../applekit';
 import { api } from '@/src/models/services/api';
+import { getBaseUrl } from '@/src/lib/env';
 import { useConfirm } from '@/src/views/components';
 
 type Row = {
@@ -67,7 +67,7 @@ function kindColor(kind?: string): string {
 
 export function EmailQualityView() {
   const T = useSAC();
-  Object.assign(st, resolveColors(st, T));
+  Object.assign(st, resolveColors(pristineOf(st), T));
   const { toast, flash, hide } = useToast();
   const { confirm } = useConfirm();
   const [q, setQ] = useState('');
@@ -113,7 +113,7 @@ export function EmailQualityView() {
     setAuditing(true);
     setAuditResults(null);
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const token = await getToken();
       const res = await fetch(`${base}/api/admin/email-quality/audit`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -154,7 +154,7 @@ export function EmailQualityView() {
     });
     if (!ok) return;
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const token = await getToken();
       const params = new URLSearchParams();
       selectedSuppressions.forEach(email => params.append('emails', email));
@@ -179,7 +179,7 @@ export function EmailQualityView() {
     });
     if (!ok) return;
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const token = await getToken();
       await fetch(`${base}/api/admin/email-quality/suppressions/all`, {
         method: 'DELETE',
@@ -194,7 +194,7 @@ export function EmailQualityView() {
 
   const suppressEmails = async (emails: string[], reason: string) => {
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const token = await getToken();
       await fetch(`${base}/api/admin/email-quality/suppressions/bulk`, {
         method: 'POST',
@@ -241,7 +241,7 @@ export function EmailQualityView() {
   const syncPostal = async () => {
     setLoading(true);
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const base = getBaseUrl();
       const token = await getToken();
       const res = await fetch(`${base}/api/admin/email-quality/postal-sync`, {
         method: 'POST',
@@ -287,11 +287,11 @@ export function EmailQualityView() {
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <SecondaryButton onPress={() => syncPostal()}>
-              <RefreshCw size={12} color={SAC.muted} />
+              <RefreshCw size={12} color={T.muted} />
               <Text style={st.secText}>Sync Postal</Text>
             </SecondaryButton>
             <SecondaryButton onPress={() => load()}>
-              {loading ? <ActivityIndicator size="small" color={SAC.muted} /> : <RefreshCw size={12} color={SAC.muted} />}
+              {loading ? <ActivityIndicator size="small" color={T.muted} /> : <RefreshCw size={12} color={T.muted} />}
               <Text style={st.secText}>Refresh</Text>
             </SecondaryButton>
           </View>
@@ -343,15 +343,15 @@ export function EmailQualityView() {
         <View style={{ gap: 12 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <IconBox size={32}><ShieldOff size={16} color={GRAD.to} /></IconBox>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>Automatic Quality Filters</Text>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: T.text }}>Automatic Quality Filters</Text>
           </View>
-          <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: SAC.muted, lineHeight: 20 }}>
+          <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: T.muted, lineHeight: 20 }}>
             The backend is permanently enforcing the following strict email checks before any email reaches Postal. These cannot be disabled:
           </Text>
           <View style={{ paddingLeft: 10, gap: 6 }}>
-            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: SAC.text }}>✓ <strong style={{ color: '#DDD6FE' }}>Disposable Domains:</strong> Automatically blocked via GitHub daily updates (e.g. Yopmail, Mailinator, etc.)</Text>
-            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: SAC.text }}>✓ <strong style={{ color: '#DDD6FE' }}>Junk Catchers:</strong> Known test addresses are dropped (e.g. test@gmail.com, asdf@...)</Text>
-            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: SAC.text }}>✓ <strong style={{ color: '#DDD6FE' }}>Duplicates:</strong> Pre-filtered at the form submission level (one registration per email).</Text>
+            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: T.text }}>✓ <strong style={{ color: '#DDD6FE' }}>Disposable Domains:</strong> Automatically blocked via GitHub daily updates (e.g. Yopmail, Mailinator, etc.)</Text>
+            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: T.text }}>✓ <strong style={{ color: '#DDD6FE' }}>Junk Catchers:</strong> Known test addresses are dropped (e.g. test@gmail.com, asdf@...)</Text>
+            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: T.text }}>✓ <strong style={{ color: '#DDD6FE' }}>Duplicates:</strong> Pre-filtered at the form submission level (one registration per email).</Text>
           </View>
         </View>
       </Card>
@@ -366,7 +366,7 @@ export function EmailQualityView() {
           />
         </View>
         <View style={st.healthBar}>
-          <View style={[st.healthBarFill, { width: `${deliveryRate}%`, backgroundColor: '#10B981' }]} />
+          <View style={[st.healthBarFill, { width: `${deliveryRate}%`, backgroundColor: '#10B981' } as any]} />
         </View>
         <View style={st.healthLabels}>
           <Text style={st.healthLabel}>{validEmails} deliverable</Text>
@@ -379,7 +379,7 @@ export function EmailQualityView() {
         <View style={st.cardHeader}>
           <SectionLabel>EMAIL AUDIT</SectionLabel>
           <SecondaryButton onPress={runAudit} disabled={auditing}>
-            {auditing ? <ActivityIndicator size="small" color={SAC.muted} /> : <Search size={12} color={SAC.muted} />}
+            {auditing ? <ActivityIndicator size="small" color={T.muted} /> : <Search size={12} color={T.muted} />}
             <Text style={st.secText}>{auditing ? 'Auditing...' : 'Run Audit'}</Text>
           </SecondaryButton>
         </View>
@@ -471,7 +471,7 @@ export function EmailQualityView() {
                         onPress={() => suppressEmails([issue.email], issue.reason)} 
                         style={[st.restoreBtn, { borderColor: 'rgba(239,68,68,0.35)', paddingVertical: 4 }]}
                       >
-                        <Text style={[st.restoreText, { color: '#FCA5A5' }]}>Suppress</Text>
+                        <Text style={[st.restoreText, { color: T.danger }]}>Suppress</Text>
                       </Pressable>
                     </View>
                   ))}
@@ -566,7 +566,7 @@ export function EmailQualityView() {
         <View style={{ marginTop: 12, gap: 8 }}>
           {events.length === 0 ? (
             <View style={{ padding: 20, alignItems: 'center', gap: 8 }}>
-              <Clock size={24} color={SAC.muted} />
+              <Clock size={24} color={T.muted} />
               <Text style={st.muted}>No recent email events. Form blocks and send skips will appear here.</Text>
             </View>
           ) : (
@@ -637,7 +637,7 @@ const st = StyleSheet.create({
   statLabel: { fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginTop: 2 },
   
   // Health bar
-  healthBar: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.1)', marginTop: 12, overflow: 'hidden' },
+  healthBar: { height: 8, borderRadius: 4, backgroundColor: 'rgba(20,23,38,0.1)', marginTop: 12, overflow: 'hidden' },
   healthBarFill: { height: '100%', borderRadius: 4 },
   healthLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
   healthLabel: { fontFamily: FONTS.med, fontSize: 11, color: SAC.muted },
@@ -646,14 +646,14 @@ const st = StyleSheet.create({
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' },
   searchGo: {
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
-    borderWidth: 1, borderColor: SAC.border, backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1, borderColor: SAC.border, backgroundColor: 'rgba(20,23,38,0.04)',
   },
   
   // List rows
   listRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    padding: 10, borderRadius: 8, backgroundColor: 'rgba(20,23,38,0.03)',
+    borderWidth: 1, borderColor: 'rgba(20,23,38,0.06)',
   },
   rowIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   emailText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
@@ -663,7 +663,7 @@ const st = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8,
     borderWidth: 1, borderColor: 'rgba(110,231,183,0.35)',
   },
-  restoreText: { color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 12 },
+  restoreText: { color: SAC.ok, fontFamily: FONTS.bold, fontSize: 12 },
   
   // Selection & Restore
   listRowSelected: { backgroundColor: 'rgba(124,58,237,0.08)', borderColor: 'rgba(167,139,250,0.3)' },
@@ -674,29 +674,29 @@ const st = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
     borderWidth: 1, borderColor: 'rgba(110,231,183,0.35)', backgroundColor: 'rgba(110,231,183,0.1)',
   },
-  restoreAllText: { color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 11 },
+  restoreAllText: { color: SAC.ok, fontFamily: FONTS.bold, fontSize: 11 },
   restoreAllBtnDanger: {
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
     borderWidth: 1, borderColor: 'rgba(239,68,68,0.35)', backgroundColor: 'rgba(239,68,68,0.1)',
   },
-  restoreAllTextDanger: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 11 },
+  restoreAllTextDanger: { color: SAC.danger, fontFamily: FONTS.bold, fontSize: 11 },
 
   // Audit
-  auditScoreRow: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)' },
+  auditScoreRow: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, backgroundColor: 'rgba(20,23,38,0.03)' },
   auditScoreCircle: { width: 64, height: 64, borderRadius: 32, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
   auditScoreValue: { fontFamily: FONTS.xbold, fontSize: 18 },
   auditScoreLabel: { fontFamily: FONTS.bold, fontSize: 14, color: SAC.text },
   auditStatsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   auditStatItem: {
     flex: 1, minWidth: 80, flexDirection: 'row', alignItems: 'center', gap: 6,
-    padding: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    padding: 10, borderRadius: 8, backgroundColor: 'rgba(20,23,38,0.03)',
+    borderWidth: 1, borderColor: 'rgba(20,23,38,0.06)',
   },
   auditStatValue: { fontFamily: FONTS.bold, fontSize: 14, color: SAC.text },
   auditStatLabel: { fontFamily: FONTS.med, fontSize: 10, color: SAC.muted },
   auditIssueRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8,
-    borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.02)',
+    borderRadius: 6, backgroundColor: 'rgba(20,23,38,0.02)',
     marginBottom: 4,
   },
   issueBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },

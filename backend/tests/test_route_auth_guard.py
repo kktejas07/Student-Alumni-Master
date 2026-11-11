@@ -163,3 +163,30 @@ def test_no_hardcoded_jwt_fallbacks(value):
         if value in p.read_text(encoding="utf-8", errors="ignore"):
             hits.append(str(p.relative_to(backend)))
     assert not hits, f"Hardcoded JWT secret fallback still present in: {hits}"
+
+
+# Endpoints that were anonymous and keyed on a caller-supplied email until the
+# October 2026 "honest data" pass. They must stay behind an auth dependency.
+@pytest.mark.parametrize("method,path", [
+    ("POST", "/api/student/workshops/enroll"),
+    ("GET", "/api/student/my-workshops"),
+    ("POST", "/api/student/workshops/progress"),
+    ("GET", "/api/rentals/listings"),
+    ("POST", "/api/rentals/book"),
+])
+def test_user_scoped_routes_require_auth(method, path):
+    found = False
+    for p, methods, endpoint, dependant in _flat_routes():
+        if p == path and method in (methods or ()):
+            found = True
+            assert _is_protected(endpoint, dependant), f"{method} {path} is reachable without auth"
+    assert found, f"{method} {path} not registered"
+
+
+def test_removed_fabricated_endpoints_stay_removed():
+    """These returned invented data (hashed CGPAs, synthetic sparklines,
+    donors picked by email hash) and had no callers."""
+    gone = {"/api/student/intelligence", "/api/admin/super/colleges", "/api/admin/super/students",
+            "/api/admin/super/mentors", "/api/admin/super/alumni"}
+    present = {p for p, _m, _e, _d in _flat_routes()} & gone
+    assert not present, f"fabricated endpoints re-registered: {sorted(present)}"

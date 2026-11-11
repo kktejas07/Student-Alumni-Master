@@ -4,12 +4,12 @@
  * ================================
  * When a student taps a mentor card, this screen opens with:
  *  - Mentor's full profile (avatar, title, bio, LinkedIn, ratings)
- *  - Available time slots (mock — real impl would query mentor's calendar)
+ *  - Available time slots from GET /api/mentors/{id}/availability
  *  - Topic input + booking confirmation
  *
  * On successful booking, the booking is persisted and student is shown success.
  */
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import {
   TouchableOpacity,
   Linking,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -26,31 +27,31 @@ import { ArrowLeft, Star, MessageCircle, ExternalLink, Calendar, Clock } from 'l
 import { Colors as C, Spacing, Typography, Shadows } from '@/src/theme';
 import { Card, Button, Input } from '@/src/views/components';
 import { useToast } from '@/src/views/components';
-import { api } from '@/src/models/services/api';
+import { api, request } from '@/src/models/services/api';
 
-// Generate next 7 days × 3 slots/day for booking preview (mock availability)
-function generateSlots() {
-  const slots: { date: Date; label: string; iso: string }[] = [];
-  const today = new Date();
-  const times = [
-    { h: 10, label: '10:00 AM' },
-    { h: 14, label: '2:00 PM' },
-    { h: 18, label: '6:00 PM' },
-  ];
-  for (let d = 1; d <= 7; d++) {
-    const day = new Date(today);
-    day.setDate(today.getDate() + d);
-    times.forEach((t) => {
-      const slot = new Date(day);
-      slot.setHours(t.h, 0, 0, 0);
-      slots.push({
-        date: slot,
-        label: `${slot.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })} · ${t.label}`,
-        iso: slot.toISOString(),
+type Slot = { label: string; iso: string };
+
+/**
+ * Flatten GET /api/mentors/{id}/availability (the mentor's configured slots
+ * minus booked sessions, next 7 days) into pickable 30-minute slots.
+ * Previously this screen generated three fixed slots a day regardless of
+ * the mentor's calendar.
+ */
+function flattenAvailability(days: any[]): Slot[] {
+  const out: Slot[] = [];
+  for (const d of days || []) {
+    for (const sl of d.slots || []) {
+      if (!sl.available) continue;
+      const iso = `${d.date}T${sl.time}:00Z`;
+      const dt = new Date(iso);
+      if (Number.isNaN(dt.getTime())) continue;
+      out.push({
+        iso: dt.toISOString(),
+        label: `${dt.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })} · ${dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`,
       });
-    });
+    }
   }
-  return slots;
+  return out;
 }
 
 export default function MentorProfileScreen() {
@@ -69,7 +70,8 @@ export default function MentorProfileScreen() {
     tags?: string;
   }>();
 
-  const slots = useMemo(generateSlots, []);
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState<{ iso: string; label: string } | null>(null);
   const [topic, setTopic] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -78,6 +80,15 @@ export default function MentorProfileScreen() {
   const [booked, setBooked] = useState(false);
 
   const tags = params.tags ? String(params.tags).split(',') : [];
+
+  useEffect(() => {
+    if (!params.id) { setSlotsLoading(false); return; }
+    setSlotsLoading(true);
+    request<{ days: any[] }>(`/mentors/${encodeURIComponent(String(params.id))}/availability?days=7`)
+      .then((res) => setSlots(flattenAvailability(res?.days || [])))
+      .catch((err) => { console.warn('Failed to fetch availability:', err); setSlots([]); })
+      .finally(() => setSlotsLoading(false));
+  }, [params.id]);
 
   useEffect(() => {
     if (params.id) {
@@ -102,7 +113,7 @@ export default function MentorProfileScreen() {
     ? `${mentor.job_title} at ${mentor.organization}`
     : (mentor?.headline || params.title || 'Expert Mentor');
   const displayBio = mentor?.bio || params.bio || 'Experienced professional ready to share industry insights, career strategies, and guidance.';
-  const displayRating = mentor?.rating ?? params.rating ?? '5.0';
+  const displayRating = mentor?.rating ?? params.rating ?? '—';
   const displaySessions = mentor?.sessions ?? params.sessions ?? '0';
   const displayTags = mentor?.skills?.length ? mentor.skills : (mentor?.interests?.length ? mentor.interests : tags);
   const displayLinkedin = mentor?.linkedin_url || params.linkedin;
@@ -199,8 +210,14 @@ export default function MentorProfileScreen() {
         <Text style={[Typography.bodySm, { color: C.textSecondary, marginBottom: 12 }]}>
           30-minute 1:1 sessions. Pick a slot that works for you.
         </Text>
+        {slotsLoading && <ActivityIndicator color={C.brandPurple} style={{ marginBottom: 12 }} />}
+        {!slotsLoading && slots.length === 0 && (
+          <Text style={[Typography.bodySm, { color: C.textSecondary, marginBottom: 12 }]}>
+            No open slots in the next 7 days. Check back later or message the mentor.
+          </Text>
+        )}
         <View style={styles.slotsGrid}>
-          {slots.slice(0, 9).map((s) => {
+          {slots.slice(0, 12).map((s) => {
             const active = selectedSlot?.iso === s.iso;
             return (
               <TouchableOpacity

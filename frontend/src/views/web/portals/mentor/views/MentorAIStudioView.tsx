@@ -36,28 +36,24 @@ interface Prep {
   provider_label: string;
 }
 
-const AI_INSIGHTS = [
-  { title: 'Conduct SQL Workshop next week', icon: 'database' },
-  { title: 'Schedule Mock Interviews for 12 students', icon: 'account-voice' },
-  { title: 'Share Python Practice Resources', icon: 'language-python' },
-];
-
-// UPCOMING_SESSIONS is now fetched dynamically from bookings
-
-const RECENT_ACTIVITY = [
-  { text: 'Rahul completed SQL Assessment', icon: 'check-circle', color: '#10B981' },
-  { text: 'Priya booked a session', icon: 'calendar-check', color: '#3B82F6' },
-  { text: 'Sai uploaded resume', icon: 'file-upload', color: '#F59E0B' },
-  { text: 'Ananya earned Python Badge', icon: 'medal', color: '#8B5CF6' },
-];
-
-const RESOURCES = [
-  'Python Interview Questions',
-  'SQL Cheat Sheet',
-  'Data Science Roadmap',
-  'Resume Templates',
-  'Mock Interview Videos',
-];
+/**
+ * Recommendations are derived from the mentee skill-gap data this view
+ * already loads (/mentor/ai-studio/skill-gaps). Earlier versions showed a
+ * fixed list ("Conduct SQL Workshop next week", "Mock interviews for 12
+ * students") that had nothing to do with the mentor's mentees.
+ */
+function recommendationsFromGaps(gaps: SkillGap[], upcomingCount: number): { title: string; icon: string }[] {
+  const out: { title: string; icon: string }[] = [];
+  const sorted = [...gaps].filter((g) => g.mentees_below_60 > 0).sort((x, y) => y.mentees_below_60 - x.mentees_below_60);
+  for (const g of sorted.slice(0, 2)) {
+    out.push({
+      title: `Run a ${g.skill} session — ${g.mentees_below_60} mentee${g.mentees_below_60 === 1 ? '' : 's'} below 60% (avg ${Math.round(g.avg_score)}%)`,
+      icon: 'school-outline',
+    });
+  }
+  if (upcomingCount === 0) out.push({ title: 'No sessions booked — open more availability slots so mentees can book you', icon: 'calendar-plus' });
+  return out;
+}
 
 export function MentorAIStudioView() {
   const [pulse, setPulse] = useState<Mentee[]>([]);
@@ -67,6 +63,7 @@ export function MentorAIStudioView() {
   const [prep, setPrep] = useState<Prep | null>(null);
   const [prepLoading, setPrepLoading] = useState<string | null>(null);
   const [upcoming, setUpcoming] = useState<any[]>([]);
+  const recommendations = recommendationsFromGaps(gaps, upcoming.length);
 
   const formatSessionDate = (isoStr: string) => {
     try {
@@ -255,7 +252,10 @@ export function MentorAIStudioView() {
             <View style={s.sectionCard}>
               {renderSectionHeader(' AI Recommendations', 'lightbulb-on', '#FCD34D')}
               <View style={{ gap: 10, marginTop: 12 }}>
-                {AI_INSIGHTS.map((ins, i) => (
+                {recommendations.length === 0 && !loading && (
+                  <Text style={{ color: MC.dim, fontSize: 12.5 }}>No recommendations yet — they appear once your mentees have skill scores.</Text>
+                )}
+                {recommendations.map((ins, i) => (
                   <View key={i} style={s.insightCard}>
                     <MCI name={ins.icon as any} size={18} color={TINT} />
                     <Text style={s.insightText}>{ins.title}</Text>
@@ -299,18 +299,6 @@ export function MentorAIStudioView() {
                     <Text style={s.activityText} numberOfLines={1}>
                       {sess.student_name ? `${sess.student_name}: ` : ''}{sess.topic}
                     </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            <View style={s.sectionCard}>
-              {renderSectionHeader(' Recommended Resources', 'book-open-variant', '#10B981')}
-              <View style={{ gap: 8, marginTop: 12 }}>
-                {RESOURCES.map((r, i) => (
-                  <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <MCI name="link-variant" size={14} color="#10B981" />
-                    <Text style={s.resourceText}>{r}</Text>
                   </View>
                 ))}
               </View>
@@ -389,5 +377,4 @@ const s = StyleSheet.create({
   rankNum: { color: GOLD, fontFamily: FONTS.xbold, fontSize: 14 },
   scoreText: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 14 },
 
-  resourceText: { color: '#FFFFFF', fontFamily: FONTS.med, fontSize: 12.5, textDecorationLine: 'underline' },
 });

@@ -1,4 +1,6 @@
-from pydantic import BaseModel, EmailStr, Field
+import re
+
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List, Dict, Any, Literal
 from datetime import datetime
 
@@ -175,6 +177,7 @@ class UserResponse(BaseModel):
     portfolio_url: Optional[str] = None
     primary_skill: Optional[str] = None
     profile_visibility: Optional[str] = None
+    accepts_referrals: Optional[bool] = None
     section_toggles: Optional[Dict[str, Any]] = None
     projects: Optional[List[Dict[str, Any]]] = None
     preferences: Optional[Dict[str, Any]] = None
@@ -196,3 +199,174 @@ class AuthResponse(BaseModel):
     access_token: str
     refresh_token: str
     user: UserResponse
+
+
+# ----------------------------------------------------------------------------
+# Auth Request Models
+# ----------------------------------------------------------------------------
+class RegisterRequest(BaseModel):
+    """Initial registration. Role-specific fields collected in onboarding step."""
+    email: EmailStr
+    password: str
+    full_name: str
+    role: UserRole
+    phone: Optional[str] = None
+    dob: Optional[str] = None
+    country_code: Optional[str] = None
+    postal_code: Optional[str] = None
+
+    @field_validator("password")
+    @classmethod
+    def _password_strength(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one digit")
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
+            raise ValueError("Password must contain at least one special character (!@#$%^&*...)")
+        return v
+
+    @field_validator("dob")
+    @classmethod
+    def _dob_valid(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return v
+        from datetime import date as _date
+        try:
+            d = _date.fromisoformat(v)
+        except Exception:
+            raise ValueError("Date of birth must be in YYYY-MM-DD format")
+        today = _date.today()
+        if d > today:
+            raise ValueError("Date of birth cannot be in the future")
+        age = today.year - d.year - ((today.month, today.day) < (d.month, d.day))
+        if age < 13:
+            raise ValueError("You must be at least 13 years old to register")
+        return v
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class VerifyResetOtpRequest(BaseModel):
+    email: EmailStr
+    otp: str
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
+
+
+class OnboardingRequest(BaseModel):
+    """Unified onboarding payload — only the fields relevant to the user's role
+    are validated. Field validation by role is enforced in the handler."""
+    school_info: SchoolInfo
+    career_path: Optional[CareerPath] = None
+    student_info: Optional[StudentInfo] = None
+    alumni_info: Optional[AlumniInfo] = None
+    mentor_info: Optional[MentorInfo] = None
+    college_info: Optional[CollegeInfo] = None
+    interests: List[str] = Field(default_factory=list)
+    skills: List[str] = Field(default_factory=list)
+    bio: Optional[str] = None
+    face_image_base64: Optional[str] = None
+    phone: Optional[str] = None
+
+
+# ----------------------------------------------------------------------------
+# 2FA Models
+# ----------------------------------------------------------------------------
+class TwoFAChallengeResponse(BaseModel):
+    """Returned by /auth/login when 2FA is enabled."""
+    requires_2fa: bool = True
+    challenge_id: str
+    methods: List[str] = ["totp"]
+    user_email: str
+
+
+class TwoFASetupRequest(BaseModel):
+    pass
+
+
+class TwoFASetupResponse(BaseModel):
+    secret: str
+    otpauth_uri: str
+    qr_code_base64: str
+
+
+class TwoFAEnableRequest(BaseModel):
+    code: str
+
+
+class TwoFAEnableResponse(BaseModel):
+    enabled: bool = True
+    backup_codes: List[str]
+
+
+class TwoFAVerifyRequest(BaseModel):
+    challenge_id: str
+    code: str
+
+
+class TwoFADisableRequest(BaseModel):
+    password: str
+    code: str
+
+
+# ----------------------------------------------------------------------------
+# AI / Chat Models
+# ----------------------------------------------------------------------------
+class CareerSuggestionRequest(BaseModel):
+    additional_context: Optional[str] = None
+    session_id: Optional[str] = None
+
+
+class ChatRequest(BaseModel):
+    message: str
+    session_id: Optional[str] = None
+
+
+class ChatResponse(BaseModel):
+    session_id: str
+    message: str
+
+
+# ----------------------------------------------------------------------------
+# Booking Models
+# ----------------------------------------------------------------------------
+class BookingRequest(BaseModel):
+    """Student books a mentor for a 1:1 session."""
+    mentor_id: str
+    slot_start_iso: str
+    slot_end_iso: str
+    topic: str
+    notes: Optional[str] = None
+
+
+class ConnectRequestIn(BaseModel):
+    message: Optional[str] = None
+
+
+class MentorBookingCreateRequest(BaseModel):
+    """Mentor schedules a booking with a student."""
+    student_id: str
+    slot_start_iso: str
+    topic: str
+    notes: Optional[str] = None
+
+
+class RescheduleRequest(BaseModel):
+    """Request payload to reschedule a session."""
+    slot_start_iso: str

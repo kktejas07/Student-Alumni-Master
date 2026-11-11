@@ -24,6 +24,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { request, tokenStore, resolveImageUrl } from '@/src/models/services/api';
+import { getBaseUrl } from '@/src/lib/env';
 import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 
 // ─── Constants ────────────────────────────────────────────────────────
@@ -379,7 +380,7 @@ export default function EventsScreen() {
 
   const handleDownloadIcs = async (ev: EventItem) => {
     const tok = await tokenStore.getAccess();
-    const url = `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/events/${ev.event_id}/ics`;
+    const url = `${getBaseUrl()}/api/events/${ev.event_id}/ics`;
     if (Platform.OS === 'web') {
       try {
         const r = await fetch(url, { headers: { Authorization: `Bearer ${tok || ''}` } });

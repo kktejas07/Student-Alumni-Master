@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useNetworkViewState — all non-visual state, data loading and handlers for
  * the portal Network tab. Shared by the student and alumni NetworkView
@@ -37,6 +36,9 @@ export function useNetworkViewState({ navContext, defaultAccent, githubOf }: Net
   const [filter, setFilter] = useState<FilterType>('everyone');
   const [discoverSubTab, setDiscoverSubTab] = useState<DiscoverSubTab>('interest');
   const [discoverSections, setDiscoverSections] = useState<any[]>([]);
+  const [discoverPage, setDiscoverPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [roleCounts, setRoleCounts] = useState<{ total: number; students: number; alumni: number; mentors: number; industry: number } | null>(null);
   const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
   const [sentRequests, setSentRequests] = useState<any[]>([]);
   const [connectionsList, setConnectionsList] = useState<any[]>([]);
@@ -239,17 +241,60 @@ export function useNetworkViewState({ navContext, defaultAccent, githubOf }: Net
 
 
   
-  const loadDiscover = async (overrideTerm?: string) => {
+  const loadDiscover = async (overrideTerm?: string, page = 1) => {
     try {
       const term = overrideTerm !== undefined ? overrideTerm : searchQuery;
-      const res = await api.networkDiscover(term);
-      setDiscoverSections(res?.sections || []);
-      return res?.sections || [];
+      const res = await api.networkDiscover(term, page);
+      const secs = res?.sections || [];
+      if (page === 1) {
+        setDiscoverSections(secs);
+      } else {
+        // Append the next page's items to each section, dedup by id so cards
+        // don't repeat across pages (sections share a candidate pool).
+        setDiscoverSections((prev) =>
+          prev.map((sec: any) => {
+            const nextSec = secs.find((s: any) => s.key === sec.key);
+            if (!nextSec) return sec;
+            const seen = new Set((sec.items || []).map((i: any) => i.id));
+            const fresh = (nextSec.items || []).filter((i: any) => !seen.has(i.id));
+            return { ...sec, items: [...(sec.items || []), ...fresh], total: nextSec.total, has_more: nextSec.has_more, page };
+          })
+        );
+      }
+      setDiscoverPage(page);
+      return secs;
     } catch (e) {
       console.warn('Failed to load discover sections:', e);
       return [];
     }
   };
+
+  const discoverHasMore = (sections: any[]) =>
+    (sections || []).some((s: any) => s.has_more);
+
+  const loadMoreDiscover = async () => {
+    if (loadingMore) return;
+    if (!discoverHasMore(discoverSections)) return;
+    setLoadingMore(true);
+    try {
+      await loadDiscover(undefined, discoverPage + 1);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const fetchRoleCounts = async () => {
+    try {
+      const c = await api.networkCounts();
+      if (c) setRoleCounts(c);
+    } catch (e) {
+      // counts are cosmetic; don't block discover
+    }
+  };
+
+  useEffect(() => {
+    fetchRoleCounts();
+  }, []);
 
   const handleDatabaseSearch = async (termToSearch?: string) => {
     const term = (termToSearch !== undefined ? termToSearch : searchQuery).trim();
@@ -585,6 +630,10 @@ export function useNetworkViewState({ navContext, defaultAccent, githubOf }: Net
     handleConfirmBooking,
     fetchNetworkData,
     loadDiscover,
+    loadMoreDiscover,
+    roleCounts,
+    discoverPage,
+    loadingMore,
     handleDatabaseSearch,
     loadRequests,
     loadConnections,

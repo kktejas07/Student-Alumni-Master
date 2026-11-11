@@ -3,7 +3,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 DB_NAME = os.environ.get("DB_NAME", "student_alumni_db")
 from db import client as _mongo
 from core.skill_score_engine import calculate_skill_scores

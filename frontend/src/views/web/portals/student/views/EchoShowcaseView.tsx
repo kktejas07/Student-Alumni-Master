@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ECHO Showcase View — fully data-driven from the CMS; content and slug are
  * resolved from the API (a canonical slug is passed in, or the first published
@@ -878,7 +877,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 80, gap: 8 }}>
         <Calendar size={32} color={PALETTE.dim} />
-        <Text style={{ color: '#fff', fontFamily: FONTS.semibold, fontSize: 16 }}>
+        <Text style={{ color: '#fff', fontFamily: FONTS.semi, fontSize: 16 }}>
           Showcase not found
         </Text>
         <Text style={{ color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center', maxWidth: 320 }}>
@@ -1669,5 +1668,5 @@ const s = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  shareOptionText: { fontFamily: FONTS.semibold, fontSize: 14, flex: 1 },
+  shareOptionText: { fontFamily: FONTS.semi, fontSize: 14, flex: 1 },
 });

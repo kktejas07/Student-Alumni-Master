@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * UniversalMotionTransition — Universal page/view motion slide transition of 100px.
  * 

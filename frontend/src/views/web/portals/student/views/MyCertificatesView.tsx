@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Student Portal — My Certificates Hub.
  * Allows students to view, search, sort, and download all their official certificates
@@ -374,7 +373,7 @@ export function MyCertificatesView() {
                         : cert.category === 'sunset'
                         ? 'amber'
                         : cert.category === 'cyber'
-                        ? 'indigo'
+                        ? 'blue'
                         : 'green'
                     }
                   />

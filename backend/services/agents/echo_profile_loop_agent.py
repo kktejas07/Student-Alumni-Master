@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import quote
 
 from core.db import db
+from core.config import frontend_base_url
 from core.email import send_email, render_html_email
 from core.whatsapp import send_wa_message
 from services.profile_service import compute_profile_completion
@@ -92,7 +93,7 @@ class EchoProfileLoopAgent:
                 if u.get("phone"):
                     user_map[u.get("phone").strip()] = u_info
 
-        frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        frontend_url = frontend_base_url()
         emails_sent = 0
         wa_sent = 0
         processed_count = 0
@@ -123,7 +124,7 @@ class EchoProfileLoopAgent:
             if has_account and pct >= 100:
                 # Auto-issue and deliver all 3 certificates (Built by Sunset, Hackwave 3.0, Cyber Conclave)
                 # Per-certificate individual emails (1 email per cert — scales to 1..N).
-                from echo_showcase import issue_3_echo_certificates
+                from features.echo_showcase import issue_3_echo_certificates
                 certs = await issue_3_echo_certificates(db, reg)
 
                 ordered = [
@@ -162,8 +163,9 @@ class EchoProfileLoopAgent:
                     per_cert_status[key] = {"email_sent": sent, "email_error": err, "code": code}
                     certs[key]["email_sent"] = sent
                 try:
+                    reg_filter = {"_id": reg["_id"]} if "_id" in reg else {"id": reg.get("id")}
                     await db.echo_registrations.update_one(
-                        {"_id": reg["_id"]},
+                        reg_filter,
                         {"$set": {"certificates_3_status": certs, "cert_email_status": per_cert_status,
                                   "cert_email_updated_at": now_iso_inner}},
                     )
@@ -234,8 +236,9 @@ class EchoProfileLoopAgent:
 
             # Mark reminder history
             now_iso = self._now_iso()
+            reg_filter = {"_id": reg["_id"]} if "_id" in reg else {"id": reg.get("id")}
             await db.echo_registrations.update_one(
-                {"_id": reg["_id"]},
+                reg_filter,
                 {
                     "$set": {"last_profile_reminder_at": now_iso},
                     "$inc": {"profile_reminder_count": 1},

@@ -25,6 +25,10 @@ import { MyTicketsView } from './views/MyTicketsView';
 import { MyCertificatesView } from './views/MyCertificatesView';
 import { EchoShowcaseView } from './views/EchoShowcaseView';
 import { RentalsView } from './views/RentalsView';
+import { CalendarView } from './views/CalendarView';
+import { MessagesView } from './views/MessagesView';
+import { AchievementsView } from './views/AchievementsView';
+import { HelpCenterView } from './views/HelpCenterView';
 import { StudentPortalNavContext } from './StudentPortalNavContext';
 
 import CoursesPage from '@/app/courses';
@@ -52,8 +56,8 @@ function StudentPortalInner() {
   useEffect(() => { if (tab) setActive(tab as StudentNavId); }, [tab]);
 
   const onLogout = async () => {
-    router.replace('/welcome');
     try { await logout(); } catch {}
+    router.replace('/welcome');
   };
   const handleNav = (id: StudentNavId, params?: { q?: string; detailCourse?: any }) => {
     if (id !== active) go(id);
@@ -84,11 +88,11 @@ function StudentPortalInner() {
         {active === 'career-ai'       && <CareerAIView />}
         {active === 'internships'     && <InternshipsView />}
         {active === 'network'         && <NetworkView />}
-        {active === 'my-bookings'     && <MyBookingsView />}
-        {active === 'my-tickets'      && <MyTicketsView />}
-        {active === 'my-certificates' && <MyCertificatesView />}
+        {(active === 'my-bookings' || active === 'bookings') && <MyBookingsView />}
+        {(active === 'my-tickets' || active === 'tickets') && <MyTicketsView />}
+        {(active === 'my-certificates' || active === 'certificates') && <MyCertificatesView />}
         {(active === 'myevents' || active === 'events') && <EventsView />}
-        {active === 'my-workshops'    && <MyWorkshopsView />}
+        {(active === 'my-workshops' || active === 'workshops') && <MyWorkshopsView />}
         {(active === 'echo-showcase' || isEchoSlug(active)) && (
           <EchoShowcaseView slug={active === 'echo-showcase' ? undefined : active} onBack={() => handleNav('myevents')} />
         )}
@@ -96,8 +100,12 @@ function StudentPortalInner() {
         {active === 'financial'       && <FinancialPage />}
         {active === 'deals'           && <DealsPage />}
         {active === 'wallet'          && <WalletPage />}
-        {active === 'higher-ed'       && <HigherEducationPage />}
+        {active === 'higher-education'       && <HigherEducationPage />}
         {active === 'rentals'         && <RentalsView />}
+        {active === 'calendar'        && <CalendarView />}
+        {active === 'messages'        && <MessagesView />}
+        {active === 'achievements'    && <AchievementsView />}
+        {active === 'help-center'     && <HelpCenterView />}
         {active === 'profile'         && <ProfileSettingsView />}
       </PortalShell>
     </StudentPortalNavContext.Provider>

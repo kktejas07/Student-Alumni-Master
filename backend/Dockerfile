@@ -41,6 +41,8 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
     pip install "uvicorn[standard]" gunicorn && \
+    # Install spaCy English model (not available via pip, must use spacy download)
+    python -m spacy download en_core_web_sm && \
     # Install Playwright Chromium (system deps already installed above)
     PLAYWRIGHT_BROWSERS_PATH=/app/.playwright playwright install chromium
 
@@ -66,4 +68,4 @@ HEALTHCHECK --interval=30s --timeout=8s --start-period=20s --retries=3 \
 ENV UVICORN_WORKERS=2
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["sh", "-c", "uvicorn server:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS} --proxy-headers --forwarded-allow-ips '*'"]
+CMD ["sh", "-c", "uvicorn server:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS} --proxy-headers --forwarded-allow-ips '*' --limit-max-requests 1000000"]

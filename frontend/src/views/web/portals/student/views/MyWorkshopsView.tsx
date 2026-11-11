@@ -3,7 +3,7 @@
  */
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, Linking, ActivityIndicator } from 'react-native';
-import { GraduationCap, CheckCircle, Award, ExternalLink, Play, FastForward, CheckCheck, Rocket } from '../iconShims';
+import { GraduationCap, CheckCircle, Award, ExternalLink, Play, FastForward, CheckCheck } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GlassCard } from '../glass';
 import { EmptyState } from '../EmptyState';
@@ -17,24 +17,27 @@ type WS = {
   current_week?: number; completed_at?: string; certificate_url?: string; registered_at: string;
 };
 
-const POPULAR_WORKSHOPS = [
-  { title: "System Design Bootcamp", fee: 2999, weeks: 6, desc: "Master high-scale distributed systems, caching, partitioning, and system design interviews." },
-  { title: "Data Structures Crash Course", fee: 1499, weeks: 4, desc: "Deep dive into arrays, linked lists, trees, graphs, and dynamic programming." },
-  { title: "Frontend Mastery: React + Next.js", fee: 3499, weeks: 8, desc: "Build highly responsive web applications using modern React, Tailwind, and Next.js." },
-  { title: "MLOps Fundamentals", fee: 2499, weeks: 5, desc: "Deploy, monitor, and scale machine learning models in production environments." }
-];
+type UpcomingWorkshop = {
+  event_id: string; title: string; organizer_name?: string; location_city?: string; event_mode?: string;
+  event_date_start?: string; price_type?: string; price_amount?: number; currency?: string; registration_url?: string;
+};
 
 export function MyWorkshopsView() {
   const { isDark } = useTheme();
   const toast = useToast();
-  const { email } = useCurrentUser('workshop1@persona.demo');
+  const { email } = useCurrentUser();
   const { data, refresh } = usePortalData<{ items: WS[]; count: number }>(
     `/student/my-workshops?email=${encodeURIComponent(email)}`,
     { items: [], count: 0 },
-    5_000 // Fast polling (5s) for real-time tracking
+    30_000
   );
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [enrollingTitle, setEnrollingTitle] = useState<string | null>(null);
+  // Real upcoming workshops from the events aggregator (replaces a hardcoded
+  // list of four invented paid workshops with a "Quick Enroll" that took no payment).
+  const { data: upcomingRes, loading: upcomingLoading } = usePortalData<{ results: UpcomingWorkshop[] }>(
+    '/events/search?event_type=workshop&limit=6', { results: [] }, 0,
+  );
+  const upcomingWorkshops = upcomingRes?.results || [];
 
   const handleProgress = async (id: string, action: 'start' | 'advance' | 'complete') => {
     try {
@@ -53,21 +56,6 @@ export function MyWorkshopsView() {
     }
   };
 
-  const handleEnroll = async (title: string, fee: number, weeks: number) => {
-    try {
-      setEnrollingTitle(title);
-      await postPortal('/student/workshops/enroll', {
-        body: { student_email: email, workshop_title: title, fee_inr: fee, weeks: weeks },
-      });
-      refresh();
-      toast.success('Enrolled Successfully', `You are now enrolled in ${title}.`);
-    } catch (e: any) {
-      toast.error('Enrollment failed', e?.message || 'Please try again.');
-    } finally {
-      setEnrollingTitle(null);
-    }
-  };
-
   const items = data?.items || [];
   const completed = items.filter((w) => w.status === 'completed');
   const ongoing = items.filter((w) => w.status !== 'completed');
@@ -77,7 +65,7 @@ export function MyWorkshopsView() {
       <View>
         <Text style={[s.h1, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>My Workshops</Text>
         <Text style={[s.sub, { color: isDark ? SC.muted : '#64748B' }]}>
-          {items.length} total · {completed.length} completed · auto-refreshes every 5s
+          {items.length} total · {completed.length} completed
         </Text>
       </View>
 
@@ -211,39 +199,36 @@ export function MyWorkshopsView() {
         {completed.length === 0 && <Text style={[s.empty, { color: isDark ? SC.muted : '#64748B' }]}>No workshops completed yet.</Text>}
       </Section>
 
-      <Section title="Explore Structured Workshops" isDark={isDark}>
+      <Section title="Upcoming Workshops" isDark={isDark}>
         <View style={{ gap: 12 }}>
-          {POPULAR_WORKSHOPS.map((item) => {
-            const isAlreadyEnrolled = items.some((w) => w.title === item.title);
+          {upcomingLoading && <ActivityIndicator size="small" color={isDark ? SC.accentBright : '#7C3AED'} />}
+          {!upcomingLoading && upcomingWorkshops.length === 0 && (
+            <Text style={[s.empty, { color: isDark ? SC.muted : '#64748B' }]}>No upcoming workshops listed right now. Check the Events tab for hackathons and tech talks.</Text>
+          )}
+          {upcomingWorkshops.map((ev) => {
+            const when = ev.event_date_start ? new Date(ev.event_date_start) : null;
+            const whenLabel = when && !Number.isNaN(when.getTime()) ? when.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'TBD';
+            const price = ev.price_type === 'free' || !ev.price_amount ? 'Free' : `${ev.currency === 'USD' ? '$' : '₹'}${Number(ev.price_amount).toLocaleString()}`;
             return (
-              <GlassCard key={item.title} radius={12} padding={16} style={{ gap: 8 }}>
+              <GlassCard key={ev.event_id} radius={12} padding={16} style={{ gap: 8 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={[s.exploreTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{item.title}</Text>
-                  <Text style={[s.exploreMeta, { color: isDark ? '#9CA3AF' : '#64748B' }]}>{item.weeks} weeks · ₹{item.fee.toLocaleString()}</Text>
+                  <Text style={[s.exploreTitle, { color: isDark ? '#FFFFFF' : '#0F172A', flex: 1 }]} numberOfLines={1}>{ev.title}</Text>
+                  <Text style={[s.exploreMeta, { color: isDark ? '#9CA3AF' : '#64748B' }]}>{whenLabel} · {price}</Text>
                 </View>
-                <Text style={[s.exploreDesc, { color: isDark ? 'rgba(255,255,255,0.75)' : '#475569' }]}>{item.desc}</Text>
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 4 }}>
-                  {enrollingTitle === item.title ? (
-                    <ActivityIndicator size="small" color={isDark ? SC.accentBright : '#7C3AED'} />
-                  ) : isAlreadyEnrolled ? (
-                    <View style={[s.enrolledBadge, isDark ? s.enrolledBadgeDark : s.enrolledBadgeLight]}>
-                      <CheckCircle size={12} color={isDark ? '#60A5FA' : '#2563EB'} />
-                      <Text style={[s.btnText, { color: isDark ? '#60A5FA' : '#2563EB' }]}>Enrolled</Text>
-                    </View>
-                  ) : (
+                <Text style={[s.exploreDesc, { color: isDark ? 'rgba(255,255,255,0.75)' : '#475569' }]}>
+                  {[ev.organizer_name, ev.location_city || (ev.event_mode === 'virtual' ? 'Online' : '')].filter(Boolean).join(' · ')}
+                </Text>
+                {!!ev.registration_url && (
+                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 4 }}>
                     <Pressable
-                      onPress={() => handleEnroll(item.title, item.fee, item.weeks)}
-                      style={({ hovered }: any) => [
-                        s.actionBtn,
-                        s.enrollBtn,
-                        hovered && { opacity: 0.88, transform: [{ scale: 1.02 }] }
-                      ]}
+                      onPress={() => Linking.openURL(ev.registration_url!)}
+                      style={({ hovered }: any) => [s.actionBtn, s.enrollBtn, hovered && { opacity: 0.88, transform: [{ scale: 1.02 }] }]}
                     >
-                      <Rocket size={13} color="#FFFFFF" />
-                      <Text style={s.btnTextWhite}>Quick Enroll</Text>
+                      <ExternalLink size={13} color="#FFFFFF" />
+                      <Text style={s.btnTextWhite}>Register</Text>
                     </Pressable>
-                  )}
-                </View>
+                  </View>
+                )}
               </GlassCard>
             );
           })}

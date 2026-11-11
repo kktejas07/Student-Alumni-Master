@@ -1,0 +1,103 @@
+{
+  "total": 9,
+  "passed": 9,
+  "failed": 0,
+  "results": [
+    {
+      "id": "CHK-01",
+      "category": "Registration RBAC",
+      "objective": "Reject all privileged roles and aliases in public registration",
+      "expected": "HTTP 403 Forbidden for all probe variations",
+      "actual": "All 10 probes returned 403",
+      "status": "PASS",
+      "details": {
+        "probes": [
+          "admin",
+          "super_admin",
+          "administrator",
+          "superadmin",
+          "college_admin",
+          "system_admin",
+          "root",
+          " ADMIN ",
+          "SuperAdmin",
+          "admin "
+        ]
+      }
+    },
+    {
+      "id": "CHK-02",
+      "category": "Registration Workflows",
+      "objective": "Legitimate registration for student, alumni, mentor, college",
+      "expected": "HTTP 200 with consistent DB role and JWT claim",
+      "actual": "All 4 approved roles registered successfully",
+      "status": "PASS",
+      "details": {}
+    },
+    {
+      "id": "CHK-03",
+      "category": "Email Detection",
+      "objective": "Verify check-email GET/POST returns solely exists boolean without PII/roles",
+      "expected": "HTTP 200, {'exists': bool}, zero PII or role keys",
+      "actual": "Sanitized strictly to {'exists': bool}",
+      "status": "PASS",
+      "details": {}
+    },
+    {
+      "id": "CHK-04",
+      "category": "Token Revocation",
+      "objective": "Token revocation after POST /api/auth/logout",
+      "expected": "Pre-logout HTTP 200, Logout HTTP 200, Post-logout HTTP 401",
+      "actual": "Pre: 200, Post: 401 (Revoked)",
+      "status": "PASS",
+      "details": {}
+    },
+    {
+      "id": "CHK-05",
+      "category": "Token Rotation",
+      "objective": "Refresh token rotation and single-use invalidation",
+      "expected": "Rotation succeeds (200), re-use of previous refresh token fails (401)",
+      "actual": "Rotated successfully, re-use rejected with 401",
+      "status": "PASS",
+      "details": {}
+    },
+    {
+      "id": "CHK-06",
+      "category": "Abuse Protection",
+      "objective": "Login brute force throttling (5 failed attempts -> 429) with no collateral lockout",
+      "expected": "HTTP 429 with Retry-After header; other accounts return 401 (not locked out)",
+      "actual": "429 triggered with Retry-After=60s; other account returns 401",
+      "status": "PASS",
+      "details": {}
+    },
+    {
+      "id": "CHK-07",
+      "category": "Tenant RBAC",
+      "objective": "Enforce server-side authorization on college portal APIs",
+      "expected": "Non-college returns 403, unauthenticated returns 401, college user allowed",
+      "actual": "Non-college: 403, Unauth: 401, College: 200",
+      "status": "PASS",
+      "details": {}
+    },
+    {
+      "id": "CHK-08",
+      "category": "Cookie Hardening",
+      "objective": "Verify HttpOnly, SameSite=Lax, and Path scoping on refresh cookie",
+      "expected": "Set-Cookie includes HttpOnly, SameSite=Lax, Path=/api/auth",
+      "actual": "Cookie headers verified with required security attributes",
+      "status": "PASS",
+      "details": {
+        "raw_cookie": "scd_refresh_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YWNkZTg0MDBlN2ExN2Q4ZTU2OGU0YjUiLCJqdGkiOiJjNWE0NjAyMDMyNDllNmU1ODI4OTUyY2FjNWU3ODVkZSIsImV4cCI6MTc5NDQ3MTIzMiwidHlwZSI6InJlZnJlc2gifQ.7mCx-0Lj_2AcEV79OatDgnkmpkIzV1pOMfEXdDc3Ai0; HttpOnly; Max-Age=2592000; Path=/api/auth; SameSite=lax"
+      }
+    },
+    {
+      "id": "CHK-09",
+      "category": "Registration Rate Limiting",
+      "objective": "Enforce 60/min registration limit with HTTP 429 and Retry-After",
+      "expected": "HTTP 429 triggered with Retry-After header",
+      "actual": "HTTP 429 triggered with Retry-After: 60s",
+      "status": "PASS",
+      "details": {}
+    }
+  ]
+}

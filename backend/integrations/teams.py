@@ -64,7 +64,7 @@ async def teams_status() -> Dict[str, Any]:
         except Exception:
             pass
     return {
-        "ms_teams": "live" if (has_env or has_tool) else "mock",
+        "ms_teams": "live" if (has_env or has_tool) else "not_configured",
         "tenant_id": bool(TENANT_ID),
         "client_id": bool(CLIENT_ID),
         "client_secret": bool(CLIENT_SECRET),
@@ -138,13 +138,10 @@ async def create_teams_meeting(
                 "Check that the client secret is valid and Application API permissions "
                 "include Calendars.ReadWrite + OnlineMeetings.ReadWrite with admin consent."
             )
-        return _mock_meeting(
-            title=title,
-            start_time=start_time,
-            duration_minutes=duration_minutes,
-            attendee_emails=attendee_emails or [],
-            seat_limit=seat_limit,
-            description=description,
+        raise RuntimeError(
+            "[teams] Microsoft Teams is not configured. Set MS_TEAMS_TENANT_ID, "
+            "MS_TEAMS_CLIENT_ID and MS_TEAMS_CLIENT_SECRET (or connect the ms-teams "
+            "tool from the admin marketplace) before creating Teams meetings."
         )
 
     end_time = start_time + timedelta(minutes=duration_minutes)
@@ -238,24 +235,6 @@ async def create_teams_meeting(
     )
 
 
-def _mock_meeting(**kwargs: Any) -> Dict[str, Any]:
-    """Generate a mock meeting response when Teams API isn't configured."""
-    now = datetime.now(timezone.utc)
-    join_token = secrets.token_urlsafe(16)
-    return {
-        "success": True,
-        "meeting_id": f"teams-mock-{join_token[:8]}",
-        "join_url": f"https://join.microsoft.com/mock-teams-session/{join_token}",
-        "subject": kwargs.get("title", "ECHO Session"),
-        "start": kwargs.get("start_time", now).isoformat() if isinstance(kwargs.get("start_time"), datetime) else now.isoformat(),
-        "end": (kwargs.get("start_time", now) + timedelta(minutes=kwargs.get("duration_minutes", 60))).isoformat() if isinstance(kwargs.get("start_time"), datetime) else (now + timedelta(minutes=60)).isoformat(),
-        "attendees": kwargs.get("attendee_emails", []),
-        "seat_limit": kwargs.get("seat_limit"),
-        "registrations": [],
-        "mock": True,
-    }
-
-
 async def get_meeting_attendance(meeting_id: str, attendee_email: str | None = None) -> List[Dict[str, Any]]:
     """Fetch attendance for a Teams meeting.
 
@@ -263,7 +242,8 @@ async def get_meeting_attendance(meeting_id: str, attendee_email: str | None = N
     """
     token = await _get_app_token()
     if not token:
-        return _mock_attendance(meeting_id, attendee_email)
+        # Teams is not configured: no real attendance records exist. Never fabricate attendees.
+        return []
 
     try:
         async with httpx.AsyncClient(timeout=15) as c:
@@ -312,17 +292,7 @@ async def get_meeting_attendance(meeting_id: str, attendee_email: str | None = N
     except Exception as e:
         logger.error(f"[teams] Attendance fetch error: {e}")
 
-    return _mock_attendance(meeting_id, attendee_email)
-
-
-def _mock_attendance(meeting_id: str, attendee_email: str | None) -> List[Dict[str, Any]]:
-    return [{
-        "email": attendee_email or "attendee@example.com",
-        "display_name": (attendee_email or "attendee@example.com").split("@")[0],
-        "join_time": "2024-01-01T10:00:00Z",
-        "leave_time": "2024-01-01T11:00:00Z",
-        "duration_seconds": 3600,
-    }]
+    return []
 
 
 async def create_meeting_registration(

@@ -45,7 +45,7 @@ import {
   AlertCircle,
 } from 'lucide-react-native';
 
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import {
   GRAD,
   GradientButton,
@@ -97,7 +97,7 @@ const Label = ({ children }: { children: React.ReactNode }) => (
 
 export function CareersAdminView() {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const { toast, flash, hide } = useToast();
 
   const [activeTab, setActiveTab] = useState<'openings' | 'applications'>('openings');
@@ -174,7 +174,7 @@ export function CareersAdminView() {
       });
       setOpenings(res?.openings || []);
     } catch (e: any) {
-      flash(e?.message || 'Failed to load career openings', 'err');
+      flash(e?.message || 'Failed to load career openings', 'error');
     } finally {
       setOpeningsLoading(false);
     }
@@ -192,7 +192,7 @@ export function CareersAdminView() {
       });
       setApplications(res?.applications || []);
     } catch (e: any) {
-      flash(e?.message || 'Failed to load applications', 'err');
+      flash(e?.message || 'Failed to load applications', 'error');
     } finally {
       setApplicationsLoading(false);
     }
@@ -257,7 +257,7 @@ export function CareersAdminView() {
   // Save Opening
   const handleSaveOpening = async () => {
     if (!openingForm.title.trim() || !openingForm.company_name.trim() || !openingForm.description.trim()) {
-      flash('Title, Company, and Description are required.', 'err');
+      flash('Title, Company, and Description are required.', 'error');
       return;
     }
 
@@ -298,17 +298,17 @@ export function CareersAdminView() {
 
       if (editingOpening) {
         await api.updateAdminCareer(editingOpening.id, payload);
-        flash('Career opening updated successfully.', 'ok');
+        flash('Career opening updated successfully.', 'success');
       } else {
         await api.createAdminCareer(payload);
-        flash('Career opening created successfully.', 'ok');
+        flash('Career opening created successfully.', 'success');
       }
 
       setOpeningModalVisible(false);
       loadOpenings();
       loadStats();
     } catch (e: any) {
-      flash(e?.message || 'Failed to save opening', 'err');
+      flash(e?.message || 'Failed to save opening', 'error');
     } finally {
       setSavingOpening(false);
     }
@@ -318,22 +318,22 @@ export function CareersAdminView() {
   const handlePublishOpening = async (id: string) => {
     try {
       await api.publishAdminCareer(id);
-      flash('Opening published successfully.', 'ok');
+      flash('Opening published successfully.', 'success');
       loadOpenings();
       loadStats();
     } catch (e: any) {
-      flash(e?.message || 'Failed to publish opening', 'err');
+      flash(e?.message || 'Failed to publish opening', 'error');
     }
   };
 
   const handleCloseOpening = async (id: string) => {
     try {
       await api.closeAdminCareer(id);
-      flash('Opening closed successfully.', 'ok');
+      flash('Opening closed successfully.', 'success');
       loadOpenings();
       loadStats();
     } catch (e: any) {
-      flash(e?.message || 'Failed to close opening', 'err');
+      flash(e?.message || 'Failed to close opening', 'error');
     }
   };
 
@@ -343,11 +343,11 @@ export function CareersAdminView() {
     }
     try {
       await api.deleteAdminCareer(id);
-      flash('Career opening deleted.', 'ok');
+      flash('Career opening deleted.', 'success');
       loadOpenings();
       loadStats();
     } catch (e: any) {
-      flash(e?.message || 'Failed to delete opening', 'err');
+      flash(e?.message || 'Failed to delete opening', 'error');
     }
   };
 
@@ -360,7 +360,7 @@ export function CareersAdminView() {
       setAppReviewStatus(app.status || 'APPLIED');
       setAppAdminNotes(app.admin_notes || '');
     } catch (e: any) {
-      flash(e?.message || 'Failed to load application details', 'err');
+      flash(e?.message || 'Failed to load application details', 'error');
     } finally {
       setAppDetailLoading(false);
     }
@@ -376,11 +376,11 @@ export function CareersAdminView() {
         admin_notes: appAdminNotes.trim(),
       });
       setSelectedApp(updated);
-      flash(`Application updated to ${appReviewStatus}.`, 'ok');
+      flash(`Application updated to ${appReviewStatus}.`, 'success');
       loadApplications();
       loadStats();
     } catch (e: any) {
-      flash(e?.message || 'Failed to update application', 'err');
+      flash(e?.message || 'Failed to update application', 'error');
     } finally {
       setUpdatingApp(false);
     }
@@ -388,44 +388,34 @@ export function CareersAdminView() {
 
   return (
     <View style={s.root}>
-      {toast && <Toast text={toast.text} type={toast.type} onDismiss={hide} />}
+      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
 
       {/* KPI Section */}
       <View style={s.kpiRow}>
         <KpiTile
           label="Total Openings"
-          value={stats.total_openings}
-          hint="First-party opportunities"
+          value={String(stats.total_openings)}
           Icon={Briefcase}
-          tone="accent"
         />
         <KpiTile
           label="Published"
-          value={stats.published_openings}
-          hint="Live on public page"
+          value={String(stats.published_openings)}
           Icon={CheckCircle2}
-          tone="emerald"
         />
         <KpiTile
           label="Drafts"
-          value={stats.draft_openings}
-          hint="Unpublished openings"
+          value={String(stats.draft_openings)}
           Icon={Pencil}
-          tone="amber"
         />
         <KpiTile
           label="Closed"
-          value={stats.closed_openings}
-          hint="Archived / expired"
+          value={String(stats.closed_openings)}
           Icon={XCircle}
-          tone="rose"
         />
         <KpiTile
           label="Applications"
-          value={stats.total_applications}
-          hint="Direct candidate submissions"
+          value={String(stats.total_applications)}
           Icon={FileText}
-          tone="blue"
         />
       </View>
 
@@ -435,7 +425,7 @@ export function CareersAdminView() {
           style={[s.tabButton, activeTab === 'openings' && s.tabButtonActive]}
           onPress={() => setActiveTab('openings')}
         >
-          <Briefcase size={15} color={activeTab === 'openings' ? '#FFFFFF' : SAC.muted} />
+          <Briefcase size={15} color={activeTab === 'openings' ? '#FFFFFF' : T.muted} />
           <Text style={[s.tabButtonText, activeTab === 'openings' && s.tabButtonTextActive]}>
             Career Openings ({stats.total_openings})
           </Text>
@@ -445,7 +435,7 @@ export function CareersAdminView() {
           style={[s.tabButton, activeTab === 'applications' && s.tabButtonActive]}
           onPress={() => setActiveTab('applications')}
         >
-          <FileText size={15} color={activeTab === 'applications' ? '#FFFFFF' : SAC.muted} />
+          <FileText size={15} color={activeTab === 'applications' ? '#FFFFFF' : T.muted} />
           <Text style={[s.tabButtonText, activeTab === 'applications' && s.tabButtonTextActive]}>
             Candidate Applications ({stats.total_applications})
           </Text>
@@ -457,11 +447,11 @@ export function CareersAdminView() {
         <Card style={s.tableCard}>
           <View style={s.tableHeaderRow}>
             <View style={s.searchWrap}>
-              <Search size={14} color={SAC.dim} style={{ marginRight: 8 }} />
+              <Search size={14} color={T.dim} style={{ marginRight: 8 }} />
               <TextInput
                 style={s.searchInput}
                 placeholder="Search openings..."
-                placeholderTextColor={SAC.dim}
+                placeholderTextColor={T.dim}
                 value={openingsSearch}
                 onChangeText={setOpeningsSearch}
                 onSubmitEditing={loadOpenings}
@@ -496,14 +486,14 @@ export function CareersAdminView() {
 
           {openingsLoading ? (
             <View style={s.centerLoading}>
-              <ActivityIndicator size="small" color={SAC.accent} />
-              <Text style={{ color: SAC.muted, fontSize: 13, marginTop: 8 }}>Loading openings...</Text>
+              <ActivityIndicator size="small" color={T.accent} />
+              <Text style={{ color: T.muted, fontSize: 13, marginTop: 8 }}>Loading openings...</Text>
             </View>
           ) : openings.length === 0 ? (
             <EmptyState
               title="No career openings found"
-              hint="Create your first direct student career opening."
-              Icon={Briefcase}
+              sub="Create your first direct student career opening."
+              icon={Briefcase}
             />
           ) : (
             <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
@@ -548,7 +538,7 @@ export function CareersAdminView() {
 
                       <View style={{ width: 100 }}>
                         <StatusPill
-                          tone={isPub ? 'emerald' : isDraft ? 'amber' : 'rose'}
+                          kind={isPub ? 'success' : isDraft ? 'warn' : 'danger'}
                           label={op.status}
                         />
                       </View>
@@ -567,7 +557,7 @@ export function CareersAdminView() {
 
                       <View style={[s.actionsCell, { width: 200 }]}>
                         <Pressable style={s.actionBtn} onPress={() => openEditOpeningModal(op)}>
-                          <Pencil size={13} color={SAC.muted} />
+                          <Pencil size={13} color={T.muted} />
                         </Pressable>
 
                         {isDraft && (
@@ -615,11 +605,11 @@ export function CareersAdminView() {
         <Card style={s.tableCard}>
           <View style={s.tableHeaderRow}>
             <View style={s.searchWrap}>
-              <Search size={14} color={SAC.dim} style={{ marginRight: 8 }} />
+              <Search size={14} color={T.dim} style={{ marginRight: 8 }} />
               <TextInput
                 style={s.searchInput}
                 placeholder="Search candidate name or email..."
-                placeholderTextColor={SAC.dim}
+                placeholderTextColor={T.dim}
                 value={applicationSearch}
                 onChangeText={setApplicationSearch}
                 onSubmitEditing={loadApplications}
@@ -659,14 +649,14 @@ export function CareersAdminView() {
 
           {applicationsLoading ? (
             <View style={s.centerLoading}>
-              <ActivityIndicator size="small" color={SAC.accent} />
-              <Text style={{ color: SAC.muted, fontSize: 13, marginTop: 8 }}>Loading applications...</Text>
+              <ActivityIndicator size="small" color={T.accent} />
+              <Text style={{ color: T.muted, fontSize: 13, marginTop: 8 }}>Loading applications...</Text>
             </View>
           ) : applications.length === 0 ? (
             <EmptyState
               title="No applications found"
-              hint="Candidate submissions will appear here once students apply."
-              Icon={FileText}
+              sub="Candidate submissions will appear here once students apply."
+              icon={FileText}
             />
           ) : (
             <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
@@ -680,16 +670,16 @@ export function CareersAdminView() {
                 </View>
 
                 {applications.map((app) => {
-                  const tone =
+                  const pillKind: import('../applekit').PillKind =
                     app.status === 'SELECTED'
-                      ? 'emerald'
+                      ? 'success'
                       : app.status === 'SHORTLISTED' || app.status === 'INTERVIEW'
-                      ? 'accent'
+                      ? 'brand'
                       : app.status === 'UNDER_REVIEW'
-                      ? 'amber'
+                      ? 'warn'
                       : app.status === 'REJECTED'
-                      ? 'rose'
-                      : 'muted';
+                      ? 'danger'
+                      : 'neutral';
 
                   return (
                     <View key={app.id || app._id} style={s.trRow}>
@@ -716,7 +706,7 @@ export function CareersAdminView() {
                       </Text>
 
                       <View style={{ width: 120 }}>
-                        <StatusPill tone={tone as any} label={app.status?.replace('_', ' ')} />
+                        <StatusPill kind={pillKind} label={app.status?.replace('_', ' ')} />
                       </View>
 
                       <View style={[s.actionsCell, { width: 120, justifyContent: 'flex-end' }]}>
@@ -749,7 +739,7 @@ export function CareersAdminView() {
                   {editingOpening ? 'Edit Career Opening' : 'Create First-Party Career Opening'}
                 </Text>
                 <Pressable onPress={() => setOpeningModalVisible(false)} style={s.closeModalBtn}>
-                  <X size={18} color={SAC.text} />
+                  <X size={18} color={T.text} />
                 </Pressable>
               </View>
 
@@ -941,12 +931,12 @@ export function CareersAdminView() {
                       <View
                         style={[
                           s.checkboxBox,
-                          openingForm.featured && { backgroundColor: SAC.accent, borderColor: SAC.accent },
+                          openingForm.featured && { backgroundColor: T.accent, borderColor: T.accent },
                         ]}
                       >
                         {openingForm.featured && <CheckCircle2 size={13} color="#FFFFFF" />}
                       </View>
-                      <Text style={{ color: SAC.text, fontSize: 13, fontFamily: FONTS.medium }}>
+                      <Text style={{ color: T.text, fontSize: 13, fontFamily: FONTS.med }}>
                         Mark as Featured Opportunity
                       </Text>
                     </Pressable>
@@ -961,8 +951,8 @@ export function CareersAdminView() {
                   disabled={savingOpening}
                   style={{ paddingHorizontal: 16, paddingVertical: 9 }}
                 >
-                  <X size={14} color={SAC.muted} />
-                  <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 }}>Cancel</Text>
+                  <X size={14} color={T.muted} />
+                  <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 13 }}>Cancel</Text>
                 </SecondaryButton>
                 <GradientButton
                   title={savingOpening ? 'Saving...' : editingOpening ? 'Update Opening' : 'Create Opening'}
@@ -989,12 +979,12 @@ export function CareersAdminView() {
               <View style={s.modalHeader}>
                 <View>
                   <Text style={s.modalTitle}>Application Review</Text>
-                  <Text style={{ color: SAC.muted, fontSize: 12 }}>
+                  <Text style={{ color: T.muted, fontSize: 12 }}>
                     Candidate submission for {selectedApp.opening?.title || selectedApp.career_opening_id}
                   </Text>
                 </View>
                 <Pressable onPress={() => setSelectedApp(null)} style={s.closeModalBtn}>
-                  <X size={18} color={SAC.text} />
+                  <X size={18} color={T.text} />
                 </Pressable>
               </View>
 
@@ -1004,22 +994,22 @@ export function CareersAdminView() {
                   <Text style={s.reviewSectionTitle}>Candidate Profile</Text>
                   <View style={s.profileGrid}>
                     <View style={s.profileItem}>
-                      <User size={14} color={SAC.dim} />
+                      <User size={14} color={T.dim} />
                       <Text style={s.profileVal}>{selectedApp.student_name}</Text>
                     </View>
                     <View style={s.profileItem}>
-                      <Mail size={14} color={SAC.dim} />
+                      <Mail size={14} color={T.dim} />
                       <Text style={s.profileVal}>{selectedApp.student_email}</Text>
                     </View>
                     {selectedApp.student_phone && (
                       <View style={s.profileItem}>
-                        <Phone size={14} color={SAC.dim} />
+                        <Phone size={14} color={T.dim} />
                         <Text style={s.profileVal}>{selectedApp.student_phone}</Text>
                       </View>
                     )}
                     {selectedApp.student_profile?.college && (
                       <View style={s.profileItem}>
-                        <Building2 size={14} color={SAC.dim} />
+                        <Building2 size={14} color={T.dim} />
                         <Text style={s.profileVal}>{selectedApp.student_profile.college}</Text>
                       </View>
                     )}
@@ -1037,14 +1027,14 @@ export function CareersAdminView() {
                           }
                         }}
                       >
-                        <FileText size={15} color={SAC.accent} />
-                        <Text style={{ color: SAC.accent, fontSize: 13, fontWeight: '600' }} numberOfLines={1}>
+                        <FileText size={15} color={T.accent} />
+                        <Text style={{ color: T.accent, fontSize: 13, fontWeight: '600' }} numberOfLines={1}>
                           {selectedApp.resume_url}
                         </Text>
                       </Pressable>
                     </View>
                   ) : (
-                    <Text style={{ color: SAC.dim, fontSize: 12, marginTop: 8 }}>
+                    <Text style={{ color: T.dim, fontSize: 12, marginTop: 8 }}>
                       No resume URL provided.
                     </Text>
                   )}
@@ -1054,7 +1044,7 @@ export function CareersAdminView() {
                     <View style={{ marginTop: 12 }}>
                       <Label>Cover Letter / Candidate Note</Label>
                       <View style={s.coverLetterBox}>
-                        <Text style={{ color: SAC.text, fontSize: 13, lineHeight: 20 }}>
+                        <Text style={{ color: T.text, fontSize: 13, lineHeight: 20 }}>
                           {selectedApp.cover_letter}
                         </Text>
                       </View>
@@ -1114,10 +1104,10 @@ export function CareersAdminView() {
                         <View key={h.id || idx} style={s.timelineItem}>
                           <View style={s.timelineDot} />
                           <View style={{ flex: 1 }}>
-                            <Text style={{ color: SAC.text, fontSize: 13, fontWeight: '600' }}>
+                            <Text style={{ color: T.text, fontSize: 13, fontWeight: '600' }}>
                               Status set to {h.new_status}
                             </Text>
-                            <Text style={{ color: SAC.dim, fontSize: 11 }}>
+                            <Text style={{ color: T.dim, fontSize: 11 }}>
                               {h.changed_at ? new Date(h.changed_at).toLocaleString() : ''}
                               {h.note ? ` — ${h.note}` : ''}
                             </Text>
@@ -1135,8 +1125,8 @@ export function CareersAdminView() {
                   onPress={() => setSelectedApp(null)}
                   style={{ paddingHorizontal: 16, paddingVertical: 9 }}
                 >
-                  <X size={14} color={SAC.muted} />
-                  <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 }}>Close</Text>
+                  <X size={14} color={T.muted} />
+                  <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 13 }}>Close</Text>
                 </SecondaryButton>
                 <GradientButton
                   title={updatingApp ? 'Saving...' : 'Save Status & Notes'}
@@ -1193,7 +1183,7 @@ const s = StyleSheet.create({
   },
   tabButtonText: {
     fontSize: 13,
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.semi,
     color: SAC.muted,
   },
   tabButtonTextActive: {
@@ -1249,7 +1239,7 @@ const s = StyleSheet.create({
   statusChipText: {
     fontSize: 12,
     color: SAC.muted,
-    fontFamily: FONTS.medium,
+    fontFamily: FONTS.med,
   },
   statusChipTextActive: {
     color: '#FFFFFF',
@@ -1302,7 +1292,7 @@ const s = StyleSheet.create({
   roleTitle: {
     color: SAC.text,
     fontSize: 13.5,
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.semi,
   },
   roleSub: {
     color: SAC.dim,
@@ -1408,7 +1398,7 @@ const s = StyleSheet.create({
   choiceChipText: {
     color: SAC.muted,
     fontSize: 12,
-    fontFamily: FONTS.medium,
+    fontFamily: FONTS.med,
   },
   choiceChipTextActive: {
     color: '#FFFFFF',
@@ -1469,7 +1459,7 @@ const s = StyleSheet.create({
   profileVal: {
     color: SAC.text,
     fontSize: 12.5,
-    fontFamily: FONTS.medium,
+    fontFamily: FONTS.med,
   },
   resumeBtn: {
     flexDirection: 'row',

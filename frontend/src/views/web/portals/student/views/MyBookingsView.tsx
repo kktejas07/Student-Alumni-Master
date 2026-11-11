@@ -26,7 +26,7 @@ function fmtDate(iso?: string | null): string {
 
 export function MyBookingsView() {
   const { isDark } = useTheme();
-  const { email } = useCurrentUser('booked1@persona.demo');
+  const { email } = useCurrentUser();
   const toast = useToast();
   const { data, refresh } = usePortalData<{ items: Booking[]; count: number }>(
     `/student/my-bookings?email=${encodeURIComponent(email)}`,

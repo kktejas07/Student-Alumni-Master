@@ -1,8 +1,7 @@
-// @ts-nocheck
 /**
  * DashboardView — Pixel-perfect implementation of the Complete Student Alumni
  * Web Dashboard specification (Bundle 2).
- * 
+ *
  * Contains:
  *  - HackWave 3.0 & Voice of Generations Hero Carousel with live indicators
  *  - 5 Collab Exclusive Coupon Cards with shimmer sweep
@@ -27,19 +26,38 @@
  */
 
 import React, { useState, useEffect, useContext } from 'react';
-import { Check, X, Star } from 'lucide-react';
+import { Check, X, Star, Briefcase, Ticket } from 'lucide-react';
 import { View, Text, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StudentPortalNavContext } from '../StudentPortalNavContext';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { request } from '@/src/models/services/api';
+import { deriveReadiness } from '@/src/lib/careerDerivations';
 
 export function DashboardView() {
   const router = useRouter();
   const portalNav = useContext(StudentPortalNavContext);
   const authUser = useAuthStore((u) => u.user);
   const { isDark } = useTheme();
+
+  // Live profile/completion + skill-intelligence (same sources Career AI reads,
+  // so the two pages always agree on Profile Strength and Readiness).
+  const [profileStrength, setProfileStrength] = useState<number | null>(null);
+  const [readiness, setReadiness] = useState<{ score: number; level: string } | null>(null);
+  useEffect(() => {
+    request<any>('/users/me/completion')
+      .then((res: any) => setProfileStrength(res?.percentage != null ? Number(res.percentage) : null))
+      .catch(() => {});
+    request<any>('/users/me/skill-intelligence')
+      .then((intel: any) => {
+        const d = deriveReadiness(intel);
+        setReadiness({ score: d.readinessScore, level: d.readinessLevel });
+      })
+      .catch(() => {});
+  }, []);
+  const readinessScore = readiness ? readiness.score : null;
+  const readinessLevel = readiness ? readiness.level : 'Builder';
 
   // Tabs: 'opportunities' | 'intelligence'
   const [activeTab, setActiveTab] = useState<'opportunities' | 'intelligence'>('opportunities');
@@ -478,7 +496,7 @@ export function DashboardView() {
                 gap: '8px'
               }}
             >
-              <span>💼</span> LinkedIn Page
+              <Briefcase size={16} /> LinkedIn Page
             </a>
           </div>
         </div>
@@ -500,8 +518,8 @@ export function DashboardView() {
           onClick={() => window.location.href = '/student-portal?tab=wallet'}
         >
           <div>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: C.textPrimary, marginBottom: '4px' }}>
-              🎫 Browse Marketplace & Partner Coupons
+            <div style={{ fontSize: '15px', fontWeight: 700, color: C.textPrimary, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Ticket size={18} color={isDark ? '#A78BFA' : '#7C5CFC'} /> Browse Marketplace & Partner Coupons
             </div>
             <div style={{ fontSize: '13px', color: C.textSecondary }}>
               Find discount codes for food, beverages, partners, and more — all in your wallet.
@@ -518,12 +536,12 @@ export function DashboardView() {
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px' }}>
             <div>
               <div style={{ fontSize: '13px', fontWeight: 600, color: isDark ? '#A78BFA' : '#7C5CFC', marginBottom: '10px' }}>Profile Strength</div>
-              <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1, color: C.textPrimary }}>50%</div>
-              <div style={{ fontSize: '12.5px', color: C.textSecondary, marginTop: '8px' }}>Keep going!</div>
+              <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1, color: C.textPrimary }}>{profileStrength != null ? `${profileStrength}%` : '—'}</div>
+              <div style={{ fontSize: '12.5px', color: C.textSecondary, marginTop: '8px' }}>{profileStrength == null ? 'Complete your profile' : profileStrength < 50 ? 'Keep going!' : 'Great progress!'}</div>
             </div>
             <svg width="46" height="46" viewBox="0 0 46 46" style={{ flex: 'none' }}>
               <circle cx="23" cy="23" r="19" style={{ fill: 'none', stroke: C.bgTrack, strokeWidth: 4 }} />
-              <circle cx="23" cy="23" r="19" style={{ fill: 'none', stroke: '#7C5CFC', strokeWidth: 4, strokeLinecap: 'round', transform: 'rotate(-90deg)', transformOrigin: '23px 23px', strokeDasharray: 119.4, strokeDashoffset: 59.7 }} />
+              <circle cx="23" cy="23" r="19" style={{ fill: 'none', stroke: '#7C5CFC', strokeWidth: 4, strokeLinecap: 'round', transform: 'rotate(-90deg)', transformOrigin: '23px 23px', strokeDasharray: 119.4, strokeDashoffset: profileStrength != null ? 119.4 * (1 - Math.min(100, Math.max(0, profileStrength)) / 100) : 119.4 }} />
             </svg>
           </div>
         </div>
@@ -537,7 +555,7 @@ export function DashboardView() {
               <div style={{ fontSize: '12.5px', color: C.textSecondary, marginTop: '8px' }}>0 applied</div>
             </div>
             <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: isDark ? 'rgba(124,92,252,.14)' : 'rgba(124,92,252,.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: isDark ? '#A78BFA' : '#7C5CFC' }}>
-              
+
             </span>
           </div>
         </div>
@@ -551,7 +569,7 @@ export function DashboardView() {
               <div style={{ fontSize: '12.5px', color: C.textSecondary, marginTop: '8px' }}>Connections</div>
             </div>
             <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: isDark ? 'rgba(16, 185, 129, 0.13)' : 'rgba(16, 185, 129, 0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: isDark ? '#34D399' : '#059669' }}>
-              
+
             </span>
           </div>
         </div>
@@ -565,7 +583,7 @@ export function DashboardView() {
               <div style={{ fontSize: '12.5px', color: C.textSecondary, marginTop: '8px' }}>Registered</div>
             </div>
             <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: isDark ? 'rgba(240, 97, 107, 0.13)' : 'rgba(240, 97, 107, 0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: isDark ? '#F0616B' : '#E11D48' }}>
-              
+
             </span>
           </div>
         </div>
@@ -626,7 +644,7 @@ export function DashboardView() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '22px', marginBottom: '22px' }}>
               <svg width="112" height="112" viewBox="0 0 112 112" style={{ flex: 'none' }}>
                 <circle cx="56" cy="56" r="46" style={{ fill: 'none', stroke: C.bgTrack, strokeWidth: 9 }} />
-                <circle cx="56" cy="56" r="46" style={{ fill: 'none', stroke: 'url(#dbRingGrad)', strokeWidth: 9, strokeLinecap: 'round', transform: 'rotate(-90deg)', transformOrigin: '56px 56px', strokeDasharray: 289, strokeDashoffset: 185 }} />
+                <circle cx="56" cy="56" r="46" style={{ fill: 'none', stroke: 'url(#dbRingGrad)', strokeWidth: 9, strokeLinecap: 'round', transform: 'rotate(-90deg)', transformOrigin: '56px 56px', strokeDasharray: 289, strokeDashoffset: readinessScore != null ? 289 * (1 - Math.min(100, Math.max(0, readinessScore)) / 100) : 289 }} />
                 <defs>
                   <linearGradient id="dbRingGrad" x1="0" y1="0" x2="1" y2="1">
                     <stop offset="0" stopColor="#8B7BFF" />
@@ -634,11 +652,11 @@ export function DashboardView() {
                   </linearGradient>
                 </defs>
                 <text x="56" y="63" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '26px', fontWeight: 700, fill: C.textPrimary }}>
-                  36%
+                  {readinessScore != null ? `${readinessScore}%` : '—'}
                 </text>
               </svg>
               <div>
-                <div style={{ fontSize: '22px', fontWeight: 700, letterSpacing: '-.6px', color: C.textPrimary }}>Builder</div>
+                <div style={{ fontSize: '22px', fontWeight: 700, letterSpacing: '-.6px', color: C.textPrimary }}>{readinessLevel}</div>
                 <div style={{ fontSize: '13px', color: C.textSecondary, marginTop: '3px' }}> Industry Ready</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '12px', fontSize: '12px', fontWeight: 600, color: isDark ? '#34D399' : '#059669', background: isDark ? 'rgba(16, 185, 129, 0.13)' : 'rgba(16, 185, 129, 0.10)', borderRadius: '7px', padding: '5px 9px' }}>
                   ↗ +8% this week
@@ -708,21 +726,21 @@ export function DashboardView() {
               <div className="db-card" style={{ background: C.bgCard, padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '400px', border: `1px solid ${C.borderCard}` }}>
                 <div style={{ fontSize: '18px', fontWeight: 600, color: C.textPrimary, marginBottom: '12px' }}>Confirm Application</div>
                 <div style={{ fontSize: '14px', color: C.textSecondary, marginBottom: '24px', lineHeight: '1.5' }}>
-                  We redirected you to the external application page for <span style={{ color: C.textPrimary, fontWeight: 600 }}>{applyModalJob.title}</span> at <span style={{ color: C.textPrimary, fontWeight: 600 }}>{applyModalJob.company}</span>. 
+                  We redirected you to the external application page for <span style={{ color: C.textPrimary, fontWeight: 600 }}>{applyModalJob.title}</span> at <span style={{ color: C.textPrimary, fontWeight: 600 }}>{applyModalJob.company}</span>.
                   <br /><br />
                   Once you finish submitting your details there, confirm it here to track its progress in your dashboard.
                 </div>
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                  <button 
+                  <button
                     onClick={() => setApplyModalJob(null)}
                     style={{ padding: '10px 16px', borderRadius: '8px', background: 'transparent', color: C.textSecondary, border: 'none', cursor: 'pointer', fontWeight: 600 }}
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     onClick={async () => {
                       try {
-                        await request(`/student/internships/${applyModalJob.id || applyModalJob.job_id}/apply`, { 
+                        await request(`/student/internships/${applyModalJob.id || applyModalJob.job_id}/apply`, {
                           method: 'POST',
                           body: { student_email: authUser?.email || undefined }
                         });
@@ -750,7 +768,7 @@ export function DashboardView() {
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px' }}>
               <span style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px', color: C.textPrimary }}>{skillStreak}</span>
-              <span style={{ fontSize: '14px', color: C.textSecondary }}>days</span>
+              <span style={{ fontSize: '14px', color: C.textSecondary }}>{skillStreak === 1 ? 'day' : 'days'}</span>
               <span style={{ fontSize: '20px', marginLeft: 'auto', animation: 'db-flame 2.2s ease-in-out infinite', display: 'inline-block' }}>🔥</span>
             </div>
             <div style={{ display: 'flex', gap: '5px', marginTop: '16px' }}>
@@ -864,7 +882,7 @@ export function DashboardView() {
                 const c = colors[idx % colors.length];
                 const matchPct = Math.min(100, Math.max(0, Math.round((m.match_score || 0) * 100)));
                 const sub = `${m.company || 'Unknown'} · ${m.location || 'Remote'}${m.stipend ? ' · ' + m.stipend : ''}`;
-                
+
                 return (
                 <div key={m.id || idx} style={{ display: 'grid', gridTemplateColumns: '38px minmax(0, 1fr) 92px max-content', gap: '13px', alignItems: 'center', borderRadius: '11px', padding: '10px 11px', background: C.bgCardAlt, border: `1px solid ${C.borderItem}` }}>
                   <span style={{ width: '38px', height: '38px', borderRadius: '10px', background: c.bg, color: c.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 700 }}>
@@ -880,7 +898,7 @@ export function DashboardView() {
                     </div>
                     <div style={{ fontSize: '11px', color: C.textSecondary }}>{matchPct}% match</div>
                   </div>
-                  <button 
+                  <button
                     disabled={m.applied}
                     onClick={() => {
                       if (m.applied) return;
@@ -1029,7 +1047,7 @@ export function DashboardView() {
               { title: 'TARGET READINESS', val: '100%', sub: 'Industry Ready', subCol: isDark ? '#34D399' : '#059669' },
               { title: 'CAREER LEVEL', val: 'Builder', sub: 'Current Level', subCol: isDark ? '#F59E0B' : '#D97706' },
               { title: 'PROFILE STRENGTH', val: '50%', sub: '+8% from last week', subCol: isDark ? '#34D399' : '#059669' },
-              { title: 'SKILL STREAK', val: '0 Days', sub: 'Start your streak!', subCol: isDark ? '#F0616B' : '#E11D48' },
+              { title: 'SKILL STREAK', val: `${skillStreak} ${skillStreak === 1 ? 'Day' : 'Days'}`, sub: skillStreak === 0 ? 'Start your streak!' : 'Keep it going!', subCol: isDark ? '#F0616B' : '#E11D48' },
             ].map((stat) => (
               <div key={stat.title} className="db-card" style={{ padding: '18px 20px 20px' }}>
                 <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.2px', color: C.textSecondary, marginBottom: '12px' }}>
@@ -1080,9 +1098,13 @@ export function DashboardView() {
               <div style={{ border: `1px solid ${C.insightBorder}`, borderRadius: '16px', background: C.insightBg, padding: '22px 24px 24px' }}>
                 <div style={{ fontSize: '17px', fontWeight: 700, marginBottom: '12px', color: C.textPrimary }}>Prediction Insight</div>
                 <div style={{ fontSize: '14px', lineHeight: 1.6, color: C.textSecondary, marginBottom: '20px' }}>
-                  You're on the right track! Consistent action can take you from <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>36%</strong> to <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>92%</strong> readiness in 18 weeks.
+                  You're on the right track! Consistent action can take you from <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>{readinessScore != null ? `${readinessScore}%` : '36%'}</strong> to <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>92%</strong> readiness in 18 weeks.
                 </div>
-                <button style={{ width: '100%', padding: '11px', fontSize: '13.5px', fontWeight: 600, color: isDark ? '#A78BFA' : '#7C5CFC', border: `1px solid ${C.insightBorder}`, background: 'transparent', borderRadius: '9px', cursor: 'pointer' }}>
+                <button
+                  type="button"
+                  onClick={() => portalNav?.navigate('career-ai')}
+                  style={{ width: '100%', padding: '11px', fontSize: '13.5px', fontWeight: 600, color: isDark ? '#A78BFA' : '#7C5CFC', border: `1px solid ${C.insightBorder}`, background: 'transparent', borderRadius: '9px', cursor: 'pointer' }}
+                >
                   View Full Analysis
                 </button>
               </div>
@@ -1125,7 +1147,7 @@ export function DashboardView() {
                 <span style={{ fontSize: '11px', fontWeight: 700, color: isDark ? '#34D399' : '#059669', background: isDark ? 'rgba(52,211,153,0.12)' : 'rgba(52,211,153,0.10)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '4px 8px' }}>FEATURED</span>
               </div>
               <div style={{ fontSize: '17px', fontWeight: 700, color: C.textPrimary }}>Resume & Mock Interview Pass</div>
-              
+
               <div style={{ background: C.proTipBg, border: `1px solid ${C.proTipBorder}`, borderRadius: '12px', padding: '12px 14px' }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: C.textSecondary, marginBottom: '4px' }}>PRO TIP</div>
                 <div style={{ fontSize: '13px', color: C.proTipText, lineHeight: 1.5 }}>
@@ -1158,7 +1180,7 @@ export function DashboardView() {
                 <span style={{ fontSize: '11px', fontWeight: 700, color: isDark ? '#34D399' : '#059669', background: isDark ? 'rgba(52,211,153,0.12)' : 'rgba(52,211,153,0.10)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '4px 8px' }}>LIVE OFFER</span>
               </div>
               <div style={{ fontSize: '17px', fontWeight: 700, color: C.textPrimary }}>VIP Gate Pass & Meal Voucher</div>
-              
+
               <div style={{ background: C.proTipBg, border: `1px solid ${C.proTipBorder}`, borderRadius: '12px', padding: '12px 14px' }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: C.textSecondary, marginBottom: '4px' }}>PRO TIP</div>
                 <div style={{ fontSize: '13px', color: C.proTipText, lineHeight: 1.5 }}>
@@ -1191,7 +1213,7 @@ export function DashboardView() {
                 <span style={{ fontSize: '11px', fontWeight: 700, color: isDark ? '#F59E0B' : '#D97706', background: isDark ? 'rgba(245,179,66,0.12)' : 'rgba(245,179,66,0.10)', border: '1px solid rgba(245,179,66,0.3)', borderRadius: '6px', padding: '4px 8px' }}>POPULAR</span>
               </div>
               <div style={{ fontSize: '17px', fontWeight: 700, color: C.textPrimary }}>1-on-1 Mentor Session Credit</div>
-              
+
               <div style={{ background: C.proTipBg, border: `1px solid ${C.proTipBorder}`, borderRadius: '12px', padding: '12px 14px' }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: C.textSecondary, marginBottom: '4px' }}>PRO TIP</div>
                 <div style={{ fontSize: '13px', color: C.proTipText, lineHeight: 1.5 }}>
@@ -1224,7 +1246,7 @@ export function DashboardView() {
                 <span style={{ fontSize: '11px', fontWeight: 700, color: isDark ? '#A78BFA' : '#7C5CFC', background: isDark ? 'rgba(124,92,252,0.15)' : 'rgba(124,92,252,0.10)', border: '1px solid rgba(124,92,252,0.3)', borderRadius: '6px', padding: '4px 8px' }}>GRANT PERK</span>
               </div>
               <div style={{ fontSize: '17px', fontWeight: 700, color: C.textPrimary }}>$1,000 Cloud Credits & Legal Support</div>
-              
+
               <div style={{ background: C.proTipBg, border: `1px solid ${C.proTipBorder}`, borderRadius: '12px', padding: '12px 14px' }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: C.textSecondary, marginBottom: '4px' }}>PRO TIP</div>
                 <div style={{ fontSize: '13px', color: C.proTipText, lineHeight: 1.5 }}>
@@ -1257,7 +1279,7 @@ export function DashboardView() {
                 <span style={{ fontSize: '11px', fontWeight: 700, color: isDark ? '#34D399' : '#059669', background: isDark ? 'rgba(52,211,153,0.12)' : 'rgba(52,211,153,0.10)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '4px 8px' }}>WELLNESS PERK</span>
               </div>
               <div style={{ fontSize: '17px', fontWeight: 700, color: C.textPrimary }}>Annual Health & Telehealth Pass</div>
-              
+
               <div style={{ background: C.proTipBg, border: `1px solid ${C.proTipBorder}`, borderRadius: '12px', padding: '12px 14px' }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: C.textSecondary, marginBottom: '4px' }}>PRO TIP</div>
                 <div style={{ fontSize: '13.5px', color: C.proTipText, lineHeight: 1.5 }}>

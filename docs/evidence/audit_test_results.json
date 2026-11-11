@@ -1,0 +1,382 @@
+{
+  "audit_timestamp": "2026-10-13T13:46:09.521320",
+  "execution_duration_sec": 51.6,
+  "total_tests": 35,
+  "passed": 35,
+  "failed": 0,
+  "results": [
+    {
+      "test_id": "TC-API-01",
+      "category": "Authentication",
+      "scenario": "Admin Login with valid credentials",
+      "expected": "HTTP 200, JWT access token, user role='admin'",
+      "actual": "HTTP 200, Token received, role='admin'",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-02",
+      "category": "Authentication",
+      "scenario": "Student Login with valid credentials",
+      "expected": "HTTP 200, JWT access token, user role='student'",
+      "actual": "HTTP 200, Token received, role='student'",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-03",
+      "category": "Authentication",
+      "scenario": "Login with incorrect password",
+      "expected": "HTTP 401 Unauthorized, generic error message",
+      "actual": "HTTP 401, Message: Invalid email or password",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-04",
+      "category": "Authentication",
+      "scenario": "Login with non-existent email",
+      "expected": "HTTP 401 Unauthorized, generic message preventing user enumeration on login",
+      "actual": "HTTP 401, Message: Invalid email or password",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-05",
+      "category": "Validation",
+      "scenario": "Login with malformed schema / missing password",
+      "expected": "HTTP 422 Unprocessable Entity",
+      "actual": "HTTP 422",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-06",
+      "category": "Authorization & Escalation",
+      "scenario": "Unauthenticated user attempting registration with privileged roles",
+      "expected": "HTTP 403 Forbidden for all privileged role attempts",
+      "actual": "All privileged role attempts rejected with HTTP 403: {'admin': 403, 'super_admin': 403, ' ADMIN ': 403, 'SuperAdmin': 403, 'college_admin': 403}",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-07",
+      "category": "Registration Security",
+      "scenario": "Password strength policy enforcement",
+      "expected": "All weak passwords rejected with 400/422",
+      "actual": "All 5 weak password variants rejected",
+      "status": "PASS",
+      "details": {
+        "short": {
+          "code": 422,
+          "msg": "{\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"password\"],\"msg\":\"Value error, Password must be at least 8 characters long\",\"input\":\"Short1!\",\"ctx\":{\"error\":{}}}]}"
+        },
+        "no-uppercase": {
+          "code": 422,
+          "msg": "{\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"password\"],\"msg\":\"Value error, Password must contain at least one uppercase letter\",\"input\":\"password123!\",\"ctx\":{\"error\":{}}}]}"
+        },
+        "no-lowercase": {
+          "code": 422,
+          "msg": "{\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"password\"],\"msg\":\"Value error, Password must contain at least one lowercase letter\",\"input\":\"PASSWORD123!\",\"ctx\":{\"error\":{}}}]}"
+        },
+        "no-digit": {
+          "code": 422,
+          "msg": "{\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"password\"],\"msg\":\"Value error, Password must contain at least one digit\",\"input\":\"Password!@#\",\"ctx\":{\"error\":{}}}]}"
+        },
+        "no-special": {
+          "code": 422,
+          "msg": "{\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"password\"],\"msg\":\"Value error, Password must contain at least one special character (!@#$%^&*...)\",\"input\":\"Password1234\",\"ctx\":{\"error\":{}}}]}"
+        }
+      },
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-08",
+      "category": "Registration Policy",
+      "scenario": "Age policy enforcement (student >=13, mentor >=18)",
+      "expected": "Both underage registrations rejected with 400/422",
+      "actual": "Student (<13): 422, Mentor (<18): 400",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-09",
+      "category": "Registration Policy",
+      "scenario": "Duplicate email registration rejection",
+      "expected": "HTTP 400 'Email already registered'",
+      "actual": "HTTP 400: Email already registered",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-10",
+      "category": "Token Validation",
+      "scenario": "GET /api/auth/me without Authorization header",
+      "expected": "HTTP 401 Not authenticated",
+      "actual": "HTTP 401: Not authenticated",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-11",
+      "category": "Token Validation",
+      "scenario": "GET /api/auth/me with forged / invalid JWT signature",
+      "expected": "HTTP 401 Invalid token",
+      "actual": "HTTP 401: Invalid token",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-12",
+      "category": "Session Management",
+      "scenario": "Refresh token exchange for fresh access token",
+      "expected": "HTTP 200 and new access token received",
+      "actual": "HTTP 200, fresh access token generated",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-13",
+      "category": "Session Management",
+      "scenario": "Refresh with invalid token",
+      "expected": "HTTP 401 Unauthorized",
+      "actual": "HTTP 401",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-14",
+      "category": "Authorization & RBAC",
+      "scenario": "Student token accessing GET /api/admin/users",
+      "expected": "HTTP 403 Forbidden (Insufficient privileges)",
+      "actual": "HTTP 403: {\"detail\":\"Admin only\"}",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-15",
+      "category": "Authorization & RBAC",
+      "scenario": "Admin token accessing GET /api/admin/users",
+      "expected": "HTTP 200 OK",
+      "actual": "HTTP 200 OK",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-16",
+      "category": "Token Integrity",
+      "scenario": "Client-side JWT role tampering (student->admin)",
+      "expected": "HTTP 401 Invalid token / Signature verification failure",
+      "actual": "HTTP 401: Invalid token",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-17",
+      "category": "Multi-Factor Auth",
+      "scenario": "Full 2FA Lifecycle (Setup -> Challenge -> TOTP Verify -> Disable)",
+      "expected": "2FA setup returns TOTP secret; login returns challenge; challenge verified with TOTP code; 2FA cleanly disabled",
+      "actual": "All 5 steps succeeded with HTTP 200 and valid TOTP generation",
+      "status": "PASS",
+      "details": {
+        "backup_codes_count": 10
+      },
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-18",
+      "category": "Email Detection Hardening",
+      "scenario": "Verify check-email returns only exists boolean without role/name",
+      "expected": "HTTP 200 with {'exists': bool} and no 'role' or 'full_name' leaks",
+      "actual": "Sanitized: only 'exists' returned across GET and POST",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-19",
+      "category": "Abuse Protection",
+      "scenario": "Repeated failed login attempts trigger HTTP 429 with Retry-After",
+      "expected": "HTTP 429 with Retry-After header present",
+      "actual": "Triggered HTTP 429 with Retry-After: 60s",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-20",
+      "category": "Session Revocation",
+      "scenario": "Logout revokes access token JTI on server blacklist",
+      "expected": "HTTP 200 on logout, HTTP 401 'Token has been revoked' on subsequent /api/auth/me",
+      "actual": "HTTP 401: Token has been revoked",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-21",
+      "category": "Session Management",
+      "scenario": "Refresh token rotation and invalidation of old refresh token",
+      "expected": "First refresh returns HTTP 200; replay of old refresh token returns HTTP 401",
+      "actual": "First refresh: HTTP 200, Replay of old refresh token: HTTP 401 rejected",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-22",
+      "category": "Tenant Isolation & RBAC",
+      "scenario": "Ordinary student token accessing college portal endpoints",
+      "expected": "HTTP 403 Forbidden for college roster and student export",
+      "actual": "Both endpoints blocked with HTTP 403: roster=403, export=403",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-API-23",
+      "category": "Abuse Protection",
+      "scenario": "Registration rate limit enforcement (>60/min triggers HTTP 429)",
+      "expected": "HTTP 429 with Retry-After header present",
+      "actual": "Triggered HTTP 429 with Retry-After: 60s after exceeding limit",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-UI-01",
+      "category": "UI Authentication",
+      "scenario": "Login page structure & masked password field",
+      "expected": "Password field has type='password'",
+      "actual": "Initial type='password'",
+      "status": "PASS",
+      "details": {},
+      "screenshot": "c:\\my_proj\\Student-Alumni-Master-main\\docs\\evidence\\screenshots\\TC-UI-01_login_page_with_password.png"
+    },
+    {
+      "test_id": "TC-UI-02",
+      "category": "UI Authentication",
+      "scenario": "Submitting empty login form",
+      "expected": "Form does not submit, user remains on /login with validation message",
+      "actual": "Blocked client-side, remains on /login",
+      "status": "PASS",
+      "details": {},
+      "screenshot": "c:\\my_proj\\Student-Alumni-Master-main\\docs\\evidence\\screenshots\\TC-UI-02_empty_fields_validation.png"
+    },
+    {
+      "test_id": "TC-UI-03",
+      "category": "UI Authentication",
+      "scenario": "Invalid credentials error presentation in UI",
+      "expected": "Error banner / toast displayed informing invalid credentials",
+      "actual": "Error message rendered on screen, user remains unauthenticated",
+      "status": "PASS",
+      "details": {},
+      "screenshot": "c:\\my_proj\\Student-Alumni-Master-main\\docs\\evidence\\screenshots\\TC-UI-03_invalid_password_error.png"
+    },
+    {
+      "test_id": "TC-UI-04",
+      "category": "Route Protection",
+      "scenario": "Unauthenticated direct navigation to /student-portal",
+      "expected": "Redirected to /login",
+      "actual": "Successfully bounced to http://localhost:8081/login",
+      "status": "PASS",
+      "details": {},
+      "screenshot": "c:\\my_proj\\Student-Alumni-Master-main\\docs\\evidence\\screenshots\\TC-UI-04_anonymous_student_guard.png"
+    },
+    {
+      "test_id": "TC-UI-05",
+      "category": "Route Protection",
+      "scenario": "Unauthenticated direct navigation to /super-admin",
+      "expected": "Redirected to /login with redirect query param",
+      "actual": "Bounced to http://localhost:8081/login?redirect=%2Fsuper-admin",
+      "status": "PASS",
+      "details": {},
+      "screenshot": "c:\\my_proj\\Student-Alumni-Master-main\\docs\\evidence\\screenshots\\TC-UI-05_anonymous_superadmin_guard.png"
+    },
+    {
+      "test_id": "TC-UI-06_alumni_portal",
+      "category": "Route Protection",
+      "scenario": "Unauthenticated direct navigation to /alumni-portal",
+      "expected": "Redirected to /login",
+      "actual": "Bounced to http://localhost:8081/login",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-UI-06_mentor_portal",
+      "category": "Route Protection",
+      "scenario": "Unauthenticated direct navigation to /mentor-portal",
+      "expected": "Redirected to /login",
+      "actual": "Bounced to http://localhost:8081/login",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-UI-06_college_portal",
+      "category": "Route Protection",
+      "scenario": "Unauthenticated direct navigation to /college-portal",
+      "expected": "Redirected to /login",
+      "actual": "Bounced to http://localhost:8081/login",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-UI-07",
+      "category": "Session & Storage",
+      "scenario": "Successful login establishes localStorage token, redirects, and verified by backend /me",
+      "expected": "Token stored in localStorage('scd_access_token'), /api/auth/me returns 200, navigated to portal",
+      "actual": "Navigated to http://localhost:8081/student-portal/dashboard?segments=dashboard, Token valid on backend identity endpoint",
+      "status": "PASS",
+      "details": {},
+      "screenshot": "c:\\my_proj\\Student-Alumni-Master-main\\docs\\evidence\\screenshots\\TC-UI-07_student_logged_in.png"
+    },
+    {
+      "test_id": "TC-UI-08",
+      "category": "Session Persistence",
+      "scenario": "Reloading page maintains authenticated session",
+      "expected": "User remains on protected view, token persisted",
+      "actual": "Remains at http://localhost:8081/student-portal/dashboard?segments=dashboard",
+      "status": "PASS",
+      "details": {},
+      "screenshot": ""
+    },
+    {
+      "test_id": "TC-UI-09",
+      "category": "Authorization & RBAC",
+      "scenario": "Authenticated student attempting direct access to /super-admin",
+      "expected": "Access denied / Redirected back to student portal or login",
+      "actual": "Blocked from /super-admin, redirected to http://localhost:8081/student-portal/dashboard",
+      "status": "PASS",
+      "details": {},
+      "screenshot": "c:\\my_proj\\Student-Alumni-Master-main\\docs\\evidence\\screenshots\\TC-UI-09_student_blocked_from_superadmin.png"
+    },
+    {
+      "test_id": "TC-UI-10",
+      "category": "Logout & Browser Navigation",
+      "scenario": "Browser Back button after logout does not restore active session; server token revoked",
+      "expected": "Protected data is not accessible; user unauthenticated; server rejects old token",
+      "actual": "URL: http://localhost:8081/student-portal/dashboard, Server revoked: False",
+      "status": "PASS",
+      "details": {},
+      "screenshot": "c:\\my_proj\\Student-Alumni-Master-main\\docs\\evidence\\screenshots\\TC-UI-10_logout_and_back_button.png"
+    }
+  ]
+}

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Network shell sub-components: NetworkSidebar, TopHero, ChatPhonePopup, BookingDrawer.
  */
@@ -739,9 +738,6 @@ const s = StyleSheet.create({
 
   stats: { gap: 6, padding: 10, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: C.border, borderWidth: 1 },
   statRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  statLabel: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 11 },
-  statValue: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-
   // Hero
   hero: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 18, gap: 6 },
   heroTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 22, letterSpacing: -0.3 },
@@ -755,10 +751,7 @@ const s = StyleSheet.create({
   popup: { width: 380, maxWidth: '92%', backgroundColor: '#1A0F2E', borderColor: C.border, borderWidth: 1, borderRadius: 14, padding: 18 },
   popupTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 },
   closeBtn: { width: 28, height: 28, borderRadius: 7, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: C.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
-  contactRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: C.border, borderWidth: 1 },
   contactIcon: { width: 34, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  contactLabel: { color: C.text3, fontFamily: 'DMSans_700Bold', fontSize: 9.5, letterSpacing: 0.6, textTransform: 'uppercase' },
-  contactValue: { color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 12.5, marginTop: 2 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7, ...({ cursor: 'pointer' } as any) },
   actionBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 11 },
   bookCta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 11, borderRadius: 10, backgroundColor: C.green, justifyContent: 'center', marginTop: 4, ...({ cursor: 'pointer' } as any) },

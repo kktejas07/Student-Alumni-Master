@@ -21,10 +21,6 @@ Endpoints (dashboards):
 
 Sub-view endpoints:
   Super Admin:
-    GET /api/admin/super/colleges
-    GET /api/admin/super/students
-    GET /api/admin/super/mentors
-    GET /api/admin/super/alumni
     GET /api/admin/super/events
     GET /api/admin/super/payments
     GET /api/admin/super/approvals
@@ -64,7 +60,7 @@ import re
 from cachetools import TTLCache, cached
 from pathlib import Path
 
-from core.deps import get_current_user, require_role, require_admin_role
+from core.deps import get_current_user, require_role, require_admin_role, bearer_token, decode_payload_silent
 from pydantic import BaseModel
 
 # Instantiate TTL Caches for high-traffic endpoints
@@ -80,6 +76,7 @@ from tier_logic import (
     student_suggestions_for_tier,
 )
 from core.db import db as _db
+from core.query_helpers import nonempty
 from db import fetch_users_with_mock_limit
 
 router = APIRouter()
@@ -231,7 +228,7 @@ async def mentor_dashboard(mentor_email: Optional[str] = None, user: dict = Depe
     # Reviews
     review_cur = _db.reviews.find({"mentor_id": mentor_id})
     ratings = [r.get("rating", 0) async for r in review_cur]
-    avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else 4.8
+    avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else None
 
     # Today's sessions (next 24h)
     now = datetime.now(timezone.utc)
@@ -310,21 +307,28 @@ async def mentor_dashboard(mentor_email: Optional[str] = None, user: dict = Depe
             "mentor_id": mentor_id,
             "scheduled_at": {"$gte": m_start, "$lt": m_end},
         })
-        rate = mentor.get("expected_rate_inr") if mentor else 999
-        rate = rate or 999
+        rate = (mentor or {}).get("expected_rate_inr")
         months.append({
             "month": m_start.strftime("%b"),
-            "amount": cnt * rate,
+            "amount": cnt * rate if rate else None,
             "sessions": cnt,
         })
 
     # KPIs
-    earnings = sum(m["amount"] for m in months[-1:])  # last month
-    if earnings == 0:
-        earnings = 500
+    earnings = months[-1]["amount"]
+    if earnings is None:
+        earnings = sum(m["amount"] for m in months if m["amount"] is not None) or 0
 
     # Tier (Bronze/Silver/Gold/Platinum)
-    tier = await _mentor_tier_payload(mentor or {}, confirmed, avg_rating)
+    tier = await _mentor_tier_payload(mentor or {}, confirmed, avg_rating or 0.0)
+
+    prev_sessions = months[-2]["sessions"]
+    cur_sessions = months[-1]["sessions"]
+    if prev_sessions:
+        delta_pct = round((cur_sessions - prev_sessions) / prev_sessions * 100)
+        sessions_delta = f"↑ {delta_pct}%" if delta_pct >= 0 else f"↓ {abs(delta_pct)}%"
+    else:
+        sessions_delta = f"{cur_sessions} this mo"
 
     return {
         "mentor": {
@@ -335,17 +339,17 @@ async def mentor_dashboard(mentor_email: Optional[str] = None, user: dict = Depe
             "company": mi.get("organization") or "—",
             "rating": avg_rating,
             "sessions": confirmed,
-            "price": (mentor or {}).get("expected_rate_inr") or 999,
+            "price": (mentor or {}).get("expected_rate_inr"),
             "college": si.get("institution_name") or "—",
             "batch": si.get("graduation_year") or 2010,
             "expertise": (mentor or {}).get("skills", []) or ["System Design", "Career Strategy"],
             "tier": tier,
         },
         "kpis": [
-            {"id": "earnings",  "label": "Earnings",        "value": _money(earnings),                "delta": "↑ 12%",                  "color": "amber"},
-            {"id": "sessions",  "label": "Sessions",        "value": str(confirmed),                  "delta": f"↑ {months[-1]['sessions']} this mo", "color": "teal"},
-            {"id": "students",  "label": "Active Students", "value": str(active_students),            "delta": f"↑ {pending} pending",   "color": "blue"},
-            {"id": "rating",    "label": "Avg Rating",      "value": str(avg_rating),                 "delta": f"{len(ratings)} reviews","color": "green"},
+            {"id": "earnings",  "label": "Earnings",        "value": _money(earnings),          "delta": None,                     "color": "amber"},
+            {"id": "sessions",  "label": "Sessions",        "value": str(confirmed),            "delta": sessions_delta,           "color": "teal"},
+            {"id": "students",  "label": "Active Students", "value": str(active_students),      "delta": f"{pending} pending",      "color": "blue"},
+            {"id": "rating",    "label": "Avg Rating",      "value": str(avg_rating) if avg_rating is not None else "—", "delta": f"{len(ratings)} reviews", "color": "green"},
         ],
         "todaySessions": today_sessions,
         "monthly": months,
@@ -428,17 +432,12 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
     # ── Profile lookup ──────────────────────────────────────────────
     student = None
     if not student_email:
-        auth = request.headers.get("Authorization", "")
-        if auth.startswith("Bearer "):
+        payload = decode_payload_silent(bearer_token(request.headers.get("Authorization", "")))
+        if payload and "sub" in payload:
             try:
-                import jwt
-                from core.security import JWT_SECRET, JWT_ALGORITHM
-                from bson import ObjectId
-                payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
-                if "sub" in payload:
-                    me = await _db.users.find_one({"_id": ObjectId(payload["sub"])})
-                    if me:
-                        student_email = me.get("email")
+                me = await _db.users.find_one({"_id": ObjectId(payload["sub"])})
+                if me:
+                    student_email = me.get("email")
             except Exception:
                 pass
 
@@ -576,366 +575,6 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
 
 
 # ─── 2b. STUDENT INTELLIGENCE CENTER ─────────────────────────────
-# Powers the NexusOS-style "Intelligence Center" widget on the student
-# dashboard: 4 KPI sparklines, a Career-Momentum area chart, and a
-# Recent-Activity feed. Uses real DB counters where available + a
-# deterministic, lightly-randomised series for sparkline shape.
-def format_time_ago(dt: datetime) -> str:
-    if not isinstance(dt, datetime):
-        return "Recently"
-    now = datetime.now(timezone.utc)
-    diff = now - dt
-    seconds = diff.total_seconds()
-    if seconds < 0:
-        return "Just now"
-    if seconds < 60:
-        return "Just now"
-    minutes = seconds / 60
-    if minutes < 60:
-        return f"{int(minutes)}m ago"
-    hours = minutes / 60
-    if hours < 24:
-        return f"{int(hours)}h ago"
-    days = hours / 24
-    if days < 7:
-        if int(days) == 1:
-            return "Yesterday"
-        return f"{int(days)}d ago"
-    return dt.strftime("%b %d")
-
-
-# Powers the NexusOS-style "Intelligence Center" widget on the student
-# dashboard: 4 KPI sparklines, a Career-Momentum area chart, and a
-# Recent-Activity feed. Uses real DB counters where available + a
-# deterministic, lightly-randomised series for sparkline shape.
-@router.get("/student/intelligence")
-async def student_intelligence(student_email: Optional[str] = None, user: dict = Depends(require_role('student'))):
-    """NexusOS Intelligence Center payload for the student dashboard.
-    Returns sparkline arrays, an area-chart series, KPI totals, an
-    activity feed, and an overall profile-completion percentage.
-    All values are derived from real collections (bookings, internships,
-    events) where possible; sparkline shapes are synthesised."""
-    import hashlib, random
-    student = None
-    if student_email:
-        student = await _db.users.find_one({"email": student_email})
-    if not student:
-        student = await _db.users.find_one({"role": "student", "onboarding_completed": True})
-    if not student:
-        student = await _db.users.find_one({"role": "student"})
-    sid = str((student or {}).get("_id", ""))
-
-    # Deterministic per-student seed so sparklines remain stable across reloads
-    seed_src = (student or {}).get("email") or sid or "anon"
-    seed = int(hashlib.md5(seed_src.encode()).hexdigest()[:8], 16)
-    rng = random.Random(seed)
-
-    # ── Real KPI totals from DB ──
-    apps_total = await _db.bookings.count_documents({"student_id": sid}) if sid else 0
-    apps_total = max(apps_total, 4)  # baseline so the card never reads zero
-    profile_views = 120 + (seed % 200)  # synthesised view counter (no real tracking yet)
-    internships_total = await _db.internships.count_documents({})
-
-    # ── Sparklines (12-point trends) ──
-    def _trend(start: int, drift: float, jitter: int) -> list[int]:
-        out, cur = [], float(start)
-        for _ in range(12):
-            cur += drift + rng.uniform(-jitter, jitter)
-            out.append(max(0, round(cur)))
-        return out
-
-    spark_apps  = _trend(max(2, apps_total - 12), 1.4, 1)
-    spark_views = _trend(max(40, profile_views - 100), 9, 6)
-    spark_match = _trend(60, 1.6, 2)
-    # clamp match to <=95
-    spark_match = [min(95, v) for v in spark_match]
-    avg_match = spark_match[-1]
-
-    # ── Area chart: Career Momentum partitioned datasets ──
-    # 1M dataset (Weekly granularity)
-    momentum_1m = []
-    cur_1m = max(10, profile_views // 12)
-    for w in ["Week 1", "Week 2", "Week 3", "Week 4"]:
-        cur_1m += int(rng.uniform(3, 10))
-        momentum_1m.append({"m": w, "v": cur_1m})
-
-    # 3M dataset (Bi-weekly/semi-monthly granularity)
-    momentum_3m = []
-    cur_3m = max(15, profile_views // 8)
-    for p in ["Mar A", "Mar B", "Apr A", "Apr B", "May A", "May B"]:
-        cur_3m += int(rng.uniform(5, 12))
-        momentum_3m.append({"m": p, "v": cur_3m})
-
-    # 1Y dataset (Monthly granularity)
-    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]
-    momentum_1y = []
-    cur_1y = max(20, profile_views // 5)
-    for m in months:
-        cur_1y += int(rng.uniform(4, 18))
-        momentum_1y.append({"m": m, "v": cur_1y})
-
-    # ── Live Activity Feed from MongoDB collections ──
-    activity_events = []
-
-    if sid:
-        # 1. Mentor Bookings
-        try:
-            bk_cursor = _db.bookings.find({"student_id": sid}).sort("created_at", -1).limit(4)
-            async for b in bk_cursor:
-                ts = b.get("created_at")
-                activity_events.append({
-                    "title": "Mentor Session Booked",
-                    "sub": f"{b.get('topic', 'Career guidance')} • {b.get('mentor_name', 'Mentor')}",
-                    "amount": None,
-                    "amountTone": None,
-                    "icon": "account-tie-voice-outline",
-                    "tint": "#A855F7",
-                    "bgTint": "rgba(168,85,247,0.15)",
-                    "ts": ts if isinstance(ts, datetime) else datetime.now(timezone.utc)
-                })
-        except Exception:
-            pass
-
-        try:
-            sess_cursor = _db.sessions.find({"user_id": sid}).sort("created_at", -1).limit(4)
-            sessions_list = [s async for s in sess_cursor]
-
-            # Gather unique mentor IDs
-            mentor_ids = set()
-            for s in sessions_list:
-                mid = s.get("mentor_id")
-                if mid and isinstance(mid, str) and ObjectId.is_valid(mid):
-                    mentor_ids.add(ObjectId(mid))
-
-            # Batch fetch mentors
-            mentors_map = {}
-            if mentor_ids:
-                async for m in _db.users.find({"_id": {"$in": list(mentor_ids)}}):
-                    mentors_map[str(m["_id"])] = m
-
-            for s in sessions_list:
-                try:
-                    ts = s.get("created_at") or s.get("scheduled_at")
-                    mid_str = s.get("mentor_id")
-                    mentor = mentors_map.get(mid_str) if mid_str else None
-                    mentor_name = (mentor or {}).get("full_name") or (mentor or {}).get("name") or "Mentor"
-                    activity_events.append({
-                        "title": "Mentor Session Booked",
-                        "sub": f"{s.get('topic', '1:1 Mentorship Session')} • {mentor_name}",
-                        "amount": None,
-                        "amountTone": None,
-                        "icon": "account-tie-voice-outline",
-                        "tint": "#A855F7",
-                        "bgTint": "rgba(168,85,247,0.15)",
-                        "ts": ts if isinstance(ts, datetime) else datetime.now(timezone.utc)
-                    })
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
-        # 2. Internship Applications
-        try:
-            app_cursor = _db.internship_applications.find({"student_id": sid}).sort("applied_at", -1).limit(4)
-            async for a in app_cursor:
-                ts = a.get("applied_at")
-                activity_events.append({
-                    "title": "Application Submitted",
-                    "sub": f"{a.get('company', 'Company')} • {a.get('internship_title', 'Intern')}",
-                    "amount": "+1",
-                    "amountTone": "positive",
-                    "icon": "briefcase-check-outline",
-                    "tint": "#3B82F6",
-                    "bgTint": "rgba(59,130,246,0.15)",
-                    "ts": ts if isinstance(ts, datetime) else datetime.now(timezone.utc)
-                })
-        except Exception:
-            pass
-
-        # 3. Event RSVPs
-        try:
-            reg_cursor = _db.event_registrations.find({"student_id": sid}).sort("registered_at", -1).limit(4)
-            async for r in reg_cursor:
-                ts = r.get("registered_at")
-                activity_events.append({
-                    "title": "Event Registered",
-                    "sub": f"{r.get('event_title', 'Workshop')}",
-                    "amount": None,
-                    "amountTone": None,
-                    "icon": "calendar-check",
-                    "tint": "#10B981",
-                    "bgTint": "rgba(16,185,129,0.15)",
-                    "ts": ts if isinstance(ts, datetime) else datetime.now(timezone.utc)
-                })
-        except Exception:
-            pass
-
-        # 4. Connections
-        try:
-            conn_cursor = _db.connections.find({
-                "$or": [{"a": sid}, {"b": sid}]
-            }).sort("created_at", -1).limit(4)
-            conns_list = [c async for c in conn_cursor]
-
-            # Gather unique other IDs
-            other_ids = set()
-            for c in conns_list:
-                other_id = c["b"] if c["a"] == sid else c["a"]
-                if other_id and isinstance(other_id, str) and ObjectId.is_valid(other_id):
-                    other_ids.add(ObjectId(other_id))
-
-            # Batch fetch other users
-            users_map = {}
-            if other_ids:
-                async for u in _db.users.find({"_id": {"$in": list(other_ids)}}):
-                    users_map[str(u["_id"])] = u
-
-            for c in conns_list:
-                try:
-                    status = c.get("status")
-                    other_id = c["b"] if c["a"] == sid else c["a"]
-                    other_u = users_map.get(other_id) if other_id else None
-                    other_name = other_u.get("full_name") if other_u else "Someone"
-
-                    ts = c.get("accepted_at") if status == "accepted" else c.get("created_at")
-                    title = "Connection Connected" if status == "accepted" else "Connection Requested"
-                    sub = f"Connected with {other_name}" if status == "accepted" else f"Request from {other_name}"
-                    icon = "account-multiple-check" if status == "accepted" else "account-plus-outline"
-
-                    activity_events.append({
-                        "title": title,
-                        "sub": sub,
-                        "amount": None,
-                        "amountTone": None,
-                        "icon": icon,
-                        "tint": "#06B6D4",
-                        "bgTint": "rgba(6,182,212,0.15)",
-                        "ts": ts if isinstance(ts, datetime) else datetime.now(timezone.utc)
-                    })
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
-    # Sort all events in reverse-chronological order
-    activity_events.sort(key=lambda x: x["ts"], reverse=True)
-
-    # Format the time tags using our helper
-    activity = []
-    for item in activity_events[:4]:
-        ts = item.pop("ts")
-        item["time"] = format_time_ago(ts)
-        activity.append(item)
-
-    # Pad with premium deterministic seeds if DB activity is sparse
-    if len(activity) < 4:
-        paddings = [
-            {
-                "title": "Application Submitted",
-                "sub": f"{internships_total} live internships in your tier",
-                "amount": "+1", "amountTone": "positive",
-                "time": "Today",
-                "icon": "briefcase-check-outline",
-                "tint": "#3B82F6",
-                "bgTint": "rgba(59,130,246,0.15)",
-            },
-            {
-                "title": "Mentor Session Booked",
-                "sub": "System Design Guidance • Aarav Sharma",
-                "amount": None, "amountTone": None,
-                "time": "1h ago",
-                "icon": "account-tie-voice-outline",
-                "tint": "#A855F7",
-                "bgTint": "rgba(168,85,247,0.15)",
-            },
-            {
-                "title": "Course Milestone Reached",
-                "sub": "System Design • Module 4 of 6",
-                "amount": None, "amountTone": None,
-                "time": f"{rng.randint(2,8)}h ago",
-                "icon": "trophy-outline",
-                "tint": "#F59E0B",
-                "bgTint": "rgba(245,158,11,0.15)",
-            },
-            {
-                "title": "Profile Score Updated",
-                "sub": "Skills + Projects re-scored",
-                "amount": f"+{rng.randint(2,6)} pts", "amountTone": "positive",
-                "time": "Yesterday",
-                "icon": "chart-line-variant",
-                "tint": "#06B6D4",
-                "bgTint": "rgba(6,182,212,0.15)",
-            }
-        ]
-        for p in paddings:
-            if len(activity) >= 4:
-                break
-            if p["title"] not in [a["title"] for a in activity]:
-                activity.append(p)
-        while len(activity) < 4:
-            activity.append(paddings[len(activity) % len(paddings)])
-
-    # ── Trend deltas (% change between last & prev sparkline point) ──
-    def _delta(arr: list[int]) -> dict:
-        if len(arr) < 2 or arr[-2] == 0:
-            return {"value": "0.0%", "positive": True}
-        pct = (arr[-1] - arr[-2]) / max(1, arr[-2]) * 100
-        return {"value": f"{abs(pct):.1f}%", "positive": pct >= 0}
-
-    skills = student.get("skills", []) if student else []
-    profile_completion_pct = min(100, 40 + len(skills) * 5 + (10 if student and student.get("photo_data") else 0))
-
-    return {
-        "kpis": {
-            "applications": {
-                "label": "Applications Sent",
-                "value": apps_total,
-                "trend": _delta(spark_apps),
-                "spark": spark_apps,
-            },
-            "views": {
-                "label": "Profile Views",
-                "value": profile_views,
-                "trend": _delta(spark_views),
-                "spark": spark_views,
-            },
-            "match": {
-                "label": "Avg Match Score",
-                "value": avg_match,
-                "suffix": "%",
-                "trend": _delta(spark_match),
-                "spark": spark_match,
-            },
-            "completion": {
-                "label": "Profile Completion",
-                "ringPct": profile_completion_pct,
-                "metaLine": "Last updated: just now",
-            },
-        },
-        "momentum": {
-            "title": "Career Momentum",
-            "subtitle": "Profile views per month — last 9 months",
-            "data": momentum_1y,
-            "1M": {
-                "title": "Weekly Momentum",
-                "subtitle": "Profile views per week — last 30 days",
-                "data": momentum_1m,
-            },
-            "3M": {
-                "title": "Medium-Term Growth",
-                "subtitle": "Profile views semi-monthly — last 3 months",
-                "data": momentum_3m,
-            },
-            "1Y": {
-                "title": "Annual Momentum",
-                "subtitle": "Profile views per month — last 9 months",
-                "data": momentum_1y,
-            }
-        },
-        "activity": activity,
-    }
-
-
 # ─── 3. COLLEGE ADMIN DASHBOARD ──────────────────────────────────
 @router.get("/admin/college-stats")
 async def college_admin_stats(college_name: Optional[str] = None, user: dict = Depends(require_role('admin'))):
@@ -974,7 +613,7 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
         branch_q = {"role": "alumni", "alumni_info.branch_or_stream": d["_id"], **college_query}
         try:
             branch_alumni = await _db.users.count_documents(branch_q)
-            branch_placed = await _db.users.count_documents({**branch_q, "alumni_info.current_employer": {"$nin": [None, "", "—", "-"]}})
+            branch_placed = await _db.users.count_documents({**branch_q, "alumni_info.current_employer": nonempty("—", "-")})
         except Exception:
             branch_alumni, branch_placed = 0, 0
         dept_placement.append({
@@ -1065,7 +704,7 @@ async def college_admin_stats(college_name: Optional[str] = None, user: dict = D
     # Calculate real placement rate (based on alumni with current employer)
     placed_alumni_cnt = await _db.users.count_documents({
         "role": "alumni",
-        "alumni_info.current_employer": {"$nin": [None, "", "—", "-"]},
+        "alumni_info.current_employer": nonempty("—", "-"),
         **college_query
     })
     placement_pct_num = int((placed_alumni_cnt / alumni_cnt) * 100) if alumni_cnt > 0 else 0
@@ -1132,14 +771,13 @@ async def super_admin_overview(user: dict = Depends(require_role('admin'))):
 
     # KPIs
     kpis = [
-        {"id": "colleges",   "icon": "Building2",     "label": "Total Colleges",      "value": str(len(colleges)), "delta": "↑ growing"},
-        {"id": "students",   "icon": "GraduationCap", "label": "Total Students",      "value": f"{students:,}",    "delta": "↑ active"},
-        {"id": "mentors",    "icon": "UserCheck",     "label": "Active Mentors",      "value": str(mentors),       "delta": f"+ {pending_mentors} pending"},
-        {"id": "alumni",     "icon": "Users",         "label": "Alumni Network",      "value": f"{alumni:,}",      "delta": "↑ joined"},
-        {"id": "revenue",    "icon": "CreditCard",    "label": "Revenue This Month",  "value": _money(revenue_amt), "delta": "↑ 12% MoM"},
-        {"id": "events",     "icon": "Calendar",      "label": "Active Events",       "value": str(events),        "delta": "↑ this week"},
-        {"id": "approvals",  "icon": "CheckCircle",   "label": "Pending Approvals",   "value": str(pending_mentors), "delta": "review needed"},
-        {"id": "engagement", "icon": "BarChart3",     "label": "Platform Engagement", "value": "78%",              "delta": "↑ 3 pts"},
+        {"id": "colleges",   "icon": "Building2",     "label": "Total Colleges",      "value": str(len(colleges)), "delta": "distinct institutions"},
+        {"id": "students",   "icon": "GraduationCap", "label": "Total Students",      "value": f"{students:,}",    "delta": "on platform"},
+        {"id": "mentors",    "icon": "UserCheck",     "label": "Active Mentors",      "value": str(mentors),       "delta": f"{pending_mentors} pending"},
+        {"id": "alumni",     "icon": "Users",         "label": "Alumni Network",      "value": f"{alumni:,}",      "delta": "on platform"},
+        {"id": "revenue",    "icon": "CreditCard",    "label": "Revenue This Month",  "value": _money(revenue_amt), "delta": "paid registrations"},
+        {"id": "events",     "icon": "Calendar",      "label": "Active Events",       "value": str(events),        "delta": "scheduled"},
+        {"id": "approvals",  "icon": "CheckCircle",   "label": "Pending Approvals",   "value": str(pending_mentors), "delta": "review needed" if pending_mentors > 0 else "all clear"},
     ]
 
     # Recent activity from bookings + new users
@@ -1184,8 +822,7 @@ async def super_admin_overview(user: dict = Depends(require_role('admin'))):
             "role": "student",
             "created_at": {"$gte": m_start, "$lt": m_end},
         })
-        # Multiply for visual scale (DB has limited records)
-        months.append({"month": m_start.strftime("%b"), "value": cnt * 200 + 1200})
+        months.append({"month": m_start.strftime("%b"), "value": cnt})
 
     # Revenue breakdown by event (real data)
     rev_breakdown_pipeline = [
@@ -1213,10 +850,10 @@ async def super_admin_overview(user: dict = Depends(require_role('admin'))):
 
     return {
         "admin": {
-            "name": "Super Admin",
-            "email": "admin@studentalumni.in",
-            "initials": "SA",
-            "role": "Platform Admin · Full Access",
+            "name": user.get("full_name") or "Admin",
+            "email": user.get("email") or "",
+            "initials": _initials(user.get("full_name") or "Admin"),
+            "role": f"{user.get('role', 'admin').replace('_', ' ').title()} · Platform",
         },
         "kpis": kpis,
         "recentActivity": recent[:5],
@@ -1229,161 +866,6 @@ async def super_admin_overview(user: dict = Depends(require_role('admin'))):
 # ════════════════════════════════════════════════════════════════
 #   SUPER ADMIN SUB-VIEW ENDPOINTS
 # ════════════════════════════════════════════════════════════════
-
-@router.get("/admin/super/colleges")
-async def super_colleges(user: dict = Depends(require_role('admin'))):
-    """List all colleges with aggregated stats."""
-    agg = await _db.users.aggregate([
-        {"$match": {"role": "student", "school_info.institution_name": {"$ne": None}}},
-        {"$group": {
-            "_id": "$school_info.institution_name",
-            "students": {"$sum": 1},
-            "city": {"$first": "$school_info.city"},
-        }},
-        {"$sort": {"students": -1}},
-        {"$limit": 30},
-    ]).to_list(30)
-
-    # Look up college metadata (NAAC, MoU, status)
-    out = []
-    for i, c in enumerate(agg):
-        meta = await _db.colleges_meta.find_one({"name": c["_id"]}) or {}
-        rev = c["students"] * 1500
-        out.append({
-            "id": i + 1,
-            "name": c["_id"],
-            "code": _initials(c["_id"]),
-            "city": c.get("city") or meta.get("city") or "India",
-            "students": c["students"],
-            "naac": meta.get("naac") or ("A++" if i < 3 else "A+" if i < 7 else "A"),
-            "mou": meta.get("mou") or ("Premium" if i < 5 else "Standard"),
-            "rev": _money(rev),
-            "status": meta.get("status") or ("active" if i < 7 else "pending"),
-            "color": _color_for(c["_id"]),
-        })
-    return {"items": out, "total": len(out)}
-
-
-@router.get("/admin/super/students")
-async def super_students(limit: int = 50, q: Optional[str] = None, user: dict = Depends(require_role('admin'))):
-    """Cross-college student directory."""
-    match: Dict[str, Any] = {"role": "student"}
-    if q:
-        match["full_name"] = {"$regex": re.escape(q), "$options": "i"}
-
-    cur = _db.users.find(match).limit(limit)
-    out = []
-    async for s in cur:
-        si = s.get("school_info") or {}
-        out.append({
-            "id": _short_id(s.get("_id")),
-            "name": s.get("full_name") or "—",
-            "initials": _initials(s.get("full_name") or ""),
-            "college": si.get("institution_name") or "—",
-            "dept": si.get("branch_or_stream") or "CSE",
-            "year": "Y4" if (si.get("graduation_year") or 2027) <= datetime.now().year + 1 else "Y2",
-            "cgpa": round(7.0 + (hash(s.get("email", "")) % 25) * 0.1, 1),
-            "status": "active",
-            "color": _color_for(s.get("full_name", "")),
-        })
-
-    # Aggregate stats
-    total = await _db.users.count_documents({"role": "student"})
-    active_week = total  # approximation
-    return {
-        "items": out,
-        "stats": {
-            "total": total,
-            "active": active_week,
-            "placement_ready": int(total * 0.12),
-            "at_risk": int(total * 0.025),
-        },
-    }
-
-
-@router.get("/admin/super/mentors")
-async def super_mentors(status: Optional[str] = None, user: dict = Depends(require_role('admin'))):
-    """List all mentors. status filter: 'pending' | 'approved' | None=all."""
-    match: Dict[str, Any] = {"role": "mentor"}
-    if status:
-        match["mentor_status"] = status
-    cur = _db.users.find(match).limit(100)
-    out = []
-    async for m in cur:
-        mi = m.get("mentor_info") or {}
-        sid = str(m["_id"])
-        sessions = await _db.bookings.count_documents({"mentor_id": sid, "status": {"$ne": "cancelled"}})
-        ratings_cur = _db.reviews.find({"mentor_id": sid})
-        ratings = [r.get("rating", 0) async for r in ratings_cur]
-        avg = round(sum(ratings) / len(ratings), 1) if ratings else 0
-
-        # Tier from session count
-        if (m.get("mentor_status") or "") == "pending":
-            tier = "Pending"
-        elif sessions >= 100:
-            tier = "Platinum"
-        elif sessions >= 30:
-            tier = "Gold"
-        else:
-            tier = "Silver"
-
-        rate = m.get("expected_rate_inr") or 999
-        out.append({
-            "id": sid,
-            "name": m.get("full_name") or "—",
-            "initials": _initials(m.get("full_name") or ""),
-            "role": f"{mi.get('job_title', 'Mentor')}, {mi.get('organization', '—')}",
-            "tier": tier,
-            "sessions": sessions,
-            "rating": avg,
-            "payout": _money(sessions * rate * 0.6),
-            "status": m.get("mentor_status") or "active",
-            "color": _color_for(m.get("full_name", "")),
-        })
-
-    counts = {
-        "all": await _db.users.count_documents({"role": "mentor"}),
-        "active": await _db.users.count_documents({"role": "mentor", "mentor_status": "approved"}),
-        "pending": await _db.users.count_documents({"role": "mentor", "mentor_status": "pending"}),
-    }
-    return {"items": out, "counts": counts}
-
-
-@router.get("/admin/super/alumni")
-async def super_alumni(limit: int = 60, user: dict = Depends(require_role('admin'))):
-    """Cross-college alumni directory."""
-    cur = _db.users.find({"role": "alumni"}).limit(limit)
-    out = []
-    async for a in cur:
-        ai = a.get("alumni_info") or {}
-        si = a.get("school_info") or {}
-        is_donor = (hash(a.get("email", "")) % 3) == 0
-        donated = ["₹50K", "₹2.4L", "₹25K", "₹1.0L"][hash(a.get("email", "")) % 4] if is_donor else "—"
-        out.append({
-            "id": _short_id(a.get("_id")),
-            "name": a.get("full_name") or "—",
-            "init": _initials(a.get("full_name") or ""),
-            "batch": ai.get("graduation_year") or si.get("graduation_year") or 2018,
-            "college": si.get("institution_name") or "—",
-            "role": f"{ai.get('current_role', '—')}, {ai.get('current_employer', '—')}".strip(", "),
-            "city": si.get("city") or "—",
-            "donor": is_donor,
-            "donated": donated,
-            "color": _color_for(a.get("full_name", "")),
-        })
-
-    countries = 62
-    total = await _db.users.count_documents({"role": "alumni"})
-    return {
-        "items": out,
-        "stats": {
-            "verified": total,
-            "donations_ytd": _money(total * 12000),
-            "companies": int(total * 0.7),
-            "countries": countries,
-        },
-    }
-
 
 @router.get("/admin/super/events")
 async def super_events(user: dict = Depends(require_role('admin'))):
@@ -2005,7 +1487,7 @@ async def super_payments(user: dict = Depends(require_role('admin'))):
 
 @router.post("/admin/super/payouts/initiate")
 async def initiate_payout(user: dict = Depends(require_role('admin'))):
-    """Initiate a real Stripe payout if credentials are installed, otherwise mock."""
+    """Initiate a real Stripe payout when credentials are installed; 503 otherwise."""
     stripe_installed = await _db.installed_tools.find_one({"tool_id": "stripe", "status": "connected"})
     if stripe_installed:
         sk = (stripe_installed.get("credentials") or {}).get("secret_key", "")
@@ -2034,13 +1516,7 @@ async def initiate_payout(user: dict = Depends(require_role('admin'))):
             except Exception as e:
                 return {"ok": False, "message": f"Stripe call failed: {str(e)[:200]}"}
 
-    # Fallback: mock
-    await _db.admin_audit_log.insert_one({
-        "action": "payout.initiated",
-        "target": "mock",
-        "at": datetime.now(timezone.utc),
-    })
-    return {"ok": True, "message": "Mock payout initiated (no Stripe key — connect Stripe in Integrations)"}
+    raise HTTPException(status_code=503, detail={"error": "payouts provider not configured"})
 
 
 @router.get("/admin/export/payments")
@@ -2119,64 +1595,114 @@ async def export_payments_csv(user: dict = Depends(require_role('admin'))):
 
 @router.get("/admin/super/approvals")
 async def super_approvals(user: dict = Depends(require_role('admin'))):
-    """All pending items: mentors + colleges (from colleges_meta) + events."""
+    """All pending items: mentors + colleges (from colleges_meta) + events.
+
+    Each item carries its SLA state (AP1): pending duration, the SLA window it
+    is measured against, and an `overdue` flag once the window is breached.
+    """
+    from features.routers.admin.approvals import SLA_HOURS, _pending_items
+
+    now = datetime.now(timezone.utc)
+    sla_state = {
+        i["id"]: i
+        for i in await _pending_items()
+    }
+
     items: List[Dict[str, Any]] = []
 
     # Pending mentors
     cur = _db.users.find({"role": "mentor", "mentor_status": "pending"})
     async for m in cur:
         mi = m.get("mentor_info") or {}
+        item_id = str(m["_id"])
+        sla = sla_state.get(item_id, {})
         items.append({
-            "id": str(m["_id"]),
+            "id": item_id,
             "kind": "mentor",
             "who": m.get("full_name") or "—",
             "who2": _initials(m.get("full_name") or ""),
             "meta": f"{mi.get('job_title', 'Mentor')}, {mi.get('organization', '—')} · {mi.get('years_of_experience', 5)} yrs",
             "priority": "high",
             "color": _color_for(m.get("full_name", "")),
+            "pending_hours": sla.get("pending_hours", 0),
+            "sla_hours": SLA_HOURS["mentor"],
+            "due_at": sla.get("due_at"),
+            "remaining_hours": sla.get("remaining_hours", 0),
+            "overdue": bool(sla.get("overdue")),
+            "sla_state": sla.get("state", "on_track"),
         })
 
     # Pending colleges
     pcur = _db.colleges_meta.find({"status": "pending"})
     async for c in pcur:
+        item_id = str(c["_id"])
+        sla = sla_state.get(item_id, {})
         items.append({
-            "id": str(c["_id"]),
+            "id": item_id,
             "kind": "college",
             "who": c.get("name", "—"),
             "who2": _initials(c.get("name", "")),
             "meta": f"{c.get('mou_kind', 'Onboarding')} · {c.get('mou', 'Standard')} MoU · {c.get('annual_fee', '₹2.4L/yr')}",
             "priority": c.get("priority", "med"),
             "color": _color_for(c.get("name", "")),
+            "pending_hours": sla.get("pending_hours", 0),
+            "sla_hours": SLA_HOURS["college"],
+            "due_at": sla.get("due_at"),
+            "remaining_hours": sla.get("remaining_hours", 0),
+            "overdue": bool(sla.get("overdue")),
+            "sla_state": sla.get("state", "on_track"),
         })
 
     # Pending events (start_date > 30 days from now)
     ev_cur = _db.events.find({
-        "start_date": {"$gt": datetime.now(timezone.utc) + timedelta(days=30)},
+        "start_date": {"$gt": now + timedelta(days=30)},
     }).limit(2)
     async for ev in ev_cur:
+        item_id = str(ev["_id"])
+        sla = sla_state.get(item_id, {})
         items.append({
-            "id": str(ev["_id"]),
+            "id": item_id,
             "kind": "event",
             "who": ev.get("title", "Event"),
             "who2": _initials(ev.get("title", "")),
             "meta": f"{ev.get('mode', 'Online')} · Capacity {ev.get('capacity', 1000)}",
             "priority": "low",
             "color": _color_for(ev.get("title", "")),
+            "pending_hours": sla.get("pending_hours", 0),
+            "sla_hours": SLA_HOURS["event"],
+            "due_at": sla.get("due_at"),
+            "remaining_hours": sla.get("remaining_hours", 0),
+            "overdue": bool(sla.get("overdue")),
+            "sla_state": sla.get("state", "on_track"),
         })
+
+    # Overdue items first — they need attention soonest.
+    items.sort(key=lambda x: (not x["overdue"], -x["pending_hours"]))
 
     return {"items": items, "counts": {
         "all": len(items),
         "college": sum(1 for x in items if x["kind"] == "college"),
         "mentor":  sum(1 for x in items if x["kind"] == "mentor"),
         "event":   sum(1 for x in items if x["kind"] == "event"),
-    }}
+        "overdue": sum(1 for x in items if x["overdue"]),
+        "due_soon": sum(1 for x in items if x["sla_state"] == "due_soon"),
+    }, "sla_hours": SLA_HOURS}
 
 
 @router.get("/admin/super/analytics")
-async def super_analytics(user: dict = Depends(require_role('admin'))):
-    """Platform analytics — real data from MongoDB + Firebase + PostHog."""
-    from analytics import super_admin_full_analytics
-    return await super_admin_full_analytics(_db)
+async def super_analytics(
+    range: str = Query("30d", pattern="^(7d|30d|90d|ytd|custom)$"),
+    start: Optional[str] = Query(None),
+    end: Optional[str] = Query(None),
+    user: dict = Depends(require_role('admin')),
+):
+    """Platform analytics — real data from MongoDB + Firebase + PostHog.
+
+    `range` scopes the period block (current window, previous window of the
+    same length, and the % delta between them).
+    """
+    from features.analytics import super_admin_full_analytics
+    return await super_admin_full_analytics(_db, range_key=range, start=start, end=end)
 
 
 @router.get("/admin/super/ai-insights")
@@ -2346,7 +1872,7 @@ async def college_mentors_list(college_name: Optional[str] = None, limit: int = 
             "role": mi.get("job_title") or "Mentor",
             "company": mi.get("organization") or "—",
             "sessions": sessions,
-            "rating": m.get("rating") or 4.7,
+            "rating": m.get("rating"),
             "status": m.get("mentor_status") or "active",
             "color": _color_for(m.get("full_name", "")),
         })
@@ -2404,15 +1930,8 @@ async def college_announcements(college_name: Optional[str] = None, user: dict =
             "author": a.get("author", "Admin"),
         })
     if not items:
-        # Provide rich defaults if the collection is empty
-        items = [
-            {"id": "ann-1", "title": "Placement drive: Google CIS 2026",      "body": "Pre-screening on May 12. CGPA ≥ 7.5 for CSE/IT. Apply via Placement Cell by May 8.",       "audience": "students", "tag": "placement",   "posted_at": None, "pinned": True,  "author": "Placement Office"},
-            {"id": "ann-2", "title": "Annual Convocation — RSVP open",         "body": "Convocation 2026 on May 22 at College Auditorium. Alumni speakers confirmed: Aanya Mehta, Rishabh Kumar.", "audience": "alumni",  "tag": "event",        "posted_at": None, "pinned": True,  "author": "Director's Office"},
-            {"id": "ann-3", "title": "AI-Mock Interview series this week",     "body": "Free 30-min mock interviews with mentors. Wed–Fri, 6 PM. 80 slots available.",            "audience": "students", "tag": "career",       "posted_at": None, "pinned": False, "author": "Career Cell"},
-            {"id": "ann-4", "title": "Hostel mess fee revision approved",      "body": "Effective Jun 1, 2026. New rates and FAQs uploaded to student portal.",                  "audience": "students", "tag": "general",      "posted_at": None, "pinned": False, "author": "Hostel Office"},
-            {"id": "ann-5", "title": "Faculty Recruitment — Asst. Prof CSE",   "body": "3 positions open. Internal referrals welcome. Deadline May 15.",                         "audience": "faculty",  "tag": "hiring",       "posted_at": None, "pinned": False, "author": "HR"},
-        ]
-    return {"items": items}
+        return {"items": [], "configured": False, "basis": "announcements collection has no recorded entries"}
+    return {"items": items, "configured": True}
 
 
 @router.get("/college/analytics-legacy")
@@ -2427,86 +1946,97 @@ async def college_analytics(college_name: Optional[str] = None, user: dict = Dep
         college_name = agg[0]["_id"] if agg else None
 
     # Placement trend (last 5 years)
-    placement_trend = [
-        {"year": 2022, "rate": 86, "median_lpa": 8.2},
-        {"year": 2023, "rate": 89, "median_lpa": 9.5},
-        {"year": 2024, "rate": 92, "median_lpa": 10.8},
-        {"year": 2025, "rate": 93, "median_lpa": 11.6},
-        {"year": 2026, "rate": 94, "median_lpa": 12.4},
-    ]
+    placement_trend = None
+    # Historical year-over-year placement records are not stored, so the
+    # trend is null unless the collection gains year-level data.
+    college_query = {"school_info.institution_name": college_name} if college_name else {}
 
-    # Salary distribution
-    salary_dist = [
-        {"band": "<5 LPA",     "count": 12,  "pct":  3,  "color": "#94A3B8"},
-        {"band": "5-10 LPA",   "count": 96,  "pct": 24,  "color": "#22D3EE"},
-        {"band": "10-20 LPA",  "count": 184, "pct": 46,  "color": "#A78BFA"},
-        {"band": "20-40 LPA",  "count": 84,  "pct": 21,  "color": "#FBBF24"},
-        {"band": "40+ LPA",    "count": 24,  "pct":  6,  "color": "#22C55E"},
-    ]
+    # Salary distribution — computed from recorded package amounts when present
+    def _to_lpa(v):
+        if v in (None, ""):
+            return None
+        if isinstance(v, (int, float)):
+            return float(v)
+        m = re.search(r"([0-9]+(?:\.[0-9]+)?)", str(v))
+        return float(m.group(1)) if m else None
 
-    # Top hiring sectors
-    sectors = [
-        {"name": "Software/Tech",   "count": 184, "color": "#3B82F6"},
-        {"name": "Finance",         "count":  64, "color": "#22C55E"},
-        {"name": "Consulting",      "count":  48, "color": "#A78BFA"},
-        {"name": "Product",         "count":  42, "color": "#F59E0B"},
-        {"name": "Design",          "count":  28, "color": "#EC4899"},
-        {"name": "Research",        "count":  20, "color": "#22D3EE"},
+    placed_alumni = await _db.users.find(
+        {"role": "alumni", "alumni_info.current_employer": nonempty("—", "-"), **college_query},
+        {"alumni_info": 1},
+    ).to_list(2000)
+    recorded_lpa = [l for l in (_to_lpa((d.get("alumni_info") or {}).get("package_lpa")) for d in placed_alumni) if l]
+    bands = [
+        {"band": "< ₹6 LPA",   "min": 0,  "max": 6},
+        {"band": "₹6-10 LPA",  "min": 6,  "max": 10},
+        {"band": "₹10-15 LPA", "min": 10, "max": 15},
+        {"band": "₹15-25 LPA", "min": 15, "max": 25},
+        {"band": "₹25+ LPA",   "min": 25, "max": 10**9},
     ]
+    if recorded_lpa:
+        salary_dist = []
+        for b in bands:
+            cnt = sum(1 for p in recorded_lpa if b["min"] <= p < b["max"])
+            salary_dist.append({"band": b["band"], "count": cnt, "pct": round(cnt / len(recorded_lpa) * 100, 1), "color": None})
+        salary_dist_basis = "sums of recorded alumni_info.package_lpa values"
+    else:
+        salary_dist = [{"band": b["band"], "count": 0, "pct": None, "color": None} for b in bands]
+        salary_dist_basis = "no recorded package amounts; counts are zero and pct null"
 
-    # Attendance attrition signals
-    attrition = [
-        {"label": "Attendance > 85%",    "pct": 68, "color": "#22C55E"},
-        {"label": "75–85%",              "pct": 22, "color": "#FBBF24"},
-        {"label": "60–75%",              "pct":  7, "color": "#F59E0B"},
-        {"label": "< 60% (at-risk)",     "pct":  3, "color": "#EF4444"},
-    ]
+    # Top hiring sectors — counts from recorded employer fields, if any
+    employer_counts: Dict[str, int] = {}
+    for d in placed_alumni:
+        em = ((d.get("alumni_info") or {}).get("current_employer") or "").strip()
+        if em:
+            employer_counts[em] = employer_counts.get(em, 0) + 1
+    sectors = [{"name": n, "count": c, "color": None} for n, c in sorted(employer_counts.items(), key=lambda x: -x[1])[:6]]
+    sectors_basis = "grouped alumni_info.current_employer values; empty when no employer recorded"
 
-    students_cnt = await _db.users.count_documents({"role": "student", "school_info.institution_name": college_name})
+    # Attendance attrition signals — attendance is not recorded on users
+    attrition = []
+    attrition_basis = "attendance records are not stored; no values shown rather than invented"
+
+    students_cnt = await _db.users.count_documents({"role": "student", "school_info.institution_name": college_name} if college_name else {"role": "student"})
+    alumni_cnt = await _db.users.count_documents({"role": "alumni", **college_query})
+    placed_cnt = len(placed_alumni)
+    placement_pct_num = int((placed_cnt / alumni_cnt) * 100) if alumni_cnt > 0 else None
+    sorted_lpa = sorted(recorded_lpa)
+    median_lpa = round(sorted_lpa[len(sorted_lpa) // 2], 1) if sorted_lpa else None
+    top_offer = round(max(sorted_lpa), 1) if sorted_lpa else None
+
     return {
         "kpi": {
             "students":     students_cnt,
-            "placement":   "94%",
-            "median_lpa":  "₹12.4 LPA",
-            "top_offer":   "₹68 LPA",
-            "median_yoy":  "↑ 7%",
+            "placement":   (f"{placement_pct_num}%" if placement_pct_num is not None else None),
+            "median_lpa":  (f"₹{median_lpa} LPA" if median_lpa is not None else None),
+            "top_offer":   (f"₹{top_offer} LPA" if top_offer is not None else None),
+            "median_yoy":  None,
         },
         "placement_trend": placement_trend,
         "salary_dist":     salary_dist,
         "sectors":         sectors,
         "attrition":       attrition,
+        "basis": {
+            "placement": "alumni with a recorded current employer / total alumni",
+            "median_lpa": "median of recorded package amounts; null when none recorded",
+            "salary_dist": salary_dist_basis,
+            "sectors": sectors_basis,
+            "attrition": attrition_basis,
+            "placement_trend": "no historical year-level placement records are stored; null",
+            "median_yoy": "no historical records to compute a YoY change; null",
+        },
     }
 
 
 @router.get("/college/career-intel")
 async def college_career_intel(college_name: Optional[str] = None, user: dict = Depends(require_role('college'))):
     """Career Intel: aggregate skill gaps + hiring intent + roles in demand."""
-    skill_gaps = [
-        {"skill": "Cloud (AWS / GCP)",     "demand": 92, "supply": 38, "gap": 54, "color": "#3B82F6"},
-        {"skill": "System Design",          "demand": 88, "supply": 42, "gap": 46, "color": "#A78BFA"},
-        {"skill": "ML Ops",                 "demand": 78, "supply": 24, "gap": 54, "color": "#22D3EE"},
-        {"skill": "Product Management",     "demand": 72, "supply": 36, "gap": 36, "color": "#F59E0B"},
-        {"skill": "DevOps & SRE",           "demand": 69, "supply": 32, "gap": 37, "color": "#EC4899"},
-    ]
-
-    hiring_intent = [
-        {"company": "Google",       "openings":  18, "tier": "Tier-1", "season": "Aug 2026", "color": "#3B82F6"},
-        {"company": "Microsoft",    "openings":  24, "tier": "Tier-1", "season": "Aug 2026", "color": "#A78BFA"},
-        {"company": "Razorpay",     "openings":  32, "tier": "Tier-1", "season": "Sep 2026", "color": "#22D3EE"},
-        {"company": "Flipkart",     "openings":  28, "tier": "Tier-1", "season": "Aug 2026", "color": "#FB923C"},
-        {"company": "Goldman Sachs", "openings": 12, "tier": "Tier-1", "season": "Sep 2026", "color": "#FBBF24"},
-        {"company": "Adobe",        "openings":  16, "tier": "Tier-1", "season": "Sep 2026", "color": "#EF4444"},
-    ]
-
-    roles_in_demand = [
-        {"role": "SDE - Backend",      "growth": "↑ 38% YoY", "openings": 142, "color": "#22C55E"},
-        {"role": "Data Engineer",      "growth": "↑ 29% YoY", "openings":  86, "color": "#A78BFA"},
-        {"role": "Product Manager",    "growth": "↑ 22% YoY", "openings":  62, "color": "#F59E0B"},
-        {"role": "ML Engineer",        "growth": "↑ 41% YoY", "openings":  74, "color": "#3B82F6"},
-        {"role": "UX Designer",        "growth": "↑ 14% YoY", "openings":  38, "color": "#EC4899"},
-    ]
-
-    return {"skill_gaps": skill_gaps, "hiring_intent": hiring_intent, "roles_in_demand": roles_in_demand}
+    return {
+        "skill_gaps": [],
+        "hiring_intent": [],
+        "roles_in_demand": [],
+        "configured": False,
+        "basis": "no recorded source for skill demand/supply, per-company hiring intent, or role growth; empty until real data is wired in",
+    }
 
 
 @router.get("/student/events")
@@ -3053,14 +2583,14 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "role": "Mentor",
             "subline": f"{mi.get('job_title', '—')} at {mi.get('organization', '—')}".strip(", ") or "Expert Mentor",
             "college": si.get("institution_name") or "—",
-            "batch": mi.get("graduation_year") or 2015,
+            "batch": mi.get("graduation_year"),
             "tags": ["Mentor"] + (m.get("skills", []) or [])[:2],
             "color": _color_for(m.get("full_name", "")),
             "kind": "mentor",
             "connection_state": rel_map.get(other_id, "none"),
             "company": mi.get("organization") or "—",
             "job_title": mi.get("job_title") or "Mentor",
-            "rating": mi.get("rating") or 5.0,
+            "rating": mi.get("rating"),
             "sessions": mi.get("sessions") or 0,
             "photo_data": m.get("face_image_base64") or m.get("photo_data"),
         })
@@ -3144,7 +2674,7 @@ async def create_workflow(req: WorkflowCreateRequest, user: dict = Depends(requi
 async def fire_workflow_event_endpoint(event_type: str = Body(...), payload: Optional[Dict[str, Any]] = Body(None)):
     """Manually fire a workflow event. All workflows with matching event_triggers will run."""
     try:
-        from workflow_automation import fire_workflow_event as _fire
+        from features.workflow_automation import fire_workflow_event as _fire
         results = await _fire(event_type, payload or {})
         return {"ok": True, "event_type": event_type, "workflows_triggered": len(results), "results": results}
     except Exception as e:
@@ -3152,7 +2682,7 @@ async def fire_workflow_event_endpoint(event_type: str = Body(...), payload: Opt
 
 
 # ── Step registry: single source of truth lives in workflow_automation ──
-from workflow_automation import STEP_REGISTRY  # noqa: E402
+from features.workflow_automation import STEP_REGISTRY  # noqa: E402
 
 
 @router.post("/admin/super/workflows/{wf_id}/run")
@@ -3245,6 +2775,18 @@ async def delete_workflow(wf_id: str, user: dict = Depends(require_role('admin')
     return {"ok": True, "deleted": wf_id}
 
 
+async def _log_approval_action(action: str, kind: str, item_id: str, label: str, user: dict, detail: Optional[Dict[str, Any]] = None):
+    """Append an entry to the immutable approval audit trail (AP4)."""
+    try:
+        from features.routers.admin.approvals import _write_audit
+        await _write_audit(
+            action=action, kind=kind, item_id=item_id, label=label,
+            user=user, detail=detail or {},
+        )
+    except Exception:
+        pass
+
+
 @router.post("/admin/super/approvals/{user_id}/approve")
 async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))):
     """Approve a pending mentor, college, or event."""
@@ -3253,9 +2795,11 @@ async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))
         oid = ObjectId(user_id)
         res = await _db.users.update_one({"_id": oid, "role": "mentor"}, {"$set": {"mentor_status": "approved", "approved_at": datetime.now(timezone.utc)}})
         if res.matched_count > 0:
+            await _log_approval_action("approved", "mentor", user_id, user.get("full_name") or "", user)
             return {"ok": True, "kind": "mentor"}
         res2 = await _db.colleges_meta.update_one({"_id": oid}, {"$set": {"status": "active", "approved_at": datetime.now(timezone.utc)}})
         if res2.matched_count > 0:
+            await _log_approval_action("approved", "college", user_id, "", user)
             return {"ok": True, "kind": "college"}
     except Exception:
         pass
@@ -3266,6 +2810,7 @@ async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))
         {"$set": {"status": "active", "approved_at": datetime.now(timezone.utc)}}
     )
     if res.matched_count > 0:
+        await _log_approval_action("approved", "college", user_id, user_id, user)
         return {"ok": True, "kind": "college"}
 
     # Try events by title
@@ -3274,6 +2819,7 @@ async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))
         {"$set": {"status": "live", "approved_at": datetime.now(timezone.utc)}}
     )
     if res3.matched_count > 0:
+        await _log_approval_action("approved", "event", user_id, user_id, user)
         return {"ok": True, "kind": "event"}
 
     raise HTTPException(404, "Not found")
@@ -3283,18 +2829,21 @@ async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))
 async def reject_user(user_id: str, user: dict = Depends(require_role('admin'))):
     try:
         oid = ObjectId(user_id)
-        res = await _db.users.update_one({"_id": oid, "role": "mentor"}, {"$set": {"mentor_status": "rejected"}})
+        res = await _db.users.update_one({"_id": oid, "role": "mentor"}, {"$set": {"mentor_status": "rejected", "rejected_at": datetime.now(timezone.utc)}})
         if res.matched_count > 0:
+            await _log_approval_action("rejected", "mentor", user_id, user.get("full_name") or "", user)
             return {"ok": True, "kind": "mentor"}
-        res2 = await _db.colleges_meta.update_one({"_id": oid}, {"$set": {"status": "rejected"}})
+        res2 = await _db.colleges_meta.update_one({"_id": oid}, {"$set": {"status": "rejected", "rejected_at": datetime.now(timezone.utc)}})
         if res2.matched_count > 0:
+            await _log_approval_action("rejected", "college", user_id, "", user)
             return {"ok": True, "kind": "college"}
     except Exception:
         pass
 
     # Try by name
-    res = await _db.colleges_meta.update_one({"name": user_id}, {"$set": {"status": "rejected"}})
+    res = await _db.colleges_meta.update_one({"name": user_id}, {"$set": {"status": "rejected", "rejected_at": datetime.now(timezone.utc)}})
     if res.matched_count > 0:
+        await _log_approval_action("rejected", "college", user_id, user_id, user)
         return {"ok": True, "kind": "college"}
 
     # Try events by title
@@ -3303,6 +2852,7 @@ async def reject_user(user_id: str, user: dict = Depends(require_role('admin')))
         {"$set": {"status": "cancelled", "rejected_at": datetime.now(timezone.utc)}}
     )
     if res3.matched_count > 0:
+        await _log_approval_action("rejected", "event", user_id, user_id, user)
         return {"ok": True, "kind": "event"}
 
     raise HTTPException(404, "Not found")

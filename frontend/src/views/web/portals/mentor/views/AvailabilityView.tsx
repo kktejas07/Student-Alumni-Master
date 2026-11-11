@@ -15,7 +15,7 @@ type Slot = { day: string; start_time: string; end_time: string };
 
 export function AvailabilityView() {
   const toast = useToast();
-  const { email } = useCurrentUser('mentor-active1@persona.demo');
+  const { email } = useCurrentUser();
   const [slots, setSlots] = useState<Slot[]>([
     { day: 'Monday', start_time: '09:00', end_time: '17:00' },
     { day: 'Wednesday', start_time: '14:00', end_time: '18:00' },

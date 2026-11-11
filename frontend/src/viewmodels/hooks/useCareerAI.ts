@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { api, request } from '@/src/models/services/api';
+import { api } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 export function useCareerAI() {
@@ -13,9 +13,7 @@ export function useCareerAI() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = typeof (api as any).getCareerIntelligence === 'function'
-        ? await (api as any).getCareerIntelligence()
-        : await request('/student/intelligence');
+      const res = await api.getCareerIntelligence();
       setData(res);
       setIsOffline(false);
     } catch (e) {
@@ -49,7 +47,7 @@ export function useCareerAI() {
   const readinessScore = useMemo(() => {
     if (typeof data?.readiness_score === 'number') return data.readiness_score;
     if (typeof careerIntel?.readiness_score === 'number') return careerIntel.readiness_score;
-    return 78;
+    return 0; // nothing computed yet — never show an invented score
   }, [data, careerIntel]);
 
   const readinessLevel = useMemo(() => {

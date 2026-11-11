@@ -45,8 +45,8 @@ export function AlumniPortalRN() {
   React.useEffect(() => setQ(searchQuery), [searchQuery]);
 
   const onLogout = async () => {
-    router.replace('/welcome');
     try { await logout(); } catch {}
+    router.replace('/welcome');
   };
   const handleNav = (id: AlumniNavId, params?: { q?: string }) => {
     if (id !== active) go(id);
@@ -88,7 +88,7 @@ export function AlumniPortalRN() {
         {active === 'financial'       && <FinancialPage />}
         {active === 'deals'           && <DealsPage />}
         {active === 'wallet'          && <WalletPage />}
-        {active === 'higher-ed'       && <HigherEducationPage />}
+        {active === 'higher-education'       && <HigherEducationPage />}
         {active === 'rentals'         && <RentalsPage />}
         {active === 'profile'         && <ProfileSettingsView />}
       </PortalShell>

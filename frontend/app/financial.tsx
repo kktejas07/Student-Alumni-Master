@@ -349,7 +349,7 @@ export default function FinancialPage() {
     <FeaturePageShell
       title="Financial Services"
       subtitle="Funding, education loans, investors, insurance — matched to your profile."
-      heroEmoji="💰"
+      heroIcon={<MaterialCommunityIcons name="bank" size={30} color="#5F259F" />}
       accent="#5F259F"
       rightSlot={<View style={s.savPill}><Icon name="wallet-outline" size={12} color="#86EFAC" /><Text style={s.savPillText}>SA Savings Advisor</Text></View>}
     >

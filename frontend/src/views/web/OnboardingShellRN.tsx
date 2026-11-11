@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 /**
  * OnboardingShellRN — Exact 1:1 Match of Onboarding.html with
  * Interactive Photo Capture / Avatar Upload Step and 3D Card Integration.
@@ -8,9 +8,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { api } from '@/src/models/services/api';
+import { api, request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { signInWithGoogle } from '@/src/lib/firebaseAuth';
+import { getBaseUrl } from '@/src/lib/env';
+import { initFirebaseAuth, signInWithGoogle } from '@/src/lib/firebaseAuth';
 
 export function OnboardingShellRN() {
   const router = useRouter();
@@ -23,8 +24,8 @@ export function OnboardingShellRN() {
 }
 
 function WebOnboardingEngine({ router }: { router: any }) {
-  const [isLoaded, setIsLoaded] = useState(false);
   const [flow, setFlow] = useState<'student' | 'alumnus' | 'college'>('student');
+  const [isLoaded, setIsLoaded] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
 
   // Real-Time Auth & OTP State
@@ -40,11 +41,55 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const [otpError, setOtpError] = useState<string | null>(null);
   const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(true);
+  const finishInProgressRef = useRef(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+  const dobInputRef = useRef<HTMLInputElement>(null);
 
   const setUser = useAuthStore((s) => s.setUser);
   const setTokens = useAuthStore((s) => s.setTokens);
 
   const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+  const focusMissingAccountField = (field: 'name' | 'email' | 'password' | 'dob') => {
+    const fieldRefs = {
+      name: nameInputRef,
+      email: emailInputRef,
+      password: passwordInputRef,
+      dob: dobInputRef,
+    };
+    const input = fieldRefs[field].current;
+    if (!input) return;
+    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    input.focus({ preventScroll: true });
+  };
+
+  const validateAccountFields = () => {
+    if (!userName.trim()) {
+      setOtpError('Please enter your full name.');
+      focusMissingAccountField('name');
+      return false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail.trim())) {
+      setOtpError('Please enter a valid email address.');
+      focusMissingAccountField('email');
+      return false;
+    }
+    if (!userPassword) {
+      setOtpError('Please create a password for your account.');
+      focusMissingAccountField('password');
+      return false;
+    }
+    if (!userDob) {
+      setOtpError('Please enter your date of birth to create your account.');
+      focusMissingAccountField('dob');
+      return false;
+    }
+    return true;
+  };
 
   const handleSendRealtimeOtp = async () => {
     if (!userEmail || !userEmail.includes('@')) {
@@ -81,9 +126,11 @@ function WebOnboardingEngine({ router }: { router: any }) {
     try {
       const res = await api.verifyEmailOtp(userEmail, code);
       setIsOtpVerified(true);
-      if (res && res.user && res.token) {
+      if (res && res.user && (res.access_token || res.token)) {
         setUser(res.user);
-        setTokens(res.token, res.token);
+        // Refresh slot MUST hold the 30-day refresh token, not the 15-min access
+        // token — otherwise /auth/refresh rejects it and the session dies early.
+        await setTokens(res.access_token || res.token, res.refresh_token || '');
       }
       return true;
     } catch (err: any) {
@@ -95,95 +142,149 @@ function WebOnboardingEngine({ router }: { router: any }) {
   };
 
   const handleGoogleSignIn = async () => {
-    const startTime = Date.now();
+    setIsGoogleLoading(true);
+    setOtpError(null);
     try {
-      // SECURITY: obtain a real Google ID token via Firebase; the backend no
-      // longer accepts an unverified email as a Google identity.
-      const google = await signInWithGoogle();
-      if (!google) return; // popup closed by user
-      const emailToUse = (google.email || userEmail || '').trim().toLowerCase();
-      const rawName = google.name || userName || emailToUse.split('@')[0];
-      const res = await api.oauthGoogle({
-        id_token: google.idToken,
+      const googleProfile = await signInWithGoogle();
+      if (!googleProfile) return;
+      if (!googleProfile.idToken || !googleProfile.email) {
+        throw new Error('Google did not return a verified email address. Please try again.');
+      }
+
+      const emailToUse = googleProfile.email.trim().toLowerCase();
+      const res = await (api as any).oauthFirebase({
+        id_token: googleProfile.idToken,
         email: emailToUse,
-        full_name: rawName,
-        picture: google.picture || avatarUri || undefined,
+        full_name: googleProfile.name || emailToUse.split('@')[0],
+        picture: googleProfile.picture,
         role: flow === 'alumnus' ? 'alumni' : flow,
       });
 
       if (res && res.user && res.access_token) {
         setUser(res.user);
-        setTokens(res.access_token, res.refresh_token);
-        if (flow === 'alumnus') router.replace('/alumni-portal');
-        else if (flow === 'college') router.replace('/college-portal');
+        await setTokens(res.access_token, res.refresh_token);
+        const role = String(res.user.role || '').toLowerCase();
+        if (role === 'alumni') router.replace('/alumni-portal');
+        else if (role === 'college') router.replace('/college-portal');
+        else if (role === 'mentor') router.replace('/mentor-portal');
+        else if (role === 'admin' || role === 'super_admin') router.replace('/super-admin');
         else router.replace('/student-portal/dashboard');
+      } else {
+        throw new Error('Google authentication failed. Please try again.');
       }
     } catch (err: any) {
       setOtpError(err?.message || 'Google authentication failed.');
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
   const handleFinishOnboarding = async () => {
-    // Validate DOB before attempting registration
-    if (!userDob) {
-      setOtpError('Please enter your date of birth to create your account.');
-      return;
-    }
+    if (finishInProgressRef.current) return;
+    finishInProgressRef.current = true;
+    setIsFinishing(true);
+    setOtpError(null);
 
-    let regRes = null;
     try {
-      await AsyncStorage.removeItem('sa_onboarding_state');
-      regRes = await api.register({
-        email: userEmail,
-        password: userPassword || 'SAOnboarded2026!',
-        full_name: userName || userEmail.split('@')[0],
-        role: flow === 'alumnus' ? 'alumni' : flow,
-        dob: userDob,
+      const existingUser = useAuthStore.getState().user;
+      const alreadyRegistered = existingUser?.email?.toLowerCase() === userEmail.trim().toLowerCase();
+
+      if (!alreadyRegistered) {
+        if (!userPassword) {
+          setOtpError('Please create a password for your account before continuing.');
+          setStepIdx(1);
+          setTimeout(() => focusMissingAccountField('password'), 0);
+          return;
+        }
+
+        if (!userDob) {
+          setOtpError('Please enter your date of birth to create your account.');
+          setStepIdx(1);
+          setTimeout(() => focusMissingAccountField('dob'), 0);
+          return;
+        }
+
+        const regRes = await api.register({
+          email: userEmail,
+          password: userPassword,
+          full_name: userName || userEmail.split('@')[0],
+          role: flow === 'alumnus' ? 'alumni' : flow,
+          dob: userDob,
+        });
+
+        if (!regRes?.user || !regRes.access_token) {
+          setOtpError('Registration failed. Please try again.');
+          return;
+        }
+
+        setUser(regRes.user);
+        await setTokens(regRes.access_token, regRes.refresh_token);
+      }
+
+      if (avatarUri && !profilePhotoSaved) {
+        await api.updateProfile({ face_image_base64: avatarUri, photo_data: avatarUri });
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser) {
+          setUser({ ...currentUser, face_image_base64: avatarUri, photo_data: avatarUri });
+        }
+        setProfilePhotoSaved(true);
+      }
+
+      if (resumeFile && !resumeUploadComplete) {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            if (typeof reader.result === 'string') resolve(reader.result);
+            else reject(new Error('Could not read the selected resume.'));
+          };
+          reader.onerror = () => reject(new Error('Could not read the selected resume.'));
+          reader.readAsDataURL(resumeFile);
+        });
+        await request('/users/me/resume', {
+          method: 'POST',
+          body: { name: resumeFile.name, size: resumeFile.size, data_url: dataUrl },
+        });
+        setResumeUploadComplete(true);
+      }
+
+      void AsyncStorage.removeItem('sa_onboarding_state').catch((err) => {
+        console.warn('Unable to clear saved onboarding state:', err);
       });
+
+      void api.completeOnboarding({
+        flow,
+        email: userEmail,
+        name: userName,
+        full_name: capitalizeName(userName || userEmail.split('@')[0]),
+        course: selectedCourse,
+        year: selectedYear,
+        goal: selectedGoal,
+        skills: skillLevels,
+        face_image_base64: avatarUri,
+        interests,
+        institution: instName,
+        company: alumCompany,
+        role: alumRole,
+        capacity: alumCap,
+        expertise: alumExpertise,
+        mentor_format: mentorFmt,
+        mentor_frequency: mentorFreq,
+        mentor_audience: mentorWho,
+        sa_id: generatedSaId,
+      }).catch((err) => {
+        console.warn('Unable to save onboarding details:', err);
+      });
+
+      if (flow === 'alumnus') router.replace('/alumni-portal');
+      else if (flow === 'college') router.replace('/college-portal');
+      else router.replace('/student-portal/dashboard');
     } catch (regErr: any) {
-      // Surface the real backend error — do NOT fall back to a mock user
       const msg = regErr?.detail || regErr?.message || 'Registration failed. Please check your details and try again.';
       setOtpError(msg);
-      return;
+    } finally {
+      finishInProgressRef.current = false;
+      setIsFinishing(false);
     }
-
-    if (!regRes || !regRes.user) {
-      setOtpError('Registration failed. Please try again.');
-      return;
-    }
-
-    // Registration succeeded — establish real auth session
-    setUser(regRes.user);
-    setTokens(regRes.access_token, regRes.refresh_token);
-
-    // Best-effort onboarding metadata (does not block navigation on failure)
-    await api.completeOnboarding({
-      flow,
-      email: userEmail,
-      name: userName,
-      full_name: capitalizeName(userName || userEmail.split('@')[0]),
-      course: selectedCourse,
-      year: selectedYear,
-      goal: selectedGoal,
-      skills: skillLevels,
-      avatar_uri: avatarUri,
-      interests,
-      institution: instName,
-      // Alumni-specific fields
-      company: alumCompany,
-      role: alumRole,
-      capacity: alumCap,
-      expertise: alumExpertise,
-      mentor_format: mentorFmt,
-      mentor_frequency: mentorFreq,
-      mentor_audience: mentorWho,
-      // Generated SA ID
-      sa_id: generatedSaId,
-    }).catch(() => null);
-
-    if (flow === 'alumnus') router.replace('/alumni-portal');
-    else if (flow === 'college') router.replace('/college-portal');
-    else router.replace('/student-portal/dashboard');
   };
 
   // Student Form State
@@ -198,12 +299,16 @@ function WebOnboardingEngine({ router }: { router: any }) {
     portfolio: 1,
   });
   const [resumeUploaded, setResumeUploaded] = useState(false);
-  const [atsScore, setAtsScore] = useState(0);
-  
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeError, setResumeError] = useState('');
+  const [resumeUploadComplete, setResumeUploadComplete] = useState(false);
+
   // Profile Photo State
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
-  const [isCapturingPhoto, setIsCapturingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+  const [profilePhotoSaved, setProfilePhotoSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const resumeInputRef = useRef<HTMLInputElement>(null);
 
   const [interests, setInterests] = useState<string[]>(['Backend', 'Machine learning', 'Hackathons']);
   const [mentorFmt, setMentorFmt] = useState('Video calls');
@@ -252,6 +357,39 @@ function WebOnboardingEngine({ router }: { router: any }) {
 
   useEffect(() => {
     setIsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const initializeGoogleAuth = async () => {
+      let firebaseConfig;
+      try {
+        const response = await fetch(`${getBaseUrl()}/api/auth/oauth-config`);
+        if (!response.ok) {
+          throw new Error(`OAuth configuration request failed (${response.status})`);
+        }
+        const config = await response.json();
+        firebaseConfig = config?.firebase;
+      } catch (err) {
+        console.warn('Unable to load Google sign-in configuration:', err);
+      }
+
+      await initFirebaseAuth(firebaseConfig || {
+        apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
+        authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+        projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '',
+        appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '',
+      });
+      if (!cancelled) {
+        setIsGoogleLoading(false);
+      }
+    };
+
+    void initializeGoogleAuth();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
 
@@ -303,8 +441,9 @@ function WebOnboardingEngine({ router }: { router: any }) {
     setIsNavigating(true);
     try {
       if (currentKey === 'account') {
-        await handleSendRealtimeOtp();
-        setStepIdx(stepIdx + 1);
+        if (!validateAccountFields()) return;
+        const sent = await handleSendRealtimeOtp();
+        if (sent) setStepIdx(stepIdx + 1);
         return;
       }
       if (currentKey === 'verify') {
@@ -356,34 +495,56 @@ function WebOnboardingEngine({ router }: { router: any }) {
   };
 
   const handleResumeDrop = () => {
-    setResumeUploaded(true);
-    let cur = 0;
-    const interval = setInterval(() => {
-      cur += 6;
-      if (cur >= 71) {
-        setAtsScore(71);
-        clearInterval(interval);
-      } else {
-        setAtsScore(cur);
-      }
-    }, 25);
+    resumeInputRef.current?.click();
   };
 
-  const handleTakePhoto = () => {
-    setIsCapturingPhoto(true);
-    // Simulate capturing high quality verified student portrait
-    setTimeout(() => {
-      setAvatarUri('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80');
-      setIsCapturingPhoto(false);
-    }, 900);
+  const handleResumeSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (!['pdf', 'doc', 'docx'].includes(extension || '')) {
+      setResumeError('Unsupported file type. Please choose a PDF, DOC, or DOCX file.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setResumeError('File too large (max 5MB)');
+      return;
+    }
+
+    setResumeError('');
+    setResumeFile(file);
+    setResumeUploaded(true);
+    setResumeUploadComplete(false);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setAvatarUri(url);
+    e.target.value = '';
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setPhotoError('Unsupported image type. Please choose a JPG, PNG, or WebP image.');
+      return;
     }
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError('Image too large (max 5MB)');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setAvatarUri(reader.result);
+        setPhotoError('');
+        setProfilePhotoSaved(false);
+      } else {
+        setPhotoError('Could not read the selected image.');
+      }
+    };
+    reader.onerror = () => setPhotoError('Could not read the selected image.');
+    reader.readAsDataURL(file);
   };
 
   const copyCouponCode = (code: string) => {
@@ -404,14 +565,15 @@ function WebOnboardingEngine({ router }: { router: any }) {
     <div
       id="ob-root"
       style={{
-        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        fontFamily: "'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         color: 'var(--text)',
         backgroundColor: 'var(--bg)',
-        minHeight: '100vh',
+        height: '100vh',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
         overflowX: 'clip',
+        overflowY: 'auto',
         width: '100%',
       }}
     >
@@ -463,7 +625,18 @@ function WebOnboardingEngine({ router }: { router: any }) {
         type="file"
         ref={fileInputRef}
         onChange={handleFileUpload}
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
+        data-testid="onboarding-photo-input"
+        aria-label="Choose a profile photo"
+        style={{ display: 'none' }}
+      />
+      <input
+        type="file"
+        ref={resumeInputRef}
+        onChange={handleResumeSelect}
+        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        data-testid="onboarding-resume-input"
+        aria-label="Choose a resume"
         style={{ display: 'none' }}
       />
 
@@ -515,7 +688,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
         <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#obWatermarkGrad)" />
         <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#obWatermarkInner)" />
         <text
-          style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '128px', fontWeight: 800, letterSpacing: '-4px', fill: '#FFFFFF' }}
+          style={{ fontFamily: "'Manrope', sans-serif", fontSize: '128px', fontWeight: 800, letterSpacing: '-4px', fill: '#FFFFFF' }}
           textAnchor="middle"
           x="150"
           y="215"
@@ -538,7 +711,12 @@ function WebOnboardingEngine({ router }: { router: any }) {
           />
         </div>
         <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px' }}>
-          <div onClick={() => router.replace('/')} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+          <button
+            type="button"
+            aria-label="StudentAlumni home"
+            onClick={() => router.replace('/')}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', border: 0, padding: 0, background: 'transparent', color: 'inherit', font: 'inherit', textAlign: 'left' }}
+          >
             <svg width="26" height="30" viewBox="0 0 300 350" style={{ flex: 'none' }}>
               <defs>
                 <linearGradient id="obBadge" x1="0" y1="0" x2="1" y2="1">
@@ -549,12 +727,12 @@ function WebOnboardingEngine({ router }: { router: any }) {
               </defs>
               <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#obBadge)" />
               <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="rgba(255,255,255,.16)" />
-              <text x="150" y="216" textAnchor="middle" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '126px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>
+              <text x="150" y="216" textAnchor="middle" style={{ fontFamily: "'Manrope', sans-serif", fontSize: '126px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>
                 SA
               </text>
             </svg>
             <span style={{ fontSize: '15px', fontWeight: 700 }}>StudentAlumni</span>
-          </div>
+          </button>
           <div id="ob-crumb" style={{ fontSize: '13px', color: 'var(--muted)' }}>
             {CRUMBS[currentKey] || 'Getting started'}
           </div>
@@ -562,16 +740,18 @@ function WebOnboardingEngine({ router }: { router: any }) {
             <span id="ob-count" style={{ fontSize: '13px', color: 'var(--muted)' }}>
               Step {stepIdx + 1} of {currentSeq.length}
             </span>
-            <span
+            <button
+              type="button"
               id="ob-exit"
+              aria-label="Cancel onboarding"
               onClick={async () => {
                 await AsyncStorage.removeItem('sa_onboarding_state');
                 router.replace('/');
               }}
-              style={{ fontSize: '13px', color: 'var(--muted)', cursor: 'pointer' }}
+              style={{ fontSize: '13px', color: 'var(--muted)', cursor: 'pointer', border: 0, padding: 0, background: 'transparent', font: 'inherit' }}
             >
               Cancel
-            </span>
+            </button>
           </div>
         </div>
       </div>
@@ -600,8 +780,10 @@ function WebOnboardingEngine({ router }: { router: any }) {
               ].map((p) => {
                 const on = flow === p.id;
                 return (
-                  <div
+                  <button
                     key={p.id}
+                    type="button"
+                    aria-pressed={on}
                     onClick={() => {
                       setFlow(p.id as any);
                       setTimeout(nextStep, 260);
@@ -613,6 +795,10 @@ function WebOnboardingEngine({ router }: { router: any }) {
                       background: on ? 'var(--tint)' : 'var(--card)',
                       padding: '28px 26px 30px',
                       cursor: 'pointer',
+                      width: '100%',
+                      color: 'var(--text)',
+                      font: 'inherit',
+                      textAlign: 'left',
                     }}
                   >
                     <svg width="26" height="26" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--ind-lt)', strokeWidth: 1.6, marginBottom: '30px' }}>
@@ -623,7 +809,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
                     <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '1.2px', color: 'var(--ind-lt)', marginTop: '18px' }}>
                       {p.badge}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -644,15 +830,25 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   </p>
                 </div>
                 <div style={{ display: 'grid', gap: '14px', maxWidth: '460px' }}>
-                  <div onClick={handleGoogleSignIn} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', border: '1px solid var(--dot)', borderRadius: '10px', padding: '14px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', background: 'var(--card)' }}>
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={isGoogleLoading}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', border: '1px solid var(--dot)', borderRadius: '10px', padding: '14px', fontSize: '15px', fontWeight: 600, cursor: isGoogleLoading ? 'wait' : 'pointer', background: 'var(--card)', color: 'var(--text)', opacity: isGoogleLoading ? 0.7 : 1 }}
+                  >
                     <svg width="18" height="18" viewBox="0 0 48 48">
                       <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.5 6.5 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-7.9 19.7-20 0-1.3-.1-2.4-.3-3.5z" />
                       <path fill="#FF3D00" d="M6.3 14.1l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.5 6.5 29.5 4 24 4 16.3 4 9.6 8.4 6.3 14.1z" />
                       <path fill="#4CAF50" d="M24 44c5.3 0 10.1-2 13.7-5.3l-6.3-5.3c-2 1.4-4.6 2.3-7.4 2.3-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.4 39.5 16.1 44 24 44z" />
                       <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4 5.8l6.3 5.3c-.4.4 6.7-4.9 6.7-15.1 0-1.3-.1-2.4-.3-3.5z" />
                     </svg>
-                    Continue with Google
-                  </div>
+                    {isGoogleLoading ? 'Preparing Google sign-in...' : 'Continue with Google'}
+                  </button>
+                  {otpError && (
+                    <div role="alert" style={{ border: '1px solid #EF4444', borderRadius: '10px', background: 'rgba(239,68,68,0.12)', padding: '12px 16px', color: '#F87171', fontSize: '14px' }}>
+                      {otpError}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '14px', margin: '6px 0' }}>
                     <span style={{ flex: 1, height: '1px', background: 'var(--line)' }} />
                     <span style={{ fontSize: '12.5px', color: 'var(--muted)' }}>or continue with email</span>
@@ -661,6 +857,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   <div>
                     <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Full Name</div>
                     <input
+                      ref={nameInputRef}
+                      aria-label="Full Name"
                       type="text"
                       value={userName}
                       onChange={(e) => setUserName(e.target.value)}
@@ -671,6 +869,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   <div>
                     <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Email Address</div>
                     <input
+                      ref={emailInputRef}
+                      aria-label="Email Address"
                       type="email"
                       value={userEmail}
                       onChange={(e) => setUserEmail(e.target.value)}
@@ -682,18 +882,22 @@ function WebOnboardingEngine({ router }: { router: any }) {
                     <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Password</div>
                     <div style={{ position: 'relative' }}>
                       <input
+                        ref={passwordInputRef}
+                        aria-label="Password"
                         type={showPwd ? 'text' : 'password'}
                         value={userPassword}
                         onChange={(e) => setUserPassword(e.target.value)}
                         placeholder="••••••••••"
                         style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', paddingRight: '55px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
                       />
-                      <div
+                      <button
+                        type="button"
+                        aria-label={`${showPwd ? 'Hide' : 'Show'} password`}
                         onClick={() => setShowPwd(!showPwd)}
-                        style={{ position: 'absolute', right: '15px', top: '15px', fontSize: '13px', fontWeight: '600', color: 'var(--muted)', cursor: 'pointer' }}
+                        style={{ position: 'absolute', right: '15px', top: '15px', fontSize: '13px', fontWeight: '600', color: 'var(--muted)', cursor: 'pointer', border: 0, padding: 0, background: 'transparent', font: 'inherit' }}
                       >
                         {showPwd ? 'Hide' : 'Show'}
-                      </div>
+                      </button>
                     </div>
                     <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
                       <span style={{ flex: 1, height: '3px', borderRadius: '2px', background: 'var(--ind)' }} />
@@ -709,6 +913,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   <div>
                     <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Date of Birth</div>
                     <input
+                      ref={dobInputRef}
+                      aria-label="Date of Birth"
                       type="date"
                       value={userDob}
                       onChange={(e) => setUserDob(e.target.value)}
@@ -1065,7 +1271,16 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   <div
                     id="ob-drop"
                     onClick={handleResumeDrop}
-                    style={{
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Choose a resume file"
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      handleResumeDrop();
+                    }
+                  }}
+                  style={{
                       border: '1px dashed var(--dot)',
                       borderRadius: '16px',
                       background: 'var(--card)',
@@ -1079,7 +1294,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
                       <path d="M12 16 V5 M8 9 l4 -4 4 4" />
                       <path d="M4 15 v3 a2 2 0 002 2 h12 a2 2 0 002 -2 v-3" />
                     </svg>
-                    <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>Drop your resume here</div>
+                    <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>Choose your resume</div>
                     <div style={{ fontSize: '14px', color: 'var(--muted)' }}>or browse your files</div>
                   </div>
                 ) : (
@@ -1089,48 +1304,31 @@ function WebOnboardingEngine({ router }: { router: any }) {
                         <path d="M6 3.5 h8 l4 4 v13 h-12 Z M14 3.5 v4 h4" />
                       </svg>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '15px', fontWeight: 600 }}>aisha-kapoor-resume.pdf</div>
-                        <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '2px' }}>184 KB · parsed just now</div>
+                        <div data-testid="onboarding-resume-name" style={{ fontSize: '15px', fontWeight: 600, overflowWrap: 'anywhere' }}>{resumeFile?.name}</div>
+                        <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '2px' }}>
+                          {resumeFile ? `${(resumeFile.size / 1024).toFixed(1)} KB · Ready to upload` : ''}
+                        </div>
                       </div>
-                      <span onClick={handleResumeDrop} style={{ fontSize: '13px', color: 'var(--muted)', cursor: 'pointer' }}>Replace</span>
+                      <button type="button" onClick={handleResumeDrop} style={{ fontSize: '13px', color: 'var(--muted)', cursor: 'pointer', border: 0, background: 'transparent', font: 'inherit' }}>Replace</button>
                     </div>
                   </div>
                 )}
+                {resumeError && <div role="alert" style={{ color: '#F87171', fontSize: '13px', marginTop: '12px' }}>{resumeError}</div>}
                 <div style={{ fontSize: '13.5px', color: 'var(--muted)', marginTop: '16px' }}>
                   You can skip this and add it later from your dashboard.
                 </div>
               </div>
               <div style={{ border: '1px solid var(--line)', borderRadius: '16px', background: 'var(--card)', padding: '26px 28px 28px' }}>
                 <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--ind-lt)', marginBottom: '22px' }}>
-                  ATS SCORE
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '18px' }}>
-                  <span id="ob-ats" style={{ fontSize: '44px', fontWeight: 800, letterSpacing: '-2px' }}>
-                    {resumeUploaded ? atsScore : '—'}
-                  </span>
-                  <span style={{ fontSize: '15px', color: 'var(--muted)' }}>/ 100</span>
-                </div>
-                <div style={{ height: '8px', borderRadius: '4px', background: 'var(--line2)', overflow: 'hidden', marginBottom: '22px' }}>
-                  <div style={{ height: '100%', width: `${atsScore}%`, borderRadius: '4px', background: 'var(--ind)', transition: 'width 1.1s cubic-bezier(.2,.8,.2,1)' }} />
+                  RESUME STATUS
                 </div>
                 {resumeUploaded ? (
-                  <div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '12px', alignItems: 'start', marginBottom: '14px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ind-lt)' }}>01</span>
-                      <div style={{ fontSize: '14px', lineHeight: 1.55, color: 'var(--muted2)' }}>Tighten the internship bullet to a measurable result</div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '12px', alignItems: 'start', marginBottom: '14px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ind-lt)' }}>02</span>
-                      <div style={{ fontSize: '14px', lineHeight: 1.55, color: 'var(--muted2)' }}>Add the systems project — it matches 4 open roles</div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '12px', alignItems: 'start' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ind-lt)' }}>03</span>
-                      <div style={{ fontSize: '14px', lineHeight: 1.55, color: 'var(--muted2)' }}>Drop the coursework block, it costs you a third of page one</div>
-                    </div>
+                  <div data-testid="onboarding-resume-status" style={{ fontSize: '16px', fontWeight: 600, color: 'var(--ind-lt)' }}>
+                    Selected — uploads when you finish creating your account.
                   </div>
                 ) : (
                   <div style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--muted)' }}>
-                    Upload a file and Agent K scores it against your target role.
+                    Choose a PDF, DOC, or DOCX file up to 5 MB. Resume scoring is not available during this step.
                   </div>
                 )}
               </div>
@@ -1157,13 +1355,12 @@ function WebOnboardingEngine({ router }: { router: any }) {
               {/* Photo Display Preview */}
               <div style={{ position: 'relative' }}>
                 <div
+                  data-testid="onboarding-photo-preview"
                   style={{
                     width: '128px',
                     height: '128px',
                     borderRadius: '50%',
-                    background: avatarUri
-                      ? `url(${avatarUri}) center/cover no-repeat`
-                      : 'linear-gradient(135deg, var(--ind), #2FB8C6)',
+                    background: 'linear-gradient(135deg, var(--ind), #2FB8C6)',
                     border: '3px solid var(--ind-lt)',
                     boxShadow: '0 10px 30px rgba(91,79,233,0.35)',
                     display: 'flex',
@@ -1172,15 +1369,18 @@ function WebOnboardingEngine({ router }: { router: any }) {
                     overflow: 'hidden',
                   }}
                 >
+                  {avatarUri && <img src={avatarUri} alt="Selected profile photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                   {!avatarUri && (
                     <span style={{ fontSize: '42px', color: '#FFFFFF', fontWeight: 800 }}>
-                      {flow === 'alumnus' ? 'AM' : 'AK'}
+                      {capitalizeName(userName || userEmail.split('@')[0] || 'Student').split(' ').map((part) => part[0] || '').slice(0, 2).join('').toUpperCase()}
                     </span>
                   )}
                 </div>
                 {avatarUri && (
-                  <span
-                    onClick={() => setAvatarUri(null)}
+                  <button
+                    type="button"
+                    aria-label="Remove selected profile photo"
+                    onClick={() => { setAvatarUri(null); setPhotoError(''); setProfilePhotoSaved(false); }}
                     style={{
                       position: 'absolute',
                       top: '0',
@@ -1199,39 +1399,12 @@ function WebOnboardingEngine({ router }: { router: any }) {
                     }}
                   >
                     ×
-                  </span>
+                  </button>
                 )}
               </div>
 
               {/* Action Buttons */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <button
-                  onClick={handleTakePhoto}
-                  disabled={isCapturingPhoto}
-                  className="ob-cta"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '10px',
-                    fontSize: '15px',
-                    fontWeight: 600,
-                    padding: '13px 24px',
-                    borderRadius: '10px',
-                    background: 'var(--ind)',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    cursor: 'pointer',
-                    transition: 'all .2s ease',
-                  }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#FFFFFF', strokeWidth: 1.8 }}>
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                    <circle cx="12" cy="13" r="4" />
-                  </svg>
-                  {isCapturingPhoto ? 'Accessing camera…' : avatarUri ? 'Take new photo' : 'Take live photo'}
-                </button>
-
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="ob-ghost"
@@ -1258,6 +1431,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   </svg>
                   Upload from device
                 </button>
+                {photoError && <div role="alert" style={{ color: '#F87171', fontSize: '13px' }}>{photoError}</div>}
 
                 <span
                   onClick={nextStep}
@@ -1499,7 +1673,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
               {(() => {
                 const currentNum = parseInt(selectedSem) || 5;
                 const roadmap = [];
-                
+
                 roadmap.push({
                   sem: `NOW · SEM ${currentNum}`,
                   title: `${selectedCourse} basics`,
@@ -2055,11 +2229,11 @@ function WebOnboardingEngine({ router }: { router: any }) {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <svg width="24" height="28" viewBox="0 0 300 350">
                               <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="rgba(255,255,255,.22)" stroke="#FFFFFF" strokeWidth="12" />
-                              <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '122px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>SA</text>
+                              <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Manrope', sans-serif", fontSize: '122px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>SA</text>
                             </svg>
                             <span style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '1.4px' }}>STUDENTALUMNI</span>
                           </div>
-                          
+
                           {/* Live Avatar Preview or Verified Badge */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             {avatarUri && (
@@ -2142,11 +2316,16 @@ function WebOnboardingEngine({ router }: { router: any }) {
         {/* STEP: DONE (ALL FLOWS) */}
         {currentKey === 'done' && (
           <div className="ob-step" style={{ display: 'block', maxWidth: '620px', animation: 'ob-in .4s ease' }}>
+            {otpError && (
+              <div role="alert" style={{ border: '1px solid #EF4444', borderRadius: '10px', background: 'rgba(239,68,68,0.12)', padding: '12px 16px', color: '#F87171', fontSize: '14px', marginBottom: '20px' }}>
+                {otpError}
+              </div>
+            )}
             <div style={{ position: 'relative', width: '76px', height: '76px', marginBottom: '34px' }}>
               <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid var(--ind)', animation: 'ob-ring 2.6s ease-out infinite' }} />
               <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid var(--ind)', animation: 'ob-ring 2.6s ease-out infinite 1.3s' }} />
               <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'linear-gradient(135deg, var(--ind), #2FB8C6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '30px' }}>
-                
+
               </span>
             </div>
             <h1 style={{ fontSize: '42px', fontWeight: 700, lineHeight: 1.1, letterSpacing: -1.7, margin: '0 0 14px' }}>
@@ -2172,13 +2351,15 @@ function WebOnboardingEngine({ router }: { router: any }) {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              <span
+              <button
+                type="button"
                 onClick={handleFinishOnboarding}
                 className="ob-cta"
-                style={{ fontSize: '15px', fontWeight: 600, padding: '15px 26px', borderRadius: '10px', background: 'var(--ind)', color: '#FFFFFF', cursor: 'pointer', transition: 'background .2s ease' }}
+                disabled={isFinishing}
+                style={{ fontSize: '15px', fontWeight: 600, padding: '15px 26px', borderRadius: '10px', border: 0, background: 'var(--ind)', color: '#FFFFFF', cursor: isFinishing ? 'wait' : 'pointer', opacity: isFinishing ? 0.7 : 1, transition: 'background .2s ease' }}
               >
-                Go to dashboard →
-              </span>
+                {isFinishing ? 'Opening dashboard...' : 'Continue to dashboard →'}
+              </button>
               <span
                 id="ob-restart"
                 onClick={() => setStepIdx(0)}
@@ -2196,7 +2377,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
       {currentKey !== 'done' && (
         <div style={{ position: 'sticky', bottom: 0, background: 'var(--nav-bg)', backdropFilter: 'blur(14px)', borderTop: '1px solid var(--line)', zIndex: 20 }}>
           <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px' }}>
-            <span
+            <button
+              type="button"
               id="ob-back"
               onClick={prevStep}
               style={{
@@ -2205,19 +2387,29 @@ function WebOnboardingEngine({ router }: { router: any }) {
                 color: 'var(--muted)',
                 cursor: 'pointer',
                 padding: '12px 0',
+                border: 0,
+                background: 'transparent',
+                fontFamily: 'inherit',
               }}
             >
               Back
-            </span>
+            </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
               {stepIdx > 0 && currentKey !== 'notify' && currentKey !== 'roadmap' && (
-                <span id="ob-skip" onClick={skipStep} style={{ fontSize: '14px', color: 'var(--muted)', cursor: 'pointer' }}>
+                <button
+                  type="button"
+                  id="ob-skip"
+                  onClick={skipStep}
+                  style={{ fontSize: '14px', color: 'var(--muted)', cursor: 'pointer', border: 0, background: 'transparent', fontFamily: 'inherit' }}
+                >
                   Skip
-                </span>
+                </button>
               )}
-              <span
+              <button
+                type="button"
                 id="ob-next"
                 onClick={nextStep}
+                disabled={isNavigating}
                 className="ob-cta"
                 style={{
                   display: 'inline-flex',
@@ -2232,7 +2424,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   cursor: isNavigating ? 'wait' : 'pointer',
                   opacity: isNavigating ? 0.7 : 1,
                   transition: 'background .2s ease',
-                  pointerEvents: isNavigating ? 'none' : 'auto',
+                  border: 0,
+                  fontFamily: 'inherit',
                 }}
               >
                 {isNavigating ? 'Loading...' : (stepIdx === currentSeq.length - 2 ? 'Finish' : 'Continue')}
@@ -2241,7 +2434,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
                     <path d="M3 8 h10 M9 4 l4 4 -4 4" />
                   </svg>
                 )}
-              </span>
+              </button>
             </div>
           </div>
         </div>

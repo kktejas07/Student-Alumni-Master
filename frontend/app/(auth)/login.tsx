@@ -21,7 +21,8 @@ import { Mail, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowRight, Sparkle
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { getBaseUrl } from '@/src/lib/env';
 import { api } from '@/src/models/services/api';
-import { initFirebaseAuth, signInWithGoogle } from '@/src/lib/firebaseAuth';
+import { initFirebaseAuth, signInWithGoogle, isFirebaseWebConfigComplete } from '@/src/lib/firebaseAuth';
+import { friendlyNetworkError } from '@/src/lib/networkErrors';
 
 const BASE = getBaseUrl();
 
@@ -134,13 +135,13 @@ function WebLoginScreen() {
         } else {
           setEmailStatus('new');
         }
-      } catch {
+      } catch (err: any) {
         if (REGISTERED_EMAILS.includes(clean)) {
           setEmailStatus('registered');
         } else {
           // DO NOT assume it's a new account if the server request failed.
           // It could be a network error or the backend is down.
-          setErrorMsg('Unable to reach the server. Please check your connection or try again later.');
+          setErrorMsg(friendlyNetworkError(err, BASE));
           setEmailStatus('idle');
         }
       }
@@ -148,6 +149,11 @@ function WebLoginScreen() {
   };
 
   const [googleClientId, setGoogleClientId] = useState('');
+  const [googleLoginEnabled, setGoogleLoginEnabled] = useState(false);
+  const [oauthConfigLoaded, setOauthConfigLoaded] = useState(false);
+  // Google is only offered once the runtime Firebase web config has actually
+  // been accepted by the SDK. A truthy feature flag alone is not enough.
+  const [firebaseReady, setFirebaseReady] = useState(false);
 
   // Fetch OAuth Config on mount and initialize Firebase Auth
   useEffect(() => {
@@ -157,33 +163,51 @@ function WebLoginScreen() {
         if (data?.google_client_id) {
           setGoogleClientId(data.google_client_id);
         }
-        if (data?.firebase?.apiKey) {
-          await initFirebaseAuth({
-            apiKey: data.firebase.apiKey,
-            authDomain: data.firebase.authDomain,
-            projectId: data.firebase.projectId,
-            appId: data.firebase.appId,
-          });
+        if (typeof data?.enable_google_login === 'boolean') {
+          setGoogleLoginEnabled(data.enable_google_login);
+        } else {
+          setGoogleLoginEnabled(false);
         }
+        const firebaseConfig = data?.firebase;
+        if (isFirebaseWebConfigComplete(firebaseConfig)) {
+          const initialized = await initFirebaseAuth({
+            apiKey: firebaseConfig.apiKey,
+            authDomain: firebaseConfig.authDomain,
+            projectId: firebaseConfig.projectId,
+            appId: firebaseConfig.appId,
+          });
+          setFirebaseReady(initialized);
+        } else {
+          setFirebaseReady(false);
+        }
+        setOauthConfigLoaded(true);
       })
-      .catch(() => null);
+      .catch(() => {
+        setGoogleLoginEnabled(false);
+        setFirebaseReady(false);
+        setOauthConfigLoaded(true);
+      });
   }, []);
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setErrorMsg('');
     try {
+      if (!firebaseReady) throw new Error('Firebase Auth is not ready. Check the Google sign-in configuration and try again.');
+      // Use a popup so Firebase returns the credential directly to this page.
+      // Redirect sign-in relies on cross-origin storage at authDomain, which
+      // browsers can block when the app uses a custom domain.
       const result = await signInWithGoogle();
-      if (result) {
-        await processGoogleAuth({
-          id_token: result.idToken,
-          email: result.email,
-          full_name: result.name,
-          picture: result.picture,
-        });
-      } else {
+      if (!result) {
         setLoading(false);
+        return;
       }
+      await processGoogleAuth({
+        id_token: result.idToken,
+        email: result.email,
+        full_name: result.name,
+        picture: result.picture,
+      });
     } catch (err: any) {
       setLoading(false);
       setErrorMsg(err?.message || 'Google Sign-In failed. Please try again.');
@@ -240,7 +264,7 @@ function WebLoginScreen() {
         setLoading(false);
       }
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Google Sign-In failed. Please check connection.');
+      setErrorMsg(friendlyNetworkError(err, BASE));
       setLoading(false);
     }
   };
@@ -296,7 +320,7 @@ function WebLoginScreen() {
       else if (r === 'alumni') router.replace('/alumni-portal');
       else router.replace('/student-portal/dashboard');
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Network error — please check connection or credentials.');
+      setErrorMsg(friendlyNetworkError(err, BASE));
       setLoading(false);
     }
   };
@@ -405,61 +429,86 @@ function WebLoginScreen() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? '32px 20px' : '52px 48px' }}>
             <div style={{ width: '100%', maxWidth: 420 }}>
               <div style={{ fontSize: 32, fontWeight: '700', letterSpacing: '-1px', color: '#F4F4FA' }}>Sign in</div>
-              <div style={{ fontSize: 14.5, color: '#8A8A9E', marginTop: 7 }}>Use your college address to unlock your cohort.</div>
+              <div style={{ fontSize: 14.5, color: '#8A8A9E', marginTop: 7 }}>Use your email address to continue. College verification may be required for cohort access.</div>
 
-              {/* Google Button */}
-              <button
-                type="button"
-                onClick={() => handleGoogleSignIn()}
-                className="social-btn"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 11,
-                  border: '1px solid #262638',
-                  borderRadius: 12,
-                  background: '#14141F',
-                  color: '#F4F4FA',
-                  fontSize: 15,
-                  fontWeight: '600',
-                  padding: '14px',
-                  marginTop: 26,
-                  width: '100%',
-                  cursor: 'pointer'
-                }}
-              >
-                <svg width="18" height="18" viewBox="0 0 48 48" style={{ flex: 'none' }}>
-                  <path fill="#4285F4" d="M45 24c0-1.6-.14-3.13-.4-4.6H24v8.7h11.7c-.5 2.7-2.05 5-4.35 6.55v5.4h7c4.1-3.78 6.65-9.35 6.65-16.05Z"></path>
-                  <path fill="#34A853" d="M24 46c5.85 0 10.75-1.94 14.35-5.25l-7-5.4c-1.94 1.3-4.42 2.07-7.35 2.07-5.65 0-10.44-3.81-12.14-8.94h-7.2v5.6C7.3 41.2 14.98 46 24 46Z"></path>
-                  <path fill="#FBBC05" d="M11.86 28.48A13.4 13.4 0 0 1 11.15 24c0-1.56.27-3.07.71-4.48v-5.6h-7.2A21.9 21.9 0 0 0 2 24c0 3.55.85 6.9 2.66 10.08l7.2-5.6Z"></path>
-                  <path fill="#EA4335" d="M24 10.6c3.18 0 6.04 1.1 8.29 3.23l6.2-6.2C34.73 4.1 29.84 2 24 2 14.98 2 7.3 6.8 4.66 13.92l7.2 5.6C13.56 14.4 18.35 10.6 24 10.6Z"></path>
-                </svg>
-                Continue with Google
-              </button>
+              {oauthConfigLoaded && googleLoginEnabled && firebaseReady && (
+                <>
+                  {/* Google Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleGoogleSignIn()}
+                    disabled={loading}
+                    aria-busy={loading}
+                    data-testid="google-signin-button"
+                    className="social-btn"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 11,
+                      border: '1px solid #262638',
+                      borderRadius: 12,
+                      background: '#14141F',
+                      color: '#F4F4FA',
+                      fontSize: 15,
+                      fontWeight: '600',
+                      padding: '14px',
+                      marginTop: 26,
+                      width: '100%',
+                      cursor: loading ? 'wait' : 'pointer',
+                      opacity: loading ? 0.7 : 1
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 48 48" style={{ flex: 'none' }}>
+                      <path fill="#4285F4" d="M45 24c0-1.6-.14-3.13-.4-4.6H24v8.7h11.7c-.5 2.7-2.05 5-4.35 6.55v5.4h7c4.1-3.78 6.65-9.35 6.65-16.05Z"></path>
+                      <path fill="#34A853" d="M24 46c5.85 0 10.75-1.94 14.35-5.25l-7-5.4c-1.94 1.3-4.42 2.07-7.35 2.07-5.65 0-10.44-3.81-12.14-8.94h-7.2v5.6C7.3 41.2 14.98 46 24 46Z"></path>
+                      <path fill="#FBBC05" d="M11.86 28.48A13.4 13.4 0 0 1 11.15 24c0-1.56.27-3.07.71-4.48v-5.6h-7.2A21.9 21.9 0 0 0 2 24c0 3.55.85 6.9 2.66 10.08l7.2-5.6Z"></path>
+                      <path fill="#EA4335" d="M24 10.6c3.18 0 6.04 1.1 8.29 3.23l6.2-6.2C34.73 4.1 29.84 2 24 2 14.98 2 7.3 6.8 4.66 13.92l7.2 5.6C13.56 14.4 18.35 10.6 24 10.6Z"></path>
+                    </svg>
+                    {loading ? 'Connecting to Google…' : 'Continue with Google'}
+                  </button>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '22px 0' }}>
-                <span style={{ flex: 1, height: 1, background: '#1F1F30' }} />
-                <span style={{ fontSize: 12, fontWeight: '600', letterSpacing: '1.4px', color: '#6A6A7E' }}>OR</span>
-                <span style={{ flex: 1, height: 1, background: '#1F1F30' }} />
-              </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '22px 0' }}>
+                    <span style={{ flex: 1, height: 1, background: '#1F1F30' }} />
+                    <span style={{ fontSize: 12, fontWeight: '600', letterSpacing: '1.4px', color: '#6A6A7E' }}>OR</span>
+                    <span style={{ flex: 1, height: 1, background: '#1F1F30' }} />
+                  </div>
+                </>
+              )}
+
+              {oauthConfigLoaded && googleLoginEnabled && !firebaseReady && (
+                <div
+                  role="status"
+                  data-testid="google-signin-unavailable"
+                  style={{ marginTop: 26, border: '1px solid #3A2E1B', borderRadius: 12, background: 'rgba(245,158,11,.08)', color: '#C9A227', fontSize: 13, lineHeight: 1.5, padding: '12px 14px' }}
+                >
+                  Google sign-in is unavailable in this environment because its Firebase web
+                  configuration is missing or invalid. Use your email and password below.
+                </div>
+              )}
 
               {/* Error Message Alert */}
               {errorMsg ? (
-                <div style={{ background: 'rgba(240,97,107,.12)', border: '1px solid rgba(240,97,107,.35)', borderRadius: 12, padding: '12px 14px', color: '#F0616B', fontSize: 13.5, marginBottom: 16 }}>
+                <div
+                  role="alert"
+                  data-testid="auth-error-message"
+                  style={{ background: 'rgba(240,97,107,.12)', border: '1px solid rgba(240,97,107,.35)', borderRadius: 12, padding: '12px 14px', color: '#F0616B', fontSize: 13.5, marginBottom: 16 }}
+                >
                   {errorMsg}
                 </div>
               ) : null}
 
               {/* Email Step Input */}
-              <div style={{ fontSize: 12, fontWeight: '700', letterSpacing: '1.3px', color: '#8A8A9E', marginBottom: 9 }}>COLLEGE EMAIL</div>
+              <div style={{ fontSize: 12, fontWeight: '700', letterSpacing: '1.3px', color: '#8A8A9E', marginBottom: 9 }}>EMAIL</div>
               <div className="db-field-focus" style={{ display: 'flex', alignItems: 'center', gap: 11, border: '1px solid #262638', borderRadius: 12, background: '#14141F', padding: '14px 15px', transition: 'all 0.2s ease' }}>
                 <Mail size={16} color="#8A8A9E" />
                 <input
                   type="email"
+                  aria-label="Email address"
+                  data-testid="email-input"
                   value={email}
                   onChange={(e) => handleEmailChange(e.target.value)}
-                  placeholder="devender@mrit.edu"
+                  placeholder="you@email.com"
                   style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', color: '#F4F4FA', fontSize: 15, outline: 'none' }}
                 />
                 {emailStatus === 'registered' && <CheckCircle2 size={16} color="#34D399" />}
@@ -495,6 +544,8 @@ function WebLoginScreen() {
                     <Lock size={16} color="#8A8A9E" />
                     <input
                       type={showPwd ? 'text' : 'password'}
+                      aria-label="Password"
+                      data-testid="password-input"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••••"
@@ -513,6 +564,8 @@ function WebLoginScreen() {
               {/* Submit Button */}
               <button
                 type="button"
+                data-testid="login-submit-button"
+                aria-label="Sign in"
                 onClick={() => submitForm()}
                 disabled={loading}
                 style={{

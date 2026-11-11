@@ -1,0 +1,16 @@
+# TruffleHog false-positive exclusions
+# These are placeholder/example patterns in code, NOT real secrets.
+#
+# settings.py: API key placeholder strings (sk-xxxxxxxx, ghp_xxxxxxxx) used
+# in the admin integrations config UI as input hints/examples.
+backend/features/routers/admin/settings.py
+
+# Test files: test fixtures use fabricated tokens and secrets
+backend/tests/
+tests/
+
+# .env.example: template values, not real credentials
+.env.example
+
+# seed_data.py: sample catalog data with unsplash image URLs
+backend/seed_data.py

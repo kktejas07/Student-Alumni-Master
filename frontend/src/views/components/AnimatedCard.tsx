@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Animated Card Primitives
  * =========================
@@ -191,7 +190,7 @@ export function AnimatedTile({
     transform: [
       { translateY: (1 - enter.value) * 10 },
       { scale: 0.92 + 0.08 * enter.value },
-    ],
+    ] as any,
   }));
 
   const pressStyle = useAnimatedStyle(() => ({

@@ -73,8 +73,8 @@ export default function MentorPortalRN() {
   }, [refresh]);
 
   const onLogout = async () => {
-    router.replace('/welcome');
     try { await logout(); } catch {}
+    router.replace('/welcome');
   };
 
   const navigate = (id: NavId, pt?: ProfileTab) => {

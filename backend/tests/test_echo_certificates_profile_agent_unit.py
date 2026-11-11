@@ -67,14 +67,29 @@ async def test_echo_profile_loop_agent_execute_cycle():
             "slug": "hackwave-3",
         }
     ])
-    mock_users_cursor = MagicMock()
-    mock_users_cursor.__aiter__ = MagicMock(return_value=iter([]))
 
-    with patch("services.agents.echo_profile_loop_agent.db.echo_registrations.find", return_value=mock_cursor), \
-         patch("services.agents.echo_profile_loop_agent.db.users.find", return_value=mock_users_cursor), \
+    class AsyncIter:
+        def __init__(self, items):
+            self.items = items
+
+        def __aiter__(self):
+            self._iter = iter(self.items)
+            return self
+
+        async def __anext__(self):
+            try:
+                return next(self._iter)
+            except StopIteration:
+                raise StopAsyncIteration
+
+    mock_db = MagicMock()
+    mock_db.echo_registrations.find.return_value = mock_cursor
+    mock_db.echo_registrations.update_one = AsyncMock()
+    mock_db.users.find.return_value = AsyncIter([])
+
+    with patch("services.agents.echo_profile_loop_agent.db", mock_db), \
          patch("services.agents.echo_profile_loop_agent.send_email", new_callable=AsyncMock) as mock_send_email, \
-         patch("services.agents.echo_profile_loop_agent.send_wa_message", new_callable=AsyncMock) as mock_send_wa, \
-         patch("services.agents.echo_profile_loop_agent.db.echo_registrations.update_one", new_callable=AsyncMock):
+         patch("services.agents.echo_profile_loop_agent.send_wa_message", new_callable=AsyncMock) as mock_send_wa:
 
         result = await echo_profile_loop_agent.execute_cycle(target_group="all_incomplete", channel="both")
         assert result["status"] == "success"
@@ -83,3 +98,4 @@ async def test_echo_profile_loop_agent_execute_cycle():
         assert "whatsapp_sent" in result
         assert mock_send_email.called
         assert mock_send_wa.called
+
