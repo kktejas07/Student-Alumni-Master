@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 120 TS errors then remove
 /**
  * StatusPageRN — Comprehensive Status & Error Page System
  * Matching the Student Alumni Master Status Design Specification.

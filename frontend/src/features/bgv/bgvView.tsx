@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 20 TS errors then remove
 // types BGVMainTab/VerticalType/LinkedInFilterType + the BGVAccountVerticalsView component (7 subsystem tabs: directory, scanner, fake-unis, visa-radar, enterprise-keys, api-register, claim-reminders) — split verbatim from BGVAccountVerticalsView.tsx (audit Step 6d).
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Platform, Modal, ScrollView, TextInput, ActivityIndicator } from 'react-native';
