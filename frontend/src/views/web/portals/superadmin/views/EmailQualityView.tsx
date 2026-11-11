@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 1 TS errors then remove
 /**
  * Super Admin → Email Health.
  * 

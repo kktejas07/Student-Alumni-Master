@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 1 TS errors then remove
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Switch, Platform, Modal, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import {
