@@ -4,8 +4,8 @@
  * Uses existing /api/ai/chat endpoints. User-to-user DM backend to be added later.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Platform } from 'react-native';
-import { MessageSquare, Send, Search, Bot, User, Plus } from 'lucide-react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Platform, useWindowDimensions } from 'react-native';
+import { MessageSquare, Send, Search, Bot, User, Plus, ArrowLeft, AlertCircle, RefreshCw } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { usePalette } from '../tokens';
 
@@ -18,18 +18,23 @@ type Conversation = { id: string; title: string; lastMsg: string; updatedAt: str
 
 export function MessagesView() {
   const P = usePalette();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [searchQ, setSearchQ] = useState('');
+  const [showChat, setShowChat] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   /* load sessions */
   const loadSessions = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       const res: any = await request('/ai/chat/sessions');
       const sessions = Array.isArray(res) ? res : res?.sessions || [];
@@ -45,7 +50,7 @@ export function MessagesView() {
         setActiveId(convs[0].id);
       }
     } catch {
-      // No sessions yet — that is fine
+      setError(true);
     }
     setLoading(false);
   }, []);
@@ -106,6 +111,16 @@ export function MessagesView() {
     setActiveId(null);
     setMessages([]);
     setInput('');
+    if (isMobile) setShowChat(true);
+  };
+
+  const selectConversation = (id: string) => {
+    setActiveId(id);
+    if (isMobile) setShowChat(true);
+  };
+
+  const goBackToList = () => {
+    setShowChat(false);
   };
 
   const filtered = conversations.filter(c => !searchQ || c.title.toLowerCase().includes(searchQ.toLowerCase()));
@@ -116,55 +131,98 @@ export function MessagesView() {
     return isNaN(d.getTime()) ? '' : d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   };
 
+  const showSidebar = !isMobile || !showChat;
+  const showChatPanel = !isMobile || showChat;
+
   return (
     <View style={[s.root, { backgroundColor: '#F8FAFC' }]}>
       {/* Sidebar */}
-      <View style={[s.sidebar, { backgroundColor: P.bg1, borderRightColor: P.glassBorder }]}>
-        <View style={s.sideHeader}>
-          <MessageSquare size={20} color={P.violet} />
-          <Text style={[s.sideTitle, { color: P.text }]}>Messages</Text>
-          <Pressable onPress={startNew} style={[s.newBtn, { backgroundColor: P.violet + '14' }]}>
-            <Plus size={18} color={P.violet} />
-          </Pressable>
-        </View>
-
-        {/* Search */}
-        <View style={[s.searchBox, { backgroundColor: P.glassSoft, borderColor: P.glassBorder }]}>
-          <Search size={16} color={P.dim} />
-          <TextInput
-            style={[s.searchInput, { color: P.text }]}
-            placeholder="Search conversations..."
-            placeholderTextColor={P.dim}
-            value={searchQ}
-            onChangeText={setSearchQ}
-          />
-        </View>
-
-        <ScrollView style={s.convList}>
-          {loading && <ActivityIndicator size="small" color={P.violet} style={{ marginTop: 20 }} />}
-          {!loading && filtered.length === 0 && (
-            <Text style={[s.emptyText, { color: P.dim }]}>No conversations yet</Text>
-          )}
-          {filtered.map(c => (
-            <Pressable
-              key={c.id}
-              style={[s.convItem, activeId === c.id && { backgroundColor: P.violet + '10' }]}
-              onPress={() => setActiveId(c.id)}
-            >
-              <View style={[s.avatar, { backgroundColor: P.violet + '1A' }]}>
-                <Bot size={18} color={P.violet} />
-              </View>
-              <View style={s.convText}>
-                <Text style={[s.convTitle, { color: P.text }]} numberOfLines={1}>{c.title}</Text>
-                <Text style={[s.convPreview, { color: P.muted }]} numberOfLines={1}>{c.lastMsg || 'Start chatting...'}</Text>
-              </View>
+      {showSidebar && (
+        <View style={[s.sidebar, { backgroundColor: P.bg1, borderRightColor: P.glassBorder }, isMobile && { width: '100%', borderRightWidth: 0 }]}>
+          <View style={s.sideHeader}>
+            <MessageSquare size={20} color={P.violet} />
+            <Text style={[s.sideTitle, { color: P.text }]}>Messages</Text>
+            <Pressable onPress={startNew} style={[s.newBtn, { backgroundColor: P.violet + '14' }]}>
+              <Plus size={18} color={P.violet} />
             </Pressable>
-          ))}
-        </ScrollView>
-      </View>
+          </View>
+
+          {/* Search */}
+          <View style={[s.searchBox, { backgroundColor: P.glassSoft, borderColor: P.glassBorder }]}>
+            <Search size={16} color={P.dim} />
+            <TextInput
+              style={[s.searchInput, { color: P.text }]}
+              placeholder="Search conversations..."
+              placeholderTextColor={P.dim}
+              value={searchQ}
+              onChangeText={setSearchQ}
+            />
+          </View>
+
+          <ScrollView style={s.convList}>
+            {/* Skeleton loader */}
+            {loading && (
+              <View style={{ padding: 12, gap: 10 }}>
+                {[1, 2, 3].map(i => (
+                  <View key={i} style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#E5E7EB' }} />
+                    <View style={{ flex: 1, gap: 6 }}>
+                      <View style={{ height: 14, backgroundColor: '#E5E7EB', borderRadius: 8, width: '70%' }} />
+                      <View style={{ height: 12, backgroundColor: '#E5E7EB', borderRadius: 8, width: '90%' }} />
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+            {/* Error state */}
+            {!loading && error && (
+              <Pressable onPress={loadSessions} style={{ alignItems: 'center', paddingTop: 40, gap: 8 }}>
+                <AlertCircle size={28} color="#EF4444" />
+                <Text style={{ fontSize: 13, color: '#64748B', fontWeight: '600' }}>Failed to load</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <RefreshCw size={12} color="#7C5CFC" />
+                  <Text style={{ fontSize: 12, color: '#7C5CFC', fontWeight: '600' }}>Tap to retry</Text>
+                </View>
+              </Pressable>
+            )}
+            {/* Empty state */}
+            {!loading && !error && filtered.length === 0 && (
+              <View style={{ alignItems: 'center', paddingTop: 40, gap: 8 }}>
+                <MessageSquare size={36} color="#CBD5E1" />
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#64748B' }}>No conversations yet</Text>
+                <Text style={{ fontSize: 12, color: '#94A3B8' }}>Start chatting with your network</Text>
+              </View>
+            )}
+            {!loading && !error && filtered.map(c => (
+              <Pressable
+                key={c.id}
+                style={[s.convItem, activeId === c.id && { backgroundColor: P.violet + '10' }]}
+                onPress={() => selectConversation(c.id)}
+              >
+                <View style={[s.avatar, { backgroundColor: P.violet + '1A' }]}>
+                  <Bot size={18} color={P.violet} />
+                </View>
+                <View style={s.convText}>
+                  <Text style={[s.convTitle, { color: P.text }]} numberOfLines={1}>{c.title}</Text>
+                  <Text style={[s.convPreview, { color: P.muted }]} numberOfLines={1}>{c.lastMsg || 'Start chatting...'}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {/* Chat panel */}
-      <View style={s.chatPanel}>
+      {showChatPanel && <View style={s.chatPanel}>
+        {/* Mobile back button */}
+        {isMobile && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: P.glassBorder }}>
+            <Pressable onPress={goBackToList} style={{ padding: 6, marginRight: 8 }}>
+              <ArrowLeft size={20} color={P.text} />
+            </Pressable>
+            <Text style={{ fontSize: 16, fontWeight: '600', color: P.text }}>{activeId ? 'Chat' : 'New Chat'}</Text>
+          </View>
+        )}
         {!activeId && messages.length === 0 ? (
           <View style={s.emptyChat}>
             <View style={[s.emptyIcon, { backgroundColor: P.violet + '14' }]}>
@@ -218,7 +276,7 @@ export function MessagesView() {
             <Send size={18} color={input.trim() ? '#FFFFFF' : P.dim} />
           </Pressable>
         </View>
-      </View>
+      </View>}
     </View>
   );
 }

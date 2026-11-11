@@ -4,8 +4,8 @@
  * Color-coded dots: blue = events, green = bookings, purple = workshops.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from 'react-native';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin, Clock, BookOpen, CalendarCheck } from 'lucide-react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin, Clock, BookOpen, CalendarCheck, AlertCircle, RefreshCw } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { usePalette } from '../tokens';
 
@@ -33,15 +33,19 @@ const TYPE_LABELS = { event: 'Event', booking: 'Booking', workshop: 'Workshop' }
 
 export function CalendarView() {
   const P = usePalette();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   const today = useMemo(() => new Date(), []);
   const [viewing, setViewing] = useState({ year: today.getFullYear(), month: today.getMonth() });
   const [items, setItems] = useState<CalItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [selected, setSelected] = useState<Date | null>(today);
 
   /* fetch data */
   const load = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       const [evts, bookings, workshops] = await Promise.allSettled([
         request('/events?limit=200').catch(() => []),
@@ -65,7 +69,9 @@ export function CalendarView() {
         if (d) all.push({ title: w.title || w.name || 'Workshop', type: 'workshop', date: d, location: w.location, time: w.time });
       }
       setItems(all);
-    } catch { /* silent */ }
+    } catch {
+      setError(true);
+    }
     setLoading(false);
   }, []);
 
@@ -100,7 +106,7 @@ export function CalendarView() {
   const goToday = () => { setViewing({ year: today.getFullYear(), month: today.getMonth() }); setSelected(today); };
 
   return (
-    <ScrollView style={s.root} contentContainerStyle={s.container}>
+    <ScrollView style={s.root} contentContainerStyle={[s.container, isMobile && { padding: 16 }]}>
       {/* Header */}
       <View style={s.header}>
         <CalendarIcon size={22} color={P.violet} />
@@ -116,15 +122,34 @@ export function CalendarView() {
         <Pressable onPress={goNext} style={s.navBtn}><ChevronRight size={20} color={P.muted} /></Pressable>
       </View>
 
-      {loading && <ActivityIndicator size="small" color={P.violet} style={{ marginVertical: 20 }} />}
+      {/* Skeleton loader */}
+      {loading && (
+        <View style={{ gap: 10, marginVertical: 16 }}>
+          {[1, 2, 3, 4].map(i => (
+            <View key={i} style={{ height: 48, backgroundColor: '#E5E7EB', borderRadius: 8 }} />
+          ))}
+        </View>
+      )}
+
+      {/* Error state */}
+      {!loading && error && (
+        <Pressable onPress={load} style={s.errorCard}>
+          <AlertCircle size={28} color="#EF4444" />
+          <Text style={s.errorTitle}>Something went wrong</Text>
+          <View style={s.retryRow}>
+            <RefreshCw size={14} color="#7C5CFC" />
+            <Text style={s.retryText}>Tap to retry</Text>
+          </View>
+        </Pressable>
+      )}
 
       {/* Day headers */}
-      <View style={s.dayHeaders}>
+      {!loading && !error && <View style={s.dayHeaders}>
         {DAYS.map(d => <Text key={d} style={[s.dayHeader, { color: P.dim }]}>{d}</Text>)}
-      </View>
+      </View>}
 
       {/* Grid */}
-      {Array.from({ length: weeks }, (_, w) => (
+      {!loading && !error && Array.from({ length: weeks }, (_, w) => (
         <View key={w} style={s.week}>
           {Array.from({ length: 7 }, (_, col) => {
             const dayNum = w * 7 + col - startPad + 1;
@@ -171,8 +196,17 @@ export function CalendarView() {
         ))}
       </View>
 
+      {/* Empty month state */}
+      {!loading && !error && items.length === 0 && (
+        <View style={s.emptyState}>
+          <CalendarIcon size={40} color="#CBD5E1" />
+          <Text style={s.emptyStateTitle}>No events this month</Text>
+          <Text style={s.emptyStateSub}>Check back soon or create an event</Text>
+        </View>
+      )}
+
       {/* Selected day detail */}
-      {selected && (
+      {!loading && !error && selected && (
         <View style={[s.detailCard, { backgroundColor: P.bg1, borderColor: P.glassBorder }]}>
           <Text style={[s.detailTitle, { color: P.text }]}>
             {selected.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
@@ -243,4 +277,15 @@ const s = StyleSheet.create({
   detailMetaText: { fontSize: 12, marginLeft: 3 },
   typeBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, marginLeft: 8 },
   typeBadgeText: { fontSize: 11, fontWeight: '600' },
+
+  /* error state */
+  errorCard: { alignItems: 'center', justifyContent: 'center', padding: 40, gap: 8, marginVertical: 20 },
+  errorTitle: { fontSize: 15, fontWeight: '600', color: '#1E293B' },
+  retryRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  retryText: { fontSize: 13, fontWeight: '600', color: '#7C5CFC' },
+
+  /* empty state */
+  emptyState: { alignItems: 'center', paddingVertical: 40, gap: 8 },
+  emptyStateTitle: { fontSize: 16, fontWeight: '700', color: '#64748B' },
+  emptyStateSub: { fontSize: 13, color: '#94A3B8' },
 });
