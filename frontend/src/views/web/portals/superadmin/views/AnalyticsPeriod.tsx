@@ -200,7 +200,7 @@ export function PeriodComparisonCard({
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <GitCompare size={16} color="#A78BFA" />
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>Period Comparison</Text>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: T.text }}>Period Comparison</Text>
         </View>
         <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>
           {period.range.label} · vs {period.previous_label || 'previous period'}

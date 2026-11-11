@@ -15,7 +15,7 @@ import {
   TrendingUp, Wallet, Receipt, Percent, RefreshCw, Calendar,
   Layers, ChevronDown,
 } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import {
   GRAD, Card, IconBox, StatusPill, GradientButton, SecondaryButton,
   SectionLabel, useToast, Toast,
@@ -201,6 +201,8 @@ function SourceBars({ rows, accent }: { rows: RevenueData['by_source']; accent: 
 
 /* ── Main panel ─────────────────────────────────────────────────── */
 export function RevenueAnalytics() {
+  const T = useSAC();
+  Object.assign(ra, resolveColors(pristineOf(ra), T));
   const { toast, flash, hide } = useToast();
   const [data, setData] = useState<RevenueData | null>(null);
   const [loading, setLoading] = useState(true);

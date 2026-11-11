@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, Pressable, Platform, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SAC, useSAC, resolveColors } from '@/src/views/web/portals/superadmin/tokens';
+import { SAC, useSAC, resolveColors, pristineOf } from '@/src/views/web/portals/superadmin/tokens';
 import { Toast } from '@/src/views/web/portals/superadmin/applekit';
 import { GRAD_FROM, GRAD_TO, TabId, TABS } from './settingsTokens';
 import { s } from './settingsStyles';
@@ -25,7 +25,7 @@ import { BrandingTab } from './settingsBranding';
  * ───────────────────────────────────────────────────────────────── */
 export function SettingsView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const [tab, setTab] = useSubTab<TabId>(
     ['profile', 'platform', 'integrations', 'roles', 'notifications', 'security', 'digital-id', 'pages', 'templates', 'echo-hero', 'branding', 'changelog'],
     'profile',
@@ -105,7 +105,7 @@ function TopTabBar({ active, onChange }: { active: TabId; onChange: (t: TabId) =
               onPress={() => onChange(t.id)}
               style={({ hovered }: any) => [
                 s.tabInactive,
-                hovered && Platform.OS === 'web' ? { backgroundColor: 'rgba(255,255,255,0.05)' } : null,
+                hovered && Platform.OS === 'web' ? { backgroundColor: T.border } : null,
               ]}
             >
               <Icon size={13} color={SAC.muted} />

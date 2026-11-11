@@ -5,7 +5,7 @@ import { View, Text, Pressable, Switch, Platform, Modal, TextInput, ScrollView, 
 import { Sliders, Trash2, Check, X, Eye, EyeOff, RotateCcw, AlertTriangle, KeyRound, ChevronRight } from 'lucide-react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SAC, FONTS } from '@/src/views/web/portals/superadmin/tokens';
+import { SAC, useSAC, FONTS } from '@/src/views/web/portals/superadmin/tokens';
 import { request } from '@/src/models/services/api';
 import { GRAD_TO, GRAD_BG, DEFAULT_SYSTEM_OPTIONS } from './settingsTokens';
 import { s } from './settingsStyles';
@@ -15,6 +15,7 @@ import { GradientButton, Loading } from './settingsWidgets';
  * TAB 2 — Platform Controls
  * ═══════════════════════════════════════════════════════════════ */
 export function PlatformTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const T = useSAC();
   const [data, setData] = useState<any>(null);
   const [pickerSetting, setPickerSetting] = useState<any>(null);
   const [busy, setBusy] = useState(false);
@@ -77,7 +78,7 @@ export function PlatformTab({ onSaved }: { onSaved: (s?: string) => void }) {
               <Switch
                 value={!!f.value}
                 onValueChange={(v) => toggleFlag(f.key, v)}
-                trackColor={{ false: 'rgba(255,255,255,0.10)', true: GRAD_TO }}
+                trackColor={{ false: T.border, true: GRAD_TO }}
                 thumbColor={f.value ? '#fff' : '#ccc'}
                 {...(Platform.OS === 'web' ? ({ activeThumbColor: '#fff' } as any) : {})}
               />
@@ -207,14 +208,14 @@ export function SettingPickerModal({ setting, onSelect, onClose }: {
                         value={textValue}
                         onChangeText={setTextValue}
                         placeholder={inputPlaceholder}
-                        placeholderTextColor="rgba(255,255,255,0.35)"
+                        placeholderTextColor={T.dim}
                         secureTextEntry={isPassword && !showPwd}
                         autoFocus
                         multiline={false}
                       />
                       {isPassword && (
                         <Pressable onPress={() => setShowPwd(!showPwd)} style={s.iconOnlyBtn}>
-                          {showPwd ? <EyeOff size={18} color="rgba(255,255,255,0.6)" /> : <Eye size={18} color="rgba(255,255,255,0.6)" />}
+                          {showPwd ? <EyeOff size={18} color={T.muted} /> : <Eye size={18} color={T.muted} />}
                         </Pressable>
                       )}
                     </View>

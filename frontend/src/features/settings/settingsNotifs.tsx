@@ -5,6 +5,7 @@ import { View, Text, Switch, Platform } from 'react-native';
 import { Bell } from 'lucide-react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { request } from '@/src/models/services/api';
+import { useSAC } from '@/src/views/web/portals/superadmin/tokens';
 import { GRAD_TO } from './settingsTokens';
 import { s } from './settingsStyles';
 import { Loading } from './settingsWidgets';
@@ -13,6 +14,7 @@ import { Loading } from './settingsWidgets';
  * TAB 5 — Notifications
  * ═══════════════════════════════════════════════════════════════ */
 export function NotificationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const T = useSAC();
   const [prefs, setPrefs] = useState<any[] | null>(null);
 
   const load = useCallback(async () => {
@@ -64,7 +66,7 @@ export function NotificationsTab({ onSaved }: { onSaved: (s?: string) => void })
                 <Switch
                   value={!!p[c.key]}
                   onValueChange={(v) => toggle(p.key, c.key, v)}
-                  trackColor={{ false: 'rgba(255,255,255,0.10)', true: GRAD_TO }}
+                  trackColor={{ false: T.border, true: GRAD_TO }}
                   thumbColor={p[c.key] ? '#fff' : '#ccc'}
                   {...(Platform.OS === 'web' ? ({ activeThumbColor: '#fff' } as any) : {})}
                 />
