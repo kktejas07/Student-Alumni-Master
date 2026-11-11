@@ -72,7 +72,7 @@ from fastapi import FastAPI, APIRouter, File, HTTPException, Depends, Request, R
 # trigger reload
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel, Field  # noqa: F401 (re-exported for backward compat)
+
 from fastapi.middleware.gzip import GZipMiddleware
 
 from slowapi import _rate_limit_exceeded_handler
