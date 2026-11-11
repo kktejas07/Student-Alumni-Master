@@ -62,11 +62,8 @@ import asyncio
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Literal, Dict, Any
 
-import bcrypt
-import jwt
 import httpx
 import pyotp
-import qrcode
 from bson import ObjectId
 from fastapi import FastAPI, APIRouter, File, HTTPException, Depends, Request, Response, UploadFile, Query
 # trigger reload
@@ -160,161 +157,9 @@ async def _lifespan(application):
     except Exception as e:
         print(f"[DB TRACE] Mongo connection failed: {e}", flush=True)
 
-    # 2. DB indexes + admin seed + schedulers (runs after Mongo is warm)
-    async def _safe_create_index(collection, *args, **kwargs):
-        try:
-            await collection.create_index(*args, **kwargs)
-        except Exception as e:
-            logger.warning(f"Skipping index creation for {collection.name} {args}: {e}")
-
-    # Create all database indexes concurrently to prevent startup latency
-    index_tasks = [
-        _safe_create_index(db.users, "email", unique=True),
-        _safe_create_index(db.users, "unique_id"),
-        _safe_create_index(db.users, [("role", 1), ("_id", -1)]),
-        _safe_create_index(db.users, [("role", 1), ("mentor_status", 1)]),
-        _safe_create_index(db.users, "sa_id", unique=True, sparse=True),
-        _safe_create_index(db.career_suggestions, "user_id"),
-        _safe_create_index(db.career_roadmaps, "user_id"),
-        _safe_create_index(db.college_students, [("college_id", 1), ("id", 1)]),
-        _safe_create_index(db.chat_messages, [("user_id", 1), ("session_id", 1)]),
-        _safe_create_index(db.bookings, [("student_id", 1), ("slot_start_iso", -1)]),
-        _safe_create_index(db.bookings, [("mentor_id", 1), ("slot_start_iso", -1)]),
-        _safe_create_index(db.audit_logs, "user_id"),
-        _safe_create_index(db.audit_logs, [("ts", -1)]),
-        _safe_create_index(db.sessions, "user_id"),
-        _safe_create_index(db.sessions, [("expires_at", 1)], expireAfterSeconds=0),
-        _safe_create_index(db.agent_k_schedules, [("status", 1), ("next_run_at", 1)]),
-        _safe_create_index(db.agent_k_schedules, [("user_id", 1), ("created_at", -1)]),
-        _safe_create_index(db.agent_runs, [("schedule_id", 1), ("started_at", -1)]),
-        _safe_create_index(db.workflow_events, "event_type"),
-        _safe_create_index(db.workflow_events, [("fired_at", -1)]),
-        _safe_create_index(db.connections, "a"),
-        _safe_create_index(db.connections, "b"),
-        _safe_create_index(db.connections, [("from_id", 1), ("status", 1)]),
-        _safe_create_index(db.connections, [("to_id", 1), ("status", 1)]),
-        _safe_create_index(db.connections, "mentor_id"),
-        _safe_create_index(db.applications, "user_id"),
-        _safe_create_index(db.jobs_cache, "dedup_hash"),
-        _safe_create_index(db.jobs_cache, [("expires_at", 1), ("job_type", 1)]),
-        _safe_create_index(db.mentor_sessions, [("mentee_id", 1), ("status", 1)]),
-        _safe_create_index(db.mentor_sessions, [("mentor_id", 1), ("status", 1)]),
-        _safe_create_index(db.events, "mentor_id"),
-        _safe_create_index(db.events, [("status", 1), ("start_date", -1)]),
-        _safe_create_index(db.event_registrations, "event_id"),
-        _safe_create_index(db.token_blacklist, [("expires_at", 1)], expireAfterSeconds=0),
-        _safe_create_index(db.token_blacklist, "jti", unique=True, sparse=True),
-        _safe_create_index(db.certificates, "verification_code", unique=True),
-        _safe_create_index(db.certificates, "recipient_email"),
-        _safe_create_index(db.payment_refunds, "payment_id"),
-        _safe_create_index(db.payment_refunds, [("created_at", -1)]),
-        _safe_create_index(db.approval_audit_trail, [("at", -1)]),
-        _safe_create_index(db.approval_audit_trail, [("item_id", 1), ("at", -1)]),
-        _safe_create_index(db.platform_briefings, [("generated_at", -1)]),
-        _safe_create_index(db.settings_changelog, [("at", -1)]),
-        _safe_create_index(db.settings_changelog, [("section", 1), ("at", -1)]),
-        _safe_create_index(db.email_suppressions, "email", unique=True),
-        _safe_create_index(db.email_quality_events, [("created_at", -1)]),
-        _safe_create_index(db.echo_showcases, "slug", unique=True, sparse=True),
-        _safe_create_index(db.echo_showcases, [("status", 1), ("date", -1)]),
-        _safe_create_index(db.echo_registrations, [("slug", 1), ("user_key", 1)]),
-        _safe_create_index(db.echo_registrations, [("payment.status", 1), ("slug", 1)]),
-        _safe_create_index(db.invoices, "invoice_no", unique=True, sparse=True),
-        _safe_create_index(db.invoices, [("user_id", 1), ("created_at", -1)]),
-        _safe_create_index(db.email_campaigns, "campaign_id", unique=True, sparse=True),
-        _safe_create_index(db.email_campaign_events, [("campaign_id", 1), ("email", 1)]),
-        _safe_create_index(db.coupons, "code", unique=True),
-        _safe_create_index(db.email_verifications, "email"),
-        _safe_create_index(db.email_verifications, [("expires_at", 1)], expireAfterSeconds=0),
-        _safe_create_index(db.echo_volunteers, "email"),
-        _safe_create_index(db.echo_volunteers, "slug"),
-        _safe_create_index(db.echo_volunteers, [("slug", 1), ("email", 1)], unique=True),
-        # Marketplace performance indexes
-        _safe_create_index(db.echo_catalog_items, "event_id"),
-        _safe_create_index(db.echo_catalog_items, [("event_id", 1), ("is_active", 1)]),
-        _safe_create_index(db.echo_discount_coupons, [("event_id", 1), ("active", 1)]),
-        _safe_create_index(db.echo_discount_coupons, "code", unique=True, sparse=True),
-        _safe_create_index(db.echo_orders, [("user_id", 1), ("created_at", -1)]),
-        _safe_create_index(db.echo_orders, [("status", 1)]),
-        # First-Party Careers & Opportunities indexes
-        _safe_create_index(db.career_openings, [("status", 1), ("published_at", -1)]),
-        _safe_create_index(db.career_openings, [("featured", -1), ("published_at", -1)]),
-        _safe_create_index(db.career_openings, [("created_at", -1)]),
-        _safe_create_index(db.career_applications, [("career_opening_id", 1), ("student_id", 1)], unique=True),
-        _safe_create_index(db.career_applications, [("student_id", 1), ("created_at", -1)]),
-        _safe_create_index(db.career_applications, [("career_opening_id", 1), ("status", 1)]),
-        _safe_create_index(db.career_application_history, [("application_id", 1), ("changed_at", -1)]),
-        # Wallet coupon engine (W1) — partner catalog + per-user claims
-        _safe_create_index(db.sa_coupons, "slug", unique=True),
-        _safe_create_index(db.sa_user_coupons, [("user_id", 1), ("status", 1)]),
-        _safe_create_index(db.sa_user_coupons, [("status", 1), ("expires_at", 1)]),
-        # Wallet referral engine (W5) + badges (W6)
-        _safe_create_index(db.sa_referrals, "referrer_id", unique=True),
-        _safe_create_index(db.sa_referrals, "referral_code", unique=True),
-        _safe_create_index(db.sa_referrals, "referred_users"),
-        _safe_create_index(db.sa_badges, [("user_id", 1), ("slug", 1)], unique=True),
-        _safe_create_index(db.sa_challenges, [("user_id", 1), ("week", 1)], unique=True),
-        _safe_create_index(db.sa_wallet_audit, [("user_id", 1), ("ts", -1)]),
-        # Wallet notifications (W9) — wallet-scoped in-app feed + weekly digest sweep
-        _safe_create_index(db.notifications, [("user_id", 1), ("type", 1), ("created_at", -1)]),
-        _safe_create_index(db.wallet_transactions, [("user_id", 1), ("ts", -1)]),
-        _safe_create_index(db.users, [("wallet.last_credited_at", -1)]),
-        _safe_create_index(db.users, [("wallet.last_used_at", -1)]),
-        # Wallet reward marketplace (W2) — catalog + redemptions
-        _safe_create_index(db.sa_rewards, "title"),
-        _safe_create_index(db.sa_redemptions, [("user_id", 1), ("ts", -1)]),
-        _safe_create_index(db.sa_redemptions, [("user_id", 1), ("reward_id", 1), ("ts", 1)]),
-        _safe_create_index(db.sa_ai_resume_reviews, [("user_id", 1), ("status", 1)]),
-        _safe_create_index(db.sa_marketplace_purchases, [("user_id", 1), ("ts", -1)]),
-        _safe_create_index(db.sa_marketplace_purchases, [("user_id", 1), ("service", 1), ("ts", 1)]),
-        # Talent Pool agent suite (TP15-TP32)
-        _safe_create_index(db.outreach_campaigns, "status"),
-        _safe_create_index(db.outreach_campaigns, [("created_at", -1)]),
-        _safe_create_index(db.outreach_messages, "token", unique=True, sparse=True),
-        _safe_create_index(db.outreach_messages, [("campaign_id", 1), ("profile_id", 1)]),
-        _safe_create_index(db.canonical_skills, "canonical", unique=True, sparse=True),
-        _safe_create_index(db.talent_pool_consent, "email"),
-        _safe_create_index(db.talent_pool_consent, "profile_id"),
-        _safe_create_index(db.talent_pool_consent, "status"),
-        _safe_create_index(db.erasure_log, [("erased_at", -1)]),
-        _safe_create_index(db.talent_pool_activity_log, [("startTime", -1)]),
-        _safe_create_index(db.talent_pool_activity_log, "object.id"),
-        _safe_create_index(db.talent_pool_activity_log, "action"),
-        _safe_create_index(db.scheduler_logs, [("agent", 1), ("started_at", -1)]),
-        _safe_create_index(db.settings, "id", unique=True),
-        _safe_create_index(db.external_job_listings, "dedup_hash"),
-        _safe_create_index(db.external_job_listings, [("is_active", 1), ("created_at", -1)]),
-        _safe_create_index(db.whatsapp_message_log, "external_id"),
-        _safe_create_index(db.whatsapp_message_log, "status"),
-        _safe_create_index(db.interview_feedback, [("candidate_id", 1), ("created_at", -1)]),
-        _safe_create_index(db.ats_field_mappings, "system"),
-        # Partners & Promotions marketing suite (PT5/PT6/PM6/PM7)
-        _safe_create_index(db.partner_event_daily, [("partner_id", 1), ("day", 1)], unique=True),
-        _safe_create_index(db.promotion_event_daily, [("promo_id", 1), ("day", 1)], unique=True),
-        _safe_create_index(db.promotion_ab_sessions, "client_key", unique=True),
-    ]
-    await asyncio.gather(*index_tasks, return_exceptions=True)
-
-    # 2b. Lead Aggregator indexes (LA1)
-    try:
-        from features.lead_aggregator.database import ensure_indexes as _la_indexes
-        await _la_indexes()
-    except Exception as _e:
-        logger.warning("Could not create Lead Aggregator indexes: %s", _e)
-
-    # 2c. Lead Aggregator analytics indexes
-    try:
-        from features.lead_aggregator.analytics import ensure_analytics_indexes as _la_analytics_idx
-        await _la_analytics_idx()
-    except Exception as _e:
-        logger.warning("Could not create LA analytics indexes: %s", _e)
-
-    # 2d. Lead Aggregator structured logging
-    try:
-        from features.lead_aggregator.logging_config import setup_la_logging
-        setup_la_logging()
-    except Exception as _e:
-        logger.warning("Could not setup LA logging: %s", _e)
+    # 2. DB indexes (extracted to core/indexes.py)
+    from core.indexes import ensure_all_indexes
+    await ensure_all_indexes()
 
     # 3. Auto seed certificates on startup if count is 0
     try:
@@ -645,123 +490,18 @@ async def upload_file(
 
 
 # ----------------------------------------------------------------------------
-# Encryption-at-Rest — Fernet (AES-128 in CBC mode + HMAC-SHA256)
+# Encryption-at-Rest — extracted to core/encryption.py
 # ----------------------------------------------------------------------------
-# Per spec — encrypt sensitive personal data (dob, phone, postal_code) at rest.
-# Backwards-compat: legacy users may have plaintext values; decrypt() returns
-# the input as-is when it can't be decoded as Fernet ciphertext.
-try:
-    from cryptography.fernet import Fernet, InvalidToken  # noqa: E402
-    _HAS_CRYPTOGRAPHY = True
-except Exception:
-    _HAS_CRYPTOGRAPHY = False
-    class Fernet:
-        @staticmethod
-        def generate_key():
-            return b"dummy_key_for_dev_booting_without_cryptography_32b_len="
-        def __init__(self, key):
-            pass
-        def encrypt(self, data: bytes) -> bytes:
-            return data
-        def decrypt(self, data: bytes) -> bytes:
-            return data
-    class InvalidToken(Exception):
-        pass
-
-_FERNET_KEY = os.environ.get("FERNET_KEY")
-if not _FERNET_KEY:
-    if os.getenv("ENV") == "production":
-        raise RuntimeError(
-            "FERNET_KEY environment variable is required in production. "
-            "PII encryption (phone, dob, postal_code) would be non-persistent without it."
-        )
-    # Auto-generate a session key in dev so the app boots; logs a warning.
-    if _HAS_CRYPTOGRAPHY:
-        _FERNET_KEY = Fernet.generate_key().decode()
-    else:
-        _FERNET_KEY = Fernet.generate_key().decode('utf-8')
-    logger.warning(
-        "⚠️  FERNET_KEY not set — using ephemeral key (dev only). "
-        "Set FERNET_KEY in .env for persistent PII encryption."
-    )
-_FERNET = Fernet(_FERNET_KEY.encode() if isinstance(_FERNET_KEY, str) else _FERNET_KEY)
-# Marker so we can recognise our ciphertexts in mixed-format collections.
-_ENC_PREFIX = "enc::"
-
-
-def encrypt_value(plain: Optional[str]) -> Optional[str]:
-    """Wrap a string with the Fernet token + a recognisable prefix."""
-    if plain is None or plain == "":
-        return plain
-    if isinstance(plain, str) and plain.startswith(_ENC_PREFIX):
-        return plain  # already encrypted
-    try:
-        token = _FERNET.encrypt(plain.encode("utf-8")).decode("utf-8")
-        return f"{_ENC_PREFIX}{token}"
-    except Exception:
-        return plain  # never block the write on encryption failure
-
-
-def decrypt_value(value: Optional[str]) -> Optional[str]:
-    """Unwrap a Fernet ciphertext. Returns the input unchanged if not ours."""
-    if value is None or value == "":
-        return value
-    if isinstance(value, str) and value.startswith(_ENC_PREFIX):
-        try:
-            return _FERNET.decrypt(value[len(_ENC_PREFIX):].encode("utf-8")).decode("utf-8")
-        except InvalidToken:
-            return None  # tampered or wrong key — return None defensively
-        except Exception:
-            return None
-    return value  # legacy plaintext
+from core.encryption import encrypt_value, decrypt_value  # noqa: E402, F811
 
 
 # ----------------------------------------------------------------------------
-# Audit Log Helpers — write every personal-data change to `audit_logs`
+# Audit Log Helpers — extracted to core/audit.py
 # ----------------------------------------------------------------------------
-# Schema: { user_id, field_name, old_value, new_value, source, validation_status,
-#           ts (UTC datetime), is_manual_entry }
-async def _audit_log(user_id: str, field: str, old_value, new_value, *,
-                     source: str = "onboarding",
-                     validation_status: str = "passed",
-                     is_manual_entry: bool = False) -> None:
-    """Insert a single audit entry. Best-effort — never raise to caller."""
-    try:
-        await db.audit_logs.insert_one({
-            "user_id": user_id,
-            "field_name": field,
-            "old_value": old_value if old_value is not None else None,
-            "new_value": new_value if new_value is not None else None,
-            "source": source,
-            "validation_status": validation_status,
-            "is_manual_entry": is_manual_entry,
-            "ts": datetime.now(timezone.utc),
-        })
-    except Exception:
-        # Don't let audit failures break the user's flow.
-        pass
-
-
-async def _audit_log_many(user_id: str, source: str, entries: list,
-                          validation_status: str = "passed") -> None:
-    """Bulk insert audit entries. `entries` is a list of (field, old, new) tuples."""
-    if not entries:
-        return
-    try:
-        docs = [{
-            "user_id": user_id,
-            "field_name": f,
-            "old_value": o,
-            "new_value": n,
-            "source": source,
-            "validation_status": validation_status,
-            "is_manual_entry": False,
-            "ts": datetime.now(timezone.utc),
-        } for (f, o, n) in entries if n is not None and n != ""]
-        if docs:
-            await db.audit_logs.insert_many(docs, ordered=False)
-    except Exception:
-        pass
+from core.audit import audit_log as _audit_log_new, audit_log_many as _audit_log_many_new  # noqa: E402
+# Backward-compat aliases (server.py used underscore-prefixed names internally)
+_audit_log = _audit_log_new
+_audit_log_many = _audit_log_many_new
 
 
 # ----------------------------------------------------------------------------
@@ -786,253 +526,20 @@ from core.models import (  # noqa: E402
 
 
 # ----------------------------------------------------------------------------
-# Helpers — Auth, hashing, ID generation
+# Auth Helpers — extracted to core/auth_helpers.py
+# Backward-compat re-exports so `from server import X` still works.
 # ----------------------------------------------------------------------------
-def hash_password(password: str) -> str:
-    """Bcrypt is the industry standard for password hashing in 2026."""
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-
-
-def verify_password(plain: str, hashed: str) -> bool:
-    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
-
-
-def create_access_token(user_id: str, email: str, role: str) -> str:
-    """Short-lived access token for API authentication.
-    Includes a JTI (JWT ID) for token revocation support (logout blacklist).
-    """
-    payload = {
-        "sub": user_id,
-        "email": email,
-        "role": role,
-        "jti": secrets.token_hex(16),  # unique token ID for revocation
-        "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
-        "type": "access",
-    }
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-
-
-def create_refresh_token(user_id: str) -> str:
-    """Long-lived refresh token to obtain new access tokens without re-login."""
-    payload = {
-        "sub": user_id,
-        "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
-        "type": "refresh",
-    }
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-
-
-def generate_unique_id(role: str) -> str:
-    """Platform unique ID format: SA-{YEAR}-{ROLE_CODE}-{6 RANDOM CHARS}.
-    Example: SA-2026-STU-A7B2X9. Used as the user's QR code payload."""
-    role_codes = {"student": "STU", "alumni": "ALM", "mentor": "MNT", "college": "CLG", "admin": "ADM"}
-    code = role_codes.get(role, "USR")
-    rand = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    return f"SA-{datetime.now().year}-{code}-{rand}"
-
-
-def generate_qr_code(data: str) -> str:
-    """Generate base64-encoded PNG QR code for a unique platform ID."""
-    qr = qrcode.QRCode(version=1, box_size=10, border=2,
-                       error_correction=qrcode.constants.ERROR_CORRECT_M)
-    qr.add_data(data)
-    qr.make(fit=True)
-    img = qr.make_image(fill_color="#5F259F", back_color="#FFFFFF")  # Brand purple QR
-    buf = io.BytesIO()
-    getattr(img, "save")(buf, format="PNG")
-    return base64.b64encode(buf.getvalue()).decode("utf-8")
-
-
-def _safe_block(model_cls, value):
-    """Try to coerce a stored dict into the given Pydantic model. If it fails
-    validation (e.g. seed data missing required fields), return None instead of
-    crashing the whole user payload. Logged so we know it happened."""
-    if value is None:
-        return None
-    try:
-        # Validate but return as dict so FastAPI re-validates with the parent model
-        return model_cls(**value).model_dump(exclude_none=False)
-    except Exception:
-        return None
-
-
-def serialize_user(user: dict) -> dict | None:
-    """Strip internal fields (_id, password_hash) from user dict before sending to client.
-    Decrypts at-rest fields (phone / dob / postal_code) on the way out.
-    """
-    if not user:
-        return None
-    return {
-        "id": str(user.get("_id")),
-        "email": user.get("email"),
-        "full_name": user.get("full_name"),
-        "role": user.get("role"),
-        # Sensitive fields — decrypt before exposing.
-        "phone":        decrypt_value(user.get("phone")),
-        "unique_id": user.get("unique_id"),
-        "qr_code_base64": user.get("qr_code_base64"),
-        "school_info":  _safe_block(SchoolInfo,  user.get("school_info")),
-        "career_path":  user.get("career_path"),
-        "student_info": _safe_block(StudentInfo, user.get("student_info")),
-        "alumni_info":  _safe_block(AlumniInfo,  user.get("alumni_info")),
-        "mentor_info":  _safe_block(MentorInfo,  user.get("mentor_info")),
-        "college_info": _safe_block(CollegeInfo, user.get("college_info")),
-        "mentor_status": user.get("mentor_status"),
-        "interests": user.get("interests", []),
-        "skills": user.get("skills", []),
-        "bio": user.get("bio"),
-        "face_image_base64": user.get("face_image_base64"),
-        "onboarding_completed": user.get("onboarding_completed", False),
-        "two_fa_enabled": user.get("two_fa_enabled", False),
-        # Phase A — DOB / country / postal — exposed on every user response.
-        "dob":          decrypt_value(user.get("dob")),
-        "country_code": user.get("country_code"),
-        "postal_code":  decrypt_value(user.get("postal_code")),
-        "created_at": user.get("created_at"),
-        # Phase-4 SA Profile Web fields — round-trip through PUT /users/me & /auth/me
-        "first_name":     user.get("first_name"),
-        "last_name":      user.get("last_name"),
-        "headline":       user.get("headline"),
-        "photo_data":     user.get("face_image_base64") or user.get("photo_data") or user.get("oauth_picture"),
-        "banner_data":    user.get("banner_data"),
-        "college_logo_data": user.get("college_logo_data"),
-        "institution":    user.get("institution") or (user.get("school_info") or {}).get("institution_name") or (user.get("alumni_info") or {}).get("institution_name") or (user.get("college_info") or {}).get("institution_name"),
-        "branch":         user.get("branch") or (user.get("school_info") or {}).get("branch_or_stream"),
-        "stream":         user.get("stream"),
-        "department":     user.get("department"),
-        "graduation_year": user.get("graduation_year") or (user.get("school_info") or {}).get("graduation_year") or (user.get("alumni_info") or {}).get("graduation_year"),
-        "cgpa":           user.get("cgpa") or (user.get("school_info") or {}).get("cgpa"),
-        "location":       user.get("location"),
-        "city":           user.get("city") or (user.get("school_info") or {}).get("city") or (user.get("college_info") or {}).get("city"),
-        "state":          user.get("state") or (user.get("school_info") or {}).get("state") or (user.get("college_info") or {}).get("state"),
-        "linkedin_url":   user.get("linkedin_url"),
-        "github_url":     user.get("github_url"),
-        "portfolio_url":  user.get("portfolio_url"),
-        "primary_skill":  user.get("primary_skill"),
-        "profile_visibility": user.get("profile_visibility"),
-        "section_toggles": user.get("section_toggles"),
-        "badges":         [b for b in user.get("badges", []) if isinstance(b, dict)],
-        "projects":       user.get("projects"),
-        "preferences":    user.get("preferences"),
-        "is_verified":    user.get("is_verified"),
-        "ranking_tier":   user.get("ranking_tier"),
-        # Identity & DigiLocker
-        "aadhaar_number": user.get("aadhaar_number"),
-        "aadhaar_masked": user.get("aadhaar_masked") or (f"•••• •••• {str(user.get('aadhaar_number'))[-4:]}" if user.get("aadhaar_number") and len(str(user.get("aadhaar_number")).replace(" ","")) >= 4 else None),
-        "aadhaar_verified": bool(user.get("aadhaar_verified", False)),
-        "digilocker_id": user.get("digilocker_id"),
-        "digilocker_verified": bool(user.get("digilocker_verified", False)),
-        "digilocker_doc_count": int(user.get("digilocker_doc_count", 0)),
-        "digilocker_uri": user.get("digilocker_uri"),
-        "digilocker_linked_at": user.get("digilocker_linked_at"),
-    }
-
-
-async def get_current_user(request: Request) -> dict:
-    """JWT auth dependency. Reads `Authorization: Bearer <token>` header.
-
-    Shared decode + blacklist checks live in core.deps; the schema-migration
-    block below is kept here because it mutates the user document.
-    """
-    payload = decode_payload(bearer_token(request.headers.get("Authorization", "")), token_type="access")
-    # Check token blacklist (logout revocation)
-    jti = payload.get("jti")
-    if jti:
-        blacklisted = await db.token_blacklist.find_one({"jti": jti})
-        if blacklisted:
-            raise HTTPException(401, "Token has been revoked")
-    user = await db.users.find_one(
-        {"_id": ObjectId(payload["sub"])}
-    )
-    if not user:
-        raise HTTPException(401, "User not found")
-
-    # ── Schema Unification Migration Helper ──
-    needs_migration = False
-    updates = {"$set": {}, "$unset": {}}
-
-    # 1. Image Schema
-    if not user.get("photo_data") and (user.get("photo_data")):
-        user["photo_data"] = user.get("photo_data")
-        updates["$set"]["photo_data"] = user["photo_data"]
-        if "face_image_base64" in user: updates["$unset"]["face_image_base64"] = ""
-        if "photo" in user: updates["$unset"]["photo"] = ""
-        needs_migration = True
-
-    # 2. Career Goal
-    si = user.get("student_info") or {}
-    if not si.get("career_goal") and (user.get("career_goal") or user.get("career_path")):
-        si["career_goal"] = user.get("career_goal") or user.get("career_path")
-        user["student_info"] = si
-        updates["$set"]["student_info"] = si
-        if "career_goal" in user: updates["$unset"]["career_goal"] = ""
-        if "career_path" in user: updates["$unset"]["career_path"] = ""
-        needs_migration = True
-
-    # 3. Education
-    s_info = user.get("school_info") or {}
-    has_edu_legacy = False
-    for legacy_key, target_key in [
-        ("branch", "branch_or_stream"),
-        ("cgpa", "cgpa"),
-        ("graduation_year", "graduation_year"),
-        ("class_or_year", "class_or_year"),
-        ("department", "branch_or_stream")
-    ]:
-        if legacy_key in user:
-            if target_key not in s_info or not s_info[target_key]:
-                s_info[target_key] = user[legacy_key]
-            updates["$unset"][legacy_key] = ""
-            has_edu_legacy = True
-    if has_edu_legacy:
-        user["school_info"] = s_info
-        updates["$set"]["school_info"] = s_info
-        needs_migration = True
-
-    # 4. Resume
-    if user.get("resume_url"):
-        legacy_url = user.get("resume_url")
-        new_doc = {
-            "id": "legacy_migrated",
-            "name": "Legacy_Resume.pdf",
-            "size": 0,
-            "data_url": legacy_url,
-            "uploaded_at": datetime.now(timezone.utc).isoformat(),
-            "active": True
-        }
-        updates["$push"] = {"resume_documents": new_doc}
-        if not user.get("resume_documents"):
-            user["resume_documents"] = []
-        user["resume_documents"].append(new_doc)
-        if "resume_url" in user: updates["$unset"]["resume_url"] = ""
-        if "resume_data" in user: updates["$unset"]["resume_data"] = ""
-        needs_migration = True
-
-    if needs_migration:
-        try:
-            if not updates["$unset"]: del updates["$unset"]
-            if not updates["$set"]: del updates["$set"]
-            if not updates.get("$push"): updates.pop("$push", None)
-            if updates:
-                await db.users.update_one({"_id": user["_id"]}, updates)
-        except Exception as e:
-            print(f"Migration error: {e}", flush=True)
-
-    # Remove large binary fields from response to match legacy behavior
-    if "resume_documents" in user:
-        del user["resume_documents"]
-
-    return user
-
-
-def validate_student_class(school_info: SchoolInfo, age: Optional[int] = None) -> None:
-    """Per spec: students must be age 10+ AND in Class 11 (+1) or above."""
-    if age is not None and age < 10:
-        raise HTTPException(400, "Students must be at least 10 years old to register.")
-    cls = (school_info.class_or_year or "").strip().lower()
-    # If user typed a single number, reject 1-10
-    if cls.isdigit() and int(cls) < 11:
-        raise HTTPException(400, "Students must be in Class 11 (+1) or above.")
+from core.auth_helpers import (  # noqa: E402, F811
+    hash_password,
+    verify_password,
+    create_access_token,
+    create_refresh_token,
+    generate_unique_id,
+    generate_qr_code,
+    serialize_user,
+    get_current_user,
+    validate_student_class,
+)
 
 
 

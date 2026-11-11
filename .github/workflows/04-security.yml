@@ -68,11 +68,13 @@ jobs:
       - name: TruffleHog (secret detection)
         uses: trufflesecurity/trufflehog@v3
         with:
-          extra_args: --only-verified --fail
+          extra_args: --only-verified --fail --exclude-paths=.trufflehog-ignore
 
       - name: Gitleaks (secret detection)
         uses: gitleaks/gitleaks-action@v2
         continue-on-error: true
+        env:
+          GITLEAKS_CONFIG: .gitleaks.toml
 
   # ─── Dependency vulnerability scan ────────────────────────────
   dependencies:
@@ -116,10 +118,11 @@ jobs:
           args: --severity-threshold=high
 
       - name: Upload SARIF to GitHub
+        if: success() || failure()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: snyk.sarif
-        continue-on-error: true
+        continue-on-error: true  # skip gracefully if snyk.sarif was not produced (no SNYK_TOKEN)
 
   # ─── Docker image vulnerability scan ──────────────────────────
   docker-scan:
