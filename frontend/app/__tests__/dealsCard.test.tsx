@@ -2,6 +2,7 @@
  * D2 — /deals card rendering (DealCard from app/deals.tsx).
  * Uses @testing-library/react-native + react-native-web under the node env.
  */
+import { vi } from 'vitest';
 import { render } from '@testing-library/react-native';
 import React from 'react';
 
@@ -9,7 +10,7 @@ import React from 'react';
 // trips react-test-renderer's Text invariant under the node env. Mock the
 // RN primitives with host stand-ins; <Text> is the only host tag that may
 // contain raw strings.
-jest.mock('react-native', () => {
+vi.mock('react-native', () => {
   const R = require('react');
   const mk = (tag: string) => (props: any = {}) => {
     const { children, ...rest } = props;
@@ -26,36 +27,36 @@ jest.mock('react-native', () => {
     StyleSheet: { create: (o: any) => o, flatten: (o: any) => o },
     Modal: ({ children }: any) => (children ? R.createElement('modal', null, children) : null),
     Platform: { OS: 'web' },
-    Linking: { openURL: jest.fn() },
+    Linking: { openURL: vi.fn() },
     useWindowDimensions: () => ({ width: 1280, height: 800, scale: 1, fontScale: 1 }),
   };
 });
 
-jest.mock('@expo/vector-icons', () => ({
+vi.mock('@expo/vector-icons', () => ({
   __esModule: true,
   MaterialCommunityIcons: () => null,
 }));
 
-jest.mock('@/src/models/services/api', () => ({
-  request: jest.fn(),
+vi.mock('@/src/models/services/api', () => ({
+  request: vi.fn(),
   resolveImageUrl: (u?: string) => u || '',
 }));
 
-jest.mock('@/src/viewmodels/stores/authStore', () => ({
-  useAuthStore: jest.fn((sel?: any) =>
+vi.mock('@/src/viewmodels/stores/authStore', () => ({
+  useAuthStore: vi.fn((sel?: any) =>
     sel ? sel({ user: null, initialized: true }) : { user: null, initialized: true },
   ),
 }));
 
-jest.mock('expo-router', () => ({ useRouter: () => ({ replace: jest.fn() }) }));
+vi.mock('expo-router', () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 
-jest.mock('@/src/views/web/FeaturePageShell', () => ({
+vi.mock('@/src/views/web/FeaturePageShell', () => ({
   __esModule: true,
   default: ({ children, title, rightSlot }: any) => <>{children}</>,
   EmbeddedShellContext: { Provider: ({ children }: any) => <>{children}</> },
 }));
 
-jest.mock('@/src/theme/ThemeContext', () => ({
+vi.mock('@/src/theme/ThemeContext', () => ({
   ForceLightTheme: ({ children }: any) => <>{children}</>,
   useTheme: () => ({ theme: {}, mode: 'light', setMode: () => {}, isDark: false }),
 }));
@@ -80,7 +81,7 @@ const deal = {
 
 describe('DealCard', () => {
   it('renders brand, title, description and the price row', async () => {
-    const { getByText } = await render(<DealCard d={deal} onClaim={jest.fn()} />);
+    const { getByText } = await render(<DealCard d={deal} onClaim={vi.fn()} />);
     expect(getByText('ZOMATO')).toBeTruthy();
     expect(getByText('40% off on your order')).toBeTruthy();
     expect(getByText('Valid on orders above ₹199')).toBeTruthy();
@@ -90,24 +91,24 @@ describe('DealCard', () => {
   });
 
   it('shows the inferred deal-type badge (freebie) and a verified badge', async () => {
-    const { getByText } = await render(<DealCard d={deal} onClaim={jest.fn()} />);
+    const { getByText } = await render(<DealCard d={deal} onClaim={vi.fn()} />);
     expect(getByText('Freebie')).toBeTruthy();
     expect(getByText('Verified')).toBeTruthy();
   });
 
   it('caps visible tags at 3 and shows the overflow count', async () => {
-    const { getByText } = await render(<DealCard d={deal} onClaim={jest.fn()} />);
+    const { getByText } = await render(<DealCard d={deal} onClaim={vi.fn()} />);
     expect(getByText('Trending')).toBeTruthy();
     expect(getByText('+2')).toBeTruthy();
   });
 
   it('falls back to a coloured initial when there is no logo', async () => {
-    const { getByText } = await render(<DealCard d={deal} onClaim={jest.fn()} />);
+    const { getByText } = await render(<DealCard d={deal} onClaim={vi.fn()} />);
     expect(getByText('Z')).toBeTruthy();
   });
 
   it('Claim Deal triggers onClaim with the deal', async () => {
-    const onClaim = jest.fn();
+    const onClaim = vi.fn();
     const rendered = await render(<DealCard d={deal} onClaim={onClaim} />);
 
     // Host tree: the pressable's onPress fires onClaim with the deal.
@@ -128,7 +129,7 @@ describe('DealCard', () => {
     const { getByText } = await render(
       <DealCard
         d={{ ...deal, deal_id: '2', brand: 'HDFC Regalia', bank_name: 'HDFC', price_inr: 499, price_label: '₹499', student_only: false, code: undefined }}
-        onClaim={jest.fn()}
+        onClaim={vi.fn()}
       />,
     );
     expect(getByText('Bank Offer')).toBeTruthy();

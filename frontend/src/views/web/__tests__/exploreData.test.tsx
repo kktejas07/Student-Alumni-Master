@@ -1,3 +1,16 @@
+import { vi } from 'vitest';
+
+// Mock lucide-react-native to avoid ESM resolution issues in vitest
+vi.mock('lucide-react-native', () => {
+  return new Proxy({}, {
+    get: (_target, name) => {
+      if (name === '__esModule') return true;
+      // Return a stub component for every icon
+      return (props: any) => null;
+    },
+  });
+});
+
 import { NETWORK_SECTIONS } from '../exploreData';
 
 describe('exploreData Network Discover section', () => {

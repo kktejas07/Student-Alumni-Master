@@ -10,30 +10,31 @@
  *   3. A matching existing app is reused; a second initialization never
  *      duplicates apps.
  *
- * The Firebase JS SDK is mocked at the module boundary (jest.mock). No real
+ * The Firebase JS SDK is mocked at the module boundary (vi.mock). No real
  * Google/Firebase tokens, keys, or network calls are used.
  */
+import { vi } from 'vitest';
 
-const mockInitializeApp = jest.fn();
-const mockGetApp = jest.fn();
-const mockGetApps = jest.fn();
-const mockGetAuth = jest.fn();
-const mockSignInWithPopup = jest.fn();
-const mockGetIdToken = jest.fn();
+const mockInitializeApp = vi.fn();
+const mockGetApp = vi.fn();
+const mockGetApps = vi.fn();
+const mockGetAuth = vi.fn();
+const mockSignInWithPopup = vi.fn();
+const mockGetIdToken = vi.fn();
 
-jest.mock('firebase/app', () => ({
+vi.mock('firebase/app', () => ({
   initializeApp: mockInitializeApp,
   getApp: mockGetApp,
   getApps: mockGetApps,
 }));
 
-jest.mock('firebase/auth', () => ({
+vi.mock('firebase/auth', () => ({
   getAuth: mockGetAuth,
-  GoogleAuthProvider: jest.fn(),
-  GithubAuthProvider: jest.fn(),
-  PhoneAuthProvider: jest.fn(),
+  GoogleAuthProvider: vi.fn(),
+  GithubAuthProvider: vi.fn(),
+  PhoneAuthProvider: vi.fn(),
   signInWithPopup: mockSignInWithPopup,
-  signInWithPhoneNumber: jest.fn(),
+  signInWithPhoneNumber: vi.fn(),
 }));
 
 const WEB_CONFIG = {
@@ -61,16 +62,13 @@ function defaultMockBehavior() {
 }
 
 async function freshModule() {
-  let mod: any;
-  await jest.isolateModulesAsync(async () => {
-    mod = await import('../firebaseAuth');
-  });
-  return mod;
+  vi.resetModules();
+  return import('../firebaseAuth');
 }
 
 beforeEach(() => {
-  jest.resetModules();
-  jest.clearAllMocks();
+  vi.resetModules();
+  vi.clearAllMocks();
   ENV_KEYS.forEach((k) => { delete process.env[k]; });
   defaultMockBehavior();
 });

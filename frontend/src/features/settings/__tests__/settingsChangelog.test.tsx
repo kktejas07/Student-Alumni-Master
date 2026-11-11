@@ -4,6 +4,7 @@
  * shows before/after, secrets are masked and cannot be rolled back, and the
  * rollback action posts to the right endpoint.
  */
+import { vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 
@@ -11,7 +12,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react-nativ
 // trips react-test-renderer's Text invariant under the node env. Mock the
 // RN primitives with host stand-ins; <Text> is the only host tag that may
 // contain raw strings.
-jest.mock('react-native', () => {
+vi.mock('react-native', () => {
   const R = require('react');
   const mk = (tag: string) => (props: any = {}) => {
     const { children, ...rest } = props;
@@ -31,13 +32,13 @@ jest.mock('react-native', () => {
   };
 });
 
-const requestMock = jest.fn();
-jest.mock('@/src/models/services/api', () => ({
+const requestMock = vi.fn();
+vi.mock('@/src/models/services/api', () => ({
   request: (...args: any[]) => requestMock(...args),
   tokenStore: { getAccess: async () => 'test-token' },
 }));
 
-jest.mock('@/src/lib/env', () => ({ getBaseUrl: () => 'http://localhost:8002' }));
+vi.mock('@/src/lib/env', () => ({ getBaseUrl: () => 'http://localhost:8002' }));
 
 const ENTRIES = [
   {
@@ -54,12 +55,12 @@ const ENTRIES = [
   },
 ];
 
-jest.mock('expo-linear-gradient', () => ({
+vi.mock('expo-linear-gradient', () => ({
   __esModule: true,
   LinearGradient: 'LinearGradient',
 }));
 
-jest.mock('react-native-reanimated', () => ({
+vi.mock('react-native-reanimated', () => ({
   __esModule: true,
   default: {
     View: 'View',
@@ -121,7 +122,7 @@ describe('ChangelogTab', () => {
   });
 
   it('offers rollback for a normal change and posts to the rollback endpoint', async () => {
-    const onSaved = jest.fn();
+    const onSaved = vi.fn();
     render(<ChangelogTab onSaved={onSaved} />);
     await waitFor(() => expect(screen.getByText('Beta UI')).toBeTruthy());
     fireEvent.press(screen.getByText('Beta UI'));

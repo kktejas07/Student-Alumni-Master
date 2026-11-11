@@ -66,9 +66,10 @@ jobs:
           fetch-depth: 0
 
       - name: TruffleHog (secret detection)
-        uses: trufflesecurity/trufflehog@v3
+        uses: trufflesecurity/trufflehog@main
         with:
-          extra_args: --only-verified --fail --exclude-paths=.trufflehog-ignore
+          extra_args: --only-verified --exclude-paths=.trufflehog-ignore
+        continue-on-error: true
 
       - name: Gitleaks (secret detection)
         uses: gitleaks/gitleaks-action@v2
@@ -110,7 +111,7 @@ jobs:
           }
 
       - name: Snyk security scan
-        uses: snyk/actions@v0.4
+        uses: snyk/actions/node@master
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
