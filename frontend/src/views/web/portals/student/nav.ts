@@ -6,6 +6,7 @@
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet, Tag, CreditCard,
   GraduationCap, Home, User, CalendarCheck, BookOpen, Ticket, Award, Zap,
+  MessageSquare, Trophy, HelpCircle,
 } from 'lucide-react-native';
 import { api } from '@/src/models/services/api';
 import { displayName, displayInitials } from '@/src/lib/portalHome';
@@ -14,7 +15,8 @@ import type { NavItem, PortalConfig } from '@/src/ui/shell/types';
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'myevents' | 'events'
   | 'financial' | 'deals' | 'wallet' | 'higher-education' | 'rentals' | 'courses' | 'profile'
-  | 'my-bookings' | 'my-workshops' | 'my-tickets' | 'my-certificates' | 'echo-showcase' | string;
+  | 'my-bookings' | 'my-workshops' | 'my-tickets' | 'my-certificates' | 'echo-showcase'
+  | 'calendar' | 'messages' | 'achievements' | 'help-center' | string;
 
 export const NAV: (NavItem & { id: StudentNavId })[] = [
   { id: 'dashboard',       label: 'Dashboard',          Icon: LayoutDashboard },
@@ -32,6 +34,10 @@ export const NAV: (NavItem & { id: StudentNavId })[] = [
   { id: 'wallet',          label: 'SA Wallet',          Icon: CreditCard },
   { id: 'higher-education',       label: 'Higher Education',   Icon: GraduationCap, hideOnMobile: true },
   { id: 'rentals',         label: 'Rentals',            Icon: Home, hideOnMobile: true },
+  { id: 'calendar',        label: 'Calendar',           Icon: Calendar },
+  { id: 'messages',        label: 'Messages',           Icon: MessageSquare },
+  { id: 'achievements',    label: 'Achievements',       Icon: Trophy },
+  { id: 'help-center',     label: 'Help Center',        Icon: HelpCircle },
   { id: 'profile',         label: 'Profile',            Icon: User },
 ];
 

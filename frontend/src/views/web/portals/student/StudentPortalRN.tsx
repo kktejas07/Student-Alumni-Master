@@ -25,6 +25,10 @@ import { MyTicketsView } from './views/MyTicketsView';
 import { MyCertificatesView } from './views/MyCertificatesView';
 import { EchoShowcaseView } from './views/EchoShowcaseView';
 import { RentalsView } from './views/RentalsView';
+import { CalendarView } from './views/CalendarView';
+import { MessagesView } from './views/MessagesView';
+import { AchievementsView } from './views/AchievementsView';
+import { HelpCenterView } from './views/HelpCenterView';
 import { StudentPortalNavContext } from './StudentPortalNavContext';
 
 import CoursesPage from '@/app/courses';
@@ -98,6 +102,10 @@ function StudentPortalInner() {
         {active === 'wallet'          && <WalletPage />}
         {active === 'higher-education'       && <HigherEducationPage />}
         {active === 'rentals'         && <RentalsView />}
+        {active === 'calendar'        && <CalendarView />}
+        {active === 'messages'        && <MessagesView />}
+        {active === 'achievements'    && <AchievementsView />}
+        {active === 'help-center'     && <HelpCenterView />}
         {active === 'profile'         && <ProfileSettingsView />}
       </PortalShell>
     </StudentPortalNavContext.Provider>
