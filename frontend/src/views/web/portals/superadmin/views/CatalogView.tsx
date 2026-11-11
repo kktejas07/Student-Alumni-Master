@@ -110,9 +110,9 @@ function DealsPanel({ T }: { T: ReturnType<typeof useSAC> }) {
     <View style={{ gap: 16 }}>
       {/* KPI row */}
       <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
-        <KpiTile label="Total Deals" value={String(deals.length)} />
-        <KpiTile label="Categories" value={String(new Set(deals.map(d => d.category)).size)} />
-        <KpiTile label="Active Codes" value={String(deals.filter(d => d.code).length)} />
+        <KpiTile Icon={Percent} label="Total Deals" value={String(deals.length)} />
+        <KpiTile Icon={Percent} label="Categories" value={String(new Set(deals.map(d => d.category)).size)} />
+        <KpiTile Icon={Percent} label="Active Codes" value={String(deals.filter(d => d.code).length)} />
       </View>
 
       {/* Actions bar */}
@@ -126,8 +126,8 @@ function DealsPanel({ T }: { T: ReturnType<typeof useSAC> }) {
           />
           {search ? <Pressable onPress={() => setSearch('')}><X size={14} color={SAC.dim} /></Pressable> : null}
         </View>
-        <GradientButton label="Add Deal" Icon={Plus} onPress={() => setShowForm(!showForm)} />
-        <SecondaryButton label="Refresh" Icon={RefreshCw} onPress={() => fetchDeals()} />
+        <GradientButton title="Add Deal" Icon={Plus} onPress={() => setShowForm(!showForm)} />
+        <SecondaryButton title="Refresh" Icon={RefreshCw} onPress={() => fetchDeals()} />
       </View>
 
       {/* Create form */}
@@ -149,8 +149,8 @@ function DealsPanel({ T }: { T: ReturnType<typeof useSAC> }) {
             </View>
             <Field label="URL" value={url} onChangeText={setUrl} placeholder="https://..." />
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
-              <GradientButton label="Create Deal" onPress={handleCreate} />
-              <SecondaryButton label="Cancel" onPress={resetForm} />
+              <GradientButton title="Create Deal" onPress={handleCreate} />
+              <SecondaryButton title="Cancel" onPress={resetForm} />
             </View>
           </View>
         </Card>
@@ -160,7 +160,7 @@ function DealsPanel({ T }: { T: ReturnType<typeof useSAC> }) {
       {loading ? (
         <View style={{ padding: 40, alignItems: 'center' }}><ActivityIndicator color={GRAD.from} /></View>
       ) : filtered.length === 0 ? (
-        <EmptyState icon={Percent} title="No deals yet" subtitle="Add your first student deal to get started." />
+        <EmptyState icon={Percent} title="No deals yet" sub="Add your first student deal to get started." />
       ) : (
         <View style={{ gap: 8 }}>
           {filtered.map((deal) => (
@@ -250,9 +250,9 @@ function InsurancePanel({ T }: { T: ReturnType<typeof useSAC> }) {
   return (
     <View style={{ gap: 16 }}>
       <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
-        <KpiTile label="Total Plans" value={String(items.length)} />
-        <KpiTile label="Kinds" value={String(new Set(items.map(i => i.kind)).size)} />
-        <KpiTile label="Providers" value={String(new Set(items.map(i => i.provider)).size)} />
+        <KpiTile Icon={Shield} label="Total Plans" value={String(items.length)} />
+        <KpiTile Icon={Shield} label="Kinds" value={String(new Set(items.map(i => i.kind)).size)} />
+        <KpiTile Icon={Shield} label="Providers" value={String(new Set(items.map(i => i.provider)).size)} />
       </View>
 
       <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -265,8 +265,8 @@ function InsurancePanel({ T }: { T: ReturnType<typeof useSAC> }) {
           />
           {search ? <Pressable onPress={() => setSearch('')}><X size={14} color={SAC.dim} /></Pressable> : null}
         </View>
-        <GradientButton label="Add Plan" Icon={Plus} onPress={() => setShowForm(!showForm)} />
-        <SecondaryButton label="Refresh" Icon={RefreshCw} onPress={() => fetchItems()} />
+        <GradientButton title="Add Plan" Icon={Plus} onPress={() => setShowForm(!showForm)} />
+        <SecondaryButton title="Refresh" Icon={RefreshCw} onPress={() => fetchItems()} />
       </View>
 
       {showForm && (
@@ -284,8 +284,8 @@ function InsurancePanel({ T }: { T: ReturnType<typeof useSAC> }) {
             <Field label="URL" value={url} onChangeText={setUrl} placeholder="https://..." />
             <Field label="Description" value={description} onChangeText={setDescription} placeholder="Optional details" multiline numberOfLines={2} />
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
-              <GradientButton label="Create Plan" onPress={handleCreate} />
-              <SecondaryButton label="Cancel" onPress={resetForm} />
+              <GradientButton title="Create Plan" onPress={handleCreate} />
+              <SecondaryButton title="Cancel" onPress={resetForm} />
             </View>
           </View>
         </Card>
@@ -294,7 +294,7 @@ function InsurancePanel({ T }: { T: ReturnType<typeof useSAC> }) {
       {loading ? (
         <View style={{ padding: 40, alignItems: 'center' }}><ActivityIndicator color={GRAD.from} /></View>
       ) : filtered.length === 0 ? (
-        <EmptyState icon={Shield} title="No insurance plans" subtitle="Add student insurance plans from your partnered providers." />
+        <EmptyState icon={Shield} title="No insurance plans" sub="Add student insurance plans from your partnered providers." />
       ) : (
         <View style={{ gap: 8 }}>
           {filtered.map((item) => (
@@ -392,9 +392,9 @@ function HousingPanel({ T }: { T: ReturnType<typeof useSAC> }) {
   return (
     <View style={{ gap: 16 }}>
       <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
-        <KpiTile label="Total Listings" value={String(items.length)} />
-        <KpiTile label="Countries" value={String(new Set(items.map(i => i.country)).size)} />
-        <KpiTile label="Providers" value={String(new Set(items.map(i => i.provider)).size)} />
+        <KpiTile Icon={Home} label="Total Listings" value={String(items.length)} />
+        <KpiTile Icon={Home} label="Countries" value={String(new Set(items.map(i => i.country)).size)} />
+        <KpiTile Icon={Home} label="Providers" value={String(new Set(items.map(i => i.provider)).size)} />
       </View>
 
       <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -407,8 +407,8 @@ function HousingPanel({ T }: { T: ReturnType<typeof useSAC> }) {
           />
           {search ? <Pressable onPress={() => setSearch('')}><X size={14} color={SAC.dim} /></Pressable> : null}
         </View>
-        <GradientButton label="Add Listing" Icon={Plus} onPress={() => setShowForm(!showForm)} />
-        <SecondaryButton label="Refresh" Icon={RefreshCw} onPress={() => fetchItems()} />
+        <GradientButton title="Add Listing" Icon={Plus} onPress={() => setShowForm(!showForm)} />
+        <SecondaryButton title="Refresh" Icon={RefreshCw} onPress={() => fetchItems()} />
       </View>
 
       {showForm && (
@@ -427,8 +427,8 @@ function HousingPanel({ T }: { T: ReturnType<typeof useSAC> }) {
             <Field label="URL" value={url} onChangeText={setUrl} placeholder="https://..." />
             <Field label="Description" value={description} onChangeText={setDescription} placeholder="Optional details" multiline numberOfLines={2} />
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
-              <GradientButton label="Create Listing" onPress={handleCreate} />
-              <SecondaryButton label="Cancel" onPress={resetForm} />
+              <GradientButton title="Create Listing" onPress={handleCreate} />
+              <SecondaryButton title="Cancel" onPress={resetForm} />
             </View>
           </View>
         </Card>
@@ -437,7 +437,7 @@ function HousingPanel({ T }: { T: ReturnType<typeof useSAC> }) {
       {loading ? (
         <View style={{ padding: 40, alignItems: 'center' }}><ActivityIndicator color={GRAD.from} /></View>
       ) : filtered.length === 0 ? (
-        <EmptyState icon={Home} title="No housing listings" subtitle="Add student accommodation options by country." />
+        <EmptyState icon={Home} title="No housing listings" sub="Add student accommodation options by country." />
       ) : (
         <View style={{ gap: 8 }}>
           {filtered.map((item) => (
