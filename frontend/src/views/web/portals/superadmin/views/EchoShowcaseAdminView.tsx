@@ -3002,7 +3002,7 @@ const ml = StyleSheet.create({
 
 // ── Registrations & Payments panel ───────────────────────────────────────────
 // ── Session Passes Overview ───────────────────────────────────────────────────
-function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh: () => void }) {
+function SessionPassesOverview({ events, onRefresh, eventBrowser }: { events: any[]; onRefresh: () => void; eventBrowser: React.ReactNode }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [sessionData, setSessionData] = useState<Record<string, any[]>>({});
   const [toggling, setToggling] = useState<string | null>(null);
@@ -3047,8 +3047,6 @@ function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh
     }
   };
 
-  if (events.length === 0) return null;
-
   return (
     <Card style={{ marginBottom: 16 }}>
       <Pressable onPress={() => setExpanded(expanded ? null : events[0]?.slug)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 }}>
@@ -3059,6 +3057,7 @@ function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh
         </View>
         <ChevronUp size={16} color={SAC.muted} style={{ transform: [{ rotate: expanded ? '0deg' : '180deg' }] }} />
       </Pressable>
+      {eventBrowser}
       {expanded && (
         <View style={{ padding: 16, paddingTop: 0, gap: 12 }}>
           {events.map((ev) => {
@@ -3122,11 +3121,13 @@ function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh
 function RegistrationsPanel() {
   const { confirm } = useConfirm();
   const [rows, setRows] = useState<any[]>([]);
+  const [showcases, setShowcases] = useState<any[]>([]);
   const [revenue, setRevenue] = useState<any>({ events: [], totals: {} });
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('all');
   const [eventSlug, setEventSlug] = useState('all');
+  const [hoveredEventSlug, setHoveredEventSlug] = useState<string | null>(null);
   const [detailRow, setDetailRow] = useState<any>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [actioning, setActioning] = useState<string | null>(null);
@@ -3247,12 +3248,14 @@ function RegistrationsPanel() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [regs, rev] = await Promise.all([
+      const [regs, rev, eventList] = await Promise.all([
         api.adminEchoRegistrations(),
         api.adminEchoRevenue(),
+        api.adminListEchoShowcases(),
       ]);
       setRows(regs?.items || []);
       setRevenue(rev || { events: [], totals: {} });
+      setShowcases(eventList?.items || []);
     } catch {
       flash('Failed to load registrations');
     } finally {
@@ -3543,10 +3546,23 @@ function RegistrationsPanel() {
   const safePage = Math.min(page, totalPages - 1);
   const paged = filtered.slice(safePage * PER_PAGE, safePage * PER_PAGE + PER_PAGE);
 
-  const uniqueEvents = Array.from(new Set(rows.map((r: any) => r.slug).filter(Boolean)))
-    .map((slug) => rows.find((r: any) => r.slug === slug))
-    .filter(Boolean)
-    .map((r: any) => ({ slug: r.slug, title: r.event_title || r.slug }));
+  const eventBySlug = new Map<string, any>();
+  showcases.forEach((event: any) => {
+    if (event.slug) eventBySlug.set(event.slug, { ...event, slug: event.slug, title: event.title || event.slug });
+  });
+  rows.forEach((row: any) => {
+    if (row.slug && !eventBySlug.has(row.slug)) {
+      eventBySlug.set(row.slug, { slug: row.slug, title: row.event_title || row.slug });
+    }
+  });
+  const uniqueEvents = Array.from(eventBySlug.values());
+  const sessionEvents = eventSlug === 'all'
+    ? uniqueEvents
+    : uniqueEvents.filter((event) => event.slug === eventSlug);
+  const selectedEvent = uniqueEvents.find((event) => event.slug === eventSlug);
+  const visibleRevenueEvents = eventSlug === 'all'
+    ? revenue.events
+    : revenue.events.filter((event: any) => event.slug === eventSlug);
 
   const fmtAmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
   const paid = filtered.filter((r) => r.payment_status === 'paid');
@@ -3563,6 +3579,179 @@ function RegistrationsPanel() {
   const pending = filtered.filter((r) => r.payment_status === 'pending');
   const failed = filtered.filter((r) => r.payment_status === 'failed');
   const revenueTotal = dedupedPayments.reduce((a, r) => a + Number(r.fee || 0), 0);
+
+  const eventBrowser = (
+      <View style={{ paddingHorizontal: 16, paddingBottom: 16, gap: 14 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <View style={{ flex: 1, minWidth: 220 }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>
+              {eventSlug === 'all' ? 'ECHO events' : selectedEvent?.title || 'Event registrations & payments'}
+            </Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted, marginTop: 3 }}>
+              {eventSlug === 'all'
+                ? 'Choose an event to open its registrations and payment details.'
+                : 'Viewing registrations, payments, and session details for this event.'}
+            </Text>
+          </View>
+          {eventSlug !== 'all' && (
+            <Pressable
+              onPress={() => {
+                setEventSlug('all');
+                setPage(0);
+              }}
+              accessibilityRole="button"
+              style={{ borderWidth: 1, borderColor: SAC.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 }}
+            >
+              <Text style={{ fontFamily: FONTS.semi, fontSize: 11.5, color: SAC.muted }}>← All events</Text>
+            </Pressable>
+          )}
+        </View>
+
+        {eventSlug === 'all' ? (
+          uniqueEvents.length > 0 ? (
+            <View style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 } as any}>
+              {uniqueEvents.map((event: any) => {
+                const poster = event.hero_image_url || event.banner_url || event.poster_url || event.hero_banners?.[0];
+                const statusLabel = event.registration?.enabled === false
+                  ? 'CLOSED'
+                  : String(event.event_status_badge || event.status || 'UPCOMING').toUpperCase();
+                const campus = event.college_name || event.college || '';
+                const description = event.subtitle || event.description || '';
+                const date = event.date || event.dates || event.event_date || '';
+                const venue = event.venue || event.city || '';
+
+                return (
+                  <Pressable
+                    key={event.slug}
+                    onPress={() => {
+                      setEventSlug(event.slug);
+                      setPage(0);
+                    }}
+                    onHoverIn={() => setHoveredEventSlug(event.slug)}
+                    onHoverOut={() => setHoveredEventSlug(null)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`View registrations for ${event.title}`}
+                    style={{
+                      height: 390,
+                      overflow: 'hidden',
+                      borderWidth: 1,
+                      borderColor: hoveredEventSlug === event.slug ? '#7C5CFC' : 'rgba(255,255,255,0.10)',
+                      borderRadius: 14,
+                      backgroundColor: '#101019',
+                      cursor: 'pointer',
+                      transform: [{ translateY: hoveredEventSlug === event.slug ? -4 : 0 }],
+                      shadowColor: '#7C5CFC',
+                      shadowOpacity: hoveredEventSlug === event.slug ? 0.28 : 0,
+                      shadowRadius: 16,
+                      shadowOffset: { width: 0, height: 8 },
+                    }}
+                  >
+                    <View style={{ height: 148, flexShrink: 0, backgroundColor: '#17152B', overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+                      {poster ? (
+                        <Image
+                          source={{ uri: resolveImageUrl(poster) }}
+                          style={{ width: '100%', height: '100%' }}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <LinearGradient
+                          colors={['#30216E', '#151326']}
+                          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <ImageIcon size={28} color="#A78BFA" />
+                        </LinearGradient>
+                      )}
+                    </View>
+                    <View style={{ flex: 1, padding: 14, justifyContent: 'space-between', overflow: 'hidden' }}>
+                      <View style={{ height: 26, flexDirection: 'row', alignItems: 'flex-start', gap: 7, overflow: 'hidden' }}>
+                        <StatusPill kind={statusLabel === 'COMPLETED' || statusLabel === 'CLOSED' ? 'neutral' : 'warn'} label={statusLabel} />
+                        {campus ? (
+                          <Text numberOfLines={1} style={{ maxWidth: '70%', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(124,92,252,0.35)', borderRadius: 7, paddingHorizontal: 8, paddingVertical: 4, fontFamily: FONTS.semi, fontSize: 10, color: '#C4B5FD', backgroundColor: 'rgba(124,92,252,0.12)' }}>
+                            {campus}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <Text numberOfLines={2} style={{ height: 42, fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>
+                        {event.title}
+                      </Text>
+                      <Text numberOfLines={2} style={{ height: 34, fontFamily: FONTS.regular, fontSize: 11.5, lineHeight: 17, color: SAC.muted }}>
+                        {description || ' '}
+                      </Text>
+                      <View style={{ height: 18, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                        <Calendar size={13} color={SAC.muted} />
+                        <Text numberOfLines={1} style={{ flex: 1, fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>{date || ' '}</Text>
+                      </View>
+                      <View style={{ height: 18, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                        <MapPin size={13} color={SAC.muted} />
+                        <Text numberOfLines={1} style={{ flex: 1, fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>{venue || ' '}</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 2 }}>
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 11.5, color: '#A78BFA' }}>View event</Text>
+                        <ChevronRight size={14} color="#A78BFA" />
+                      </View>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : (
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.dim }}>
+              No ECHO events or registrations found.
+            </Text>
+          )
+        ) : selectedEvent ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
+            {(() => {
+              const poster = selectedEvent.hero_image_url || selectedEvent.banner_url || selectedEvent.poster_url || selectedEvent.hero_banners?.[0];
+              return poster ? (
+                <Image
+                  source={{ uri: resolveImageUrl(poster) }}
+                  style={{ width: 240, height: 140, borderRadius: 10, backgroundColor: '#17152B' }}
+                  resizeMode="cover"
+                />
+              ) : null;
+            })()}
+            <View style={{ flex: 1, minWidth: 220, gap: 10 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
+                <StatusPill
+                  kind={String(selectedEvent.event_status_badge || selectedEvent.status || '').toUpperCase() === 'COMPLETED' ? 'neutral' : 'warn'}
+                  label={selectedEvent.registration?.enabled === false ? 'CLOSED' : String(selectedEvent.event_status_badge || selectedEvent.status || 'UPCOMING').toUpperCase()}
+                />
+                {(selectedEvent.college_name || selectedEvent.college) ? (
+                  <StatusPill kind="info" label={selectedEvent.college_name || selectedEvent.college} />
+                ) : null}
+              </View>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 18, color: SAC.text }}>{selectedEvent.title}</Text>
+              {(selectedEvent.subtitle || selectedEvent.description) ? (
+                <Text style={{ fontFamily: FONTS.regular, fontSize: 12, lineHeight: 18, color: SAC.muted }}>
+                  {selectedEvent.subtitle || selectedEvent.description}
+                </Text>
+              ) : null}
+              {(selectedEvent.date || selectedEvent.dates || selectedEvent.event_date) ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                  <Calendar size={13} color={SAC.muted} />
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
+                    {selectedEvent.date || selectedEvent.dates || selectedEvent.event_date}
+                  </Text>
+                </View>
+              ) : null}
+              {(selectedEvent.venue || selectedEvent.city) ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                  <MapPin size={13} color={SAC.muted} />
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
+                    {selectedEvent.venue || selectedEvent.city}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+        ) : (
+          <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.dim }}>
+            Event details are unavailable. Use “All events” to choose another event.
+          </Text>
+        )}
+      </View>
+  );
 
   return (
     <View>
@@ -3768,14 +3957,14 @@ function RegistrationsPanel() {
       </Card>
 
       {/* Per-event revenue */}
-      {revenue.events?.length > 0 && (
+      {visibleRevenueEvents?.length > 0 && (
         <Card style={{ marginBottom: 16 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Event Revenue Breakdown</Text>
-            <StatusPill kind="info" label={`${revenue.events.length} events`} />
+            <StatusPill kind="info" label={`${visibleRevenueEvents.length} events`} />
           </View>
           <View style={{ gap: 8 }}>
-            {revenue.events.map((ev: any, i: number) => (
+            {visibleRevenueEvents.map((ev: any, i: number) => (
               <View key={ev.slug + i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: GRAD.to }} />
                 <View style={{ flex: 1, minWidth: 0 }}>
@@ -3791,32 +3980,14 @@ function RegistrationsPanel() {
         </Card>
       )}
 
-      {/* Session Passes Overview */}
-      {uniqueEvents.length > 0 && (
-        <SessionPassesOverview events={uniqueEvents} onRefresh={load} />
-      )}
+      {/* Session Passes Overview and ECHO event browser */}
+      <SessionPassesOverview events={sessionEvents} onRefresh={load} eventBrowser={eventBrowser} />
 
       {/* Search + filter */}
       <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <View style={{ flex: 1, minWidth: 200 }}>
           <SearchField value={q} onChange={setQ} placeholder="Search attendee, email, event…" />
         </View>
-        {uniqueEvents.length > 1 && (
-          <select
-            value={eventSlug}
-            onChange={(e: any) => setEventSlug(e.target.value)}
-            style={{
-              backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 8, padding: '8px 12px', color: SAC.text, fontSize: 12, fontFamily: 'DM Sans',
-              outline: 'none', cursor: 'pointer', minWidth: 140,
-            }}
-          >
-            <option value="all" style={{ background: '#1e1b4b', color: SAC.text }}>All Events</option>
-            {uniqueEvents.map((ev: any) => (
-              <option key={ev.slug} value={ev.slug} style={{ background: '#1e1b4b', color: SAC.text }}>{ev.title}</option>
-            ))}
-          </select>
-        )}
         <TopTabs
           tabs={[
             { id: 'all', label: 'All' },

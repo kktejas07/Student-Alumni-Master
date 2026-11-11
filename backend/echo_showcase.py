@@ -31,7 +31,7 @@ from pathlib import Path
 from datetime import datetime, timezone, date as _date
 from typing import Any, Dict, List, Optional
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, File, UploadFile, Query, Body
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import logging
 
@@ -1818,9 +1818,9 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
     brand = "STUDENT ALUMNI · ECHO"
     organizer = esc(showcase.get("organizer_name") or "Student Alumni Cell")
     title = esc(reg.get("showcase_title") or showcase.get("title") or "Event")
-    event_date = esc(_event_date_label(showcase))
-    event_time = esc(showcase.get("time") or "")
-    venue = esc(showcase.get("venue") or "")
+    event_date = esc(_event_date_label(showcase) or "To be announced")
+    event_time = esc(showcase.get("time") or showcase.get("start_time") or "To be announced")
+    venue = esc(showcase.get("venue") or "To be announced")
     name = esc(reg.get("full_name") or "Attendee")
     email = esc(reg.get("email") or "")
     phone = esc(reg.get("phone") or "")
@@ -4552,12 +4552,14 @@ async def my_invoices(request: Request):
 
 
 @router.get("/my-registrations")
-async def my_registrations(request: Request):
+async def my_registrations(request: Request, response: Response):
     """Return all of the user's Echo registrations with coupons and ticket info.
 
     Used by MyTicketsView to show a unified list of event registrations,
     passes, coupons, and invoices in one place.
     """
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
     db = _get_db(request)
     user = await _resolve_user(request, db)
     if not user:
@@ -4580,7 +4582,7 @@ async def my_registrations(request: Request):
         slug = reg.get("showcase_slug") or reg.get("slug", "")
 
         # Build nested payment object for frontend compatibility
-        payment = {}
+        payment = dict(reg.get("payment") or {})
         if "payment_status" in reg:
             payment["status"] = reg["payment_status"]
         if reg.get("failed_reason"):
@@ -4591,7 +4593,7 @@ async def my_registrations(request: Request):
             payment["paid_at"] = reg["paid_at"]
         if reg.get("failed_at"):
             payment["failed_at"] = reg["failed_at"]
-        if reg.get("amount"):
+        if reg.get("amount") is not None:
             payment["amount"] = reg["amount"]
         if reg.get("currency"):
             payment["currency"] = reg["currency"]
@@ -4599,7 +4601,11 @@ async def my_registrations(request: Request):
             payment["payment_id"] = reg["razorpay_payment_id"]
         if reg.get("payment_provider"):
             payment["gateway"] = reg["payment_provider"]
-        payment["method"] = reg.get("payment_provider") or "online"
+        if reg.get("payment_provider"):
+            payment["gateway"] = reg["payment_provider"]
+            payment["method"] = reg["payment_provider"]
+        elif not payment.get("method"):
+            payment["method"] = "online"
         reg_ser["payment"] = payment
 
         # Fetch coupons for this registration
@@ -4626,7 +4632,9 @@ async def my_registrations(request: Request):
         showcase = None
         try:
             if slug:
-                showcase = await db.event_showcases.find_one({"slug": slug})
+                showcase = await db.echo_showcases.find_one({"slug": slug})
+                if not showcase:
+                    showcase = await db.event_showcases.find_one({"slug": slug})
         except Exception:
             pass
 
@@ -4634,7 +4642,12 @@ async def my_registrations(request: Request):
             reg_ser["event_title"] = showcase.get("title") or showcase.get("name") or reg_ser.get("event_title")
             reg_ser["showcase_title"] = showcase.get("title") or showcase.get("name") or reg_ser.get("showcase_title")
             reg_ser["banner_url"] = showcase.get("banner_url") or showcase.get("cover_image") or reg_ser.get("banner_url")
-            reg_ser["start_date"] = showcase.get("start_date") or reg_ser.get("start_date")
+            reg_ser["date"] = showcase.get("date") or showcase.get("start_date") or reg_ser.get("date") or reg_ser.get("start_date") or ""
+            reg_ser["start_date"] = showcase.get("start_date") or reg_ser.get("start_date") or reg_ser.get("date")
+            reg_ser["end_date"] = showcase.get("end_date") or reg_ser.get("end_date") or ""
+            reg_ser["time"] = showcase.get("time") or reg_ser.get("time") or ""
+            reg_ser["start_time"] = showcase.get("start_time") or reg_ser.get("start_time") or ""
+            reg_ser["venue"] = showcase.get("venue") or reg_ser.get("venue") or ""
 
         results.append({
             "registration": reg_ser,
@@ -4678,7 +4691,7 @@ async def get_invoice(invoice_no: str, request: Request, email: Optional[str] = 
 
 
 @router.get("/tickets/{reg_id}")
-async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query(None), format: Optional[str] = Query(None)):
+async def get_ticket(reg_id: str, request: Request, response: Response, email: Optional[str] = Query(None), format: Optional[str] = Query(None)):
     """Fetch an attendee's entry pass (ticket) with QR — owner, email-match, or admin.
 
     Returns render-ready standalone HTML so the app can open a printable page,
@@ -4689,6 +4702,8 @@ async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query
     this returns 402/403 — no ticket, pass, QR, or confirmation is generated so
     unpaid attendees cannot obtain an entry pass.
     """
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
     db = _get_db(request)
     reg = await db.echo_registrations.find_one({"id": reg_id})
     if not reg:
@@ -8157,4 +8172,3 @@ async def delete_intern_candidate(candidate_id: str, request: Request, _=Depends
         raise HTTPException(status_code=404, detail="Candidate not found")
 
     return {"ok": True, "message": "Candidate deleted"}
-
