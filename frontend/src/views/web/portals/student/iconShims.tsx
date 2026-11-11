@@ -96,6 +96,7 @@ export const Building2       = make('office-building-outline');
 export const Plug            = make('power-plug-outline');
 export const Zap             = make('lightning-bolt');
 export const ChevronDown     = make('chevron-down');
+export const ChevronUp       = make('chevron-up');
 export const ChevronRight    = make('chevron-right');
 export const AlertCircle     = make('alert-circle-outline');
 export const ScanLine        = make('barcode-scan');
