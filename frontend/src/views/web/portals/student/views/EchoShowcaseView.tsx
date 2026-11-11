@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 2 TS errors then remove
 /**
  * ECHO Showcase View — fully data-driven from the CMS; content and slug are
  * resolved from the API (a canonical slug is passed in, or the first published

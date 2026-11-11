@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 1 TS errors then remove
 /**
  * Animated Card Primitives
  * =========================

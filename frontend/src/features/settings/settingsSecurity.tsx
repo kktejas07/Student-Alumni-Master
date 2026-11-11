@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 2 TS errors then remove
 // TAB 6 — Security (2FA, password, active sessions, access log) — split verbatim from SettingsView.tsx (audit Step 6c).
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, Pressable, Switch, Platform, TextInput, ActivityIndicator, Image } from 'react-native';
