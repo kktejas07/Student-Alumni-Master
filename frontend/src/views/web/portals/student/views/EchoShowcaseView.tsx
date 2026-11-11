@@ -173,144 +173,163 @@ function HeroBannerCarousel({ banners, data, isWide, onBack, canonicalSlug, show
 
   return (
     <View style={bc.section}>
-      {/* Banner image layer */}
-      <View style={bc.imageWrap}>
+      {/* 1. Clean Top Poster / Banner Card */}
+      <View style={bc.posterCard}>
         <EchoImg
           source={{ uri: resolveImageUrl(validBanners[idx]) }}
-          style={bc.image}
-          resizeMode="cover"
+          style={bc.posterImage}
+          resizeMode="contain"
           fallbackLabel={data?.title || 'Event Banner'}
         />
-        {/* Gradient overlay from bottom (dark) to top (transparent) */}
-        <View style={bc.gradient} />
-      </View>
 
-      {/* Floating back button — top left */}
-      <PressScale onPress={onBack || (() => {})} style={bc.backBtn}>
-        <View style={bc.backBtnInner}>
-          <ArrowLeft size={14} color="#fff" />
-          <Text style={bc.btnText}>Back</Text>
-        </View>
-      </PressScale>
-
-      {/* Floating action buttons — bottom right */}
-      <View style={bc.actions}>
-        {showRegistration && (
-          <Pressable onPress={onRegister} style={{ borderRadius: 20, overflow: 'hidden' }}>
-            <LinearGradient colors={['#059669', '#047857']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={bc.registerPill}>
-              <Ticket size={13} color="#fff" />
-              <Text style={bc.pillText}>Register</Text>
-            </LinearGradient>
-          </Pressable>
-        )}
-        {Boolean(
-          data?.handbook_url ||
-          (data?.downloads || []).some((d: any) => {
-            const cat = (d?.category || '').toLowerCase();
-            const title = (d?.title || '').toLowerCase();
-            return Boolean(d?.file_url && (cat.includes('handbook') || cat.includes('brochure') || cat.includes('guide') || title.includes('handbook') || title.includes('brochure') || title.includes('guide')));
-          })
-        ) && (
-          <PressScale
-            onPress={() => {
-              const base = getBaseUrl();
-              const url = `${base}/api/echo/showcases/${canonicalSlug}/handbook`;
-              if (Platform.OS === 'web') {
-                window.open(url, '_blank');
-              } else {
-                Linking.openURL(url);
-              }
-            }}
-          >
-            <View style={[bc.shareBtn, { backgroundColor: 'rgba(124,58,237,0.45)', borderColor: '#A78BFA' }]}>
-              <FileText size={13} color="#fff" />
-              <Text style={bc.btnText}>Event Handbook (PDF)</Text>
-            </View>
-          </PressScale>
-        )}
-        <PressScale onPress={onShare}>
-          <View style={bc.shareBtn}>
-            <Share2 size={13} color="#fff" />
-            <Text style={bc.btnText}>Share</Text>
+        {/* Floating back button — top left */}
+        <PressScale onPress={onBack || (() => {})} style={bc.backBtn}>
+          <View style={bc.backBtnInner}>
+            <ArrowLeft size={14} color="#fff" />
+            <Text style={bc.btnText}>Back</Text>
           </View>
         </PressScale>
+
+        {/* Carousel dots if multiple banners */}
+        {validBanners.length > 1 && (
+          <View style={bc.dots}>
+            {validBanners.map((_: string, i: number) => (
+              <Pressable key={i} onPress={() => setIdx(i)}>
+                <View style={[bc.dot, i === idx && bc.dotActive]} />
+              </Pressable>
+            ))}
+          </View>
+        )}
       </View>
 
-      {/* Content overlaid on banner — bottom left */}
-      <View style={[bc.content, !isWide && { paddingHorizontal: 16 }]}>
-        <View style={bc.contentInner}>
-          {/* Status badge */}
-          <View style={bc.badgeLine}>
-            <View style={[bc.statusBadge, { backgroundColor: statusCol.bg, borderColor: statusCol.border }]}>
-              <View style={[bc.statusDot, { backgroundColor: statusCol.dot }]} />
-              <Text style={[bc.statusText, { color: statusCol.text }]}>{statusKey.toUpperCase()}</Text>
-            </View>
-            {data?.organizer_name ? (
-              <Text style={bc.eyebrow}>{data.organizer_name.toUpperCase()}</Text>
-            ) : null}
+      {/* 2. Event Info Block Below Banner (Matching Reference Screenshot) */}
+      <View style={bc.infoBlock}>
+        {/* Status badge + Organizer */}
+        <View style={bc.badgeLine}>
+          <View style={[bc.statusBadge, { backgroundColor: statusCol.bg, borderColor: statusCol.border }]}>
+            <View style={[bc.statusDot, { backgroundColor: statusCol.dot }]} />
+            <Text style={[bc.statusText, { color: statusCol.text }]}>{statusKey.toUpperCase()}</Text>
           </View>
+          {data?.organizer_name ? (
+            <Text style={bc.eyebrow}>{data.organizer_name.toUpperCase()}</Text>
+          ) : null}
+        </View>
 
-          {/* Title */}
-          <Text style={[bc.title, !isWide && { fontSize: 26 }]} numberOfLines={3}>
-            {data?.title?.split(' ').slice(0, -1).join(' ')}{' '}
-            <Text style={{ color: GRAD.from }}>{data?.title?.split(' ').slice(-1)[0]}</Text>
+        {/* Title with highlighted college/last word */}
+        <Text style={[bc.title, !isWide && { fontSize: 26 }]}>
+          {data?.title?.split('–')[0]?.split(' - ')[0] || data?.title}{' '}
+          <Text style={{ color: '#A78BFA' }}>
+            – {data?.college || data?.title?.split('–')[1] || data?.title?.split(' - ').slice(1).join(' - ') || data?.title?.split(' ').slice(-1)[0] || ''}
           </Text>
+        </Text>
 
-          {/* Subtitle */}
-          {data?.subtitle ? <Text style={bc.subtitle}>{data.subtitle}</Text> : null}
+        {/* Subtitle / Description */}
+        {data?.subtitle ? (
+          <Text style={bc.subtitle}>{data.subtitle}</Text>
+        ) : data?.description ? (
+          <Text style={bc.subtitle} numberOfLines={2}>{data.description}</Text>
+        ) : null}
 
-          {/* Registration deadline pill (matches reference amber pill) */}
-          {data?.registration?.deadline ? (
-            <View style={bc.deadlinePill}>
-              <Clock size={11} color="#FBBF24" />
-              <Text style={bc.deadlineText}>Registration closes: {data.registration.deadline}</Text>
+        {/* Meta Pills Row */}
+        <View style={bc.metaPillsRow}>
+          {data?.date ? (
+            <View style={bc.metaPillAmber}>
+              <Text style={bc.metaPillAmberText}>{data.end_date && data.end_date !== data.date ? `${data.date} – ${data.end_date}` : data.date}</Text>
             </View>
           ) : null}
+          {data?.venue ? (
+            <View style={bc.metaPillCyan}>
+              <Text style={bc.metaPillCyanText}>{data.venue}</Text>
+            </View>
+          ) : null}
+          {showRegistration ? (
+            <View style={bc.deadlinePill}>
+              <Clock size={11} color="#FBBF24" />
+              <Text style={bc.deadlineText}>Registration closes: {data.registration?.deadline || 'Soon'}</Text>
+            </View>
+          ) : (
+            <View style={bc.closedPill}>
+              <X size={11} color="#EF4444" />
+              <Text style={bc.closedText}>Registrations Closed</Text>
+            </View>
+          )}
+        </View>
 
-          {/* Meta row */}
-          <View style={bc.metaRow}>
-            {data?.date ? (
-              <View style={bc.metaItem}><Calendar size={13} color="rgba(255,255,255,0.7)" /><Text style={bc.metaText}>{data.end_date && data.end_date !== data.date ? `${data.date} – ${data.end_date}` : data.date}</Text></View>
-            ) : null}
-            {data?.time ? (
-              <View style={bc.metaItem}><Clock size={13} color="rgba(255,255,255,0.7)" /><Text style={bc.metaText}>{data.time}</Text></View>
-            ) : null}
-            {data?.venue ? (
-              <View style={bc.metaItem}><MapPin size={13} color="rgba(255,255,255,0.7)" /><Text style={bc.metaText}>{data.venue}</Text></View>
-            ) : null}
-          </View>
+        {/* Action Buttons Row */}
+        <View style={bc.actionsRow}>
+          {showRegistration && (
+            <Pressable onPress={onRegister} style={{ borderRadius: 10, overflow: 'hidden' }}>
+              <LinearGradient colors={['#059669', '#047857']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={bc.registerBtn}>
+                <Ticket size={14} color="#fff" />
+                <Text style={bc.actionBtnText}>Register</Text>
+              </LinearGradient>
+            </Pressable>
+          )}
+          {Boolean(
+            data?.handbook_url ||
+            (data?.downloads || []).some((d: any) => {
+              const cat = (d?.category || '').toLowerCase();
+              const title = (d?.title || '').toLowerCase();
+              return Boolean(d?.file_url && (cat.includes('handbook') || cat.includes('brochure') || cat.includes('guide') || title.includes('handbook') || title.includes('brochure') || title.includes('guide')));
+            })
+          ) && (
+            <PressScale
+              onPress={() => {
+                const base = getBaseUrl();
+                const url = `${base}/api/echo/showcases/${canonicalSlug}/handbook`;
+                if (Platform.OS === 'web') {
+                  window.open(url, '_blank');
+                } else {
+                  Linking.openURL(url);
+                }
+              }}
+            >
+              <View style={bc.handbookBtn}>
+                <FileText size={14} color="#fff" />
+                <Text style={bc.actionBtnText}>Event Handbook (PDF)</Text>
+              </View>
+            </PressScale>
+          )}
+          <PressScale onPress={onShare}>
+            <View style={bc.shareBtnOutline}>
+              <Share2 size={14} color="#fff" />
+              <Text style={bc.actionBtnText}>Share</Text>
+            </View>
+          </PressScale>
         </View>
       </View>
-
-      {/* Carousel dots */}
-      {validBanners.length > 1 && (
-        <View style={bc.dots}>
-          {validBanners.map((_: string, i: number) => (
-            <Pressable key={i} onPress={() => setIdx(i)}>
-              <View style={[bc.dot, i === idx && bc.dotActive]} />
-            </Pressable>
-          ))}
-        </View>
-      )}
     </View>
   );
 }
 const bc = StyleSheet.create({
   section: {
-    width: '100%', position: 'relative', overflow: 'hidden',
-    marginBottom: 16, borderRadius: 14,
-    minHeight: 380, height: 440,
+    width: '100%',
+    position: 'relative',
+    marginBottom: 24,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#0D0E1D',
+    overflow: 'hidden',
   },
-  imageWrap: { ...StyleSheet.absoluteFillObject, borderRadius: 14 },
-  image: { width: '100%', height: '100%', borderRadius: 14 },
-  gradient: {
-    ...StyleSheet.absoluteFillObject, borderRadius: 14,
-    backgroundColor: 'transparent',
-    ...(Platform.OS === 'web' ? {
-      background: 'linear-gradient(to top, #080714 0%, rgba(8,7,20,0.75) 35%, rgba(8,7,20,0.2) 60%, transparent 80%)',
-    } as any : {
-      backgroundColor: 'rgba(8,7,20,0.5)',
-    }),
+  posterCard: {
+    width: '100%',
+    minHeight: 280,
+    maxHeight: 520,
+    backgroundColor: '#070814',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  posterImage: {
+    width: '100%',
+    height: 400,
+    maxHeight: 460,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   backBtn: {
     position: 'absolute', top: 14, left: 14, zIndex: 10,
@@ -318,61 +337,82 @@ const bc = StyleSheet.create({
   backBtnInner: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     height: 34, paddingHorizontal: 12, borderRadius: 17,
-    backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
-  },
-  actions: {
-    position: 'absolute', bottom: 14, right: 14, zIndex: 10,
-    flexDirection: 'row', gap: 8, alignItems: 'center',
-  },
-  registerPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20,
-  },
-  shareBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    height: 34, paddingHorizontal: 12, borderRadius: 17,
-    backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(0,0,0,0.65)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
   },
   btnText: { fontFamily: FONTS.bold, fontSize: 12, color: '#fff' },
-  pillText: { fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' },
-  content: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    paddingHorizontal: 24, paddingBottom: 18, paddingTop: 80,
+  infoBlock: {
+    paddingHorizontal: 28,
+    paddingTop: 24,
+    paddingBottom: 28,
+    backgroundColor: '#0D0E1D',
   },
-  contentInner: { maxWidth: 700 },
+  badgeLine: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 },
   statusBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 999, borderWidth: 1,
+    paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 100, borderWidth: 1,
   },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.6 },
-  badgeLine: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 10 },
+  statusText: { fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.8 },
   eyebrow: {
-    fontFamily: TYPO.body500, fontSize: 11, letterSpacing: 1.6,
+    fontFamily: TYPO.body500, fontSize: 11, letterSpacing: 1.2,
     color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase' as any,
   },
-  deadlinePill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
-    backgroundColor: 'rgba(245,158,11,0.16)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.35)',
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, marginTop: 10,
-  },
-  deadlineText: { fontFamily: FONTS.semi, fontSize: 11, color: '#FBBF24' },
   title: {
-    fontFamily: TYPO.display800, fontSize: 30, color: '#fff',
-    lineHeight: 36, letterSpacing: -0.5,
+    fontFamily: TYPO.display800, fontSize: 32, color: '#fff',
+    lineHeight: 40, letterSpacing: -0.8, marginBottom: 8,
   },
   subtitle: {
-    fontFamily: TYPO.body500, fontSize: 14, color: 'rgba(255,255,255,0.65)',
-    marginTop: 6, maxWidth: 550, lineHeight: 20,
+    fontFamily: TYPO.body500, fontSize: 14.5, color: '#94A3B8',
+    lineHeight: 22, maxWidth: 750, marginBottom: 16,
   },
-  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 10 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  metaText: { fontFamily: FONTS.med, fontSize: 12.5, color: 'rgba(255,255,255,0.7)' },
+  metaPillsRow: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20,
+  },
+  metaPillAmber: {
+    backgroundColor: 'rgba(245,179,66,0.12)', borderWidth: 1, borderColor: '#4A3410',
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 100,
+  },
+  metaPillAmberText: { fontFamily: FONTS.semi, fontSize: 12, color: '#F5B342' },
+  metaPillCyan: {
+    backgroundColor: 'rgba(56,189,248,0.12)', borderWidth: 1, borderColor: '#164E63',
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 100,
+  },
+  metaPillCyanText: { fontFamily: FONTS.semi, fontSize: 12, color: '#38BDF8' },
+  deadlinePill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(245,158,11,0.16)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.35)',
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 100,
+  },
+  deadlineText: { fontFamily: FONTS.semi, fontSize: 12, color: '#FBBF24' },
+  closedPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: '#5A1010',
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 100,
+  },
+  closedText: { fontFamily: FONTS.semi, fontSize: 12, color: '#EF4444' },
+  actionsRow: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'center',
+    paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
+  },
+  registerBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 22, paddingVertical: 12, borderRadius: 10,
+  },
+  handbookBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#7C3AED', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10,
+  },
+  shareBtnOutline: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+    paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10,
+  },
+  actionBtnText: { fontFamily: FONTS.bold, fontSize: 13.5, color: '#fff' },
   dots: {
     position: 'absolute', bottom: 14, alignSelf: 'center',
     flexDirection: 'row', gap: 6,
-    backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
   },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.35)' },
   dotActive: { backgroundColor: '#fff', width: 18 },
