@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 3 TS errors then remove
 // TAB 2 — Platform Controls (feature-flag toggles, system settings, danger zone) — split verbatim from SettingsView.tsx (audit Step 6c).
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, Pressable, Switch, Platform, Modal, TextInput, ScrollView, ActivityIndicator } from 'react-native';

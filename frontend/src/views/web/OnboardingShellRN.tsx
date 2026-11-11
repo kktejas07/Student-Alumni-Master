@@ -1,4 +1,4 @@
-// @ts-nocheck — TODO: fix 1 TS errors then remove
+
 /**
  * OnboardingShellRN — Exact 1:1 Match of Onboarding.html with
  * Interactive Photo Capture / Avatar Upload Step and 3D Card Integration.

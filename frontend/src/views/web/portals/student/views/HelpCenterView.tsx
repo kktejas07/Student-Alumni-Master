@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 2 TS errors then remove
 /**
  * Student -> Help Center — FAQ accordion + support ticket submission form.
  */

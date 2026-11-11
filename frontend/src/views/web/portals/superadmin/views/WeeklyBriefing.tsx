@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 2 TS errors then remove
 /**
  * Weekly platform health briefing (AI4).
  *
