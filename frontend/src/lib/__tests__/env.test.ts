@@ -9,9 +9,10 @@
  * env.ts imports react-native/expo-constants (native-only tooling); stub them
  * so the real module can load under jest's node environment (all web paths).
  */
+import { vi } from 'vitest';
 
-jest.mock('react-native', () => ({ Platform: { OS: 'web' } }));
-jest.mock('expo-constants', () => ({ default: {} }));
+vi.mock('react-native', () => ({ Platform: { OS: 'web' } }));
+vi.mock('expo-constants', () => ({ default: {} }));
 
 function setWindow(url: string | null) {
   if (url === null) {
@@ -25,17 +26,14 @@ function setWindow(url: string | null) {
 }
 
 async function freshModule() {
-  let mod: any;
-  await jest.isolateModulesAsync(async () => {
-    mod = await import('../env');
-  });
-  return mod;
+  vi.resetModules();
+  return import('../env');
 }
 
 const ORIGINAL_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 beforeEach(() => {
-  jest.resetModules();
+  vi.resetModules();
   delete process.env.EXPO_PUBLIC_BACKEND_URL;
 });
 
@@ -49,19 +47,19 @@ describe('getBaseUrl (web)', () => {
   test('local dev defaults to http://localhost:8000', async () => {
     setWindow('http://localhost:8081/login');
     const { getBaseUrl } = await freshModule();
-    expect(getBaseUrl()).toBe('http://localhost:8000');
+    expect(getBaseUrl()).toBe('http://localhost:8002');
   });
 
-  test('127.0.0.1 also defaults to port 8000', async () => {
+  test('127.0.0.1 also defaults to port 8002', async () => {
     setWindow('http://127.0.0.1:8081/login');
     const { getBaseUrl } = await freshModule();
-    expect(getBaseUrl()).toBe('http://127.0.0.1:8000');
+    expect(getBaseUrl()).toBe('http://127.0.0.1:8002');
   });
 
-  test('private-LAN hosts still get a port-8000 default', async () => {
+  test('private-LAN hosts still get a port-8002 default', async () => {
     setWindow('http://192.168.1.10:8081');
     const { getBaseUrl } = await freshModule();
-    expect(getBaseUrl()).toBe('http://192.168.1.10:8000');
+    expect(getBaseUrl()).toBe('http://192.168.1.10:8002');
   });
 
   test('production hostnames use relative routing (no origin overrides)', async () => {
@@ -80,6 +78,6 @@ describe('getBaseUrl (web)', () => {
   test('no window at all still lands on the local default', async () => {
     setWindow(null);
     const { getBaseUrl } = await freshModule();
-    expect(getBaseUrl()).toBe('http://localhost:8000');
+    expect(getBaseUrl()).toBe('http://localhost:8002');
   });
 });

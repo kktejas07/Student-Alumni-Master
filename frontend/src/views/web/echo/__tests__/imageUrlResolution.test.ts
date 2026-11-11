@@ -16,12 +16,18 @@
  * - absolute http(s)/data/blob URLs pass through untouched
  * - degenerate inputs normalize to ''
  */
-jest.mock('expo-secure-store', () => ({
-  getItemAsync: jest.fn(async () => null),
-  setItemAsync: jest.fn(async () => undefined),
-  deleteItemAsync: jest.fn(async () => undefined),
+import { vi } from 'vitest';
+vi.mock('react-native', () => ({
+  Platform: { OS: 'web', select: (o: any) => o.web ?? o.default },
+  StyleSheet: { create: (s: any) => s },
+  Alert: { alert: vi.fn() },
 }));
-jest.mock('expo-constants', () => ({
+vi.mock('expo-secure-store', () => ({
+  getItemAsync: vi.fn(async () => null),
+  setItemAsync: vi.fn(async () => undefined),
+  deleteItemAsync: vi.fn(async () => undefined),
+}));
+vi.mock('expo-constants', () => ({
   default: { expoConfig: null, manifest2: null, manifest: null },
 }));
 

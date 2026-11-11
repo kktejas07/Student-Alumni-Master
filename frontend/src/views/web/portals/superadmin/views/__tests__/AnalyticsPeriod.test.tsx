@@ -3,6 +3,7 @@
  * Covers the pure helpers (formatDelta / deltaKind / EMPTY_PERIOD shape) and
  * renders the toolbar + card to assert the overlay and the custom date flow.
  */
+import { vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 
@@ -10,7 +11,7 @@ import { render, screen, fireEvent } from '@testing-library/react-native';
 // react-test-renderer's Text invariant under the node env. Mock the RN
 // primitives with host stand-ins; <Text> is the only host tag that may
 // contain raw strings.
-jest.mock('react-native', () => {
+vi.mock('react-native', () => {
   const R = require('react');
   const mk = (tag: string) => (props: any = {}) => {
     const { children, ...rest } = props;
@@ -26,19 +27,19 @@ jest.mock('react-native', () => {
   };
 });
 
-jest.mock('../../applekit', () => ({
+vi.mock('../../applekit', () => ({
   Card: ({ children, style, ...rest }: any) => {
     const R = require('react');
     return R.createElement('card', { style, ...rest }, children);
   },
 }));
 
-jest.mock('expo-linear-gradient', () => ({
+vi.mock('expo-linear-gradient', () => ({
   __esModule: true,
   LinearGradient: 'LinearGradient',
 }));
 
-jest.mock('../../tokens', () => ({
+vi.mock('../../tokens', () => ({
   SAC: { muted: '#9A9AB0', dim: '#7E7E92', border: '#2C2A52', cardSolid: '#111118', text: '#F4F4FA' },
   FONTS: { bold: 'Outfit-Bold', med: 'Outfit-Medium', semi: 'Outfit-SemiBold' },
 }));
@@ -111,21 +112,21 @@ function samplePeriod(): PeriodBlock {
 
 describe('PeriodToolbar', () => {
   it('emits the preset range on pill tap', async () => {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     await render(<PeriodToolbar range="30d" start="" end="" compare={false} onChange={onChange} />);
     fireEvent.press(screen.getByText('7D'));
     expect(onChange).toHaveBeenCalledWith({ range: '7d', start: '', end: '', compare: false });
   });
 
   it('toggles compare without changing the range', async () => {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     await render(<PeriodToolbar range="90d" start="" end="" compare={false} onChange={onChange} />);
     fireEvent.press(screen.getByText('Compare previous period'));
     expect(onChange).toHaveBeenCalledWith({ range: '90d', start: '', end: '', compare: true });
   });
 
   it('custom flow: renders date inputs, then applies the drafted range', async () => {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     await render(
       <PeriodToolbar range="custom" start="2026-10-01" end="2026-10-15" compare={false} onChange={onChange} />,
     );

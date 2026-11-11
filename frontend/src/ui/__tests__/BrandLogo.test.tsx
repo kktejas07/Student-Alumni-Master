@@ -7,8 +7,17 @@
  * feasible under this repo's node-based jest env, matching the precedent in
  * src/views/web/echo/__tests__ (source-guard style).
  */
+import { vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+
+vi.mock('react-native', () => ({
+  Image: 'Image',
+  Text: 'Text',
+  View: 'View',
+  StyleSheet: { create: (s: any) => s },
+}));
+
 import {
   brandColor,
   brandInitials,
