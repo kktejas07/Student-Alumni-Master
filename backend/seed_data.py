@@ -111,22 +111,162 @@ SAMPLE_HOUSING = [
 ]
 
 
+async def _try_live_source(target_coll, live_coll_name: str, fallback: list,
+                           label: str) -> str:
+    """Try to copy docs from a live aggregator collection into the target.
+
+    Returns 'live' if the aggregator collection had data, 'fallback' if we
+    used the hardcoded SAMPLE_* list, or 'skip' if target already has data.
+    """
+    if await target_coll.count_documents({}) > 0:
+        return "skip"
+
+    # Check if the live aggregator has already populated its collection
+    live_count = 0
+    try:
+        live_count = await db[live_coll_name].count_documents({})
+    except Exception:
+        pass
+
+    if live_count > 0:
+        docs = await db[live_coll_name].find({}).limit(50).to_list(50)
+        await target_coll.insert_many([{k: v for k, v in d.items() if k != "_id"} for d in docs])
+        logger.info("Bootstrapped %s from live aggregator '%s' (%d docs)",
+                     target_coll.name, live_coll_name, len(docs))
+        return "live"
+
+    # Aggregator collection is empty — use hardcoded fallback
+    await target_coll.insert_many([dict(d) for d in fallback])
+    logger.info("Seeded %s from SAMPLE fallback (%d docs)", target_coll.name, len(fallback))
+    return "fallback"
+
+
+async def _try_sync_courses() -> str:
+    """Try to run the live course sync (Coursera + Udemy APIs) before falling
+    back to SAMPLE_COURSES."""
+    if await db.courses.count_documents({}) > 0:
+        return "skip"
+    try:
+        from features.integrations_base import sync_courses_to_db, integrations_status
+        status = integrations_status()
+        if status.get("coursera") == "live" or status.get("udemy") == "live":
+            result = await sync_courses_to_db(db, limit_per_source=8)
+            if result.get("total", 0) > 0:
+                logger.info("Bootstrapped courses from live APIs: %s", result)
+                return "live"
+    except Exception as exc:
+        logger.warning("Live course sync failed, using fallback: %s", exc)
+
+    await db.courses.insert_many([dict(d) for d in SAMPLE_COURSES])
+    logger.info("Seeded courses from SAMPLE fallback (%d docs)", len(SAMPLE_COURSES))
+    return "fallback"
+
+
+async def _try_sync_internships() -> str:
+    """Try to run the live internship sync (Adzuna API) before falling back."""
+    if await db.internships.count_documents({}) > 0:
+        return "skip"
+    try:
+        from features.integrations_base import sync_internships_to_db, integrations_status
+        status = integrations_status()
+        if status.get("adzuna") == "live":
+            result = await sync_internships_to_db(db, limit=10)
+            if result.get("total", 0) > 0:
+                logger.info("Bootstrapped internships from live Adzuna: %s", result)
+                return "live"
+    except Exception as exc:
+        logger.warning("Live internship sync failed, using fallback: %s", exc)
+
+    # Also check external_job_listings from talent scraper
+    try:
+        ext_count = await db.external_job_listings.count_documents({})
+        if ext_count > 0:
+            docs = await db.external_job_listings.find({}).limit(20).to_list(20)
+            await db.internships.insert_many([{k: v for k, v in d.items() if k != "_id"} for d in docs])
+            logger.info("Bootstrapped internships from external_job_listings (%d docs)", len(docs))
+            return "live"
+    except Exception:
+        pass
+
+    await db.internships.insert_many([dict(d) for d in SAMPLE_INTERNSHIPS])
+    logger.info("Seeded internships from SAMPLE fallback (%d docs)", len(SAMPLE_INTERNSHIPS))
+    return "fallback"
+
+
+async def _try_run_financial_aggregator() -> str:
+    """Try to run the financial aggregator before falling back."""
+    if await db.financial.count_documents({}) > 0:
+        return "skip"
+    try:
+        from financial_aggregator import run_aggregation
+        result = await run_aggregation()
+        # Check if the aggregator stored anything in its own collection
+        fa_count = await db.financial_products.count_documents({})
+        if fa_count > 0:
+            docs = await db.financial_products.find({}).limit(20).to_list(20)
+            await db.financial.insert_many([{k: v for k, v in d.items() if k != "_id"} for d in docs])
+            logger.info("Bootstrapped financial from aggregator (%d docs)", len(docs))
+            return "live"
+    except Exception as exc:
+        logger.warning("Financial aggregator failed, using fallback: %s", exc)
+
+    await db.financial.insert_many([dict(d) for d in SAMPLE_FINANCIAL])
+    logger.info("Seeded financial from SAMPLE fallback (%d docs)", len(SAMPLE_FINANCIAL))
+    return "fallback"
+
+
 async def seed_data():
-    """Seed catalog collections if empty."""
-    seeders = [
-        (db.courses, SAMPLE_COURSES),
-        (db.sample_mentors, SAMPLE_MENTORS),
-        (db.internships, SAMPLE_INTERNSHIPS),
-        (db.events, SAMPLE_EVENTS),
-        (db.deals, SAMPLE_DEALS),
-        (db.financial, SAMPLE_FINANCIAL),
-        (db.insurance, SAMPLE_INSURANCE),
-        (db.housing, SAMPLE_HOUSING),
-    ]
-    for coll, data in seeders:
-        if await coll.count_documents({}) == 0:
-            await coll.insert_many([dict(d) for d in data])
-            logger.info(f"Seeded {coll.name}")
+    """Bootstrap catalog collections, preferring live aggregator data over
+    hardcoded samples.
+
+    Migration path: once all aggregators run reliably on a schedule (cron or
+    APScheduler), the SAMPLE_* constants and fallback branches can be removed.
+    The aggregators already populate their own collections; this function
+    bridges them into the frontend-facing collections until the frontend
+    reads from the aggregator collections directly.
+    """
+    report = {}
+
+    # Courses: try live Coursera/Udemy sync, then external_courses, then fallback
+    report["courses"] = await _try_sync_courses()
+
+    # Mentors: no live aggregator yet — always use sample
+    if await db.sample_mentors.count_documents({}) == 0:
+        await db.sample_mentors.insert_many([dict(d) for d in SAMPLE_MENTORS])
+        report["mentors"] = "fallback"
+    else:
+        report["mentors"] = "skip"
+
+    # Internships: try live Adzuna + external_job_listings, then fallback
+    report["internships"] = await _try_sync_internships()
+
+    # Events: try events_v2 aggregator collection, then fallback
+    report["events"] = await _try_live_source(db.events, "events_v2", SAMPLE_EVENTS, "events")
+
+    # Deals: no live aggregator yet — always use sample
+    if await db.deals.count_documents({}) == 0:
+        await db.deals.insert_many([dict(d) for d in SAMPLE_DEALS])
+        report["deals"] = "fallback"
+    else:
+        report["deals"] = "skip"
+
+    # Financial: try financial aggregator, then fallback
+    report["financial"] = await _try_run_financial_aggregator()
+
+    # Insurance: no live aggregator yet — always use sample
+    if await db.insurance.count_documents({}) == 0:
+        await db.insurance.insert_many([dict(d) for d in SAMPLE_INSURANCE])
+        report["insurance"] = "fallback"
+    else:
+        report["insurance"] = "skip"
+
+    # Housing: no live aggregator yet — always use sample
+    if await db.housing.count_documents({}) == 0:
+        await db.housing.insert_many([dict(d) for d in SAMPLE_HOUSING])
+        report["housing"] = "fallback"
+    else:
+        report["housing"] = "skip"
+
     # Legacy resources collection (backward-compat)
     if await db.resources.count_documents({}) == 0:
         legacy = (
@@ -140,6 +280,9 @@ async def seed_data():
     from features.routers.community import seed_community_data_if_empty
     await seed_blog_posts_if_empty()
     await seed_community_data_if_empty()
+
+    logger.info("Bootstrap report: %s", report)
+    return report
 
 
 async def seed_admin():
