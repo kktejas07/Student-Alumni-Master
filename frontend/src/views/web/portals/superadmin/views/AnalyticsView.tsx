@@ -204,11 +204,11 @@ export function AnalyticsView() {
         </View>
         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
           <StatusPill kind="success" label="Live" />
-          <Pressable onPress={refresh} style={{ padding: 6, borderRadius: 8, backgroundColor: T.line }}>
+          <Pressable onPress={refresh} style={{ padding: 6, borderRadius: 8, backgroundColor: T.border }}>
             <RefreshCw size={14} color={T.muted} />
           </Pressable>
           {Platform.OS === 'web' && (
-            <SecondaryButton onPress={handleExport}><Download size={12} color="#fff" /><Text style={{ color: T.text, fontFamily: FONTS.med, fontSize: 11 }}>Export</Text></SecondaryButton>
+            <SecondaryButton onPress={handleExport}><Download size={12} color={T.muted} /><Text style={{ color: T.text, fontFamily: FONTS.med, fontSize: 11 }}>Export</Text></SecondaryButton>
           )}
         </View>
       </Card>
@@ -402,7 +402,7 @@ function RoleDistributionCard({ roles }: { roles: RoleDist[] }) {
             <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.text }}>{r.label}</Text>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: r.color }}>{r.value.toLocaleString()} ({Math.round(r.value / total * 100)}%)</Text>
           </View>
-          <View style={{ height: 8, borderRadius: 4, backgroundColor: T.line, overflow: 'hidden' }}>
+          <View style={{ height: 8, borderRadius: 4, backgroundColor: T.border, overflow: 'hidden' }}>
             <View style={{ height: '100%', width: `${(r.value / total) * 100}%`, borderRadius: 4, backgroundColor: r.color }} />
           </View>
         </View>
@@ -635,7 +635,7 @@ function FunnelCard({ funnel }: { funnel: FunnelStage[] }) {
                 {dropoff > 0 && <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: '#EF4444' }}>-{dropoff}%</Text>}
               </View>
             </View>
-            <View style={{ height: 10, borderRadius: 5, backgroundColor: T.line, overflow: 'hidden' }}>
+            <View style={{ height: 10, borderRadius: 5, backgroundColor: T.border, overflow: 'hidden' }}>
               <View style={{ height: '100%', width: `${pct}%`, borderRadius: 5, backgroundColor: s.color }} />
             </View>
           </View>

@@ -112,7 +112,7 @@ function PayoutTiersEditor({ visible, onClose }: { visible: boolean; onClose: ()
                 </View>
                 <View style={{ flexDirection: 'row', gap: 6 }}>
                   <Pressable onPress={() => startEdit(i)} style={edst.smBtn}><Edit3 size={12} color={SAC.muted} /></Pressable>
-                  <Pressable onPress={() => remove(i)} style={edst.smBtn}><Trash2 size={12} color="#FCA5A5" /></Pressable>
+                  <Pressable onPress={() => remove(i)} style={edst.smBtn}><Trash2 size={12} color={T.danger} /></Pressable>
                 </View>
               </View>
             ))}
@@ -282,7 +282,7 @@ export function PaymentsView() {
               return (
                 <View key={t.id} style={st.txRow}>
                   <View style={[st.txIcon, isOut ? { backgroundColor: 'rgba(239,68,68,0.12)' } : { backgroundColor: 'rgba(34,197,94,0.12)' }]}>
-                    {isOut ? <ArrowUp size={13} color="#FCA5A5" /> : <ArrowDown size={13} color="#86EFAC" />}
+                    {isOut ? <ArrowUp size={13} color={T.danger} /> : <ArrowDown size={13} color={T.ok} />}
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text numberOfLines={1} style={st.txDesc}>{t.desc}</Text>
@@ -366,7 +366,7 @@ export function PaymentsView() {
           <View style={setSt.modal}>
             <View style={setSt.head}>
               <Text style={setSt.title}>Razorpay Settlements</Text>
-              <Pressable onPress={() => setShowSettlements(false)} style={setSt.xBtn}><X size={16} color="#fff" /></Pressable>
+              <Pressable onPress={() => setShowSettlements(false)} style={setSt.xBtn}><X size={16} color={T.muted} /></Pressable>
             </View>
             {settlements.available === false ? (
               <View style={{ paddingVertical: 30, alignItems: 'center' }}>
@@ -411,7 +411,7 @@ export function PaymentsView() {
                       <View key={s.id + i} style={setSt.row}>
                         <View style={{ flex: 1, minWidth: 0 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <View style={[setSt.statusDot, { backgroundColor: s.status === 'settled' ? '#34D399' : s.status === 'pending' ? '#FBBF24' : '#F87171' }]} />
+                            <View style={[setSt.statusDot, { backgroundColor: s.status === 'settled' ? T.ok : s.status === 'pending' ? T.amber : T.danger }]} />
                             <Text style={setSt.rowTitle}>{s.date}</Text>
                           </View>
                           {s.utr ? <Text style={setSt.rowMeta}>UTR: {s.utr}</Text> : null}

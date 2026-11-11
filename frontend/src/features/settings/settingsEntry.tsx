@@ -105,7 +105,7 @@ function TopTabBar({ active, onChange }: { active: TabId; onChange: (t: TabId) =
               onPress={() => onChange(t.id)}
               style={({ hovered }: any) => [
                 s.tabInactive,
-                hovered && Platform.OS === 'web' ? { backgroundColor: T.tint } : null,
+                hovered && Platform.OS === 'web' ? { backgroundColor: T.border } : null,
               ]}
             >
               <Icon size={13} color={SAC.muted} />
