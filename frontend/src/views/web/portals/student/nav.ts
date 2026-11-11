@@ -6,6 +6,7 @@
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet, Tag, CreditCard,
   GraduationCap, Home, User, CalendarCheck, BookOpen, Ticket, Award, Zap,
+  MessageSquare, Trophy, HelpCircle,
 } from 'lucide-react-native';
 import { api } from '@/src/models/services/api';
 import { displayName, displayInitials } from '@/src/lib/portalHome';
@@ -13,8 +14,9 @@ import type { NavItem, PortalConfig } from '@/src/ui/shell/types';
 
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'myevents' | 'events'
-  | 'financial' | 'deals' | 'wallet' | 'higher-ed' | 'rentals' | 'courses' | 'profile'
-  | 'my-bookings' | 'my-workshops' | 'my-tickets' | 'my-certificates' | 'echo-showcase' | string;
+  | 'financial' | 'deals' | 'wallet' | 'higher-education' | 'rentals' | 'courses' | 'profile'
+  | 'my-bookings' | 'my-workshops' | 'my-tickets' | 'my-certificates' | 'echo-showcase'
+  | 'calendar' | 'messages' | 'achievements' | 'help-center' | string;
 
 export const NAV: (NavItem & { id: StudentNavId })[] = [
   { id: 'dashboard',       label: 'Dashboard',          Icon: LayoutDashboard },
@@ -30,13 +32,17 @@ export const NAV: (NavItem & { id: StudentNavId })[] = [
   { id: 'financial',       label: 'Financial',          Icon: Wallet, hideOnMobile: true },
   { id: 'deals',           label: 'Deals & Offers',     Icon: Tag, hideOnMobile: true },
   { id: 'wallet',          label: 'SA Wallet',          Icon: CreditCard },
-  { id: 'higher-ed',       label: 'Higher Education',   Icon: GraduationCap, hideOnMobile: true },
+  { id: 'higher-education',       label: 'Higher Education',   Icon: GraduationCap, hideOnMobile: true },
   { id: 'rentals',         label: 'Rentals',            Icon: Home, hideOnMobile: true },
+  { id: 'calendar',        label: 'Calendar',           Icon: Calendar },
+  { id: 'messages',        label: 'Messages',           Icon: MessageSquare },
+  { id: 'achievements',    label: 'Achievements',       Icon: Trophy },
+  { id: 'help-center',     label: 'Help Center',        Icon: HelpCircle },
   { id: 'profile',         label: 'Profile',            Icon: User },
 ];
 
 /** Every id the shell knows; anything else in the URL is an ECHO showcase slug. */
-export const KNOWN_IDS: string[] = [...NAV.map((n) => n.id), 'events', 'echo-showcase'];
+export const KNOWN_IDS: string[] = [...NAV.map((n) => n.id), 'events', 'echo-showcase', 'tickets', 'workshops', 'certificates', 'bookings'];
 export const isEchoSlug = (id: string) => !KNOWN_IDS.includes(id);
 
 function yearLabel(user: any): string {
@@ -57,7 +63,7 @@ export const STUDENT_PORTAL: PortalConfig = {
   agentK: true,
   aiFab: true,
   profileTab: 'profile',
-  mobileTabs: ['dashboard', 'career-ai', 'network', 'myevents', 'profile'],
+  mobileTabs: ['dashboard', 'career-ai', 'wallet', 'network', 'courses'],
   promoHiddenOn: ['internships'],
   topbar: { greetingTab: 'dashboard', greetingSub: "Here's your personalised dashboard for today", search: { placeholder: 'Search jobs, mentors, courses…' } },
   profile: (user) => ({ name: displayName(user), subtitle: yearLabel(user), initials: displayInitials(user), email: user?.email }),

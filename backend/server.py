@@ -24,9 +24,17 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+# Root .env holds the LLM gateway config (ANTHROPIC_API_KEY / ANTHROPIC_BASE_URL / ANTHROPIC_MODEL)
+load_dotenv(ROOT_DIR.parent / '.env')
 
 import os
 import socket
+import logging
+
+# Agent K & all emergentintegrations code expect EMERGENT_LLM_KEY. When unset,
+# fall back to the BroCode/Anthropic gateway key so every agent has a default.
+if not os.environ.get("EMERGENT_LLM_KEY") and os.environ.get("ANTHROPIC_API_KEY"):
+    os.environ["EMERGENT_LLM_KEY"] = os.environ["ANTHROPIC_API_KEY"]
 
 # --- GLOBALLY PATCH DNS TO PREVENT 34-SECOND IPv6 HANGS ON WINDOWS ---
 import sys
@@ -41,6 +49,7 @@ if sys.platform == "win32" and not getattr(socket, "_ipv4_patched", False):
     socket.getaddrinfo = _ipv4_getaddrinfo
     socket._ipv4_patched = True  # type: ignore[attr-defined]
 # ---------------------------------------------------------------------
+logger = logging.getLogger(__name__)
 import re
 import uuid
 import io
@@ -53,28 +62,25 @@ import asyncio
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Literal, Dict, Any
 
-import bcrypt
-import jwt
 import httpx
 import pyotp
-import qrcode
 from bson import ObjectId
 from fastapi import FastAPI, APIRouter, File, HTTPException, Depends, Request, Response, UploadFile, Query
 # trigger reload
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel, Field, EmailStr, field_validator
+
 from fastapi.middleware.gzip import GZipMiddleware
 
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from core.middleware import get_real_ip, register_security_middleware
-from core.deps import get_current_user as _deps_get_current_user
+from core.deps import get_current_user as _deps_get_current_user, bearer_token, decode_payload, decode_payload_silent
 
-from core.config import limiter, JWT_SECRET, JWT_ALGORITHM
+from core.config import limiter, JWT_SECRET, JWT_ALGORITHM, frontend_base_url
 
 # Content prioritization engine — implements interest + edu-level + deadline + frequency scoring
-from personalization import (
+from features.personalization import (
     build_personalized_dashboard,
     track_module_click,
     transition_to_alumni,
@@ -82,31 +88,30 @@ from personalization import (
 )
 
 # Multi-role badge engine
-from badges import (
+from features.badges import (
     compute_badges, refresh_user_badges, compute_all_users_badges, get_tier_theme,
 )
 
 # Role-based analytics + external API integrations
-from analytics import get_analytics_for, super_admin_analytics, college_analytics, mentor_analytics
-from integrations_base import (
+from features.analytics import get_analytics_for, super_admin_analytics, college_analytics, mentor_analytics
+from features.integrations_base import (
     fetch_coursera_courses, fetch_udemy_courses, fetch_adzuna_internships,
     sync_courses_to_db, sync_internships_to_db, integrations_status,
 )
 
 # Mentor reviews/ratings + Push notifications
-from reviews import (
+from features.reviews import (
     create_review, list_mentor_reviews, get_mentor_rating_stats,
     seed_sample_reviews, refresh_mentor_rating,
 )
-from notifications import (
+from features.notifications import (
     register_push_token, deregister_push_token, send_push, list_inbox,
     mark_inbox_read, unread_count, notify_booking_created, notify_booking_confirmed,
     notify_event_registered, notify_mentor_approved, notify_review_received,
 )
 
 # Services -- single source of truth for business logic
-from services.career_ai.skill_intelligence_service import compute_full_intelligence, invalidate_intel_cache
-from services.profile_service import compute_profile_completion
+# compute_full_intelligence, compute_profile_completion moved to dashboard router
 from services.career_roadmap_service import get_roadmap_summary
 
 # Email sending
@@ -152,85 +157,9 @@ async def _lifespan(application):
     except Exception as e:
         print(f"[DB TRACE] Mongo connection failed: {e}", flush=True)
 
-    # 2. DB indexes + admin seed + schedulers (runs after Mongo is warm)
-    async def _safe_create_index(collection, *args, **kwargs):
-        try:
-            await collection.create_index(*args, **kwargs)
-        except Exception as e:
-            logger.warning(f"Skipping index creation for {collection.name} {args}: {e}")
-
-    # Create all database indexes concurrently to prevent startup latency
-    index_tasks = [
-        _safe_create_index(db.users, "email", unique=True),
-        _safe_create_index(db.users, "unique_id"),
-        _safe_create_index(db.users, [("role", 1), ("_id", -1)]),
-        _safe_create_index(db.users, [("role", 1), ("mentor_status", 1)]),
-        _safe_create_index(db.users, "sa_id", unique=True, sparse=True),
-        _safe_create_index(db.career_suggestions, "user_id"),
-        _safe_create_index(db.career_roadmaps, "user_id"),
-        _safe_create_index(db.college_students, [("college_id", 1), ("id", 1)]),
-        _safe_create_index(db.chat_messages, [("user_id", 1), ("session_id", 1)]),
-        _safe_create_index(db.bookings, [("student_id", 1), ("slot_start_iso", -1)]),
-        _safe_create_index(db.bookings, [("mentor_id", 1), ("slot_start_iso", -1)]),
-        _safe_create_index(db.audit_logs, "user_id"),
-        _safe_create_index(db.audit_logs, [("ts", -1)]),
-        _safe_create_index(db.sessions, "user_id"),
-        _safe_create_index(db.sessions, [("expires_at", 1)], expireAfterSeconds=0),
-        _safe_create_index(db.agent_k_schedules, [("status", 1), ("next_run_at", 1)]),
-        _safe_create_index(db.agent_k_schedules, [("user_id", 1), ("created_at", -1)]),
-        _safe_create_index(db.agent_runs, [("schedule_id", 1), ("started_at", -1)]),
-        _safe_create_index(db.workflow_events, "event_type"),
-        _safe_create_index(db.workflow_events, [("fired_at", -1)]),
-        _safe_create_index(db.connections, "a"),
-        _safe_create_index(db.connections, "b"),
-        _safe_create_index(db.connections, [("from_id", 1), ("status", 1)]),
-        _safe_create_index(db.connections, [("to_id", 1), ("status", 1)]),
-        _safe_create_index(db.connections, "mentor_id"),
-        _safe_create_index(db.applications, "user_id"),
-        _safe_create_index(db.jobs_cache, "dedup_hash"),
-        _safe_create_index(db.jobs_cache, [("expires_at", 1), ("job_type", 1)]),
-        _safe_create_index(db.mentor_sessions, [("mentee_id", 1), ("status", 1)]),
-        _safe_create_index(db.mentor_sessions, [("mentor_id", 1), ("status", 1)]),
-        _safe_create_index(db.events, "mentor_id"),
-        _safe_create_index(db.events, [("status", 1), ("start_date", -1)]),
-        _safe_create_index(db.event_registrations, "event_id"),
-        _safe_create_index(db.token_blacklist, [("expires_at", 1)], expireAfterSeconds=0),
-        _safe_create_index(db.token_blacklist, "jti", unique=True, sparse=True),
-        _safe_create_index(db.certificates, "verification_code", unique=True),
-        _safe_create_index(db.certificates, "recipient_email"),
-        _safe_create_index(db.email_suppressions, "email", unique=True),
-        _safe_create_index(db.email_quality_events, [("created_at", -1)]),
-        _safe_create_index(db.echo_showcases, "slug", unique=True, sparse=True),
-        _safe_create_index(db.echo_showcases, [("status", 1), ("date", -1)]),
-        _safe_create_index(db.echo_registrations, [("slug", 1), ("user_key", 1)]),
-        _safe_create_index(db.echo_registrations, [("payment.status", 1), ("slug", 1)]),
-        _safe_create_index(db.invoices, "invoice_no", unique=True, sparse=True),
-        _safe_create_index(db.invoices, [("user_id", 1), ("created_at", -1)]),
-        _safe_create_index(db.email_campaigns, "campaign_id", unique=True, sparse=True),
-        _safe_create_index(db.email_campaign_events, [("campaign_id", 1), ("email", 1)]),
-        _safe_create_index(db.coupons, "code", unique=True),
-        _safe_create_index(db.email_verifications, "email"),
-        _safe_create_index(db.email_verifications, [("expires_at", 1)], expireAfterSeconds=0),
-        _safe_create_index(db.echo_volunteers, "email"),
-        _safe_create_index(db.echo_volunteers, "slug"),
-        _safe_create_index(db.echo_volunteers, [("slug", 1), ("email", 1)], unique=True),
-        # Marketplace performance indexes
-        _safe_create_index(db.echo_catalog_items, "event_id"),
-        _safe_create_index(db.echo_catalog_items, [("event_id", 1), ("is_active", 1)]),
-        _safe_create_index(db.echo_discount_coupons, [("event_id", 1), ("active", 1)]),
-        _safe_create_index(db.echo_discount_coupons, "code", unique=True, sparse=True),
-        _safe_create_index(db.echo_orders, [("user_id", 1), ("created_at", -1)]),
-        _safe_create_index(db.echo_orders, [("status", 1)]),
-        # First-Party Careers & Opportunities indexes
-        _safe_create_index(db.career_openings, [("status", 1), ("published_at", -1)]),
-        _safe_create_index(db.career_openings, [("featured", -1), ("published_at", -1)]),
-        _safe_create_index(db.career_openings, [("created_at", -1)]),
-        _safe_create_index(db.career_applications, [("career_opening_id", 1), ("student_id", 1)], unique=True),
-        _safe_create_index(db.career_applications, [("student_id", 1), ("created_at", -1)]),
-        _safe_create_index(db.career_applications, [("career_opening_id", 1), ("status", 1)]),
-        _safe_create_index(db.career_application_history, [("application_id", 1), ("changed_at", -1)]),
-    ]
-    await asyncio.gather(*index_tasks, return_exceptions=True)
+    # 2. DB indexes (extracted to core/indexes.py)
+    from core.indexes import ensure_all_indexes
+    await ensure_all_indexes()
 
     # 3. Auto seed certificates on startup if count is 0
     try:
@@ -239,19 +168,19 @@ async def _lifespan(application):
     except Exception as e:
         logger.warning(f"Auto certificate seeding skipped: {e}")
     try:
-        from echo_showcase import seed_echo_showcase
+        from features.echo_showcase import seed_echo_showcase
         await seed_echo_showcase(db)
     except Exception as _e:
         logger.warning("Could not seed ECHO showcases: %s", _e)
 
     # Seed admin account and baseline data
-    # (seed_admin / seed_data are defined later in server.py and are in scope at runtime)
+    # Seed admin account and baseline catalog data (extracted to seed_data.py)
     await seed_admin()
     await seed_data()
 
     # Start Agent K systems
     try:
-        from agent_k.rag.store import init_collection
+        from features.agent_k.rag.store import init_collection
         init_collection() # Ensure Qdrant collection is ready
     except Exception as _e:
         logger.warning("Could not init Agent K collection: %s", _e)
@@ -276,9 +205,9 @@ async def _lifespan(application):
 
         # Start the workflow automation cron tick (60s polling).
         try:
-            from workflow_automation import run_cron_workflows as _run_cron
-            from newsletter import process_scheduled_campaigns as _process_sched
-            from echo_showcase import sweep_expired_echo_payments as _sweep_echo_pay
+            from features.workflow_automation import run_cron_workflows as _run_cron
+            from features.newsletter import process_scheduled_campaigns as _process_sched
+            from features.echo_showcase import sweep_expired_echo_payments as _sweep_echo_pay
 
             async def _wf_cron_tick():
                 while True:
@@ -308,12 +237,60 @@ async def _lifespan(application):
         except Exception as _e:
             logger.warning("Could not start 30-minute Agent Scheduler: %s", _e)
 
+        # Weekly platform health briefing (AI4): Monday 09:00 IST cron.
+        # Opt-in via HEALTH_BRIEFING_CRON_ENABLED=1.
+        try:
+            from services.agents.health_briefing_scheduler import start_health_briefing_scheduler
+            start_health_briefing_scheduler()
+        except Exception as _e:
+            logger.warning("Could not start weekly health briefing cron: %s", _e)
+
+        # Talent Pool agent suite (TP23): opt-in startup catch-up run
+        # (TP_RUN_ON_STARTUP=1). The 30-min cycle covers the steady state.
+        try:
+            async def _talent_suite_startup(d):
+                from services.agents.talent_scheduler import talent_scheduler_agent
+                try:
+                    out = await talent_scheduler_agent.run_on_startup(d)
+                    if out.get("skipped") != "TP_RUN_ON_STARTUP not set":
+                        logger.info("Talent suite startup catch-up: %s", out)
+                except Exception as _ce:
+                    logger.warning("Talent suite startup catch-up failed: %s", _ce)
+            asyncio.create_task(_talent_suite_startup(db))
+        except Exception as _e:
+            logger.warning("Could not schedule Talent Pool suite startup run: %s", _e)
+
         # Start the 24-hour autonomous operations & audit swarm
         try:
             from services.agents.daily_audit_agents import daily_audit_service
             daily_audit_service.start(db=db)
         except Exception as _e:
             logger.warning("Could not start 24-hour Daily Audit Swarm: %s", _e)
+
+        # Start the 24-hour course aggregator cron (daily 02:00 UTC + startup catch-up)
+        try:
+            from services.course_aggregator import start_course_aggregator_scheduler
+            start_course_aggregator_scheduler()
+        except Exception as _e:
+            logger.warning("Could not start Course Aggregator scheduler: %s", _e)
+
+        # Start the staggered deals aggregator crons (banks 01:00, coupons 02:00,
+        # cashback 02:30, community 6h, APIs 03:00, student/airlines weekly,
+        # affiliate 6h — all UTC + startup catch-up)
+        try:
+            from services.deals_aggregator import start_deals_aggregator_scheduler
+            start_deals_aggregator_scheduler()
+        except Exception as _e:
+            logger.warning("Could not start Deals Aggregator scheduler: %s", _e)
+
+        # Start the 6-hour Lead Aggregator bot cycle (opt-in:
+        # LA_BOT_SCHEDULER_ENABLED=1; optional startup catch-up via
+        # LA_BOT_STARTUP_CATCHUP=1)
+        try:
+            from features.lead_aggregator.bot_scheduler import start_lead_aggregator_scheduler
+            start_lead_aggregator_scheduler()
+        except Exception as _e:
+            logger.warning("Could not start Lead Aggregator 6h scheduler: %s", _e)
 
 
     try:
@@ -355,6 +332,24 @@ async def _lifespan(application):
         stop_sync_scheduler()
     except Exception:
         pass
+
+    try:
+        from services.course_aggregator import stop_course_aggregator_scheduler
+        stop_course_aggregator_scheduler()
+    except Exception:
+        pass
+
+    try:
+        from services.deals_aggregator import stop_deals_aggregator_scheduler
+        stop_deals_aggregator_scheduler()
+    except Exception:
+        pass
+
+    try:
+        from features.lead_aggregator.bot_scheduler import stop_lead_aggregator_scheduler
+        stop_lead_aggregator_scheduler()
+    except Exception:
+        pass
     client.close()
 
 
@@ -380,24 +375,35 @@ app.add_exception_handler(RateLimitExceeded, _custom_rate_limit_exceeded_handler
 api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernetes ingress requirement)
 
 # ECHO Showcase sub-router
-from echo_showcase import router as echo_router
-from routers.vendors import router as vendors_router
-from routers.marketplace import router as marketplace_router
+from features.echo_showcase import router as echo_router
+from features.routers.vendors import router as vendors_router
+from features.routers.marketplace import router as marketplace_router
 app.include_router(echo_router)
 app.include_router(vendors_router)
 app.include_router(marketplace_router)
 
 # Newsletter sub-router
-from newsletter import router as newsletter_router
+from features.newsletter import router as newsletter_router
 app.include_router(newsletter_router)
 
 # Contacts sub-router
-from routers.contacts import router as contacts_router
+from features.routers.contacts import router as contacts_router
 app.include_router(contacts_router)
 
 # Student Perks sub-router
-from routers.student_perks import router as student_perks_router
+from features.routers.student_perks import router as student_perks_router
 app.include_router(student_perks_router)
+
+# Lead Aggregator (LA1–LA14)
+from features.lead_aggregator.api import router as lead_aggregator_router
+app.include_router(lead_aggregator_router)
+
+# Lead Aggregator request logging middleware
+try:
+    from features.lead_aggregator.logging_config import RequestLogMiddleware
+    app.add_middleware(RequestLogMiddleware)
+except Exception as _e:
+    logger.warning("Could not add LA request logging middleware: %s", _e)
 
 from core.email_quality import router as email_quality_router
 api_router.include_router(email_quality_router)
@@ -484,2463 +490,97 @@ async def upload_file(
 
 
 # ----------------------------------------------------------------------------
-# Encryption-at-Rest — Fernet (AES-128 in CBC mode + HMAC-SHA256)
+# Encryption-at-Rest — extracted to core/encryption.py
 # ----------------------------------------------------------------------------
-# Per spec — encrypt sensitive personal data (dob, phone, postal_code) at rest.
-# Backwards-compat: legacy users may have plaintext values; decrypt() returns
-# the input as-is when it can't be decoded as Fernet ciphertext.
-try:
-    from cryptography.fernet import Fernet, InvalidToken  # noqa: E402
-    _HAS_CRYPTOGRAPHY = True
-except Exception:
-    _HAS_CRYPTOGRAPHY = False
-    class Fernet:
-        @staticmethod
-        def generate_key():
-            return b"dummy_key_for_dev_booting_without_cryptography_32b_len="
-        def __init__(self, key):
-            pass
-        def encrypt(self, data: bytes) -> bytes:
-            return data
-        def decrypt(self, data: bytes) -> bytes:
-            return data
-    class InvalidToken(Exception):
-        pass
-
-_FERNET_KEY = os.environ.get("FERNET_KEY")
-if not _FERNET_KEY:
-    if os.getenv("ENV") == "production":
-        raise RuntimeError(
-            "FERNET_KEY environment variable is required in production. "
-            "PII encryption (phone, dob, postal_code) would be non-persistent without it."
-        )
-    # Auto-generate a session key in dev so the app boots; logs a warning.
-    if _HAS_CRYPTOGRAPHY:
-        _FERNET_KEY = Fernet.generate_key().decode()
-    else:
-        _FERNET_KEY = Fernet.generate_key().decode('utf-8')
-    logger.warning(
-        "⚠️  FERNET_KEY not set — using ephemeral key (dev only). "
-        "Set FERNET_KEY in .env for persistent PII encryption."
-    )
-_FERNET = Fernet(_FERNET_KEY.encode() if isinstance(_FERNET_KEY, str) else _FERNET_KEY)
-# Marker so we can recognise our ciphertexts in mixed-format collections.
-_ENC_PREFIX = "enc::"
-
-
-def encrypt_value(plain: Optional[str]) -> Optional[str]:
-    """Wrap a string with the Fernet token + a recognisable prefix."""
-    if plain is None or plain == "":
-        return plain
-    if isinstance(plain, str) and plain.startswith(_ENC_PREFIX):
-        return plain  # already encrypted
-    try:
-        token = _FERNET.encrypt(plain.encode("utf-8")).decode("utf-8")
-        return f"{_ENC_PREFIX}{token}"
-    except Exception:
-        return plain  # never block the write on encryption failure
-
-
-def decrypt_value(value: Optional[str]) -> Optional[str]:
-    """Unwrap a Fernet ciphertext. Returns the input unchanged if not ours."""
-    if value is None or value == "":
-        return value
-    if isinstance(value, str) and value.startswith(_ENC_PREFIX):
-        try:
-            return _FERNET.decrypt(value[len(_ENC_PREFIX):].encode("utf-8")).decode("utf-8")
-        except InvalidToken:
-            return None  # tampered or wrong key — return None defensively
-        except Exception:
-            return None
-    return value  # legacy plaintext
+from core.encryption import encrypt_value, decrypt_value  # noqa: E402, F811
 
 
 # ----------------------------------------------------------------------------
-# Audit Log Helpers — write every personal-data change to `audit_logs`
+# Audit Log Helpers — extracted to core/audit.py
 # ----------------------------------------------------------------------------
-# Schema: { user_id, field_name, old_value, new_value, source, validation_status,
-#           ts (UTC datetime), is_manual_entry }
-async def _audit_log(user_id: str, field: str, old_value, new_value, *,
-                     source: str = "onboarding",
-                     validation_status: str = "passed",
-                     is_manual_entry: bool = False) -> None:
-    """Insert a single audit entry. Best-effort — never raise to caller."""
-    try:
-        await db.audit_logs.insert_one({
-            "user_id": user_id,
-            "field_name": field,
-            "old_value": old_value if old_value is not None else None,
-            "new_value": new_value if new_value is not None else None,
-            "source": source,
-            "validation_status": validation_status,
-            "is_manual_entry": is_manual_entry,
-            "ts": datetime.now(timezone.utc),
-        })
-    except Exception:
-        # Don't let audit failures break the user's flow.
-        pass
-
-
-async def _audit_log_many(user_id: str, source: str, entries: list,
-                          validation_status: str = "passed") -> None:
-    """Bulk insert audit entries. `entries` is a list of (field, old, new) tuples."""
-    if not entries:
-        return
-    try:
-        docs = [{
-            "user_id": user_id,
-            "field_name": f,
-            "old_value": o,
-            "new_value": n,
-            "source": source,
-            "validation_status": validation_status,
-            "is_manual_entry": False,
-            "ts": datetime.now(timezone.utc),
-        } for (f, o, n) in entries if n is not None and n != ""]
-        if docs:
-            await db.audit_logs.insert_many(docs, ordered=False)
-    except Exception:
-        pass
+from core.audit import audit_log as _audit_log_new, audit_log_many as _audit_log_many_new  # noqa: E402
+# Backward-compat aliases (server.py used underscore-prefixed names internally)
+_audit_log = _audit_log_new
+_audit_log_many = _audit_log_many_new
 
 
 # ----------------------------------------------------------------------------
-# Type Definitions
+# Type Definitions & Pydantic Models — imported from core.models
+# (canonical definitions live in core/models.py to avoid duplication)
 # ----------------------------------------------------------------------------
-# UserRole: 3 primary user types + admin/college (managed roles)
-UserRole = Literal["student", "alumni", "mentor", "college", "admin", "super_admin"]
-
-# CareerPath: Drives all personalization on the platform
-CareerPath = Literal["job", "higher_education", "startup", "business"]
-
-# EducationLevel: Used for content segmentation per spec
-# (+1=Class 11, +2=Class 12, btech=undergrad, masters=postgrad, phd=research)
-EducationLevel = Literal["plus_one", "plus_two", "btech", "bachelors", "masters", "phd", "other"]
-
-# MentorCategory: Per spec — 4 distinct categories (split startup vs business)
-# MentorCategory: 10-category taxonomy organized by function.
-# Tech & Engineering: it_software, engineering_manager
-# Talent & People:    tech_recruiter, hr_mentor
-# Career Development: career_coach, higher_education
-# Entrepreneurship:   startup_mentor, startup_advisor
-# Business:           business_mentor, industry_advisor
-MentorCategory = Literal[
-    "it_software", "engineering_manager",
-    "tech_recruiter", "hr_mentor",
-    "career_coach", "higher_education",
-    "startup_mentor", "startup_advisor",
-    "business_mentor", "industry_advisor",
-    # Per Mentor Onboarding spec — 10 archetype tiles. Below are the 3 new
-    # archetype slugs that don't map cleanly to legacy values above.
-    "interview_prep",       # Mock interviews, DSA, system design rounds
-    "creative_design",      # UX/UI, branding, creative careers & portfolios
-    "life_wellness",        # Work-life balance, mental health & mindfulness
-    # Backward-compat aliases (read-only — old data may still have these)
-    "startup", "business", "education", "startup_business",
-]
-
-# MentorStatus: Mentors are reviewed by admins before being visible to students
-MentorStatus = Literal["pending", "approved", "rejected"]
-
-
-# ----------------------------------------------------------------------------
-# Pydantic Models — Request / Response payloads
-# ----------------------------------------------------------------------------
-class SchoolInfo(BaseModel):
-    """Institution / education info common to all roles."""
-    institution_name: str
-    institution_type: Literal["school", "college", "university"] = "college"
-    # Made optional — in the new onboarding flow we collect graduation_year +
-    # branch_or_stream instead, and this field is derived downstream when needed.
-    class_or_year: Optional[str] = None
-    branch_or_stream: Optional[str] = None
-    board_or_university: Optional[str] = None
-    department: Optional[str] = None
-    stream: Optional[str] = None
-    branch: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    country: str = "India"
-    graduation_year: Optional[int] = None  # Required for alumni
-
-
-class MentorInfo(BaseModel):
-    """Mentor-specific fields per spec — requires admin approval."""
-    category: MentorCategory  # Primary archetype (derived from categories[0] if multi-select used)
-    organization: str  # Mandatory: company / institution name
-    job_title: str  # Mandatory: designation
-    linkedin_url: Optional[str] = None  # Recommended for credibility
-    years_of_experience: Optional[int] = None
-    bio: Optional[str] = None
-    # Per HTML spec — 1:1 session price in INR (revenue-critical).
-    # Suggested chips: 499 / 799 / 999 / 1499; free custom values allowed.
-    session_price_inr: Optional[int] = None
-    # Per Mentor Onboarding 8-step wizard (Step 2: "Mentorship Archetype")
-    # — multi-select tile grid; mentor can pick all that apply.
-    categories: Optional[List[MentorCategory]] = None
-    # Step 3: Education Background (single select; same taxonomy as students)
-    education_level: Optional[str] = None
-    # Step 4: "Your Expertise" — chip multi-select (free-form skill labels)
-    expertise: Optional[List[str]] = None
-    # Step 5: Availability — list of weekly recurring slot keys
-    # e.g. ["mon_18_19", "sat_10_12"] — see frontend AVAILABILITY_SLOTS map.
-    availability: Optional[List[str]] = None
-    # Step 6: Profile photo (base64) — also stored on user.face_image_base64
-    profile_photo: Optional[str] = None
-    # Step 7: College & Batch (institution name + graduation year)
-    college: Optional[str] = None
-    college_batch: Optional[int] = None  # graduation year
-
-
-class CollegeInfo(BaseModel):
-    """College / Institution-specific fields per College 6-step Onboarding spec."""
-    institution_name: str
-    institution_type: Optional[Literal["school", "college", "university", "institute"]] = "university"
-    affiliated_university: Optional[str] = None  # e.g. "Delhi University" (for affiliated colleges)
-    official_website: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    country: str = "India"
-    # Optional admin contact details the college can fill later
-    accreditation: Optional[str] = None  # e.g. "NAAC A+", "NBA"
-    year_established: Optional[int] = None
-    # Step 1 — National Ranking Tier (single-select chip)
-    # Slugs: top_50 / top_51_200 / top_201_500 / not_ranked
-    ranking_tier: Optional[str] = None
-    # Step 1 — Accreditations & Rankings (multi-select chips — see frontend ACCRED list)
-    accreditations: Optional[List[str]] = None
-    # Step 2 — Contact Person (primary admin)
-    contact_name: Optional[str] = None
-    contact_designation: Optional[str] = None  # e.g. "TPO", "Dean Students", "Principal"
-    contact_official_email: Optional[str] = None  # MUST end in .ac.in / .edu (validated client-side)
-    contact_phone: Optional[str] = None
-    # Step 3 — Features Needed (multi-select tile keys — see frontend FEATURES list)
-    # Possible values: student_placement, alumni_network, mentor_connections,
-    #                  industry_tieups, event_management, job_portal
-    features_needed: Optional[List[str]] = None
-    # Step 4 — Logo & Cover Photo (base64)
-    logo: Optional[str] = None
-    cover_photo: Optional[str] = None
-    # Step 5 — Bio + writing style
-    bio: Optional[str] = None
-    writing_style: Optional[str] = None
-
-
-class AlumniInfo(BaseModel):
-    """Alumni-specific fields per Alumni 6-step Onboarding Wizard spec."""
-    graduation_year: int
-    university: str
-    current_employer: Optional[str] = None
-    current_role: Optional[str] = None
-    employment_status: Literal["employed", "self_employed", "studying", "between_jobs"] = "employed"
-    # Per spec — LinkedIn highly recommended for alumni
-    linkedin_url: Optional[str] = None
-    # Per spec — alumni may opt-in as mentors with a category
-    wants_to_mentor: bool = False
-    mentor_category: Optional[MentorCategory] = None
-    mentor_categories: Optional[List[MentorCategory]] = None    # multi-select archetypes
-    # Step 1 — Your Career Now: years of experience (auto-derived from grad year if blank)
-    years_of_experience: Optional[int] = None
-    # Step 2 — Interests & Skills: 4 multi-select chip groups
-    domain_expertise: Optional[List[str]] = None  # e.g. Software Engineering, Product, Finance
-    tech_skills: Optional[List[str]] = None       # Python, React, ML/AI, …
-    business_skills: Optional[List[str]] = None   # Excel, Financial Modelling, Sales, …
-    soft_skills: Optional[List[str]] = None       # Communication, Leadership, …
-    # Step 3 — Your Next Chapter: single-select from 6 paths
-    # Slugs: become_mentor / level_up_career / build_startup / higher_education / explore_options / give_back
-    next_chapter: Optional[str] = None
-    # Step 4 — Profile Photo (base64; also stored on user.face_image_base64)
-    profile_photo: Optional[str] = None
-    # Step 5 — Bio + writing style chip
-    bio: Optional[str] = None
-    writing_style: Optional[str] = None  # Friendly & warm / Professional / Inspiring / Concise / Detailed
-
-
-class StudentInfo(BaseModel):
-    """Student-specific fields per spec."""
-    age: Optional[int] = None  # Minimum age 10+ per spec (collected during onboarding)
-    education_level: Optional[EducationLevel] = None
-    career_interests: List[str] = Field(default_factory=list)
-    # Per spec — specific aspiration (e.g. "Software Developer", "Web Developer")
-    # Used directly in AI roadmap prompts to drive interest-based filtering
-    career_goal: Optional[str] = None
-    # Per HTML spec — Academic GPA (0.0–10.0 CGPA scale or 0.0–4.0 if GPA).
-    # Used by college dashboards and AI recommendations for scholarship matching.
-    cgpa: Optional[float] = None
-
-
-# ----- Auth payloads -----
-class RegisterRequest(BaseModel):
-    """Initial registration. Role-specific fields collected in onboarding step."""
-    email: EmailStr
-    password: str
-    full_name: str
-    role: UserRole
-    phone: Optional[str] = None
-    # Per spec — Date of Birth is mandatory at registration. ISO 8601 (YYYY-MM-DD).
-    # Backend enforces minimum age of 18 unless the role is 'student' (>=13).
-    dob: Optional[str] = None
-    # Country alpha-2 code for phone/postal code validation context.
-    country_code: Optional[str] = None
-    # Postal / PIN code (validated per country at the frontend; stored verbatim).
-    postal_code: Optional[str] = None
-
-    @field_validator("password")
-    @classmethod
-    def _password_strength(cls, v):
-        if len(v) < 8:
-            raise ValueError("Password must be at least 8 characters long")
-        if not re.search(r"[A-Z]", v):
-            raise ValueError("Password must contain at least one uppercase letter")
-        if not re.search(r"[a-z]", v):
-            raise ValueError("Password must contain at least one lowercase letter")
-        if not re.search(r"\d", v):
-            raise ValueError("Password must contain at least one digit")
-        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
-            raise ValueError("Password must contain at least one special character (!@#$%^&*...)")
-        return v
-
-    @field_validator("dob")
-    @classmethod
-    def _dob_valid(cls, v):
-        if not v:
-            return v  # mandatory enforcement happens in the route (role-aware)
-        from datetime import date as _date
-        try:
-            d = _date.fromisoformat(v)
-        except Exception:
-            raise ValueError("Date of birth must be in YYYY-MM-DD format")
-        today = _date.today()
-        if d > today:
-            raise ValueError("Date of birth cannot be in the future")
-        # Min age guard — 13 absolute floor; route can re-enforce 18 by role.
-        age = today.year - d.year - ((today.month, today.day) < (d.month, d.day))
-        if age < 13:
-            raise ValueError("You must be at least 13 years old to register")
-        return v
-
-
-class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
-
-class ForgotPasswordRequest(BaseModel):
-    email: EmailStr
-
-class VerifyResetOtpRequest(BaseModel):
-    email: EmailStr
-    otp: str
-
-class ResetPasswordRequest(BaseModel):
-    email: EmailStr
-    otp: str
-    new_password: str
-
-
-class OnboardingRequest(BaseModel):
-    """Unified onboarding payload — only the fields relevant to the user's role
-    are validated. Field validation by role is enforced in the handler."""
-    school_info: SchoolInfo
-    career_path: Optional[CareerPath] = None  # Required for student/alumni
-    student_info: Optional[StudentInfo] = None  # Required if role=student
-    alumni_info: Optional[AlumniInfo] = None  # Required if role=alumni
-    mentor_info: Optional[MentorInfo] = None  # Required if role=mentor
-    college_info: Optional[CollegeInfo] = None  # Required if role=college (per spec)
-    interests: List[str] = Field(default_factory=list)
-    skills: List[str] = Field(default_factory=list)
-    bio: Optional[str] = None
-    face_image_base64: Optional[str] = None  # Profile photo (base64-encoded)
-    # Per HTML spec — collect phone number during onboarding for all roles.
-    # Stored at the root user level (not role-specific).
-    phone: Optional[str] = None
-
-
-class UserResponse(BaseModel):
-    """Public user payload — never includes password_hash."""
-    id: str
-    email: EmailStr
-    full_name: str
-    role: UserRole
-    phone: Optional[str] = None
-    unique_id: Optional[str] = None
-    qr_code_base64: Optional[str] = None
-    school_info: Optional[SchoolInfo] = None
-    career_path: Optional[CareerPath] = None
-    student_info: Optional[StudentInfo] = None
-    alumni_info: Optional[AlumniInfo] = None
-    mentor_info: Optional[MentorInfo] = None
-    college_info: Optional[CollegeInfo] = None
-    mentor_status: Optional[MentorStatus] = None  # Only set for mentors
-    interests: List[str] = []
-    skills: List[str] = []
-    bio: Optional[str] = None
-    face_image_base64: Optional[str] = None
-    onboarding_completed: bool = False
-    two_fa_enabled: bool = False
-    dob: Optional[str] = None  # ISO 8601 (YYYY-MM-DD)
-    country_code: Optional[str] = None
-    postal_code: Optional[str] = None
-    created_at: datetime
-    # Phase-4 SA Profile Web fields (set via PUT /users/me — must round-trip)
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    headline: Optional[str] = None
-    photo_data: Optional[str] = None
-    banner_data: Optional[str] = None
-    college_logo_data: Optional[str] = None
-    institution: Optional[str] = None
-    branch: Optional[str] = None
-    stream: Optional[str] = None
-    department: Optional[str] = None
-    graduation_year: Optional[int] = None
-    cgpa: Optional[float] = None
-    location: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    linkedin_url: Optional[str] = None
-    github_url: Optional[str] = None
-    portfolio_url: Optional[str] = None
-    primary_skill: Optional[str] = None
-    profile_visibility: Optional[str] = None
-    section_toggles: Optional[Dict[str, Any]] = None
-    projects: Optional[List[Dict[str, Any]]] = None
-    preferences: Optional[Dict[str, Any]] = None
-    is_verified: Optional[bool] = None
-    ranking_tier: Optional[str] = None
-    badges: List[Dict[str, Any]] = []
-
-
-class AuthResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    user: UserResponse
-
-
-class TwoFAChallengeResponse(BaseModel):
-    """Returned by /auth/login when 2FA is enabled — client must call /auth/2fa/verify."""
-    requires_2fa: bool = True
-    challenge_id: str
-    methods: List[str] = ["totp"]
-    user_email: str  # show on challenge screen for context
-
-
-class TwoFASetupRequest(BaseModel):
-    pass  # auth-only
-
-
-class TwoFASetupResponse(BaseModel):
-    secret: str
-    otpauth_uri: str
-    qr_code_base64: str  # PNG, base64-encoded
-
-
-class TwoFAEnableRequest(BaseModel):
-    code: str  # 6-digit TOTP code from authenticator app
-
-
-class TwoFAEnableResponse(BaseModel):
-    enabled: bool = True
-    backup_codes: List[str]  # show ONCE
-
-
-class TwoFAVerifyRequest(BaseModel):
-    challenge_id: str
-    code: str  # 6-digit TOTP or 10-char backup code
-
-
-class TwoFADisableRequest(BaseModel):
-    password: str
-    code: str
-
-
-# ----- AI payloads -----
-class CareerSuggestionRequest(BaseModel):
-    additional_context: Optional[str] = None
-    session_id: Optional[str] = None
-
-
-class ChatRequest(BaseModel):
-    message: str
-    session_id: Optional[str] = None
-
-
-class ChatResponse(BaseModel):
-    session_id: str
-    message: str
-
-
-# ----- Booking payloads -----
-class BookingRequest(BaseModel):
-    """Student books a mentor for a 1:1 session."""
-    mentor_id: str
-    slot_start_iso: str  # ISO datetime string
-    slot_end_iso: str
-    topic: str
-    notes: Optional[str] = None
-
-
-class ConnectRequestIn(BaseModel):
-    message: Optional[str] = None
-
-
-class MentorBookingCreateRequest(BaseModel):
-    """Mentor schedules a booking with a student."""
-    student_id: str
-    slot_start_iso: str  # ISO datetime string
-    topic: str
-    notes: Optional[str] = None
-
-
-class RescheduleRequest(BaseModel):
-    """Request payload to reschedule a session."""
-    slot_start_iso: str  # ISO datetime string
-
-
-
-# ----------------------------------------------------------------------------
-# Helpers — Auth, hashing, ID generation
-# ----------------------------------------------------------------------------
-def hash_password(password: str) -> str:
-    """Bcrypt is the industry standard for password hashing in 2026."""
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-
-
-def verify_password(plain: str, hashed: str) -> bool:
-    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
-
-
-def create_access_token(user_id: str, email: str, role: str) -> str:
-    """Short-lived access token for API authentication.
-    Includes a JTI (JWT ID) for token revocation support (logout blacklist).
-    """
-    payload = {
-        "sub": user_id,
-        "email": email,
-        "role": role,
-        "jti": secrets.token_hex(16),  # unique token ID for revocation
-        "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
-        "type": "access",
-    }
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-
-
-def create_refresh_token(user_id: str) -> str:
-    """Long-lived refresh token to obtain new access tokens without re-login."""
-    payload = {
-        "sub": user_id,
-        "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
-        "type": "refresh",
-    }
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-
-
-def generate_unique_id(role: str) -> str:
-    """Platform unique ID format: SA-{YEAR}-{ROLE_CODE}-{6 RANDOM CHARS}.
-    Example: SA-2026-STU-A7B2X9. Used as the user's QR code payload."""
-    role_codes = {"student": "STU", "alumni": "ALM", "mentor": "MNT", "college": "CLG", "admin": "ADM"}
-    code = role_codes.get(role, "USR")
-    rand = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    return f"SA-{datetime.now().year}-{code}-{rand}"
-
-
-def generate_qr_code(data: str) -> str:
-    """Generate base64-encoded PNG QR code for a unique platform ID."""
-    qr = qrcode.QRCode(version=1, box_size=10, border=2,
-                       error_correction=qrcode.constants.ERROR_CORRECT_M)
-    qr.add_data(data)
-    qr.make(fit=True)
-    img = qr.make_image(fill_color="#5F259F", back_color="#FFFFFF")  # Brand purple QR
-    buf = io.BytesIO()
-    getattr(img, "save")(buf, format="PNG")
-    return base64.b64encode(buf.getvalue()).decode("utf-8")
-
-
-def _safe_block(model_cls, value):
-    """Try to coerce a stored dict into the given Pydantic model. If it fails
-    validation (e.g. seed data missing required fields), return None instead of
-    crashing the whole user payload. Logged so we know it happened."""
-    if value is None:
-        return None
-    try:
-        # Validate but return as dict so FastAPI re-validates with the parent model
-        return model_cls(**value).model_dump(exclude_none=False)
-    except Exception:
-        return None
-
-
-def serialize_user(user: dict) -> dict | None:
-    """Strip internal fields (_id, password_hash) from user dict before sending to client.
-    Decrypts at-rest fields (phone / dob / postal_code) on the way out.
-    """
-    if not user:
-        return None
-    return {
-        "id": str(user.get("_id")),
-        "email": user.get("email"),
-        "full_name": user.get("full_name"),
-        "role": user.get("role"),
-        # Sensitive fields — decrypt before exposing.
-        "phone":        decrypt_value(user.get("phone")),
-        "unique_id": user.get("unique_id"),
-        "qr_code_base64": user.get("qr_code_base64"),
-        "school_info":  _safe_block(SchoolInfo,  user.get("school_info")),
-        "career_path":  user.get("career_path"),
-        "student_info": _safe_block(StudentInfo, user.get("student_info")),
-        "alumni_info":  _safe_block(AlumniInfo,  user.get("alumni_info")),
-        "mentor_info":  _safe_block(MentorInfo,  user.get("mentor_info")),
-        "college_info": _safe_block(CollegeInfo, user.get("college_info")),
-        "mentor_status": user.get("mentor_status"),
-        "interests": user.get("interests", []),
-        "skills": user.get("skills", []),
-        "bio": user.get("bio"),
-        "face_image_base64": user.get("face_image_base64"),
-        "onboarding_completed": user.get("onboarding_completed", False),
-        "two_fa_enabled": user.get("two_fa_enabled", False),
-        # Phase A — DOB / country / postal — exposed on every user response.
-        "dob":          decrypt_value(user.get("dob")),
-        "country_code": user.get("country_code"),
-        "postal_code":  decrypt_value(user.get("postal_code")),
-        "created_at": user.get("created_at"),
-        # Phase-4 SA Profile Web fields — round-trip through PUT /users/me & /auth/me
-        "first_name":     user.get("first_name"),
-        "last_name":      user.get("last_name"),
-        "headline":       user.get("headline"),
-        "photo_data":     user.get("face_image_base64") or user.get("photo_data") or user.get("oauth_picture"),
-        "banner_data":    user.get("banner_data"),
-        "college_logo_data": user.get("college_logo_data"),
-        "institution":    user.get("institution") or (user.get("school_info") or {}).get("institution_name") or (user.get("alumni_info") or {}).get("institution_name") or (user.get("college_info") or {}).get("institution_name"),
-        "branch":         user.get("branch") or (user.get("school_info") or {}).get("branch_or_stream"),
-        "stream":         user.get("stream"),
-        "department":     user.get("department"),
-        "graduation_year": user.get("graduation_year") or (user.get("school_info") or {}).get("graduation_year") or (user.get("alumni_info") or {}).get("graduation_year"),
-        "cgpa":           user.get("cgpa") or (user.get("school_info") or {}).get("cgpa"),
-        "location":       user.get("location"),
-        "city":           user.get("city") or (user.get("school_info") or {}).get("city") or (user.get("college_info") or {}).get("city"),
-        "state":          user.get("state") or (user.get("school_info") or {}).get("state") or (user.get("college_info") or {}).get("state"),
-        "linkedin_url":   user.get("linkedin_url"),
-        "github_url":     user.get("github_url"),
-        "portfolio_url":  user.get("portfolio_url"),
-        "primary_skill":  user.get("primary_skill"),
-        "profile_visibility": user.get("profile_visibility"),
-        "section_toggles": user.get("section_toggles"),
-        "badges":         [b for b in user.get("badges", []) if isinstance(b, dict)],
-        "projects":       user.get("projects"),
-        "preferences":    user.get("preferences"),
-        "is_verified":    user.get("is_verified"),
-        "ranking_tier":   user.get("ranking_tier"),
-        # Identity & DigiLocker
-        "aadhaar_number": user.get("aadhaar_number"),
-        "aadhaar_masked": user.get("aadhaar_masked") or (f"•••• •••• {str(user.get('aadhaar_number'))[-4:]}" if user.get("aadhaar_number") and len(str(user.get("aadhaar_number")).replace(" ","")) >= 4 else None),
-        "aadhaar_verified": bool(user.get("aadhaar_verified", False)),
-        "digilocker_id": user.get("digilocker_id"),
-        "digilocker_verified": bool(user.get("digilocker_verified", False)),
-        "digilocker_doc_count": int(user.get("digilocker_doc_count", 0)),
-        "digilocker_uri": user.get("digilocker_uri"),
-        "digilocker_linked_at": user.get("digilocker_linked_at"),
-    }
-
-
-async def get_current_user(request: Request) -> dict:
-    """JWT auth dependency. Reads `Authorization: Bearer <token>` header."""
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(401, "Not authenticated")
-    try:
-        payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        if payload.get("type") != "access":
-            raise HTTPException(401, "Invalid token type")
-        # Check token blacklist (logout revocation)
-        jti = payload.get("jti")
-        if jti:
-            blacklisted = await db.token_blacklist.find_one({"jti": jti})
-            if blacklisted:
-                raise HTTPException(401, "Token has been revoked")
-        user = await db.users.find_one(
-            {"_id": ObjectId(payload["sub"])}
-        )
-        if not user:
-            raise HTTPException(401, "User not found")
-
-        # ── Schema Unification Migration Helper ──
-        needs_migration = False
-        updates = {"$set": {}, "$unset": {}}
-
-        # 1. Image Schema
-        if not user.get("photo_data") and (user.get("photo_data")):
-            user["photo_data"] = user.get("photo_data")
-            updates["$set"]["photo_data"] = user["photo_data"]
-            if "face_image_base64" in user: updates["$unset"]["face_image_base64"] = ""
-            if "photo" in user: updates["$unset"]["photo"] = ""
-            needs_migration = True
-
-        # 2. Career Goal
-        si = user.get("student_info") or {}
-        if not si.get("career_goal") and (user.get("career_goal") or user.get("career_path")):
-            si["career_goal"] = user.get("career_goal") or user.get("career_path")
-            user["student_info"] = si
-            updates["$set"]["student_info"] = si
-            if "career_goal" in user: updates["$unset"]["career_goal"] = ""
-            if "career_path" in user: updates["$unset"]["career_path"] = ""
-            needs_migration = True
-
-        # 3. Education
-        s_info = user.get("school_info") or {}
-        has_edu_legacy = False
-        for legacy_key, target_key in [
-            ("branch", "branch_or_stream"),
-            ("cgpa", "cgpa"),
-            ("graduation_year", "graduation_year"),
-            ("class_or_year", "class_or_year"),
-            ("department", "branch_or_stream")
-        ]:
-            if legacy_key in user:
-                if target_key not in s_info or not s_info[target_key]:
-                    s_info[target_key] = user[legacy_key]
-                updates["$unset"][legacy_key] = ""
-                has_edu_legacy = True
-        if has_edu_legacy:
-            user["school_info"] = s_info
-            updates["$set"]["school_info"] = s_info
-            needs_migration = True
-
-        # 4. Resume
-        if user.get("resume_url"):
-            legacy_url = user.get("resume_url")
-            new_doc = {
-                "id": "legacy_migrated",
-                "name": "Legacy_Resume.pdf",
-                "size": 0,
-                "data_url": legacy_url,
-                "uploaded_at": datetime.now(timezone.utc).isoformat(),
-                "active": True
-            }
-            updates["$push"] = {"resume_documents": new_doc}
-            if not user.get("resume_documents"):
-                user["resume_documents"] = []
-            user["resume_documents"].append(new_doc)
-            if "resume_url" in user: updates["$unset"]["resume_url"] = ""
-            if "resume_data" in user: updates["$unset"]["resume_data"] = ""
-            needs_migration = True
-
-        if needs_migration:
-            try:
-                if not updates["$unset"]: del updates["$unset"]
-                if not updates["$set"]: del updates["$set"]
-                if not updates.get("$push"): updates.pop("$push", None)
-                if updates:
-                    await db.users.update_one({"_id": user["_id"]}, updates)
-            except Exception as e:
-                print(f"Migration error: {e}", flush=True)
-        
-        # Remove large binary fields from response to match legacy behavior
-        if "resume_documents" in user:
-            del user["resume_documents"]
-            
-        return user
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(401, "Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(401, "Invalid token")
-
-
-def validate_student_class(school_info: SchoolInfo, age: Optional[int] = None) -> None:
-    """Per spec: students must be age 10+ AND in Class 11 (+1) or above."""
-    if age is not None and age < 10:
-        raise HTTPException(400, "Students must be at least 10 years old to register.")
-    cls = (school_info.class_or_year or "").strip().lower()
-    # If user typed a single number, reject 1-10
-    if cls.isdigit() and int(cls) < 11:
-        raise HTTPException(400, "Students must be in Class 11 (+1) or above.")
-
-
-
-
-
-@api_router.get("/dashboard/student-summary")
-async def student_dashboard_summary(user: dict = Depends(get_current_user)):
-    """Student Dashboard Command Center — one endpoint that bundles all data needed
-    for the redesigned Job Readiness Command Center dashboard.
-
-    Combines (all from existing cached/fast sources):
-      • skill_intelligence  — readiness score, skill scores, ranked_actions
-      • profile_completion  — percentage + item checklist
-      • user_stats          — connections, sessions, applications, streak
-      • career_roadmap      — target_role, progress_pct, next milestone (from cache)
-      • featured_content    — top 3 internships, top 3 mentors, top 3 events
-      • notification_count  — count of unread notifications
-    """
-    import asyncio as _asyncio
-
-    uid = str(user.get("id") or user.get("_id"))
-
-    # ── 1. Skill Intelligence (delegates to compute_full_intelligence which uses service cache) ─
-    async def _get_intel():
-        try:
-            return await compute_full_intelligence(user, uid, db)
-        except Exception:
-            return {
-                "readiness_score": {"score": 0, "level": "Getting Started", "next_level": "Builder", "next_threshold": 25},
-                "skill_scores": {"Technical Excellence": 0, "Professional Communication": 0, "Personal Brand": 0,
-                                 "Leadership & Collaboration": 0, "Career Preparation": 0, "Industry Presence": 0},
-                "potential_score": 100,
-                "ranked_actions": [],
-                "score_explanations": {},
-            }
-
-    # ── 2. Profile Completion ───────────────────────────────────────────────
-    async def _get_completion():
-        try:
-            user_db = await db.users.find_one({"_id": user["_id"]}, {"resume_documents": 1})
-            u2 = dict(user)
-            if user_db:
-                u2["resume_documents"] = user_db.get("resume_documents") or []
-            return compute_profile_completion(u2)
-        except Exception:
-            return {"percentage": 0, "items": []}
-
-    # ── 3. User Stats ───────────────────────────────────────────────────────
-    async def _get_stats():
-        connections = sessions = applications = streak = 0
-        try:
-            connections = await db.connections.count_documents({
-                "$or": [
-                    {"from_id": uid},
-                    {"to_id": uid},
-                    {"a": uid},
-                    {"b": uid},
-                    {"mentor_id": uid},
-                    {"user_id": uid},
-                    {"student_id": uid},
-                    {"from_user": uid},
-                    {"to_user": uid}
-                ],
-                "status": {"$in": ["accepted", "active"]},
-            })
-        except Exception:
-            pass
-        try:
-            sessions = await db.mentor_sessions.count_documents({
-                "mentee_id": uid, "status": {"$in": ["completed", "done"]},
-            })
-        except Exception:
-            pass
-        try:
-            applications = await db.applications.count_documents({"user_id": uid})
-        except Exception:
-            pass
-        # streak from user stats
-        try:
-            from datetime import datetime as _dt2, timedelta as _td2, timezone as _tz2
-            today2 = _dt2.now(_tz2.utc).replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
-            thirty_ago = today2 - _td2(days=30)
-            streak_days = set()
-            async for ev in db.activity_events.find({"user_id": uid, "ts": {"$gte": thirty_ago}}, {"ts": 1}):
-                d_ts = ev.get("ts")
-                if isinstance(d_ts, _dt2):
-                    streak_days.add(d_ts.date().isoformat())
-            d_day = today2.date()
-            if d_day.isoformat() not in streak_days:
-                yesterday2 = d_day - _td2(days=1)
-                if yesterday2.isoformat() in streak_days:
-                    d_day = yesterday2
-            while d_day.isoformat() in streak_days:
-                streak += 1
-                d_day = d_day - _td2(days=1)
-        except Exception:
-            pass
-        return {"connections": connections, "sessions": sessions, "applications": applications, "streak": streak}
-
-    # ── 4. Career Roadmap (cache-only, no LLM trigger) ─────────────────────
-    async def _get_roadmap_summary():
-        try:
-            existing = await db.career_roadmaps.find_one({"user_id": uid})
-            if not existing:
-                return None
-            milestones = existing.get("milestones") or []
-            completed = [m for m in milestones if m.get("completed")]
-            progress_pct = round(len(completed) / len(milestones) * 100) if milestones else 0
-            pending = [m for m in milestones if not m.get("completed")]
-            next_milestone = pending[0] if pending else None
-            return {
-                "target_role": existing.get("target_role", ""),
-                "target_company_type": existing.get("target_company_type", ""),
-                "progress_pct": progress_pct,
-                "milestones_total": len(milestones),
-                "milestones_completed": len(completed),
-                "next_milestone": {
-                    "title": next_milestone.get("title", "") if next_milestone else "",
-                    "milestone_type": next_milestone.get("milestone_type", "") if next_milestone else "",
-                    "description": next_milestone.get("description", "") if next_milestone else "",
-                } if next_milestone else None,
-            }
-        except Exception:
-            return None
-
-    # ── 5. Featured Content ──────────────────────────────────────────────────
-    async def _get_featured():
-        career_path = (user.get("career_path") or "").lower()
-        # Internships
-        intern_q: dict = {}
-        if career_path:
-            intern_q["career_paths"] = career_path
-        internships = await db.internships.find(intern_q, {"_id": 0}).limit(5).to_list(5)
-        # Mentors (approved only, real users first)
-        mentor_q = {"role": "mentor", "mentor_status": "approved"}
-        if career_path:
-            mentor_q["mentor_info.category"] = {
-                "job": "it_software",
-                "higher_education": "higher_education",
-                "startup": "startup",
-                "business": "business",
-            }.get(career_path, "it_software")
-        mentors_raw = await db.users.find(mentor_q, {"password_hash": 0}).limit(4).to_list(4)
-        mentors = []
-        for m in mentors_raw:
-            mr = m.get("mentor_rating", {})
-            mentors.append({
-                "id": str(m["_id"]),
-                "full_name": m.get("full_name", ""),
-                "designation": (m.get("mentor_info") or {}).get("designation", ""),
-                "organization": (m.get("mentor_info") or {}).get("organization", ""),
-                "category": (m.get("mentor_info") or {}).get("category", ""),
-                "rating": mr.get("rating", mr.get("average", 5.0)),
-                "total_reviews": mr.get("total_reviews", mr.get("total", 0)),
-                "bio": m.get("bio", ""),
-                "skills": (m.get("mentor_info") or {}).get("skills_offered", []),
-                "photo_url": m.get("face_image_base64", "") or m.get("photo_url", ""),
-            })
-        # Events
-        from datetime import datetime as _dt3, timezone as _tz3
-        events = await db.events.find(
-            {"start_date": {"$gte": _dt3.now(_tz3.utc).replace(tzinfo=None)}},  
-            {"_id": 0, "title": 1, "date_str": 1, "time_str": 1, "mode": 1, "category": 1, "coverColor": 1, "capacity": 1, "mentor_id": 1}
-        ).sort("start_date", 1).limit(4).to_list(4)
-        return {"internships": internships, "mentors": mentors, "events": events}
-
-    # ── 6. Notification Count ────────────────────────────────────────────────
-    async def _get_notif_count():
-        try:
-            notifs = await db.notifications.find({"user_id": uid, "read": {"$ne": True}}).to_list(100)
-            return len(notifs)
-        except Exception:
-            try:
-                all_notifs = await db.notifications.find({"user_id": uid}).to_list(100)
-                unread = [n for n in all_notifs if not n.get("read")]
-                return len(unread)
-            except Exception:
-                return 0
-
-    # ── 7. AI Coach Data (computed, no LLM) ─────────────────────────────────
-    async def _get_coach_data(intel_data):
-        try:
-            rs = intel_data.get("readiness_score", {})
-            scores = intel_data.get("skill_scores", {})
-            actions = intel_data.get("ranked_actions", [])
-            expl = intel_data.get("score_explanations", {})
-
-            # Sort categories by score
-            sorted_cats = sorted(scores.items(), key=lambda x: x[1])
-            weakest = sorted_cats[0] if sorted_cats else ("Unknown", 0)
-            strongest = sorted_cats[-1] if sorted_cats else ("Unknown", 100)
-
-            top_action = actions[0] if actions else None
-            total_gain = sum(a.get("gain", 0) for a in actions[:3])
-
-            # Confidence score = how well-understood the weakness is
-            # = inverse of (weakest_score / 100) → lower score = higher confidence we know the gap
-            raw_confidence = max(0, 100 - weakest[1])
-            confidence = min(95, max(60, raw_confidence))  # clamp 60-95
-
-            # Category explanation for weakest
-            cat_expl = (expl.get("categories") or {}).get(weakest[0], {})
-            factors = cat_expl.get("factors", []) if cat_expl else []
-
-            return {
-                "current_readiness": rs.get("score", 0),
-                "current_tier": rs.get("level", "Getting Started"),
-                "next_tier": rs.get("next_level", "Builder"),
-                "points_to_next": max(0, rs.get("next_threshold", 100) - rs.get("score", 0)),
-                "weakest_category": weakest[0],
-                "weakest_score": weakest[1],
-                "strongest_category": strongest[0],
-                "strongest_score": strongest[1],
-                "top_action": top_action,
-                "total_potential_gain_today": total_gain,
-                "confidence_score": confidence,
-                "score_factors": factors[:3],  # top 3 for the weakest category
-            }
-        except Exception:
-            return {}
-
-    # ── 8. Career Insights (dynamic, from real DB signals) ──────────────────
-    async def _get_career_insights(intel_data, completion_data, stats_data):
-        insights = []
-        try:
-            rs = intel_data.get("readiness_score", {})
-            scores = intel_data.get("skill_scores", {})
-            actions = intel_data.get("ranked_actions", [])
-            sorted_cats = sorted(scores.items(), key=lambda x: x[1]) if scores else []
-            weakest = sorted_cats[0] if sorted_cats else None
-            profile_pct = completion_data.get("percentage", 0)
-
-            # Profile views from student/intelligence KPIs
-            # Pull directly from db.analytics_events to get profile view count
-            from datetime import datetime as _dti, timedelta as _tdi, timezone as _tzi
-            thirty_ago = _dti.now(_tzi.utc).replace(tzinfo=None) - _tdi(days=30)
-            profile_views = 0
-            try:
-                profile_views = await db.analytics_events.count_documents({
-                    "target_id": uid, "event_type": "profile_view",
-                    "ts": {"$gte": thirty_ago}
-                })
-                if profile_views == 0:
-                    # fallback: check page_views collection
-                    profile_views = await db.page_views.count_documents({
-                        "target_user_id": uid, "ts": {"$gte": thirty_ago}
-                    })
-            except Exception:
-                profile_views = 0
-
-            # Resume age signal
-            try:
-                user_doc = await db.users.find_one({"_id": user["_id"]}, {"resume_documents": 1, "updated_at": 1})
-                resume_docs = (user_doc or {}).get("resume_documents") or []
-                has_resume = len(resume_docs) > 0
-                if has_resume:
-                    # Find most recent resume
-                    latest_resume_ts = None
-                    for r in resume_docs:
-                        rt = r.get("uploaded_at") or r.get("created_at")
-                        if rt and (latest_resume_ts is None or rt > latest_resume_ts):
-                            latest_resume_ts = rt
-                    if latest_resume_ts:
-                        delta = _dti.now(_tzi.utc).replace(tzinfo=None) - latest_resume_ts
-                        days_old = delta.days
-                        if days_old > 30:
-                            insights.append({
-                                "icon": "file-text",
-                                "color": "#F59E0B",
-                                "text": f"Resume hasn't been updated in {days_old} days",
-                                "type": "warning",
-                                "priority": 2,
-                            })
-                        else:
-                            insights.append({
-                                "icon": "file-text",
-                                "color": "#34D399",
-                                "text": f"Resume uploaded {days_old} days ago — keep it current",
-                                "type": "positive",
-                                "priority": 5,
-                            })
-                else:
-                    insights.append({
-                        "icon": "file-text",
-                        "color": "#F87171",
-                        "text": "No resume uploaded yet — this blocks most applications",
-                        "type": "blocker",
-                        "priority": 1,
-                    })
-            except Exception:
-                pass
-
-            # Profile views insight
-            if profile_views > 0:
-                insights.append({
-                    "icon": "eye",
-                    "color": "#60A5FA",
-                    "text": f"Profile viewed {profile_views} time{'s' if profile_views != 1 else ''} this month",
-                    "type": "positive",
-                    "priority": 4,
-                })
-
-            # Weakest category insight
-            if weakest and weakest[1] < 50:
-                insights.append({
-                    "icon": "alert-triangle",
-                    "color": "#F87171",
-                    "text": f"{weakest[0]} is your weakest area at {weakest[1]}% — focus here for fastest gains",
-                    "type": "warning",
-                    "priority": 1,
-                })
-            elif weakest:
-                insights.append({
-                    "icon": "trending-up",
-                    "color": "#A78BFA",
-                    "text": f"{weakest[0]} has room to grow ({weakest[1]}%) — targeted effort could push it up",
-                    "type": "info",
-                    "priority": 3,
-                })
-
-            # Connections insight
-            connections = stats_data.get("connections", 0)
-            if connections == 0:
-                insights.append({
-                    "icon": "users",
-                    "color": "#A78BFA",
-                    "text": "No connections yet — networking is below average for your career stage",
-                    "type": "action",
-                    "priority": 2,
-                })
-            elif connections < 5:
-                insights.append({
-                    "icon": "users",
-                    "color": "#60A5FA",
-                    "text": f"{connections} connection{'s' if connections != 1 else ''} — aim for 10+ to strengthen your network score",
-                    "type": "info",
-                    "priority": 4,
-                })
-
-            # Applications insight
-            apps = stats_data.get("applications", 0)
-            if apps == 0:
-                insights.append({
-                    "icon": "briefcase",
-                    "color": "#F59E0B",
-                    "text": "No internship applications sent — start applying to boost Career Preparation",
-                    "type": "action",
-                    "priority": 2,
-                })
-
-            # Potential gain insight
-            total_gain = sum(a.get("gain", 0) for a in actions[:3])
-            if total_gain > 0:
-                insights.append({
-                    "icon": "zap",
-                    "color": "#2DD4BF",
-                    "text": f"+{total_gain}% readiness possible if you complete today's top {min(len(actions), 3)} actions",
-                    "type": "highlight",
-                    "priority": 0,
-                })
-
-            # Profile completion insight
-            if profile_pct < 60:
-                insights.append({
-                    "icon": "target",
-                    "color": "#F87171",
-                    "text": f"Profile is only {profile_pct}% complete — recruiters skip incomplete profiles",
-                    "type": "blocker",
-                    "priority": 1,
-                })
-
-            # Readiness tier insight
-            score = rs.get("score", 0)
-            next_level = rs.get("next_level", "")
-            pts_to_next = max(0, rs.get("next_threshold", 100) - score)
-            if pts_to_next > 0 and pts_to_next <= 15:
-                insights.append({
-                    "icon": "trophy",
-                    "color": "#F59E0B",
-                    "text": f"Only {pts_to_next}% away from {next_level} tier — you're almost there!",
-                    "type": "highlight",
-                    "priority": 0,
-                })
-
-            # Sort by priority (lower = more urgent), limit to 6
-            insights.sort(key=lambda x: x.get("priority", 5))
-            return insights[:6]
-        except Exception:
-            return []
-
-    # ── 9. Yesterday's Activity Wins ────────────────────────────────────────
-    async def _get_yesterday_wins():
-        try:
-            from datetime import datetime as _dty, timedelta as _tdy, timezone as _tzy
-            yesterday_start = _dty.now(_tzy.utc).replace(tzinfo=None) - _tdy(hours=24)
-            events = await db.activity_events.find(
-                {"user_id": uid, "ts": {"$gte": yesterday_start}},
-                {"title": 1, "sub": 1, "icon": 1, "tint": 1}
-            ).sort("ts", -1).limit(5).to_list(5)
-            wins = []
-            for ev in events:
-                wins.append({
-                    "label": ev.get("title", "Activity"),
-                    "detail": ev.get("sub", ""),
-                    "icon": ev.get("icon", "check-circle"),
-                    "color": ev.get("tint", "#34D399"),
-                })
-            return wins
-        except Exception:
-            return []
-
-    # ── Run all in parallel ──────────────────────────────────────────────────
-    intel, completion, stats, roadmap, featured, notif_count = await _asyncio.gather(
-        _get_intel(),
-        _get_completion(),
-        _get_stats(),
-        _get_roadmap_summary(),
-        _get_featured(),
-        _get_notif_count(),
-    )
-
-    # Coach + Insights depend on intel/completion/stats — run after gather
-    coach_data, career_insights, yesterday_wins = await _asyncio.gather(
-        _get_coach_data(intel),
-        _get_career_insights(intel, completion, stats),
-        _get_yesterday_wins(),
-    )
-
-    return {
-        "skill_intelligence": intel,
-        "profile_completion": completion,
-        "stats": stats,
-        "career_roadmap": roadmap,
-        "featured": featured,
-        "notification_count": notif_count,
-        "ai_coach": coach_data,
-        "career_insights": career_insights,
-        "yesterday_wins": yesterday_wins,
-        "predictions": intel.get("predictions", {}) if isinstance(intel, dict) else {},
-        "readiness_estimates": intel.get("readiness_estimates", {}) if isinstance(intel, dict) else {},
-        "user": {
-            "full_name": user.get("full_name", ""),
-            "role": user.get("role", "student"),
-            "career_path": user.get("career_path", ""),
-            "career_goal": (user.get("student_info") or {}).get("career_goal") or user.get("career_goal", ""),
-        },
-    }
-
-
-
-
-
-
-
-# ----------------------------------------------------------------------------
-# Coupon System — CRUD + redemption
-# ----------------------------------------------------------------------------
-def _coupon_fields(d: dict) -> dict:
-    """Whitelist of coupon fields returned to clients (never leaks internals).
-    When locked, the code, description, and instructions are masked."""
-    locked = bool(d.get("locked", False))
-    return {
-        "id": str(d["_id"]),
-        "code": "****" if locked else d.get("code", ""),
-        "description": "" if locked else d.get("description", ""),
-        "discount_type": d.get("discount_type", "percentage"),
-        "discount_pct": 0 if locked else d.get("discount_pct", 0),
-        "max_uses": d.get("max_uses", 0),
-        "used_count": d.get("used_count", 0),
-        "active": bool(d.get("active", True)),
-        "expires_at": d.get("expires_at"),
-        "image_url": d.get("image_url"),
-        "partner_name": "" if locked else d.get("partner_name"),
-        "partner_website_url": "" if locked else d.get("partner_website_url"),
-        "instructions": "" if locked else d.get("instructions", ""),
-        "audience": d.get("audience") or ["all"],
-        "display_order": int(d.get("display_order", 0)),
-        "created_at": d.get("created_at"),
-        "locked": locked,
-    }
-
-
-@api_router.get("/coupons")
-async def list_coupons():
-    """Public — list active coupons for display."""
-    docs = await db.coupons.find({"active": True}).sort("display_order", 1).to_list(100)
-    return {"coupons": [_coupon_fields(d) for d in docs]}
-
-
-@api_router.get("/coupons/active")
-async def list_active_coupons_for_me(user: dict = Depends(get_current_user)):
-    """Role-targeted coupons for the logged-in user's dashboard."""
-    role = (user.get("role") or "student").lower()
-    role_map = {"superadmin": "super_admin", "admin": "super_admin"}
-    role = role_map.get(role, role)
-    docs = await db.coupons.find({
-        "active": True,
-        "$or": [{"audience": "all"}, {"audience": role}],
-    }).sort("display_order", 1).to_list(100)
-    return {"coupons": [_coupon_fields(d) for d in docs], "role": role}
-
-
-@api_router.post("/admin/coupons")
-async def create_coupon(payload: dict, user: dict = Depends(get_current_user)):
-    """Admin — create a new coupon."""
-    role = (user.get("role") or "").lower()
-    if role not in ("admin", "superadmin", "super_admin"):
-        raise HTTPException(403, "Only admins can manage coupons")
-    code = (payload.get("code") or "").strip().upper()
-    if not code:
-        raise HTTPException(400, "Coupon code is required")
-    existing = await db.coupons.find_one({"code": code})
-    if existing:
-        raise HTTPException(409, "Coupon code already exists")
-    audience = payload.get("audience") or ["all"]
-    if not isinstance(audience, list) or not audience:
-        audience = ["all"]
-    doc = {
-        "code": code,
-        "description": (payload.get("description") or "").strip(),
-        "discount_type": payload.get("discount_type", "percentage"),
-        "discount_pct": max(0, int(payload.get("discount_pct", 0) or 0)),
-        "max_uses": max(1, int(payload.get("max_uses", 1))),
-        "used_count": 0,
-        "active": True,
-        "expires_at": payload.get("expires_at"),
-        "image_url": payload.get("image_url") or None,
-        "partner_name": (payload.get("partner_name") or "").strip() or None,
-        "partner_website_url": (payload.get("partner_website_url") or "").strip() or None,
-        "instructions": (payload.get("instructions") or "").strip(),
-        "audience": list(dict.fromkeys(audience)),
-        "display_order": int(payload.get("display_order", 0) or 0),
-        "created_by": str(user.get("_id")),
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    }
-    res = await db.coupons.insert_one(doc)
-    doc["id"] = str(res.inserted_id)
-    return {"status": "ok", "coupon": doc}
-
-
-@api_router.get("/admin/coupons")
-async def admin_list_coupons(user: dict = Depends(get_current_user)):
-    """Admin — list all coupons (active + inactive)."""
-    role = (user.get("role") or "").lower()
-    if role not in ("admin", "superadmin", "super_admin"):
-        raise HTTPException(403, "Only admins can manage coupons")
-    docs = await db.coupons.find().sort("created_at", -1).to_list(200)
-    return {"coupons": [_coupon_fields(d) for d in docs]}
-
-
-@api_router.patch("/admin/coupons/{coupon_id}")
-async def update_coupon(coupon_id: str, payload: dict, user: dict = Depends(get_current_user)):
-    """Admin — toggle active or update coupon fields."""
-    role = (user.get("role") or "").lower()
-    if role not in ("admin", "superadmin", "super_admin"):
-        raise HTTPException(403, "Only admins can manage coupons")
-    from bson import ObjectId
-    try:
-        oid = ObjectId(coupon_id)
-    except Exception:
-        raise HTTPException(400, "Invalid coupon ID")
-    existing = await db.coupons.find_one({"_id": oid})
-    if not existing:
-        raise HTTPException(404, "Coupon not found")
-    update = {}
-    for k in ("description", "discount_pct", "discount_type", "max_uses", "active", "expires_at",
-              "image_url", "partner_name", "partner_website_url", "instructions",
-              "audience", "display_order", "locked"):
-        if k in payload:
-            update[k] = payload[k]
-    if not update:
-        raise HTTPException(400, "No fields to update")
-    result = await db.coupons.update_one({"_id": oid}, {"$set": update})
-    if result.modified_count == 0:
-        # Even if nothing changed, return success (values may be the same)
-        pass
-    updated = await db.coupons.find_one({"_id": oid})
-    return {"status": "ok", "coupon": _coupon_fields(updated) if updated else None}
-
-
-@api_router.delete("/admin/coupons/{coupon_id}")
-async def delete_coupon(coupon_id: str, user: dict = Depends(get_current_user)):
-    """Admin — delete a coupon."""
-    role = (user.get("role") or "").lower()
-    if role not in ("admin", "superadmin", "super_admin"):
-        raise HTTPException(403, "Only admins can manage coupons")
-    from bson import ObjectId
-    await db.coupons.delete_one({"_id": ObjectId(coupon_id)})
-    return {"status": "ok"}
-
-
-@api_router.post("/admin/coupons/upload")
-async def upload_coupon_image(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
-    """Admin — upload coupon image. Returns the static URL."""
-    role = (user.get("role") or "").lower()
-    if role not in ("admin", "superadmin", "super_admin"):
-        raise HTTPException(403, "Only admins can manage coupons")
-    from pathlib import Path
-    from datetime import datetime, timezone
-    upload_dir = Path("uploads/coupons")
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    ext = Path(file.filename).suffix.lower() if file.filename else ".png"
-    allowed = {".jpg", ".jpeg", ".png", ".webp", ".svg", ".gif"}
-    if ext not in allowed:
-        raise HTTPException(400, f"File type {ext} not allowed")
-    contents = await file.read()
-    from security_scanner import scan_file_for_viruses_async
-    await scan_file_for_viruses_async(contents)
-    max_size = 5 * 1024 * 1024
-    if len(contents) > max_size:
-        raise HTTPException(413, "File too large. Maximum 5 MB allowed")
-    ts = int(datetime.now(timezone.utc).timestamp())
-    stem = Path(file.filename).stem.replace(" ", "_") if file.filename else "coupon"
-    safe_name = f"{ts}_{stem}{ext}"
-    out_path = upload_dir / safe_name
-    with open(out_path, "wb") as f:
-        f.write(contents)
-    url = f"/uploads/coupons/{safe_name}"
-    return {"status": "ok", "url": url}
-
-
-@api_router.post("/coupons/redeem")
-async def redeem_coupon(payload: dict, user: dict = Depends(get_current_user)):
-    """Redeem a coupon code — increments used_count if valid."""
-    code = (payload.get("code") or "").strip().upper()
-    if not code:
-        raise HTTPException(400, "Coupon code is required")
-    coupon = await db.coupons.find_one({"code": code, "active": True})
-    if not coupon:
-        raise HTTPException(404, "Invalid or expired coupon code")
-    if coupon.get("used_count", 0) >= coupon.get("max_uses", 1):
-        raise HTTPException(400, "Coupon has reached its usage limit")
-    if coupon.get("expires_at"):
-        from datetime import datetime as _dt
-        try:
-            expires = _dt.fromisoformat(coupon["expires_at"].replace("Z", "+00:00"))
-            if expires < _dt.now(timezone.utc):
-                raise HTTPException(400, "Coupon has expired")
-        except ValueError:
-            pass
-    await db.coupons.update_one(
-        {"_id": coupon["_id"]},
-        {"$inc": {"used_count": 1}}
-    )
-    return {"status": "ok", "discount_pct": coupon.get("discount_pct", 0), "code": code}
-
-
-# ----------------------------------------------------------------------------
-# Email Verification
-# ----------------------------------------------------------------------------
-@api_router.post("/auth/send-verification")
-async def send_verification_email(payload: dict):
-    """Send email verification link to the user's email address."""
-    from core.email_quality import require_ok
-    email = require_ok(payload.get("email") or "")
-    if not email:
-        raise HTTPException(400, "Email is required")
-    user = await db.users.find_one({"email": email})
-    if not user:
-        raise HTTPException(404, "User not found")
-    if user.get("email_verified"):
-        return {"status": "ok", "message": "Email already verified"}
-
-    token = secrets.token_urlsafe(32)
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
-    await db.email_verifications.update_one(
-        {"email": email},
-        {"$set": {
-            "email": email,
-            "token": token,
-            "expires_at": expires_at,
-            "created_at": datetime.now(timezone.utc),
-        }},
-        upsert=True,
-    )
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
-    verify_link = f"{frontend_url}/verify-email?token={token}&email={email}"
-    body = f"""
-    <h2>Verify your email address</h2>
-    <p>Click the link below to verify your email:</p>
-    <p><a href="{verify_link}" style="display:inline-block;padding:12px 24px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:8px;">Verify Email</a></p>
-    <p>Or copy this link: {verify_link}</p>
-    <p>This link expires in 24 hours.</p>
-    """
-    sent = await send_email(email, "Verify your email - Student Alumni", body)
-    if not sent:
-        # fallback — store as console log; user can still use OTP flow
-        print(f"[EMAIL] Verification token for {email}: {token}")
-    # Best-effort WhatsApp with the verification link
-    try:
-        from core.whatsapp import send_wa_message as _wa
-        phone = (user.get("phone") or "").strip()
-        if phone:
-            await _wa(phone=phone, text=f"🔐 *Verify your email*\n\nClick to verify your Student Alumni account:\n{verify_link}\n\nThis link expires in 24 hours.", kind="email_verification")
-    except Exception:
-        pass
-    return {"status": "ok", "message": "Verification email sent" if sent else "Token generated (email service not configured)"}
-
-
-@api_router.post("/auth/verify-email")
-async def verify_email_endpoint(payload: dict):
-    """Verify email using token or OTP code."""
-    token = (payload.get("token") or "").strip()
-    email = (payload.get("email") or "").strip().lower()
-    if not token or not email:
-        raise HTTPException(400, "Token and email are required")
-    record = await db.email_verifications.find_one({"email": email, "token": token})
-    if not record:
-        raise HTTPException(400, "Invalid verification token")
-    if record.get("expires_at") and record["expires_at"] < datetime.now(timezone.utc):
-        raise HTTPException(400, "Verification token has expired")
-    await db.users.update_one({"email": email}, {"$set": {"email_verified": True}})
-    await db.email_verifications.delete_one({"email": email, "token": token})
-    return {"status": "ok", "message": "Email verified successfully"}
-
-
-@api_router.post("/auth/email-otp/send")
-async def send_email_otp(payload: dict):
-    """Send a 6-digit one-time code to the user's email for passwordless sign-in
-    or email verification. Stores a SHA-256 hash of the code (never plaintext)
-    with a 10-minute expiry on the user record + email_verifications doc.
-    """
-    from core.email_quality import require_ok
-    email = require_ok(payload.get("email") or "")
-    if not email or "@" not in email:
-        raise HTTPException(400, "A valid email is required")
-
-    import random as _random
-    import hashlib as _hashlib
-
-    otp = str(_random.randint(100000, 999999))
-    otp_hash = _hashlib.sha256(otp.encode()).hexdigest()
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
-
-    await db.email_verifications.update_one(
-        {"email": email},
-        {"$set": {
-            "email": email,
-            "otp_hash": otp_hash,
-            "otp_expires_at": expires_at,
-            "otp_attempts": 0,
-            "expires_at": expires_at,  # TTL index on this field purges stale docs
-            "created_at": datetime.now(timezone.utc),
-        }},
-        upsert=True,
-    )
-
-    body = f"""
-    <h2 style="margin:0 0 14px 0;color:#111827;">Your one-time sign-in code</h2>
-    <p style="margin:0 0 8px 0;color:#374151;">Use the code below to continue. It expires in 10 minutes.</p>
-    <p style="margin:0 0 20px 0;color:#374151;"><strong style="font-size:28px;letter-spacing:4px;color:#7C3AED;">{otp}</strong></p>
-    <p style="margin:0;color:#9ca3af;font-size:12px;">If you didn't request this code, you can safely ignore this email.</p>
-    """
-    sent = await send_email(email, "Your Student Alumni sign-in code", body)
-    if not sent:
-        # Don't leak the code — only log to server for ops debugging.
-        print(f"[EMAIL-OTP] OTP generated for {email} (delivery pending provider config)")
-    # Best-effort WhatsApp with the OTP code
-    try:
-        from core.whatsapp import send_wa_message as _wa
-        user_doc = await db.users.find_one({"email": email}, {"phone": 1})
-        phone = (user_doc or {}).get("phone") or ""
-        if phone:
-            await _wa(phone=phone, text=f"🔐 *Your sign-in code*\n\nYour one-time code is: *{otp}*\n\nExpires in 10 minutes. If you didn't request this, ignore this message.", kind="email_otp")
-    except Exception:
-        pass
-    return {"status": "ok", "message": "OTP sent successfully", "otp_code": otp}
-
-
-@api_router.post("/auth/verify-email-otp")
-async def verify_email_otp(payload: dict):
-    """Verify a 6-digit email OTP (sent via /auth/email-otp/send). On success,
-    marks the email verified and returns a short-lived auth token for
-    passwordless sign-in (or a plain success for pure verification).
-    """
-    email = (payload.get("email") or "").strip().lower()
-    otp = (payload.get("otp") or "").strip()
-    if not email or not otp:
-        raise HTTPException(400, "Email and OTP are required")
-
-    import hashlib as _hashlib
-
-    record = await db.email_verifications.find_one({"email": email})
-    if not record or not record.get("otp_hash"):
-        raise HTTPException(400, "No OTP found for this email — request a new code")
-
-    if record.get("otp_attempts", 0) >= 5:
-        await db.email_verifications.delete_one({"email": email})
-        raise HTTPException(429, "Too many attempts. Please request a new code.")
-
-    expires_at = record.get("otp_expires_at")
-    now_utc = datetime.now(timezone.utc)
-    if expires_at:
-        if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
-        if now_utc > expires_at:
-            await db.email_verifications.delete_one({"email": email})
-            raise HTTPException(400, "OTP has expired — request a new code")
-
-    if record["otp_hash"] != _hashlib.sha256(otp.encode()).hexdigest():
-        await db.email_verifications.update_one(
-            {"email": email}, {"$inc": {"otp_attempts": 1}}
-        )
-        raise HTTPException(400, "Invalid OTP")
-
-    user = await db.users.find_one({"email": email})
-    if user:
-        await db.users.update_one({"email": email}, {"$set": {"email_verified": True}})
-    await db.email_verifications.delete_one({"email": email})
-
-    result: dict[str, Any] = {"status": "ok", "message": "Email verified successfully"}
-    if user:
-        # Use the platform's standard access-token factory so the token carries
-        # the required `type: "access"` + `exp` claims (get_current_user rejects
-        # anything without them).
-        token = create_access_token(str(user["_id"]), email, user.get("role"))
-        result["token"] = token
-        result["user"] = {
-            "id": str(user["_id"]),
-            "email": email,
-            "full_name": user.get("full_name"),
-            "role": user.get("role"),
-        }
-        try:
-            await db.auth_events.insert_one({
-                "event": "email_otp_login",
-                "email": email,
-                "user_id": str(user["_id"]),
-                "success": True,
-                "timestamp": datetime.now(timezone.utc),
-            })
-        except Exception:
-            pass
-    return result
-
-
-# ----------------------------------------------------------------------------
-# Logo serving — sa-icon.png
-# ----------------------------------------------------------------------------
-import os as _os
-_STATIC_DIR = Path(__file__).parent / "static"
-_STATIC_DIR.mkdir(exist_ok=True)
-
-
-@api_router.get("/static/logo")
-async def serve_logo():
-    """Return the platform logo (sa-icon.png) for email templates and UI."""
-    logo_path = _STATIC_DIR / "sa-icon.png"
-    if not logo_path.exists():
-        raise HTTPException(404, "Logo not found")
-    from fastapi.responses import FileResponse
-    return FileResponse(str(logo_path), media_type="image/png")
-
-
-# ----------------------------------------------------------------------------
-# Advertisement — cross-portal sidebar banner
-# ----------------------------------------------------------------------------
-# A single active "ad" (label + image_url + redirect_url) set by admin that
-# appears at the bottom of every portal sidebar. All users (no auth) can
-# fetch the active ad to display it.
-
-@api_router.get("/ad/image")
-async def get_ad_images():
-    """Return all active advertisements as an array.
-    Supports both legacy format (flat label/image_url/redirect_url fields)
-    and new format (items array).
-    """
-    doc = await db.site_config.find_one({"_key": "advertisement"})
-    if not doc:
-        return {"ads": []}
-    # New format: { items: [...] }
-    if doc.get("items") and isinstance(doc["items"], list):
-        return {"ads": doc["items"]}
-    # Legacy format: { label, image_url, redirect_url }
-    if doc.get("image_url"):
-        return {"ads": [{
-            "label": doc.get("label", ""),
-            "image_url": doc.get("image_url", ""),
-            "redirect_url": doc.get("redirect_url", ""),
-        }]}
-    return {"ads": []}
-
-
-@api_router.post("/admin/ad/image")
-async def set_ad_images(payload: dict, user: dict = Depends(get_current_user)):
-    """Save all ads at once (admin only). Body: { items: [{ label, image_url, redirect_url }] }.
-    Also accepts legacy single-ad format: { label, image_url, redirect_url }."""
-    role = (user.get("role") or "").lower()
-    if role not in ("admin", "superadmin", "super_admin"):
-        raise HTTPException(403, "Only admins can set advertisements")
-    # Support new items array format
-    items = payload.get("items")
-    if items is not None:
-        if not isinstance(items, list):
-            raise HTTPException(400, "items must be an array")
-        if len(items) == 0:
-            await db.site_config.update_one(
-                {"_key": "advertisement"},
-                {"$set": {
-                    "_key": "advertisement",
-                    "items": [],
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
-                    "updated_by": str(user.get("_id")),
-                }},
-                upsert=True,
-            )
-            return {"status": "ok", "items": []}
-        for item in items:
-            item["label"] = (item.get("label") or "").strip()
-            item["image_url"] = (item.get("image_url") or "").strip()
-            item["redirect_url"] = (item.get("redirect_url") or "").strip()
-        await db.site_config.update_one(
-            {"_key": "advertisement"},
-            {"$set": {
-                "_key": "advertisement",
-                "items": items,
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-                "updated_by": str(user.get("_id")),
-            }},
-            upsert=True,
-        )
-        return {"status": "ok", "items": items}
-    # Legacy single-ad format
-    label = (payload.get("label") or "").strip()
-    image_url = (payload.get("image_url") or "").strip()
-    redirect_url = (payload.get("redirect_url") or "").strip()
-    if not label or not image_url or not redirect_url:
-        raise HTTPException(400, "items array or (label, image_url, redirect_url) are required")
-    await db.site_config.update_one(
-        {"_key": "advertisement"},
-        {"$set": {
-            "_key": "advertisement",
-            "label": label,
-            "image_url": image_url,
-            "redirect_url": redirect_url,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "updated_by": str(user.get("_id")),
-        }},
-        upsert=True,
-    )
-    return {"status": "ok", "label": label, "image_url": image_url, "redirect_url": redirect_url}
-
-
-
-# ----------------------------------------------------------------------------
-# Analytics — role-aware dashboards
-# ----------------------------------------------------------------------------
-@api_router.get("/analytics")
-async def analytics_dispatcher(user: dict = Depends(get_current_user)):
-    """Returns the analytics payload appropriate for the caller's role.
-    Admin/super_admin -> platform-wide. College -> their institution. Mentor -> their bookings."""
-    return await get_analytics_for(db, user)
-
-
-@api_router.get("/analytics/super-admin")
-async def analytics_super_admin(user: dict = Depends(get_current_user)):
-    if user["role"] not in ("admin", "super_admin"):
-        raise HTTPException(403, "Super admin access required")
-    return await super_admin_analytics(db, include_revenue=True)
-
-
-@api_router.get("/analytics/admin")
-async def analytics_admin_endpoint(user: dict = Depends(get_current_user)):
-    if user["role"] not in ("admin", "super_admin"):
-        raise HTTPException(403, "Admin access required")
-    return await super_admin_analytics(db, include_revenue=False)
-
-
-@api_router.get("/analytics/college")
-async def analytics_college_endpoint(user: dict = Depends(get_current_user),
-                                      institution_name: Optional[str] = None):
-    if user["role"] not in ("college", "admin", "super_admin"):
-        raise HTTPException(403, "College / admin access required")
-    inst = institution_name or (user.get("school_info") or {}).get("institution_name") or user.get("full_name") or ""
-    return await college_analytics(db, inst)
-
-
-@api_router.get("/analytics/mentor")
-async def analytics_mentor_endpoint(user: dict = Depends(get_current_user),
-                                     mentor_id: Optional[str] = None):
-    if user["role"] in ("admin", "super_admin") and mentor_id:
-        return await mentor_analytics(db, mentor_id)
-    if user["role"] != "mentor":
-        raise HTTPException(403, "Mentor access required")
-    return await mentor_analytics(db, str(user["_id"]))
-
-
-# ----------------------------------------------------------------------------
-# External API Integrations — Coursera / Udemy / Adzuna
-# Mock-mode by default; real-mode activates when env vars are set.
-# ----------------------------------------------------------------------------
-@api_router.get("/integrations/status")
-async def get_integrations_status():
-    """Returns which integrations are running in 'live' vs 'mock' mode."""
-    return integrations_status()
-
-
-@api_router.get("/integrations/courses")
-async def integrations_courses(query: str = "computer science", limit: int = 10):
-    """Live fetch of courses from Coursera + Udemy (mock fallback if no keys)."""
-    coursera = await fetch_coursera_courses(query, limit)
-    udemy = await fetch_udemy_courses(query, limit)
-    return {"items": coursera + udemy, "status": integrations_status()}
-
-
-@api_router.get("/integrations/internships")
-async def integrations_internships(query: str = "internship", country: str = "in", limit: int = 10):
-    items = await fetch_adzuna_internships(query, country, limit)
-    return {"items": items, "status": integrations_status()}
-
-
-@api_router.post("/integrations/sync/courses")
-async def sync_courses(user: dict = Depends(get_current_user)):
-    """Admin-only: pull Coursera + Udemy data into our courses collection."""
-    if user["role"] not in ("admin", "super_admin"):
-        raise HTTPException(403, "Admin access required")
-    res = await sync_courses_to_db(db)
-    return {"synced": res, "status": integrations_status()}
-
-
-@api_router.post("/integrations/sync/internships")
-async def sync_internships(user: dict = Depends(get_current_user)):
-    """Admin-only: pull Adzuna data into our internships collection."""
-    if user["role"] not in ("admin", "super_admin"):
-        raise HTTPException(403, "Admin access required")
-    res = await sync_internships_to_db(db)
-    return {"synced": res, "status": integrations_status()}
-
-
-# ── Microsoft Teams Meeting Endpoints ─────────────────────────────────────────
-from integrations.teams import (
-    teams_status as _teams_status, create_teams_meeting as _create_teams_meeting,
-    get_meeting_attendance as _get_attendance, create_meeting_registration as _register,
-    build_oauth_url as _oauth_url, exchange_code_for_token as _exchange_code,
-    _get_app_token as _get_teams_token, _get_creds as _get_teams_creds,
+from core.models import (  # noqa: E402
+    UserRole, CareerPath, EducationLevel, MentorCategory, MentorStatus,
+    SchoolInfo, MentorInfo, CollegeInfo, AlumniInfo, StudentInfo,
+    RegisterRequest, LoginRequest, ForgotPasswordRequest,
+    VerifyResetOtpRequest, ResetPasswordRequest, OnboardingRequest,
+    UserResponse, AuthResponse,
+    TwoFAChallengeResponse, TwoFASetupRequest, TwoFASetupResponse,
+    TwoFAEnableRequest, TwoFAEnableResponse, TwoFAVerifyRequest, TwoFADisableRequest,
+    CareerSuggestionRequest, ChatRequest, ChatResponse,
+    BookingRequest, ConnectRequestIn, MentorBookingCreateRequest, RescheduleRequest,
 )
 
-class TeamsMeetingCreate(BaseModel):
-    title: str
-    start_time: str
-    duration_minutes: int = 60
-    attendee_emails: Optional[List[str]] = None
-    seat_limit: Optional[int] = None
-    description: Optional[str] = ""
-    lobby_bypass: str = "everyone"
-    allow_external: bool = True
-    event_slug: Optional[str] = None
-    organizer_email: Optional[str] = None
-    manual_join_url: Optional[str] = None
 
-class TeamsMeetingRegister(BaseModel):
-    full_name: str
-    email: str
-    phone: Optional[str] = None
-
-@api_router.post("/integrations/teams/oauth-url")
-async def teams_oauth_url():
-    """Get OAuth URL + state for Microsoft OAuth2 flow."""
-    import secrets as _secrets
-    creds = await _get_teams_creds()
-    if not (creds.get("tenant_id") and creds.get("client_id")):
-        raise HTTPException(400, "Microsoft Teams integration not configured. Install it from the marketplace first.")
-    state = _secrets.token_urlsafe(32)
-    redirect_uri = os.environ.get("MS_TEAMS_REDIRECT_URI", "https://studentalumni.ai/api/integrations/teams/callback")
-    auth_url = await _oauth_url(redirect_uri, state)
-    return {"auth_url": auth_url, "state": state, "redirect_uri": redirect_uri}
-
-
-@api_router.get("/integrations/teams/callback")
-async def teams_oauth_callback(code: Optional[str] = None, state: Optional[str] = None, error: Optional[str] = None):
-    """Handle the Microsoft OAuth2 authorization-code callback (browser redirect).
-
-    Note: Teams meeting creation uses app-only client-credentials auth and does not
-    require this code exchange, but the URL must exist so Azure's redirect doesn't 404.
-    """
-    if error:
-        return {"error": f"OAuth error: {error}"}
-    if not code:
-        return {"error": "Missing authorization code"}
-    redirect_uri = os.environ.get("MS_TEAMS_REDIRECT_URI", "https://studentalumni.ai/api/integrations/teams/callback")
-    try:
-        token = await _exchange_code(code, redirect_uri)
-    except Exception as e:  # noqa: BLE001
-        token = None
-        logger.warning(f"[teams] OAuth token exchange failed: {e}")
-    return {"status": "connected" if token else "error", "state": state}
-
-
-@api_router.post("/integrations/teams/meetings")
-async def create_teams_meeting_endpoint(payload: TeamsMeetingCreate, user: dict = Depends(get_current_user)):
-    """Create a Microsoft Teams meeting with seat limits and registration support."""
-    if user.get("role") not in ("admin", "super_admin", "organizer"):
-        raise HTTPException(403, "Access required")
-    from datetime import datetime as _dt
-    from zoneinfo import ZoneInfo
-    IST = ZoneInfo("Asia/Kolkata")
-    raw = (payload.start_time or "").strip()
-    try:
-        if raw:
-            # Frontend sends a "wall clock" time in IST (e.g. "2026-09-01T09:00")
-            parsed = _dt.fromisoformat(raw.replace("Z", "+00:00"))
-            if parsed.tzinfo is None:
-                parsed = parsed.replace(tzinfo=IST)
-            else:
-                parsed = parsed.astimezone(IST)
-            start_dt = parsed
-        else:
-            start_dt = _dt.now(IST)
-    except (ValueError, AttributeError):
-        start_dt = _dt.now(IST)
-
-    manual_join_url = (payload.manual_join_url or "").strip()
-
-    if manual_join_url:
-        # Admin supplies a pre-created Teams/Skype join link manually, so no
-        # Microsoft Graph call is needed (avoids the OnlineMeeting application
-        # access policy requirement). Store the meeting directly with that link.
-        meeting = {
-            "success": True,
-            "meeting_id": f"teams-manual-{secrets.token_hex(6)}",
-            "subject": payload.title,
-            "join_url": manual_join_url,
-            "start": start_dt.isoformat(),
-            "end": (start_dt + timedelta(minutes=payload.duration_minutes)).isoformat(),
-            "attendees": payload.attendee_emails or [],
-            "seat_limit": payload.seat_limit,
-            "registrations": [],
-            "manual": True,
-        }
-    else:
-        try:
-            meeting = await _create_teams_meeting(
-                title=payload.title,
-                start_time=start_dt,
-                duration_minutes=payload.duration_minutes,
-                attendee_emails=payload.attendee_emails or [],
-                seat_limit=payload.seat_limit,
-                description=payload.description or "",
-                lobby_bypass=payload.lobby_bypass,
-                allow_external=payload.allow_external,
-                organizer_email=(payload.organizer_email or "").strip() or None,
-            )
-        except RuntimeError as e:
-            logger.error(f"[teams] create endpoint: {e}")
-            raise HTTPException(502, f"Could not create Teams meeting: {str(e)}")
-
-    meeting_doc = {
-        "meeting_id": meeting["meeting_id"],
-        "subject": meeting["subject"],
-        "join_url": meeting.get("join_url"),
-        "start_time": start_dt.isoformat(),
-        "duration_minutes": payload.duration_minutes,
-        "seat_limit": payload.seat_limit,
-        "attendee_emails": payload.attendee_emails or [],
-        "event_slug": (payload.event_slug or "").strip() or None,
-        "organizer_email": (payload.organizer_email or "").strip() or None,
-        "description": payload.description or "",
-        "created_by": str(user.get("_id", "")),
-        "created_at": _dt.now(timezone.utc).isoformat(),
-        "is_mock": meeting.get("mock", False),
-        "manual": meeting.get("manual", False),
-        "registrations": [],
-    }
-    await db.teams_meetings.insert_one(meeting_doc)
-    return meeting
-
-
-@api_router.get("/integrations/teams/meetings")
-async def list_teams_meetings(user: dict = Depends(get_current_user), event_slug: Optional[str] = None):
-    """List all Teams meetings (admin only). Optionally filter by event_slug."""
-    if user.get("role") not in ("admin", "super_admin", "organizer"):
-        raise HTTPException(403, "Access required")
-    query = {}
-    if event_slug:
-        query["event_slug"] = event_slug
-    cursor = db.teams_meetings.find(query).sort("created_at", -1)
-    meetings = []
-    async for m in cursor:
-        m["_id"] = str(m["_id"])
-        meetings.append(m)
-    return {"meetings": meetings, "status": await _teams_status()}
-
-
-@api_router.get("/integrations/teams/meetings/event/{event_slug}")
-async def get_teams_meetings_for_event(event_slug: str):
-    """Get Teams meetings associated with a specific event (public)."""
-    cursor = db.teams_meetings.find({"event_slug": event_slug}).sort("start_time", 1)
-    meetings = []
-    async for m in cursor:
-        m["_id"] = str(m["_id"])
-        meetings.append(m)
-    return {"meetings": meetings}
-
-
-async def _add_teams_attendee(meeting: dict, attendee_email: str, display_name: str = ""):
-    """Best-effort add of an attendee to the real Teams meeting via Graph.
-
-    App-only tokens have no "me" calendar, so if an organizer email is known the
-    attendee is added against that user's event. Failures are logged, never thrown.
-    """
-    if not attendee_email or meeting.get("is_mock"):
-        return
-    org = (meeting.get("organizer_email") or "").strip()
-    if not org:
-        return
-    try:
-        creds = await _get_teams_creds()
-        token = await _get_teams_token(creds)
-        if not token:
-            return
-        event_id = meeting.get("meeting_id") or ""
-        url = f"https://graph.microsoft.com/v1.0/users/{org}/events/{event_id}"
-        existing = meeting.get("attendee_emails") or []
-        payload = {
-            "attendees": [
-                {"emailAddress": {"address": a, "name": a}, "type": "required"}
-                for a in list(existing) + [attendee_email]
-            ]
-        }
-        async with httpx.AsyncClient(timeout=15) as c:
-            r = await c.patch(url, headers={"Authorization": f"Bearer {token}"}, json=payload)
-            if not r.is_success:
-                logger.warning(f"[teams] add attendee failed {r.status_code}: {r.text[:300]}")
-    except Exception as e:
-        logger.warning(f"[teams] add attendee error for {attendee_email}: {e}")
-
-
-def _format_ics_datetime(dt_str: str) -> str:
-    """Format an ISO datetime for an .ics file as a UTC (Z) timestamp."""
-    try:
-        from datetime import datetime as _pdt
-        dt = _pdt.fromisoformat(dt_str.replace("Z", "+00:00"))
-        if dt.tzinfo is None:
-            from zoneinfo import ZoneInfo
-            dt = dt.replace(tzinfo=ZoneInfo("Asia/Kolkata"))
-        dt_utc = dt.astimezone(timezone.utc)
-        return dt_utc.strftime("%Y%m%dT%H%M%SZ")
-    except (ValueError, TypeError):
-        return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-
-
-def _build_meeting_ics(meeting: dict) -> str:
-    """Build an RFC-5545 .ics calendar invitation for a Teams meeting."""
-    subject = (meeting.get("subject") or "Teams Meeting").replace("\\", "\\\\").replace("\n", "\\n")
-    desc = (meeting.get("description") or "").replace("\\", "\\\\").replace("\n", "\\n")
-    start = _format_ics_datetime(meeting.get("start_time", ""))
-    end = _format_ics_datetime(meeting.get("_ics_end", "")) or _format_ics_datetime(meeting.get("start_time", ""))
-    join_url = meeting.get("join_url") or ""
-    meeting_id = meeting.get("meeting_id") or "teams-meeting"
-    now = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    organizer = meeting.get("organizer_email") or "meetings@studentalumni.ai"
-    body = desc
-    if join_url:
-        body = (body + ("\n\n" if body else "") + f"Join the meeting: {join_url}")
-    _escaped_body = body.replace("\r\n", "\\n").replace("\n", "\\n")
-    _escaped_desc = _escaped_body
-    lines = [
-        "BEGIN:VCALENDAR",
-        "VERSION:2.0",
-        "PRODID:-//Student Alumni//Teams Meeting//EN",
-        "CALSCALE:GREGORIAN",
-        "METHOD:REQUEST",
-        "BEGIN:VEVENT",
-        f"UID:{meeting_id}@studentalumni.ai",
-        f"DTSTAMP:{now}",
-        f"DTSTART:{start}",
-        f"DTEND:{end}",
-        f"SUMMARY:{subject}",
-        f"DESCRIPTION:{_escaped_desc}",
-        "LOCATION:Microsoft Teams",
-        f"ORGANIZER;CN={organizer}:mailto:{organizer}",
-        "ATTENDEE;CN=Participant;RSVP=TRUE:mailto:",
-        "STATUS:CONFIRMED",
-        "SEQUENCE:0",
-        "BEGIN:VALARM",
-        "TRIGGER:-PT15M",
-        "ACTION:DISPLAY",
-        f"DESCRIPTION:Reminder: {subject}",
-        "END:VALARM",
-        "END:VEVENT",
-        "END:VCALENDAR",
-    ]
-    return "\r\n".join(lines) + "\r\n"
-
-
-@api_router.post("/integrations/teams/meetings/{meeting_id}/register")
-async def register_for_teams_meeting(meeting_id: str, payload: dict):
-    """Register a user for a Teams meeting and return the join URL.
-
-    On successful registration the attendee is added to the meeting's attendee
-    list in Microsoft and emailed an .ics calendar invitation so the meeting
-    appears in their calendar with the join link.
-    """
-    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
-    if not meeting:
-        raise HTTPException(404, "Meeting not found")
-    full_name = payload.get("full_name", "")
-    email = payload.get("email", "")
-    phone = payload.get("phone", "")
-    if not full_name or not email:
-        raise HTTPException(400, "Full name and email are required")
-    registrations = meeting.get("registrations", [])
-    existing = next((r for r in registrations if r.get("email") == email), None)
-    if existing:
-        return {"success": True, "join_url": meeting.get("join_url"), "already_registered": True, "ics_url": meeting.get("ics_url")}
-    seat_limit = meeting.get("seat_limit", 0)
-    if seat_limit and len(registrations) >= seat_limit:
-        raise HTTPException(400, "Meeting is full")
-    registrations.append({
-        "full_name": full_name,
-        "email": email,
-        "phone": phone,
-        "registered_at": datetime.now(timezone.utc).isoformat(),
-    })
-    await db.teams_meetings.update_one({"meeting_id": meeting_id}, {"$set": {"registrations": registrations}})
-
-    # 1. Add attendee to the real Teams meeting (best-effort, non-blocking)
-    await _add_teams_attendee(meeting, email, full_name)
-
-    # 2. Build + serve an .ics invite and email it to the attendee
-    try:
-        from datetime import datetime as _edt
-        _st = _edt.fromisoformat(meeting.get("start_time", "").replace("Z", "+00:00"))
-        if _st.tzinfo is None:
-            from zoneinfo import ZoneInfo as _ZI
-            _st = _st.replace(tzinfo=_ZI("Asia/Kolkata"))
-        _end = _st + timedelta(minutes=int(meeting.get("duration_minutes") or 60))
-        meeting = dict(meeting, _ics_end=_end.isoformat())
-    except (ValueError, TypeError, AttributeError):
-        pass
-    ics = _build_meeting_ics(meeting)
-    ics_filename = f"teams-meeting-{meeting_id}.ics"
-    ics_content = base64.b64encode(ics.encode("utf-8")).decode("utf-8")
-
-    # Email the .ics to the attendee (best-effort)
-    email_sent = False
-    try:
-        subject_line = f"Meeting Invitation: {meeting.get('subject') or 'Teams Meeting'}"
-        join_line = f'<a href="{meeting.get("join_url")}">Join the meeting</a>' if meeting.get("join_url") else ""
-        body_html = (
-            f"<p>Hi {full_name},</p>"
-            f"<p>You are registered for <b>{meeting.get('subject') or 'this Teams meeting'}</b>.</p>"
-            f"<p>The calendar invitation is attached. Add it to your calendar to see the event and join link.</p>"
-            f"{join_line and ('<p>' + join_line + '</p>') or ''}"
-        )
-        email_sent = await send_email(
-            to_email=email,
-            subject=subject_line,
-            body_html=body_html,
-            attachments=[{"filename": ics_filename, "content": ics.encode("utf-8")}],
-        )
-    except Exception as e:
-        logger.warning(f"[teams] Could not email calendar invite to {email}: {e}")
-
-    ics_url = f"/api/integrations/teams/meetings/{meeting_id}/calendar.ics?u={secrets.token_urlsafe(6)}"
-    return {
-        "success": True,
-        "join_url": meeting.get("join_url"),
-        "ics": ics_content,
-        "ics_filename": ics_filename,
-        "ics_url": ics_url,
-        "email_sent": email_sent,
-    }
-
-
-@api_router.get("/integrations/teams/meetings/{meeting_id}/calendar.ics")
-async def get_teams_meeting_ics(meeting_id: str):
-    """Return the .ics calendar invite for a Teams meeting (for adding to a calendar)."""
-    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
-    if not meeting:
-        raise HTTPException(404, "Meeting not found")
-    try:
-        from datetime import datetime as _edt
-        _st = _edt.fromisoformat(meeting.get("start_time", "").replace("Z", "+00:00"))
-        if _st.tzinfo is None:
-            from zoneinfo import ZoneInfo as _ZI
-            _st = _st.replace(tzinfo=_ZI("Asia/Kolkata"))
-        _end = _st + timedelta(minutes=int(meeting.get("duration_minutes") or 60))
-        meeting = dict(meeting, _ics_end=_end.isoformat())
-    except (ValueError, TypeError, AttributeError):
-        pass
-    ics = _build_meeting_ics(meeting)
-    return Response(
-        content=ics,
-        media_type="text/calendar",
-        headers={
-            "Content-Disposition": f'attachment; filename="teams-meeting-{meeting_id}.ics"',
-        },
-    )
-
-
-@api_router.get("/integrations/teams/meetings/{meeting_id}")
-async def get_teams_meeting(meeting_id: str):
-    """Get a Teams meeting by ID."""
-    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
-    if not meeting:
-        raise HTTPException(404, "Meeting not found")
-    meeting["_id"] = str(meeting["_id"])
-    return meeting
-
-
-@api_router.delete("/integrations/teams/meetings/{meeting_id}")
-async def delete_teams_meeting(meeting_id: str, user: dict = Depends(get_current_user)):
-    """Delete a Teams meeting (admin only)."""
-    if user.get("role") not in ("admin", "super_admin"):
-        raise HTTPException(403, "Admin access required")
-    result = await db.teams_meetings.delete_one({"meeting_id": meeting_id})
-    if result.deleted_count == 0:
-        raise HTTPException(404, "Meeting not found")
-    return {"ok": True, "message": "Meeting deleted"}
-
-
-@api_router.patch("/integrations/teams/meetings/{meeting_id}")
-async def update_teams_meeting(meeting_id: str, payload: TeamsMeetingCreate, user: dict = Depends(get_current_user)):
-    """Update a Teams meeting (admin only). Only updates DB metadata — the Teams
-    meeting itself is not synced to Microsoft unless a live token is available."""
-    if user.get("role") not in ("admin", "super_admin", "organizer"):
-        raise HTTPException(403, "Admin access required")
-    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
-    if not meeting:
-        raise HTTPException(404, "Meeting not found")
-
-    try:
-        from zoneinfo import ZoneInfo
-        IST = ZoneInfo("Asia/Kolkata")
-        raw = (payload.start_time or "").strip()
-        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00")) if raw else datetime.now(IST)
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=IST)
-        else:
-            parsed = parsed.astimezone(IST)
-        start_dt = parsed
-    except Exception:
-        start_dt = datetime.now(timezone.utc)
-
-    update_data = {
-        "subject": payload.title,
-        "start_time": start_dt.isoformat(),
-        "duration_minutes": payload.duration_minutes,
-        "seat_limit": payload.seat_limit,
-        "attendee_emails": payload.attendee_emails or [],
-        "description": payload.description,
-        "event_slug": (payload.event_slug or "").strip() or None,
-        "organizer_email": (payload.organizer_email or "").strip() or None,
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-        "updated_by": str(user.get("_id", "")),
-    }
-
-    manual_join_url = (payload.manual_join_url or "").strip()
-    if manual_join_url:
-        update_data["join_url"] = manual_join_url
-        update_data["manual"] = True
-        update_data["is_mock"] = False
-
-    # If Teams API is live, also update the meeting in Microsoft
-    creds = await _get_teams_creds()
-    if creds.get("tenant_id") and creds.get("client_id") and creds.get("client_secret") and meeting.get("meeting_id") and not meeting.get("is_mock"):
-        try:
-            async with httpx.AsyncClient(timeout=15) as c:
-                token = await _get_teams_token(creds)
-                if token:
-                    org = (payload.organizer_email or meeting.get("organizer_email") or "").strip()
-                    event_url = f"https://graph.microsoft.com/v1.0/users/{org}/events/{meeting['meeting_id']}" if org else f"https://graph.microsoft.com/v1.0/me/events/{meeting['meeting_id']}"
-                    await c.patch(
-                        event_url,
-                        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-                        json={
-                            "subject": payload.title,
-                            "body": {"contentType": "HTML", "content": payload.description or ""},
-                            "start": {"dateTime": start_dt.strftime("%Y-%m-%dT%H:%M:%S"), "timeZone": "Asia/Kolkata"},
-                            "end": {"dateTime": (start_dt + timedelta(minutes=payload.duration_minutes)).strftime("%Y-%m-%dT%H:%M:%S"), "timeZone": "Asia/Kolkata"},
-                        },
-                    )
-        except Exception:
-            pass  # Don't fail the local update if Graph API call fails
-
-    await db.teams_meetings.update_one(
-        {"meeting_id": meeting_id},
-        {"$set": update_data},
-    )
-
-    updated = await db.teams_meetings.find_one({"meeting_id": meeting_id})
-    updated["_id"] = str(updated["_id"])
-    return updated
-
-
-@api_router.get("/integrations/teams/meetings/{meeting_id}/attendance")
-async def get_teams_attendance(meeting_id: str, email: Optional[str] = None):
-    """Get attendance for a Teams meeting."""
-    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
-    if not meeting:
-        raise HTTPException(404, "Meeting not found")
-    records = await _get_attendance(meeting_id, email)
-    return {"meeting_id": meeting_id, "attendance": records}
-
-
-@api_router.get("/integrations/teams/webhook")
-async def teams_webhook_verify(request: Request, validationToken: Optional[str] = None):
-    """Microsoft Graph change-notification handshake verification.
-
-    When you set this URL as a Graph subscription notification endpoint, Microsoft
-    calls it with ``?validationToken=...`` first. Return the token verbatim to
-    confirm ownership of the URL.
-    """
-    if validationToken:
-        return Response(content=validationToken, media_type="text/plain")
-    return {"status": "ok"}
-
-
-@api_router.post("/integrations/teams/webhook")
-async def teams_webhook(request: Request):
-    """Receive Microsoft Graph change notifications (e.g. meeting attendance).
-
-    Graph expects a 202 response quickly. We log the notification for later
-    processing; attendee records are pulled on demand via the attendance endpoint.
-    """
-    try:
-        body = await request.json()
-    except Exception:
-        body = {}
-    logger.info(f"[teams] webhook notification: {body.get('value') if isinstance(body, dict) else body}")
-    return Response(status_code=202)
-
-
-@api_router.get("/integrations/teams/status")
-async def teams_integration_status():
-    """Check if Microsoft Teams integration is configured."""
-    return await _teams_status()
+# Pydantic Models removed — now imported from core.models above.
+# All request/response models now live in core/models.py
 
 
 # ----------------------------------------------------------------------------
-# Mentor Reviews — students rate completed sessions
+# Auth Helpers — extracted to core/auth_helpers.py
+# Backward-compat re-exports so `from server import X` still works.
 # ----------------------------------------------------------------------------
-class ReviewIn(BaseModel):
-    mentor_id: str
-    rating: int = Field(..., ge=1, le=5)
-    comment: Optional[str] = ""
-    booking_id: Optional[str] = None
+from core.auth_helpers import (  # noqa: E402, F811
+    hash_password,
+    verify_password,
+    create_access_token,
+    create_refresh_token,
+    generate_unique_id,
+    generate_qr_code,
+    serialize_user,
+    get_current_user,
+    validate_student_class,
+)
 
 
-@api_router.post("/reviews")
-async def post_review(req: ReviewIn, user: dict = Depends(get_current_user)):
-    """Submit a review — only students can review mentors. One review per booking_id."""
-    if user["role"] not in ("student", "alumni"):
-        raise HTTPException(403, "Only students/alumni can review mentors")
-    mentor_id = req.mentor_id
-    if mentor_id == "auto-resolved" and req.booking_id:
-        b_id = req.booking_id
-        booking = None
-        try:
-            if ObjectId.is_valid(b_id):
-                booking = await db.bookings.find_one({"_id": ObjectId(b_id)})
-                if not booking:
-                    booking = await db.sessions.find_one({"_id": ObjectId(b_id)})
-        except Exception:
-            pass
-        if not booking:
-            import re
-            booking_rx = f"{re.escape(b_id)}$"
-            
-            bookings_matches = []
-            async for b in db.bookings.find({"$expr": {"$regexMatch": {"input": {"$toString": "$_id"}, "regex": booking_rx, "options": "i"}}}, {"mentor_id": 1}):
-                bookings_matches.append(b)
-                
-            sessions_matches = []
-            async for s in db.sessions.find({"$expr": {"$regexMatch": {"input": {"$toString": "$_id"}, "regex": booking_rx, "options": "i"}}}, {"mentor_id": 1}):
-                sessions_matches.append(s)
-                
-            total_matches = len(bookings_matches) + len(sessions_matches)
-            if total_matches == 1:
-                booking = bookings_matches[0] if bookings_matches else sessions_matches[0]
-
-        if booking and "mentor_id" in booking:
-            mentor_id = str(booking["mentor_id"])
-
-    review = await create_review(
-        db,
-        mentor_id=mentor_id,
-        student_id=str(user["_id"]),
-        student_name=user.get("full_name", "Student"),
-        rating=req.rating,
-        comment=req.comment or "",
-        booking_id=req.booking_id,
-    )
-    # Best-effort notify mentor
-    try:
-        await notify_review_received(db, mentor_id=req.mentor_id,
-                                      rating=req.rating,
-                                      student_name=user.get("full_name", "Student"))
-    except Exception:
-        pass
-    if isinstance(review.get("created_at"), datetime):
-        review["created_at"] = review["created_at"].isoformat()
-    if "_id" in review:
-        if isinstance(review["_id"], ObjectId):
-            review["_id"] = str(review["_id"])
-        review["id"] = review["_id"]
-    return review
 
 
-class ReviewReplyIn(BaseModel):
-    reply: str
+
+# Dashboard endpoint extracted to features/routers/dashboard.py
+from features.routers.dashboard import router as dashboard_router
+api_router.include_router(dashboard_router)
 
 
-@api_router.post("/reviews/{review_id}/reply")
-async def reply_to_review(review_id: str, req: ReviewReplyIn, user: dict = Depends(get_current_user)):
-    """Mentor replies to a review."""
-    if user["role"] != "mentor":
-        raise HTTPException(403, "Only mentors can reply to reviews")
-    
-    review = await db.reviews.find_one({"id": review_id})
-    if not review:
-        raise HTTPException(404, "Review not found")
-        
-    if str(review["mentor_id"]) != str(user["_id"]):
-        raise HTTPException(403, "You can only reply to your own reviews")
-        
-    await db.reviews.update_one(
-        {"id": review_id},
-        {"$set": {"mentor_reply": req.reply, "mentor_reply_at": datetime.now(timezone.utc)}}
-    )
-    return {"ok": True}
+from features.coupons_api import router as coupons_api_router
+api_router.include_router(coupons_api_router)
 
 
-@api_router.get("/mentors/{mentor_id}/reviews")
-async def get_reviews(mentor_id: str, limit: int = 20):
-    """Public — returns review list + aggregate stats for a mentor."""
-    items = await list_mentor_reviews(db, mentor_id, limit)
-    stats = await get_mentor_rating_stats(db, mentor_id)
-    return {"items": items, "stats": stats}
+from features.auth_verify_api import router as auth_verify_api_router
+api_router.include_router(auth_verify_api_router)
 
 
-# ----------------------------------------------------------------------------
-# Push Notifications — register tokens, fetch in-app inbox
-# ----------------------------------------------------------------------------
-class PushTokenRegister(BaseModel):
-    token: str
-    platform: Optional[str] = "unknown"
+from features.media_api import router as media_api_router
+api_router.include_router(media_api_router)
 
 
-@api_router.post("/notifications/register")
-async def notifications_register(req: PushTokenRegister, user: dict = Depends(get_current_user)):
-    """Save the device's Expo push token. Called from client on first launch."""
-    return await register_push_token(db, str(user["_id"]), req.token, req.platform or "unknown")
+
+from features.analytics_api import router as analytics_api_router
+api_router.include_router(analytics_api_router)
 
 
-@api_router.delete("/notifications/register")
-async def notifications_deregister(req: PushTokenRegister, user: dict = Depends(get_current_user)):
-    """Remove a push token (e.g. on logout)."""
-    n = await deregister_push_token(db, req.token)
-    return {"removed": n}
+from features.integrations_api import router as integrations_api_router
+api_router.include_router(integrations_api_router)
 
 
-@api_router.get("/notifications")
-async def notifications_inbox(user: dict = Depends(get_current_user), limit: int = 30):
-    """Returns the in-app notification inbox + unread count."""
-    items = await list_inbox(db, str(user["_id"]), limit)
-    unread = await unread_count(db, str(user["_id"]))
-    return {"items": items, "unread": unread}
+from features.teams_api import router as teams_api_router
+api_router.include_router(teams_api_router)
 
 
-@api_router.post("/notifications/mark-read")
-async def notifications_mark_read(payload: Optional[dict] = None,
-                                   user: dict = Depends(get_current_user)):
-    ids = (payload or {}).get("ids") if payload else None
-    n = await mark_inbox_read(db, str(user["_id"]), ids)
-    return {"updated": n}
+from features.reviews_api import router as reviews_api_router
+api_router.include_router(reviews_api_router)
 
 
-@api_router.post("/notifications/dismiss")
-async def notifications_dismiss(payload: Optional[dict] = None,
-                                user: dict = Depends(get_current_user)):
-    from notifications import dismiss_inbox
-    ids = (payload or {}).get("ids") if payload else None
-    n = await dismiss_inbox(db, str(user["_id"]), ids)
-    return {"deleted": n}
-
-
-# Admin-only: send a manual broadcast (for announcements)
-class ManualPushIn(BaseModel):
-    user_id: str
-    title: str
-    body: str
-    data: Optional[Dict[str, Any]] = None
-
-
-@api_router.post("/notifications/send")
-async def notifications_send_manual(req: ManualPushIn, user: dict = Depends(get_current_user)):
-    if user["role"] not in ("admin", "super_admin"):
-        raise HTTPException(403, "Admin only")
-    return await send_push(db, user_id=req.user_id, title=req.title, body=req.body, data=req.data)
+from features.notifications_api import router as notifications_api_router
+api_router.include_router(notifications_api_router)
 
 
 # ----------------------------------------------------------------------------
@@ -2952,185 +592,40 @@ async def root():
 
 
 # ----------------------------------------------------------------------------
-# Seed Data
+# Seed Data (extracted to seed_data.py)
 # ----------------------------------------------------------------------------
-SAMPLE_COURSES = [
-    {"id": "c1", "title": "CS50 - Introduction to Computer Science", "provider": "Harvard / edX", "url": "https://cs50.harvard.edu", "image": "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800", "duration": "12 weeks", "level": "Beginner", "is_free": True, "career_paths": ["job", "higher_education", "startup"]},
-    {"id": "c2", "title": "Google Data Analytics Professional", "provider": "Coursera (Google)", "url": "https://www.coursera.org/professional-certificates/google-data-analytics", "image": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800", "duration": "6 months", "level": "Intermediate", "is_free": False, "career_paths": ["job", "business"]},
-    {"id": "c3", "title": "How to Start a Startup", "provider": "Y Combinator", "url": "https://www.startupschool.org", "image": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=800", "duration": "10 weeks", "level": "Beginner", "is_free": True, "career_paths": ["startup", "business"]},
-    {"id": "c4", "title": "MIT 6.006 - Introduction to Algorithms", "provider": "MIT OCW", "url": "https://ocw.mit.edu", "image": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800", "duration": "Self-paced", "level": "Advanced", "is_free": True, "career_paths": ["higher_education", "job"]},
-    {"id": "c5", "title": "GRE / GMAT Prep Masterclass", "provider": "Khan Academy", "url": "https://www.khanacademy.org", "image": "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=800", "duration": "Self-paced", "level": "All", "is_free": True, "career_paths": ["higher_education"]},
-    {"id": "c6", "title": "The Lean Startup MBA", "provider": "Udemy", "url": "https://www.udemy.com", "image": "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800", "duration": "20 hours", "level": "Intermediate", "is_free": False, "career_paths": ["startup", "business"]},
-    {"id": "c7", "title": "AWS Cloud Practitioner", "provider": "AWS", "url": "https://aws.amazon.com/training", "image": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800", "duration": "8 weeks", "level": "Beginner", "is_free": True, "career_paths": ["job"]},
-    {"id": "c8", "title": "Financial Markets - Yale", "provider": "Coursera (Yale)", "url": "https://www.coursera.org/learn/financial-markets-global", "image": "https://images.unsplash.com/photo-1579532537598-459ecdaf39cc?w=800", "duration": "33 hours", "level": "Beginner", "is_free": True, "career_paths": ["business", "higher_education"]},
-]
-
-SAMPLE_MENTORS = [
-    {"id": "m1", "full_name": "Priya Sharma", "title": "Senior SWE @ Google", "expertise": ["job"], "category": "it_software", "tags": ["Tech", "FAANG"], "avatar": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400", "bio": "10+ years in distributed systems.", "rating": 4.9, "sessions": 230, "linkedin_url": "https://linkedin.com/in/priya"},
-    {"id": "m2", "full_name": "Arjun Mehta", "title": "Founder @ FintechX", "expertise": ["startup", "business"], "category": "startup_mentor", "tags": ["Entrepreneur", "Fintech"], "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400", "bio": "Built and sold 2 startups.", "rating": 4.8, "sessions": 110, "linkedin_url": "https://linkedin.com/in/arjun"},
-    {"id": "m3", "full_name": "Dr. Anjali Rao", "title": "Professor @ IIT Bombay", "expertise": ["higher_education"], "category": "higher_education", "tags": ["Research", "PhD"], "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400", "bio": "CV researcher; PhD application mentor.", "rating": 5.0, "sessions": 88, "linkedin_url": "https://linkedin.com/in/anjali"},
-    {"id": "m4", "full_name": "Rahul Iyer", "title": "VP Strategy @ Tata", "expertise": ["business", "job"], "category": "business_mentor", "tags": ["Corporate", "Strategy"], "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400", "bio": "INSEAD MBA; corporate career mentor.", "rating": 4.7, "sessions": 156, "linkedin_url": "https://linkedin.com/in/rahul"},
-    {"id": "m5", "full_name": "Sneha Kapoor", "title": "Engineering Manager @ Stripe", "expertise": ["job", "startup"], "category": "engineering_manager", "tags": ["EM", "Product"], "avatar": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400", "bio": "Engineer-to-EM transitions; team scaling.", "rating": 4.9, "sessions": 175, "linkedin_url": "https://linkedin.com/in/sneha"},
-    {"id": "m6", "full_name": "Vikram Singh", "title": "Investor @ Sequoia", "expertise": ["startup", "business"], "category": "startup_advisor", "tags": ["VC", "Funding"], "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400", "bio": "Helping founders raise their seed.", "rating": 4.8, "sessions": 92, "linkedin_url": "https://linkedin.com/in/vikram"},
-    # ─── New mentor archetypes (6) ────────────────────────────────────────
-    {"id": "m7", "full_name": "Karan Verma", "title": "Tech Recruiter @ Microsoft", "expertise": ["job"], "category": "tech_recruiter", "tags": ["Hiring", "Sourcing", "Big Tech"], "avatar": "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400", "bio": "Sourced 500+ engineers for FAANG. Knows what hiring panels look for.", "rating": 4.8, "sessions": 142, "linkedin_url": "https://linkedin.com/in/karan"},
-    {"id": "m8", "full_name": "Ritu Aggarwal", "title": "HR Director @ Flipkart", "expertise": ["job"], "category": "hr_mentor", "tags": ["HR", "People Ops", "Comp"], "avatar": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400", "bio": "12+ yrs in HR, talent acquisition & comp strategy.", "rating": 4.7, "sessions": 98, "linkedin_url": "https://linkedin.com/in/ritu"},
-    {"id": "m9", "full_name": "Aditi Nair", "title": "Career Coach (ex-Deloitte)", "expertise": ["job"], "category": "career_coach", "tags": ["Resume", "Interviews", "Comm"], "avatar": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400", "bio": "Resume reviews, mock interviews, soft-skill workshops.", "rating": 4.9, "sessions": 312, "linkedin_url": "https://linkedin.com/in/aditi"},
-    {"id": "m10", "full_name": "Vivek Bhat", "title": "Industry Advisor (Manufacturing)", "expertise": ["business"], "category": "industry_advisor", "tags": ["Manufacturing", "Strategy", "Supply Chain"], "avatar": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400", "bio": "30+ yrs in industrial ops. Advisor to 4 unicorns.", "rating": 4.8, "sessions": 64, "linkedin_url": "https://linkedin.com/in/vivek"},
-]
-
-SAMPLE_INTERNSHIPS = [
-    {"id": "i1", "title": "Software Engineering Intern", "company": "Microsoft", "location": "Hyderabad / Remote", "stipend": "₹80,000/month", "duration": "3 months", "skills": ["Python", "C++", "Algorithms"], "url": "https://careers.microsoft.com", "image": "https://images.unsplash.com/photo-1633419461186-7d40a38105ec?w=800", "career_paths": ["job", "higher_education"], "type": "internship", "domain": "Engineering", "mode": "hybrid", "deadline": "2026-08-15", "applicants_count": 1240, "description": "Build features for Office 365. Code in TypeScript & C#.", "match_signals": ["Software Engineering", "Engineering", "Computer Science"]},
-    {"id": "i2", "title": "Data Science Intern", "company": "Flipkart", "location": "Bangalore", "stipend": "₹60,000/month", "duration": "6 months", "skills": ["Python", "SQL", "ML"], "url": "https://www.flipkartcareers.com", "image": "https://images.unsplash.com/photo-1551434678-e076c223a692?w=800", "career_paths": ["job"], "type": "internship", "domain": "Data Science", "mode": "onsite", "deadline": "2026-07-30", "applicants_count": 856, "description": "Apply ML to e-commerce. Work with petabyte-scale data.", "match_signals": ["Data Science", "AI/ML", "Analytics"]},
-    {"id": "i3", "title": "Product Management Intern", "company": "Razorpay", "location": "Bangalore / Remote", "stipend": "₹50,000/month", "duration": "3 months", "skills": ["Product", "SQL"], "url": "https://razorpay.com/jobs", "image": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=800", "career_paths": ["job", "startup"], "type": "internship", "domain": "Product", "mode": "hybrid", "deadline": "2026-08-10", "applicants_count": 612, "description": "Drive payment-product roadmap end-to-end.", "match_signals": ["Product Manager", "Product", "Startup"]},
-    {"id": "i4", "title": "Founders Office Intern", "company": "Zerodha", "location": "Bangalore", "stipend": "₹40,000/month", "duration": "6 months", "skills": ["Strategy", "Business"], "url": "https://zerodha.com/careers", "image": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800", "career_paths": ["business", "startup"], "type": "internship", "domain": "Business", "mode": "onsite", "deadline": "2026-07-25", "applicants_count": 420, "description": "Work directly with founders on strategy & ops.", "match_signals": ["Business", "Startup", "Strategy"]},
-    {"id": "i5", "title": "Research Intern", "company": "IIT Madras", "location": "Chennai", "stipend": "₹15,000/month", "duration": "2 months", "skills": ["Research", "Python"], "url": "https://www.iitm.ac.in", "image": "https://images.unsplash.com/photo-1562774053-701939374585?w=800", "career_paths": ["higher_education"], "type": "internship", "domain": "Research", "mode": "onsite", "deadline": "2026-07-15", "applicants_count": 188, "description": "Contribute to AI research with PhD-level mentors.", "match_signals": ["Research", "AI/ML", "Higher Education"]},
-    {"id": "i6", "title": "Marketing Intern", "company": "Swiggy", "location": "Bangalore / Remote", "stipend": "₹35,000/month", "duration": "3 months", "skills": ["Marketing", "Analytics"], "url": "https://careers.swiggy.com", "image": "https://images.unsplash.com/photo-1611926653458-09294b3142bf?w=800", "career_paths": ["job", "business"], "type": "internship", "domain": "Marketing", "mode": "hybrid", "deadline": "2026-08-20", "applicants_count": 950, "description": "Run growth & brand campaigns at scale.", "match_signals": ["Marketing", "Business"]},
-    {"id": "j1", "title": "Backend Engineer (SDE-1)", "company": "Razorpay", "location": "Bangalore", "stipend": "₹22-32 LPA", "duration": "Full-time", "skills": ["Go", "Postgres", "Redis"], "url": "https://razorpay.com/jobs", "image": "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800", "career_paths": ["job"], "type": "job", "domain": "Engineering", "mode": "onsite", "deadline": "2026-09-01", "applicants_count": 1420, "description": "Build payment APIs handling millions of TPS.", "match_signals": ["Software Engineering", "Engineering"]},
-    {"id": "j2", "title": "Frontend Engineer (Remote)", "company": "Atlassian", "location": "Remote (India)", "stipend": "₹28-40 LPA", "duration": "Full-time", "skills": ["React", "TypeScript", "GraphQL"], "url": "https://atlassian.com/careers", "image": "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800", "career_paths": ["job"], "type": "job", "domain": "Engineering", "mode": "remote", "deadline": "2026-08-30", "applicants_count": 920, "description": "Ship Jira UI used by 200K+ teams worldwide.", "match_signals": ["Software Engineering", "Engineering"]},
-    {"id": "j3", "title": "ML Engineer", "company": "Sarvam AI", "location": "Bangalore", "stipend": "₹35-50 LPA", "duration": "Full-time", "skills": ["PyTorch", "LLMs", "CUDA"], "url": "https://www.sarvam.ai", "image": "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800", "career_paths": ["job", "startup"], "type": "job", "domain": "Data Science", "mode": "hybrid", "deadline": "2026-09-15", "applicants_count": 480, "description": "Train India's first multilingual foundation model.", "match_signals": ["Data Science", "AI/ML", "Startup"]},
-    {"id": "j4", "title": "Investment Analyst", "company": "Sequoia (Peak XV)", "location": "Bangalore / Mumbai", "stipend": "₹25-35 LPA", "duration": "Full-time", "skills": ["Excel", "Modeling", "Diligence"], "url": "https://www.peakxv.com", "image": "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800", "career_paths": ["business"], "type": "job", "domain": "Finance", "mode": "onsite", "deadline": "2026-08-05", "applicants_count": 312, "description": "Source & evaluate seed-to-Series-B investments.", "match_signals": ["Finance", "Business", "Investment"]},
-    {"id": "j5", "title": "PhD-Track Researcher", "company": "Microsoft Research", "location": "Bangalore", "stipend": "₹18-28 LPA", "duration": "Full-time", "skills": ["Research", "Publications"], "url": "https://www.microsoft.com/research", "image": "https://images.unsplash.com/photo-1532618793091-ec5fe9635fbd?w=800", "career_paths": ["higher_education", "job"], "type": "job", "domain": "Research", "mode": "onsite", "deadline": "2026-09-30", "applicants_count": 96, "description": "Publish in top venues, collaborate with global PhDs.", "match_signals": ["Research", "Higher Education"]},
-    {"id": "j6", "title": "Founder's Associate", "company": "Cred", "location": "Bangalore", "stipend": "₹18-28 LPA", "duration": "Full-time", "skills": ["Strategy", "0-to-1"], "url": "https://cred.club", "image": "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=800", "career_paths": ["business", "startup"], "type": "job", "domain": "Business", "mode": "onsite", "deadline": "2026-08-12", "applicants_count": 540, "description": "Run new bets directly with the CEO.", "match_signals": ["Business", "Startup", "Strategy"]},
-    {"id": "i7", "title": "UX Design Intern", "company": "Spotify", "location": "Remote", "stipend": "₹50,000/month", "duration": "4 months", "skills": ["Figma", "User Research"], "url": "https://www.lifeatspotify.com", "image": "https://images.unsplash.com/photo-1611339555312-e607c8352fd7?w=800", "career_paths": ["job"], "type": "internship", "domain": "Design", "mode": "remote", "deadline": "2026-08-25", "applicants_count": 720, "description": "Design listening experiences for 600M+ users.", "match_signals": ["Design", "UX"]},
-    {"id": "i8", "title": "DevOps Intern", "company": "Postman", "location": "Bangalore / Remote", "stipend": "₹45,000/month", "duration": "6 months", "skills": ["AWS", "Kubernetes", "Terraform"], "url": "https://www.postman.com/company/careers", "image": "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800", "career_paths": ["job"], "type": "internship", "domain": "Engineering", "mode": "hybrid", "deadline": "2026-09-05", "applicants_count": 380, "description": "Scale APIs used by 30M+ developers.", "match_signals": ["Software Engineering", "Engineering", "DevOps"]},
-    {"id": "i9", "title": "Content Strategy Intern", "company": "The Ken", "location": "Bangalore / Remote", "stipend": "₹25,000/month", "duration": "3 months", "skills": ["Writing", "Research"], "url": "https://the-ken.com", "image": "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800", "career_paths": ["job", "business"], "type": "internship", "domain": "Content", "mode": "remote", "deadline": "2026-07-20", "applicants_count": 290, "description": "Investigate & write deep-dive business stories.", "match_signals": ["Content", "Writing", "Business"]},
-    {"id": "j7", "title": "Mechanical Design Engineer", "company": "Ola Electric", "location": "Bangalore", "stipend": "₹14-22 LPA", "duration": "Full-time", "skills": ["CAD", "FEA", "Manufacturing"], "url": "https://olaelectric.com/careers", "image": "https://images.unsplash.com/photo-1593941707874-ef25b8b4a92b?w=800", "career_paths": ["job"], "type": "job", "domain": "Engineering", "mode": "onsite", "deadline": "2026-08-22", "applicants_count": 410, "description": "Design EV powertrain components.", "match_signals": ["Mechanical", "Engineering"]},
-    {"id": "j8", "title": "Clinical Data Scientist", "company": "Apollo Hospitals", "location": "Hyderabad", "stipend": "₹12-18 LPA", "duration": "Full-time", "skills": ["R", "Biostatistics"], "url": "https://www.apollohospitals.com/careers", "image": "https://images.unsplash.com/photo-1530497610245-94d3c16cda28?w=800", "career_paths": ["higher_education", "job"], "type": "job", "domain": "Healthcare", "mode": "onsite", "deadline": "2026-09-10", "applicants_count": 145, "description": "Use AI to improve patient outcomes.", "match_signals": ["Healthcare", "Data Science"]},
-    {"id": "j9", "title": "Game Developer", "company": "Krafton India", "location": "Bangalore", "stipend": "₹16-26 LPA", "duration": "Full-time", "skills": ["Unreal Engine", "C++"], "url": "https://krafton.com/careers", "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800", "career_paths": ["job"], "type": "job", "domain": "Engineering", "mode": "onsite", "deadline": "2026-08-28", "applicants_count": 670, "description": "Build the next BGMI feature.", "match_signals": ["Software Engineering", "Engineering", "Gaming"]},
-    {"id": "i10", "title": "Architecture Intern", "company": "WeWork India", "location": "Mumbai / Bangalore", "stipend": "₹20,000/month", "duration": "3 months", "skills": ["AutoCAD", "Sketch"], "url": "https://www.wework.co.in", "image": "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800", "career_paths": ["job"], "type": "internship", "domain": "Architecture", "mode": "onsite", "deadline": "2026-07-28", "applicants_count": 110, "description": "Plan flexible workspaces of the future.", "match_signals": ["Architecture", "Design"]},
-    {"id": "j10", "title": "Public Policy Associate", "company": "Niti Aayog", "location": "New Delhi", "stipend": "₹10-15 LPA", "duration": "Full-time", "skills": ["Policy", "Writing"], "url": "https://niti.gov.in", "image": "https://images.unsplash.com/photo-1532375810709-75b1da00537c?w=800", "career_paths": ["business", "higher_education"], "type": "job", "domain": "Policy", "mode": "onsite", "deadline": "2026-09-20", "applicants_count": 234, "description": "Draft national-level economic policy.", "match_signals": ["Policy", "Business"]},
-]
-
-SAMPLE_EVENTS = [
-    {"id": "e1", "title": "Smart India Hackathon 2026", "category": "hackathon", "organizer": "Govt. of India", "image": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800", "venue": "All India · Online + Offline", "start_date": "2026-08-15", "registration_deadline": "2026-07-30", "url": "https://www.sih.gov.in", "tags": ["AI/ML", "Innovation", "Govt"]},
-    {"id": "e2", "title": "AI Training @ IIT Hyderabad", "category": "workshop", "organizer": "IIT Hyderabad", "image": "https://images.unsplash.com/photo-1507537297725-24a1c029d3ca?w=800", "venue": "IIT Hyderabad", "start_date": "2026-06-12", "registration_deadline": "2026-06-05", "url": "https://www.iith.ac.in", "tags": ["AI", "Hands-on"]},
-    {"id": "e3", "title": "Startup Demo Day - Bengaluru", "category": "startup", "organizer": "T-Hub", "image": "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800", "venue": "T-Hub, Hyderabad", "start_date": "2026-09-20", "registration_deadline": "2026-09-10", "url": "https://t-hub.co", "tags": ["Pitch", "Funding"]},
-    {"id": "e4", "title": "Networking Meet - SF Tech", "category": "networking", "organizer": "TechSoc", "image": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800", "venue": "Online", "start_date": "2026-07-05", "registration_deadline": "2026-07-04", "url": "https://example.com", "tags": ["Network", "Tech"]},
-    {"id": "e5", "title": "TechFest IIT Bombay", "category": "fest", "organizer": "IIT Bombay", "image": "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=800", "venue": "IIT Bombay", "start_date": "2026-12-15", "registration_deadline": "2026-12-01", "url": "https://techfest.org", "tags": ["Cultural", "Tech"]},
-    {"id": "e6", "title": "Codeathon 2026", "category": "hackathon", "organizer": "MLH India", "image": "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=800", "venue": "Online", "start_date": "2026-05-22", "registration_deadline": "2026-05-20", "url": "https://mlh.io", "tags": ["Code", "Online"]},
-]
-
-SAMPLE_DEALS = [
-    {"id": "d1", "title": "GitHub Student Developer Pack", "brand": "GitHub", "category": "Tech", "discount": "Free Pro tools worth $200K+", "code": "STUDENT-PACK", "expires": "Ongoing", "image": "https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?w=800", "url": "https://education.github.com/pack"},
-    {"id": "d2", "title": "Notion Personal Pro", "brand": "Notion", "category": "Productivity", "discount": "100% OFF", "code": "STUDENT-FREE", "expires": "Ongoing", "image": "https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=800", "url": "https://www.notion.so/students"},
-    {"id": "d3", "title": "Figma Education Plan", "brand": "Figma", "category": "Design", "discount": "100% OFF Professional", "code": "EDU-FIGMA", "expires": "Ongoing", "image": "https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=800", "url": "https://www.figma.com/education"},
-    {"id": "d4", "title": "Zomato Pro Student", "brand": "Zomato", "category": "Food", "discount": "50% OFF", "code": "STUDENT50", "expires": "31 Dec 2026", "image": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800", "url": "https://www.zomato.com"},
-    {"id": "d5", "title": "Spotify Premium Student", "brand": "Spotify", "category": "Entertainment", "discount": "₹59/month", "code": "STUDENT-IND", "expires": "Ongoing", "image": "https://images.unsplash.com/photo-1611339555312-e607c8352fd7?w=800", "url": "https://www.spotify.com/student"},
-    {"id": "d6", "title": "Apple Education Store", "brand": "Apple", "category": "Tech", "discount": "Up to 10% OFF + AirPods", "code": "EDU-APPLE", "expires": "Ongoing", "image": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800", "url": "https://www.apple.com/in-edu/store"},
-    {"id": "d7", "title": "Coursera Plus", "brand": "Coursera", "category": "Education", "discount": "Free for select students", "code": "COURSERA-EDU", "expires": "Ongoing", "image": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800", "url": "https://www.coursera.org"},
-    {"id": "d8", "title": "Amazon Prime Student", "brand": "Amazon", "category": "Shopping", "discount": "₹749/year", "code": "PRIME-STUDENT", "expires": "Ongoing", "image": "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800", "url": "https://www.amazon.in/amazonprime"},
-]
-
-SAMPLE_FINANCIAL = [
-    {"id": "f1", "kind": "loan", "title": "HDFC Credila Education Loan", "provider": "HDFC Credila", "highlight": "Up to ₹1.5 Cr · From 9.5%", "url": "https://www.hdfccredila.com", "description": "Education loans for India and abroad with flexible repayment."},
-    {"id": "f2", "kind": "loan", "title": "SBI Scholar Loan", "provider": "State Bank of India", "highlight": "From 8.55% p.a.", "url": "https://www.sbi.co.in", "description": "Government-backed education loan with subsidy options."},
-    {"id": "f3", "kind": "loan", "title": "Avanse Global Loan", "provider": "Avanse Financial Services", "highlight": "Up to ₹75 L abroad", "url": "https://www.avanse.com", "description": "Loans for international study with deferred repayment."},
-    {"id": "f4", "kind": "scholarship", "title": "Inspire Scholarship", "provider": "DST, Govt of India", "highlight": "₹80,000/year · BSc/MSc", "url": "https://online-inspire.gov.in", "description": "For top 1% rank holders in 12th board pursuing science."},
-    {"id": "f5", "kind": "scholarship", "title": "Reliance Foundation Scholarship", "provider": "Reliance Foundation", "highlight": "Up to ₹2 L/year", "url": "https://www.scholarships.reliancefoundation.org", "description": "UG/PG merit + need-based scholarship for Indian students."},
-    {"id": "f6", "kind": "scholarship", "title": "Tata Trusts Scholarship", "provider": "Tata Trusts", "highlight": "Need-based grants", "url": "https://www.tatatrusts.org", "description": "For deserving students across various streams."},
-]
-
-SAMPLE_INSURANCE = [
-    {"id": "ins1", "kind": "medical", "title": "Star Health Student Care", "provider": "Star Health", "highlight": "₹2,500/year", "url": "https://www.starhealth.in", "description": "Comprehensive health cover for students aged 16-25."},
-    {"id": "ins2", "kind": "medical", "title": "HDFC ERGO Student Travel", "provider": "HDFC ERGO", "highlight": "From ₹5,000", "url": "https://www.hdfcergo.com", "description": "Travel & study-abroad insurance for international students."},
-    {"id": "ins3", "kind": "bike", "title": "Two-Wheeler Insurance", "provider": "Acko", "highlight": "From ₹999/year", "url": "https://www.acko.com", "description": "Affordable bike insurance with claim guarantee."},
-    {"id": "ins4", "kind": "loan", "title": "Loan Protection Cover", "provider": "ICICI Lombard", "highlight": "Optional add-on", "url": "https://www.icicilombard.com", "description": "Covers EMI in case of unexpected events."},
-]
-
-SAMPLE_HOUSING = [
-    {"id": "h1", "country": "India", "title": "Stanza Living - Co-living", "provider": "Stanza Living", "highlight": "From ₹8,000/mo", "url": "https://www.stanzaliving.com", "cities": ["Bangalore", "Mumbai", "Delhi"], "description": "Premium co-living for students across 25+ Indian cities."},
-    {"id": "h2", "country": "India", "title": "OYO Life - PG", "provider": "OYO Life", "highlight": "From ₹6,500/mo", "url": "https://www.oyorooms.com/oyo-life", "cities": ["Pune", "Hyderabad"], "description": "Furnished PG accommodation near major colleges."},
-    {"id": "h3", "country": "USA", "title": "Amber Student", "provider": "Amber", "highlight": "From $600/mo", "url": "https://amberstudent.com", "cities": ["Boston", "NYC", "SF"], "description": "Verified student housing across US universities."},
-    {"id": "h4", "country": "Canada", "title": "Casita Housing", "provider": "Casita", "highlight": "From CAD 700/mo", "url": "https://casita.com", "cities": ["Toronto", "Vancouver"], "description": "Student housing across Canada."},
-    {"id": "h5", "country": "USA", "title": "RentSpree Student", "provider": "RentSpree", "highlight": "Roommate matching", "url": "https://rentspree.com", "cities": ["LA", "Seattle"], "description": "Apartment + roommate finder for students."},
-]
+from seed_data import seed_data, seed_admin
 
 
-async def seed_data():
-    """Seed catalog collections if empty."""
-    seeders = [
-        (db.courses, SAMPLE_COURSES),
-        (db.sample_mentors, SAMPLE_MENTORS),
-        (db.internships, SAMPLE_INTERNSHIPS),
-        (db.events, SAMPLE_EVENTS),
-        (db.deals, SAMPLE_DEALS),
-        (db.financial, SAMPLE_FINANCIAL),
-        (db.insurance, SAMPLE_INSURANCE),
-        (db.housing, SAMPLE_HOUSING),
-    ]
-    for coll, data in seeders:
-        if await coll.count_documents({}) == 0:
-            await coll.insert_many([dict(d) for d in data])
-            logger.info(f"Seeded {coll.name}")
-    # Legacy resources collection (backward-compat)
-    if await db.resources.count_documents({}) == 0:
-        legacy = (
-            [{**i, "category": "insurance"} for i in SAMPLE_INSURANCE]
-            + [{**h, "category": "housing"} for h in SAMPLE_HOUSING]
-            + [{**l, "category": "loans"} for l in SAMPLE_FINANCIAL if l.get("kind") == "loan"]
-        )
-        await db.resources.insert_many(legacy)
+# ----------------------------------------------------------------------------
+# Auth — Logout (token revocation)
+# ----------------------------------------------------------------------------
+@api_router.post("/auth/logout")
+async def logout(request: Request, user: dict = Depends(get_current_user)):
+    """Invalidate the current access token by adding its JTI to the blacklist.
 
-    from routers.blog import seed_blog_posts_if_empty
-    from routers.community import seed_community_data_if_empty
-    await seed_blog_posts_if_empty()
-    await seed_community_data_if_empty()
-
-
-
-async def seed_admin():
-    """Seed a default admin user from .env credentials (idempotent).
-
-    SECURITY: ADMIN_PASSWORD must be set in .env. A hardcoded fallback
-    would allow attackers to predict admin credentials on unconfirmed deployments.
+    The blacklist entry auto-expires via MongoDB TTL index when the token
+    itself would have expired, so the collection stays bounded.
     """
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@studentalumni.ai")
-    admin_password = os.environ.get("ADMIN_PASSWORD", "")
-
-    if not admin_password:
-        if os.getenv("ENV") == "production":
-            raise RuntimeError(
-                "ADMIN_PASSWORD environment variable is required in production. "
-                "Set it in .env to prevent an empty or predictable admin password."
+    token = bearer_token(request.headers.get("Authorization", ""))
+    payload = decode_payload_silent(token) if token else None
+    if payload:
+        jti = payload.get("jti")
+        exp = payload.get("exp")
+        if jti:
+            expires_at = datetime.fromtimestamp(exp, tz=timezone.utc) if exp else (
+                datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
             )
-        # Dev: generate a random password and log it so developer can use it
-        admin_password = secrets.token_urlsafe(16)
-        logger.warning(
-            "⚠️  ADMIN_PASSWORD not set — generated ephemeral admin password: %s"
-            " (set ADMIN_PASSWORD in .env to make this persistent)",
-            admin_password,
-        )
-
-    existing = await db.users.find_one({"email": admin_email})
-    if not existing:
-        frontend_url_env = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
-        await db.users.insert_one({
-            "email": admin_email,
-            "password_hash": hash_password(admin_password),
-            "full_name": "Platform Admin",
-            "role": "admin",
-            "phone": None,
-            "unique_id": "SA-2026-ADM-000001",
-            "qr_code_base64": generate_qr_code(f"{frontend_url_env}/verify/000001"),
-            "school_info": None,
-            "career_path": None,
-            "interests": [],
-            "skills": [],
-            "bio": None,
-            "onboarding_completed": True,
-            "created_at": datetime.now(timezone.utc),
-        })
-        logger.info("Seeded admin: %s", admin_email)
-    elif not verify_password(admin_password, existing["password_hash"]):
-        # Reseed password if .env credentials changed
-        await db.users.update_one(
-            {"email": admin_email},
-            {"$set": {"password_hash": hash_password(admin_password)}},
-        )
-
-
-# (Shutdown logic — stopping schedulers and closing the Mongo client — lives in _lifespan above)
+            try:
+                await db.token_blacklist.insert_one({
+                    "jti": jti,
+                    "user_id": str(user["_id"]),
+                    "expires_at": expires_at,
+                    "revoked_at": datetime.now(timezone.utc),
+                })
+            except Exception:
+                pass  # Duplicate JTI insert is fine — token already revoked
+    return {"status": "logged_out"}
 
 
 # ----------------------------------------------------------------------------
@@ -3139,69 +634,128 @@ async def seed_admin():
 from portals import router as portals_router
 api_router.include_router(portals_router)
 
-from jobs_feed import router as jobs_feed_router  # live job aggregator (7 free APIs + tier filter)
+from features.jobs_feed import router as jobs_feed_router  # live job aggregator (7 free APIs + tier filter)
 api_router.include_router(jobs_feed_router)
-from mentor_ai import router as mentor_ai_router  # mentor AI studio (mentee pulse, skill gaps, impact, session prep)
+from features.mentor_ai import router as mentor_ai_router  # mentor AI studio (mentee pulse, skill gaps, impact, session prep)
 api_router.include_router(mentor_ai_router)
-from wallet_and_availability import router as wallet_router  # SA Credits + mentor availability + demo seed
+from features.wallet_and_availability import router as wallet_router  # SA Credits + mentor availability + demo seed
 api_router.include_router(wallet_router)
-from activity_credits import router as activity_credits_router  # Activity-based earnings + Wallet summary/topup/withdraw
+from features.reward_marketplace import router as reward_marketplace_router  # Reward marketplace (W2): sa_rewards catalog + fulfillment engine
+api_router.include_router(reward_marketplace_router)
+from features.activity_credits import router as activity_credits_router  # Activity-based earnings + Wallet summary/topup/withdraw
 api_router.include_router(activity_credits_router)
-from deals_aggregator import router as deals_aggregator_router  # SA Member Deals + Tag Engine + AI generator
+from features.coupon_engine import router as coupon_engine_router  # Wallet coupons (W1): partner catalog, claims, expiry
+api_router.include_router(coupon_engine_router)
+from features.referral_engine import router as referral_engine_router  # Wallet referrals (W5): code, milestones, leaderboard
+api_router.include_router(referral_engine_router)
+from features.gamification_engine import router as gamification_engine_router  # Wallet streaks, wallet badges, weekly challenges, leaderboard (W6)
+api_router.include_router(gamification_engine_router)
+from features.messaging import router as messaging_router  # Real-time DM: REST + WebSocket
+api_router.include_router(messaging_router)
+from features.calendar_sync import router as calendar_sync_router  # Google + Outlook calendar OAuth
+api_router.include_router(calendar_sync_router)
+from features.routers.admin_catalog import router as admin_catalog_router  # Admin CRUD: deals, insurance, housing
+api_router.include_router(admin_catalog_router)
+from features.wallet_security import router as wallet_security_router  # Wallet security: rate limits, audit log, KYC-lite (W8)
+api_router.include_router(wallet_security_router)
+from features.wallet_notifications import router as wallet_notifications_router  # Wallet notifications: inbox feed, prefs, weekly digest (W9)
+api_router.include_router(wallet_notifications_router)
+from features.wallet_transfer import router as wallet_transfer_router  # Wallet-to-wallet transfers (W11): 10-500cr, 3/day, both notified
+api_router.include_router(wallet_transfer_router)
+from features.credit_marketplace import router as credit_marketplace_router  # SA credit marketplace (W12): buy platform services with credits
+api_router.include_router(credit_marketplace_router)
+from features.wallet_analytics import router as wallet_analytics_router  # Wallet spending analytics (W3): donut/bars/trend/milestones/projection
+api_router.include_router(wallet_analytics_router)
+from features.deals_aggregator import router as deals_aggregator_router  # SA Member Deals + Tag Engine + AI generator
 api_router.include_router(deals_aggregator_router)
-from higher_ed_platform import router as higher_ed_router  # SA Higher Education programmes/scholarships/tracker/AI tools
+from features.higher_ed_platform import router as higher_ed_router  # SA Higher Education programmes/scholarships/tracker/AI tools
 api_router.include_router(higher_ed_router)
-from events_aggregator import router as events_aggregator_router  # Events v2: aggregator + RSVP + waitlist + AI recs + host flow
+from features.events_aggregator import router as events_aggregator_router  # Events v2: aggregator + RSVP + waitlist + AI recs + host flow
 api_router.include_router(events_aggregator_router)
-from financial_services import router as financial_router  # Financial v2: scholarships, loans, startup_funding, insurance, venture_capital + match score + AI helper + EMI
+from features.financial_services import router as financial_router  # Financial v2: scholarships, loans, startup_funding, insurance, venture_capital + match score + AI helper + EMI
 api_router.include_router(financial_router)
-from rentals_marketplace import router as rentals_router  # SA Stay: housing, vehicles, hotels, coworking + bookings + AI recommend
+from features.rentals_marketplace import router as rentals_router  # SA Stay: housing, vehicles, hotels, coworking + bookings + AI recommend
 api_router.include_router(rentals_router)
-from courses_marketplace import router as courses_router  # SA Courses: catalog + tracks + enrollments + AI advisor
+from features.courses_marketplace import router as courses_router  # SA Courses: catalog + tracks + enrollments + AI advisor
 api_router.include_router(courses_router)
-from college_portal import router as college_router  # College admin Phase 3: roster + analytics
+# Course Aggregator (C1) — 24h external course bot: admin status / source toggle / manual run
+from services.course_aggregator import admin_router as course_aggregator_admin_router
+api_router.include_router(course_aggregator_admin_router)
+# Deals Aggregator (D1) — universal deal bot: admin status / source toggle / manual run
+from services.deals_aggregator import admin_router as deals_aggregator_admin_router
+api_router.include_router(deals_aggregator_admin_router)
+from features.college_portal import router as college_router  # College admin Phase 3: roster + analytics
 api_router.include_router(college_router)
 
 # Auth analytics & session tracking
-from auth_analytics import router as auth_analytics_router
+from features.auth_analytics import router as auth_analytics_router
 api_router.include_router(auth_analytics_router)
 
 # Visitor analytics & telemetry engine (Unregistered + Registered visitors)
-from visitor_analytics import router as visitor_analytics_router
+from features.visitor_analytics import router as visitor_analytics_router
 api_router.include_router(visitor_analytics_router)
 
+# Visitor Radar real-time WebSocket hub (VR7) — /api/ws/visitor-radar
+from websocket_hub import router as visitor_radar_ws_router
+api_router.include_router(visitor_radar_ws_router)
+
 # PostHog analytics proxy
-from posthog_proxy import router as posthog_proxy_router
+from features.posthog_proxy import router as posthog_proxy_router
 api_router.include_router(posthog_proxy_router)
 
 # AI Daily Brief (on-demand Claude integration)
-from ai_briefs import router as ai_briefs_router
+from features.ai_briefs import router as ai_briefs_router
 api_router.include_router(ai_briefs_router)
 
 # Agent K — automation operator (Claude tool-use loop)
-from agent_k.api.routes import router as agent_k_router
+from features.agent_k.api.routes import router as agent_k_router
 api_router.include_router(agent_k_router)
 
 # Agent K — provider configurations
-from agent_k.api.provider_routes import router as agent_k_provider_router
+from features.agent_k.api.provider_routes import router as agent_k_provider_router
 api_router.include_router(agent_k_provider_router)
 
 # Agent K — RAG routes
-from agent_k.api.rag_routes import router as agent_k_rag_router
+from features.agent_k.api.rag_routes import router as agent_k_rag_router
 api_router.include_router(agent_k_rag_router)
 
 # Admin settings — Roles & Permissions + Marketplace
-from routers.admin.settings import router as admin_settings_router
+from features.routers.admin.settings import router as admin_settings_router
 api_router.include_router(admin_settings_router)
 
 # Admin imports — bulk-upload + categorization (Students / Alumni / Mentors)
-from routers.admin.imports import router as admin_imports_router
+from features.routers.admin.imports import router as admin_imports_router
 api_router.include_router(admin_imports_router)
-from routers.admin.colleges import router as admin_colleges_router
+from features.routers.admin.colleges import router as admin_colleges_router
 api_router.include_router(admin_colleges_router)
 
+# Mentor Super Admin (MT1–MT14) — KPIs, taxonomy, approval workflow, session
+# analytics, connections, alumni pipeline + autonomous agent suite surface
+from features.mentor_admin import router as mentor_admin_router
+api_router.include_router(mentor_admin_router)
+
+# Refund management (PY1) — full/partial refunds via Stripe/Razorpay + ledger
+from features.routers.admin.refunds import router as admin_refunds_router
+api_router.include_router(admin_refunds_router)
+
+# Revenue analytics (PY4) — trend / by-source / top events with period deltas
+from features.routers.admin.revenue import router as admin_revenue_router
+api_router.include_router(admin_revenue_router)
+
+# Approval SLA tracking + audit trail (AP1 / AP4)
+from features.routers.admin.approvals import router as admin_approvals_router
+api_router.include_router(admin_approvals_router)
+
+# Weekly platform health briefings (AI4)
+from features.routers.admin.briefings import router as admin_briefings_router
+api_router.include_router(admin_briefings_router)
+
+# Settings changelog + rollback (ST2)
+from features.routers.admin.settings_changelog import router as admin_settings_changelog_router
+api_router.include_router(admin_settings_changelog_router)
+
 # Talent Pool — searchable candidate profiles (LinkedIn, CSV, platform opt-in)
-from talent_pool import router as talent_pool_router
+from features.talent_pool import router as talent_pool_router
 api_router.include_router(talent_pool_router)
 
 # CRUD endpoints — append-only mutations (book, RSVP, enroll, apply)
@@ -3209,74 +763,80 @@ from crud_endpoints import router as crud_router
 api_router.include_router(crud_router)
 
 # Collaboration partners (Phase A) — public landing strip + admin CRUD
-from routers.partners import router as partners_router
+from features.routers.partners import router as partners_router
 app.include_router(partners_router)
 
 # Phase B — consent (privacy/cookies) + product tour status
-from routers.consent import router as consent_router
-from routers.tour import router as tour_router
+from features.routers.consent import router as consent_router
+from features.routers.tour import router as tour_router
 app.include_router(consent_router)
 app.include_router(tour_router)
 
 # Phase C — promotional banners (cross-portal)
-from routers.promotions import router as promotions_router
+from features.routers.promotions import router as promotions_router
 app.include_router(promotions_router)
 
-from routers.auth import router as auth_router
+from features.routers.auth import router as auth_router
 api_router.include_router(auth_router)
 
-from routers.users import router as users_router
+from features.routers.users import router as users_router
 api_router.include_router(users_router)
 
 # Career AI — skill intelligence, roadmaps, simulator, predictions, suggestions
-from routers.career_ai import router as career_ai_router
+from features.routers.career_ai import router as career_ai_router
 api_router.include_router(career_ai_router)
 
 # Certificates & SA ID Verification
-from routers.certificates import router as certificates_router
+from features.routers.certificates import router as certificates_router
 api_router.include_router(certificates_router)
 
 # AI Platform Services — Platform RAG Semantic Search & Automated AI Agents
-from routers.ai_platform_services import router as ai_platform_services_router
+from features.routers.ai_platform_services import router as ai_platform_services_router
 api_router.include_router(ai_platform_services_router)
 
 # Autonomous Agent Ecosystem (MetaGPT Swarm, AutoGPT Autopilot, QA & Security Agents)
-from routers.admin.agents import router as admin_agents_router
+from features.routers.admin.agents import router as admin_agents_router
 api_router.include_router(admin_agents_router)
 
 # CodeHealthAgent Autonomous Auditor & Auto-Fix Router
-from routers.code_health import router as code_health_router
+from features.routers.code_health import router as code_health_router
 api_router.include_router(code_health_router)
 
 # PDF Document Generation & Download Router
-from routers.pdf_routes import router as pdf_routes_router
+from features.routers.pdf_routes import router as pdf_routes_router
 api_router.include_router(pdf_routes_router)
 
 # SuperAdmin Account Verticals & Background Verification (BGV) Router
-from routers.bgv import router as bgv_router
+from features.routers.bgv import router as bgv_router
 api_router.include_router(bgv_router)
 
 # BGV Free & Semi-Paid API Integrations Register Router
-from routers.bgv_integrations import router as bgv_integrations_router
+from features.routers.bgv_integrations import router as bgv_integrations_router
 api_router.include_router(bgv_integrations_router)
 
 # Blog & Community Routers
-from routers.blog import router as blog_router
+from features.routers.blog import router as blog_router
 api_router.include_router(blog_router)
 
-from routers.community import router as community_router
+from features.routers.community import router as community_router
 api_router.include_router(community_router)
 
 # First-Party Careers & Opportunities Router (Dedicated, isolated from jobs_feed)
-from routers.careers import router as careers_router
+from features.routers.careers import router as careers_router
 api_router.include_router(careers_router)
 
-# Public website contact form (POST /api/contact)
-from routers.public_contact import router as public_contact_router
+# Public website contact form (POST /api/contact) + admin contact analytics
+from features.routers.public_contact import router as public_contact_router, admin_router as public_contact_admin_router
 api_router.include_router(public_contact_router)
+api_router.include_router(public_contact_admin_router)
+
+# Public AXISS-ecosystem promo coupons (contact-form welcome codes)
+from features.routers.coupons_public import router as coupons_public_router, admin_router as coupons_public_admin_router
+api_router.include_router(coupons_public_router)
+api_router.include_router(coupons_public_admin_router)
 
 # Alumni Referrals (GET /api/jobs/{job_id}/alumni, /api/referrals, ...)
-from routers.referrals import router as referrals_router
+from features.routers.referrals import router as referrals_router
 api_router.include_router(referrals_router)
 
 app.include_router(api_router)
@@ -3287,9 +847,9 @@ app.include_router(api_router)
 # Comma-separated list, e.g.
 #   ALLOWED_ORIGINS="https://app.example.com,https://admin.example.com"
 # Use "*" only when allow_credentials is False; we coerce safely below.
-_origins_env = (os.getenv("ALLOWED_ORIGINS") or os.getenv("FRONTEND_URL") or "*").strip()
+_origins_env = (os.getenv("ALLOWED_ORIGINS") or os.getenv("FRONTEND_URL") or "http://localhost:8081,http://localhost:3000,http://127.0.0.1:8081").strip()
 _origins_list = [o.strip() for o in _origins_env.split(",") if o.strip()]
-_allow_creds = "*" not in _origins_list  # browsers reject credentials+wildcard
+_allow_creds = True
 
 # Fail-fast: wildcard CORS is insecure in production
 if os.getenv("ENV") == "production" and "*" in _origins_list:
@@ -3300,7 +860,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=_allow_creds,
-    allow_origins=_origins_list or ["*"],
+    allow_origins=_origins_list,
     allow_origin_regex=os.getenv("ALLOWED_ORIGIN_REGEX") or None,
     # Explicit method/header lists — "*" is overly permissive
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * AnimatedCard — Pressable wrapper with MD3 hover/press animation.
  * Web: subtle scale + shadow lift on hover; press: scale-down 0.97.
@@ -10,7 +9,7 @@ import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, Easing,
 } from 'react-native-reanimated';
 
-const AView = Animated.createAnimatedComponent(Pressable as any);
+const AView: any = Animated.createAnimatedComponent(Pressable as any);
 
 type Props = {
   onPress?: () => void;

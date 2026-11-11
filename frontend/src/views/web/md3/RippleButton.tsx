@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * RippleButton — Pressable with MD3 scale-down + opacity ripple effect.
  */
@@ -8,7 +7,7 @@ import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, Easing,
 } from 'react-native-reanimated';
 
-const AView = Animated.createAnimatedComponent(Pressable as any);
+const AView: any = Animated.createAnimatedComponent(Pressable as any);
 
 type Props = {
   onPress?: () => void;

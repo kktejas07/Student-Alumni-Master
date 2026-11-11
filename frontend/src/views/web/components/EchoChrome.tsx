@@ -4,9 +4,8 @@
  * Reuses the exact same Navbar + Footer from the marketing landing page
  * (nexus-glow-landing) with the luxury glowing SA Watermark.
  */
-// @ts-nocheck
 import React, { useState } from 'react';
-import { StyleSheet, View, Image, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Image, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
@@ -68,7 +67,7 @@ export function EchoImg({ source, fallbackGradient, fallbackLabel, style, resize
           return (
             <View style={{ padding: 12, alignItems: 'center' }}>
               <Image source={require('../../../../assets/images/sa-icon.png')} style={{ width: 40, height: 40, opacity: 0.5, marginBottom: 6 }} resizeMode="contain" />
-              <View style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontFamily: 'Inter, sans-serif', textAlign: 'center' }}>{fallbackLabel}</View>
+              <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontFamily: 'Inter, sans-serif', textAlign: 'center' }}>{fallbackLabel}</Text>
             </View>
           );
         })()}

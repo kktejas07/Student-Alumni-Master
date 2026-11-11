@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Apple HIG Primitives — bundled in one file for atomic adoption.
  *
@@ -98,7 +97,7 @@ export function Card({
   const lift = useSharedValue(0);
 
   const aStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }, { translateY: lift.value }],
+    transform: [{ scale: scale.value }, { translateY: lift.value }] as any,
   }));
 
   const padding = isPhone ? SP.base : SP.lg;

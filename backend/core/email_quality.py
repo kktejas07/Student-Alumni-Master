@@ -325,7 +325,7 @@ async def warmup() -> None:
     except Exception:
         pass
     try:
-        from routers.admin.settings import ensure_postal_webhook_secret
+        from features.routers.admin.settings import ensure_postal_webhook_secret
         await ensure_postal_webhook_secret()
     except Exception:
         pass

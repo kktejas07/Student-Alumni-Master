@@ -38,6 +38,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from server import (  # noqa: E402
     hash_password, generate_qr_code, generate_unique_id, db,
 )
+from core.config import frontend_base_url  # noqa: E402
 
 random.seed(42)
 NOW = datetime.now(timezone.utc)
@@ -570,7 +571,7 @@ async def upsert_user(email: str, password: str, full_name: str, role: str,
     if existing:
         return str(existing["_id"])
     uid = generate_unique_id(role)
-    frontend_url_env = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    frontend_url_env = frontend_base_url()
     user_doc: Dict[str, Any] = {
         "email": email,
         "password_hash": hash_password(password),

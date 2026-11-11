@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Apple HIG Toast Provider — stacked, swipe-to-dismiss, auto-progress bar.
  *
@@ -155,7 +154,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
       { translateY: (1 - v.value) * 20 },
       { translateX: swipe.value },
       { scale: 0.95 + v.value * 0.05 },
-    ],
+    ] as any,
   }));
   const aProgress = useAnimatedStyle(() => ({ width: `${Math.max(0, progress.value) * 100}%` as any }));
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, Pressable, StyleSheet, TextInput, ScrollView, Platform, ActivityIndicator
@@ -6,12 +5,13 @@ import {
 import {
   Award, Sparkles, Printer, Download, CheckCircle2, ShieldCheck,
   Upload, Layers, Sliders, RefreshCw, Copy, FileText, Image as ImageIcon,
-  UserCheck, Building2, GraduationCap, Star, Palette
+  UserCheck, Building2, GraduationCap, Star, Palette, QrCode
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import { Badge } from '../atoms';
 import { GradientButton, SecondaryButton, Card, IconBox } from '../applekit';
 import { request } from '@/src/models/services/api';
+import { CertificatePdfPreview } from './CertificatePdfPreview';
 
 type EventSeries = 'echo_2026' | 'axiss_2026' | 'sa_platform';
 
@@ -315,7 +315,7 @@ const TEMPLATES: TemplateDef[] = [
 
 export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => void }) {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('certA');
   const [activeEventFilter, setActiveEventFilter] = useState<string>('ALL');
 
@@ -353,6 +353,10 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
 
   const [auditResult, setAuditResult] = useState<any>(null);
   const [skillsResult, setSkillsResult] = useState<any>(null);
+
+  // ── PDF preview (CR2) ──
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [pdfPreviewKey, setPdfPreviewKey] = useState(0);
 
   // Agent 1: AI Citation Drafter
   const runAiCitationDrafter = async () => {
@@ -447,32 +451,34 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
     : TEMPLATES.filter((t) => t.category.toLowerCase().includes(activeEventFilter.toLowerCase()));
 
   // Issue into Platform MongoDB Registry
+  const certificatePayload = () => ({
+    recipient_name: recipientName,
+    recipient_email: recipientEmail,
+    certification_name: `${title} (${programme})`,
+    verification_code: certId,
+    issue_date: issueDate,
+    institution: institution,
+    department: department,
+    role: role,
+    citation: citation,
+    branch: department.includes('CSE') ? 'CSE' : department.includes('IT') ? 'IT' : department.includes('ECE') ? 'ECE' : 'ALL',
+    metadata: {
+      template_id: selectedTemplateId,
+      series_prefix: currentTpl.seriesPrefix,
+      programme: programme,
+      term: term,
+      signatory1: { name: sig1Name, title: sig1Title },
+      signatory2: showSignatory2 ? { name: sig2Name, title: sig2Title } : null
+    }
+  });
+
   const issueToPlatformRegistry = async () => {
     setIssuing(true);
     try {
       await request('/certificates/issue', {
         method: 'POST',
         auth: true,
-        body: {
-          recipient_name: recipientName,
-          recipient_email: recipientEmail,
-          certification_name: `${title} (${programme})`,
-          verification_code: certId,
-          issue_date: issueDate,
-          institution: institution,
-          department: department,
-          role: role,
-          citation: citation,
-          branch: department.includes('CSE') ? 'CSE' : department.includes('IT') ? 'IT' : department.includes('ECE') ? 'ECE' : 'ALL',
-          metadata: {
-            template_id: selectedTemplateId,
-            series_prefix: currentTpl.seriesPrefix,
-            programme: programme,
-            term: term,
-            signatory1: { name: sig1Name, title: sig1Title },
-            signatory2: showSignatory2 ? { name: sig2Name, title: sig2Title } : null
-          }
-        }
+        body: certificatePayload(),
       });
       if (onSaved) onSaved(`Certificate ${certId} issued and verifiable at /certificates/verify/${certId}`);
     } catch (e: any) {
@@ -480,6 +486,11 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
     } finally {
       setIssuing(false);
     }
+  };
+
+  const openPdfPreview = () => {
+    setShowPdfPreview(true);
+    setPdfPreviewKey((k) => k + 1);
   };
 
   const handlePrint = () => {
@@ -492,7 +503,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
     <View style={s.container}>
       {/* Studio Header */}
       <View style={s.headerBanner}>
-        <View style={s.hIcon}><Award size={22} color={SAC.accent} /></View>
+        <View style={s.hIcon}><Award size={22} color={T.accent} /></View>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text style={s.hTitle}>ECHO 2026 & AXISS Certificate Studio</Text>
@@ -534,7 +545,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
               style={[
                 s.tplCard,
                 active && s.tplCardActive,
-                { borderLeftColor: t.colorScheme === 'gold' ? '#F59E0B' : t.colorScheme === 'green' ? '#10B981' : t.colorScheme === 'ember' ? '#EF4444' : SAC.primary }
+                { borderLeftColor: t.colorScheme === 'gold' ? '#F59E0B' : t.colorScheme === 'green' ? '#10B981' : t.colorScheme === 'ember' ? '#EF4444' : T.primary }
               ]}
             >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -554,7 +565,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
         <View style={s.leftCol}>
           <Card>
             <View style={s.cardHead}>
-              <Sliders size={16} color={SAC.accent} />
+              <Sliders size={16} color={T.accent} />
               <Text style={s.cardHeadText}>Certificate Parameters</Text>
             </View>
 
@@ -629,7 +640,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
                     onPress={() => setBgStyle(b.id as any)}
                     style={[s.bgChip, bgStyle === b.id && s.bgChipActive]}
                   >
-                    <Text style={[s.bgChipText, bgStyle === b.id && { color: SAC.text }]}>{b.label}</Text>
+                    <Text style={[s.bgChipText, bgStyle === b.id && { color: T.text }]}>{b.label}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -687,7 +698,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
               )}
 
               {/* Signatories */}
-              <Text style={[s.label, { marginTop: 10, color: SAC.accent }]}>Signatories & Authorization</Text>
+              <Text style={[s.label, { marginTop: 10, color: T.accent }]}>Signatories & Authorization</Text>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={s.label}>Signatory 1 Name</Text>
@@ -707,6 +718,13 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
 
               {/* Action Buttons */}
               <View style={{ gap: 8, marginTop: 14 }}>
+                <SecondaryButton onPress={openPdfPreview}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <QrCode size={15} color="#fff" />
+                    <Text style={s.secBtnText}>Preview PDF (with QR)</Text>
+                  </View>
+                </SecondaryButton>
+
                 <GradientButton onPress={issueToPlatformRegistry} loading={issuing}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <ShieldCheck size={15} color="#fff" />
@@ -730,7 +748,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
           <Card>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Sparkles size={16} color={SAC.accent} />
+                <Sparkles size={16} color={T.accent} />
                 <Text style={s.cardHeadText}>Live WYSIWYG Preview ({currentTpl.name})</Text>
               </View>
               <Badge label="297mm × 210mm (A4 Landscape)" color="purple" />
@@ -748,7 +766,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
                 <View style={s.certBand}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <View style={s.certLogoBox}>
-                      <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13 }}>SA</Text>
+                      <Text style={{ color: T.text, fontFamily: FONTS.xbold, fontSize: 13 }}>SA</Text>
                     </View>
                     <View>
                       <Text style={s.certBrandText}>StudentAlumni</Text>
@@ -838,6 +856,15 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
           </Card>
         </View>
       </View>
+
+      {/* Server-rendered PDF preview with verification QR (CR2) */}
+      {showPdfPreview && (
+        <CertificatePdfPreview
+          body={certificatePayload()}
+          reloadKey={pdfPreviewKey}
+          onClose={() => setShowPdfPreview(false)}
+        />
+      )}
     </View>
   );
 }

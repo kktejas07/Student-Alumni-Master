@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * FAB — Material Design 3 Floating Action Button.
  * - Bottom-right anchored (web: position: 'fixed', native: 'absolute')
@@ -14,7 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Layout } from '../../../theme';
 
-const AView = Animated.createAnimatedComponent(Pressable as any);
+const AView: any = Animated.createAnimatedComponent(Pressable as any);
 
 const ReactDOM = Platform.OS === 'web' ? require('react-dom') : null;
 

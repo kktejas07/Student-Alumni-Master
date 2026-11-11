@@ -221,14 +221,15 @@ async def _call_anthropic(text: str) -> List[str]:
 
     client = httpx.AsyncClient(timeout=30.0)
     try:
+        base = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com").rstrip("/")
         r = await client.post(
-            "https://api.anthropic.com/v1/messages",
+            f"{base}/v1/messages",
             headers={
                 "x-api-key": os.environ["ANTHROPIC_API_KEY"],
                 "anthropic-version": "2023-06-01",
             },
             json={
-                "model": os.environ.get("ANTHROPIC_MODEL", "claude-3-5-sonnet-latest"),
+                "model": os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5"),
                 "max_tokens": 2000,
                 "messages": [{
                     "role": "user",

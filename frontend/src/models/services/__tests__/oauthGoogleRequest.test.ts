@@ -9,19 +9,20 @@
  * These tests pin the request contract so a field rename/drop in the API
  * client can never silently break Google login again.
  */
-jest.mock('expo-secure-store', () => ({
-  setItemAsync: jest.fn(),
-  getItemAsync: jest.fn(async () => null),
-  deleteItemAsync: jest.fn(),
+import { vi } from 'vitest';
+vi.mock('expo-secure-store', () => ({
+  setItemAsync: vi.fn(),
+  getItemAsync: vi.fn(async () => null),
+  deleteItemAsync: vi.fn(),
 }));
-jest.mock('react-native', () => ({
+vi.mock('react-native', () => ({
   Platform: { OS: 'web', select: (o: any) => o.web ?? o.default },
 }));
-jest.mock('@/src/lib/env', () => ({ getBaseUrl: () => 'https://unit.test' }));
+vi.mock('@/src/lib/env', () => ({ getBaseUrl: () => 'https://unit.test' }));
 
 import { api } from '../api';
 
-const fetchMock = jest.fn();
+const fetchMock = vi.fn();
 
 beforeAll(() => {
   (global as any).fetch = fetchMock;
@@ -73,6 +74,31 @@ describe('api.oauthGoogle request contract', () => {
     expect(body.role).toBe('student');
 
     expect(res.access_token).toBe('at-token');
+  });
+
+  it('authenticates with a personal Gmail account without requiring a college domain', async () => {
+    const GMAIL_SESSION = {
+      access_token: 'gmail-at-token',
+      refresh_token: 'gmail-rt-token',
+      user: { id: 'u2', email: 'personal.user@gmail.com', full_name: 'Personal User', role: 'student' },
+    };
+    fetchMock.mockResolvedValueOnce(okJson(GMAIL_SESSION));
+
+    const res = await api.oauthGoogle({
+      id_token: 'firebase-gmail-token-xyz',
+      email: 'personal.user@gmail.com',
+      full_name: 'Personal User',
+      picture: 'https://lh3.googleusercontent.com/photo.jpg',
+      role: 'student',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://unit.test/api/auth/google');
+    const body = JSON.parse(init.body);
+    expect(body.email).toBe('personal.user@gmail.com');
+    expect(body.id_token).toBe('firebase-gmail-token-xyz');
+    expect(res.user.email).toBe('personal.user@gmail.com');
   });
 
   it('surfaces the backend 401 detail unmasked (no silent success)', async () => {

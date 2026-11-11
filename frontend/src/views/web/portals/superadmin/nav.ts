@@ -3,6 +3,7 @@ import {
   LayoutDashboard, Building2, GraduationCap, UserCheck, Users, Calendar, CreditCard,
   BarChart3, CheckCircle, Sparkles, Settings, Workflow, Upload, Handshake, Megaphone,
   UserPlus, Mail, Award, ShieldOff, ShieldCheck, Bot, Radar, Video, Store, Tag, GitPullRequest, Briefcase,
+  Target, Package,
 } from 'lucide-react-native';
 import { displayName, displayInitials } from '@/src/lib/portalHome';
 import type { NavItem, PortalConfig } from '@/src/ui/shell/types';
@@ -10,8 +11,9 @@ import type { NavItem, PortalConfig } from '@/src/ui/shell/types';
 export type SuperAdminNavId =
   | 'overview' | 'agents' | 'visitor-radar' | 'bgv' | 'colleges' | 'students' | 'mentors' | 'alumni' | 'events'
   | 'payments' | 'analytics' | 'approvals' | 'ai-insights' | 'settings'
-  | 'workflows' | 'imports' | 'partners' | 'promotions' | 'talent-pool' | 'echo-showcase'
-  | 'vendors' | 'coupons' | 'careers' | 'newsletter' | 'certificates' | 'email-health' | 'teams' | 'cicd-evaluator' | 'code-health';
+  | 'workflows' | 'imports' | 'partners' | 'promotions' | 'talent-pool' | 'talent-pool-agents' | 'echo-showcase'
+  | 'vendors' | 'coupons' | 'careers' | 'newsletter' | 'certificates' | 'email-health' | 'teams' | 'cicd-evaluator' | 'code-health'
+  | 'lead-aggregator' | 'catalog';
 
 export const NAV: (NavItem & { id: SuperAdminNavId })[] = [
   { id: 'overview',        label: 'Overview',            Icon: LayoutDashboard },
@@ -26,11 +28,13 @@ export const NAV: (NavItem & { id: SuperAdminNavId })[] = [
   { id: 'alumni',          label: 'Alumni',              Icon: Users },
   { id: 'careers',         label: 'Careers',             Icon: Briefcase },
   { id: 'talent-pool',     label: 'Talent Pool',         Icon: UserPlus },
+  { id: 'talent-pool-agents', label: 'Talent Pool AI Agents', Icon: Bot },
   { id: 'imports',         label: 'Import Contacts',     Icon: Upload },
   { id: 'events',          label: 'Events',              Icon: Calendar },
   { id: 'echo-showcase',   label: 'Echo Showcase',       Icon: Sparkles, tag: 'CMS' },
   { id: 'vendors',         label: 'Marketplace Vendors', Icon: Store },
   { id: 'coupons',         label: 'Coupons',             Icon: Tag },
+  { id: 'catalog',         label: 'Catalog',             Icon: Package },
   { id: 'partners',        label: 'Partners',            Icon: Handshake },
   { id: 'promotions',      label: 'Promotions',          Icon: Megaphone },
   { id: 'newsletter',      label: 'Newsletter',          Icon: Mail },
@@ -38,6 +42,7 @@ export const NAV: (NavItem & { id: SuperAdminNavId })[] = [
   { id: 'certificates',    label: 'Certificates',        Icon: Award },
   { id: 'payments',        label: 'Payments',            Icon: CreditCard },
   { id: 'analytics',       label: 'Analytics',           Icon: BarChart3 },
+  { id: 'lead-aggregator', label: 'Lead Aggregator',     Icon: Target },
   { id: 'approvals',       label: 'Approvals',           Icon: CheckCircle, countKey: 'approvals', alert: true },
   { id: 'ai-insights',     label: 'AI Insights',         Icon: Sparkles, spark: true },
   { id: 'workflows',       label: 'Workflows',           Icon: Workflow },

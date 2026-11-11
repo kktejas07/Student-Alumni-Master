@@ -28,8 +28,9 @@ LogBox.ignoreAllLogs();
 import { useRouter } from 'expo-router';
 import {
   Award, Briefcase, ChevronRight, Code, Download, FileText, Flame, Folder, Link2, MessageSquare,
-  Mic, Send, Star, Target, User as UserIcon, Sparkles, Shield,
+  Mic, Send, Star, Target, User as UserIcon, Sparkles, Shield, RotateCcw,
 } from 'lucide-react-native';
+import { useTheme } from '@/src/theme/ThemeContext';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components/Toast';
@@ -55,29 +56,71 @@ import {
   HorizontalRoadmap,
   AIInsightBubble,
 } from '@/src/views/web/career';
-import { FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
+import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
 
-/* ────────── Design tokens ────────── */
-const C = {
-  bg: '#08080F',
-  bgCard: '#101019',
-  bgCardH: '#14141F',
-  border: 'rgba(255, 255, 255, 0.08)',
-  border2: 'rgba(255, 255, 255, 0.14)',
-  text: '#FFFFFF',
-  text2: 'rgba(255, 255, 255, 0.95)',
-  textSub: 'rgba(255, 255, 255, 0.85)',
-  dim: 'rgba(255, 255, 255, 0.70)',
-  purple: '#4F46E5',
-  purple2: '#6366F1',
-  purpleL: '#818CF8',
-  purpleXL: '#A5B4FC',
-  teal: '#2DD4BF',
+/* ────────── Design tokens (theme-aware) ────────── */
+const C_DARK = {
+  bg: COLORS.bg,
+  bgCard: COLORS.surface1,
+  bgCardH: COLORS.surface2,
+  border: COLORS.border,
+  border2: COLORS.borderHi,
+  text: COLORS.text,
+  text2: COLORS.text2,
+  textSub: COLORS.textSub,
+  dim: COLORS.dim,
+  purple: COLORS.primary,
+  purple2: COLORS.primary,
+  purpleL: COLORS.primaryLight,
+  purpleXL: '#C4B5FD',
+  teal: COLORS.green,
   blue: '#60A5FA',
   amber: '#F59E0B',
   red: '#F87171',
   green: '#34D399',
   pink: '#F472B6',
+  surface: COLORS.surface2,
+  surfaceBorder: COLORS.border,
+  subtleBg: 'rgba(255, 255, 255, 0.03)',
+  subtleBorder: 'rgba(255, 255, 255, 0.06)',
+  track: 'rgba(255, 255, 255, 0.1)',
+  agentBg: 'rgba(255, 255, 255, 0.05)',
+  colCardBorder: COLORS.border,
+  cardShadow: '0 4px 20px rgba(0,0,0,0.15)',
+  heroCardBg: 'rgba(124, 92, 252, 0.15)',
+  heroShadow: '0 8px 32px rgba(124, 92, 252, 0.25)',
+};
+
+const C_LIGHT = {
+  bg: '#F4F5FA',
+  bgCard: '#FFFFFF',
+  bgCardH: '#F3F4FA',
+  border: 'rgba(20, 23, 38, 0.10)',
+  border2: 'rgba(20, 23, 38, 0.16)',
+  text: '#141726',
+  text2: 'rgba(20, 23, 38, 0.92)',
+  textSub: 'rgba(20, 23, 38, 0.75)',
+  dim: 'rgba(20, 23, 38, 0.56)',
+  purple: '#6246E8',
+  purple2: '#7C5CFC',
+  purpleL: '#6246E8',
+  purpleXL: '#4338CA',
+  teal: '#0D9488',
+  blue: '#2563EB',
+  amber: '#D97706',
+  red: '#DC2626',
+  green: '#059669',
+  pink: '#DB2777',
+  surface: '#FFFFFF',
+  surfaceBorder: 'rgba(20, 23, 38, 0.10)',
+  subtleBg: 'rgba(20, 23, 38, 0.03)',
+  subtleBorder: 'rgba(20, 23, 38, 0.06)',
+  track: 'rgba(20, 23, 38, 0.10)',
+  agentBg: 'rgba(20, 23, 38, 0.04)',
+  colCardBorder: 'rgba(20, 23, 38, 0.10)',
+  cardShadow: '0 4px 20px rgba(20, 23, 38, 0.08)',
+  heroCardBg: '#FFFFFF',
+  heroShadow: '0 8px 32px rgba(124, 92, 252, 0.12)',
 };
 
 const FT = {
@@ -92,12 +135,12 @@ const FT = {
 const skillStatus = (v: number) => (v >= 70 ? 'Strong' : v >= 40 ? 'Developing' : 'Needs Work');
 
 const SKILL_META = [
-  { key: 'Technical Excellence',       label: 'Technical Excellence',       short: 'Technical Excellence',       color: '#38BDF8', Icon: Code, status: 'Strong' },
-  { key: 'Professional Communication', label: 'Professional Communication', short: 'Professional Communication', color: '#60A5FA', Icon: MessageSquare, status: 'Developing' },
-  { key: 'Leadership & Collaboration', label: 'Leadership & Collaboration', color: '#2DD4BF', Icon: Award, status: 'Needs Work' },
-  { key: 'Career Preparation',         label: 'Projects & Practical Skills',color: '#818CF8', Icon: Folder, status: 'Strong' },
-  { key: 'Personal Brand',             label: 'Personal Brand',             short: 'Personal Brand',             color: '#F59E0B', Icon: Star, status: 'Developing' },
-  { key: 'Industry Presence',          label: 'Industry Presence',          short: 'Industry Presence',          color: '#EC4899', Icon: UserIcon, status: 'Needs Work' },
+  { key: 'Technical Excellence',       label: 'Technical Excellence',       short: 'Technical Excellence',       color: '#38BDF8', colorLight: '#2563EB', Icon: Code, status: 'Strong' },
+  { key: 'Professional Communication', label: 'Professional Communication', short: 'Professional Communication', color: '#60A5FA', colorLight: '#4F46E5', Icon: MessageSquare, status: 'Developing' },
+  { key: 'Leadership & Collaboration', label: 'Leadership & Collaboration', color: '#2DD4BF', colorLight: '#0D9488', Icon: Award, status: 'Needs Work' },
+  { key: 'Career Preparation',         label: 'Projects & Practical Skills',color: COLORS.primaryLight, colorLight: COLORS.primaryDark, Icon: Folder, status: 'Strong' },
+  { key: 'Personal Brand',             label: 'Personal Brand',             short: 'Personal Brand',             color: '#F59E0B', colorLight: '#D97706', Icon: Star, status: 'Developing' },
+  { key: 'Industry Presence',          label: 'Industry Presence',          short: 'Industry Presence',          color: '#EC4899', colorLight: '#DB2777', Icon: UserIcon, status: 'Needs Work' },
 ];
 
 /* ────────── Types ────────── */
@@ -124,6 +167,9 @@ interface RoadmapResp {
    Main Page Component
 ═══════════════════════════════════════════════════════════ */
 export default function CareerAIPage({ embedded = false }: { embedded?: boolean } = {}) {
+  const { isDark } = useTheme();
+  const C = isDark ? C_DARK : C_LIGHT;
+  const s = useMemo(() => makeStyles(C), [C]);
   const router = useRouter();
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
@@ -138,8 +184,8 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   }, [isEmbedded, initialized, user, router]);
 
   const { width: winW } = useWindowDimensions();
-  const isLarge = winW >= 1024;
-  const isTablet = winW >= 680;
+  const isLarge = winW >= (isEmbedded ? 1280 : 1024);
+  const isTablet = winW >= (isEmbedded ? 960 : 680);
 
   /* ── State ── */
   const [loading, setLoading] = useState(true);
@@ -179,7 +225,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   /* ── Derived ── */
   const allMilestones = useMemo(() => roadmap.milestones || [], [roadmap]);
   const pendingMilestones = useMemo(() => allMilestones.filter(m => !m.completed), [allMilestones]);
-  const firstPendingIdx = useMemo(() => allMilestones.findIndex(m => !m.completed), [allMilestones]);
+  const nextMilestone = pendingMilestones[0] || null;
 
   /* ── Fetch Data ── */
   const fetch = useCallback(async (force = false) => {
@@ -304,8 +350,9 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   return (
     <View style={{ flex: 1, width: '100%', overflow: 'hidden' }}>
         <LinearGradient
-          colors={['#FFFFFF', '#F8FAFC', '#EFF6FF', '#E2E8F0']}
-          locations={[0, 0.3, 0.7, 1]}
+          colors={isDark
+            ? ['#08080F', '#0C0E1F', '#08080F']
+            : ['#F4F5FA', '#EDEBF8', '#F4F5FA']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[StyleSheet.absoluteFillObject, { zIndex: -1 }]}
@@ -334,7 +381,10 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
             {regenerating ? (
               <ActivityIndicator size={13} color={C.purpleL} />
             ) : (
-              <Text style={s.regenBtnText}>↺ Regenerate</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <RotateCcw size={13} color={C.purpleL} />
+                <Text style={s.regenBtnText}>Regenerate</Text>
+              </View>
             )}
           </Pressable>
 
@@ -360,7 +410,9 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
       {/* ══════════════ 2. HERO MISSION CARD ══════════════ */}
       <LinearGradient
-        colors={['rgba(55, 48, 163, 0.50)', 'rgba(24, 18, 48, 0.90)', 'rgba(18, 22, 35, 0.95)']}
+        colors={isDark
+          ? ['rgba(55, 48, 163, 0.50)', 'rgba(24, 18, 48, 0.90)', 'rgba(18, 22, 35, 0.95)']
+          : ['#EEF2FF', '#E0E7FF', '#DBEAFE']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.heroCard}
       >
@@ -386,9 +438,9 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
                 {targetRole} at a {targetCo}
               </Text>
               <View style={s.heroChipsRow}>
-                <Text style={s.heroChip}>✦ Level: <Text style={s.heroChipVal}>{readinessLevel}</Text></Text>
-                <Text style={s.heroChip}>✦ Target: <Text style={s.heroChipVal}>{getLevelForScore(potentialScore)}</Text></Text>
-                <Text style={s.heroChip}>✦ ETA: <Text style={s.heroChipVal}>{estimatedWeeks}</Text></Text>
+                <Text style={s.heroChip}>Level: <Text style={s.heroChipVal}>{readinessLevel}</Text></Text>
+                <Text style={s.heroChip}>Target: <Text style={s.heroChipVal}>{getLevelForScore(potentialScore)}</Text></Text>
+                <Text style={s.heroChip}>ETA: <Text style={s.heroChipVal}>{estimatedWeeks}</Text></Text>
               </View>
             </View>
 
@@ -403,7 +455,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
                     size={64}
                     stroke={6}
                     color={C.purpleL}
-                    trackColor="rgba(255,255,255,0.08)"
+                    trackColor={isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'}
                     hideText={true}
                   />
                   <Text style={s.heroRingText}>{readinessScore}%</Text>
@@ -414,12 +466,15 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
               {/* Panel 2: Next Milestone */}
               <View style={s.heroPanel}>
-                <Text style={s.heroPanelLabel}>Next Milestone</Text>
-                <Text style={s.heroPanelTitle} numberOfLines={2}>Build your professional resume</Text>
-                <View style={s.heroProgressTrack}>
-                  <View style={[s.heroProgressFill, { width: '60%' }]} />
-                </View>
-                <Text style={s.heroPanelSub}>60% Completed</Text>
+                <Text style={s.heroPanelLabel}>
+                  {nextMilestone ? 'Next Milestone' : allMilestones.length ? 'Roadmap Complete' : 'Next Milestone'}
+                </Text>
+                <Text style={s.heroPanelTitle} numberOfLines={2}>
+                  {nextMilestone?.title || (allMilestones.length ? 'All milestones complete' : 'No milestone planned yet')}
+                </Text>
+                <Text style={s.heroPanelSub} numberOfLines={3}>
+                  {nextMilestone?.description || nextMilestone?.completion_rule || (allMilestones.length ? 'You have completed every step in this roadmap.' : 'Your roadmap will show its first milestone here.')}
+                </Text>
               </View>
 
               {/* Panel 3: Estimated Achievement */}
@@ -459,7 +514,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           subText={readinessLevel}
           iconElement={<CompletionRing pct={readinessScore} size={18} stroke={2.5} color={C.purpleL} trackColor="transparent" hideText={true} />}
           onPress={() => { setExplainTab('readiness'); setShowExplainModal(true); }}
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 155 }}
         />
         <MetricCard
           label="TARGET READINESS"
@@ -467,7 +522,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           color={C.teal}
           subText="Industry Ready"
           iconElement={<Target size={16} color={C.teal} />}
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 155 }}
         />
         <MetricCard
           label="CAREER LEVEL"
@@ -475,7 +530,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           color={C.amber}
           subText="Current Level"
           iconElement={<Award size={16} color={C.amber} />}
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 155 }}
         />
         <MetricCard
           label="PROFILE STRENGTH"
@@ -483,30 +538,23 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           color={C.blue}
           subText="Profile Score"
           iconElement={<Shield size={16} color={C.blue} />}
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 155 }}
         />
         <MetricCard
-          label="SKILL STREAK 🔥"
-          value={`${skillStreak} Days`}
+          label="SKILL STREAK"
+          value={`${skillStreak} ${skillStreak === 1 ? 'Day' : 'Days'}`}
           color={C.red}
           subText="Start your streak!"
           iconElement={<Flame size={16} color={C.red} fill={C.red} />}
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 155 }}
         />
       </View>
 
       {/* ══════════════ 4. CAREER GROWTH PREDICTION ══════════════ */}
-      <PredictionTimeline
-        data={careerIntel?.predictions || { current: readinessScore }}
-        onViewAnalysis={() => {
-          setExplainTab('readiness');
-          setShowExplainModal(true);
-        }}
-      />
-
+      <PredictionTimeline data={careerIntel?.predictions} />
 
       {/* ══════════════ 5. ROW 1: SKILLS BREAKDOWN & NEXT BEST ACTIONS ══════════════ */}
-      <View style={s.twoColRow}>
+      <View style={[s.twoColRow, !isLarge && { flexDirection: 'column' }]}>
         {/* Left (50%): Skills Breakdown */}
         <View style={s.colCard}>
           <View style={s.cardHeader}>
@@ -518,7 +566,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
                 key={skill.key}
                 label={skill.label}
                 score={skillScores[skill.key] || 0}
-                baseColor={skill.color}
+                baseColor={isDark ? skill.color : skill.colorLight}
                 icon={skill.Icon}
                 status={skillStatus(skillScores[skill.key] || 0)}
               />
@@ -571,7 +619,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
       </View>
 
       {/* ══════════════ 6. ROW 2: AI INSIGHTS & GOAL SIMULATOR ══════════════ */}
-      <View style={s.twoColRow}>
+      <View style={[s.twoColRow, !isLarge && { flexDirection: 'column' }]}>
         {/* Left (50%): AI Insights */}
         <View style={s.colCard}>
           <View style={s.cardHeader}>
@@ -641,11 +689,8 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
       />
 
       {/* ══════════════ 8. ROW 3: THIS WEEK'S FOCUS & RECRUITER VIEW ══════════════ */}
-      <View style={s.twoColRow}>
-        {/* Left (50%): Goal Simulator — toggle the ranked actions and preview the readiness gain */}
-        <CareerGoalSimulator currentReadiness={readinessScore} collapsible={false} />
-
-        {/* Right (50%): Recruiter View (Beta) */}
+      <View style={[s.twoColRow, !isLarge && { flexDirection: 'column' }]}>
+        {/* Recruiter View (Beta) */}
         <View style={s.colCard}>
           <View style={s.cardHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -692,13 +737,13 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
 
     </Container>
+
     <ExplainModal
       visible={showExplainModal}
       onClose={() => setShowExplainModal(false)}
       careerIntel={careerIntel}
       initialTab={explainTab}
     />
-
     </View>
   );
 }
@@ -706,157 +751,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 /* ═══════════════════════════════════════════════════════════
    Styles matching Image 1 Reference
 ═══════════════════════════════════════════════════════════ */
-const s = StyleSheet.create({
-  analysisBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(3, 5, 15, 0.78)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: SPACING.md,
-  },
-  analysisModal: {
-    backgroundColor: '#11121D',
-    borderColor: C.border2,
-    borderWidth: 1,
-    borderRadius: RADIUS.card,
-    padding: SPACING.xl,
-  },
-  analysisHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
-    gap: SPACING.md,
-  },
-  analysisEyebrow: {
-    color: C.purpleL,
-    fontFamily: FT.bold,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    marginBottom: 4,
-  },
-  analysisTitle: {
-    color: C.text2,
-    fontFamily: FT.xbold,
-    fontSize: 20,
-  },
-  analysisClose: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.07)',
-  },
-  analysisTabs: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-    marginBottom: SPACING.lg,
-  },
-  analysisTab: {
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  analysisTabActive: {
-    borderBottomColor: C.purpleL,
-  },
-  analysisTabText: {
-    color: C.dim,
-    fontFamily: FT.med,
-    fontSize: 13,
-  },
-  analysisTabTextActive: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-  },
-  analysisContent: {
-    flexShrink: 1,
-  },
-  analysisScoreCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.lg,
-    padding: SPACING.lg,
-    borderRadius: RADIUS.card,
-    borderWidth: 1,
-    borderColor: 'rgba(129, 140, 248, 0.25)',
-    backgroundColor: 'rgba(79, 70, 229, 0.14)',
-  },
-  analysisScore: {
-    color: C.purpleXL,
-    fontFamily: FT.xbold,
-    fontSize: 36,
-  },
-  analysisDetailCard: {
-    padding: SPACING.lg,
-    gap: SPACING.md,
-    borderRadius: RADIUS.card,
-    borderWidth: 1,
-    borderColor: C.border,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
-  analysisCardTitle: {
-    color: C.text2,
-    fontFamily: FT.bold,
-    fontSize: 13,
-  },
-  analysisCardText: {
-    color: C.dim,
-    fontFamily: FT.reg,
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 3,
-  },
-  analysisActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-  },
-  analysisRank: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(129, 140, 248, 0.18)',
-  },
-  analysisRankText: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-    fontSize: 12,
-  },
-  analysisGain: {
-    color: C.teal,
-    fontFamily: FT.bold,
-    fontSize: 12,
-  },
-  analysisSkillRow: {
-    gap: SPACING.sm,
-    paddingTop: SPACING.md,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-  },
-  analysisSkillLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: SPACING.md,
-  },
-  analysisTrack: {
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    overflow: 'hidden',
-  },
-  analysisFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
+const makeStyles = (C: typeof C_DARK) => StyleSheet.create({
   shell: {
     flex: 1,
     backgroundColor: C.bg,
@@ -924,7 +819,7 @@ const s = StyleSheet.create({
     backgroundColor: C.purple2,
   },
   reportBtnHover: {
-    backgroundColor: '#6366F1',
+    backgroundColor: COLORS.primaryDark,
   },
   reportBtnText: {
     color: '#FFF',
@@ -939,8 +834,8 @@ const s = StyleSheet.create({
     borderWidth: 1,
     padding: SPACING.xl,
     overflow: 'hidden',
-    ...(Platform.OS === 'web' ? { boxShadow: '0 8px 32px rgba(79, 70, 229, 0.25)' } as any : {}),
-    backgroundColor: 'rgba(79, 70, 229, 0.15)',
+    ...(Platform.OS === 'web' ? { boxShadow: C.heroShadow } as any : {}),
+    backgroundColor: C.heroCardBg,
   },
   heroContentRow: {
     flexDirection: 'row',
@@ -972,7 +867,7 @@ const s = StyleSheet.create({
     letterSpacing: 1.2,
   },
   heroRoleTitle: {
-    color: '#FFF',
+    color: C.text,
     fontFamily: FT.xbold,
     fontSize: 36,
     letterSpacing: -0.8,
@@ -1002,8 +897,8 @@ const s = StyleSheet.create({
   heroPanel: {
     flex: 1,
     minWidth: 160,
-    backgroundColor: '#0A0A2A',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: C.surface,
+    borderColor: C.surfaceBorder,
     borderWidth: 1,
     borderRadius: RADIUS.card,
     padding: SPACING.lg,
@@ -1026,12 +921,12 @@ const s = StyleSheet.create({
   },
   heroRingText: {
     position: 'absolute',
-    color: '#FFF',
+    color: C.text,
     fontFamily: FT.xbold,
     fontSize: 16,
   },
   heroPanelSubBold: {
-    color: '#FFF',
+    color: C.text,
     fontFamily: FT.bold,
     fontSize: 14,
   },
@@ -1041,7 +936,7 @@ const s = StyleSheet.create({
     fontSize: 13,
   },
   heroPanelTitle: {
-    color: '#FFF',
+    color: C.text,
     fontFamily: FT.bold,
     fontSize: 14,
     marginVertical: 2,
@@ -1049,7 +944,7 @@ const s = StyleSheet.create({
   heroProgressTrack: {
     height: 6,
     width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: C.track,
     borderRadius: 3,
     overflow: 'hidden',
     marginVertical: 6,
@@ -1073,7 +968,7 @@ const s = StyleSheet.create({
     marginTop: 8,
   },
   continueBtnHover: {
-    backgroundColor: '#6366F1',
+    backgroundColor: COLORS.primaryDark,
   },
   continueBtnText: {
     color: '#FFF',
@@ -1114,7 +1009,7 @@ const s = StyleSheet.create({
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: '#818CF8',
+    backgroundColor: COLORS.primaryLight,
     opacity: 0.5,
   },
   heroStar3: {
@@ -1124,7 +1019,7 @@ const s = StyleSheet.create({
     width: 2,
     height: 2,
     borderRadius: 1,
-    backgroundColor: '#0A0A2A',
+    backgroundColor: C.bgCardH,
     opacity: 0.4,
   },
   heroStar4: {
@@ -1170,7 +1065,7 @@ const s = StyleSheet.create({
   kpiRow: {
     flexDirection: 'row',
     gap: SPACING.md,
-    flexWrap: Platform.OS === 'web' ? ('nowrap' as any) : 'wrap',
+    flexWrap: 'wrap',
   },
 
   /* 2-Column Section Cards */
@@ -1181,14 +1076,14 @@ const s = StyleSheet.create({
   },
   colCard: {
     flex: 1,
-    backgroundColor: '#0A0A2A',
-    borderColor: 'rgba(0,0,0,0.07)',
+    backgroundColor: C.surface,
+    borderColor: C.colCardBorder,
     borderWidth: 1,
     borderRadius: RADIUS.card,
     padding: SPACING.lg,
     gap: SPACING.lg,
     justifyContent: 'space-between',
-    ...(Platform.OS === 'web' ? { boxShadow: '0 4px 20px rgba(0,0,0,0.15)' } as any : {}),
+    ...(Platform.OS === 'web' ? { boxShadow: C.cardShadow } as any : {}),
   },
   cardHeader: {
     flexDirection: 'row',
@@ -1230,8 +1125,8 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: C.subtleBg,
+    borderColor: C.subtleBorder,
     borderWidth: 1,
     borderRadius: RADIUS.card,
     padding: SPACING.sm,
@@ -1266,7 +1161,7 @@ const s = StyleSheet.create({
     gap: 2,
   },
   actionTitle: {
-    color: '#FFF',
+    color: C.text,
     fontFamily: FT.bold,
     fontSize: 13,
   },
@@ -1308,7 +1203,7 @@ const s = StyleSheet.create({
   },
   chatAgentRow: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: C.agentBg,
     borderColor: C.border,
     borderWidth: 1,
     borderRadius: RADIUS.card,
@@ -1319,7 +1214,7 @@ const s = StyleSheet.create({
   chatAgentText: { color: C.textSub, fontFamily: FT.reg, fontSize: 12, lineHeight: 17 },
   chatBox: {
     marginTop: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: C.subtleBg,
     borderColor: C.border,
     borderWidth: 1,
     borderRadius: RADIUS.btn,
@@ -1368,7 +1263,7 @@ const s = StyleSheet.create({
   },
   recruiterCard: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: C.subtleBg,
     borderColor: C.border,
     borderWidth: 1,
     borderRadius: RADIUS.card,
@@ -1383,53 +1278,18 @@ const s = StyleSheet.create({
     textTransform: 'uppercase' as any,
   },
   recruiterVal: {
-    color: '#FFF',
+    color: C.text,
     fontFamily: FT.bold,
     fontSize: 28,
   },
   recruiterTrack: {
     height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: C.subtleBorder,
     borderRadius: 1.5,
     overflow: 'hidden',
   },
   recruiterFill: {
     height: '100%',
     borderRadius: 1.5,
-  },
-
-  /* 9. Footer */
-  footerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: SPACING.md,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    flexWrap: 'wrap',
-    gap: SPACING.sm,
-  },
-  footerCopy: {
-    color: C.dim,
-    fontFamily: FT.med,
-    fontSize: 11,
-  },
-  footerLinks: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  footerLinkBtn: {
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-  },
-  footerLinkText: {
-    color: C.dim,
-    fontFamily: FT.med,
-    fontSize: 11,
-  },
-  footerDot: {
-    color: C.dim,
-    fontSize: 11,
   },
 });

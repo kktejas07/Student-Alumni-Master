@@ -1,18 +1,31 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Sparkles, AlertTriangle, TrendingUp, Lightbulb, Zap } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import Svg, { Circle, Path } from 'react-native-svg';
+import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
 import { Badge } from '../atoms';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
-import { useToast, Toast } from '../applekit';
+import { useToast, Toast, EmptyState } from '../applekit';
+import { WeeklyBriefing } from './WeeklyBriefing';
 
 type Insight = { id: string; kind: 'risk' | 'opportunity' | 'insight'; icon: string; color: string; title: string; body: string };
 const ICON_MAP: Record<string, any> = { AlertTriangle, TrendingUp, Lightbulb, Zap };
 const FALLBACK = { items: [] as Insight[] };
 
+function InsightsEmptyArt() {
+  const T = useSAC();
+  return (
+    <Svg width={44} height={44} viewBox="0 0 44 44">
+      <Circle cx={22} cy={22} r={13} fill={T.tint} stroke={T.violet} strokeWidth={1.6} strokeDasharray="3 3" />
+      <Path d="M22 14l2 5.2 5.4.3-4.2 3.4 1.4 5.2-4.6-3.1-4.6 3.1 1.4-5.2-4.2-3.4 5.4-.3z"
+        fill="none" stroke={T.violet} strokeWidth={1.6} strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 export function AIInsightsView() {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  Object.assign(s, resolveColors(pristineOf(s), T));
   const { toast, flash, hide } = useToast();
   const { data } = usePortalData<typeof FALLBACK>('/admin/super/ai-insights', FALLBACK);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
@@ -30,13 +43,23 @@ export function AIInsightsView() {
   };
   return (
     <View>
-      <View style={s.banner}>
-        <View style={s.bIcon}><Sparkles size={16} color={SAC.accent} /></View>
+      {/* Weekly platform health briefing (AI4) */}
+      <WeeklyBriefing />
+
+      <View style={[s.banner, { marginTop: 14 }]}>
+        <View style={s.bIcon}><Sparkles size={16} color={T.accent} /></View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.bTitle}>Platform Briefing · Powered by Claude</Text>
           <Text style={s.bSub}>6 prioritized insights generated this morning. Trust the high-priority ones — they’ve been verified against the last 90 days of platform data.</Text>
         </View>
       </View>
+      {items.length === 0 ? (
+        <EmptyState
+          icon={() => <InsightsEmptyArt />}
+          title="No insights this morning"
+          sub="The Claude briefing hasn't produced anything new yet — high-priority insights will appear here as soon as they're verified."
+        />
+      ) : (
       <View style={{ gap: 12 }}>
         {items.map((it) => {
           const Icon = ICON_MAP[it.icon] || Lightbulb;
@@ -58,6 +81,7 @@ export function AIInsightsView() {
           );
         })}
       </View>
+      )}
       <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
     </View>
   );

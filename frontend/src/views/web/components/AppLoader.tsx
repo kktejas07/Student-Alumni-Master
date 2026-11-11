@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * AppLoader — sleek glowing top progress bar & live data loading overlay.
  *

@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 /**
  * OnboardingShellRN — Exact 1:1 Match of Onboarding.html with
  * Interactive Photo Capture / Avatar Upload Step and 3D Card Integration.
@@ -151,9 +151,11 @@ function WebOnboardingEngine({ router }: { router: any }) {
     try {
       const res = await api.verifyEmailOtp(userEmail, code);
       setIsOtpVerified(true);
-      if (res && res.user && res.token) {
+      if (res && res.user && (res.access_token || res.token)) {
         setUser(res.user);
-        await setTokens(res.token, res.token);
+        // Refresh slot MUST hold the 30-day refresh token, not the 15-min access
+        // token — otherwise /auth/refresh rejects it and the session dies early.
+        await setTokens(res.access_token || res.token, res.refresh_token || '');
       }
       return true;
     } catch (err: any) {
@@ -175,7 +177,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
       }
 
       const emailToUse = googleProfile.email.trim().toLowerCase();
-      const res = await api.oauthFirebase({
+      const res = await (api as any).oauthFirebase({
         id_token: googleProfile.idToken,
         email: emailToUse,
         full_name: googleProfile.name || emailToUse.split('@')[0],
