@@ -35,7 +35,7 @@ jobs:
         working-directory: ./frontend
         run: |
           npx tsc --noEmit 2>&1 | head -100 || {
-            echo "::warning::TypeScript errors found — gradual cleanup in progress (85 @ts-nocheck files remaining)"
+            echo "::warning::TypeScript errors found — gradual cleanup in progress"
             true
           }
 
