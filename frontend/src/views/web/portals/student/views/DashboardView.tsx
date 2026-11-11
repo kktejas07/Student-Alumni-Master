@@ -769,7 +769,7 @@ export function DashboardView() {
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px' }}>
               <span style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px', color: C.textPrimary }}>{skillStreak}</span>
-              <span style={{ fontSize: '14px', color: C.textSecondary }}>days</span>
+              <span style={{ fontSize: '14px', color: C.textSecondary }}>{skillStreak === 1 ? 'day' : 'days'}</span>
               <span style={{ fontSize: '20px', marginLeft: 'auto', animation: 'db-flame 2.2s ease-in-out infinite', display: 'inline-block' }}>🔥</span>
             </div>
             <div style={{ display: 'flex', gap: '5px', marginTop: '16px' }}>
@@ -1048,7 +1048,7 @@ export function DashboardView() {
               { title: 'TARGET READINESS', val: '100%', sub: 'Industry Ready', subCol: isDark ? '#34D399' : '#059669' },
               { title: 'CAREER LEVEL', val: 'Builder', sub: 'Current Level', subCol: isDark ? '#F59E0B' : '#D97706' },
               { title: 'PROFILE STRENGTH', val: '50%', sub: '+8% from last week', subCol: isDark ? '#34D399' : '#059669' },
-              { title: 'SKILL STREAK', val: '0 Days', sub: 'Start your streak!', subCol: isDark ? '#F0616B' : '#E11D48' },
+              { title: 'SKILL STREAK', val: `${skillStreak} ${skillStreak === 1 ? 'Day' : 'Days'}`, sub: skillStreak === 0 ? 'Start your streak!' : 'Keep it going!', subCol: isDark ? '#F0616B' : '#E11D48' },
             ].map((stat) => (
               <div key={stat.title} className="db-card" style={{ padding: '18px 20px 20px' }}>
                 <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.2px', color: C.textSecondary, marginBottom: '12px' }}>

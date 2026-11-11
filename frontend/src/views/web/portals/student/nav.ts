@@ -36,7 +36,7 @@ export const NAV: (NavItem & { id: StudentNavId })[] = [
 ];
 
 /** Every id the shell knows; anything else in the URL is an ECHO showcase slug. */
-export const KNOWN_IDS: string[] = [...NAV.map((n) => n.id), 'events', 'echo-showcase'];
+export const KNOWN_IDS: string[] = [...NAV.map((n) => n.id), 'events', 'echo-showcase', 'tickets', 'workshops', 'certificates', 'bookings'];
 export const isEchoSlug = (id: string) => !KNOWN_IDS.includes(id);
 
 function yearLabel(user: any): string {

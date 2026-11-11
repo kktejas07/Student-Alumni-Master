@@ -1153,7 +1153,7 @@ export default function WalletScreen() {
                       </View>
                       <Text style={{ fontFamily: FT.reg, fontSize: 12, color: colors.textSub, overflow: 'hidden' }}>{c.title}</Text>
                       <Text style={{ fontFamily: FT.reg, fontSize: 10.5, color: colors.dim, marginTop: 2 }}>
-                        {c.max_claims ? `${c.max_claims - (c.claims || 0)} of ${c.max_claims} claimed · ` : ''}{c.expiry_days ? `Expires in ${c.expiry_days} days` : ''}
+                        {c.max_claims ? `${c.max_claims - (c.claims || 0)} of ${c.max_claims} claimed · ` : ''}{c.expiry_days ? `Expires in ${c.expiry_days} ${c.expiry_days === 1 ? 'day' : 'days'}` : ''}
                       </Text>
                     </View>
                     <View style={{ alignItems: 'center' }}>
@@ -1361,7 +1361,7 @@ export default function WalletScreen() {
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ fontFamily: FT.med, fontSize: 12.5, color: colors.text2 }}>{projection.current_level_name} → {projection.next_level_name || 'Max'}</Text>
                 <Text style={{ fontFamily: FT.bold, fontSize: 12.5, color: colors.accent }}>
-                  {projection.eta_days != null ? `${projection.eta_days} days` : projection.note || '—'}
+                  {projection.eta_days != null ? `${projection.eta_days} ${projection.eta_days === 1 ? 'day' : 'days'}` : projection.note || '—'}
                 </Text>
               </View>
               <Text style={{ fontFamily: FT.reg, fontSize: 11.5, color: colors.textSub }}>
@@ -1473,7 +1473,7 @@ export default function WalletScreen() {
             </Text>
           </KpiCard>
           <KpiCard icon={<Tag />} label="Active Coupons" value={String(activeCouponCount)} sub={`${catalog.length} in catalog`} />
-          <KpiCard icon={<Flame />} label="Login Streak" value={`${streak?.current ?? data?.streak_days ?? 0} days`} sub={streak?.recoverable ? `Missed? Recover for ${streak.recovery_cost} pts` : 'Keep it going'}>
+          <KpiCard icon={<Flame />} label="Login Streak" value={`${streak?.current ?? data?.streak_days ?? 0} ${(streak?.current ?? data?.streak_days ?? 0) === 1 ? 'day' : 'days'}`} sub={streak?.recoverable ? `Missed? Recover for ${streak.recovery_cost} pts` : 'Keep it going'}>
             <View style={{ flexDirection: 'row', gap: 3, flexWrap: 'wrap', maxHeight: 26 }}>
               {(streak?.calendar || []).slice(0, 21).map((d: any, i: number) => (
                 <View key={`${d.date}-${i}`} style={{

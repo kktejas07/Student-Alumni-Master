@@ -28,6 +28,7 @@ import {
   Image, Linking, Modal, Platform, useWindowDimensions,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Gift, RefreshCw, AlertCircle, CreditCard, ThumbsUp, Check, X as XIcon, Plus } from 'lucide-react-native';
 import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import { request, resolveImageUrl } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -346,7 +347,7 @@ export default function DealsScreen() {
       <FeaturePageShell
         title="Deals & Offers"
         subtitle={`${allDeals.length || 0} deals · Updated ${relTime(lastUpdated)}`}
-        heroIcon={<MaterialCommunityIcons name="package-variant-gift" size={22} color="#7C5CFC" />}
+        heroIcon={<Gift size={22} color="#7C5CFC" />}
         accent="#7C5CFC"
         rightSlot={
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
@@ -360,7 +361,7 @@ export default function DealsScreen() {
             <Pressable style={s.refreshBtn} onPress={onRefresh} disabled={refreshing}>
               {refreshing
                 ? <ActivityIndicator color="#fff" size="small" />
-                : <MaterialCommunityIcons name="refresh" size={14} color="#fff" />}
+                : <RefreshCw size={14} color="#fff" />}
               <Text style={s.refreshText}>Refresh</Text>
             </Pressable>
           </View>
@@ -369,7 +370,7 @@ export default function DealsScreen() {
         <View style={s.panel}>
           {error ? (
             <View style={s.errBox}>
-              <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#EF4444" />
+              <AlertCircle size={16} color="#EF4444" />
               <Text style={s.errText}>{error}</Text>
             </View>
           ) : null}
@@ -511,7 +512,7 @@ export default function DealsScreen() {
           {typeTab === 'bank_offer' && (
             <View style={s.bankFilter}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                <MaterialCommunityIcons name="credit-card-outline" size={14} color={L.accent} />
+                <CreditCard size={14} color={L.accent} />
                 <Text style={s.bankFilterTitle}>Your cards — offers that work with them</Text>
                 {cardSel.length > 0 && (
                   <Pressable onPress={() => setCardSel([])}>
@@ -533,10 +534,7 @@ export default function DealsScreen() {
                           onPress={() => toggleCard(k)}
                           style={[s.chip, { backgroundColor: on ? L.accentBg : L.chipBg, borderColor: on ? L.accent : L.chipBorder }]}
                         >
-                          <MaterialCommunityIcons
-                            name={on ? 'check' : 'plus'} size={11}
-                            color={on ? L.accent : L.text3}
-                          />
+                          {on ? <Check size={11} color={L.accent} /> : <Plus size={11} color={L.text3} />}
                           <Text style={[s.chipText, { color: on ? '#5B21B6' : L.text2 }]}>{c.name}</Text>
                         </Pressable>
                       );
@@ -551,7 +549,7 @@ export default function DealsScreen() {
           {pendingVerify.length > 0 && !loading && (
             <View style={s.verifyCard}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <MaterialCommunityIcons name="vote" size={15} color={L.accent} />
+                <ThumbsUp size={15} color={L.accent} />
                 <Text style={s.verifyCardTitle}>Did it work?</Text>
               </View>
               <Text style={s.verifyCardSub}>
@@ -569,14 +567,14 @@ export default function DealsScreen() {
                     style={[s.verifyBtn, s.verifyYes]}
                     onPress={() => submitVerification(p, true)}
                     disabled={verifyBusy !== null}>
-                    <MaterialCommunityIcons name="check" size={12} color="#047857" />
+                    <Check size={12} color="#047857" />
                     <Text style={{ color: '#047857', fontSize: 11, fontWeight: '700' }}>Yes</Text>
                   </Pressable>
                   <Pressable
                     style={[s.verifyBtn, s.verifyNo]}
                     onPress={() => submitVerification(p, false)}
                     disabled={verifyBusy !== null}>
-                    <MaterialCommunityIcons name="close" size={12} color="#B91C1C" />
+                    <XIcon size={12} color="#B91C1C" />
                     <Text style={{ color: '#B91C1C', fontSize: 11, fontWeight: '700' }}>No</Text>
                   </Pressable>
                 </View>
