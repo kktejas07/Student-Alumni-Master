@@ -10,16 +10,16 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, TextInput, ScrollView, Platform, RefreshControl, ActivityIndicator,
+  View, Text, Pressable, TextInput, ScrollView, Platform, ActivityIndicator,
 } from 'react-native';
 import {
-  Tag, Plus, Trash2, RefreshCw, Search, X, ExternalLink,
-  Percent, Shield, Home, ChevronDown, ChevronUp,
+  Plus, Trash2, RefreshCw, Search, X, ExternalLink,
+  Percent, Shield, Home,
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors, pristineOf } from '../tokens';
+import { SAC, useSAC, FONTS } from '../tokens';
 import {
-  GRAD, GradientButton, SecondaryButton, Card, SectionLabel, StatusPill,
-  KpiTile, EmptyState, useToast, Toast, TopTabs,
+  GRAD, GradientButton, SecondaryButton, Card, StatusPill,
+  KpiTile, EmptyState, useToast, Toast,
 } from '../applekit';
 import { request } from '@/src/models/services/api';
 
@@ -246,8 +246,6 @@ function InsurancePanel({ T }: { T: ReturnType<typeof useSAC> }) {
   const filtered = items.filter(i =>
     !search || i.title?.toLowerCase().includes(search.toLowerCase()) || i.provider?.toLowerCase().includes(search.toLowerCase()),
   );
-
-  const KIND_COLORS: Record<string, string> = { medical: '#3B82F6', bike: '#8B5CF6', loan: '#F59E0B', life: '#10B981', travel: '#EC4899' };
 
   return (
     <View style={{ gap: 16 }}>
