@@ -78,7 +78,7 @@ export function PlatformTab({ onSaved }: { onSaved: (s?: string) => void }) {
               <Switch
                 value={!!f.value}
                 onValueChange={(v) => toggleFlag(f.key, v)}
-                trackColor={{ false: T.border, true: GRAD_TO }}
+                trackColor={{ false: T.line, true: GRAD_TO }}
                 thumbColor={f.value ? '#fff' : '#ccc'}
                 {...(Platform.OS === 'web' ? ({ activeThumbColor: '#fff' } as any) : {})}
               />
@@ -208,14 +208,14 @@ export function SettingPickerModal({ setting, onSelect, onClose }: {
                         value={textValue}
                         onChangeText={setTextValue}
                         placeholder={inputPlaceholder}
-                        placeholderTextColor={T.dim}
+                        placeholderTextColor={T.sub}
                         secureTextEntry={isPassword && !showPwd}
                         autoFocus
                         multiline={false}
                       />
                       {isPassword && (
                         <Pressable onPress={() => setShowPwd(!showPwd)} style={s.iconOnlyBtn}>
-                          {showPwd ? <EyeOff size={18} color={T.muted} /> : <Eye size={18} color={T.muted} />}
+                          {showPwd ? <EyeOff size={18} color={T.sub} /> : <Eye size={18} color={T.sub} />}
                         </Pressable>
                       )}
                     </View>

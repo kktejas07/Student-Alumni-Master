@@ -7,7 +7,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
-import { SAC, FONTS } from '@/src/views/web/portals/superadmin/tokens';
+import { SAC, useSAC, FONTS } from '@/src/views/web/portals/superadmin/tokens';
 import { request } from '@/src/models/services/api';
 import { TOOL_DOCS, GRAD_FROM, GRAD_TO, GRAD_DEEP, GRAD_BG, Tool } from './settingsTokens';
 import { s } from './settingsStyles';
@@ -184,6 +184,7 @@ export function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) 
 export function ToolCard({ tool, busy, onConnect, onEdit, onDisconnect }: {
   tool: Tool; busy: boolean; onConnect: () => void; onEdit: () => void; onDisconnect: () => void;
 }) {
+  const T = useSAC();
   const [copied, setCopied] = useState(false);
   const [showCreds, setShowCreds] = useState(false);
   const copyWebhook = async () => {
@@ -233,7 +234,7 @@ export function ToolCard({ tool, busy, onConnect, onEdit, onDisconnect }: {
       {credEntries.length > 0 && (
         <Pressable
           onPress={() => setShowCreds(!showCreds)}
-          style={{ marginTop: 8, padding: 8, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.border }}
+          style={{ marginTop: 8, padding: 8, borderRadius: 8, backgroundColor: T.card, borderWidth: 1, borderColor: SAC.border }}
         >
           <Text style={{ color: SAC.muted, fontFamily: FONTS.semi, fontSize: 10.5 }}>
             {showCreds ? 'Hide saved credentials' : 'View saved credentials'}

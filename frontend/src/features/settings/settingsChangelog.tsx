@@ -394,7 +394,7 @@ function DiffRow({ label, value, tint }: { label: string; value: string; tint: s
   const T = useSAC();
   return (
     <View style={{
-      backgroundColor: T.cardH,
+      backgroundColor: T.card,
       borderRadius: 8,
       borderWidth: 1,
       borderColor: tint + '33',

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, Pressable, TextInput, ScrollView } from 'react-native';
 import { Pencil, Check, ArrowLeft, Maximize2, Minimize2 } from 'lucide-react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { SAC, FONTS } from '@/src/views/web/portals/superadmin/tokens';
+import { SAC, useSAC, FONTS } from '@/src/views/web/portals/superadmin/tokens';
 import { request } from '@/src/models/services/api';
 import LexicalEditor from '@/src/views/web/portals/superadmin/views/LexicalEditor';
 import { s, previewStyles } from './settingsStyles';
@@ -14,6 +14,7 @@ import { Loading } from './settingsWidgets';
  * TAB 8 — Pages (policy/service content manager)
  * ═══════════════════════════════════════════════════════════════ */
 export function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const T = useSAC();
   const [pages, setPages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any>(null);
@@ -85,7 +86,7 @@ export function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   className="page-preview"
                   dangerouslySetInnerHTML={{ __html: editContent }}
                   style={{
-                    color: '#e2e8f0',
+                    color: T.text,
                     fontFamily: 'DMSans_400Regular, sans-serif',
                     fontSize: 14,
                     lineHeight: 1.7,
@@ -155,6 +156,7 @@ export function BrandingField({
   onChange: (v: string) => void;
   placeholder: string;
 }) {
+  const T = useSAC();
   return (
     <View style={{ gap: 6 }}>
       <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Text>
@@ -164,12 +166,12 @@ export function BrandingField({
         placeholder={placeholder}
         placeholderTextColor="#475569"
         style={{
-          backgroundColor: 'rgba(255,255,255,0.06)',
+          backgroundColor: T.card,
           borderRadius: 8,
           borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.08)',
+          borderColor: T.border,
           padding: 12,
-          color: '#e2e8f0',
+          color: T.text,
           fontSize: 13,
         }}
       />

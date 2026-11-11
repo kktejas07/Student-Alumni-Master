@@ -66,7 +66,7 @@ export function NotificationsTab({ onSaved }: { onSaved: (s?: string) => void })
                 <Switch
                   value={!!p[c.key]}
                   onValueChange={(v) => toggle(p.key, c.key, v)}
-                  trackColor={{ false: T.border, true: GRAD_TO }}
+                  trackColor={{ false: T.line, true: GRAD_TO }}
                   thumbColor={p[c.key] ? '#fff' : '#ccc'}
                   {...(Platform.OS === 'web' ? ({ activeThumbColor: '#fff' } as any) : {})}
                 />
