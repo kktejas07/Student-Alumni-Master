@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 1 TS errors then remove
 /**
  * FAB — Material Design 3 Floating Action Button.
  * - Bottom-right anchored (web: position: 'fixed', native: 'absolute')

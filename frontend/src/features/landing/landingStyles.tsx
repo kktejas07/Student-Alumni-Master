@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 1 TS errors then remove
 // themedStyles — the big StyleSheet built from the active theme — split verbatim from LandingPage.tsx (audit Step 6b).
 import { View, StyleSheet } from 'react-native';
 import { DARK_T } from './landingTheme';

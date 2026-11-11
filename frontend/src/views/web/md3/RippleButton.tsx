@@ -1,4 +1,3 @@
-// @ts-nocheck — TODO: fix 1 TS errors then remove
 /**
  * RippleButton — Pressable with MD3 scale-down + opacity ripple effect.
  */
