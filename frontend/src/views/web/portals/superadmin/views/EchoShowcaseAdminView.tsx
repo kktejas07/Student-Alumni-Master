@@ -3531,22 +3531,6 @@ function RegistrationsPanel() {
     }
   };
 
-  const filtered = rows.filter((r) => {
-    const s = q.toLowerCase();
-    const matchQ = !s
-      || r.full_name?.toLowerCase().includes(s)
-      || r.email?.toLowerCase().includes(s)
-      || r.college?.toLowerCase().includes(s)
-      || r.event_title?.toLowerCase().includes(s);
-    const matchStatus = status === 'all' || r.payment_status === status;
-    const matchEvent = eventSlug === 'all' || r.slug === eventSlug;
-    return matchQ && matchStatus && matchEvent;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
-  const safePage = Math.min(page, totalPages - 1);
-  const paged = filtered.slice(safePage * PER_PAGE, safePage * PER_PAGE + PER_PAGE);
-
   const eventBySlug = new Map<string, any>();
   showcases.forEach((event: any) => {
     if (event.slug) eventBySlug.set(event.slug, { ...event, slug: event.slug, title: event.title || event.slug });
@@ -3561,9 +3545,34 @@ function RegistrationsPanel() {
     ? uniqueEvents
     : uniqueEvents.filter((event) => event.slug === eventSlug);
   const selectedEvent = uniqueEvents.find((event) => event.slug === eventSlug);
+  const selectedEventTitle = selectedEvent?.title?.trim().toLowerCase() || '';
+
+  const filtered = rows.filter((r) => {
+    const s = q.toLowerCase();
+    const matchQ = !s
+      || r.full_name?.toLowerCase().includes(s)
+      || r.email?.toLowerCase().includes(s)
+      || r.college?.toLowerCase().includes(s)
+      || r.event_title?.toLowerCase().includes(s);
+    const matchStatus = status === 'all' || r.payment_status === status;
+    const rowEventTitle = String(r.event_title || '').trim().toLowerCase();
+    const matchEvent = eventSlug === 'all' || (
+      r.slug === eventSlug &&
+      (!selectedEventTitle || !rowEventTitle || rowEventTitle === selectedEventTitle)
+    );
+    return matchQ && matchStatus && matchEvent;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const safePage = Math.min(page, totalPages - 1);
+  const paged = filtered.slice(safePage * PER_PAGE, safePage * PER_PAGE + PER_PAGE);
+
   const visibleRevenueEvents = eventSlug === 'all'
     ? revenue.events
-    : revenue.events.filter((event: any) => event.slug === eventSlug);
+    : revenue.events.filter((event: any) => {
+      const eventTitle = String(event.title || '').trim().toLowerCase();
+      return event.slug === eventSlug && (!selectedEventTitle || !eventTitle || eventTitle === selectedEventTitle);
+    });
 
   const fmtAmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
   const paid = filtered.filter((r) => r.payment_status === 'paid');
