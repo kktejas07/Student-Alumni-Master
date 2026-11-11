@@ -23,10 +23,10 @@ function parseDate(v: any): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-type CalItem = { title: string; type: 'event' | 'booking' | 'workshop'; date: Date; location?: string; time?: string };
+type CalItem = { title: string; type: 'event' | 'booking' | 'workshop' | 'google' | 'outlook'; date: Date; location?: string; time?: string };
 
-const TYPE_COLORS = { event: '#2563EB', booking: '#0ea876', workshop: '#7C5CFC' };
-const TYPE_LABELS = { event: 'Event', booking: 'Booking', workshop: 'Workshop' };
+const TYPE_COLORS: Record<string, string> = { event: '#2563EB', booking: '#0ea876', workshop: '#7C5CFC', google: '#EA4335', outlook: '#0078D4' };
+const TYPE_LABELS: Record<string, string> = { event: 'Event', booking: 'Booking', workshop: 'Workshop', google: 'Google', outlook: 'Outlook' };
 
 /* ── component ───────────────────────────────────────────────────────── */
 
@@ -40,16 +40,18 @@ export function CalendarView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [selected, setSelected] = useState<Date | null>(today);
+  const [connected, setConnected] = useState<{ google: boolean; outlook: boolean }>({ google: false, outlook: false });
 
   /* fetch data */
   const load = useCallback(async () => {
     setLoading(true);
     setError(false);
     try {
-      const [evts, bookings, workshops] = await Promise.allSettled([
+      const [evts, bookings, workshops, calSync] = await Promise.allSettled([
         request('/events?limit=200').catch(() => []),
         request('/my-bookings').catch(() => ({ bookings: [] })),
         request('/my-workshops').catch(() => ({ workshops: [] })),
+        request('/calendar/sync?days_ahead=60').catch(() => ({ events: [], connected: {} })),
       ]);
       const all: CalItem[] = [];
       const evtData = evts.status === 'fulfilled' ? (Array.isArray(evts.value) ? evts.value : (evts.value as any)?.items || []) : [];
@@ -66,6 +68,16 @@ export function CalendarView() {
       for (const w of wsData) {
         const d = parseDate(w.date || w.start_date || w.created_at);
         if (d) all.push({ title: w.title || w.name || 'Workshop', type: 'workshop', date: d, location: w.location, time: w.time });
+      }
+      // External calendar events (Google + Outlook)
+      if (calSync.status === 'fulfilled') {
+        const syncData = calSync.value as any;
+        setConnected(syncData?.connected || { google: false, outlook: false });
+        for (const ext of (syncData?.events || [])) {
+          if (ext.source === 'sa') continue; // already covered above
+          const d = parseDate(ext.start);
+          if (d) all.push({ title: ext.title || 'External Event', type: ext.source as any, date: d, location: ext.location, time: ext.start?.split?.('T')?.[1]?.slice(0, 5) });
+        }
       }
       setItems(all);
     } catch {
@@ -110,6 +122,23 @@ export function CalendarView() {
       <View style={s.header}>
         <CalendarIcon size={22} color={P.violet} />
         <Text style={[s.title, { color: P.text }]}>Calendar</Text>
+        <View style={{ flex: 1 }} />
+        <Pressable
+          onPress={() => { if (!connected.google) { (window as any).location.href = '/api/calendar/auth/google'; } }}
+          style={[s.connectBtn, connected.google && { borderColor: '#34D399', backgroundColor: 'rgba(16,185,129,.08)' }]}
+        >
+          <Text style={[s.connectBtnText, connected.google && { color: '#10B981' }]}>
+            {connected.google ? 'Google Connected' : 'Connect Google'}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => { if (!connected.outlook) { (window as any).location.href = '/api/calendar/auth/outlook'; } }}
+          style={[s.connectBtn, connected.outlook && { borderColor: '#34D399', backgroundColor: 'rgba(16,185,129,.08)' }]}
+        >
+          <Text style={[s.connectBtnText, connected.outlook && { color: '#10B981' }]}>
+            {connected.outlook ? 'Outlook Connected' : 'Connect Outlook'}
+          </Text>
+        </Pressable>
       </View>
 
       {/* Month nav */}
@@ -176,6 +205,8 @@ export function CalendarView() {
                       {types.has('event') && <View style={[s.dot, { backgroundColor: TYPE_COLORS.event }]} />}
                       {types.has('booking') && <View style={[s.dot, { backgroundColor: TYPE_COLORS.booking }]} />}
                       {types.has('workshop') && <View style={[s.dot, { backgroundColor: TYPE_COLORS.workshop }]} />}
+                      {types.has('google') && <View style={[s.dot, { backgroundColor: TYPE_COLORS.google }]} />}
+                      {types.has('outlook') && <View style={[s.dot, { backgroundColor: TYPE_COLORS.outlook }]} />}
                     </View>
                   </>
                 )}
@@ -187,7 +218,7 @@ export function CalendarView() {
 
       {/* Legend */}
       <View style={s.legend}>
-        {(['event', 'booking', 'workshop'] as const).map(t => (
+        {(['event', 'booking', 'workshop', ...(connected.google ? ['google'] : []), ...(connected.outlook ? ['outlook'] : [])] as string[]).map(t => (
           <View key={t} style={s.legendItem}>
             <View style={[s.legendDot, { backgroundColor: TYPE_COLORS[t] }]} />
             <Text style={[s.legendText, { color: P.muted }]}>{TYPE_LABELS[t]}s</Text>
@@ -287,4 +318,8 @@ const s = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingVertical: 40, gap: 8 },
   emptyStateTitle: { fontSize: 16, fontWeight: '700', color: '#64748B' },
   emptyStateSub: { fontSize: 13, color: '#94A3B8' },
+
+  /* calendar connect buttons */
+  connectBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1.5, borderColor: '#E2E4EB' },
+  connectBtnText: { fontSize: 11, fontWeight: '600', fontFamily: 'System', color: '#6B7085' },
 });

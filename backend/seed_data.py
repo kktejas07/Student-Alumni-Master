@@ -215,6 +215,127 @@ async def _try_run_financial_aggregator() -> str:
     return "fallback"
 
 
+async def _try_sync_mentors() -> str:
+    """Try to populate sample_mentors from real platform users who are mentors."""
+    if await db.sample_mentors.count_documents({}) > 0:
+        return "skip"
+    try:
+        # Query real users who have opted in as mentors
+        mentor_query = {
+            "$or": [
+                {"role": "mentor"},
+                {"is_mentor": True},
+                {"role": "alumni", "mentor_available": True},
+            ]
+        }
+        real_mentors = await db.users.find(
+            mentor_query,
+            {"email": 0, "password_hash": 0, "calendar_tokens": 0}
+        ).limit(20).to_list(20)
+
+        if real_mentors:
+            mapped = []
+            for i, m in enumerate(real_mentors):
+                # Calculate average rating from reviews if available
+                avg_rating = 4.5
+                try:
+                    pipeline = [
+                        {"$match": {"mentor_id": str(m.get("_id", ""))}},
+                        {"$group": {"_id": None, "avg": {"$avg": "$rating"}, "cnt": {"$sum": 1}}},
+                    ]
+                    agg = await db.reviews.aggregate(pipeline).to_list(1)
+                    if agg and agg[0].get("avg"):
+                        avg_rating = round(agg[0]["avg"], 1)
+                except Exception:
+                    pass  # reviews collection may not exist
+
+                mapped.append({
+                    "id": f"m{i+1}",
+                    "full_name": m.get("full_name", m.get("name", "Mentor")),
+                    "title": m.get("title", m.get("headline", "")),
+                    "expertise": m.get("expertise", m.get("skills", [])),
+                    "category": m.get("mentor_category", "mentor"),
+                    "tags": m.get("tags", []),
+                    "avatar": m.get("avatar", m.get("profile_picture", "")),
+                    "bio": m.get("bio", m.get("about", ""))[:200],
+                    "rating": avg_rating,
+                    "sessions": m.get("session_count", 0),
+                    "linkedin_url": m.get("linkedin_url", ""),
+                })
+            await db.sample_mentors.insert_many(mapped)
+            logger.info("Bootstrapped mentors from %d real platform users", len(mapped))
+            return "live"
+    except Exception as exc:
+        logger.warning("Live mentor sync failed, using fallback: %s", exc)
+
+    await db.sample_mentors.insert_many([dict(d) for d in SAMPLE_MENTORS])
+    logger.info("Seeded mentors from SAMPLE fallback (%d docs)", len(SAMPLE_MENTORS))
+    return "fallback"
+
+
+async def _try_sync_deals() -> str:
+    """Try to populate deals from admin-curated deals_config collection."""
+    if await db.deals.count_documents({}) > 0:
+        return "skip"
+    try:
+        # Check if admin has curated deals in deals_config collection
+        curated_count = await db.deals_config.count_documents({})
+        if curated_count > 0:
+            docs = await db.deals_config.find({}).limit(50).to_list(50)
+            mapped = [{k: v for k, v in d.items() if k != "_id"} for d in docs]
+            await db.deals.insert_many(mapped)
+            logger.info("Bootstrapped deals from admin-curated deals_config (%d docs)", len(mapped))
+            return "live"
+    except Exception as exc:
+        logger.warning("Admin deals sync failed, using fallback: %s", exc)
+
+    await db.deals.insert_many([dict(d) for d in SAMPLE_DEALS])
+    logger.info("Seeded deals from SAMPLE fallback (%d docs)", len(SAMPLE_DEALS))
+    return "fallback"
+
+
+async def _try_sync_insurance() -> str:
+    """Try to populate insurance from admin-curated entries."""
+    if await db.insurance.count_documents({}) > 0:
+        return "skip"
+    try:
+        # Check if admin has curated insurance products
+        curated_count = await db.insurance_config.count_documents({})
+        if curated_count > 0:
+            docs = await db.insurance_config.find({}).limit(20).to_list(20)
+            mapped = [{k: v for k, v in d.items() if k != "_id"} for d in docs]
+            await db.insurance.insert_many(mapped)
+            logger.info("Bootstrapped insurance from admin-curated config (%d docs)", len(mapped))
+            return "live"
+    except Exception as exc:
+        logger.warning("Admin insurance sync failed, using fallback: %s", exc)
+
+    await db.insurance.insert_many([dict(d) for d in SAMPLE_INSURANCE])
+    logger.info("Seeded insurance from SAMPLE fallback (%d docs)", len(SAMPLE_INSURANCE))
+    return "fallback"
+
+
+async def _try_sync_housing() -> str:
+    """Try to populate housing from admin-curated entries or partner APIs."""
+    if await db.housing.count_documents({}) > 0:
+        return "skip"
+    try:
+        # Check if admin has curated housing listings
+        curated_count = await db.housing_config.count_documents({})
+        if curated_count > 0:
+            docs = await db.housing_config.find({}).limit(20).to_list(20)
+            mapped = [{k: v for k, v in d.items() if k != "_id"} for d in docs]
+            await db.housing.insert_many(mapped)
+            logger.info("Bootstrapped housing from admin-curated config (%d docs)", len(mapped))
+            return "live"
+    except Exception as exc:
+        logger.warning("Admin housing sync failed, using fallback: %s", exc)
+
+    await db.housing.insert_many([dict(d) for d in SAMPLE_HOUSING])
+    logger.info("Seeded housing from SAMPLE fallback (%d docs)", len(SAMPLE_HOUSING))
+    return "fallback"
+
+
 async def seed_data():
     """Bootstrap catalog collections, preferring live aggregator data over
     hardcoded samples.
@@ -230,12 +351,8 @@ async def seed_data():
     # Courses: try live Coursera/Udemy sync, then external_courses, then fallback
     report["courses"] = await _try_sync_courses()
 
-    # Mentors: no live aggregator yet — always use sample
-    if await db.sample_mentors.count_documents({}) == 0:
-        await db.sample_mentors.insert_many([dict(d) for d in SAMPLE_MENTORS])
-        report["mentors"] = "fallback"
-    else:
-        report["mentors"] = "skip"
+    # Mentors: try live users with is_mentor, then sample
+    report["mentors"] = await _try_sync_mentors()
 
     # Internships: try live Adzuna + external_job_listings, then fallback
     report["internships"] = await _try_sync_internships()
@@ -243,29 +360,17 @@ async def seed_data():
     # Events: try events_v2 aggregator collection, then fallback
     report["events"] = await _try_live_source(db.events, "events_v2", SAMPLE_EVENTS, "events")
 
-    # Deals: no live aggregator yet — always use sample
-    if await db.deals.count_documents({}) == 0:
-        await db.deals.insert_many([dict(d) for d in SAMPLE_DEALS])
-        report["deals"] = "fallback"
-    else:
-        report["deals"] = "skip"
+    # Deals: try admin-curated deals_config, then sample
+    report["deals"] = await _try_sync_deals()
 
     # Financial: try financial aggregator, then fallback
     report["financial"] = await _try_run_financial_aggregator()
 
-    # Insurance: no live aggregator yet — always use sample
-    if await db.insurance.count_documents({}) == 0:
-        await db.insurance.insert_many([dict(d) for d in SAMPLE_INSURANCE])
-        report["insurance"] = "fallback"
-    else:
-        report["insurance"] = "skip"
+    # Insurance: try admin-curated collection, then sample
+    report["insurance"] = await _try_sync_insurance()
 
-    # Housing: no live aggregator yet — always use sample
-    if await db.housing.count_documents({}) == 0:
-        await db.housing.insert_many([dict(d) for d in SAMPLE_HOUSING])
-        report["housing"] = "fallback"
-    else:
-        report["housing"] = "skip"
+    # Housing: try admin-curated collection, then sample
+    report["housing"] = await _try_sync_housing()
 
     # Legacy resources collection (backward-compat)
     if await db.resources.count_documents({}) == 0:

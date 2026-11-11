@@ -1145,6 +1145,10 @@ from features.gamification_engine import router as gamification_engine_router  #
 api_router.include_router(gamification_engine_router)
 from features.messaging import router as messaging_router  # Real-time DM: REST + WebSocket
 api_router.include_router(messaging_router)
+from features.calendar_sync import router as calendar_sync_router  # Google + Outlook calendar OAuth
+api_router.include_router(calendar_sync_router)
+from features.routers.admin_catalog import router as admin_catalog_router  # Admin CRUD: deals, insurance, housing
+api_router.include_router(admin_catalog_router)
 from features.wallet_security import router as wallet_security_router  # Wallet security: rate limits, audit log, KYC-lite (W8)
 api_router.include_router(wallet_security_router)
 from features.wallet_notifications import router as wallet_notifications_router  # Wallet notifications: inbox feed, prefs, weekly digest (W9)
