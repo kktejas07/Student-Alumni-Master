@@ -58,8 +58,8 @@ export function MessagesView() {
   const [error, setError] = useState(false);
   const [searchQ, setSearchQ] = useState('');
   const [showChat, setShowChat] = useState(false);
-  const [wsConnected, setWsConnected] = useState(false);
-  const [showNewChat, setShowNewChat] = useState(false);
+  const [, setWsConnected] = useState(false);
+  const [, setShowNewChat] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const myIdRef = useRef<string>('');
