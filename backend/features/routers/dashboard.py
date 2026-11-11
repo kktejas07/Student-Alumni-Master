@@ -78,17 +78,17 @@ async def student_dashboard_summary(user: dict = Depends(get_current_user)):
                 "status": {"$in": ["accepted", "active"]},
             })
         except Exception:
-            pass
+            pass  # collection may not exist yet; default 0 is fine
         try:
             sessions = await db.mentor_sessions.count_documents({
                 "mentee_id": uid, "status": {"$in": ["completed", "done"]},
             })
         except Exception:
-            pass
+            pass  # collection may not exist yet; default 0 is fine
         try:
             applications = await db.applications.count_documents({"user_id": uid})
         except Exception:
-            pass
+            pass  # collection may not exist yet; default 0 is fine
         # streak from activity events
         try:
             today2 = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
@@ -107,7 +107,7 @@ async def student_dashboard_summary(user: dict = Depends(get_current_user)):
                 streak += 1
                 d_day = d_day - timedelta(days=1)
         except Exception:
-            pass
+            pass  # streak calculation is best-effort; defaults to 0
         return {"connections": connections, "sessions": sessions, "applications": applications, "streak": streak}
 
     # -- 4. Career Roadmap (cache-only, no LLM trigger) --
@@ -285,7 +285,7 @@ async def student_dashboard_summary(user: dict = Depends(get_current_user)):
                         "type": "blocker", "priority": 1,
                     })
             except Exception:
-                pass
+                pass  # optional nudge; skip if collection missing
 
             if profile_views > 0:
                 insights.append({
