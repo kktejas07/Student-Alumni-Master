@@ -1,0 +1,23 @@
+# Gitleaks configuration — exclude known false positives
+# See https://github.com/gitleaks/gitleaks#configuration
+
+title = "StudentAlumni Gitleaks Config"
+
+[allowlist]
+  description = "Known safe patterns"
+  paths = [
+    '''\.env\.example''',
+    '''tests/''',
+    '''backend/tests/''',
+    '''backend/seed_data\.py''',
+    '''backend/features/routers/admin/settings\.py''',
+    '''node_modules/''',
+  ]
+  regexTarget = "line"
+  regexes = [
+    # Placeholder patterns used as input hints in UI
+    '''sk-xxxxxxxx''',
+    '''ghp_xxxxxxxx''',
+    '''sk-ant-xxxxxxxx''',
+    '''sk-helicone-xxxxxxxx''',
+  ]
