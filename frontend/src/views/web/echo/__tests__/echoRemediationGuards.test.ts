@@ -164,9 +164,10 @@ describe('ECHO admin registrations — event cards filter registration details',
     expect(s).toContain('onHoverIn={() => setHoveredEventSlug(event.slug)}');
     expect(s).toContain("cursor: 'pointer'");
     expect(s).not.toContain('aria-label="Select ECHO event to view registrations"');
-    expect(s).toContain("const matchEvent = eventSlug === 'all' || r.slug === eventSlug;");
+    expect(s).toContain("const selectedEventTitle = selectedEvent?.title?.trim().toLowerCase() || '';");
+    expect(s).toContain('rowEventTitle === selectedEventTitle');
     expect(s).toContain("const visibleRevenueEvents = eventSlug === 'all'");
-    expect(s).toContain('event.slug === eventSlug');
+    expect(s).toContain('event.slug === eventSlug && (!selectedEventTitle || !eventTitle || eventTitle === selectedEventTitle)');
     expect(s).toContain('SessionPassesOverview events={sessionEvents} onRefresh={load} eventBrowser={eventBrowser}');
     expect(s).toContain('{eventSlug === \'all\' ? (');
     expect(s).toContain(') : selectedEvent ? (');
