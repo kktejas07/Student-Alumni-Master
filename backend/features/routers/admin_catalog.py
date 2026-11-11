@@ -17,7 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from core.db import db
-from core.deps import get_current_user, ensure_admin
+from core.deps import ensure_admin
 
 logger = logging.getLogger("admin_catalog")
 router = APIRouter(prefix="/admin/catalog", tags=["admin-catalog"])
