@@ -366,7 +366,7 @@ export function EmailQualityView() {
           />
         </View>
         <View style={st.healthBar}>
-          <View style={[st.healthBarFill, { width: `${deliveryRate}%`, backgroundColor: '#10B981' }]} />
+          <View style={[st.healthBarFill, { width: `${deliveryRate}%`, backgroundColor: '#10B981' } as any]} />
         </View>
         <View style={st.healthLabels}>
           <Text style={st.healthLabel}>{validEmails} deliverable</Text>

@@ -172,6 +172,7 @@ export function SettingPickerModal({ setting, onSelect, onClose }: {
   };
   onSelect: (v: string) => void; onClose: () => void;
 }) {
+  const T = useSAC();
   const isTextInput = (setting.options || []).length === 0;
   const isPassword = /secret|password/i.test(setting.key || '');
   const [textValue, setTextValue] = useState(setting.value || '');
@@ -207,14 +208,14 @@ export function SettingPickerModal({ setting, onSelect, onClose }: {
                         value={textValue}
                         onChangeText={setTextValue}
                         placeholder={inputPlaceholder}
-                        placeholderTextColor={T.sub}
+                        placeholderTextColor={T.muted}
                         secureTextEntry={isPassword && !showPwd}
                         autoFocus
                         multiline={false}
                       />
                       {isPassword && (
                         <Pressable onPress={() => setShowPwd(!showPwd)} style={s.iconOnlyBtn}>
-                          {showPwd ? <EyeOff size={18} color={T.sub} /> : <Eye size={18} color={T.sub} />}
+                          {showPwd ? <EyeOff size={18} color={T.muted} /> : <Eye size={18} color={T.muted} />}
                         </Pressable>
                       )}
                     </View>

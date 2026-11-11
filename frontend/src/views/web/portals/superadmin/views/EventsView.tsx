@@ -272,7 +272,7 @@ export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) =
   const [tab, setTab] = useSubTab<Tab>(['all', 'live', 'pending', 'free', 'paid'], 'all', { sub, onSub });
   const [q, setQ] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Ev | null>(null);
+  const [editing, setEditing] = useState<(Ev & Partial<Editable>) | null>(null);
   const { toast, flash, hide } = useToast();
 
   const list = useMemo(() => {
@@ -304,7 +304,7 @@ export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) =
   const totalRevenue = EVENTS.filter((e) => e.kind === 'paid').reduce((n, e) => n + (e.price || 0) * (e.attending || 0), 0);
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
-  const openEdit  = (e: Ev) => { setEditing(e); setModalOpen(true); };
+  const openEdit  = (e: Ev) => { setEditing(e as Ev & Partial<Editable>); setModalOpen(true); };
 
   const reviewApprove = async (e: Ev) => {
     try {

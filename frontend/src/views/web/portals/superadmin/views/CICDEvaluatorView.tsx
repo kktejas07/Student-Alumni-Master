@@ -45,7 +45,7 @@ export function CICDEvaluatorView() {
       const res = await postPortal('/admin/agents/evaluate-pr', {
         pr_number: prNumber,
         branch: branchName,
-      });
+      } as any);
       setEvalResult(res);
     } catch (err: any) {
       setEvalResult({ error: err?.message || 'PR evaluation failed' });

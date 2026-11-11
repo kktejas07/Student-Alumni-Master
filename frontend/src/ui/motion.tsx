@@ -225,7 +225,7 @@ export function SparkIcon({
     transform: [
       { rotate: `${interpolate(v.value, [0, 1], [-15, 15])}deg` },
       { scale: 0.92 + v.value * 0.16 },
-    ],
+    ] as any,
   }));
   return <Animated.View style={aStyle}><Icon size={size} color={color} /></Animated.View>;
 }
@@ -237,7 +237,7 @@ export function ParallaxCard({
   const tx = useSharedValue(0);
   const ty = useSharedValue(0);
   const aStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: tx.value }, { translateY: ty.value }],
+    transform: [{ translateX: tx.value }, { translateY: ty.value }] as any,
   }));
   if (Platform.OS !== 'web') {
     return <View style={style}>{children}</View>;

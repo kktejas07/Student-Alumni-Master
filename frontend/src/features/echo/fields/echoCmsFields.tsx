@@ -207,8 +207,7 @@ export function IconAction({ icon, label, color, bg, onPress, disabled = false, 
           alignItems: 'center', justifyContent: 'center',
           cursor: (disabled ? 'default' : 'pointer') as any,
           opacity: disabled ? 0.45 : 1,
-          transitionDuration: '120ms' as any,
-        }}
+        } as any}
       >
         {icon}
       </Pressable>

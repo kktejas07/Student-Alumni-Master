@@ -2,7 +2,7 @@
  * Student -> Help Center — FAQ accordion + support ticket submission form.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Platform, useWindowDimensions } from 'react-native';
 import { HelpCircle, Search, ChevronDown, ChevronUp, Send, CheckCircle, Clock, AlertCircle } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { usePalette } from '../tokens';
@@ -13,6 +13,7 @@ interface SupportTicket {
   id: string;
   subject: string;
   category: string;
+  description?: string;
   status: string;
   created_at: string;
 }

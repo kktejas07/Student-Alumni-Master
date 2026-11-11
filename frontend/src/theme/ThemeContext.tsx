@@ -109,7 +109,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isDark, documentDark, lightPins, darkPins, mode]);
 
-  const value = useMemo<Ctx>(() => ({ theme, mode, setMode, isDark }), [theme, mode, isDark]);
+  const value = useMemo<Ctx>(() => ({ theme: theme as any, mode, setMode, isDark }), [theme, mode, isDark]);
   return (
     <PinContext.Provider value={pinDark}>
       <PinLightContext.Provider value={pinLight}>
@@ -130,7 +130,7 @@ export function ForceDarkTheme({ children }: { children: React.ReactNode }) {
   const pinDark = useContext(PinContext);
   useEffect(() => pinDark(), [pinDark]);
   const value = useMemo<Ctx>(
-    () => ({ theme: DARK, mode: 'dark', setMode: parent.setMode, isDark: true }),
+    () => ({ theme: DARK as any, mode: 'dark' as const, setMode: parent.setMode, isDark: true }),
     [parent.setMode],
   );
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

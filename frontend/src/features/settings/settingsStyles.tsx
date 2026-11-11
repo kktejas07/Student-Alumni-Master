@@ -99,13 +99,6 @@ export const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   editBtnText: { color: GRAD_TO, fontFamily: FONTS.xbold, fontSize: 11 },
-  selectBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 9,
-    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
-    minWidth: 140, maxWidth: 200,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
   selectValue: { color: GRAD_TO, fontFamily: FONTS.bold, fontSize: 12, flex: 1 },
 
   // Picker Modal

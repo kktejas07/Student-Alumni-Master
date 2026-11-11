@@ -9,7 +9,7 @@ import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, Easing,
 } from 'react-native-reanimated';
 
-const AView = Animated.createAnimatedComponent(Pressable as any);
+const AView: any = Animated.createAnimatedComponent(Pressable as any);
 
 type Props = {
   onPress?: () => void;

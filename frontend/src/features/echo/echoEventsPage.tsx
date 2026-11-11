@@ -42,6 +42,9 @@ function EventCardBanner({ poster, title, isDark }: { poster?: string; title: st
   );
 }
 
+type EchoView = 'list' | 'detail' | 'reg';
+interface EchoEventsPageProps { initialView?: EchoView; initialSlug?: string; }
+
 export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoEventsPageProps) {
   const router = useRouter();
   const { isDark } = useTheme();
@@ -776,7 +779,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
   }, []);
 
   return (
-    <div id="ev-root" style={{ '--bg': isDark ? '#0A0A14' : '#F5F5F7', '--panel': isDark ? '#11111C' : '#FFFFFF', '--panel2': isDark ? '#161622' : '#F0F0F5', '--line': isDark ? '#1F1F30' : '#E5E5EA', '--line2': isDark ? '#292940' : '#D1D1D6', '--violet': '#7C5CFC', '--violet-lt': isDark ? '#A78BFA' : '#7C5CFC', '--ok': '#34D399', '--amber': '#F5B342', '--text': isDark ? '#F4F4FA' : '#1D1D1F', '--muted': isDark ? '#8A8A9E' : '#6E6E73', '--dim': isDark ? '#6A6A7E' : '#AEAEB2', fontFamily: "'Outfit', -apple-system, sans-serif", color: 'var(--text)', background: 'var(--bg)', minHeight: '100vh', width: '100%', position: 'relative', overflowX: 'hidden' }}>
+    <div id="ev-root" style={{ '--bg': isDark ? '#0A0A14' : '#F5F5F7', '--panel': isDark ? '#11111C' : '#FFFFFF', '--panel2': isDark ? '#161622' : '#F0F0F5', '--line': isDark ? '#1F1F30' : '#E5E5EA', '--line2': isDark ? '#292940' : '#D1D1D6', '--violet': '#7C5CFC', '--violet-lt': isDark ? '#A78BFA' : '#7C5CFC', '--ok': '#34D399', '--amber': '#F5B342', '--text': isDark ? '#F4F4FA' : '#1D1D1F', '--muted': isDark ? '#8A8A9E' : '#6E6E73', '--dim': isDark ? '#6A6A7E' : '#AEAEB2', fontFamily: "'Outfit', -apple-system, sans-serif", color: 'var(--text)', background: 'var(--bg)', minHeight: '100vh', width: '100%', position: 'relative', overflowX: 'hidden' } as any}>
       
       {Platform.OS === 'web' && (
         <style
@@ -2405,7 +2408,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
                 <img
                   src={resolveImageUrl(regPosters[regPosterIdx])}
                   alt={`HackWave Poster ${regPosterIdx + 1}`}
-                  onClick={() => openLightbox(resolveImageUrl(regPosters[regPosterIdx]))}
+                  onClick={() => { /* TODO: openLightbox */ }}
                   style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'zoom-in', transition: 'all .4s ease' }}
                 />
 

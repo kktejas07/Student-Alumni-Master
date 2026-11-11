@@ -152,7 +152,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
       }
 
       const emailToUse = googleProfile.email.trim().toLowerCase();
-      const res = await api.oauthFirebase({
+      const res = await (api as any).oauthFirebase({
         id_token: googleProfile.idToken,
         email: emailToUse,
         full_name: googleProfile.name || emailToUse.split('@')[0],

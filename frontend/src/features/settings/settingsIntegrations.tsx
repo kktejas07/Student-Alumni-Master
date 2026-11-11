@@ -125,7 +125,7 @@ export function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) 
             const active = c === filter;
             return active ? (
               <View key={c} style={s.catPillActive}>
-                <Text style={s.catPillTextActive}>{c}</Text>
+                <Text style={s.catPillActiveText}>{c}</Text>
               </View>
             ) : (
               <Pressable key={c} onPress={() => setFilter(c)} style={s.catPill}>
