@@ -43,6 +43,7 @@ import { CICDEvaluatorView } from './views/CICDEvaluatorView';
 import { CodeHealthView } from './views/CodeHealthView';
 import { LeadAggregatorView } from './views/LeadAggregatorView';
 import { CareersAdminView } from './views/CareersAdminView';
+import { CatalogView } from './views/CatalogView';
 
 export function SuperAdminPortalRN() {
   const router = useRouter();
@@ -119,6 +120,7 @@ export function SuperAdminPortalRN() {
           {active === 'vendors'         && <VendorsView />}
           {active === 'coupons'         && <CouponsView />}
           {active === 'careers'         && <CareersAdminView />}
+          {active === 'catalog'         && <CatalogView />}
           {active === 'certificates'    && <CertificatesView {...subFor()} />}
           {active === 'teams'           && <TeamsMeetingsView />}
         </PortalShell>

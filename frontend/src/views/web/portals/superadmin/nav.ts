@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Building2, GraduationCap, UserCheck, Users, Calendar, CreditCard,
   BarChart3, CheckCircle, Sparkles, Settings, Workflow, Upload, Handshake, Megaphone,
   UserPlus, Mail, Award, ShieldOff, ShieldCheck, Bot, Radar, Video, Store, Tag, GitPullRequest, Briefcase,
-  Target,
+  Target, Package,
 } from 'lucide-react-native';
 import { displayName, displayInitials } from '@/src/lib/portalHome';
 import type { NavItem, PortalConfig } from '@/src/ui/shell/types';
@@ -13,7 +13,7 @@ export type SuperAdminNavId =
   | 'payments' | 'analytics' | 'approvals' | 'ai-insights' | 'settings'
   | 'workflows' | 'imports' | 'partners' | 'promotions' | 'talent-pool' | 'talent-pool-agents' | 'echo-showcase'
   | 'vendors' | 'coupons' | 'careers' | 'newsletter' | 'certificates' | 'email-health' | 'teams' | 'cicd-evaluator' | 'code-health'
-  | 'lead-aggregator';
+  | 'lead-aggregator' | 'catalog';
 
 export const NAV: (NavItem & { id: SuperAdminNavId })[] = [
   { id: 'overview',        label: 'Overview',            Icon: LayoutDashboard },
@@ -34,6 +34,7 @@ export const NAV: (NavItem & { id: SuperAdminNavId })[] = [
   { id: 'echo-showcase',   label: 'Echo Showcase',       Icon: Sparkles, tag: 'CMS' },
   { id: 'vendors',         label: 'Marketplace Vendors', Icon: Store },
   { id: 'coupons',         label: 'Coupons',             Icon: Tag },
+  { id: 'catalog',         label: 'Catalog',             Icon: Package },
   { id: 'partners',        label: 'Partners',            Icon: Handshake },
   { id: 'promotions',      label: 'Promotions',          Icon: Megaphone },
   { id: 'newsletter',      label: 'Newsletter',          Icon: Mail },
