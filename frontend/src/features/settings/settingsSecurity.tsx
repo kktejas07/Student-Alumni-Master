@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { View, Text, Pressable, Switch, Platform, TextInput, ActivityIndicator, Image } from 'react-native';
 import { Lock, Check, Eye, EyeOff, Monitor, Smartphone, ShieldCheck, Clock, MapPin, Globe, Wifi, Activity } from 'lucide-react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { SAC, FONTS } from '@/src/views/web/portals/superadmin/tokens';
+import { SAC, useSAC, FONTS } from '@/src/views/web/portals/superadmin/tokens';
 import { request } from '@/src/models/services/api';
 import { GRAD_TO } from './settingsTokens';
 import { liveAgo } from './settingsNotifs';
@@ -13,6 +13,7 @@ import { GradientButton } from './settingsWidgets';
 
 
 export function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const T = useSAC();
   const [twoFa, setTwoFa] = useState(false);
   const [twoFaLoading, setTwoFaLoading] = useState(false);
   const [qrData, setQrData] = useState<{ qr_base64: string; secret: string } | null>(null);
@@ -165,7 +166,7 @@ export function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
               value={twoFa || !!qrData}
               onValueChange={onToggle2fa}
               disabled={twoFaLoading}
-              trackColor={{ false: 'rgba(255,255,255,0.10)', true: GRAD_TO }}
+              trackColor={{ false: T.line, true: GRAD_TO }}
               thumbColor={(twoFa || !!qrData) ? '#fff' : '#ccc'}
               {...(Platform.OS === 'web' ? ({ activeThumbColor: '#fff' } as any) : {})}
             />

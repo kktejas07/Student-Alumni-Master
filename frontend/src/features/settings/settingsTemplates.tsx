@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, TextInput } from 'react-native';
 import { Eye } from 'lucide-react-native';
-import { SAC, FONTS } from '@/src/views/web/portals/superadmin/tokens';
+import { SAC, useSAC, FONTS } from '@/src/views/web/portals/superadmin/tokens';
 import { getBaseUrl } from '@/src/lib/env';
 import { s } from './settingsStyles';
 
 
 
 export function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const T = useSAC();
   const [subTab, setSubTab] = useState<'pass' | 'invoice' | 'email' | 'branding'>('pass');
   const [defaultTemplate, setDefaultTemplate] = useState('aurora');
   const [invoiceTemplate, setInvoiceTemplate] = useState('modern');
@@ -97,12 +98,12 @@ export function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
         {options.map((tpl) => (
           <Pressable key={tpl.id} onPress={() => onChange(tpl.id)} style={{
             width: 160, borderRadius: 10, borderWidth: 2,
-            borderColor: value === tpl.id ? '#2563EB' : 'rgba(255,255,255,0.08)',
-            backgroundColor: value === tpl.id ? 'rgba(37,99,235,0.08)' : 'rgba(255,255,255,0.02)',
+            borderColor: value === tpl.id ? '#2563EB' : T.border,
+            backgroundColor: value === tpl.id ? 'rgba(37,99,235,0.08)' : T.card,
             padding: 14, cursor: 'pointer',
           }}>
             <View style={{ height: 6, borderRadius: 3, marginBottom: 10, background: tpl.gradient }} />
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: value === tpl.id ? '#93C5FD' : '#e2e8f0' }}>{tpl.name}</Text>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: value === tpl.id ? '#93C5FD' : T.text }}>{tpl.name}</Text>
             <Text style={{ fontFamily: FONTS.medium, fontSize: 11, color: '#64748b', marginTop: 3 }}>{tpl.desc}</Text>
           </Pressable>
         ))}
@@ -137,8 +138,8 @@ export function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
         {subTabs.map((t) => (
           <Pressable key={t.id} onPress={() => setSubTab(t.id)} style={{
             paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, borderWidth: 1, cursor: 'pointer',
-            borderColor: subTab === t.id ? '#2563EB' : 'rgba(255,255,255,0.08)',
-            backgroundColor: subTab === t.id ? 'rgba(37,99,235,0.12)' : 'rgba(255,255,255,0.02)',
+            borderColor: subTab === t.id ? '#2563EB' : T.border,
+            backgroundColor: subTab === t.id ? 'rgba(37,99,235,0.12)' : T.card,
           }}>
             <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: subTab === t.id ? '#93C5FD' : '#94a3b8' }}>{t.label}</Text>
           </Pressable>
@@ -146,7 +147,7 @@ export function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       </View>
 
       {subTab === 'pass' && (
-        <View style={{ backgroundColor: "rgba(255,255,255,0.04)", borderRadius: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.06)", padding: 20, gap: 16 }}>
+        <View style={{ backgroundColor: T.card, borderRadius: 14, borderWidth: 1, borderColor: T.border, padding: 20, gap: 16 }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>Pass / Ticket Templates</Text>
           <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8' }}>Default entry pass style for all ECHO events.</Text>
           <TemplatePicker label="Default Template" previewType="pass" value={defaultTemplate} onChange={setDefaultTemplate} options={[
@@ -158,7 +159,7 @@ export function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       )}
 
       {subTab === 'invoice' && (
-        <View style={{ backgroundColor: "rgba(255,255,255,0.04)", borderRadius: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.06)", padding: 20, gap: 16 }}>
+        <View style={{ backgroundColor: T.card, borderRadius: 14, borderWidth: 1, borderColor: T.border, padding: 20, gap: 16 }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>Invoice Templates</Text>
           <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8' }}>Default invoice style for paid registrations.</Text>
           <TemplatePicker label="Default Invoice" previewType="invoice" value={invoiceTemplate} onChange={setInvoiceTemplate} options={[
@@ -170,7 +171,7 @@ export function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       )}
 
       {subTab === 'email' && (
-        <View style={{ backgroundColor: "rgba(255,255,255,0.04)", borderRadius: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.06)", padding: 20, gap: 16 }}>
+        <View style={{ backgroundColor: T.card, borderRadius: 14, borderWidth: 1, borderColor: T.border, padding: 20, gap: 16 }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>Email Templates</Text>
           <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8' }}>Style for transactional emails.</Text>
           <TemplatePicker label="Email Style" previewType="pass" value={emailStyle} onChange={setEmailStyle} options={[
@@ -183,20 +184,20 @@ export function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
             <TextInput value={emailFooter} onChangeText={setEmailFooter}
               placeholder="Student Alumni Cell — Empowering the next generation of leaders."
               placeholderTextColor="#475569" multiline numberOfLines={3}
-              style={{ backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 12, color: '#e2e8f0', fontFamily: FONTS.medium, fontSize: 13, minHeight: 60, textAlignVertical: 'top' }} />
+              style={{ backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, padding: 12, color: T.text, fontFamily: FONTS.medium, fontSize: 13, minHeight: 60, textAlignVertical: 'top' }} />
           </View>
         </View>
       )}
 
       {subTab === 'branding' && (
-        <View style={{ backgroundColor: "rgba(255,255,255,0.04)", borderRadius: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.06)", padding: 20, gap: 16 }}>
+        <View style={{ backgroundColor: T.card, borderRadius: 14, borderWidth: 1, borderColor: T.border, padding: 20, gap: 16 }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>Branding</Text>
           <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8' }}>Brand settings for emails, passes, and invoices.</Text>
           <View style={{ gap: 8 }}>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>Brand Name</Text>
             <TextInput value={brandName} onChangeText={setBrandName} placeholder="Student Alumni"
               placeholderTextColor="#475569"
-              style={{ backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 12, color: '#e2e8f0', fontFamily: FONTS.medium, fontSize: 13 }} />
+              style={{ backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, padding: 12, color: T.text, fontFamily: FONTS.medium, fontSize: 13 }} />
           </View>
           <View style={{ gap: 8 }}>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>Brand Color</Text>
@@ -205,7 +206,7 @@ export function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                 style={{ width: 44, height: 40, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'transparent' }} />
               <TextInput value={brandColor} onChangeText={setBrandColor} placeholder="#2563EB"
                 placeholderTextColor="#475569"
-                style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 12, color: '#e2e8f0', fontFamily: FONTS.medium, fontSize: 13 }} />
+                style={{ flex: 1, backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, padding: 12, color: T.text, fontFamily: FONTS.medium, fontSize: 13 }} />
             </View>
           </View>
           <View style={{ padding: 16, borderRadius: 12, backgroundColor: brandColor + '18', borderWidth: 1, borderColor: brandColor + '40' }}>

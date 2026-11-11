@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, Pressable, TextInput, Image } from 'react-native';
 import { Plus, Trash2 } from 'lucide-react-native';
-import { SAC, FONTS } from '@/src/views/web/portals/superadmin/tokens';
+import { SAC, useSAC, FONTS } from '@/src/views/web/portals/superadmin/tokens';
 import { getBaseUrl } from '@/src/lib/env';
 import { s } from './settingsStyles';
 import { Loading } from './settingsWidgets';
@@ -25,6 +25,7 @@ export type HeroStatRow = { value: string; label: string; color: string };
 export function HeroField({ label, value, onChange, placeholder, multiline }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; multiline?: boolean;
 }) {
+  const T = useSAC();
   return (
     <View style={{ gap: 6 }}>
       <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Text>
@@ -37,8 +38,8 @@ export function HeroField({ label, value, onChange, placeholder, multiline }: {
         scrollEnabled={multiline}
         numberOfLines={multiline ? 3 : undefined}
         style={{
-          backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
-          padding: 12, color: '#e2e8f0', fontFamily: FONTS.medium, fontSize: 13,
+          backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border,
+          padding: 12, color: T.text, fontFamily: FONTS.medium, fontSize: 13,
           minHeight: multiline ? 72 : undefined, textAlignVertical: multiline ? 'top' : undefined,
         }}
       />
@@ -47,6 +48,7 @@ export function HeroField({ label, value, onChange, placeholder, multiline }: {
 }
 
 export function EchoLandingHeroTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const T = useSAC();
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [saving, setSaving] = useState(false);
 
@@ -147,8 +149,8 @@ export function EchoLandingHeroTab({ onSaved }: { onSaved: (s?: string) => void 
   };
 
   const cardStyle = {
-    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)', padding: 20, gap: 14,
+    backgroundColor: T.card, borderRadius: 14, borderWidth: 1,
+    borderColor: T.border, padding: 20, gap: 14,
   } as const;
 
   if (loadState === 'loading') return <Loading />;
@@ -203,7 +205,7 @@ export function EchoLandingHeroTab({ onSaved }: { onSaved: (s?: string) => void 
                 onChangeText={(v) => setStats((prev) => prev.map((p, j) => (j === i ? { ...p, value: v } : p)))}
                 placeholder="86"
                 placeholderTextColor="#475569"
-                style={{ backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 10, color: '#e2e8f0', fontFamily: FONTS.medium, fontSize: 12.5 }}
+                style={{ backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, padding: 10, color: T.text, fontFamily: FONTS.medium, fontSize: 12.5 }}
               />
             </View>
             <View style={{ flex: 1, gap: 6 }}>
@@ -213,7 +215,7 @@ export function EchoLandingHeroTab({ onSaved }: { onSaved: (s?: string) => void 
                 onChangeText={(v) => setStats((prev) => prev.map((p, j) => (j === i ? { ...p, label: v } : p)))}
                 placeholder="ECHO events across India"
                 placeholderTextColor="#475569"
-                style={{ backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 10, color: '#e2e8f0', fontFamily: FONTS.medium, fontSize: 12.5 }}
+                style={{ backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, padding: 10, color: T.text, fontFamily: FONTS.medium, fontSize: 12.5 }}
               />
             </View>
             <View style={{ width: 92, gap: 6 }}>
@@ -223,7 +225,7 @@ export function EchoLandingHeroTab({ onSaved }: { onSaved: (s?: string) => void 
                 onChangeText={(v) => setStats((prev) => prev.map((p, j) => (j === i ? { ...p, color: v } : p)))}
                 placeholder="#4B3FD6"
                 placeholderTextColor="#475569"
-                style={{ backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 10, color: '#e2e8f0', fontFamily: FONTS.medium, fontSize: 12.5 }}
+                style={{ backgroundColor: T.card, borderRadius: 8, borderWidth: 1, borderColor: T.border, padding: 10, color: T.text, fontFamily: FONTS.medium, fontSize: 12.5 }}
               />
             </View>
             <Pressable onPress={() => setStats((prev) => prev.filter((_, j) => j !== i))} style={{

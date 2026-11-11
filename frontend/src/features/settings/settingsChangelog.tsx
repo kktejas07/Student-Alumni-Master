@@ -7,7 +7,7 @@ import {
   ArrowRight, Eye, EyeOff, X, Check, AlertTriangle, ShieldAlert,
 } from 'lucide-react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
-import { SAC, FONTS } from '@/src/views/web/portals/superadmin/tokens';
+import { SAC, useSAC, FONTS } from '@/src/views/web/portals/superadmin/tokens';
 import { request } from '@/src/models/services/api';
 import { GRAD_TO, GRAD_FROM } from './settingsTokens';
 import { s } from './settingsStyles';
@@ -391,9 +391,10 @@ function FilterPill({ label, active, onPress }: { label: string; active: boolean
 }
 
 function DiffRow({ label, value, tint }: { label: string; value: string; tint: string }) {
+  const T = useSAC();
   return (
     <View style={{
-      backgroundColor: 'rgba(255,255,255,0.02)',
+      backgroundColor: T.card,
       borderRadius: 8,
       borderWidth: 1,
       borderColor: tint + '33',
