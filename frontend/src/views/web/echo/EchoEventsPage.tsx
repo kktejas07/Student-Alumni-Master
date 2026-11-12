@@ -3,7 +3,7 @@
  * EchoEventsPage — Enhanced ECHO Events Page with full-width responsive layout,
  * interactive scroll effects, parallax ambient glows, and sleek animations matching the exact spec.
  */
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
