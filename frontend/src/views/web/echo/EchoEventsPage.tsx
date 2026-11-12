@@ -1567,6 +1567,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
           </span>
 
           {/* Wide Event Hero Banner */}
+          {isSectionEnabled('hackwave_flagship') && (
           <div className="ev-detail-banner" style={{ border: '1px solid var(--line2)', borderRadius: '22px', overflow: 'hidden', background: 'var(--panel)', marginBottom: '22px', width: '100%' }}>
             
             {/* Banner Top Graphic */}
@@ -1725,6 +1726,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
 
             </div>
           </div>
+          )}
 
           {/* Virtual Meeting Section */}
           {teamsMeeting && (
@@ -1775,8 +1777,6 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
                 </div>
               </div>
             </div>
-          )}
-          </div>
           )}
 
           {/* 2-Column: About Event & Organized By */}
@@ -1907,8 +1907,6 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
               </div>
             );
           })()}
-          </div>
-          )}
           {/* ────────────────────────────────────────────────────────── */}
           {/* A NATIONAL-LEVEL TECH FEST — 7 VERTICALS (BANNER 4)       */}
           {/* ────────────────────────────────────────────────────────── */}
@@ -2276,6 +2274,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
               <svg width="16" height="16" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
             </div>
           </a>
+          )}
         </div>
         )
       )}
