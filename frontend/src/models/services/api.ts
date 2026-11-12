@@ -238,7 +238,8 @@ export async function request<T>(
 ): Promise<T> {
   const { method = 'GET', body, auth = true, headers: customHeaders } = options;
   const t0 = typeof Date !== 'undefined' ? Date.now() : 0;
-  const fullUrl = `${BASE_URL}/api${path}`;
+  const base = getBaseUrl();
+  const fullUrl = `${base}/api${path}`;
 
   // eslint-disable-next-line no-console
   debugLog(`👉 [API REQ] ${method} ${fullUrl}`);
@@ -267,11 +268,25 @@ export async function request<T>(
   if (auth && token && !headers['Authorization']) headers['Authorization'] = `Bearer ${token}`;
 
   try {
-    const res = await fetch(fullUrl, {
-      method,
-      headers,
-      body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
-    });
+    let res: Response;
+    try {
+      res = await fetch(fullUrl, {
+        method,
+        headers,
+        body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
+      });
+    } catch (firstErr) {
+      if (fullUrl.includes('localhost')) {
+        const fallbackUrl = fullUrl.replace('localhost', '127.0.0.1');
+        res = await fetch(fallbackUrl, {
+          method,
+          headers,
+          body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
+        });
+      } else {
+        throw firstErr;
+      }
+    }
 
     const duration = t0 ? Date.now() - t0 : 0;
 

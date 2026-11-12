@@ -27,6 +27,7 @@ import { friendlyNetworkError } from '@/src/lib/networkErrors';
 const BASE = getBaseUrl();
 
 const REGISTERED_EMAILS = [
+  'admin@studentalumni.ai',
   'vallabhneelkant12@gmail.com',
   'devender@snist.ac.in',
   'aisha@iitb.ac.in',
@@ -307,11 +308,26 @@ function WebLoginScreen() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${BASE}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail, password: cleanPwd }),
-      });
+      const base = getBaseUrl();
+      let res: Response;
+      try {
+        res = await fetch(`${base}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: cleanEmail, password: cleanPwd }),
+        });
+      } catch (firstErr) {
+        if (base.includes('localhost')) {
+          const fallbackBase = base.replace('localhost', '127.0.0.1');
+          res = await fetch(`${fallbackBase}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: cleanEmail, password: cleanPwd }),
+          });
+        } else {
+          throw firstErr;
+        }
+      }
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -342,7 +358,7 @@ function WebLoginScreen() {
 
       redirectAfterLogin(data.user?.role);
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Network error — please check connection or credentials.');
+      setErrorMsg(friendlyNetworkError(err, getBaseUrl()));
       setLoading(false);
     }
   };
