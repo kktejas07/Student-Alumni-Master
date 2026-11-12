@@ -3555,11 +3555,7 @@ function RegistrationsPanel() {
       || r.college?.toLowerCase().includes(s)
       || r.event_title?.toLowerCase().includes(s);
     const matchStatus = status === 'all' || r.payment_status === status;
-    const rowEventTitle = String(r.event_title || '').trim().toLowerCase();
-    const matchEvent = eventSlug === 'all' || (
-      r.slug === eventSlug &&
-      (!selectedEventTitle || !rowEventTitle || rowEventTitle === selectedEventTitle)
-    );
+    const matchEvent = eventSlug === 'all' || r.slug === eventSlug;
     return matchQ && matchStatus && matchEvent;
   });
 
