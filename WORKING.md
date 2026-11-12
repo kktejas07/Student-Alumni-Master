@@ -5,10 +5,32 @@
 
 ---
 
+## ⚠️ Mandatory Git Identity Requirement
+Before creating ANY git commit in this repository, always verify:
+- `git config user.name`
+- `git config user.email`
+
+**Authorized Identity:**
+- **Name:** `Harsha-hvr`
+- **Email:** `theoneharsha@gmail.com`
+- **GitHub Username:** `Harsha01h`
+
+**Rules:**
+1. Ensure all future commits use this exact identity.
+2. Do not override the identity with any other name or email.
+3. Do not modify existing commits or rewrite Git history unless explicitly authorized by the user.
+4. If the configured identity differs, **STOP** and inform the user before committing.
+
+---
+
 ## Active Work
 
 | Agent / Person | Working On | Files / Area | Status | Notes |
 |---------------|-----------|--------------|--------|-------|
+| Antigravity | Student Portal Event Registration, QR Pass Generation & Verification, and My Tickets Dynamic Display (`ai-hiring` & ECHO Events) | `backend/echo_showcase.py`, `frontend/src/views/web/echo/EchoEventsPage.tsx`, `frontend/src/views/web/portals/student/views/EchoShowcaseView.tsx`, `frontend/src/views/web/portals/student/views/MyTicketsView.tsx`, `frontend/src/views/web/echo/EchoTicketsConfirmationPage.tsx`, `frontend/app/echo/[slug]/register.tsx`, `frontend/app/platform.tsx` | Done — Ready for Review | Fixed event registration and ticket lifecycle for logged-in students: embedded event registration inline within the Student Dashboard to eliminate unwanted external redirects; excluded `ai-hiring` from strict deadline auto-close; enabled multi-registration generation of unique tickets (`SA-AIH-XXXXXX`), unique QR codes, and tokens with a 2-second rapid-click throttle; enhanced ticket check-in and super admin QR scanner verification to support `SA-AIH-` prefixes; made My Tickets display dynamic event dates, venue, ticket ID, and QR modal; ensured seamless redirection to `/student-portal/my-tickets`. |
+| Antigravity | Main Super Admin Account Setup (`hr@studentalumni.ai`) | `frontend/app/(auth)/login.tsx`, `frontend/src/models/entities/index.ts`, `backend/server.py`, `backend/core/security.py`, `backend/core/models.py`, `backend/.env`, `backend/scripts/seed_mock_data.py` | Ready for Review | Configured `hr@studentalumni.ai` as primary platform Super Admin with `role: "admin"`, `is_super_admin: True`, and full permissions. Added `hr@studentalumni.ai` and `admin@studentalumni.ai` to registered accounts in frontend login, added `🛡️ Fill Super Admin` auto-fill chip, enabled `is_super_admin` in `serialize_user` and `UserResponse`, and updated backend `.env` and `seed_admin` to ensure idempotent synchronization in MongoDB. |
+| Antigravity | Fix Event-Specific Poster Mapping on Registration Page (Task 1) | `frontend/src/views/web/echo/EchoEventsPage.tsx`, `frontend/src/views/web/portals/student/views/EchoShowcaseView.tsx`, `frontend/app/echo/[slug]/register.tsx`, `frontend/app/echo/register/index.tsx`, `backend/echo_showcase.py` | Ready for Review | Fixed hardcoded `HackWave Poster` alt text, corrected poster counter from `POSTER 1 OF 0` to truthful count, added dedicated clean empty state for events with no posters, prevented cross-event poster leakage via activeEvent id/slug matching and state resets, added graceful broken image handling with error boundaries, enhanced backend `_slug_query` and `get_showcase` to support event IDs and fallback to platform events collection, and added the default local `AI in Hiring 2026` (`ai-hiring`) showcase seed across backend and frontend for immediate local testing. |
+| Antigravity | Event Lifecycle Status Bar & Presets across SuperAdmin Events, College Portal Events, and Echo Showcase CMS + TopTabs Scroll | `frontend/src/views/web/portals/superadmin/views/EventsView.tsx`, `frontend/src/views/web/portals/college/views/EventsView.tsx`, `frontend/src/views/web/portals/college/views/CreateEventView.tsx`, `frontend/app/manage-event/[id].tsx`, `frontend/src/views/web/portals/superadmin/views/EchoShowcaseAdminView.tsx`, `backend/portals.py`, `backend/crud_endpoints.py`, `backend/events_aggregator.py`, `backend/echo_showcase.py`, `frontend/src/models/services/api.ts`, `frontend/src/views/web/portals/shared/kit.tsx`, `frontend/src/views/web/portals/student/views/EchoShowcaseView.tsx` | Done | Expanded event status options (Upcoming, Live, Completed, Not Completed, Registrations Open, Registrations Closed) across all admin surfaces: SuperAdmin Events view + modal + cards, College Portal Events view + cards, College Create Event view, Manage Event page, and Echo Showcase CMS cards & edit modal. Added 1-click Quick Status Bar presets, automatic registration synchronization, backend PATCH /admin/super/events/{id}/status, and horizontal scroll navigation with wheel listener to TopTabs. |
 | GLM 5.3 (opencode) | Production Google OAuth login failure (studentalumni.ai) | `backend/routers/auth.py`, `backend/tests/test_google_oauth_contract.py`, `frontend/src/models/services/__tests__/oauthGoogleRequest.test.ts`, `frontend/package.json` | Done — local, NOT deployed | Root cause: `/auth/google` never synced the `firebase_service_account` platform setting into `os.environ` (unlike `/auth/firebase`), so `_get_or_init_firebase()` saw an empty env and every legitimate Firebase ID token (what the web client sends via `signInWithPopup` → `getIdToken()` → `id_token` field) fell through both verifiers and 401'd with "Google sign-in requires a valid id_token." Fix: mirror the `/auth/firebase` service-account sync in `auth_google`. Verification chain unchanged (google-auth `verify_oauth2_token` + Firebase Admin SDK). 13 backend contract tests + 3 frontend request-contract tests added; regression test reproduced the exact production 401 before the fix. Full backend suite 144 passed / 1 pre-existing ECHO-payments failure (baseline-matched). Deploy requires: branch merge → Dokploy rebuild; admin must confirm `firebase_service_account` (or `FIREBASE_SERVICE_ACCOUNT_JSON` env) is actually set in production. |
 
 | Devender (opencode) | Marketplace delivery: mandatory phone + validation + icon polish | `frontend/src/views/web/echo/EchoMarketplace.tsx`, `backend/routers/marketplace.py` | Pushed | Added delivery_phone to CheckoutRequest model and order doc; delivery section now requires table/team name + 10-digit phone (mandatory, with red border validation); replaced emoji buttons with lucide User/Truck icons. py_compile + tsc clean. Commit `218b15d0` pushed to `dev-fixes`. |

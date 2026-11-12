@@ -9,12 +9,13 @@
  */
 import React, { useEffect } from 'react';
 import { View, Platform, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { Colors as C } from '@/src/theme';
 
 export default function PlatformRoute() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ tab?: string; role?: string }>();
   const user = useAuthStore((s) => s.user);
   const initialized = useAuthStore((s) => s.initialized);
 
@@ -29,6 +30,10 @@ export default function PlatformRoute() {
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     if (!initialized) return;
+    if (params.tab === 'my-tickets') {
+      router.replace('/student-portal/my-tickets');
+      return;
+    }
     if (!user) router.replace('/welcome');
     else if (!user.onboarding_completed) router.replace('/(onboarding)/role-info');
     // Every role gets routed to its pixel-exact portal
@@ -36,8 +41,8 @@ export default function PlatformRoute() {
     else if (user.role === 'college') router.replace('/college-portal');
     else if (user.role === 'mentor') router.replace('/mentor-portal');
     else if (user.role === 'alumni') router.replace('/alumni-portal');
-    else router.replace('/student-portal');
-  }, [user, initialized, router]);
+    else router.replace(params.tab ? `/student-portal/${params.tab}` as any : '/student-portal');
+  }, [user, initialized, router, params.tab]);
 
   if (Platform.OS !== 'web') return null;
 

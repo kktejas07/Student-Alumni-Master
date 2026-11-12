@@ -27,9 +27,71 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 interface EchoEventsPageProps {
   initialView?: 'list' | 'detail' | 'reg';
   initialSlug?: string;
+  hideNav?: boolean;
+  inPortal?: boolean;
+  onBack?: () => void;
 }
 
-const SAMPLE_EVENTS: any[] = [];
+const SAMPLE_EVENTS: any[] = [
+  {
+    id: 'ai-hiring',
+    slug: 'ai-hiring',
+    aliases: ['ai-in-hiring', 'ai-hiring-2026'],
+    title: 'AI in Hiring 2026',
+    college: 'StudentAlumni Global & Partner Colleges',
+    college_full: 'StudentAlumni Global & Partner Colleges',
+    status: 'UPCOMING',
+    event_status_badge: 'Upcoming',
+    organizer: 'StudentAlumni Placement & Career AI Network',
+    description: 'Exclusive campus hiring conclave featuring AI resume screening clinics, live technical mock interviews, and on-the-spot internship offers from 30+ recruiting tech companies.',
+    dates: 'October 10 – 11, 2026',
+    date_short: 'Oct 10-11',
+    date_pill: 'Oct 10-11, 2026',
+    time: '09:00 AM – 06:00 PM IST',
+    venue: 'HICC Convention Center, Hitec City, Hyderabad & Virtual Live Stream',
+    location_short: 'Hyderabad',
+    prize_pool: '₹32 LPA CTC Pool',
+    reg_closes: 'Registration Open',
+    individual_fee: 0,
+    team_fee: 0,
+    individual_seats: '500 seats available',
+    team_slots: '',
+    registration: {
+      enabled: true,
+      fee: 0,
+      individual_fee: 0,
+      currency: 'INR',
+      max_seats: 500,
+      deadline: '2026-10-09T23:59:59+05:30',
+      poster_images: [
+        'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80'
+      ],
+      contact_phones: ['+91 98765 43210', '+91 91234 56789'],
+    },
+    hero_image_url: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80',
+    hero_banners: [
+      'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80'
+    ],
+    poster_banner: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80',
+    poster_url: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80',
+    banner_url: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80',
+    gallery_images: [
+      'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80'
+    ],
+    categories: ['Software Engineering', 'AI & Machine Learning', 'Data Analytics'],
+    speakers: [],
+    videos: [],
+    highlights: [],
+    handbook_url: '',
+    downloads: [],
+    partners: [],
+    sponsors: [],
+    perks: [],
+  }
+];
 
 /**
  * Event card banner with a deliberate, consistent image-failure fallback.
@@ -61,19 +123,26 @@ function EventCardBanner({ poster, title, isDark }: { poster?: string; title: st
   );
 }
 
-export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoEventsPageProps) {
+export function EchoEventsPage({
+  initialView = 'list',
+  initialSlug = '',
+  hideNav = false,
+  inPortal = false,
+  onBack,
+}: EchoEventsPageProps) {
   const router = useRouter();
   const { isDark } = useTheme();
   const authUser = useAuthStore((state) => state.user);
   const authInitialized = useAuthStore((state) => state.initialized);
 
-  // Update body background on theme change
+  // Update body background on theme change (only when not embedded in portal)
   useEffect(() => {
+    if (inPortal) return;
     if (typeof document !== 'undefined') {
       document.body.style.background = isDark ? '#0A0A14' : '#F5F5F7';
       document.body.style.color = isDark ? '#F4F4FA' : '#1D1D1F';
     }
-  }, [isDark]);
+  }, [isDark, inPortal]);
 
   const searchParams = useLocalSearchParams();
   
@@ -83,28 +152,24 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
 
   useEffect(() => {
     if (view === 'reg' && authInitialized && !authUser) {
-      router.replace({ pathname: '/login', params: { returnTo: `/echo/${selectedSlug}/register` } });
+      router.replace({ pathname: '/login', params: { returnTo: `/student-portal/${selectedSlug}` } });
     }
   }, [authInitialized, authUser, router, selectedSlug, view]);
 
   useEffect(() => {
+    if (inPortal) {
+      setSelectedSlug(initialSlug || '');
+      setView(initialView || 'reg');
+      return;
+    }
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const path = window.location.pathname;
       const search = new URLSearchParams(window.location.search);
-      const eventParam = search.get('event') || search.get('slug');
+      const eventParam = search.get('event') || search.get('slug') || search.get('id') || search.get('eventId');
       const viewParam = search.get('view');
 
       if (viewParam === 'register' || viewParam === 'reg' || path.includes('/register')) {
-        const pathSegments = path.split('/').filter(Boolean);
-        const routeSlug = pathSegments[0] === 'echo' && pathSegments[1] !== 'register' && pathSegments[2] === 'register'
-          ? pathSegments[1]
-          : '';
-        const slugFromUrl = eventParam || routeSlug || initialSlug || '';
-        if (pathSegments[0] === 'echo' && pathSegments[1] === 'register' && !slugFromUrl) {
-          setSelectedSlug('');
-          setView('list');
-          return;
-        }
+        const slugFromUrl = eventParam || (path.split('/').filter(Boolean)[1] !== 'register' ? path.split('/').filter(Boolean)[1] : null) || initialSlug || '';
         setSelectedSlug(slugFromUrl);
         setView('reg');
       } else if (viewParam === 'catalog' || viewParam === 'list') {
@@ -123,11 +188,12 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
       }
     } else if (searchParams?.view) {
       setView(searchParams.view as any);
-      if (searchParams?.slug) setSelectedSlug(searchParams.slug as string);
+      const s = (searchParams?.slug || searchParams?.event || searchParams?.id) as string;
+      if (s) setSelectedSlug(s);
     }
-  }, []);
+  }, [inPortal, initialSlug, initialView]);
   
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>(SAMPLE_EVENTS);
   const [loading, setLoading] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [galleryIdx, setGalleryIdx] = useState(0);
@@ -141,6 +207,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
   
   // Registration page poster carousel state
   const [regPosterIdx, setRegPosterIdx] = useState(0);
+  const [failedPosters, setFailedPosters] = useState<Record<string, boolean>>({});
   
   // Form fields
   const [fullName, setFullName] = useState('');
@@ -161,6 +228,40 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
     { name: '', email: '', phone: '' },
     { name: '', email: '', phone: '' },
   ]);
+
+  // Auto-prefill form fields from logged-in user
+  useEffect(() => {
+    if (authUser) {
+      if (!fullName && (authUser.full_name || (authUser as any).name)) {
+        setFullName(authUser.full_name || (authUser as any).name);
+      }
+      if (!email && authUser.email) {
+        setEmail(authUser.email);
+      }
+      if (!phone && (authUser.phone || (authUser as any).mobile)) {
+        setPhone(authUser.phone || (authUser as any).mobile);
+      }
+      if (!college && (authUser.college_name || (authUser as any).college)) {
+        setCollege(authUser.college_name || (authUser as any).college);
+      }
+    }
+  }, [authUser]);
+
+  // Event-specific ticket ID resolver
+  const resolveTicketId = (reg: any, slug?: string) => {
+    if (reg?.ticket_id) return reg.ticket_id;
+    const s = (slug || '').toLowerCase();
+    let prefix = 'SA-TKT';
+    if (s.includes('ai-hiring') || s.includes('ai-in-hiring')) prefix = 'SA-AIH';
+    else if (s.includes('snist') || s.includes('hackwave')) prefix = 'SA-HW3';
+    else if (s.includes('vnr')) prefix = 'SA-VNR';
+
+    if (reg?.id) {
+      if (String(reg.id).toUpperCase().startsWith('SA-')) return reg.id;
+      return `${prefix}-${String(reg.id).substring(0, 6).toUpperCase()}`;
+    }
+    return `${prefix}-${Math.floor(100000 + Math.random() * 900000)}`;
+  };
 
   useEffect(() => {
     if (!collegeQuery) {
@@ -185,31 +286,86 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
     return () => clearTimeout(timer);
   }, [collegeQuery]);
 
-  // Active event resolution — strictly matches selected slug or alias, no cross-showcase fallback
-  const activeEvent = events.find((e) => e.slug === selectedSlug || (e.aliases && e.aliases.includes(selectedSlug)));
+  // Active event resolution — strictly matches selected slug, alias, or id; no cross-showcase fallback
+  const activeEvent = useMemo(() => {
+    if (!selectedSlug) return undefined;
+    const target = String(selectedSlug).toLowerCase().trim();
+    return events.find((e) => {
+      if (!e) return false;
+      const s = String(e.slug || '').toLowerCase().trim();
+      const id = String(e.id || '').toLowerCase().trim();
+      const _id = String(e._id || '').toLowerCase().trim();
+      if (s === target || id === target || _id === target) return true;
+      if (Array.isArray(e.aliases) && e.aliases.some((a: string) => String(a).toLowerCase().trim() === target)) {
+        return true;
+      }
+      return false;
+    });
+  }, [events, selectedSlug]);
+
   // Safe display text for the prize pill — supports both string and object
   // `prize_pool` shapes without throwing "Objects are not valid as a React child".
   const prizePoolPillText = prizePoolDisplayText(activeEvent?.prize_pool);
 
-  // Dynamic registration posters derived strictly from active showcase configuration
+  // Dynamic registration posters derived strictly from active event / showcase configuration
   const regPosters: string[] = useMemo(() => {
-    if (activeEvent?.registration?.poster_images && Array.isArray(activeEvent.registration.poster_images) && activeEvent.registration.poster_images.length > 0) {
-      return activeEvent.registration.poster_images;
+    if (!activeEvent) return [];
+
+    const extractUrl = (raw: any): string => {
+      if (!raw) return '';
+      if (typeof raw === 'string') return raw.trim();
+      if (typeof raw === 'object') return (raw.url || raw.src || raw.image_url || '').trim();
+      return '';
+    };
+
+    // 1. Explicit registration poster_images (if configured)
+    const explicitPosters = activeEvent.registration?.poster_images;
+    if (Array.isArray(explicitPosters) && explicitPosters.length > 0) {
+      const valid = explicitPosters
+        .map(extractUrl)
+        .filter((u) => u.length > 0 && !u.startsWith('[object'));
+      if (valid.length > 0) return valid;
     }
+
+    // 2. Derive posters from the event's own banners and images
     const list: string[] = [];
-    if (activeEvent?.poster_banner) list.push(activeEvent.poster_banner);
-    if (activeEvent?.hero_image_url && !list.includes(activeEvent.hero_image_url)) list.push(activeEvent.hero_image_url);
-    if (activeEvent?.gallery_images && Array.isArray(activeEvent.gallery_images)) {
-      activeEvent.gallery_images.forEach((img: any) => {
-        const u = typeof img === 'string' ? img : img?.url;
-        if (u && !list.includes(u)) list.push(u);
-      });
+    const addIfValid = (raw: any) => {
+      const u = extractUrl(raw);
+      if (u.length > 0 && !u.startsWith('[object') && !list.includes(u)) {
+        list.push(u);
+      }
+    };
+
+    if (Array.isArray(activeEvent.hero_banners)) {
+      activeEvent.hero_banners.forEach(addIfValid);
     }
+    addIfValid(activeEvent.poster_banner);
+    addIfValid(activeEvent.poster_url);
+    addIfValid(activeEvent.banner_url);
+    addIfValid(activeEvent.hero_image_url);
+    addIfValid(activeEvent.hero_cover_url);
+    addIfValid(activeEvent.image_url);
+
+    const gallery = activeEvent.gallery_images || activeEvent.gallery;
+    if (Array.isArray(gallery)) {
+      gallery.forEach(addIfValid);
+    }
+
     return list;
   }, [activeEvent]);
 
+  // Reset poster carousel state when event changes to prevent cross-event leakage
   useEffect(() => {
-    if (view !== 'reg' || regPosters.length === 0) return;
+    setRegPosterIdx(0);
+    setFailedPosters({});
+  }, [activeEvent?.id, activeEvent?.slug, selectedSlug]);
+
+  const safePosterIdx = (regPosters.length > 0 && regPosterIdx >= 0 && regPosterIdx < regPosters.length)
+    ? regPosterIdx
+    : 0;
+
+  useEffect(() => {
+    if (view !== 'reg' || regPosters.length <= 1) return;
     const timer = setInterval(() => {
       setRegPosterIdx((prev) => (prev + 1) % regPosters.length);
     }, 4000);
@@ -290,12 +446,13 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
               map.set(slugKey, {
                 ...existing,
                 id: item.id || item._id || item.slug,
+                _id: item._id,
                 slug: slugKey,
                 aliases: item.aliases || existing.aliases || [],
                 title: item.title || existing.title || 'ECHO Event',
                 college: item.college_name || item.college || existing.college || 'ECHO Campus',
                 college_full: item.college_name || item.college || item.venue || existing.college_full || 'ECHO Campus',
-                status: item.registration?.enabled === false ? 'CLOSED' : (item.event_status_badge || item.status || 'UPCOMING').toUpperCase(),
+                status: (item.event_status_badge || item.status || 'UPCOMING').toUpperCase(),
                 organizer: item.organizer_name || existing.organizer || 'StudentAlumni.ai',
                 description: item.subtitle || item.description || existing.description || '',
                 dates: item.date || item.dates || existing.dates || '',
@@ -314,7 +471,12 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
                 partners: item.partners || existing.partners || [],
                 sponsors: item.sponsors || existing.sponsors || [],
                 perks: item.perks || existing.perks || [],
-                poster_banner: item.hero_image_url || item.banner_url || item.poster_url || item.hero_banners?.[0] || existing.poster_banner || '',
+                poster_banner: item.poster_banner || item.poster_url || item.banner_url || item.hero_image_url || item.hero_cover_url || item.image_url || (typeof item.hero_banners?.[0] === 'string' ? item.hero_banners[0] : item.hero_banners?.[0]?.url) || existing.poster_banner || '',
+                poster_url: item.poster_url || existing.poster_url || '',
+                banner_url: item.banner_url || existing.banner_url || '',
+                hero_image_url: item.hero_image_url || existing.hero_image_url || '',
+                image_url: item.image_url || existing.image_url || '',
+                hero_banners: Array.isArray(item.hero_banners) ? item.hero_banners : (existing.hero_banners || []),
                 categories: item.categories || existing.categories || [],
                 speakers: item.speakers || existing.speakers || [],
                 gallery_images: item.gallery_images || item.gallery || existing.gallery_images || [],
@@ -368,15 +530,16 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
       .getEchoShowcase(selectedSlug)
       .then((item) => {
         if (!mounted) return;
-        if (item && (item.slug || item.title || item._id)) {
+        if (item && (item.slug || item.title || item._id || item.id)) {
           const canonical = {
-            id: item.id || item._id || item.slug,
-            slug: item.slug,
+            id: item.id || item._id || item.slug || selectedSlug,
+            _id: item._id,
+            slug: item.slug || selectedSlug,
             aliases: item.aliases || [],
             title: item.title || 'ECHO Event',
             college: item.college_name || item.college || 'ECHO Campus',
             college_full: item.college_name || item.college || item.venue || 'ECHO Campus',
-            status: item.registration?.enabled === false ? 'CLOSED' : (item.event_status_badge || item.status || 'UPCOMING').toUpperCase(),
+            status: (item.event_status_badge || item.status || 'UPCOMING').toUpperCase(),
             organizer: item.organizer_name || 'StudentAlumni.ai',
             description: item.subtitle || item.description || '',
             dates: item.date || item.dates || '',
@@ -395,7 +558,12 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
             partners: item.partners || [],
             sponsors: item.sponsors || [],
             perks: item.perks || [],
-            poster_banner: item.hero_image_url || item.banner_url || item.poster_url || item.hero_banners?.[0] || '',
+            poster_banner: item.poster_banner || item.poster_url || item.banner_url || item.hero_image_url || item.hero_cover_url || item.image_url || (typeof item.hero_banners?.[0] === 'string' ? item.hero_banners[0] : item.hero_banners?.[0]?.url) || '',
+            poster_url: item.poster_url || '',
+            banner_url: item.banner_url || '',
+            hero_image_url: item.hero_image_url || '',
+            image_url: item.image_url || '',
+            hero_banners: Array.isArray(item.hero_banners) ? item.hero_banners : [],
             categories: item.categories || [],
             speakers: item.speakers || [],
             gallery_images: item.gallery_images || item.gallery || [],
@@ -405,7 +573,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
             downloads: item.downloads || [],
           };
           setEvents((prev) => {
-            const next = prev.filter((e) => e.slug !== canonical.slug);
+            const next = prev.filter((e) => e.slug !== canonical.slug && e.id !== canonical.id);
             return [...next, canonical];
           });
           setNotFound(false);
@@ -479,6 +647,14 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
     if (targetSlug !== undefined && targetSlug !== selectedSlug) {
       setSelectedSlug(targetSlug);
     }
+    if (inPortal) {
+      if ((targetView === 'list' || targetView === 'detail') && onBack) {
+        onBack();
+        return;
+      }
+      setView(targetView);
+      return;
+    }
     if (targetView === 'detail' && nextSlug) {
       router.replace(`/echo/${nextSlug}` as any);
       return;
@@ -487,7 +663,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
       if (authUser) {
         router.push(`/echo/${nextSlug}/register` as any);
       } else {
-        router.replace({ pathname: '/login', params: { returnTo: `/echo/${nextSlug}/register` } });
+        router.replace({ pathname: '/login', params: { returnTo: `/student-portal/${nextSlug}` } });
       }
       return;
     }
@@ -518,16 +694,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
       const viewParam = search.get('view');
 
       if (viewParam === 'register' || viewParam === 'reg' || path.includes('/register')) {
-        const pathSegments = path.split('/').filter(Boolean);
-        const routeSlug = pathSegments[0] === 'echo' && pathSegments[1] !== 'register' && pathSegments[2] === 'register'
-          ? pathSegments[1]
-          : '';
-        const slugFromUrl = eventParam || routeSlug || '';
-        if (pathSegments[0] === 'echo' && pathSegments[1] === 'register' && !slugFromUrl) {
-          setSelectedSlug('');
-          setView('list');
-          return;
-        }
+        const slugFromUrl = eventParam || (path.split('/').filter(Boolean)[1] !== 'register' ? path.split('/').filter(Boolean)[1] : null) || '';
         setSelectedSlug(slugFromUrl);
         setView('reg');
       } else if (viewParam === 'catalog' || viewParam === 'list') {
@@ -647,7 +814,58 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
     }
 
     try {
-      // Step 1: Attempt to create a real Razorpay payment order
+      // Step 1: Direct registration path for free events (fee <= 0)
+      if (calculatedTotalFee <= 0) {
+        let regRes: any = null;
+        try {
+          regRes = await api.registerEchoShowcase(targetSlug, {
+            ...payload,
+            fee: 0,
+            payment: {
+              status: 'free',
+              amount: 0,
+              payment_id: '',
+            },
+          });
+        } catch (regErr: any) {
+          console.error('[EchoEventsPage] Direct registration notice:', regErr);
+          const errMsg = regErr?.detail || regErr?.message || 'Registration failed. Please try again.';
+          showToast(errMsg);
+          setIsPaying(false);
+          return;
+        }
+
+        const ticketId = resolveTicketId(regRes, activeEvent.slug);
+        const finalTicket = {
+          ticketId,
+          eventName: activeEvent.title,
+          attendeeName: fullName || authUser?.full_name || 'Student Attendee',
+          type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
+          amount: 0,
+          date: activeEvent.dates || activeEvent.date || 'October 10 – 11, 2026',
+          time: activeEvent.time || '09:00 AM – 06:00 PM IST',
+          venue: activeEvent.venue || 'HICC Convention Center, Hitec City, Hyderabad',
+          email: email || authUser?.email || 'student@example.com',
+          teamName: isTeam ? teamName : '',
+          teamMembers: validMembers,
+          slug: activeEvent.slug,
+          qrCodeBase64: regRes?.qr_code_base64,
+        };
+        setTicketData(finalTicket);
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            localStorage.setItem('last_echo_ticket', JSON.stringify(finalTicket));
+          }
+        } catch (e) {}
+
+        setTimeout(() => {
+          setIsPaying(false);
+          setPaymentSuccess(true);
+        }, 1000);
+        return;
+      }
+
+      // Step 2: Attempt to create a real Razorpay payment order for paid events
       let orderRes: any = null;
       try {
         orderRes = await api.createEchoPaymentOrder(targetSlug, payload);
@@ -664,21 +882,24 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
       // If user already paid or completed
       if (orderRes?.already && orderRes.registration) {
         const reg = orderRes.registration;
-         setTicketData({
-          ticketId: reg.id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`,
+        const resolvedTId = resolveTicketId(reg, activeEvent.slug);
+        const tObj = {
+          ticketId: resolvedTId,
           eventName: activeEvent.title,
-          attendeeName: fullName || 'Student Attendee',
+          attendeeName: fullName || authUser?.full_name || 'Student Attendee',
           type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
           amount: calculatedTotalFee,
-          date: activeEvent.dates,
-          time: activeEvent.time,
-          venue: activeEvent.venue,
-          email: email || 'student@example.com',
+          date: activeEvent.dates || activeEvent.date || 'October 10 – 11, 2026',
+          time: activeEvent.time || '09:00 AM – 06:00 PM IST',
+          venue: activeEvent.venue || 'HICC Convention Center, Hitec City, Hyderabad',
+          email: email || authUser?.email || 'student@example.com',
           teamName: isTeam ? teamName : '',
           teamMembers: validMembers,
           slug: activeEvent.slug,
           qrCodeBase64: reg.qr_code_base64,
-        });
+        };
+        setTicketData(tObj);
+        try { if (typeof window !== 'undefined') localStorage.setItem('last_echo_ticket', JSON.stringify(tObj)); } catch (_) {}
         setIsPaying(false);
         setPaymentSuccess(true);
         return;
@@ -723,7 +944,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
                  });
                  const reg = verifyRes?.registration || {};
                   setTicketData({
-                    ticketId: reg.id || resp.razorpay_payment_id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`,
+                    ticketId: resolveTicketId(reg, activeEvent.slug) || resolveTicketId({ id: resp.razorpay_payment_id }, activeEvent.slug),
                     eventName: activeEvent.title,
                     attendeeName: fullName || 'Student Attendee',
                     type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
@@ -742,7 +963,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
                } catch (verifyErr: any) {
                  console.error('[EchoEventsPage] Payment verification note:', verifyErr);
                   setTicketData({
-                    ticketId: resp.razorpay_payment_id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`,
+                    ticketId: resolveTicketId({ id: resp.razorpay_payment_id }, activeEvent.slug),
                     eventName: activeEvent.title,
                     attendeeName: fullName || 'Student Attendee',
                     type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
@@ -770,7 +991,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
              setIsPaying(false);
              setPaymentFailure({
                mode: 'failure',
-               ticketId: `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`,
+               ticketId: resolveTicketId(null, activeEvent.slug),
                eventName: activeEvent.title,
                attendeeName: fullName || 'Student Attendee',
                type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
@@ -794,50 +1015,10 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
         }
       }
 
-      // If it's a paid event and we reached here (no order_id or not web), fail closed
-      if (calculatedTotalFee > 0) {
-        setIsPaying(false);
-        showToast('Payment cannot be processed at this time.');
-        return;
-      }
-
-      // Step 3: Direct registration path (free event)
-      let regRes: any = null;
-      try {
-        regRes = await api.registerEchoShowcase(targetSlug, {
-          ...payload,
-          fee: 0, // Enforce 0 fee for direct registration path
-          payment: {
-            status: 'free',
-            amount: 0,
-            payment_id: '',
-          },
-        });
-      } catch (regErr) {
-        console.log('[EchoEventsPage] Direct registration notice:', regErr);
-      }
-
-      const ticketId = regRes?.id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`;
-      setTicketData({
-        ticketId,
-        eventName: activeEvent.title,
-        attendeeName: fullName || 'Student Attendee',
-        type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
-        amount: 0,
-        date: activeEvent.dates,
-        time: activeEvent.time,
-        venue: activeEvent.venue,
-        email: email || 'student@example.com',
-        teamName: isTeam ? teamName : '',
-        teamMembers: validMembers,
-        slug: activeEvent.slug,
-        qrCodeBase64: regRes?.qr_code_base64,
-      });
-
-      setTimeout(() => {
-        setIsPaying(false);
-        setPaymentSuccess(true);
-      }, 1000);
+      // If we reached here (no order_id or not web), fail closed
+      setIsPaying(false);
+      showToast('Payment cannot be processed at this time.');
+      return;
     } catch {
       setIsPaying(false);
     }
@@ -873,7 +1054,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
   }, []);
 
   return (
-    <div id="ev-root" style={{ '--bg': isDark ? '#0A0A14' : '#F5F5F7', '--panel': isDark ? '#11111C' : '#FFFFFF', '--panel2': isDark ? '#161622' : '#F0F0F5', '--line': isDark ? '#1F1F30' : '#E5E5EA', '--line2': isDark ? '#292940' : '#D1D1D6', '--violet': '#7C5CFC', '--violet-lt': isDark ? '#A78BFA' : '#7C5CFC', '--ok': '#34D399', '--amber': '#F5B342', '--text': isDark ? '#F4F4FA' : '#1D1D1F', '--muted': isDark ? '#8A8A9E' : '#6E6E73', '--dim': isDark ? '#6A6A7E' : '#AEAEB2', fontFamily: "'Outfit', -apple-system, sans-serif", color: 'var(--text)', background: 'var(--bg)', minHeight: '100vh', width: '100%', position: 'relative', overflowX: 'hidden' }}>
+    <div id="ev-root" style={{ '--bg': isDark ? '#0A0A14' : '#F5F5F7', '--panel': isDark ? '#11111C' : '#FFFFFF', '--panel2': isDark ? '#161622' : '#F0F0F5', '--line': isDark ? '#1F1F30' : '#E5E5EA', '--line2': isDark ? '#292940' : '#D1D1D6', '--violet': '#7C5CFC', '--violet-lt': isDark ? '#A78BFA' : '#7C5CFC', '--ok': '#34D399', '--amber': '#F5B342', '--text': isDark ? '#F4F4FA' : '#1D1D1F', '--muted': isDark ? '#8A8A9E' : '#6E6E73', '--dim': isDark ? '#6A6A7E' : '#AEAEB2', fontFamily: "'Outfit', -apple-system, sans-serif", color: 'var(--text)', background: inPortal ? 'transparent' : 'var(--bg)', minHeight: inPortal ? 'auto' : '100vh', width: '100%', position: 'relative', overflowX: 'hidden' }}>
       
       {Platform.OS === 'web' && (
         <style
@@ -1296,7 +1477,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
       <SAWatermark size={850} top={50} right={-30} opacity={0.14} fixed />
 
       {/* Intro Curtain Loader */}
-      {curtainVisible && (
+      {curtainVisible && !inPortal && !hideNav && (
         <div
           id="ev-curtain"
           style={{
@@ -1348,14 +1529,180 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
         </div>
       )}
 
-      {/* Global Standardized Public Header (AnnouncementTicker + Navbar) */}
-      <Navbar activeTab="echo" onTabChange={(tab) => { if (tab === 'echo') go('list'); }} />
+      {/* Top Continuous Ticker Bar */}
+      {!hideNav && !inPortal && (
+        <div id="ev-tickwrap" style={{ position: 'sticky', top: 0, zIndex: 62, overflow: 'hidden', borderBottom: '1px solid var(--line)', background: '#090B18' }}>
+          <div id="ev-ticker" style={{ display: 'flex', width: 'max-content', padding: '9px 0', animation: 'ev-tick 46s linear infinite' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 'none' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>The network is a feed until it meets in person.</span>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>86 ECHO events across 31 campuses.</span>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>267 roles matched, 41 with a warm referral path.</span>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Verified by your college email — free forever for students.</span>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>ECHO Flagship Hackathons & Summits · Live across top engineering campuses</span>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Built with love for students across all campuses</span>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+              </span>
+            </div>
+            {/* Duplicate set for seamless infinite loop */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 'none' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>The network is a feed until it meets in person.</span>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>86 ECHO events across 31 campuses.</span>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>267 roles matched, 41 with a warm referral path.</span>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Verified by your college email — free forever for students.</span>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>ECHO Flagship Hackathons & Summits · Live across top engineering campuses</span>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Built with love for students across all campuses</span>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Fixed Sticky Navigation Header ── */}
+      {!hideNav && !inPortal && (
+        <div style={{ position: 'sticky', top: '36px', zIndex: 60, background: '#0A0A14', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: '1px solid var(--line)', width: '100%' }}>
+          <div style={{ maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', rowGap: '14px' }}>
+            
+            {/* SA Brand Badge */}
+            <div
+              onClick={() => router.push('/')}
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 'none', cursor: 'pointer' }}
+            >
+              <svg width="32" height="38" viewBox="0 0 300 350" style={{ display: 'block', flexShrink: 0, filter: 'drop-shadow(0 2px 8px rgba(139,92,246,0.35))' }}>
+                <defs>
+                  <linearGradient id="ev-badge-grad2" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#C9A7FF" />
+                    <stop offset="48%" stopColor="#8B5CF6" />
+                    <stop offset="100%" stopColor="#5B2FD0" />
+                  </linearGradient>
+                  <linearGradient id="ev-badge-grad2-in" x1="0" y1="0" x2="0.4" y2="1">
+                    <stop offset="0%" stopColor="#B683F5" />
+                    <stop offset="100%" stopColor="#7331C9" />
+                  </linearGradient>
+                </defs>
+                <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#ev-badge-grad2)" />
+                <path d="M150 28 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#ev-badge-grad2-in)" />
+                <text x="150" y="218" textAnchor="middle" fill="#FFFFFF" fontWeight="900" fontSize="128" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">SA</text>
+              </svg>
+              <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.5px', color: '#FFFFFF', fontFamily: "'Outfit', 'DM Sans', -apple-system, sans-serif" }}>
+                Student Alumni
+              </span>
+            </div>
+
+            {/* Centered Navigation Tabs */}
+            <div id="ev-tabs" style={{ display: 'flex', alignItems: 'center', gap: '30px', flex: '0 1 auto', flexShrink: 0, justifyContent: 'center', paddingTop: '2px' }}>
+              <a
+                className="ev-tab"
+                onClick={() => router.push('/')}
+                style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
+              >
+                Home
+                <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
+              </a>
+              <a
+                className="ev-tab"
+                onClick={() => go('list')}
+                style={{ position: 'relative', fontSize: '15px', fontWeight: 700, color: 'var(--text)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
+              >
+                ECHO
+                <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 1 }} />
+              </a>
+              <a
+                className="ev-tab"
+                onClick={() => router.push('/marketplace')}
+                style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
+              >
+                Marketplace
+                <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
+              </a>
+              <a
+                className="ev-tab"
+                onClick={() => router.push('/verify')}
+                style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
+              >
+                Verify
+                <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
+              </a>
+              <a
+                className="ev-tab"
+                onClick={() => router.push('/contact')}
+                style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
+              >
+                Contact Us
+                <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
+              </a>
+            </div>
+
+            {/* Right Action Buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 'none' }}>
+              {authUser ? (
+                <span
+                  onClick={() => router.push(authUser.role === 'student' ? '/student-portal/dashboard' : '/platform')}
+                  className="ev-btn"
+                  style={{ fontSize: '14px', fontWeight: 600, background: 'var(--violet)', color: '#FFFFFF', borderRadius: '100px', padding: '10px 20px', cursor: 'pointer', transition: 'all .2s ease' }}
+                >
+                  Go to Portal →
+                </span>
+              ) : (
+                <>
+                  <span
+                    onClick={() => router.push('/login')}
+                    className="ev-ghost"
+                    style={{ fontSize: '14px', fontWeight: 500, color: 'var(--muted)', cursor: 'pointer', transition: 'color .2s ease' }}
+                  >
+                    Sign in
+                  </span>
+                  <span
+                    onClick={() => router.push('/register')}
+                    className="ev-btn"
+                    style={{ fontSize: '14px', fontWeight: 600, background: 'var(--violet)', color: '#FFFFFF', borderRadius: '100px', padding: '10px 20px', cursor: 'pointer', transition: 'all .2s ease' }}
+                  >
+                    Get Started
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ────────────────────────────────────────────────────────── */}
       {/* VIEW 1: EVENTS LIST VIEW                                  */}
       {/* ────────────────────────────────────────────────────────── */}
       {view === 'list' && (
-        <div className="ev-anim-in ev-main-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '116px 28px 90px' }}>
+        <div className="ev-anim-in ev-main-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '96px 28px 90px' }}>
 
           {/* ── ON THE GROUND Hero Card ── */}
           <div className="ev-hero-card" style={{ position: 'relative', overflow: 'hidden', borderRadius: '24px', background: 'linear-gradient(150deg, #FFFFFF 0%, #F4F2FF 42%, #EAF7FA 100%)', boxShadow: isDark ? '0 1px 2px rgba(16,18,32,.06), 0 26px 64px rgba(16,18,32,.24)' : '0 1px 2px rgba(0,0,0,.04), 0 8px 32px rgba(0,0,0,.08)', padding: '34px 36px 36px', marginBottom: '20px', width: '100%' }}>
@@ -1477,6 +1824,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
                     <div style={{ display: 'flex', gap: '8px', marginBottom: '13px', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '.8px', color: ev.status === 'COMPLETED' ? '#94A3B8' : 'var(--amber)', background: ev.status === 'COMPLETED' ? 'rgba(148,163,184,.13)' : 'rgba(245,179,66,.13)', border: `1px solid ${ev.status === 'COMPLETED' ? '#334155' : '#4A3410'}`, borderRadius: '7px', padding: '5px 10px' }}>
                         {ev.status}
+                      </span>
+                      <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '.5px', color: ev.registration?.enabled === false ? '#FCA5A5' : '#6EE7B7', background: ev.registration?.enabled === false ? 'rgba(239,68,68,.10)' : 'rgba(16,185,129,.10)', border: `1px solid ${ev.registration?.enabled === false ? 'rgba(239,68,68,.32)' : 'rgba(16,185,129,.32)'}`, borderRadius: '7px', padding: '5px 10px' }}>
+                        {ev.registration?.enabled === false ? 'Registration Closed' : 'Registration Open'}
                       </span>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '10.5px', fontWeight: 700, letterSpacing: '.8px', color: 'var(--violet-lt)', background: 'rgba(124,92,252,.14)', border: '1px solid #2E2A55', borderRadius: '7px', padding: '5px 10px' }}>
                         <svg width="11" height="11" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><path d="M4 20V8l8-4 8 4v12M9 20v-5h6v5"></path></svg>
@@ -1696,7 +2046,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
                       style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 700, background: '#0E9F6E', color: '#FFFFFF', borderRadius: '10px', padding: '12px 22px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: '0 4px 16px rgba(14, 159, 110, 0.35)', border: 'none', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                     >
                       <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.9 }}><path d="M3 8.5A2.5 2.5 0 015.5 6h13A2.5 2.5 0 0121 8.5v.5a2 2 0 000 6v.5A2.5 2.5 0 0118.5 18h-13A2.5 2.5 0 013 15.5V15a2 2 0 000-6Z"></path></svg>
-                      Register
+                      Register Now
                     </button>
                   )}
                   <button
@@ -2360,7 +2710,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
             <div style={{ marginTop: '16px', fontSize: '15px' }}>Loading showcase details…</div>
           </div>
         ) : (
-        <div className="ev-anim-in ev-reg-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '90px 28px 90px' }}>
+        <div className="ev-anim-in ev-reg-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: inPortal ? '16px 12px 60px' : '90px 28px 90px' }}>
           
           {(!activeEvent?.registration || activeEvent?.registration?.enabled === false || String(activeEvent?.registration?.enabled).toLowerCase() === 'false') ? (
             <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--panel)', borderRadius: '18px', border: '1px solid var(--line)' }}>
@@ -2368,7 +2718,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
               <div style={{ fontSize: '15px', color: 'var(--muted)', marginBottom: '24px' }}>We are no longer accepting new registrations for this event.</div>
               <button
                 type="button"
-                onClick={(e) => { e.preventDefault(); go('detail', activeEvent.slug); }}
+                onClick={(e) => { e.preventDefault(); if (onBack) { onBack(); } else { go('detail', activeEvent.slug); } }}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)', borderRadius: '100px', padding: '10px 18px', background: 'var(--panel2)', color: 'var(--text)', cursor: 'pointer' }}
               >
                 Back to event
@@ -2377,11 +2727,10 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
           ) : (
             <>
               {/* Back to Event Button */}
-          {/* Back to Event Button */}
           <button
             type="button"
-            onClick={(e) => { e.preventDefault(); go('detail', activeEvent.slug); }}
-            onTouchEnd={(e) => { e.preventDefault(); go('detail', activeEvent.slug); }}
+            onClick={(e) => { e.preventDefault(); if (onBack) { onBack(); } else { go('detail', activeEvent.slug); } }}
+            onTouchEnd={(e) => { e.preventDefault(); if (onBack) { onBack(); } else { go('detail', activeEvent.slug); } }}
             className="ev-btn"
             style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)', borderRadius: '100px', padding: '10px 18px', background: 'var(--panel)', color: 'var(--text)', cursor: 'pointer', marginBottom: '20px', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
           >
@@ -2417,7 +2766,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
           {/* 2-Column Grid: Poster & Registration Form */}
           <div className="ev-rgrid ev-reg-grid" style={{ display: 'grid', gap: '24px', alignItems: 'start', width: '100%' }}>
             
-            {/* Left Column: Interactive Auto-Rotating Event Poster Slider */}
+            {/* Left Column: Interactive Auto-Rotating Event Poster Slider / Clean Placeholder */}
             <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '16px', overflow: 'hidden' }}>
               <div
                 style={{
@@ -2432,49 +2781,84 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
                   border: '1px solid var(--line2)'
                 }}
               >
-                <img
-                  src={resolveImageUrl(regPosters[regPosterIdx])}
-                  alt={`${activeEvent.title} Poster ${regPosterIdx + 1}`}
-                  onClick={() => openLightbox(resolveImageUrl(regPosters[regPosterIdx]))}
-                  style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'zoom-in', transition: 'all .4s ease' }}
-                />
-
-                {/* Left / Right Arrow Navigation */}
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); setRegPosterIdx((prev) => (prev - 1 + regPosters.length) % regPosters.length); }}
-                  style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(10,10,20,0.85)', border: '1px solid rgba(255,255,255,0.25)', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, outline: 'none', fontSize: '18px', fontWeight: 700 }}
-                >
-                  ‹
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); setRegPosterIdx((prev) => (prev + 1) % regPosters.length); }}
-                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(10,10,20,0.85)', border: '1px solid rgba(255,255,255,0.25)', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, outline: 'none', fontSize: '18px', fontWeight: 700 }}
-                >
-                  ›
-                </button>
-
-                {/* Badge Tag Overlay */}
-                <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(124,92,252,0.85)', backdropFilter: 'blur(8px)', borderRadius: '100px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, color: '#FFF', letterSpacing: '0.8px' }}>
-                  POSTER {regPosterIdx + 1} OF {regPosters.length}
-                </div>
-
-                {/* Dot Indicator Row */}
-                <div style={{ position: 'absolute', bottom: '12px', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '8px', zIndex: 10 }}>
-                  {regPosters.map((_, pIdx) => (
-                    <button
-                      key={pIdx}
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); setRegPosterIdx(pIdx); }}
-                      style={{ width: pIdx === regPosterIdx ? '24px' : '8px', height: '8px', borderRadius: '100px', background: pIdx === regPosterIdx ? '#8B5CF6' : 'rgba(255,255,255,0.4)', border: 'none', cursor: 'pointer', transition: 'all .3s ease' }}
+                {regPosters.length > 0 && !failedPosters[regPosters[safePosterIdx]] ? (
+                  <>
+                    <img
+                      src={resolveImageUrl(regPosters[safePosterIdx])}
+                      alt={`${activeEvent?.title || 'Event'} Poster ${safePosterIdx + 1}`}
+                      onError={() => {
+                        const badUrl = regPosters[safePosterIdx];
+                        if (badUrl) setFailedPosters((prev) => ({ ...prev, [badUrl]: true }));
+                      }}
+                      onClick={() => openLightbox(resolveImageUrl(regPosters[safePosterIdx]))}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'zoom-in', transition: 'all .4s ease' }}
                     />
-                  ))}
+
+                    {/* Left / Right Arrow Navigation — shown ONLY when multiple posters exist */}
+                    {regPosters.length > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setRegPosterIdx((prev) => (prev - 1 + regPosters.length) % regPosters.length); }}
+                          style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(10,10,20,0.85)', border: '1px solid rgba(255,255,255,0.25)', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, outline: 'none', fontSize: '18px', fontWeight: 700 }}
+                        >
+                          ‹
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setRegPosterIdx((prev) => (prev + 1) % regPosters.length); }}
+                          style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(10,10,20,0.85)', border: '1px solid rgba(255,255,255,0.25)', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, outline: 'none', fontSize: '18px', fontWeight: 700 }}
+                        >
+                          ›
+                        </button>
+                      </>
+                    )}
+
+                    {/* Badge Tag Overlay — truthful count strictly based on real available posters */}
+                    <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(124,92,252,0.85)', backdropFilter: 'blur(8px)', borderRadius: '100px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, color: '#FFF', letterSpacing: '0.8px' }}>
+                      POSTER {safePosterIdx + 1} OF {regPosters.length}
+                    </div>
+
+                    {/* Dot Indicator Row — shown ONLY when multiple posters exist */}
+                    {regPosters.length > 1 && (
+                      <div style={{ position: 'absolute', bottom: '12px', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '8px', zIndex: 10 }}>
+                        {regPosters.map((_, pIdx) => (
+                          <button
+                            key={pIdx}
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setRegPosterIdx(pIdx); }}
+                            style={{ width: pIdx === safePosterIdx ? '24px' : '8px', height: '8px', borderRadius: '100px', background: pIdx === safePosterIdx ? '#8B5CF6' : 'rgba(255,255,255,0.4)', border: 'none', cursor: 'pointer', transition: 'all .3s ease' }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  /* Clean, dedicated placeholder when event has no posters or image failed to load */
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', padding: '36px 20px', textAlign: 'center', width: '100%' }}>
+                    <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                        <circle cx="9" cy="9" r="2"/>
+                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                      </svg>
+                    </div>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.2px' }}>
+                      {activeEvent?.title || 'Event'}
+                    </div>
+                    <div style={{ fontSize: '13px', color: 'var(--muted)', maxWidth: '240px', lineHeight: 1.5 }}>
+                      {regPosters.length > 0 && failedPosters[regPosters[safePosterIdx]]
+                        ? 'Poster preview unavailable'
+                        : 'No posters available for this event'}
+                    </div>
+                  </div>
+                )}
+              </div>
+              {regPosters.length > 0 && !failedPosters[regPosters[safePosterIdx]] && (
+                <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '12px', color: 'var(--muted)' }}>
+                  🔍 Click poster image to view full high-resolution
                 </div>
-              </div>
-              <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '12px', color: 'var(--muted)' }}>
-                🔍 Click poster image to view full high-resolution
-              </div>
+              )}
             </div>
 
             {/* Right Column: Registration Form & Payment */}
@@ -3062,7 +3446,11 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
             <button
               onClick={() => {
                 setPaymentSuccess(false);
-                go('list');
+                if (inPortal) {
+                  router.push('/student-portal/my-tickets');
+                } else {
+                  go('list');
+                }
               }}
               style={{ background: 'rgba(255,255,255,0.1)', color: '#FFF', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '100px', padding: '10px 20px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', backdropFilter: 'blur(10px)' }}
             >
@@ -3071,6 +3459,14 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
           </div>
           <EchoTicketsConfirmationPage
             initialTab="success"
+            onCloseModal={() => {
+              setPaymentSuccess(false);
+              if (inPortal) {
+                router.push('/student-portal/my-tickets');
+              } else {
+                go('list');
+              }
+            }}
             ticketInfo={{
               ticketId: ticketData.ticketId,
               eventName: ticketData.eventName,
@@ -3080,6 +3476,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
               amount: ticketData.amount,
               date: ticketData.date,
               venue: ticketData.venue,
+              qrCodeBase64: ticketData.qrCodeBase64,
             }}
           />
         </div>
