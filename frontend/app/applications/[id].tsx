@@ -110,7 +110,7 @@ export default function ApplicationTrackerScreen() {
 
   if (loading) {
     return (
-      <FeaturePageShell title="Application Tracker" subtitle="Loading…" heroEmoji="📋" accent={themeColor}>
+      <FeaturePageShell title="Application Tracker" subtitle="Loading…" accent={themeColor}>
         <View style={{ paddingVertical: 60, alignItems: 'center' }}>
           <ActivityIndicator color={themeColor} size="large" />
         </View>
@@ -120,7 +120,7 @@ export default function ApplicationTrackerScreen() {
 
   if (!app || error) {
     return (
-      <FeaturePageShell title="Application Tracker" subtitle={error || 'Not found'} heroEmoji="📋" accent={themeColor}>
+      <FeaturePageShell title="Application Tracker" subtitle={error || 'Not found'} accent={themeColor}>
         <Pressable style={[s.backBtn, { backgroundColor: colors.backBtnBg, borderColor: colors.backBtnBorder }]} onPress={handleBack}>
           <MaterialCommunityIcons name="arrow-left" size={14} color={colors.backBtnText} />
           <Text style={[s.backBtnText, { color: colors.backBtnText }]}>Back to programmes</Text>
@@ -138,7 +138,6 @@ export default function ApplicationTrackerScreen() {
     <FeaturePageShell
       title={prog.name || 'Application'}
       subtitle={`${prog.institution} · ${prog.country} · App ID: ${app.app_id}`}
-      heroEmoji="📋"
       accent={themeColor}
       rightSlot={
         <Pressable style={[s.backBtn, { backgroundColor: colors.backBtnBg, borderColor: colors.backBtnBorder }]} onPress={handleBack}>

@@ -67,7 +67,7 @@ export default function RoomDetail() {
         <ScrollView ref={scrollRef} contentContainerStyle={styles.messages}>
           {messages.length === 0 && (
             <Text style={[Typography.body, { color: C.textMuted, textAlign: 'center', marginTop: 40 }]}>
-              Be the first to start the conversation 👋
+              Be the first to start the conversation 
             </Text>
           )}
           {messages.map((m, i) => {

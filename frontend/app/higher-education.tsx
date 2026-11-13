@@ -231,7 +231,6 @@ export default function HigherEducationScreen() {
     <FeaturePageShell
       title="Higher Education"
       subtitle="AI-powered programme discovery + Application Tracker"
-      heroEmoji="🎓"
       accent={themeColor}
       rightSlot={
         <Pressable
@@ -403,8 +402,8 @@ export default function HigherEducationScreen() {
                   />
                   <Text style={[s.cardTitle, { color: colors.text }]}>{c.name}</Text>
                   <View style={{ flexDirection: 'row', gap: 14, marginTop: 4, flexWrap: 'wrap' }}>
-                    <Text style={[s.cardSub, { color: colors.text2 }]}>📚 {c.programmes} programmes</Text>
-                    <Text style={[s.cardSub, { color: colors.text2 }]}>🎖️ {c.scholarships} funding options</Text>
+                    <Text style={[s.cardSub, { color: colors.text2 }]}> {c.programmes} programmes</Text>
+                    <Text style={[s.cardSub, { color: colors.text2 }]}> {c.scholarships} funding options</Text>
                   </View>
                   <View style={s.statsGrid}>
                     <Stat label="Avg fee/yr" value={fmtINR(c.avg_fee_inr)} colors={colors} />
@@ -582,7 +581,7 @@ function ProgrammeCard({
               style={[s.applyBtn, { flex: 1, backgroundColor: isDark ? 'rgba(52,211,153,0.15)' : '#ECFDF5', borderColor: '#10B981', borderWidth: 1 }]}
               onPress={() => router.push(`/applications/${appId}` as any)}
             >
-              <Text style={[s.applyBtnText, { color: '#059669' }]}>Applied ✓</Text>
+              <Text style={[s.applyBtnText, { color: '#059669' }]}>Applied </Text>
             </Pressable>
           ) : (
             <Pressable style={[s.applyBtn, { flex: 1, backgroundColor: activeTabColor }]} onPress={onApply}>
@@ -721,7 +720,7 @@ function CompareModal({ visible, ids, onClose, onApply, appliedAppMap, colors }:
                                 router.push(`/applications/${appId}` as any);
                               }}
                             >
-                              <Text style={[s.applyBtnText, { color: '#059669' }]}>Applied ✓</Text>
+                              <Text style={[s.applyBtnText, { color: '#059669' }]}>Applied </Text>
                             </Pressable>
                           ) : (
                             <Pressable style={[s.applyBtn, { backgroundColor: activeTabColor }]} onPress={() => onApply(p)}>
@@ -817,12 +816,12 @@ function AIToolsModal({
   if (!tool) return null;
 
   const titleByType: Record<ToolType, string> = {
-    sop: '✨ Draft Statement of Purpose',
-    cv: '📄 Build Graduate-School CV',
-    cover: '✉️ Write Cover Letter',
-    lor: '📨 LOR Request Email',
-    elig: '🎯 Eligibility Check',
-    profile: '👤 Build Profile from Bio',
+    sop: ' Draft Statement of Purpose',
+    cv: ' Build Graduate-School CV',
+    cover: ' Write Cover Letter',
+    lor: ' LOR Request Email',
+    elig: ' Eligibility Check',
+    profile: ' Build Profile from Bio',
   };
 
   return (
@@ -893,7 +892,7 @@ function AIToolsModal({
                   onPress={submit}
                   disabled={!questions.every((q) => (answers[q.id] || '').trim())}
                 >
-                  <Text style={s.aiSubmitText}>Generate ✨</Text>
+                  <Text style={s.aiSubmitText}>Generate </Text>
                 </Pressable>
               </View>
             )}
@@ -910,7 +909,7 @@ function AIToolsModal({
                     <Text style={[s.aiResultBody, { color: colors.text }]}>{content}</Text>
                   </View>
                 )}
-                <Text style={s.aiNote}>✓ Saved to your SA Drive — retrievable from the AI Tools menu.</Text>
+                <Text style={s.aiNote}> Saved to your SA Drive — retrievable from the AI Tools menu.</Text>
               </View>
             )}
           </ScrollView>

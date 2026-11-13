@@ -48,6 +48,7 @@ export default function EmailDetect() {
   const router = useRouter();
   const params = useLocalSearchParams<{ role?: Role; email?: string }>();
   const role: Role | undefined = params.role as Role;
+  const RoleIcon = role ? ROLE_META[role].Icon : null;
 
   const [email, setEmail] = useState(params.email || '');
   const [loading, setLoading] = useState(false);
@@ -135,7 +136,7 @@ export default function EmailDetect() {
       <View style={s.head}>
         {role && (
           <View style={s.roleStripe}>
-            <Text style={s.roleEmoji}>{ROLE_META[role].emoji}</Text>
+            {RoleIcon && <RoleIcon size={18} color={AC.student} />}
             <Text style={s.roleText}>Continuing as {ROLE_META[role].label}</Text>
           </View>
         )}
@@ -197,7 +198,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
     marginBottom: 12,
   },
-  roleEmoji: { fontSize: 14 },
   roleText: { color: '#E9D5FF', fontFamily: FONTS.med, fontSize: 12 },
   title: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 28, marginBottom: 6 },
   sub: { color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 14 },

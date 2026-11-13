@@ -251,7 +251,7 @@ export function RentalsView() {
               padding: '9px 16px',
             }}
           >
-            ✓ All SA Verified
+             All SA Verified
           </span>
         </div>
       </div>
@@ -441,7 +441,7 @@ export function RentalsView() {
             {/* Card Header Icon & Badges */}
             <div style={{ position: 'relative', height: '104px', background: isDark ? `linear-gradient(140deg, ${item.col}2E, #14141F)` : `linear-gradient(140deg, ${item.col}18, #F1F5F9)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ position: 'absolute', left: '12px', top: '12px', fontSize: '10.5px', fontWeight: 700, color: colors.verifiedBadgeText, background: colors.verifiedBadgeBg, border: `1px solid ${colors.verifiedBadgeBorder}`, borderRadius: '100px', padding: '4px 9px' }}>
-                ✓ Verified
+                 Verified
               </span>
               <span style={{ position: 'absolute', right: '12px', top: '12px', fontSize: '10.5px', fontWeight: 700, color: '#FFFFFF', background: item.col, borderRadius: '7px', padding: '4px 8px' }}>
                 {item.off}
@@ -462,20 +462,20 @@ export function RentalsView() {
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 {item.tags.map((t) => (
                   <span key={t} style={{ fontSize: '11px', color: colors.tagText, border: `1px solid ${colors.tagBorder}`, background: colors.tagBg, borderRadius: '7px', padding: '3px 7px' }}>
-                    ✓ {t}
+                     {t}
                   </span>
                 ))}
               </div>
 
               {/* Rating & Availability */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12.5px', color: colors.text }}>
-                <span>{item.rate ? <>★ <strong style={{ color: colors.text }}>{item.rate}</strong> <span style={{ color: colors.text2 }}>({item.revs || 0})</span></> : <span style={{ color: colors.text2 }}>No reviews yet</span>}</span>
+                <span>{item.rate ? <> <strong style={{ color: colors.text }}>{item.rate}</strong> <span style={{ color: colors.text2 }}>({item.revs || 0})</span></> : <span style={{ color: colors.text2 }}>No reviews yet</span>}</span>
                 <span style={{ color: isDark ? '#34D399' : '#059669', fontWeight: 600 }}>{item.left != null ? `${item.left} left` : ''}</span>
               </div>
 
               {/* Perk Box */}
               <div style={{ fontSize: '12px', fontWeight: 600, color: item.col, background: isDark ? 'rgba(255,255,255,0.04)' : `${item.col}10`, border: `1px solid ${item.col}44`, borderRadius: '9px', padding: '8px 10px' }}>
-                ✦ {item.perk}
+                 {item.perk}
               </div>
 
               {/* Pricing & CTA */}
@@ -514,7 +514,7 @@ export function RentalsView() {
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
               {selectedListing.tags.map((t: string) => (
                 <span key={t} style={{ fontSize: '12.5px', color: colors.tagText, border: `1px solid ${colors.tagBorder}`, background: colors.tagBg, borderRadius: '8px', padding: '6px 12px' }}>
-                  ✓ {t}
+                   {t}
                 </span>
               ))}
             </div>
@@ -621,8 +621,8 @@ export function RentalsView() {
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '12.5px', color: colors.text2, marginBottom: '16px' }}>
-                    <span>📅 {b.checkIn} — {b.checkOut}</span>
-                    <span>👥 {b.guests}</span>
+                    <span> {b.checkIn} — {b.checkOut}</span>
+                    <span> {b.guests}</span>
                     <span style={{ color: isDark ? '#F59E0B' : '#D97706', fontWeight: 700 }}>{b.amt}</span>
                   </div>
                   {b.status.includes('CONFIRMED') && (

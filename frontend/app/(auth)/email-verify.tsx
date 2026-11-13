@@ -4,7 +4,7 @@
  * States:
  *   0 = pending         — show "we sent a link to user@email" + status / timer
  *   1 = verifying       — spinner with "Verifying your email…"
- *   2 = verified        — success ✓ + CTA to set up 2FA / skip
+ *   2 = verified        — success  + CTA to set up 2FA / skip
  */
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, ShieldCheck, Mail, Send, Clock, Lock } from 'lucide-react-native';
+import { ArrowLeft, CheckCircle2, ShieldCheck, Mail, Send, Clock, Lock } from 'lucide-react-native';
 import { useToast } from '@/src/views/components';
 import { AuthWebShell } from '@/src/views/web/AuthWebShell';
 import { WebPrimaryBtn, WebGhostBtn } from '@/src/views/web/AuthWebControls';
@@ -247,7 +247,7 @@ function DoneView({ onSetup2FA, onSkip }: { onSetup2FA: () => void; onSkip: () =
   return (
     <View style={{ alignItems: 'center', paddingVertical: 6 }}>
       <Animated.View style={[styles.successRing, { transform: [{ scale }], opacity }]}>
-        <Text style={{ fontSize: 38, color: '#34D399' }}>✓</Text>
+        <CheckCircle2 size={38} color="#059669" />
       </Animated.View>
       <Text style={[styles.h1, { textAlign: 'center', marginTop: 6 }]}>Email verified!</Text>
       <Text style={[styles.sub, { textAlign: 'center', marginBottom: 18 }]}>

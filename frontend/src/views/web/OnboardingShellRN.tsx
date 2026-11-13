@@ -1001,7 +1001,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
                               key={check.key}
                               style={{ fontSize: '12px', color: check.met ? 'var(--ind-lt)' : 'var(--muted)' }}
                             >
-                              {check.met ? '✓' : '○'} {check.label}
+                              {check.met ? '' : '○'} {check.label}
                             </div>
                           ))}
                         </div>

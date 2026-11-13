@@ -10,13 +10,13 @@ import { View, Text, TextInput, Pressable, StyleSheet, Modal, ScrollView, Platfo
 import {
   Building2, UserCheck, Calendar, ShieldCheck, ChevronRight, Eye, EyeOff,
   CheckCircle2, Inbox, X, Mail, Phone, MapPin, Briefcase, GraduationCap,
-  Clock, AlertTriangle, ExternalLink,
+  Clock, AlertTriangle, ExternalLink, Search,
 } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { Av } from '../atoms';
 import {
-  GRAD, GradientButton, SecondaryButton, TopTabs, SearchField,
+  GRAD, GradientButton, SecondaryButton, TopTabs,
   StatusPill, Toast, useToast, EmptyState, IconBox, Card,
 } from '../applekit';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
@@ -39,6 +39,7 @@ function ReviewPanel({ item, onClose, onApprove, onReject }: {
   onApprove: (id: string, label?: string) => void;
   onReject: (id: string, label?: string) => void;
 }) {
+  const T = useSAC();
   const [confirmReject, setConfirmReject] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
 
@@ -59,7 +60,12 @@ function ReviewPanel({ item, onClose, onApprove, onReject }: {
                 <Text style={rpst.sub}>Approve or reject this {item.kind} request</Text>
               </View>
             </View>
-            <Pressable onPress={onClose} style={rpst.xBtn}><X size={16} color={SAC.muted} /></Pressable>
+            <Pressable
+              onPress={onClose}
+              style={[rpst.xBtn, { backgroundColor: T.cardSolid }]}
+            >
+              <X size={16} color={T.muted} />
+            </Pressable>
           </View>
 
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 14, paddingBottom: 20 }}>
@@ -98,13 +104,13 @@ function ReviewPanel({ item, onClose, onApprove, onReject }: {
             {confirmReject ? (
               <View style={rpst.rejectBox}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                  <AlertTriangle size={14} color="#FCA5A5" />
-                  <Text style={rpst.rejectTitle}>Reason for rejection</Text>
+                  <AlertTriangle size={14} color={T.danger} />
+                  <Text style={[rpst.rejectTitle, { color: T.danger }]}>Reason for rejection</Text>
                 </View>
                 <TextInput
                   style={rpst.rejectInput}
                   placeholder="The applicant will see this. Keep it kind & specific."
-                  placeholderTextColor={SAC.dim}
+                  placeholderTextColor={T.dim}
                   value={rejectReason}
                   onChangeText={setRejectReason}
                   multiline
@@ -125,11 +131,11 @@ function ReviewPanel({ item, onClose, onApprove, onReject }: {
                   style={{ flex: 1 }}
                   danger
                 >
-                  <AlertTriangle size={13} color="#FCA5A5" />
-                  <Text style={rpst.dangerText}>Reject</Text>
+                  <AlertTriangle size={13} color={T.danger} />
+                  <Text style={[rpst.dangerText, { color: T.danger }]}>Reject</Text>
                 </SecondaryButton>
                 <GradientButton onPress={() => onApprove(item.id, item.who)} style={{ flex: 1 }}>
-                  <ShieldCheck size={13} color="#fff" />
+                  <ShieldCheck size={13} color={T.text} />
                   <Text style={rpst.primaryText}>Approve</Text>
                 </GradientButton>
               </View>
@@ -152,7 +158,7 @@ const rpst = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
   title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
-  xBtn: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
+  xBtn: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   profile: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 4 },
   name: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 17 },
   detailCard: {
@@ -181,11 +187,13 @@ const rpst = StyleSheet.create({
 export function ApprovalsView() {
   const T = useSAC();
   Object.assign(rpst, resolveColors(rpst, T));
+  Object.assign(s, resolveColors(s, T));
   const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/approvals', FALLBACK);
   const [tab, setTab] = useState<'all' | 'college' | 'mentor' | 'event'>('all');
   const [actioned, setActioned] = useState<Record<string, 'approved' | 'rejected'>>({});
   const [selection, setSelection] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
   const [reviewItem, setReviewItem] = useState<Approval | null>(null);
   const { toast, flash, hide } = useToast();
 
@@ -268,14 +276,31 @@ export function ApprovalsView() {
             </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <SearchField value={search} onChange={setSearch} placeholder="Search by name or meta…" width={240} />
+            <View style={[
+              s.searchBox,
+              {
+                backgroundColor: T.cardSolid,
+                borderColor: searchFocused ? '#f59e0b' : T.border,
+              },
+            ]}>
+              <Search size={13} color={T.dim} />
+              <TextInput
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Search by name or meta…"
+                placeholderTextColor={T.dim}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+                style={[s.searchInput, { color: T.text }]}
+              />
+            </View>
             {selection.size > 0 ? (
               <>
                 <SecondaryButton onPress={clearSel}>
                   <Text style={s.secText}>Clear ({selection.size})</Text>
                 </SecondaryButton>
                 <GradientButton onPress={bulkApprove}>
-                  <ShieldCheck size={13} color="#fff" />
+                  <ShieldCheck size={13} color={T.text} />
                   <Text style={s.primaryText}>Approve {selection.size}</Text>
                 </GradientButton>
               </>
@@ -308,7 +333,7 @@ export function ApprovalsView() {
             return (
               <Animated.View key={a.id} entering={FadeInDown.duration(160)} style={[s.row, selected && s.rowSel]}>
                 <Pressable onPress={() => toggleSel(a.id)} style={[s.check, selected && s.checkOn]}>
-                  {selected && <CheckCircle2 size={11} color="#fff" />}
+                  {selected && <CheckCircle2 size={11} color={T.text} />}
                 </Pressable>
                 <Av initials={a.who2} size={40} color={a.color} />
                 <View style={{ flex: 1, minWidth: 0 }}>
@@ -330,11 +355,11 @@ export function ApprovalsView() {
                   <Text style={s.secText}>Review</Text>
                 </SecondaryButton>
                 <GradientButton size="sm" onPress={() => onApprove(a.id, a.who)}>
-                  <ShieldCheck size={12} color="#fff" />
+                  <ShieldCheck size={12} color={T.text} />
                   <Text style={s.primaryText}>Approve</Text>
                 </GradientButton>
                 <SecondaryButton size="sm" danger onPress={() => onReject(a.id, a.who)}>
-                  <Text style={s.dangerText}>Reject</Text>
+                  <Text style={[s.dangerText, { color: T.danger }]}>Reject</Text>
                 </SecondaryButton>
                 <ChevronRight size={14} color={SAC.dim} />
               </Animated.View>
@@ -352,6 +377,14 @@ const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
   title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
   sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
+  searchBox: {
+    width: 240, minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 10, borderWidth: 1, borderRadius: 9,
+  },
+  searchInput: {
+    flex: 1, paddingVertical: 7, fontFamily: FONTS.med, fontSize: 12,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
 
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12,

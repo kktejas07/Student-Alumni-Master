@@ -240,7 +240,7 @@ export default function ProfileSocialView() {
                             setProfile((p: any) => p ? { ...p, connection_state: 'connected' } : null);
                             showToast('Connected!');
                           } else {
-                            showToast('Request sent ✓');
+                            showToast('Request sent ');
                           }
                         } catch {
                           setProfile((p: any) => p ? { ...p, connection_state: 'none' } : null);
@@ -255,7 +255,7 @@ export default function ProfileSocialView() {
                     </Pressable>
                   )
                 )}
-                <Pressable onPress={() => showToast('Direct messages coming soon ✨')} style={[styles.btn, styles.btnGhost]} testID="psv-message">
+                <Pressable onPress={() => showToast('Direct messages coming soon ')} style={[styles.btn, styles.btnGhost]} testID="psv-message">
                   <MessageSquare size={14} color={C.text} /><Text style={styles.btnTextLight}>Message</Text>
                 </Pressable>
                 <Pressable onPress={() => {

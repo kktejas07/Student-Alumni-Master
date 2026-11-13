@@ -650,14 +650,14 @@ function BlogPostDetailPage() {
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: '600', border: '1px solid #292940', borderRadius: 10, padding: '10px 15px', background: 'transparent', color: shared ? '#10B981' : '#8A8A9E', cursor: 'pointer', transition: 'all 0.2s ease' }}
                     >
                       <Share2 size={14} color={shared ? '#10B981' : 'currentColor'} />
-                      {shared ? 'Copied Link ✓' : 'Share'}
+                      {shared ? 'Copied Link ' : 'Share'}
                     </button>
                     <button 
                       onClick={handleSave}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: '600', border: '1px solid #292940', borderRadius: 10, padding: '10px 15px', background: 'transparent', color: saved ? '#A78BFA' : '#8A8A9E', cursor: 'pointer', transition: 'all 0.2s ease' }}
                     >
                       <Bookmark size={14} color={saved ? '#A78BFA' : 'currentColor'} fill={saved ? '#A78BFA' : 'none'} />
-                      {saved ? 'Saved ✓' : 'Save'}
+                      {saved ? 'Saved ' : 'Save'}
                     </button>
                   </div>
                 </div>

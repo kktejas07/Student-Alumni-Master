@@ -13,7 +13,6 @@ export const NAV: (NavItem & { id: VendorNavId })[] = [
 
 export const VENDOR_PORTAL: PortalConfig = {
   portal: 'vendor',
-  darkOnly: true, // views still hardcode dark colours; see src/ui/theme.ts
   base: 'vendor-portal',
   defaultTab: 'dashboard',
   brand: { title: 'Vendor Portal', subtitle: 'Student Alumni Marketplace' },

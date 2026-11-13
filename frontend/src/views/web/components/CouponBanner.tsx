@@ -22,6 +22,7 @@ import { Ticket, ExternalLink, X, Copy, Check, Tag, Plus, Pencil, Trash2, Save, 
 import { request } from '@/src/models/services/api';
 import { uploadImage } from '@/src/lib/image';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 export type Coupon = {
   id: string;
@@ -408,6 +409,7 @@ const CARD_WIDTH = 270;
 const PAGE_STRIDE = CARDS_PER_PAGE * (CARD_WIDTH + CARD_GAP);
 
 export function CouponBanner({ portal, editable }: { portal: string; editable?: boolean }) {
+  const { theme } = useTheme();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [selected, setSelected] = useState<Coupon | null>(null);
   const [editor, setEditor] = useState<Coupon | null | 'new'>(null);
@@ -491,14 +493,28 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
   };
 
   return (
-    <View style={s.wrap}>
+    <View
+      style={[
+        s.wrap,
+        editable && {
+          backgroundColor: theme.bgElevated,
+          borderColor: theme.hairline,
+          borderWidth: 1,
+          borderRadius: 12,
+          padding: 16,
+        },
+      ]}
+    >
       <View style={s.headRow}>
-        <Tag size={13} color="#A78BFA" />
-        <Text style={s.headText}>Collab Exclusive Coupons{editable ? ` (${coupons.length})` : ''}</Text>
+        <Tag size={13} color={theme.purple} />
+        <Text style={[s.headText, editable && { color: theme.text }]}>Collab Exclusive Coupons{editable ? ` (${coupons.length})` : ''}</Text>
         {editable && (
           <>
             <View style={{ flex: 1 }} />
-            <Pressable onPress={() => setEditor('new')} style={s.addBtn}>
+            <Pressable
+              onPress={() => setEditor('new')}
+              style={({ hovered }: any) => [s.addBtn, hovered && Platform.OS === 'web' && { backgroundColor: '#6D28D9' }]}
+            >
               <Plus size={12} color="#fff" />
               <Text style={s.addBtnText}>Add Coupon</Text>
             </Pressable>
@@ -589,7 +605,7 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
           )}
         </>
       ) : editable ? (
-        <Text style={s.emptyText}>No coupons created yet. Click "Add Coupon" to create one.</Text>
+        <Text style={[s.emptyText, { color: theme.textSec }]}>No coupons created yet. Click "Add Coupon" to create one.</Text>
       ) : null}
 
       <CouponModal coupon={selected} onClose={() => setSelected(null)} />

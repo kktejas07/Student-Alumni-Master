@@ -13,6 +13,7 @@
  */
 import { ReactNode } from 'react';
 import { View, Text, ScrollView, StyleSheet, Platform, useWindowDimensions } from 'react-native';
+import { Briefcase, Sparkles, Users } from 'lucide-react-native';
 import { Colors as C } from '@/src/theme';
 import { SALogo } from '@/src/views/components';
 import { RoleThemeProvider, type Role } from '@/src/views/auth/RoleTheme';
@@ -50,13 +51,13 @@ export function AuthWebShell({
               AI career guidance, internships, mentorship, and alumni networking.
             </Text>
             {[
-              { emoji: '', t: 'AI Career Guidance', s: 'Personalised roadmap based on your goals' },
-              { emoji: '', t: '10,000+ Internships', s: 'Global opportunities matched to you' },
-              { emoji: '', t: '500+ Mentors', s: 'Alumni who want to help you grow' },
+              { Icon: Sparkles, t: 'AI Career Guidance', s: 'Personalised roadmap based on your goals' },
+              { Icon: Briefcase, t: '10,000+ Internships', s: 'Global opportunities matched to you' },
+              { Icon: Users, t: '500+ Mentors', s: 'Alumni who want to help you grow' },
             ].map((f) => (
               <View key={f.t} style={styles.featRow}>
                 <View style={styles.featIcon}>
-                  <Text style={{ fontSize: 17 }}>{f.emoji}</Text>
+                  <f.Icon size={17} color="#FFFFFF" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.featTitle}>{f.t}</Text>

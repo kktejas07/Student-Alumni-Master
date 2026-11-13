@@ -17,6 +17,7 @@ import { Bot, Sparkles } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { NX } from '@/src/theme/nexus';
 import { useAgentKStore } from '@/src/viewmodels/stores/agentKStore';
+import { usePortalTheme } from '@/src/ui/theme';
 
 const FONT = Platform.select({
   ios: 'System', android: 'sans-serif',
@@ -43,6 +44,7 @@ function PulseRing({ color = NX.purple, size = 32 }: { color?: string; size?: nu
 export function AgentKLauncher({ collapsed = false }: { collapsed?: boolean }) {
   const router = useRouter();
   const activeRun = useAgentKStore((s) => s.activeRun);
+  const theme = usePortalTheme();
 
   if (collapsed) {
     return (
@@ -74,11 +76,14 @@ export function AgentKLauncher({ collapsed = false }: { collapsed?: boolean }) {
       accessibilityLabel="Agent K · Run automations"
       style={({ hovered }: any) => ([
         styles.outer,
-        hovered && Platform.OS === 'web' ? { borderColor: 'rgba(124,58,237,0.55)', transform: [{ translateY: -1 }] } as any : null,
+        { backgroundColor: theme.surface, borderColor: theme.borderHi },
+        hovered && Platform.OS === 'web' ? { borderColor: theme.accent, transform: [{ translateY: -1 }] } as any : null,
       ])}
     >
       <LinearGradient
-        colors={['rgba(124,58,237,0.16)', 'rgba(34,211,238,0.10)'] as any}
+        colors={theme.isDark
+          ? ['rgba(124,58,237,0.16)', 'rgba(34,211,238,0.10)']
+          : ['rgba(124,58,237,0.07)', 'rgba(14,110,140,0.05)']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
@@ -91,27 +96,30 @@ export function AgentKLauncher({ collapsed = false }: { collapsed?: boolean }) {
             </View>
           </View>
           <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={styles.kicker}>AGENT K</Text>
-            <View style={styles.betaPill}>
-              <Text style={styles.betaText}>BETA</Text>
+            <Text style={[styles.kicker, { color: theme.text }]}>AGENT K</Text>
+            <View style={[styles.betaPill, {
+              backgroundColor: theme.isDark ? 'rgba(34,211,238,0.18)' : 'rgba(14,110,140,0.10)',
+              borderColor: theme.isDark ? 'rgba(34,211,238,0.45)' : 'rgba(14,110,140,0.28)',
+            }]}>
+              <Text style={[styles.betaText, { color: theme.isDark ? '#22D3EE' : '#0E6E8C' }]}>BETA</Text>
             </View>
           </View>
         </View>
 
-        <Text style={styles.title}>Run automations</Text>
-        <Text style={styles.subtitle}>Let AI handle multi-step tasks for you</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Run automations</Text>
+        <Text style={[styles.subtitle, { color: theme.textDim }]}>Let AI handle multi-step tasks for you</Text>
 
         {/* Cmd+K hint */}
         <View style={styles.kbdRow}>
-          <View style={styles.kbd}><Text style={styles.kbdText}>⌘</Text></View>
-          <View style={styles.kbd}><Text style={styles.kbdText}>K</Text></View>
-          <Text style={styles.kbdHint}>quick launcher</Text>
+          <View style={[styles.kbd, { backgroundColor: theme.hover, borderColor: theme.border }]}><Text style={[styles.kbdText, { color: theme.textMuted }]}>⌘</Text></View>
+          <View style={[styles.kbd, { backgroundColor: theme.hover, borderColor: theme.border }]}><Text style={[styles.kbdText, { color: theme.textMuted }]}>K</Text></View>
+          <Text style={[styles.kbdHint, { color: theme.textDim }]}>quick launcher</Text>
         </View>
 
         {/* Active run progress bar */}
         {activeRun && (
           <View style={styles.progressBar}>
-            <View style={styles.progressFill} />
+            <View style={[styles.progressFill, { backgroundColor: theme.isDark ? '#22D3EE' : '#0E6E8C' }]} />
           </View>
         )}
       </LinearGradient>

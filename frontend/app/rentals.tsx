@@ -28,7 +28,7 @@ type Listing = {
   city: string; location: string;
   rent_inr: number; rent_label: string; orig_inr: number; orig_label: string;
   discount: string; amenities: string[]; rating: number; reviews: number;
-  beds: string; available: number; color: string; emoji?: string;
+  beds: string; available: number; color: string;
   perk?: string; verified?: boolean; featured?: boolean; tags?: string[];
   description?: string; rules?: string[]; deposit_inr?: number;
 };
@@ -453,11 +453,9 @@ function RentalCard({ r, onViewDetails }: { r: Listing; onViewDetails: () => voi
       </View>
 
       <View style={{ padding: 16, gap: 10 }}>
-        {!!r.emoji && (
-          <View style={s.logoCircle}>
-            <Text style={s.logoEmoji}>{r.emoji}</Text>
-          </View>
-        )}
+        <View style={s.logoCircle}>
+          {getCategoryIcon(r.category, r.color, 24)}
+        </View>
         <View>
           <Text style={s.title} numberOfLines={1}>{r.title}</Text>
           <View style={s.metaRow}>
@@ -1186,7 +1184,6 @@ const s = StyleSheet.create({
   logoCircle: { width: 48, height: 48, borderRadius: 14,
     backgroundColor: 'rgba(0,0,0,0.04)', borderWidth: 1, borderColor: C.border,
     alignItems: 'center', justifyContent: 'center' },
-  logoEmoji: { fontSize: 26 },
 
   /* Modal Base */
   overlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.60)',

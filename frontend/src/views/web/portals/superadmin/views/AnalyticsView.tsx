@@ -8,7 +8,7 @@
  */
 import React, { useCallback, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ScrollView,
+  View, Text as NativeText, StyleSheet, Pressable, Platform, useWindowDimensions, ScrollView,
 } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,8 +17,9 @@ import {
   Globe, Monitor, Smartphone, Sparkles, Eye,
   Clock, FileText, AlertTriangle, Zap, Timer, Target, Radar, Layers,
 } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
-import { Card, KpiTile, GRAD, SecondaryButton, StatusPill, LoadingBox, TopTabs } from '../applekit';
+import { SAC, useSAC, FONTS } from '../tokens';
+import { Card, KpiTile, GRAD, StatusPill, LoadingBox, TopTabs } from '../applekit';
+import { useTheme } from '@/src/theme/ThemeContext';
 import { usePortalData } from '@/src/lib/portalApi';
 import { WorldMap } from './WorldMap';
 import { VisitorIntelligenceView } from './VisitorIntelligenceView';
@@ -95,10 +96,40 @@ const fmtCurrency = (n: number) => n >= 100000 ? `₹${(n / 100000).toFixed(1)}L
 const fmtDuration = (sec: number) => { const m = Math.floor(sec / 60); const s = Math.round(sec % 60); return m > 0 ? `${m}m ${s}s` : `${s}s`; };
 const timeAgo = (iso: string) => { if (!iso) return ''; const diff = Date.now() - new Date(iso).getTime(); const m = Math.floor(diff / 60000); if (m < 1) return 'just now'; if (m < 60) return `${m}m ago`; const h = Math.floor(m / 60); return h < 24 ? `${h}h ago` : `${Math.floor(h / 24)}d ago`; };
 
+function Text({ style, ...props }: React.ComponentProps<typeof NativeText>) {
+  const T = useSAC();
+  const { isDark } = useTheme();
+  const color = StyleSheet.flatten(style)?.color;
+  // Normalize legacy dark-theme text colors to the active Super Admin palette.
+  const adaptiveColors: Record<string, string> = {
+    [SAC.text.toLowerCase()]: T.text,
+    [SAC.muted.toLowerCase()]: T.muted,
+    [SAC.dim.toLowerCase()]: T.dim,
+    '#f3f4f6': T.text,
+    '#f4f4fa': T.text,
+    '#fff': T.text,
+    '#ffffff': T.text,
+    white: T.text,
+    '#a78bfa': isDark ? '#c4b5fd' : '#6d28d9',
+    '#1d4aff': isDark ? '#60a5fa' : '#1d4ed8',
+    '#3b82f6': isDark ? '#60a5fa' : '#2563eb',
+    '#14b8a6': isDark ? '#2dd4bf' : '#0f766e',
+    '#10b981': isDark ? '#34d399' : '#047857',
+    '#8b5cf6': isDark ? '#a78bfa' : '#6d28d9',
+    '#f59e0b': isDark ? '#fbbf24' : '#b45309',
+    '#fb923c': isDark ? '#fb923c' : '#c2410c',
+    '#22c55e': isDark ? '#4ade80' : '#15803d',
+    '#ef4444': isDark ? '#f87171' : '#be123c',
+  };
+  const themedColor = typeof color === 'string' ? adaptiveColors[color.toLowerCase()] : undefined;
+  return <NativeText {...props} style={themedColor ? [style, { color: themedColor }] : style} />;
+}
 
 
 // ── Main Component ───────────────────────────────────────────────────────────
 export function AnalyticsView() {
+  const { isDark } = useTheme();
+  const T = useSAC();
   const { width } = useWindowDimensions();
   const stack = width < 1100;
   const [analyticsMode, setAnalyticsMode] = useState<'platform' | 'visitors'>('platform');
@@ -169,11 +200,39 @@ export function AnalyticsView() {
         </View>
         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
           <StatusPill kind="success" label="Live" />
-          <Pressable onPress={refresh} style={{ padding: 6, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)' }}>
-            <RefreshCw size={14} color={SAC.muted} />
+          <Pressable
+            onPress={refresh}
+            style={({ hovered }: any) => ({
+              padding: 6,
+              borderRadius: 8,
+              backgroundColor: isDark
+                ? (hovered ? '#334155' : '#1e293b')
+                : (hovered ? '#f1f5f9' : '#ffffff'),
+            })}
+          >
+            <RefreshCw size={14} color={T.muted} />
           </Pressable>
           {Platform.OS === 'web' && (
-            <SecondaryButton onPress={handleExport}><Download size={12} color="#fff" /><Text style={{ color: SAC.text, fontFamily: FONTS.med, fontSize: 11 }}>Export</Text></SecondaryButton>
+            <Pressable
+              onPress={handleExport}
+              style={({ hovered }: any) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 7,
+                paddingHorizontal: 14,
+                paddingVertical: 9,
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: isDark ? '#334155' : '#cbd5e1',
+                backgroundColor: isDark
+                  ? (hovered ? '#334155' : '#1e293b')
+                  : (hovered ? '#f8fafc' : '#ffffff'),
+                ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+              })}
+            >
+              <Download size={12} color={isDark ? '#cbd5e1' : '#334155'} />
+              <Text style={{ color: isDark ? '#e2e8f0' : '#334155', fontFamily: FONTS.med, fontSize: 11 }}>Export</Text>
+            </Pressable>
           )}
         </View>
       </Card>
@@ -302,6 +361,7 @@ function UserGrowthCard({ growth, predictions }: { growth: GrowthPoint[]; predic
 }
 
 function RoleDistributionCard({ roles }: { roles: RoleDist[] }) {
+  const { isDark } = useTheme();
   const total = roles.reduce((s, r) => s + r.value, 0) || 1;
   return (
     <Card style={{ padding: 20, gap: 14 }}>
@@ -310,9 +370,9 @@ function RoleDistributionCard({ roles }: { roles: RoleDist[] }) {
         <View key={i} style={{ gap: 4 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>{r.label}</Text>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: r.color }}>{r.value.toLocaleString()} ({Math.round(r.value / total * 100)}%)</Text>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: isDark ? '#60a5fa' : '#2563eb' }}>{r.value.toLocaleString()} ({Math.round(r.value / total * 100)}%)</Text>
           </View>
-          <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+          <View style={{ height: 8, borderRadius: 4, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0', overflow: 'hidden' }}>
             <View style={{ height: '100%', width: `${(r.value / total) * 100}%`, borderRadius: 4, backgroundColor: r.color }} />
           </View>
         </View>
@@ -522,6 +582,7 @@ function GeographyCard({ geo }: { geo: GeoData }) {
 }
 
 function FunnelCard({ funnel }: { funnel: FunnelStage[] }) {
+  const { isDark } = useTheme();
   const maxVal = funnel.length > 0 ? funnel[0].v : 1;
   return (
     <Card style={{ padding: 20, gap: 12 }}>
@@ -539,7 +600,7 @@ function FunnelCard({ funnel }: { funnel: FunnelStage[] }) {
                 {dropoff > 0 && <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: '#EF4444' }}>-{dropoff}%</Text>}
               </View>
             </View>
-            <View style={{ height: 10, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+            <View style={{ height: 10, borderRadius: 5, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0', overflow: 'hidden' }}>
               <View style={{ height: '100%', width: `${pct}%`, borderRadius: 5, backgroundColor: s.color }} />
             </View>
           </View>
@@ -616,7 +677,7 @@ function PredictionsCard({ predictions }: { predictions: Predictions }) {
       )}
       <View style={{ marginTop: 4, padding: 8, borderRadius: 6, backgroundColor: 'rgba(167,139,250,0.05)' }}>
         <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>
-                     {predictions.trend === 'growing' ? 'User growth is accelerating. Consider scaling infrastructure.' : predictions.trend === 'declining' ? '📉 Growth is slowing. Review acquisition channels.' : '📊 Growth is stable. Focus on retention and engagement.'}
+                     {predictions.trend === 'growing' ? 'User growth is accelerating. Consider scaling infrastructure.' : predictions.trend === 'declining' ? ' Growth is slowing. Review acquisition channels.' : ' Growth is stable. Focus on retention and engagement.'}
         </Text>
       </View>
     </Card>
@@ -624,6 +685,7 @@ function PredictionsCard({ predictions }: { predictions: Predictions }) {
 }
 
 function ActivityFeedCard({ items }: { items: ActivityItem[] }) {
+  const { isDark } = useTheme();
   const typeColors: Record<string, string> = { signup: '#22C55E', booking: '#F59E0B', echo_reg: '#8B5CF6', event_reg: '#3B82F6' };
   return (
     <Card style={{ padding: 20, gap: 10, maxHeight: 380 }}>
@@ -636,7 +698,7 @@ function ActivityFeedCard({ items }: { items: ActivityItem[] }) {
       </View>
       <ScrollView style={{ flex: 1 }}>
         {items.map((item, i) => (
-          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' }}>
+          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.04)' : '#e2e8f0' }}>
             <View style={{ width: 3, height: 32, borderRadius: 2, backgroundColor: typeColors[item.type] || '#6B7280' }} />
             <View style={{ flex: 1 }}>
               <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.text }} numberOfLines={1}>{item.title}</Text>
@@ -652,12 +714,13 @@ function ActivityFeedCard({ items }: { items: ActivityItem[] }) {
 }
 
 function TopCollegesCard({ colleges }: { colleges: College[] }) {
+  const { isDark } = useTheme();
   return (
     <Card style={{ padding: 20, gap: 10, maxHeight: 380 }}>
       <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>Top Colleges</Text>
       <ScrollView style={{ flex: 1 }}>
         {colleges.map((c, i) => (
-          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' }}>
+          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.04)' : '#e2e8f0' }}>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.dim, width: 20 }}>{i + 1}</Text>
             <View style={{ flex: 1 }}>
               <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.text }} numberOfLines={1}>{c.name}</Text>

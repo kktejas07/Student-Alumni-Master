@@ -665,7 +665,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
     try {
       const r = await request('/certificates/dispatch-zip-campaign', {
         method: 'POST',
-        body: JSON.stringify({ custom_subject: '🎓 Your Official Certificates Have Been Issued!' }),
+        body: JSON.stringify({ custom_subject: ' Your Official Certificates Have Been Issued!' }),
       });
       setDispatchResult(r);
     } catch (e: any) {
@@ -920,7 +920,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: csvDryRun ? 'rgba(245,158,11,0.4)' : 'rgba(52,211,153,0.4)', backgroundColor: csvDryRun ? 'rgba(245,158,11,0.1)' : 'rgba(52,211,153,0.1)' }}
               >
                 <Text style={{ color: csvDryRun ? '#FBBF24' : '#34D399', fontWeight: 'bold', fontSize: 12 }}>
-                  {csvDryRun ? '🧪 Dry Run' : '🚀 Live Run'}
+                  {csvDryRun ? ' Dry Run' : ' Live Run'}
                 </Text>
               </Pressable>
               {!csvDryRun && (
@@ -929,7 +929,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: csvSendEmails ? 'rgba(59,130,246,0.4)' : 'rgba(255,255,255,0.15)', backgroundColor: csvSendEmails ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.04)' }}
                 >
                   <Text style={{ color: csvSendEmails ? '#60A5FA' : '#9095A8', fontWeight: 'bold', fontSize: 12 }}>
-                    {csvSendEmails ? '✉ Send Emails' : '✉ No Emails'}
+                    {csvSendEmails ? ' Send Emails' : ' No Emails'}
                   </Text>
                 </Pressable>
               )}
@@ -983,7 +983,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                     </View>
                   </View>
                   <Text style={{ color: csvPct >= 100 ? '#34D399' : '#A78BFA', fontWeight: '800', fontSize: 20, fontFamily: 'monospace' }}>
-                    {csvProgress.phase === 'uploading' ? '⬆️' : `${csvPct}%`}
+                    {csvProgress.phase === 'uploading' ? '' : `${csvPct}%`}
                   </Text>
                 </View>
 
@@ -1068,11 +1068,11 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 12, marginVertical: 6, flexWrap: 'wrap' }}>
-                  <Text style={{ color: '#34D399', fontSize: 12 }}>✓ {csvResult.created || csvRows.filter(r => r.action === 'created').length} created</Text>
+                  <Text style={{ color: '#34D399', fontSize: 12 }}> {csvResult.created || csvRows.filter(r => r.action === 'created').length} created</Text>
                   <Text style={{ color: '#60A5FA', fontSize: 12 }}>↻ {csvResult.updated || csvRows.filter(r => r.action === 'updated').length} updated</Text>
-                  <Text style={{ color: '#9095A8', fontSize: 12 }}>⏭ {csvResult.skipped || csvRows.filter(r => r.action === 'skipped').length} skipped</Text>
+                  <Text style={{ color: '#9095A8', fontSize: 12 }}> {csvResult.skipped || csvRows.filter(r => r.action === 'skipped').length} skipped</Text>
                   {!csvResult.dry_run && (csvEmails.sent + csvEmails.errors) > 0 && (
-                    <Text style={{ color: '#A78BFA', fontSize: 12 }}>✉ {csvEmails.sent} sent, {csvEmails.errors} failed</Text>
+                    <Text style={{ color: '#A78BFA', fontSize: 12 }}> {csvEmails.sent} sent, {csvEmails.errors} failed</Text>
                   )}
                 </View>
                 {csvRows.length > 0 && (
@@ -1202,7 +1202,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
             >
               <Sparkles size={15} color="#10B981" />
               <Text style={{ color: '#10B981', fontWeight: '600', fontSize: 13 }}>
-                🧪 Run Sample ZIP Test Scan (Dry-Run Preview)
+                 Run Sample ZIP Test Scan (Dry-Run Preview)
               </Text>
             </Pressable>
           </View>
@@ -1242,7 +1242,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
               {(result.recipient_groups || []).map((grp: any, i: number) => (
                 <View key={i} style={{ padding: 10, borderRadius: 8, backgroundColor: '#141424', marginBottom: 8, borderBasis: '100%' }}>
                   <Text style={{ color: '#D8B4FE', fontWeight: 'bold', fontSize: 13 }}>
-                    👤 {grp.recipient_name} ({grp.recipient_email}) — {grp.certificates?.length || 0} cert(s)
+                     {grp.recipient_name} ({grp.recipient_email}) — {grp.certificates?.length || 0} cert(s)
                   </Text>
                   {(grp.certificates || []).map((c: any, j: number) => (
                     <Text key={j} style={{ color: '#9095A8', fontSize: 11, marginTop: 4, fontFamily: 'monospace' }}>
@@ -1272,7 +1272,7 @@ function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
             >
               {dispatching ? <ActivityIndicator size={14} color="#A78BFA" /> : <Mail size={16} color="#A78BFA" />}
               <Text style={{ color: '#A78BFA', fontWeight: 'bold', fontSize: 13 }}>
-                {dispatching ? 'Dispatching Campaign Emails...' : '🚀 Dispatch Consolidated Email Campaign to All Recipients'}
+                {dispatching ? 'Dispatching Campaign Emails...' : ' Dispatch Consolidated Email Campaign to All Recipients'}
               </Text>
             </Pressable>
           </View>

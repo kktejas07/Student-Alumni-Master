@@ -48,7 +48,6 @@ type CollegeDashboard = {
     shortName: string;
     initials: string;
     rank: string;
-    emoji: string;
     placementRate: number;
     upcomingHighlight: string;
     tier: CollegeTier | null;
@@ -76,7 +75,6 @@ function makeEmpty(collegeName: string): CollegeDashboard {
       shortName: name,
       initials: name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase(),
       rank: '',
-      emoji: '',
       placementRate: 0,
       upcomingHighlight: '',
       tier: null,

@@ -54,7 +54,7 @@ const NAV: NavItem[] = [
   { id: 'profile',           Icon: UserIcon,       label: 'Profile',          color: '#818CF8' },
 ];
 
-// Map NAV id ↔ Expo-router route
+// Map NAV id  Expo-router route
 const ROUTE_MAP: Record<string, string> = {
   home: '/platform',
   career: '/career-ai',
@@ -90,8 +90,6 @@ function activeIdForPath(path: string): string {
 
 export default function FeaturePageShell({
   title, subtitle, accent = SA.purpleLight,
-  heroEmoji = '',
-  heroIcon,
   children,
   rightSlot,
   hideHero = false,
@@ -99,8 +97,6 @@ export default function FeaturePageShell({
   title: string;
   subtitle?: string;
   accent?: string;
-  heroEmoji?: string;
-  heroIcon?: React.ReactNode;
   children: React.ReactNode;
   rightSlot?: React.ReactNode;
   hideHero?: boolean;
@@ -242,7 +238,6 @@ export default function FeaturePageShell({
             />
             <View style={[styles.heroBody, !isWide && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
               <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-                <View style={styles.heroBadge}>{heroIcon || <Text style={styles.heroBadgeText}>{heroEmoji}</Text>}</View>
                 <Text style={styles.heroTitle}>{title}</Text>
                 {!!subtitle && <Text style={styles.heroSub}>{subtitle}</Text>}
               </View>
@@ -274,7 +269,7 @@ export default function FeaturePageShell({
       {/* Persistent sidebar */}
       {isWide && (
         role === 'student' || role === 'alumni' ? (
-          <PortalThemeProvider portal={role} darkOnly={role === 'alumni'}>
+          <PortalThemeProvider portal={role}>
             <PortalSidebar
               config={role === 'student' ? STUDENT_PORTAL : ALUMNI_PORTAL}
               active={portalActiveId as any}
@@ -330,7 +325,6 @@ export default function FeaturePageShell({
             />
             <View style={[styles.heroBody, !isWide && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
               <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-                {heroIcon || <Text style={styles.heroEmoji}>{heroEmoji}</Text>}
                 <Text style={[styles.heroTitle, !isWide && { fontSize: 22, lineHeight: 28 }]}>{title}</Text>
                 {subtitle ? <Text style={styles.heroSub}>{subtitle}</Text> : null}
               </View>
@@ -392,7 +386,6 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   heroOrb: { position: 'absolute', borderRadius: 9999 },
-  heroEmoji: { fontSize: 30 },
   heroTitle: {
     color: '#fff',
     fontFamily: SA.fontBold,

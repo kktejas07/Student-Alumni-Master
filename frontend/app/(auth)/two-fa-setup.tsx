@@ -31,8 +31,8 @@ type Step = 0 | 1 | 2 | 3 | 4;
 
 // The backend implements TOTP (authenticator-app) 2FA only. SMS and email
 // factors were listed here before but had no server implementation.
-const METHODS: { id: Method; emoji: string; title: string; sub: string; rec?: boolean }[] = [
-  { id: 'authenticator', emoji: '📱', title: 'Authenticator App', sub: 'Google Authenticator, Authy, 1Password, etc.', rec: true },
+const METHODS: { id: Method; title: string; sub: string; rec?: boolean }[] = [
+  { id: 'authenticator', title: 'Authenticator App', sub: 'Google Authenticator, Authy, 1Password, etc.', rec: true },
 ];
 
 export default function TwoFASetup() {
@@ -151,7 +151,7 @@ export default function TwoFASetup() {
         <View>
           <View style={{ alignItems: 'center', marginBottom: 18 }}>
             <View style={styles.heroIcon}>
-              <Text style={{ fontSize: 32 }}>🛡️</Text>
+              <ShieldCheck size={32} color="#2563EB" />
             </View>
           </View>
           <Text style={styles.h1}>Two-Factor Authentication</Text>
@@ -160,7 +160,7 @@ export default function TwoFASetup() {
             {METHODS.map((m) => (
               <WebOptionRow
                 key={m.id}
-                emoji={m.emoji}
+                icon={<ShieldCheck size={18} color={method === m.id ? '#2563EB' : '#64748B'} />}
                 title={m.title}
                 subtitle={m.sub}
                 recommended={m.rec}
@@ -179,7 +179,7 @@ export default function TwoFASetup() {
       {/* STEP 1 — Setup */}
       {step === 1 && setup && (
         <View>
-          <Text style={styles.h2}>Scan QR Code 📱</Text>
+          <Text style={styles.h2}>Scan QR Code </Text>
           <Text style={styles.sub}>Open your authenticator app and scan this code, or enter the key manually.</Text>
           <View style={{ alignItems: 'center', marginBottom: 16 }}>
             <View style={styles.qrFrame}>
@@ -204,11 +204,11 @@ export default function TwoFASetup() {
       {/* STEP 2 — Verify */}
       {step === 2 && (
         <View>
-          <Text style={styles.h2}>Enter verification code 🔢</Text>
+          <Text style={styles.h2}>Enter verification code </Text>
           <Text style={styles.sub}>Enter the 6-digit code from your authenticator app.</Text>
           <OTPInput value={otp} onChange={setOtp} state={otpState} />
           {otpState === 'success' && (
-            <Text style={styles.otpSuccess}>✓ Code verified!</Text>
+            <Text style={styles.otpSuccess}> Code verified!</Text>
           )}
           <WebPrimaryBtn label={busy ? 'Verifying…' : 'Verify & enable'} onPress={verifyOTP} testID="twofa-verify-btn" />
         </View>
@@ -217,7 +217,7 @@ export default function TwoFASetup() {
       {/* STEP 3 — Backup codes */}
       {step === 3 && (
         <View>
-          <Text style={styles.h2}>Save backup codes 📋</Text>
+          <Text style={styles.h2}>Save backup codes </Text>
           <Text style={styles.sub}>Keep these somewhere safe. Each code can only be used once if you lose access to your 2FA device.</Text>
           <View style={styles.codesGrid}>
             {backupCodes.map((code, i) => (
@@ -243,7 +243,7 @@ export default function TwoFASetup() {
             </Pressable>
           </View>
           <View style={styles.warnBox}>
-            <Text style={{ fontSize: 16 }}>⚠️</Text>
+            <ShieldCheck size={16} color="#B45309" />
             <Text style={styles.warnText}>Store these codes securely. They won't be shown again.</Text>
           </View>
           <WebPrimaryBtn label="I've saved my codes →" onPress={onContinue} testID="twofa-saved-btn" />
@@ -256,7 +256,7 @@ export default function TwoFASetup() {
           <View style={styles.successRing}>
             <ShieldCheck size={36} color="#34D399" />
           </View>
-          <Text style={[styles.h2, { textAlign: 'center', marginTop: 4 }]}>2FA Enabled! 🎉</Text>
+          <Text style={[styles.h2, { textAlign: 'center', marginTop: 4 }]}>2FA Enabled! </Text>
           <Text style={[styles.sub, { textAlign: 'center', maxWidth: 320 }]}>
             Your account is now protected with two-factor authentication via{' '}
             <Text style={{ color: '#FFFFFF', fontFamily: 'DMSans_700Bold' }}>
@@ -264,7 +264,7 @@ export default function TwoFASetup() {
             </Text>.
           </Text>
           <View style={[styles.smallBadge, { marginTop: 4, marginBottom: 22 }]}>
-            <Text style={styles.smallBadgeText}>🛡️  Account Secured</Text>
+            <Text style={styles.smallBadgeText}>  Account Secured</Text>
           </View>
 
           <View style={styles.summaryCard}>

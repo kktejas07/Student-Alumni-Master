@@ -7,11 +7,37 @@ import { Badge } from '../atoms';
 import { postPortal, getPortal, putPortal, deletePortal } from '@/src/lib/portalApi';
 import { useToast, Toast } from '../applekit';
 import { CICDEvaluatorView } from './CICDEvaluatorView';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 export function AutonomousAgentsView() {
   const T = useSAC();
+  const { isDark } = useTheme();
   Object.assign(s, resolveColors(s, T));
   const { toast, flash, hide } = useToast();
+  const renderAgentBadge = (label: string, tone: 'neutral' | 'amber' = 'neutral') => {
+    const amber = tone === 'amber';
+    return (
+      <View style={[
+        s.agentBadge,
+        amber
+          ? {
+              backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : '#FEF3C7',
+              borderColor: isDark ? 'rgba(245,158,11,0.3)' : '#FDE68A',
+            }
+          : {
+              backgroundColor: isDark ? '#1E293B' : 'rgba(226,232,240,0.8)',
+              borderColor: isDark ? '#334155' : '#CBD5E1',
+            },
+      ]}>
+        <Text style={[
+          s.agentBadgeText,
+          { color: amber ? (isDark ? '#FCD34D' : '#92400E') : (isDark ? '#CBD5E1' : '#334155') },
+        ]}>
+          {label}
+        </Text>
+      </View>
+    );
+  };
 
   // Autonomous Goodies Harvester & Multi-Spec Outreach State
   const [selectedSpecType, setSelectedSpecType] = useState('goodies_partnership');
@@ -120,7 +146,7 @@ export function AutonomousAgentsView() {
   const [formColor, setFormColor] = useState('#EC4899');
   const [formAgents, setFormAgents] = useState<any[]>([
     { id: '1', name: 'Growth Strategist', role: 'Campaign Strategist', avatar: '●', system_prompt: 'Define growth strategy and target channels.' },
-    { id: '2', name: 'Lead Copywriter', role: 'Ad Copywriter', avatar: '✍️', system_prompt: 'Write high converting email and ad copies.' },
+    { id: '2', name: 'Lead Copywriter', role: 'Ad Copywriter', avatar: '', system_prompt: 'Write high converting email and ad copies.' },
   ]);
 
   // Existing Agent States
@@ -433,7 +459,7 @@ export function AutonomousAgentsView() {
     setFormIcon('Megaphone');
     setFormColor('#F59E0B');
     setFormAgents([
-      { id: '1', name: 'Team Strategist', role: 'Lead Planner', avatar: '🧠', system_prompt: 'Formulate overarching execution roadmap.' },
+      { id: '1', name: 'Team Strategist', role: 'Lead Planner', avatar: '', system_prompt: 'Formulate overarching execution roadmap.' },
       { id: '2', name: 'Execution Specialist', role: 'Lead Developer / Specialist', avatar: '◆', system_prompt: 'Execute task deliverables and technical requirements.' },
     ]);
     setModalVisible(true);
@@ -457,7 +483,7 @@ export function AutonomousAgentsView() {
         id: `agent-${Date.now()}`,
         name: `Agent ${prev.length + 1}`,
         role: 'Specialist',
-        avatar: '🤖',
+        avatar: '',
         system_prompt: 'Execute assigned tasks and optimize deliverables.',
       },
     ]);
@@ -644,39 +670,39 @@ export function AutonomousAgentsView() {
       {/* Navigation Tabs */}
       <View style={s.tabsRow}>
         <Pressable onPress={() => setActiveTab('custom_teams')} style={[s.tabBtn, activeTab === 'custom_teams' && s.tabActive]}>
-          <Users size={14} color={activeTab === 'custom_teams' ? '#fff' : SAC.muted} />
-          <Text style={[s.tabText, activeTab === 'custom_teams' && s.tabTextActive]}>AI Agent Teams (5)</Text>
-          <Badge label="TOP 5" color="amber" />
+          <Users size={14} color={activeTab === 'custom_teams' ? '#fff' : (isDark ? '#CBD5E1' : '#334155')} />
+          <Text style={[s.tabText, { color: activeTab === 'custom_teams' ? '#FFFFFF' : (isDark ? '#CBD5E1' : '#334155') }]}>AI Agent Teams (5)</Text>
+          {renderAgentBadge('TOP 5')}
         </Pressable>
         <Pressable onPress={() => setActiveTab('outreach_directory')} style={[s.tabBtn, activeTab === 'outreach_directory' && s.tabActive]}>
-          <Globe size={14} color={activeTab === 'outreach_directory' ? '#fff' : SAC.muted} />
-          <Text style={[s.tabText, activeTab === 'outreach_directory' && s.tabTextActive]}>Outreach & Goodies</Text>
-          <Badge label={`${selectedInterval}H SCOUT`} color="pink" />
+          <Globe size={14} color={activeTab === 'outreach_directory' ? '#fff' : (isDark ? '#CBD5E1' : '#334155')} />
+          <Text style={[s.tabText, { color: activeTab === 'outreach_directory' ? '#FFFFFF' : (isDark ? '#CBD5E1' : '#334155') }]}>Outreach & Goodies</Text>
+          {renderAgentBadge(`${selectedInterval}H SCOUT`)}
         </Pressable>
         <Pressable onPress={() => setActiveTab('swarm')} style={[s.tabBtn, activeTab === 'swarm' && s.tabActive]}>
-          <Layers size={14} color={activeTab === 'swarm' ? '#fff' : SAC.muted} />
-          <Text style={[s.tabText, activeTab === 'swarm' && s.tabTextActive]}>Multi-Agent Swarm</Text>
+          <Layers size={14} color={activeTab === 'swarm' ? '#fff' : (isDark ? '#CBD5E1' : '#334155')} />
+          <Text style={[s.tabText, { color: activeTab === 'swarm' ? '#FFFFFF' : (isDark ? '#CBD5E1' : '#334155') }]}>Multi-Agent Swarm</Text>
         </Pressable>
         <Pressable onPress={() => setActiveTab('autopilot')} style={[s.tabBtn, activeTab === 'autopilot' && s.tabActive]}>
-          <Zap size={14} color={activeTab === 'autopilot' ? '#fff' : SAC.muted} />
-          <Text style={[s.tabText, activeTab === 'autopilot' && s.tabTextActive]}>AutoGPT Auto-Pilot</Text>
+          <Zap size={14} color={activeTab === 'autopilot' ? '#fff' : (isDark ? '#CBD5E1' : '#334155')} />
+          <Text style={[s.tabText, { color: activeTab === 'autopilot' ? '#FFFFFF' : (isDark ? '#CBD5E1' : '#334155') }]}>AutoGPT Auto-Pilot</Text>
         </Pressable>
         <Pressable onPress={() => setActiveTab('qa')} style={[s.tabBtn, activeTab === 'qa' && s.tabActive]}>
-          <CheckCircle size={14} color={activeTab === 'qa' ? '#fff' : SAC.muted} />
-          <Text style={[s.tabText, activeTab === 'qa' && s.tabTextActive]}>Autonomous QA Testing</Text>
+          <CheckCircle size={14} color={activeTab === 'qa' ? '#fff' : (isDark ? '#CBD5E1' : '#334155')} />
+          <Text style={[s.tabText, { color: activeTab === 'qa' ? '#FFFFFF' : (isDark ? '#CBD5E1' : '#334155') }]}>Autonomous QA Testing</Text>
         </Pressable>
         <Pressable onPress={() => setActiveTab('specialized')} style={[s.tabBtn, activeTab === 'specialized' && s.tabActive]}>
-          <ShieldCheck size={14} color={activeTab === 'specialized' ? '#fff' : SAC.muted} />
-          <Text style={[s.tabText, activeTab === 'specialized' && s.tabTextActive]}>Specialized Audits</Text>
+          <ShieldCheck size={14} color={activeTab === 'specialized' ? '#fff' : (isDark ? '#CBD5E1' : '#334155')} />
+          <Text style={[s.tabText, { color: activeTab === 'specialized' ? '#FFFFFF' : (isDark ? '#CBD5E1' : '#334155') }]}>Specialized Audits</Text>
         </Pressable>
         <Pressable onPress={() => setActiveTab('daily_audit')} style={[s.tabBtn, activeTab === 'daily_audit' && s.tabActive]}>
-          <CheckCircle size={14} color={activeTab === 'daily_audit' ? '#fff' : SAC.muted} />
-          <Text style={[s.tabText, activeTab === 'daily_audit' && s.tabTextActive]}>24h Ops Swarm</Text>
+          <CheckCircle size={14} color={activeTab === 'daily_audit' ? '#fff' : (isDark ? '#CBD5E1' : '#334155')} />
+          <Text style={[s.tabText, { color: activeTab === 'daily_audit' ? '#FFFFFF' : (isDark ? '#CBD5E1' : '#334155') }]}>24h Ops Swarm</Text>
         </Pressable>
         <Pressable onPress={() => setActiveTab('cicd')} style={[s.tabBtn, activeTab === 'cicd' && s.tabActive]}>
-          <Code size={14} color={activeTab === 'cicd' ? '#fff' : SAC.muted} />
-          <Text style={[s.tabText, activeTab === 'cicd' && s.tabTextActive]}>CI/CD PR Evaluator</Text>
-          <Badge label="GIT SCOUT" color="indigo" />
+          <Code size={14} color={activeTab === 'cicd' ? '#fff' : (isDark ? '#CBD5E1' : '#334155')} />
+          <Text style={[s.tabText, { color: activeTab === 'cicd' ? '#FFFFFF' : (isDark ? '#CBD5E1' : '#334155') }]}>CI/CD PR Evaluator</Text>
+          {renderAgentBadge('GIT SCOUT')}
         </Pressable>
       </View>
 
@@ -711,20 +737,21 @@ export function AutonomousAgentsView() {
                 const isPreset = team.is_preset;
                 return (
                   <View key={team.id} style={[s.teamCard, isSelected && s.teamCardSelected]}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 140 }}>
                         <View style={[s.teamBadgeIcon, { backgroundColor: team.color || SAC.primary }]}>
                           <Bot size={16} color="#fff" />
                         </View>
-                        <View>
-                          <Text style={s.teamName}>{team.name}</Text>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={s.teamName} numberOfLines={1}>{team.name}</Text>
                           <Text style={s.teamCat}>{team.category?.toUpperCase()} • {team.agents?.length || 0} AGENTS</Text>
                         </View>
                       </View>
                       {isPreset ? (
-                        <Badge label="PRESET TEAM" color="amber" />
+                        <View style={{ maxWidth: '100%' }}>{renderAgentBadge('PRESET TEAM', 'amber')}</View>
                       ) : (
-                        <View style={{ flexDirection: 'row', gap: 4 }}>
+                        <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          {renderAgentBadge('CUSTOM TEAM', 'amber')}
                           <Pressable onPress={() => openEditModal(team)} style={s.iconBtn}>
                             <Pencil size={12} color={SAC.muted} />
                           </Pressable>
@@ -740,19 +767,33 @@ export function AutonomousAgentsView() {
                     {/* Agent Roster Avatars */}
                     <View style={{ flexDirection: 'row', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
                       {team.agents?.map((ag: any, i: number) => (
-                        <View key={i} style={s.agentPill}>
-                          <Text style={{ fontSize: 11 }}>{ag.avatar || '🤖'}</Text>
-                          <Text style={s.agentPillText}>{ag.role || ag.name}</Text>
+                        <View key={i} style={[
+                          s.agentPill,
+                          {
+                            backgroundColor: isDark ? 'rgba(30,41,59,0.7)' : '#F8FAFC',
+                            borderColor: isDark ? 'rgba(51,65,85,0.6)' : '#E2E8F0',
+                          },
+                        ]}>
+                            <Bot size={11} color={isDark ? '#CBD5E1' : '#475569'} />
+                            <Text style={[s.agentPillText, { color: isDark ? '#F1F5F9' : '#1E293B' }]}>{ag.role || ag.name}</Text>
                         </View>
                       ))}
                     </View>
 
                     <Pressable
-                      style={[s.selectBtn, isSelected && s.selectBtnActive]}
+                      style={({ hovered }: any) => [
+                        s.selectBtn,
+                        isSelected
+                          ? { backgroundColor: hovered ? '#4338CA' : '#4F46E5', borderColor: '#4F46E5' }
+                          : {
+                              backgroundColor: isDark ? (hovered ? '#334155' : '#1E293B') : (hovered ? '#F8FAFC' : '#FFFFFF'),
+                              borderColor: isDark ? '#334155' : '#CBD5E1',
+                            },
+                      ]}
                       onPress={() => setSelectedTeam(team)}
                     >
-                      <Text style={[s.selectBtnText, isSelected && { color: SAC.text }]}>
-                        {isSelected ? '✓ Selected Team' : 'Select Team'}
+                      <Text style={[s.selectBtnText, { color: isSelected ? '#FFFFFF' : (isDark ? '#F1F5F9' : '#1E293B') }]}>
+                        {isSelected ? ' Selected Team' : 'Select Team'}
                       </Text>
                     </Pressable>
                   </View>
@@ -775,7 +816,7 @@ export function AutonomousAgentsView() {
               </View>
 
               <View style={{ gap: 10 }}>
-                <Text style={s.label}>Task Goal / Instruction Prompt</Text>
+                <Text style={[s.label, { color: isDark ? '#E2E8F0' : '#0F172A' }]}>Task Goal / Instruction Prompt</Text>
                 <TextInput
                   value={teamTaskPrompt}
                   onChangeText={setTeamTaskPrompt}
@@ -828,7 +869,7 @@ export function AutonomousAgentsView() {
           <View style={{ border: '1px solid #3A2E72', borderRadius: 16, padding: 20, backgroundColor: 'rgba(27,20,58,0.85)', gap: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
               <View style={{ gap: 4, flex: 1 }}>
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#FFF' }}>🤖 Autonomous Goodies Harvester & Multi-Spec Outreach Swarm</Text>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#FFF' }}> Autonomous Goodies Harvester & Multi-Spec Outreach Swarm</Text>
                 <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: SAC.muted }}>Scouts platforms for free student goodies/coupons and dispatches multi-spec partnership contracts in an automated loop.</Text>
               </View>
 
@@ -849,9 +890,9 @@ export function AutonomousAgentsView() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#A78BFA' }}>Select Spec Template:</Text>
               {[
-                { id: 'goodies_partnership', label: '🎁 Goodies & Perks Spec' },
-                { id: 'event_sponsorship', label: '⚡ ECHO Event Sponsorship Spec' },
-                { id: 'alumni_mentorship', label: '🎓 Alumni Mentorship Spec' }
+                { id: 'goodies_partnership', label: ' Goodies & Perks Spec' },
+                { id: 'event_sponsorship', label: ' ECHO Event Sponsorship Spec' },
+                { id: 'alumni_mentorship', label: ' Alumni Mentorship Spec' }
               ].map((st) => (
                 <Pressable
                   key={st.id}
@@ -866,14 +907,14 @@ export function AutonomousAgentsView() {
             {/* Harvester / Spec Results Display */}
             {harvesterResult && (
               <View style={{ border: '1px solid #10B981', borderRadius: 10, padding: 14, backgroundColor: 'rgba(16,185,129,0.1)', gap: 6 }}>
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#10B981' }}>✅ Goodies Harvester Output ({harvesterResult.offers_harvested} Platforms Discovered)</Text>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#10B981' }}> Goodies Harvester Output ({harvesterResult.offers_harvested} Platforms Discovered)</Text>
                 <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: '#D1FAE5' }}>{harvesterResult.message}</Text>
               </View>
             )}
 
             {specDispatchResult && (
               <View style={{ border: '1px solid #3B82F6', borderRadius: 10, padding: 14, backgroundColor: 'rgba(59,130,246,0.1)', gap: 6 }}>
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#60A5FA' }}>🚀 Dispatched Specs ({specDispatchResult.dispatched_count} Sent)</Text>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#60A5FA' }}> Dispatched Specs ({specDispatchResult.dispatched_count} Sent)</Text>
                 <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: '#DBEAFE' }}>{specDispatchResult.message}</Text>
               </View>
             )}
@@ -1082,7 +1123,7 @@ export function AutonomousAgentsView() {
                     {/* Discovered Free Goodies & Sponsorship Vouchers */}
                     {comm.free_goodies && comm.free_goodies.length > 0 && (
                       <View style={{ marginTop: 10, gap: 8 }}>
-                        <Text style={{ color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 12 }}>🎁 Unlocked Free Goodies & Sponsorship Perks:</Text>
+                        <Text style={{ color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 12 }}> Unlocked Free Goodies & Sponsorship Perks:</Text>
                         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
                           {comm.free_goodies.map((g: any, idx: number) => (
                             <View key={idx} style={s.goodieCard}>
@@ -1210,12 +1251,12 @@ export function AutonomousAgentsView() {
 
                 {generatedSocial && (
                   <View style={{ gap: 14 }}>
-                    <Text style={s.sectionHeader}>🟦 LinkedIn Spotlight Post</Text>
+                    <Text style={s.sectionHeader}> LinkedIn Spotlight Post</Text>
                     <View style={s.artifactCard}>
                       <Text style={s.codeBlock}>{generatedSocial.linkedin_post}</Text>
                     </View>
 
-                    <Text style={s.sectionHeader}>⬛ Twitter / X Spotlight Post</Text>
+                    <Text style={s.sectionHeader}> Twitter / X Spotlight Post</Text>
                     <View style={s.artifactCard}>
                       <Text style={s.codeBlock}>{generatedSocial.twitter_post}</Text>
                     </View>
@@ -1392,7 +1433,7 @@ export function AutonomousAgentsView() {
                         onPress={() => setCampaignChannel('email')}
                         style={[s.roleChip, campaignChannel === 'email' && s.roleChipActive]}
                       >
-                        <Text style={[s.roleChipText, campaignChannel === 'email' && { color: SAC.text }]}>✉ Email Outreach</Text>
+                        <Text style={[s.roleChipText, campaignChannel === 'email' && { color: SAC.text }]}> Email Outreach</Text>
                       </Pressable>
                       <Pressable
                         onPress={() => setCampaignChannel('whatsapp')}
@@ -1491,7 +1532,7 @@ export function AutonomousAgentsView() {
       {activeTab === 'swarm' && (
         <View style={s.card}>
           <Text style={s.cardTitle}>MetaGPT / ChatDev Swarm Pipeline</Text>
-          <Text style={s.cardSub}>Collaborative agent chain: Product Manager (Sarah) ➔ Architect (David) ➔ Engineer (Alex) ➔ QA Auditor (Elena).</Text>
+          <Text style={s.cardSub}>Collaborative agent chain: Product Manager (Sarah)  Architect (David)  Engineer (Alex)  QA Auditor (Elena).</Text>
 
           <View style={{ gap: 10, marginTop: 14 }}>
             <Text style={s.label}>Project Title</Text>
@@ -1522,15 +1563,15 @@ export function AutonomousAgentsView() {
 
               <Text style={s.sectionHeader}>Generated Artifacts</Text>
               <View style={s.artifactCard}>
-                <Text style={s.artifactHeader}>📄 PRD & Specifications</Text>
+                <Text style={s.artifactHeader}> PRD & Specifications</Text>
                 <Text style={s.codeBlock}>{swarmResult.prd}</Text>
               </View>
               <View style={s.artifactCard}>
-                <Text style={s.artifactHeader}>🏗️ System Architecture</Text>
+                <Text style={s.artifactHeader}> System Architecture</Text>
                 <Text style={s.codeBlock}>{swarmResult.architecture}</Text>
               </View>
               <View style={s.artifactCard}>
-                <Text style={s.artifactHeader}>🛡️ QA & Security Sign-Off</Text>
+                <Text style={s.artifactHeader}> QA & Security Sign-Off</Text>
                 <Text style={s.codeBlock}>{swarmResult.qa_report}</Text>
               </View>
             </View>
@@ -1542,7 +1583,7 @@ export function AutonomousAgentsView() {
       {activeTab === 'autopilot' && (
         <View style={s.card}>
           <Text style={s.cardTitle}>AutoGPT Autonomous Task Engine</Text>
-          <Text style={s.cardSub}>Executes high-level goals through autonomous Thought ➔ Plan ➔ Action ➔ Memory reflection loops.</Text>
+          <Text style={s.cardSub}>Executes high-level goals through autonomous Thought  Plan  Action  Memory reflection loops.</Text>
 
           <View style={{ gap: 10, marginTop: 14 }}>
             <Text style={s.label}>Operational Goal</Text>
@@ -1613,7 +1654,7 @@ export function AutonomousAgentsView() {
                     <Text style={s.latencyTag}>{ass.latency_ms}ms</Text>
                   </View>
                   <Text style={s.assertionEndpoint}>{ass.endpoint}</Text>
-                  <Text style={s.assertionMsg}>{ass.passed ? '✓ Passed' : '✗ Failed'}: {ass.details}</Text>
+                  <Text style={s.assertionMsg}>{ass.passed ? ' Passed' : ' Failed'}: {ass.details}</Text>
                 </View>
               ))}
             </View>
@@ -1848,6 +1889,8 @@ const s = StyleSheet.create({
   teamDesc: { color: '#cbd5e1', fontFamily: FONTS.med, fontSize: 12, lineHeight: 16 },
   agentPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: SAC.border, borderWidth: 1 },
   agentPillText: { color: '#ddd', fontFamily: FONTS.med, fontSize: 11 },
+  agentBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, alignSelf: 'flex-start' },
+  agentBadgeText: { fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.3 },
   selectBtn: { height: 34, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: SAC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
   selectBtnActive: { backgroundColor: SAC.primary, borderColor: SAC.accent },
   selectBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },

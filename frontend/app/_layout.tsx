@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import '@/global.css';
 import { usePathname } from 'expo-router';
 import {
   useFonts,
@@ -19,10 +20,9 @@ import { ActivityIndicator, LogBox, Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { PaperProvider, MD3LightTheme, configureFonts } from 'react-native-paper';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { Colors } from '@/src/theme';
 import { ToastProvider, ConfirmProvider } from '@/src/views/components';
 import { SAModernLoader } from '@/src/views/components/SAModernLoader';
 import { GlobalTopProgressBar } from '@/src/views/web/components/AppLoader';
@@ -34,7 +34,7 @@ import { TourProvider } from '@/src/views/web/tour/TourProvider';
 import { TourOverlay } from '@/src/views/web/tour/TourOverlay';
 import { AnnouncementPopup } from '@/src/views/web/components/AnnouncementPopup';
 import { initGlobalErrorLogger } from '@/src/utils/globalErrorLogger';
-import { ThemeProvider } from '@/src/theme/ThemeContext';
+import { ThemeProvider, useTheme } from '@/src/theme/ThemeContext';
 
 LogBox.ignoreLogs(['6000ms timeout exceeded', 'fontfaceobserver']);
 // `window` exists on React Native too (it is a global alias), so every DOM
@@ -77,27 +77,67 @@ if (IS_WEB_DOM) {
 const m3FontConfig = {
   fontFamily: 'DMSans_500Medium',
 };
-const SAPaperTheme = {
-  ...MD3LightTheme,
-  fonts: configureFonts({ config: m3FontConfig }),
-  colors: {
-    ...MD3LightTheme.colors,
-    primary: Colors.brandPurple,
-    onPrimary: Colors.white,
-    primaryContainer: Colors.palePurple,
-    onPrimaryContainer: Colors.deepPurple,
-    secondary: Colors.midPurple,
-    onSecondary: Colors.white,
-    secondaryContainer: Colors.paleLavender,
-    onSecondaryContainer: Colors.deepPurple,
-    surface: Colors.surface,
-    surfaceVariant: Colors.palePurple,
-    background: Colors.background,
-    onSurface: Colors.textPrimary,
-    onSurfaceVariant: Colors.textSecondary,
-    outline: Colors.border,
-  },
-};
+function ThemeAwareApplication({ routeTransitioning }: { routeTransitioning: boolean }) {
+  const { theme, isDark } = useTheme();
+  const paperTheme = useMemo(() => ({
+    ...MD3LightTheme,
+    dark: isDark,
+    fonts: configureFonts({ config: m3FontConfig }),
+    colors: {
+      ...MD3LightTheme.colors,
+      primary: '#7C3AED',
+      onPrimary: '#FFFFFF',
+      primaryContainer: theme.bgInset,
+      onPrimaryContainer: theme.text,
+      secondary: '#7B3DBF',
+      onSecondary: '#FFFFFF',
+      secondaryContainer: theme.bgInset,
+      onSecondaryContainer: theme.text,
+      surface: theme.bgElevated,
+      surfaceVariant: theme.bgInset,
+      background: theme.bg,
+      onSurface: theme.text,
+      onSurfaceVariant: theme.textSec,
+      outline: theme.hairline,
+    },
+  }), [isDark, theme]);
+
+  return (
+    <PaperProvider theme={paperTheme}>
+      <SafeAreaProvider>
+        <ToastProvider>
+          <ConfirmProvider>
+            <TourProvider>
+              <StatusBar style={isDark ? 'light' : 'dark'} />
+              <GlobalTopProgressBar active={routeTransitioning} />
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: theme.bg },
+                  animation: 'slide_from_right',
+                  animationDuration: 350,
+                }}
+              >
+                <Stack.Screen
+                  name="profile/[id]"
+                  options={{
+                    presentation: 'transparentModal',
+                    animation: 'fade',
+                    contentStyle: { backgroundColor: 'transparent' },
+                  }}
+                />
+              </Stack>
+              <AgentKQuickLauncher />
+              <ConsentBanner />
+              <TourOverlay />
+              <AnnouncementPopup />
+            </TourProvider>
+          </ConfirmProvider>
+        </ToastProvider>
+      </SafeAreaProvider>
+    </PaperProvider>
+  );
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -158,43 +198,7 @@ export default function RootLayout() {
       <AnalyticsRoot>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <ThemeProvider>
-          <PaperProvider theme={SAPaperTheme}>
-            <SafeAreaProvider>
-              <ToastProvider>
-                <ConfirmProvider>
-                <TourProvider>
-                  <StatusBar style="light" />
-                  <GlobalTopProgressBar active={routeTransitioning} />
-                  <Stack
-                    screenOptions={{
-                      headerShown: false,
-                      contentStyle: { backgroundColor: Colors.background },
-                      animation: 'slide_from_right',
-                      animationDuration: 350,
-                    }}
-                  >
-                    <Stack.Screen 
-                      name="profile/[id]" 
-                      options={{ 
-                        presentation: 'transparentModal', 
-                        animation: 'fade',
-                        contentStyle: { backgroundColor: 'transparent' }
-                      }} 
-                    />
-                  </Stack>
-                  {/* Agent K — global Cmd/Ctrl+K quick launcher modal */}
-                  <AgentKQuickLauncher />
-                  {/* Phase B — privacy & cookie consent banner (web only) */}
-                  <ConsentBanner />
-                  {/* Phase B — product tour spotlight overlay (web only) */}
-                  <TourOverlay />
-                  {/* Global announcement popup (web only, feature-flagged via backend) */}
-                  <AnnouncementPopup />
-                </TourProvider>
-                </ConfirmProvider>
-              </ToastProvider>
-            </SafeAreaProvider>
-          </PaperProvider>
+          <ThemeAwareApplication routeTransitioning={routeTransitioning} />
           </ThemeProvider>
         </GestureHandlerRootView>
       </AnalyticsRoot>

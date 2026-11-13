@@ -2,7 +2,7 @@
  * HorizontalRoadmap.tsx
  *
  * Full-width horizontal stepper roadmap with 5 connected nodes matching Image 1 reference:
- *   Step 1: Completed (Green ✓) | Complete Profile | +5%
+ *   Step 1: Completed (Green ) | Complete Profile | +5%
  *   Step 2: Current Step (Purple '2') | Build Your Resume | 60%
  *   Step 3: Next Step (Grey '3') | Build Portfolio | 0%
  *   Step 4: Upcoming (Grey '4') | Network with Alumni | Locked

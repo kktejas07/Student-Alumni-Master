@@ -7,6 +7,9 @@ import { View, Text, StyleSheet, Pressable, TextInput, Animated, Easing, Platfor
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { LucideIcon } from 'lucide-react-native';
+import {
+  AlertCircle, AlertTriangle, Bell, CheckCircle2, Info, Search,
+} from 'lucide-react-native';
 import { SA, SAGradients } from './tokens';
 import { SALogo } from '@/src/views/components';
 
@@ -140,7 +143,7 @@ export function SearchBar({
 }) {
   return (
     <View style={[styles.searchWrap, { width }]}>
-      <Text style={{ fontSize: 14, opacity: 0.55 }}></Text>
+      <Search size={16} color={SA.textWhisper} />
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -192,30 +195,31 @@ export function StatusBanner({
   type?: 'success' | 'info' | 'warning' | 'error';
   msg: string;
 }) {
-  const map: Record<string, { bg: string; bd: string; c: string; i: string }> = {
-    success: { bg: 'rgba(22,163,74,0.2)', bd: 'rgba(134,239,172,0.4)', c: SA.success, i: '✓' },
-    error: { bg: 'rgba(220,38,38,0.2)', bd: 'rgba(252,165,165,0.4)', c: SA.danger, i: '×' },
-    info: { bg: 'rgba(95,37,159,0.25)', bd: 'rgba(176,127,223,0.35)', c: SA.purplePale, i: 'ℹ' },
-    warning: { bg: 'rgba(217,119,6,0.2)', bd: 'rgba(252,211,77,0.4)', c: SA.warn, i: '!' },
+  const map: Record<string, { bg: string; bd: string; c: string; Icon: LucideIcon }> = {
+    success: { bg: 'rgba(22,163,74,0.2)', bd: 'rgba(134,239,172,0.4)', c: SA.success, Icon: CheckCircle2 },
+    error: { bg: 'rgba(220,38,38,0.2)', bd: 'rgba(252,165,165,0.4)', c: SA.danger, Icon: AlertCircle },
+    info: { bg: 'rgba(95,37,159,0.25)', bd: 'rgba(176,127,223,0.35)', c: SA.purplePale, Icon: Info },
+    warning: { bg: 'rgba(217,119,6,0.2)', bd: 'rgba(252,211,77,0.4)', c: SA.warn, Icon: AlertTriangle },
   };
   const s = map[type] || map.info;
+  const Icon = s.Icon;
   return (
     <View style={{
       backgroundColor: s.bg, borderColor: s.bd, borderWidth: 1,
       borderRadius: 10, padding: 10,
       flexDirection: 'row', gap: 10, alignItems: 'center', marginVertical: 8,
     }}>
-      <Text style={{ fontSize: 13, color: s.c, fontFamily: SA.fontBold }}>{s.i}</Text>
+      <Icon size={16} color={s.c} />
       <Text style={{ fontSize: 13, color: s.c, fontFamily: SA.fontMedium, flex: 1 }}>{msg}</Text>
     </View>
   );
 }
 
 // ─── EmptyState ──────────────────────────────────────────────────────────────
-export function EmptyState({ icon = '', title, sub }: { icon?: string; title: string; sub?: string }) {
+export function EmptyState({ icon: Icon, title, sub }: { icon?: LucideIcon; title: string; sub?: string }) {
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
-      <Text style={{ fontSize: 38 }}>{icon}</Text>
+      {Icon && <Icon size={38} color={SA.textMuted} />}
       <Text style={{ fontSize: 16, color: SA.white, fontFamily: SA.fontBold, marginTop: 12 }}>{title}</Text>
       {sub && (
         <Text style={{ fontSize: 13, color: SA.textFaint, fontFamily: SA.font, marginTop: 4, textAlign: 'center', maxWidth: 320 }}>
@@ -420,13 +424,13 @@ export function PageHeader({
 
 // ─── KPI tile ────────────────────────────────────────────────────────────────
 export function KpiTile({
-  emoji,
+  Icon,
   label,
   value,
   note,
   noteColor = SA.success,
 }: {
-  emoji: string;
+  Icon?: LucideIcon;
   label: string;
   value: string;
   note?: string;
@@ -434,7 +438,7 @@ export function KpiTile({
 }) {
   return (
     <GlassCard pad={18} style={{ flex: 1, minWidth: 180 }}>
-      <Text style={{ fontSize: 22, marginBottom: 10 }}>{emoji}</Text>
+      {Icon && <Icon size={22} color={SA.purplePale} style={{ marginBottom: 10 }} />}
       <Text style={{
         fontSize: 11, color: SA.textFaint, fontFamily: SA.fontSemi,
         letterSpacing: 0.4, marginBottom: 4,
@@ -496,7 +500,7 @@ export function BellIcon({ count, onPress }: { count?: number; onPress?: () => v
       ]}
       testID="platform-bell"
     >
-      <Text style={{ fontSize: 18 }}></Text>
+      <Bell size={18} color="#FFFFFF" />
       <Badge count={count || 0} />
     </Pressable>
   );

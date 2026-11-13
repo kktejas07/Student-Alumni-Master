@@ -281,3 +281,85 @@
   background: rgba(124,92,252,.2);
   border-color: #8B7BFF !important;
 }
+
+/* Keep legacy inline-styled Super Admin screens aligned with the light theme. */
+html.light-mode .sa-admin-theme {
+  color: #0F172A;
+}
+
+html.light-mode .sa-admin-theme [style*="rgb(8, 8, 15)"],
+html.light-mode .sa-admin-theme [style*="rgb(10, 10, 18)"],
+html.light-mode .sa-admin-theme [style*="rgb(13, 14, 26)"],
+html.light-mode .sa-admin-theme [style*="rgb(15, 15, 26)"] {
+  background-color: #F8FAFC !important;
+}
+
+html.light-mode .sa-admin-theme [style*="rgb(16, 16, 25)"],
+html.light-mode .sa-admin-theme [style*="rgb(20, 20, 31)"],
+html.light-mode .sa-admin-theme [style*="rgb(20, 20, 36)"] {
+  background-color: #FFFFFF !important;
+}
+
+html.light-mode .sa-admin-theme [style*="rgb(26, 26, 41)"],
+html.light-mode .sa-admin-theme [style*="rgb(26, 26, 46)"],
+html.light-mode .sa-admin-theme [style*="rgba(255, 255, 255, 0.02)"],
+html.light-mode .sa-admin-theme [style*="rgba(255, 255, 255, 0.03)"],
+html.light-mode .sa-admin-theme [style*="rgba(255, 255, 255, 0.04)"],
+html.light-mode .sa-admin-theme [style*="rgba(255, 255, 255, 0.06)"],
+html.light-mode .sa-admin-theme [style*="rgba(255, 255, 255, 0.08)"] {
+  background-color: #F1F5F9 !important;
+}
+
+html.light-mode .sa-admin-theme [style*="rgb(31, 31, 48)"],
+html.light-mode .sa-admin-theme [style*="rgb(35, 35, 56)"] {
+  border-color: #E2E8F0 !important;
+}
+
+html.light-mode .sa-admin-theme [style*="color: rgb(244, 244, 250)"],
+html.light-mode .sa-admin-theme [style*="color: rgb(244, 244, 246)"] {
+  color: #0F172A !important;
+}
+
+html.light-mode .sa-admin-theme [style*="color: rgb(138, 138, 158)"],
+html.light-mode .sa-admin-theme [style*="color: rgb(126, 126, 146)"],
+html.light-mode .sa-admin-theme [style*="color: rgb(161, 166, 183)"] {
+  color: #64748B !important;
+}
+
+html.light-mode .sa-admin-theme [style*="color: rgb(16, 185, 129)"],
+html.light-mode .sa-admin-theme [style*="color: rgb(52, 211, 153)"],
+html.light-mode .sa-admin-theme [style*="color: rgb(110, 231, 183)"] {
+  color: #047857 !important;
+}
+
+html.light-mode .sa-admin-theme [style*="color: rgb(245, 158, 11)"],
+html.light-mode .sa-admin-theme [style*="color: rgb(245, 179, 66)"] {
+  color: #B45309 !important;
+}
+
+html.light-mode .sa-admin-theme [style*="color: rgb(239, 68, 68)"],
+html.light-mode .sa-admin-theme [style*="color: rgb(252, 165, 165)"] {
+  color: #BE123C !important;
+}
+
+html.light-mode .sa-admin-theme [style*="color: rgb(216, 180, 254)"] {
+  color: #6B21A8 !important;
+}
+
+html.light-mode .sa-admin-theme input,
+html.light-mode .sa-admin-theme textarea,
+html.light-mode .sa-admin-theme select {
+  background-color: #FFFFFF !important;
+  border-color: #CBD5E1 !important;
+  color: #0F172A !important;
+}
+
+html.light-mode .sa-admin-theme input::placeholder,
+html.light-mode .sa-admin-theme textarea::placeholder {
+  color: #94A3B8 !important;
+}
+
+html.light-mode .sa-admin-theme th {
+  background-color: #F8FAFC;
+  color: #475569;
+}

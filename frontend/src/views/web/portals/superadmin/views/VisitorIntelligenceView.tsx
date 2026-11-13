@@ -31,6 +31,7 @@ import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { Card, GRAD, SecondaryButton, GradientButton, StatusPill, TopTabs } from '../applekit';
 import { getBaseUrl } from '@/src/lib/env';
 import { request } from '@/src/models/services/api';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 const BASE_URL = getBaseUrl();
 
@@ -38,10 +39,12 @@ type TabId = 'live' | 'heatmap' | 'modules' | 'hardware' | 'geo' | 'acquisition'
 
 export function VisitorIntelligenceView() {
   const T = useSAC();
+  const { isDark } = useTheme();
   Object.assign(s, resolveColors(s, T));
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const isTablet = width < 1100;
+  const kpiCardLayout = { flexBasis: isMobile ? '100%' : isTablet ? '48%' : '22%' } as const;
 
   const [activeTab, setActiveTab] = useState<TabId>('live');
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -241,7 +244,7 @@ export function VisitorIntelligenceView() {
   };
 
   const getCountryFlag = (code?: string) => {
-    if (!code || code === '??' || code.length !== 2) return '🌐';
+    if (!code || code === '??' || code.length !== 2) return '';
     const codePoints = code
       .toUpperCase()
       .split('')
@@ -271,8 +274,8 @@ export function VisitorIntelligenceView() {
             onPress={() => setAutoRefresh(!autoRefresh)}
             style={[s.toggleBtn, autoRefresh && s.toggleBtnActive]}
           >
-            <Activity size={14} color={autoRefresh ? '#10B981' : SAC.muted} />
-            <Text style={[s.toggleBtnText, autoRefresh && { color: '#10B981' }]}>
+            <Activity size={14} color={autoRefresh ? T.ok : T.muted} />
+            <Text style={[s.toggleBtnText, autoRefresh && { color: T.ok }]}>
               {autoRefresh ? 'Live Pulse (10s)' : 'Pulse Paused'}
             </Text>
           </Pressable>
@@ -294,15 +297,15 @@ export function VisitorIntelligenceView() {
             }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <RefreshCw size={13} color="#C4B5FD" />
-              <Text style={{ color: SAC.text, fontSize: 13, fontFamily: FONTS.med }}>Refresh</Text>
+              <RefreshCw size={13} color={T.violet} />
+              <Text style={{ color: T.text, fontSize: 13, fontFamily: FONTS.med }}>Refresh</Text>
             </View>
           </SecondaryButton>
 
           <GradientButton size="sm" onPress={handleExportCSV} loading={exporting}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Download size={14} color="#fff" />
-              <Text style={{ color: SAC.text, fontSize: 13, fontFamily: FONTS.bold }}>Export CSV</Text>
+              <Text style={{ color: T.accentText, fontSize: 13, fontFamily: FONTS.bold }}>Export CSV</Text>
             </View>
           </GradientButton>
         </View>
@@ -310,58 +313,58 @@ export function VisitorIntelligenceView() {
 
       {/* ── KPI Summary Cards ──────────────────────────────────────────────── */}
       <View style={s.kpiGrid}>
-        <Card style={s.kpiCard}>
+        <Card style={[s.kpiCard, kpiCardLayout]}>
           <View style={s.kpiIconWrap}>
             <Radar size={20} color="#10B981" />
           </View>
-          <View>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={s.kpiLabel}>Live On Site Right Now</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
+            <View style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 0 }}>
               <Text style={s.kpiValue}>{summary.total_live}</Text>
-              <Text style={s.kpiSubGreen}>
+              <Text style={[s.kpiSubGreen, { flexShrink: 1 }]}>
                 {summary.guests_live} Guests • {summary.registered_live} Registered
               </Text>
             </View>
           </View>
         </Card>
 
-        <Card style={s.kpiCard}>
+        <Card style={[s.kpiCard, kpiCardLayout]}>
           <View style={[s.kpiIconWrap, { backgroundColor: 'rgba(245,158,11,0.15)', borderColor: 'rgba(245,158,11,0.3)' }]}>
             <UserX size={20} color="#F59E0B" />
           </View>
-          <View>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={s.kpiLabel}>Guest Visitors (Unregistered)</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
+            <View style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 0 }}>
               <Text style={s.kpiValue}>
                 {summary.total_live > 0 ? Math.round((summary.guests_live / summary.total_live) * 100) : 0}%
               </Text>
-              <Text style={s.kpiSub}>Tracked anonymously via hardware & IP</Text>
+              <Text style={[s.kpiSub, { flexShrink: 1 }]}>Tracked anonymously via hardware & IP</Text>
             </View>
           </View>
         </Card>
 
-        <Card style={s.kpiCard}>
+        <Card style={[s.kpiCard, kpiCardLayout]}>
           <View style={[s.kpiIconWrap, { backgroundColor: 'rgba(124,58,237,0.15)', borderColor: 'rgba(124,58,237,0.3)' }]}>
             <Users size={20} color="#A78BFA" />
           </View>
-          <View>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={s.kpiLabel}>24h Unique Visitors</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
+            <View style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 0 }}>
               <Text style={s.kpiValue}>{summary.total_visitors_24h}</Text>
-              <Text style={s.kpiSub}>Distinct hardware fingerprints</Text>
+              <Text style={[s.kpiSub, { flexShrink: 1 }]}>Distinct hardware fingerprints</Text>
             </View>
           </View>
         </Card>
 
-        <Card style={s.kpiCard}>
+        <Card style={[s.kpiCard, kpiCardLayout]}>
           <View style={[s.kpiIconWrap, { backgroundColor: 'rgba(59,130,246,0.15)', borderColor: 'rgba(59,130,246,0.3)' }]}>
             <Eye size={20} color="#60A5FA" />
           </View>
-          <View>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={s.kpiLabel}>24h Pageviews Volume</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
+            <View style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 0 }}>
               <Text style={s.kpiValue}>{summary.total_pageviews_24h}</Text>
-              <Text style={s.kpiSub}>Across all platform modules</Text>
+              <Text style={[s.kpiSub, { flexShrink: 1 }]}>Across all platform modules</Text>
             </View>
           </View>
         </Card>
@@ -394,11 +397,11 @@ export function VisitorIntelligenceView() {
           {/* Filters & Search Toolbar */}
           <Card style={s.filterBar}>
             <View style={s.searchWrap}>
-              <Search size={15} color={SAC.muted} />
+              <Search size={15} color={T.muted} />
               <TextInput
                 style={s.searchInput}
                 placeholder="Search by IP, City, Inferred Name, Email, or Hardware Fingerprint..."
-                placeholderTextColor={SAC.dim}
+                placeholderTextColor={T.dim}
                 value={searchQuery}
                 onChangeText={(val) => {
                   setSearchQuery(val);
@@ -407,7 +410,7 @@ export function VisitorIntelligenceView() {
               />
               {searchQuery ? (
                 <Pressable onPress={() => { setSearchQuery(''); fetchVisitorsList(1); }}>
-                  <X size={15} color={SAC.muted} />
+                  <X size={15} color={T.muted} />
                 </Pressable>
               ) : null}
             </View>
@@ -465,7 +468,7 @@ export function VisitorIntelligenceView() {
                     onPress={() => { setModuleFilter(m); fetchVisitorsList(1); }}
                     style={[s.selectPill, moduleFilter === m && s.selectPillActive]}
                   >
-                    <Text style={[s.selectPillText, moduleFilter === m && { color: '#C4B5FD' }]}>
+                    <Text style={[s.selectPillText, moduleFilter === m && s.selectPillTextActive]}>
                       {m === 'all' ? 'All Modules' : m.toUpperCase()}
                     </Text>
                   </Pressable>
@@ -478,13 +481,13 @@ export function VisitorIntelligenceView() {
           {loading ? (
             <Card style={{ padding: 40, alignItems: 'center', gap: 12 }}>
               <ActivityIndicator size="large" color="#A78BFA" />
-              <Text style={{ color: SAC.muted, fontSize: 14 }}>Scanning live visitor telemetry & network traces...</Text>
+              <Text style={{ color: T.muted, fontSize: 14 }}>Scanning live visitor telemetry & network traces...</Text>
             </Card>
           ) : visitorsList.length === 0 ? (
             <Card style={{ padding: 40, alignItems: 'center', gap: 10 }}>
-              <Radar size={36} color={SAC.dim} />
-              <Text style={{ color: SAC.text, fontSize: 16, fontFamily: FONTS.bold }}>No Visitors Matching Filter</Text>
-              <Text style={{ color: SAC.muted, fontSize: 13, textAlign: 'center', maxWidth: 400 }}>
+              <Radar size={36} color={T.dim} />
+              <Text style={{ color: T.text, fontSize: 16, fontFamily: FONTS.bold }}>No Visitors Matching Filter</Text>
+              <Text style={{ color: T.muted, fontSize: 13, textAlign: 'center', maxWidth: 400 }}>
                 Try adjusting your search query, status, or module filters to view matching visitor sessions.
               </Text>
             </Card>
@@ -495,6 +498,30 @@ export function VisitorIntelligenceView() {
                 const dev = v.device || {};
                 const isOnline = v.status === 'online';
                 const flag = getCountryFlag(geo.country_code);
+                const statusPill = (label: string, kind: 'warn' | 'neutral') => {
+                  const warning = kind === 'warn';
+                  return (
+                    <View style={[
+                      s.visitorStatusPill,
+                      warning
+                        ? {
+                            backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : '#FEF3C7',
+                            borderColor: isDark ? 'rgba(245,158,11,0.3)' : '#FDE68A',
+                          }
+                        : {
+                            backgroundColor: isDark ? '#1E293B' : 'rgba(226,232,240,0.8)',
+                            borderColor: isDark ? '#334155' : '#CBD5E1',
+                          },
+                    ]}>
+                      <Text style={[
+                        s.visitorStatusPillText,
+                        { color: warning ? (isDark ? '#FCD34D' : '#92400E') : (isDark ? '#CBD5E1' : '#334155') },
+                      ]}>
+                        {label}
+                      </Text>
+                    </View>
+                  );
+                };
 
                 return (
                   <Card key={v.session_id || v._id} style={s.visitorCard}>
@@ -515,26 +542,26 @@ export function VisitorIntelligenceView() {
                             {v.is_registered ? (
                               <StatusPill label={`Member (${v.user_role || 'user'})`} kind="brand" />
                             ) : (
-                              <StatusPill label="Unregistered Guest" kind="warn" />
+                              statusPill('Unregistered Guest', 'warn')
                             )}
 
                             {isOnline ? (
                               <StatusPill label="Active Now" kind="success" dot />
                             ) : (
-                              <StatusPill label={v.status === 'idle' ? 'Idle' : 'Offline'} kind="neutral" />
+                              statusPill(v.status === 'idle' ? 'Idle' : 'Offline', 'neutral')
                             )}
                           </View>
 
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
-                            <Text style={s.visitorSubMeta}>
-                              <MapPin size={11} color={SAC.muted} /> {geo.city || 'Unknown'}, {geo.country || 'Global'}
+                            <Text style={[s.visitorSubMeta, { color: isDark ? '#94A3B8' : '#475569' }]}>
+                              <MapPin size={11} color={T.muted} /> {geo.city || 'Unknown'}, {geo.country || 'Global'}
                             </Text>
-                            <Text style={s.visitorSubMeta}>
-                              <Server size={11} color={SAC.muted} /> {v.ip || '127.0.0.1'} {geo.isp ? `(${geo.isp})` : ''}
+                            <Text style={[s.visitorSubMeta, { color: isDark ? '#94A3B8' : '#475569' }]}>
+                              <Server size={11} color={T.muted} /> {v.ip || '127.0.0.1'} {geo.isp ? `(${geo.isp})` : ''}
                             </Text>
                             {v.inferred_email && (
-                              <Text style={[s.visitorSubMeta, { color: '#93C5FD' }]}>
-                                ✉️ {v.inferred_email}
+                              <Text style={[s.visitorSubMeta, { color: isDark ? '#818CF8' : '#4F46E5', fontFamily: FONTS.med }]}>
+                                 {v.inferred_email}
                               </Text>
                             )}
                           </View>
@@ -545,13 +572,13 @@ export function VisitorIntelligenceView() {
                       <View style={s.visitorHardwareCol}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                           <Monitor size={13} color="#A78BFA" />
-                          <Text style={s.hardwareText}>
+                          <Text style={[s.hardwareText, { color: isDark ? '#94A3B8' : '#475569' }]}>
                             {dev.os || 'Unknown OS'} • {dev.browser || 'Browser'} • {dev.screen_resolution || 'Screen N/A'}
                           </Text>
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                          <Cpu size={12} color={SAC.dim} />
-                          <Text style={s.fpText}>
+                          <Cpu size={12} color={T.dim} />
+                          <Text style={[s.fpText, { color: isDark ? '#94A3B8' : '#475569' }]}>
                             FP: <Text style={{ fontFamily: 'monospace' }}>{v.device_fingerprint?.slice(0, 14)}...</Text>
                             {dev.cpu_cores ? ` • ${dev.cpu_cores} Cores` : ''}
                             {dev.device_memory_gb ? ` • ${dev.device_memory_gb}GB RAM` : ''}
@@ -562,20 +589,23 @@ export function VisitorIntelligenceView() {
                       {/* Right: Current Module, Duration & Inspect Button */}
                       <View style={s.visitorActionCol}>
                         <View style={{ alignItems: 'flex-end' }}>
-                          <View style={s.moduleBadge}>
-                            <Layers size={11} color="#C4B5FD" />
-                            <Text style={s.moduleBadgeText}>{(v.current_module || 'landing').toUpperCase()}</Text>
+                          <View style={[s.moduleBadge, {
+                            backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : '#E0E7FF',
+                            borderColor: isDark ? 'rgba(99,102,241,0.3)' : '#C7D2FE',
+                          }]}>
+                            <Layers size={11} color={isDark ? '#A5B4FC' : '#3730A3'} />
+                            <Text style={[s.moduleBadgeText, { color: isDark ? '#A5B4FC' : '#3730A3' }]}>{(v.current_module || 'landing').toUpperCase()}</Text>
                           </View>
-                          <Text style={s.durationText}>
-                            ⏱️ {fmtDuration(v.duration_seconds)} • 📄 {v.page_views_count || 1} views • 🖱️ {v.clicks_count || 0} clicks
+                          <Text style={[s.durationText, { color: isDark ? '#94A3B8' : '#475569' }]}>
+                             {fmtDuration(v.duration_seconds)} •  {v.page_views_count || 1} views •  {v.clicks_count || 0} clicks
                           </Text>
                         </View>
 
                         <SecondaryButton size="sm" onPress={() => openDossier(v.session_id)}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                             <Eye size={13} color="#fff" />
-                            <Text style={{ color: SAC.text, fontSize: 12.5, fontFamily: FONTS.semi }}>Dossier</Text>
-                            <ChevronRight size={13} color={SAC.muted} />
+                            <Text style={{ color: T.text, fontSize: 12.5, fontFamily: FONTS.semi }}>Dossier</Text>
+                            <ChevronRight size={13} color={T.muted} />
                           </View>
                         </SecondaryButton>
                       </View>
@@ -596,14 +626,14 @@ export function VisitorIntelligenceView() {
                       disabled={pagination.page <= 1}
                       onPress={() => fetchVisitorsList(pagination.page - 1)}
                     >
-                      <Text style={{ color: SAC.text, fontSize: 12 }}>← Previous</Text>
+                      <Text style={{ color: T.text, fontSize: 12 }}>← Previous</Text>
                     </SecondaryButton>
                     <SecondaryButton
                       size="sm"
                       disabled={pagination.page >= pagination.total_pages}
                       onPress={() => fetchVisitorsList(pagination.page + 1)}
                     >
-                      <Text style={{ color: SAC.text, fontSize: 12 }}>Next →</Text>
+                      <Text style={{ color: T.text, fontSize: 12 }}>Next →</Text>
                     </SecondaryButton>
                   </View>
                 </View>
@@ -623,9 +653,9 @@ export function VisitorIntelligenceView() {
               <View style={{ gap: 4 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <MousePointer size={18} color="#F59E0B" />
-                  <Text style={{ color: SAC.text, fontSize: 18, fontFamily: FONTS.bold }}>Visual Click Heatmap & Element Density</Text>
+                  <Text style={{ color: T.text, fontSize: 18, fontFamily: FONTS.bold }}>Visual Click Heatmap & Element Density</Text>
                 </View>
-                <Text style={{ color: SAC.muted, fontSize: 13 }}>
+                <Text style={{ color: T.muted, fontSize: 13 }}>
                   Real-time click volume, heat intensity rankings, and interaction share across cards, posters, and registration buttons.
                 </Text>
               </View>
@@ -641,7 +671,7 @@ export function VisitorIntelligenceView() {
                     }}
                     style={[s.selectPill, heatmapModule === m && s.selectPillActive]}
                   >
-                    <Text style={[s.selectPillText, heatmapModule === m && { color: '#F59E0B', fontFamily: FONTS.bold }]}>
+                    <Text style={[s.selectPillText, heatmapModule === m && { color: T.amber, fontFamily: FONTS.bold }]}>
                       {m === 'all' ? 'All Heatmaps' : m.toUpperCase()}
                     </Text>
                   </Pressable>
@@ -651,9 +681,9 @@ export function VisitorIntelligenceView() {
 
             {/* Heat Density Canvas Summary Header */}
             <View style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 12, marginTop: 6 }}>
-              <View style={{ padding: 14, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 12 }}>
+              <View style={{ padding: 14, backgroundColor: T.dangerTint, borderColor: T.danger, borderWidth: 1, borderRadius: 12 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1, color: '#FCA5A5' }}>🔥 TOP HOTSPOT</Text>
+                  <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1, color: '#FCA5A5' }}> TOP HOTSPOT</Text>
                 </View>
                 <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: '#FFFFFF' }}>
                   {heatmapData?.hotspots?.[0]?.element_text || 'WeHive Sponsor Spotlight'}
@@ -663,9 +693,9 @@ export function VisitorIntelligenceView() {
                 </Text>
               </View>
 
-              <View style={{ padding: 14, background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: 12 }}>
+              <View style={{ padding: 14, backgroundColor: T.warnTint, borderColor: T.amber, borderWidth: 1, borderRadius: 12 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1, color: '#FDE68A' }}>⚡ WARM ELEMENT</Text>
+                  <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1, color: '#FDE68A' }}> WARM ELEMENT</Text>
                 </View>
                 <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: '#FFFFFF' }}>
                   {heatmapData?.hotspots?.[1]?.element_text || 'One Ticket ₹599 Button'}
@@ -675,9 +705,9 @@ export function VisitorIntelligenceView() {
                 </Text>
               </View>
 
-              <View style={{ padding: 14, background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: 12 }}>
+              <View style={{ padding: 14, backgroundColor: T.tint, borderColor: T.violet, borderWidth: 1, borderRadius: 12 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1, color: '#C7D2FE' }}>📊 ANALYZED CLICKS</Text>
+                  <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1, color: '#C7D2FE' }}> ANALYZED CLICKS</Text>
                 </View>
                 <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: '#FFFFFF' }}>
                   {heatmapData?.total_clicks_analyzed || 1865} Interactions
@@ -693,7 +723,7 @@ export function VisitorIntelligenceView() {
           {heatmapLoading ? (
             <Card style={{ padding: 36, alignItems: 'center', gap: 12 }}>
               <ActivityIndicator size="large" color="#F59E0B" />
-              <Text style={{ color: SAC.muted, fontSize: 13 }}>Calculating visual click heat map & interaction share...</Text>
+              <Text style={{ color: T.muted, fontSize: 13 }}>Calculating visual click heat map & interaction share...</Text>
             </Card>
           ) : (
             <View style={{ gap: 10 }}>
@@ -714,13 +744,13 @@ export function VisitorIntelligenceView() {
 
                         <View style={{ flex: 1 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            <Text style={{ fontSize: 15, fontFamily: FONTS.bold, color: SAC.text }}>{spot.element_text}</Text>
+                            <Text style={{ fontSize: 15, fontFamily: FONTS.bold, color: T.text }}>{spot.element_text}</Text>
                             <span style={{ fontSize: '11px', fontWeight: 800, padding: '2px 8px', borderRadius: '100px', background: bg, color, border: `1px solid ${border}` }}>
-                              {isHot ? '🔥 HOT' : (isWarm ? '⚡ WARM' : '❄️ COOL')}
+                              {isHot ? ' HOT' : (isWarm ? ' WARM' : ' COOL')}
                             </span>
                           </View>
-                          <Text style={{ fontSize: 12, color: SAC.muted, marginTop: 2 }}>
-                            Target ID: <Text style={{ fontFamily: 'monospace', color: '#C4B5FD' }}>{spot.element_id}</Text> · Route: <Text style={{ color: '#38BDF8' }}>{spot.path}</Text>
+                          <Text style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
+                            Target ID: <Text style={{ fontFamily: 'monospace', color: T.violet }}>{spot.element_id}</Text> · Route: <Text style={{ color: T.sky }}>{spot.path}</Text>
                           </Text>
                         </View>
                       </View>
@@ -728,13 +758,13 @@ export function VisitorIntelligenceView() {
                       {/* Click Count & Progress Bar */}
                       <View style={{ alignItems: 'flex-end', minWidth: 160 }}>
                         <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: '#FFFFFF' }}>
-                          {spot.click_count} <Text style={{ fontSize: 12, color: SAC.muted, fontWeight: 'normal' }}>clicks</Text>
+                          {spot.click_count} <Text style={{ fontSize: 12, color: T.muted, fontWeight: 'normal' }}>clicks</Text>
                         </Text>
 
                         <View style={{ width: 140, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 6, overflow: 'hidden' }}>
                           <View style={{ width: `${Math.min(spot.click_share_pct * 2.5, 100)}%`, height: '100%', backgroundColor: color, borderRadius: 3 }} />
                         </View>
-                        <Text style={{ fontSize: 11, color: SAC.muted, marginTop: 2 }}>
+                        <Text style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
                           {spot.click_share_pct}% total interaction share
                         </Text>
                       </View>
@@ -806,10 +836,10 @@ export function VisitorIntelligenceView() {
 
                   <View style={s.moduleFooter}>
                     <Text style={s.moduleDwellText}>
-                      ⏱️ Avg Dwell: <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{fmtDuration(m.avg_duration_sec)}</Text>
+                       Avg Dwell: <Text style={{ color: T.text, fontFamily: FONTS.bold }}>{fmtDuration(m.avg_duration_sec)}</Text>
                     </Text>
                     <Text style={s.moduleDwellText}>
-                      📄 {m.total_pageviews || 0} page impressions
+                       {m.total_pageviews || 0} page impressions
                     </Text>
                   </View>
                 </Card>
@@ -840,8 +870,8 @@ export function VisitorIntelligenceView() {
                 {(hardwareData?.os_distribution || []).map((item: any) => (
                   <View key={item.label}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <Text style={{ color: SAC.text, fontSize: 13, fontFamily: FONTS.med }}>{item.label}</Text>
-                      <Text style={{ color: SAC.muted, fontSize: 13 }}>{item.pct}% ({item.count})</Text>
+                      <Text style={{ color: T.text, fontSize: 13, fontFamily: FONTS.med }}>{item.label}</Text>
+                      <Text style={{ color: T.muted, fontSize: 13 }}>{item.pct}% ({item.count})</Text>
                     </View>
                     <View style={s.barTrack}>
                       <View style={[s.barFill, { width: `${item.pct}%`, backgroundColor: '#3B82F6' }]} />
@@ -861,8 +891,8 @@ export function VisitorIntelligenceView() {
                 {(hardwareData?.browser_distribution || []).map((item: any) => (
                   <View key={item.label}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <Text style={{ color: SAC.text, fontSize: 13, fontFamily: FONTS.med }}>{item.label}</Text>
-                      <Text style={{ color: SAC.muted, fontSize: 13 }}>{item.pct}% ({item.count})</Text>
+                      <Text style={{ color: T.text, fontSize: 13, fontFamily: FONTS.med }}>{item.label}</Text>
+                      <Text style={{ color: T.muted, fontSize: 13 }}>{item.pct}% ({item.count})</Text>
                     </View>
                     <View style={s.barTrack}>
                       <View style={[s.barFill, { width: `${item.pct}%`, backgroundColor: '#F59E0B' }]} />
@@ -928,10 +958,10 @@ export function VisitorIntelligenceView() {
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                         <Text style={{ fontSize: 20 }}>{getCountryFlag(geo.country_code)}</Text>
                         <View>
-                          <Text style={{ color: SAC.text, fontSize: 13.5, fontFamily: FONTS.med }}>
+                          <Text style={{ color: T.text, fontSize: 13.5, fontFamily: FONTS.med }}>
                             {geo.country || 'Global Visitor'}
                           </Text>
-                          <Text style={{ color: SAC.muted, fontSize: 12 }}>
+                          <Text style={{ color: T.muted, fontSize: 12 }}>
                             {geo.city || 'Unknown City'} • IP: {v.ip}
                           </Text>
                         </View>
@@ -967,7 +997,7 @@ export function VisitorIntelligenceView() {
                   </View>
                 ))}
                 {visitorsList.filter(v => !!v.referrer).length === 0 && (
-                  <Text style={{ color: SAC.muted, fontSize: 13 }}>Majority direct navigation & bookmarks.</Text>
+                  <Text style={{ color: T.muted, fontSize: 13 }}>Majority direct navigation & bookmarks.</Text>
                 )}
               </View>
             </Card>
@@ -1018,11 +1048,11 @@ export function VisitorIntelligenceView() {
             {dossierLoading ? (
               <View style={{ padding: 60, alignItems: 'center' }}>
                 <ActivityIndicator size="large" color="#A78BFA" />
-                <Text style={{ color: SAC.muted, marginTop: 12 }}>Loading visitor journey stream...</Text>
+                <Text style={{ color: T.muted, marginTop: 12 }}>Loading visitor journey stream...</Text>
               </View>
             ) : !dossier?.session ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <Text style={{ color: SAC.text }}>Visitor session record not found.</Text>
+                <Text style={{ color: T.text }}>Visitor session record not found.</Text>
               </View>
             ) : (
               <ScrollView style={{ flex: 1, padding: 18 }} showsVerticalScrollIndicator={false}>
@@ -1128,7 +1158,7 @@ export function VisitorIntelligenceView() {
                   </Text>
                   
                   {(!dossier.events || dossier.events.length === 0) ? (
-                    <Text style={{ color: SAC.muted, fontSize: 13, padding: 12 }}>
+                    <Text style={{ color: T.muted, fontSize: 13, padding: 12 }}>
                       Initial landing captured at {dossier.session.landing_page}. Event trail will populate as visitor navigates.
                     </Text>
                   ) : (
@@ -1139,7 +1169,7 @@ export function VisitorIntelligenceView() {
                           <View style={s.timelineBody}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                               <Text style={s.timelineEventName}>
-                                {ev.event_type === 'click' ? '🖱️ Button Click' : ev.event_type === 'page_view' ? '📄 Page View' : ev.event_type}
+                                {ev.event_type === 'click' ? ' Button Click' : ev.event_type === 'page_view' ? ' Page View' : ev.event_type}
                               </Text>
                               <StatusPill label={(ev.module || 'portal').toUpperCase()} kind="brand" />
                               <Text style={s.timelineTime}>
@@ -1148,7 +1178,7 @@ export function VisitorIntelligenceView() {
                             </View>
 
                             <Text style={s.timelinePath}>
-                              Path: <Text style={{ color: SAC.text }}>{ev.path}</Text>
+                              Path: <Text style={{ color: T.text }}>{ev.path}</Text>
                               {ev.element_text ? ` • Element: "${ev.element_text}"` : ''}
                               {ev.element_id ? ` (#${ev.element_id})` : ''}
                             </Text>
@@ -1247,11 +1277,12 @@ const s = StyleSheet.create({
   },
   kpiCard: {
     flex: 1,
-    minWidth: 240,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     padding: 16,
+    overflow: 'hidden',
   },
   kpiIconWrap: {
     width: 42,
@@ -1383,6 +1414,18 @@ const s = StyleSheet.create({
     color: SAC.muted,
     fontSize: 12,
   },
+  visitorStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  visitorStatusPillText: {
+    fontSize: 10,
+    fontFamily: FONTS.bold,
+  },
   visitorHardwareCol: {
     minWidth: 220,
   },
@@ -1407,12 +1450,12 @@ const s = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
-    backgroundColor: 'rgba(124,58,237,0.15)',
+    backgroundColor: 'rgba(99,102,241,0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(124,58,237,0.3)',
+    borderColor: 'rgba(99,102,241,0.3)',
   },
   moduleBadgeText: {
-    color: '#C4B5FD',
+    color: '#A5B4FC',
     fontSize: 11,
     fontFamily: FONTS.bold,
   },

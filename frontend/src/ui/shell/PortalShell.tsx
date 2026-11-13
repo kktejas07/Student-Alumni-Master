@@ -88,7 +88,12 @@ function ShellInner({
             scrollEventThrottle={16}
           >
             <View style={{ flex: 1 }}>
-              <EmbeddedShellContext.Provider value={true}>{content}</EmbeddedShellContext.Provider>
+              <View
+                style={{ flex: 1 }}
+                className={config.portal === 'superadmin' ? 'sa-admin-theme' : undefined}
+              >
+                <EmbeddedShellContext.Provider value={true}>{content}</EmbeddedShellContext.Provider>
+              </View>
             </View>
             {config.tour && <DashboardFooter portal={config.tour} />}
           </ScrollView>

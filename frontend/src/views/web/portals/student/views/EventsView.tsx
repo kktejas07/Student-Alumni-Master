@@ -842,7 +842,7 @@ export function EventsView() {
                 {selectedEvent.registered || rsvpd.has(selectedEvent.id) ? (
                   <View style={s.btnReg} accessibilityLabel="Registration Confirmed">
                     <Check size={12} color="#10B981" style={{ marginRight: 4 }} />
-                    <Text style={s.btnRegText}>Registered ✓</Text>
+                    <Text style={s.btnRegText}>Registered </Text>
                   </View>
                 ) : (
                   <Pressable

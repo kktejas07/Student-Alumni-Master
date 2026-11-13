@@ -1297,7 +1297,6 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                       <Text style={styles.formFieldLabel}>Phone (10 Digits)</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#1A1D2B', borderWidth: 1, borderColor: '#292E42', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 12 }}>
-                          <Text style={{ fontSize: 13 }}>🇮🇳</Text>
                           <Text style={{ fontSize: 13, fontWeight: '700', color: '#A78BFA' }}>+91</Text>
                         </View>
                         <TextInput
@@ -1578,7 +1577,6 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   <Text style={styles.formFieldLabel}>Phone Number (10 Digits)</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#1A1D2B', borderWidth: 1, borderColor: '#292E42', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 12 }}>
-                      <Text style={{ fontSize: 13 }}>🇮🇳</Text>
                       <Text style={{ fontSize: 13, fontWeight: '700', color: '#A78BFA' }}>+91</Text>
                     </View>
                     <TextInput
@@ -1681,7 +1679,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
 
                 <View style={styles.heroCtaRow}>
                   <GlowButton onPress={() => router.push('/register')} style={[styles.heroBtnStudent, isMobile && { paddingVertical: 14, paddingHorizontal: 22 }]} textStyle={styles.heroBtnStudentText}>
-                    I'm a student  ↗
+                    I'm a student  
                   </GlowButton>
                   <GlowButton onPress={() => setActiveTab('contact')} style={[styles.heroBtnCollege, isMobile && { paddingVertical: 14, paddingHorizontal: 22 }]} textStyle={styles.heroBtnCollegeText}>
                     I'm a college
@@ -1942,11 +1940,11 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                     <View style={styles.kpiTilesRow}>
                       <HoverLiftCard style={styles.kpiTile}>
                         <Text style={styles.kpiHeader}>ACTIVE APPLICATIONS</Text>
-                        <Text style={styles.kpiNumber}>12 <Text style={styles.kpiSub}>↗ +3 this week</Text></Text>
+                        <Text style={styles.kpiNumber}>12 <Text style={styles.kpiSub}> +3 this week</Text></Text>
                       </HoverLiftCard>
                       <HoverLiftCard style={styles.kpiTile}>
                         <Text style={styles.kpiHeader}>MENTOR HOURS</Text>
-                        <Text style={styles.kpiNumber}>8.5h <Text style={styles.kpiSub}>↗ +2h vs last mo</Text></Text>
+                        <Text style={styles.kpiNumber}>8.5h <Text style={styles.kpiSub}> +2h vs last mo</Text></Text>
                       </HoverLiftCard>
                       <HoverLiftCard style={styles.kpiTile}>
                         <Text style={styles.kpiHeader}>SKILL BADGES</Text>
@@ -2674,7 +2672,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 <Text style={[styles.ctaTitleH2, { fontSize: isMobile ? 28 : 58, lineHeight: isMobile ? 34 : 64, letterSpacing: isMobile ? -1 : -2.2, marginVertical: isMobile ? 16 : 26 }]}>Your career, quietly<br /><Text style={{ color: T.indLt }}>upgraded.</Text></Text>
                 <Text style={[styles.ctaSubtitle, { fontSize: isMobile ? 14 : 16.5, marginBottom: isMobile ? 20 : 32 }]}>Join 50,000+ students already using StudentAlumni to land career opportunities, find mentors, and build their future. No credit card required.</Text>
                 <GlowButton onPress={() => router.push('/register')} style={styles.ctaActionButton} textStyle={styles.ctaActionButtonText}>
-                  Create your free account ↗
+                  Create your free account 
                 </GlowButton>
 
                 {/* 3 FAQ Columns */}

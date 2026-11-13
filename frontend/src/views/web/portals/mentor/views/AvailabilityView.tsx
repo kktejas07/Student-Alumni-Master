@@ -93,7 +93,7 @@ export function AvailabilityView() {
           <CheckCircle size={13} color={MC.bg} />
           <Text style={s.saveText}>{saving ? 'Saving…' : `Save ${slots.length} Slot${slots.length === 1 ? '' : 's'}`}</Text>
         </Pressable>
-        {savedAt && <Text style={{ color: '#22C55E', fontFamily: FONTS.bold, fontSize: 12 }}>✓ Saved at {savedAt}</Text>}
+        {savedAt && <Text style={{ color: '#22C55E', fontFamily: FONTS.bold, fontSize: 12 }}> Saved at {savedAt}</Text>}
       </View>
     </View>
   );

@@ -19,8 +19,9 @@ import {
   Eye, ChevronRight, Calendar, Check, Play, Code, Sparkles,
   ShieldCheck, Trash2, Mail, Building2,
 } from 'lucide-react-native';
-import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { useSAC, FONTS, resolveColors } from '../tokens';
 import { GRAD } from '../applekit';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 /** LinkedIn 'in' glyph — `lucide-react-native` doesn't ship the Linkedin icon
  *  in this version, so we render a compact text glyph instead. */
@@ -100,6 +101,7 @@ export type ProfileCardProps = {
   onViewProfile: (userId: string) => void;
   onApprove?: (userId: string) => void;
   onRemove?: (userId: string) => void;
+  reserveTopRightMenu?: boolean;
 };
 
 /* ─── Category accent dots (warm amber family) ───────────────────── */
@@ -138,6 +140,7 @@ function ActionTooltip({
   align?: 'center' | 'right' | 'left';
 }) {
   const [hovered, setHovered] = React.useState(false);
+  const { isDark } = useTheme();
 
   if (!text) return <>{children}</>;
 
@@ -155,12 +158,26 @@ function ActionTooltip({
           style={[
             s.customTooltip,
             position === 'top' ? s.tooltipTop : s.tooltipBottom,
+            {
+              backgroundColor: isDark ? '#1e293b' : '#ffffff',
+              borderColor: isDark ? '#334155' : '#cbd5e1',
+              borderWidth: 1,
+              shadowColor: '#0f172a',
+              shadowOpacity: 0.08,
+              shadowRadius: 6,
+              shadowOffset: { width: 0, height: 2 },
+              ...(Platform.OS === 'web' ? ({
+                boxShadow: isDark
+                  ? '0 4px 12px rgba(15,23,42,0.24)'
+                  : '0 4px 12px rgba(15,23,42,0.08)',
+              } as any) : {}),
+            },
             align === 'right' ? { right: 0, alignItems: 'flex-end' } :
             align === 'left' ? { left: 0, alignItems: 'flex-start' } :
             { alignSelf: 'center' },
           ]}
         >
-          <Text style={s.customTooltipText} numberOfLines={1}>
+          <Text style={[s.customTooltipText, { color: isDark ? '#f8fafc' : '#0f172a' }]} numberOfLines={1}>
             {text}
           </Text>
         </View>
@@ -172,8 +189,17 @@ function ActionTooltip({
 /* ─── Component ──────────────────────────────────────────────────── */
 export function ProfileCard(props: ProfileCardProps) {
   const T = useSAC();
+  const { isDark } = useTheme();
   Object.assign(s, resolveColors(s, T));
-  const { user, goals, progress, tags, nextSession, socials, onViewProfile, onApprove, onRemove } = props;
+  const cardBackground = isDark ? '#0F172A' : '#FFFFFF';
+  const primaryText = isDark ? '#F8FAFC' : '#0F172A';
+  const secondaryText = isDark ? '#94A3B8' : '#475569';
+  const lightModeAccent = '#60A5FA';
+  const viewButtonColors = isDark
+    ? [PC.accentBright, PC.accent, PC.accentDeep] as const
+    : [lightModeAccent, lightModeAccent, lightModeAccent] as const;
+  const [removeHovered, setRemoveHovered] = React.useState(false);
+  const { user, goals, progress, tags, nextSession, socials, onViewProfile, onApprove, onRemove, reserveTopRightMenu } = props;
   const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown user';
   const cat = CAT_DOT[user.category] || CAT_DOT.student;
   const visibleGoals = (goals || []).slice(0, 2);
@@ -191,24 +217,47 @@ export function ProfileCard(props: ProfileCardProps) {
       onPress={() => onViewProfile(user.id)}
       style={({ hovered, focused }: any) => [
         s.card,
-        hovered && Platform.OS === 'web' ? s.cardHover : null,
+        {
+          backgroundColor: cardBackground,
+          borderColor: isDark ? '#1E293B' : '#E2E8F0',
+          borderWidth: 1,
+          shadowColor: '#0F172A',
+          shadowOpacity: isDark ? 0.3 : 0.06,
+          shadowRadius: isDark ? 20 : 6,
+          shadowOffset: { width: 0, height: isDark ? 8 : 2 },
+          ...(Platform.OS === 'web' ? ({ boxShadow: isDark
+            ? '0 10px 30px rgba(0,0,0,0.3)'
+            : '0 1px 2px rgba(15,23,42,0.05)' } as any) : {}),
+        },
+        hovered && Platform.OS === 'web'
+          ? [s.cardHover, { borderColor: isDark ? '#334155' : '#CBD5E1' }]
+          : null,
         focused ? s.cardFocus : null,
       ]}
     >
       <View style={s.cardInner}>
         {isNew ? (
-          <View style={s.newPill}>
-            <Text style={s.newPillText}>NEW</Text>
+          <View style={[s.newPill, {
+            right: reserveTopRightMenu ? 50 : 14,
+            backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : '#FFFBEB',
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(245,158,11,0.3)' : '#FDE68A',
+          }]}>
+            <Text style={[s.newPillText, { color: isDark ? '#FCD34D' : '#92400E' }]}>NEW</Text>
           </View>
         ) : null}
 
         {/* HEADER */}
         <View style={s.header}>
           <View>
-            <View style={[s.avatar, { borderColor: PC.accent }]}>
-              <Text style={s.avatarText}>{initialsStr}</Text>
+            <View style={[s.avatar, {
+              borderColor: isDark ? PC.accent : '#D97706',
+              backgroundColor: isDark ? '#1E293B' : '#F1F5F9',
+            }]}>
+              <Text style={[s.avatarText, { color: isDark ? '#E2E8F0' : '#334155' }]}>{initialsStr}</Text>
             </View>
             <View style={[s.statusDot, {
+              borderColor: cardBackground,
               backgroundColor:
                 user.status === 'active' ? PC.statusActive :
                 user.status === 'archived' ? PC.danger : PC.textMuted,
@@ -216,28 +265,32 @@ export function ProfileCard(props: ProfileCardProps) {
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <Text style={s.name} numberOfLines={1}>{fullName}</Text>
+              <Text style={[s.name, { color: primaryText }]} numberOfLines={1}>{fullName}</Text>
               <View style={[s.catDot, { backgroundColor: cat.c }]} />
-              <Text style={s.catLabel}>{cat.label}</Text>
+              <Text style={[s.catLabel, {
+                color: isDark ? '#CBD5E1' : '#334155',
+                backgroundColor: isDark ? '#1E293B' : '#F1F5F9',
+                borderColor: isDark ? '#334155' : '#E2E8F0',
+              }]}>{cat.label}</Text>
             </View>
-            <Text style={s.degree} numberOfLines={1}>
+            <Text style={[s.degree, { color: secondaryText }]} numberOfLines={1}>
               {user.degree || '—'}{user.institution ? ` · ${user.institution}` : ''}
             </Text>
             {user.email ? (
               <ActionTooltip text={`Copy email: ${user.email}`} align="left">
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                  <Mail size={11} color={PC.textSecondary} />
-                  <Text style={{ color: PC.textSecondary, fontSize: 11, fontFamily: FONTS.med }} numberOfLines={1}>
+                  <Mail size={11} color={secondaryText} />
+                  <Text style={{ color: secondaryText, fontSize: 11, fontFamily: FONTS.med }} numberOfLines={1}>
                     {user.email}
                   </Text>
                 </View>
               </ActionTooltip>
             ) : null}
             {user.batchYear ? (
-              <Text style={s.idLine} numberOfLines={1}>Batch {user.batchYear}</Text>
+              <Text style={[s.idLine, { color: secondaryText }]} numberOfLines={1}>Batch {user.batchYear}</Text>
             ) : null}
           </View>
-          <StatusPillCard status={user.status} />
+          <StatusPillCard status={user.status} isDark={isDark} reserveMenuSpace={reserveTopRightMenu} />
         </View>
 
         {/* ONBOARDING & CAREER BADGES */}
@@ -245,18 +298,31 @@ export function ProfileCard(props: ProfileCardProps) {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
             {user.onboardingCompleted !== undefined && (
               <View style={[s.tag, {
-                backgroundColor: user.onboardingCompleted ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
-                borderColor: user.onboardingCompleted ? 'rgba(34,197,94,0.35)' : 'rgba(245,158,11,0.35)',
+                backgroundColor: user.onboardingCompleted
+                  ? (isDark ? 'rgba(16,185,129,0.15)' : '#ECFDF5')
+                  : (isDark ? 'rgba(245,158,11,0.15)' : '#FFFBEB'),
+                borderColor: user.onboardingCompleted
+                  ? (isDark ? 'rgba(16,185,129,0.3)' : '#A7F3D0')
+                  : (isDark ? 'rgba(245,158,11,0.3)' : '#FDE68A'),
               }]}>
-                <Text style={[s.tagText, { color: user.onboardingCompleted ? '#86EFAC' : '#FCD34D', fontSize: 10, fontWeight: '700' }]}>
-                  {user.onboardingCompleted ? '✓ Onboarded' : '⏳ Pending Onboarding'}
+                <Text style={[s.tagText, {
+                  color: user.onboardingCompleted
+                    ? (isDark ? '#6EE7B7' : '#047857')
+                    : (isDark ? '#FCD34D' : '#B45309'),
+                  fontSize: 10,
+                  fontWeight: '700',
+                }]}>
+                  {user.onboardingCompleted ? ' Onboarded' : ' Pending Onboarding'}
                 </Text>
               </View>
             )}
             {user.careerPath ? (
-              <View style={[s.tag, { backgroundColor: 'rgba(251,146,60,0.12)', borderColor: 'rgba(251,146,60,0.30)' }]}>
-                <Text style={[s.tagText, { color: '#FDBA74', fontSize: 10, fontWeight: '700' }]} numberOfLines={1}>
-                  🎯 {user.careerPath}
+              <View style={[s.tag, {
+                backgroundColor: isDark ? 'rgba(251,146,60,0.12)' : '#FFF7ED',
+                borderColor: isDark ? 'rgba(251,146,60,0.3)' : '#FED7AA',
+              }]}>
+                <Text style={[s.tagText, { color: isDark ? '#FDBA74' : '#C2410C', fontSize: 10, fontWeight: '700' }]} numberOfLines={1}>
+                   {user.careerPath}
                 </Text>
               </View>
             ) : null}
@@ -269,10 +335,10 @@ export function ProfileCard(props: ProfileCardProps) {
             {visibleGoals.map((g, i) => (
               <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <ChevronRight size={12} color={PC.accentBright} />
-                <Text numberOfLines={1} style={s.goalText}>{g}</Text>
+                <Text numberOfLines={1} style={[s.goalText, { color: primaryText }]}>{g}</Text>
               </View>
             ))}
-            {overflow > 0 ? <Text style={s.muted}>+ {overflow} more</Text> : null}
+            {overflow > 0 ? <Text style={[s.muted, { color: secondaryText }]}>+ {overflow} more</Text> : null}
           </View>
         ) : null}
 
@@ -280,26 +346,28 @@ export function ProfileCard(props: ProfileCardProps) {
         {progress && (progress.percent > 0 || progress.sessionsTotal > 0) ? (
           <View style={{ marginTop: 16, gap: 8 }}>
             <View style={s.progressHeader}>
-              <Text style={s.sectionLabel}>PROGRESS</Text>
-              <Text style={[s.percent, isComplete ? { color: PC.accentBright } : null]}>
+              <Text style={[s.sectionLabel, { color: secondaryText }]}>PROGRESS</Text>
+              <Text style={[s.percent, { color: isDark ? '#FB923C' : lightModeAccent }]}>
                 {Math.round(progress.percent)}%
               </Text>
             </View>
-            <View style={s.progressTrack}>
+            <View style={[s.progressTrack, { backgroundColor: isDark ? '#1E293B' : '#E2E8F0' }]}>
               <View style={[
                 s.progressFill,
                 {
                   width: `${Math.min(100, Math.max(0, progress.percent))}%`,
-                  backgroundColor: isComplete ? PC.accentBright : PC.accent,
+                  backgroundColor: isDark
+                    ? (isComplete ? PC.accentBright : PC.accent)
+                    : lightModeAccent,
                 },
               ]} />
             </View>
             {(progress.sessionsTotal > 0 || progress.cgpa) ? (
               <View style={s.progressMeta}>
-                <Text style={s.metaCount}>{progress.sessionsCompleted}</Text>
-                <Text style={s.metaMuted}>/ {progress.sessionsTotal} sessions</Text>
+                <Text style={[s.metaCount, { color: primaryText }]}>{progress.sessionsCompleted}</Text>
+                <Text style={[s.metaMuted, { color: secondaryText }]}>/ {progress.sessionsTotal} sessions</Text>
                 {progress.cgpa ? (
-                  <Text style={s.metaMuted}>  ·  CGPA {progress.cgpa.toFixed(1)}</Text>
+                  <Text style={[s.metaMuted, { color: secondaryText }]}>  ·  CGPA {progress.cgpa.toFixed(1)}</Text>
                 ) : null}
               </View>
             ) : null}
@@ -310,16 +378,32 @@ export function ProfileCard(props: ProfileCardProps) {
         {(user.aadhaarMasked || user.aadhaarVerified || user.digilockerVerified) ? (
           <View style={[s.tagRow, { marginTop: 4, marginBottom: 2 }]}>
             {(user.aadhaarMasked || user.aadhaarVerified) && (
-              <View style={[s.tag, { backgroundColor: user.aadhaarVerified ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)', borderColor: user.aadhaarVerified ? 'rgba(16,185,129,0.35)' : 'rgba(245,158,11,0.35)' }]}>
-                <Text style={[s.tagText, { color: user.aadhaarVerified ? '#34D399' : '#FBBF24', fontSize: 10, fontWeight: '700' }]}>
-                  {user.aadhaarVerified ? '✓ UIDAI' : 'Aadhaar'}: {user.aadhaarMasked || '•••• 1234'}
+              <View style={[s.tag, {
+                backgroundColor: user.aadhaarVerified
+                  ? (isDark ? 'rgba(16,185,129,0.15)' : '#ECFDF5')
+                  : (isDark ? 'rgba(245,158,11,0.15)' : '#FFFBEB'),
+                borderColor: user.aadhaarVerified
+                  ? (isDark ? 'rgba(16,185,129,0.3)' : '#A7F3D0')
+                  : (isDark ? 'rgba(245,158,11,0.3)' : '#FDE68A'),
+              }]}>
+                <Text style={[s.tagText, {
+                  color: user.aadhaarVerified
+                    ? (isDark ? '#34D399' : '#047857')
+                    : (isDark ? '#FBBF24' : '#B45309'),
+                  fontSize: 10,
+                  fontWeight: '700',
+                }]}>
+                  {user.aadhaarVerified ? ' UIDAI' : 'Aadhaar'}: {user.aadhaarMasked || '•••• 1234'}
                 </Text>
               </View>
             )}
             {user.digilockerVerified && (
-              <View style={[s.tag, { backgroundColor: 'rgba(124,58,237,0.15)', borderColor: 'rgba(124,58,237,0.40)' }]}>
-                <Text style={[s.tagText, { color: '#C4B5FD', fontSize: 10, fontWeight: '700' }]}>
-                  ⚡ DigiLocker ({user.digilockerDocCount || 3} Docs)
+              <View style={[s.tag, {
+                backgroundColor: isDark ? 'rgba(124,58,237,0.15)' : '#EEF2FF',
+                borderColor: isDark ? 'rgba(124,58,237,0.4)' : '#C7D2FE',
+              }]}>
+                <Text style={[s.tagText, { color: isDark ? '#C4B5FD' : '#3730A3', fontSize: 10, fontWeight: '700' }]}>
+                   DigiLocker ({user.digilockerDocCount || 3} Docs)
                 </Text>
               </View>
             )}
@@ -330,20 +414,28 @@ export function ProfileCard(props: ProfileCardProps) {
         {(tags || []).length > 0 ? (
           <View style={s.tagRow}>
             {(tags || []).slice(0, 4).map((t, i) => (
-              <View key={i} style={s.tag}><Text style={s.tagText}>{t}</Text></View>
+              <View key={i} style={[s.tag, {
+                backgroundColor: isDark ? '#1E293B' : '#F1F5F9',
+                borderColor: isDark ? '#334155' : '#E2E8F0',
+              }]}>
+                <Text style={[s.tagText, { color: isDark ? '#CBD5E1' : '#334155' }]}>{t}</Text>
+              </View>
             ))}
           </View>
         ) : null}
 
         {/* NEXT SESSION */}
         {nextSession ? (
-          <View style={s.nextCard}>
+          <View style={[s.nextCard, {
+            backgroundColor: isDark ? 'rgba(249,115,22,0.08)' : '#FFF7ED',
+            borderColor: isDark ? 'rgba(249,115,22,0.22)' : '#FED7AA',
+          }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Calendar size={12} color={PC.accentBright} />
-              <Text style={s.nextLabel}>Next Session</Text>
+              <Calendar size={12} color={isDark ? '#FB923C' : '#EA580C'} />
+              <Text style={[s.nextLabel, { color: isDark ? '#FB923C' : '#C2410C' }]}>Next Session</Text>
             </View>
-            <Text style={s.nextDate}>{fmtNextSession(nextSession.dateISO)}</Text>
-            <Text style={s.nextTitle} numberOfLines={1}>{nextSession.title}</Text>
+            <Text style={[s.nextDate, { color: primaryText }]}>{fmtNextSession(nextSession.dateISO)}</Text>
+            <Text style={[s.nextTitle, { color: secondaryText }]} numberOfLines={1}>{nextSession.title}</Text>
           </View>
         ) : null}
 
@@ -356,8 +448,8 @@ export function ProfileCard(props: ProfileCardProps) {
                 onPress={(e: any) => { e?.stopPropagation?.(); onApprove?.(user.id); }}
                 style={s.approveBtn}
               >
-                <ShieldCheck size={12} color={PC.statusActive} />
-                <Text style={[s.approveText, { color: PC.statusActive }]}>Approve</Text>
+                <ShieldCheck size={12} color={isDark ? '#FCD34D' : '#B45309'} />
+                <Text style={[s.approveText, { color: isDark ? '#FCD34D' : '#B45309' }]}>Approve</Text>
               </Pressable>
             </ActionTooltip>
           </View>
@@ -372,12 +464,12 @@ export function ProfileCard(props: ProfileCardProps) {
               style={{ flex: 1 }}
             >
               <LinearGradient
-                colors={[PC.accentBright, PC.accent, PC.accentDeep]}
+                colors={viewButtonColors}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                 style={s.viewBtn}
               >
-                <Eye size={14} color="#fff" />
-                <Text style={s.viewBtnText}>View Profile</Text>
+                <Eye size={14} color={isDark ? '#fff' : '#0F172A'} />
+                <Text style={[s.viewBtnText, { color: isDark ? '#fff' : '#0F172A' }]}>View Profile</Text>
               </LinearGradient>
             </Pressable>
           </ActionTooltip>
@@ -387,9 +479,17 @@ export function ProfileCard(props: ProfileCardProps) {
               <Pressable
                 accessibilityLabel={`Remove profile of ${fullName}`}
                 onPress={(e: any) => { e?.stopPropagation?.(); onRemove?.(user.id); }}
-                style={[s.socialBtn, { backgroundColor: PC.dangerBg, borderColor: 'rgba(239,68,68,0.30)', borderWidth: 1 }]}
+                onHoverIn={() => setRemoveHovered(true)}
+                onHoverOut={() => setRemoveHovered(false)}
+                style={({ hovered }: any) => [s.socialBtn, {
+                  backgroundColor: isDark
+                    ? (hovered ? 'rgba(76,5,25,0.5)' : '#1E293B')
+                    : (hovered ? '#FFF1F2' : '#F8FAFC'),
+                  borderColor: isDark ? '#334155' : '#E2E8F0',
+                  borderWidth: 1,
+                }]}
               >
-                <Trash2 size={16} color={'#FCA5A5'} />
+                <Trash2 size={16} color={removeHovered ? (isDark ? '#FB7185' : '#E11D48') : (isDark ? '#CBD5E1' : '#475569')} />
               </Pressable>
             </ActionTooltip>
           ) : null}
@@ -431,43 +531,66 @@ function openSocial(url: string) {
   } catch {}
 }
 
-function StatusPillCard({ status }: { status: ProfileCardStatus }) {
+function StatusPillCard({ status, isDark, reserveMenuSpace }: {
+  status: ProfileCardStatus;
+  isDark: boolean;
+  reserveMenuSpace?: boolean;
+}) {
   if (status === 'active') {
     return (
-      <View style={[s.statusPill, { backgroundColor: PC.statusActiveBg, borderColor: PC.statusActiveBd }]}>
-        <View style={[s.statusInnerDot, { backgroundColor: PC.statusActive }]} />
-        <Text style={[s.statusText, { color: PC.statusActive }]}>Active</Text>
+      <View style={[s.statusPill, {
+        marginRight: reserveMenuSpace ? 36 : 0,
+        backgroundColor: isDark ? 'rgba(16,185,129,0.15)' : '#ECFDF5',
+        borderColor: isDark ? 'rgba(16,185,129,0.3)' : '#A7F3D0',
+      }]}>
+        <View style={[s.statusInnerDot, { backgroundColor: isDark ? '#6EE7B7' : '#047857' }]} />
+        <Text style={[s.statusText, { color: isDark ? '#6EE7B7' : '#047857' }]}>Active</Text>
       </View>
     );
   }
   if (status === 'archived') {
     return (
-      <View style={[s.statusPill, { backgroundColor: PC.dangerBg, borderColor: 'rgba(239,68,68,0.35)' }]}>
-        <Text style={[s.statusText, { color: '#FCA5A5' }]}>Archived</Text>
+      <View style={[s.statusPill, {
+        marginRight: reserveMenuSpace ? 36 : 0,
+        backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : '#FFF1F2',
+        borderColor: isDark ? 'rgba(239,68,68,0.3)' : '#FECDD3',
+      }]}>
+        <Text numberOfLines={1} style={[s.statusText, { color: isDark ? '#FCA5A5' : '#BE123C' }]}>Archived</Text>
       </View>
     );
   }
   return (
-    <View style={[s.statusPill, { backgroundColor: PC.pillBg, borderColor: PC.pillBorder }]}>
-      <Text style={[s.statusText, { color: PC.textMuted }]}>Inactive</Text>
+    <View style={[s.statusPill, {
+      marginRight: reserveMenuSpace ? 36 : 0,
+      backgroundColor: isDark ? '#1E293B' : '#F1F5F9',
+      borderColor: isDark ? '#334155' : '#E2E8F0',
+    }]}>
+      <Text style={[s.statusText, { color: isDark ? '#CBD5E1' : '#334155' }]}>Inactive</Text>
     </View>
   );
 }
 
 /* ─── Skeleton loader (page loader) ──────────────────────────────── */
 export function ProfileCardSkeleton() {
+  const { isDark } = useTheme();
+  const skeletonColor = isDark ? '#1E293B' : '#E2E8F0';
   return (
-    <View style={s.card}>
+    <View style={[s.card, {
+      backgroundColor: isDark ? '#0F172A' : '#FFFFFF',
+      borderColor: isDark ? '#1E293B' : '#E2E8F0',
+      borderWidth: 1,
+      ...(Platform.OS === 'web' ? ({ boxShadow: '0 1px 2px rgba(15,23,42,0.05)' } as any) : {}),
+    }]}>
       <View style={s.cardInner}>
-        <View style={[s.skBox, { width: '60%', height: 16, marginBottom: 8 }]} />
-        <View style={[s.skBox, { width: '90%', height: 12, marginBottom: 6 }]} />
-        <View style={[s.skBox, { width: '50%', height: 10, marginBottom: 20 }]} />
-        <View style={[s.skBox, { width: '100%', height: 6, marginBottom: 14, borderRadius: 99 }]} />
+        <View style={[s.skBox, { backgroundColor: skeletonColor, width: '60%', height: 16, marginBottom: 8 }]} />
+        <View style={[s.skBox, { backgroundColor: skeletonColor, width: '90%', height: 12, marginBottom: 6 }]} />
+        <View style={[s.skBox, { backgroundColor: skeletonColor, width: '50%', height: 10, marginBottom: 20 }]} />
+        <View style={[s.skBox, { backgroundColor: skeletonColor, width: '100%', height: 6, marginBottom: 14, borderRadius: 99 }]} />
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
-          <View style={[s.skBox, { width: 80, height: 22, borderRadius: 99 }]} />
-          <View style={[s.skBox, { width: 90, height: 22, borderRadius: 99 }]} />
+          <View style={[s.skBox, { backgroundColor: skeletonColor, width: 80, height: 22, borderRadius: 99 }]} />
+          <View style={[s.skBox, { backgroundColor: skeletonColor, width: 90, height: 22, borderRadius: 99 }]} />
         </View>
-        <View style={[s.skBox, { width: '100%', height: 48 }]} />
+        <View style={[s.skBox, { backgroundColor: skeletonColor, width: '100%', height: 48 }]} />
       </View>
     </View>
   );
@@ -509,7 +632,7 @@ const s = StyleSheet.create({
   statusDot: {
     position: 'absolute', right: -2, bottom: -2,
     width: 14, height: 14, borderRadius: 999,
-    borderWidth: 2, borderColor: PC.bgPage,
+    borderWidth: 2,
   },
 
   name: { color: PC.textPrimary, fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.2 },
@@ -521,7 +644,7 @@ const s = StyleSheet.create({
 
   statusPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 4.5, borderRadius: 999, borderWidth: 1, alignSelf: 'flex-start',
+    flexShrink: 0, paddingHorizontal: 10, paddingVertical: 4.5, borderRadius: 999, borderWidth: 1, alignSelf: 'flex-start',
   },
   statusInnerDot: { width: 6, height: 6, borderRadius: 4 },
   statusText: { fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.3 },
@@ -593,13 +716,10 @@ const s = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4.5,
     borderRadius: 6,
-    backgroundColor: '#1A0E04',
     borderWidth: 1,
-    borderColor: 'rgba(251,146,60,0.40)',
     zIndex: 99999,
     minWidth: 40,
     ...(Platform.OS === 'web' ? ({
-      boxShadow: '0 8px 22px rgba(0,0,0,0.85), 0 0 0 1px rgba(251,146,60,0.18)',
       whiteSpace: 'nowrap',
       pointerEvents: 'none',
       userSelect: 'none',
@@ -614,7 +734,6 @@ const s = StyleSheet.create({
     marginTop: 7,
   },
   customTooltipText: {
-    color: '#FDBA74',
     fontFamily: FONTS.bold,
     fontSize: 11,
     letterSpacing: 0.1,

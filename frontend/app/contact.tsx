@@ -456,7 +456,6 @@ function NativeContactPage() {
                     <Text style={styles.inputLabel}>Phone Number (10 Digits)</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#1A1D2B', borderWidth: 1, borderColor: '#292E42', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 12 }}>
-                        <Text style={{ fontSize: 13 }}>🇮🇳</Text>
                         <Text style={{ fontSize: 13, fontWeight: '700', color: '#A78BFA' }}>+91</Text>
                       </View>
                       <TextInput

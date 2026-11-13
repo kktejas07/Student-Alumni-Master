@@ -18,6 +18,7 @@ import { CouponBanner } from '@/src/views/web/components/CouponBanner';
 import { uploadImage, fileNameToLabel } from '@/src/lib/image';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useConfirm } from '@/src/views/components';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 const KPI_ICONS: Record<string, any> = {
   Building2, GraduationCap, UserCheck, Users, CreditCard, Calendar, CheckCircle, BarChart3,
@@ -78,7 +79,9 @@ function titleCase(v?: string | null): string {
 
 export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void }) {
   const T = useSAC();
+  const { isDark } = useTheme();
   Object.assign(s, resolveColors(s, T));
+  const themedCard = { backgroundColor: T.card, borderColor: T.border };
   const user = useAuthStore((st) => st.user);
   const firstName = (user?.full_name || 'Admin').split(' ')[0];
 
@@ -329,7 +332,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
       <LiveStrip accent={GRAD.to} keys={['users', 'students', 'mentors', 'colleges', 'bookings']} />
 
       {/* Hero Banner from sa-dashboard-export.html */}
-      <View className="db-r sa-hero" style={{ position: 'relative', overflow: 'hidden', borderRadius: 22, padding: 30, paddingBottom: 32, paddingHorizontal: 34, marginBottom: 18, shadowColor: '#101220', shadowOffset: { width: 0, height: 24 }, shadowOpacity: 0.22, shadowRadius: 60, elevation: 10, backgroundImage: 'linear-gradient(150deg, #FFFFFF 0%, #F4F2FF 44%, #EAF6FA 100%)' } as any}>
+      <View className="db-r sa-hero" style={{ position: 'relative', overflow: 'hidden', borderRadius: 22, padding: 30, paddingBottom: 32, paddingHorizontal: 34, marginBottom: 18, borderWidth: 1, borderColor: isDark ? 'rgba(99,102,241,0.2)' : '#E0E7FF', shadowColor: isDark ? '#000000' : '#101220', shadowOffset: { width: 0, height: 24 }, shadowOpacity: isDark ? 0.32 : 0.12, shadowRadius: 60, elevation: 10, backgroundImage: isDark ? 'linear-gradient(to right, #161b33 0%, rgba(30,27,75,0.8) 52%, #0f172a 100%)' : 'linear-gradient(to right, #eef2ff 0%, #faf5ff 54%, #ffffff 100%)' } as any}>
         {Platform.OS === 'web' && (
           <div dangerouslySetInnerHTML={{ __html: `
             <div style="position: absolute; right: -6%; top: -46%; width: 460px; height: 460px; border-radius: 50%; background: radial-gradient(circle, rgba(124,92,252,.20), transparent 66%); pointer-events: none;"></div>
@@ -348,14 +351,14 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
         )}
         <View style={{ flexDirection: stack ? 'column' : 'row', gap: 30, alignItems: 'center' }}>
           <View style={{ flex: 1 }}>
-            <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(75,63,168,.10)', borderRadius: 100, paddingVertical: 7, paddingHorizontal: 13 }}>
-              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#3B2FA8' }} />
-              <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1.5, color: '#3B2FA8' }}>PLATFORM OVERVIEW</Text>
+            <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(224,231,255,0.8)', borderColor: isDark ? 'rgba(99,102,241,0.3)' : '#C7D2FE', borderWidth: 1, borderRadius: 100, paddingVertical: 7, paddingHorizontal: 13 }}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: T.violet }} />
+              <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1.5, color: isDark ? '#A5B4FC' : '#4338CA' }}>PLATFORM OVERVIEW</Text>
             </View>
             <View style={{ marginTop: 16, marginBottom: 10 }}>
-              <Text style={{ fontSize: 33, fontFamily: FONTS.bold, letterSpacing: -1.4, lineHeight: 38, color: '#141726' }}>Welcome back, {firstName}.</Text>
+              <Text style={{ fontSize: 33, fontFamily: FONTS.bold, letterSpacing: -1.4, lineHeight: 38, color: T.text }}>Welcome back, {firstName}.</Text>
             </View>
-            <Text style={{ fontSize: 15.5, lineHeight: 24, color: '#4A4F63', maxWidth: 520 }}>
+            <Text style={{ fontSize: 15.5, lineHeight: 24, color: isDark ? '#CBD5E1' : '#475569', maxWidth: 520 }}>
               {analyticsLoading && !analytics
                 ? 'Loading live platform numbers...'
                 : realPending > 0
@@ -363,11 +366,11 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                   : 'No mentor applications are waiting for review.'}
             </Text>
             <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: 22 }}>
-               <Pressable onPress={() => onNavigate?.('users')} style={{ backgroundColor: '#4B3FD6', borderRadius: 11, paddingVertical: 13, paddingHorizontal: 22 }}>
+               <Pressable onPress={() => onNavigate?.('users')} style={({ hovered }: any) => ({ backgroundColor: hovered ? '#4338CA' : '#4F46E5', borderRadius: 11, paddingVertical: 13, paddingHorizontal: 22 })}>
                   <Text style={{ fontSize: 14, fontFamily: FONTS.bold, color: '#FFFFFF' }}>Review approvals</Text>
                </Pressable>
-               <Pressable onPress={() => onNavigate?.('analytics')} style={{ borderColor: '#CFC9F3', borderWidth: 1, borderRadius: 11, paddingVertical: 13, paddingHorizontal: 22 }}>
-                  <Text style={{ fontSize: 14, fontFamily: FONTS.semi, color: '#2E2A55' }}>Open analytics</Text>
+               <Pressable onPress={() => onNavigate?.('analytics')} style={({ hovered }: any) => ({ backgroundColor: isDark ? (hovered ? '#334155' : 'rgba(30,41,59,0.9)') : (hovered ? '#F8FAFC' : '#FFFFFF'), borderColor: isDark ? '#334155' : '#E2E8F0', borderWidth: 1, borderRadius: 11, paddingVertical: 13, paddingHorizontal: 22 })}>
+                  <Text style={{ fontSize: 14, fontFamily: FONTS.semi, color: T.text }}>Open analytics</Text>
                </Pressable>
             </View>
           </View>
@@ -375,19 +378,19 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
           {!stack && analytics && (
             <View style={{ flexDirection: 'row', gap: 26 }}>
               <View>
-                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: '#5F6474', marginBottom: 8 }}>USERS</Text>
-                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: '#4B3FD6' }}>{k?.total_users ?? 0}</Text>
-                <Text style={{ fontSize: 12, color: '#6B7080', marginTop: 5 }}>all roles</Text>
+                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: T.muted, marginBottom: 8 }}>USERS</Text>
+                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: isDark ? '#818CF8' : '#4F46E5' }}>{k?.total_users ?? 0}</Text>
+                <Text style={{ fontSize: 12, color: isDark ? '#94A3B8' : '#64748B', marginTop: 5 }}>all roles</Text>
               </View>
               <View>
-                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: '#5F6474', marginBottom: 8 }}>BOOKINGS</Text>
-                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: '#0E6E8C' }}>{realBookings}</Text>
-                <Text style={{ fontSize: 12, color: '#6B7080', marginTop: 5 }}>all time</Text>
+                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: T.muted, marginBottom: 8 }}>BOOKINGS</Text>
+                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: isDark ? '#818CF8' : '#4F46E5' }}>{realBookings}</Text>
+                <Text style={{ fontSize: 12, color: isDark ? '#94A3B8' : '#64748B', marginTop: 5 }}>all time</Text>
               </View>
               <View>
-                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: '#5F6474', marginBottom: 8 }}>INTERNSHIPS</Text>
-                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: '#A21C63' }}>{k?.total_internships ?? 0}</Text>
-                <Text style={{ fontSize: 12, color: '#6B7080', marginTop: 5 }}>listed</Text>
+                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: T.muted, marginBottom: 8 }}>INTERNSHIPS</Text>
+                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: isDark ? '#818CF8' : '#4F46E5' }}>{k?.total_internships ?? 0}</Text>
+                <Text style={{ fontSize: 12, color: isDark ? '#94A3B8' : '#64748B', marginTop: 5 }}>listed</Text>
               </View>
             </View>
           )}
@@ -620,7 +623,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
             <View
               key={kpi.id}
               className="db-tile sa-stat-card"
-              style={[s.card, { width: stack ? '100%' : '23.5%', minWidth: 200, padding: 18, overflow: 'hidden' }]}
+              style={[s.card, themedCard, { width: stack ? '100%' : '23.5%', minWidth: 200, padding: 18, overflow: 'hidden' }]}
             >
               <View style={{ position: 'relative', zIndex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -650,9 +653,9 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
       {/* Recent Activity + Platform Users */}
       <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
         {/* Recent Activity */}
-        <View style={[s.card, { flex: stack ? undefined : 1.7, overflow: 'hidden' }]} className="db-tile sa-stat-card">
+        <View style={[s.card, themedCard, { flex: stack ? undefined : 1.7, overflow: 'hidden' }]} className="db-tile sa-stat-card">
           <View style={s.cardHead}>
-            <Text style={s.cardTitle}>Recent Activity</Text>
+            <Text style={[s.cardTitle, { color: T.text }]}>Recent Activity</Text>
             <Pressable onPress={() => onNavigate?.('analytics')}><Text style={s.linkRight}>View all</Text></Pressable>
           </View>
           <View style={{ gap: 9, marginTop: 12 }}>
@@ -697,8 +700,8 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
         </View>
 
         {/* Platform Users distribution */}
-        <View style={[s.card, { flex: stack ? undefined : 1, overflow: 'hidden' }]} className="db-tile sa-stat-card">
-          <Text style={s.cardTitle}>Platform Users</Text>
+        <View style={[s.card, themedCard, { flex: stack ? undefined : 1, overflow: 'hidden' }]} className="db-tile sa-stat-card">
+          <Text style={[s.cardTitle, { color: T.text }]}>Platform Users</Text>
           <View style={{ gap: 14, marginTop: 14 }}>
             {analyticsLoading && !analytics ? (
               <View style={s.stateRow}><ActivityIndicator size="small" color={T.dim} /><Text style={s.stateText}>Loading...</Text></View>
@@ -715,10 +718,10 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
             ) : PLATFORM_USERS.map((u) => (
               <View key={u.label}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <Text style={s.distLabel}>{u.label}</Text>
-                  <Text style={s.distPct}>{u.pct}%</Text>
+                  <Text style={[s.distLabel, { color: T.text }]}>{u.label}</Text>
+                  <Text style={[s.distPct, { color: T.text }]}>{u.pct}%</Text>
                 </View>
-                <View style={s.distTrack}>
+                <View style={[s.distTrack, { backgroundColor: T.line }]}>
                   <View style={[s.distFill, { width: `${u.pct}%` as any, backgroundColor: u.color }]} />
                 </View>
                 <Text style={s.distCount}>{u.count.toLocaleString('en-IN')}</Text>

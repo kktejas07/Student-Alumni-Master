@@ -21,6 +21,7 @@ import { usePortalData } from '@/src/lib/portalApi';
 import { request } from '@/src/models/services/api';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 import { useConfirm } from '@/src/views/components';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; status: string; kind: string; price?: number; accent: string };
 const FALLBACK = { items: [] as Ev[] };
@@ -55,6 +56,9 @@ function EventModal({
   onSaved: () => void;
   onDeleted: () => void;
 }) {
+  const T = useSAC();
+  const { isDark } = useTheme();
+  Object.assign(mst, resolveColors(mst, T));
   const { confirm } = useConfirm();
   const isEdit = !!editing;
   const [form, setForm] = useState<Editable>(EMPTY);
@@ -138,7 +142,11 @@ function EventModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={mst.bg}>
         <Pressable style={mst.bgPress} onPress={onClose} />
-        <View style={mst.card}>
+        <View style={[mst.card, {
+          backgroundColor: isDark ? '#0f172a' : '#ffffff',
+          borderColor: isDark ? '#1e293b' : '#e2e8f0',
+          borderWidth: 1,
+        }]}>
           <View style={mst.head}>
             <IconBox size={32}><CalIcon size={14} color={GRAD.to} /></IconBox>
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -146,27 +154,27 @@ function EventModal({
               <Text style={mst.sub}>{isEdit ? `Editing "${editing?.title}"` : 'Create a new event across the platform'}</Text>
             </View>
             <Pressable onPress={onClose} style={mst.closeBtn}>
-              <X size={16} color={SAC.muted} />
+              <X size={16} color={T.muted} />
             </Pressable>
           </View>
 
           <ScrollView style={{ maxHeight: 460 }} contentContainerStyle={{ gap: 12, padding: 18 }}>
             <Field label="Title *">
               <TextInput value={form.title} onChangeText={(v) => set('title', v)}
-                placeholder="e.g. AI in Hiring 2026" placeholderTextColor={SAC.dim} style={mst.input} />
+                placeholder="e.g. AI in Hiring 2026" placeholderTextColor={T.dim} style={[mst.input, { color: isDark ? '#f8fafc' : '#0f172a' }]} />
             </Field>
 
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={{ flex: 1 }}>
                 <Field label={isEdit ? 'New start date / time' : 'Start date / time'}>
                   <TextInput value={form.start_date} onChangeText={(v) => set('start_date', v)}
-                    placeholder="2026-07-15T18:00" placeholderTextColor={SAC.dim} style={mst.input} />
+                    placeholder="2026-07-15T18:00" placeholderTextColor={T.dim} style={[mst.input, { color: isDark ? '#f8fafc' : '#0f172a' }]} />
                 </Field>
               </View>
               <View style={{ width: 150 }}>
                 <Field label="Capacity">
                   <TextInput value={form.capacity} onChangeText={(v) => set('capacity', v.replace(/[^0-9]/g, ''))}
-                    keyboardType="numeric" placeholder="200" placeholderTextColor={SAC.dim} style={mst.input} />
+                    keyboardType="numeric" placeholder="200" placeholderTextColor={T.dim} style={[mst.input, { color: isDark ? '#f8fafc' : '#0f172a' }]} />
                 </Field>
               </View>
             </View>
@@ -180,7 +188,7 @@ function EventModal({
               <View style={{ flex: 1 }}>
                 <Field label="Venue / City">
                   <TextInput value={form.venue} onChangeText={(v) => set('venue', v)}
-                    placeholder="Bengaluru / Online" placeholderTextColor={SAC.dim} style={mst.input} />
+                    placeholder="Bengaluru / Online" placeholderTextColor={T.dim} style={[mst.input, { color: isDark ? '#f8fafc' : '#0f172a' }]} />
                 </Field>
               </View>
             </View>
@@ -195,15 +203,15 @@ function EventModal({
               <View style={{ width: 150 }}>
                 <Field label="Price (₹, blank = free)">
                   <TextInput value={form.price} onChangeText={(v) => set('price', v.replace(/[^0-9.]/g, ''))}
-                    keyboardType="numeric" placeholder="0" placeholderTextColor={SAC.dim} style={mst.input} />
+                    keyboardType="numeric" placeholder="0" placeholderTextColor={T.dim} style={[mst.input, { color: isDark ? '#f8fafc' : '#0f172a' }]} />
                 </Field>
               </View>
             </View>
 
             <Field label="Description">
               <TextInput value={form.description} onChangeText={(v) => set('description', v)}
-                multiline numberOfLines={3} placeholder="Short summary…" placeholderTextColor={SAC.dim}
-                style={[mst.input, { minHeight: 70, paddingTop: 9, textAlignVertical: 'top' as any }]} />
+                multiline numberOfLines={3} placeholder="Short summary…" placeholderTextColor={T.dim}
+                style={[mst.input, { color: isDark ? '#f8fafc' : '#0f172a', minHeight: 70, paddingTop: 9, textAlignVertical: 'top' as any }]} />
             </Field>
 
             {!!err && (
@@ -223,7 +231,7 @@ function EventModal({
             ) : <View />}
             <View style={{ flex: 1 }} />
             <SecondaryButton onPress={onClose}>
-              <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
+              <Text style={{ color: T.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
             </SecondaryButton>
             <GradientButton onPress={save} loading={saving}>
               <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 }}>
@@ -247,13 +255,14 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function Segmented({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
+  const T = useSAC();
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
       {options.map((o) => {
         const active = o === value;
         return (
           <Pressable key={o} onPress={() => onChange(o)} style={[mst.segBtn, active && mst.segOn]}>
-            <Text style={{ color: active ? '#fff' : SAC.muted, fontFamily: FONTS.xbold, fontSize: 11 }}>{o}</Text>
+            <Text style={{ color: active ? '#fff' : T.muted, fontFamily: FONTS.xbold, fontSize: 11 }}>{o}</Text>
           </Pressable>
         );
       })}
@@ -265,6 +274,7 @@ function Segmented({ value, onChange, options }: { value: string; onChange: (v: 
 
 export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const T = useSAC();
+  const { isDark } = useTheme();
   Object.assign(st, resolveColors(st, T));
   const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/events', FALLBACK);
   const EVENTS = data?.items || [];
@@ -323,7 +333,7 @@ export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) =
         <View style={st.headRow}>
           <IconBox size={38}><CalIcon size={18} color={GRAD.to} /></IconBox>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={st.title}>Events</Text>
+            <Text style={[st.title, { color: isDark ? '#f8fafc' : '#0f172a' }]}>Events</Text>
             <Text style={st.sub}>Manage live + upcoming events across all colleges. Approve new submissions and track attendance live.</Text>
           </View>
           <GradientButton onPress={openCreate}>
@@ -359,13 +369,17 @@ export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) =
           {list.map((e) => {
             const pct = Math.min(100, Math.round(((e.attending || 0) / (e.capacity || 1)) * 100));
             return (
-              <View key={e.id} style={st.card}>
+              <View key={e.id} style={[st.card, {
+                backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                borderColor: isDark ? '#1e293b' : '#e2e8f0',
+                borderWidth: 1,
+              }]}>
                 <View style={[st.cover, { backgroundColor: e.accent + '22', borderColor: e.accent + '40' }]}>
                   <CalIcon size={28} color={e.accent} />
                 </View>
                 <View style={{ padding: 14, gap: 8 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <StatusPill label={e.cat} kind="brand" />
+                    <StatusPill label={e.cat} kind="neutral" />
                     <StatusPill
                       label={e.kind === 'free' ? 'FREE' : `₹${e.price}`}
                       kind={e.kind === 'free' ? 'success' : 'warn'}
@@ -373,17 +387,17 @@ export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) =
                   </View>
                   <Text numberOfLines={2} style={st.cTitle}>{e.title}</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <CalIcon size={11} color={SAC.muted} />
-                    <Text style={st.meta}>{e.date}</Text>
+                    <CalIcon size={11} color={T.muted} />
+                    <Text style={[st.meta, { color: isDark ? '#94a3b8' : '#475569' }]}>{e.date}</Text>
                     <Text style={st.dot}>·</Text>
-                    <MapPin size={11} color={SAC.muted} />
-                    <Text style={st.meta}>{e.city}</Text>
+                    <MapPin size={11} color={T.muted} />
+                    <Text style={[st.meta, { color: isDark ? '#94a3b8' : '#475569' }]}>{e.city}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <UsersIcon size={11} color={SAC.muted} />
-                    <Text style={st.meta}>{e.attending}/{e.capacity} attending · {pct}%</Text>
+                    <UsersIcon size={11} color={T.muted} />
+                    <Text style={[st.meta, { color: isDark ? '#94a3b8' : '#475569' }]}>{e.attending}/{e.capacity} attending · {pct}%</Text>
                   </View>
-                  <View style={st.barTrack}>
+                  <View style={[st.barTrack, { backgroundColor: isDark ? '#1e293b' : '#e2e8f0' }]}>
                     <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[st.barFill, { width: `${pct}%` as any }]} />
                   </View>
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>

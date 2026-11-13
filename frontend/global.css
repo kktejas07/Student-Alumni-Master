@@ -6,25 +6,28 @@
  * Student Alumni — Unified Theme Variables
  * ========================================
  * Single source of truth for all visual properties.
- * Light/dark mode via prefers-color-scheme media query.
+ * Light/dark mode is controlled by ThemeProvider on the document root.
  * Role accents via CSS custom properties.
  */
 
 :root {
   /* ── Dark Mode (Default) ─────────────────────────────────── */
-  --sa-bg: #08080F;
-  --sa-bg-elevated: #101019;
-  --sa-bg-inset: #14141F;
+  --sa-bg: #0B1220;
+  --sa-bg-elevated: #111827;
+  --sa-bg-inset: #1E293B;
   --sa-bg-glass: rgba(14, 14, 18, 0.72);
 
-  --sa-text-primary: #F4F4FA;
-  --sa-text-secondary: #8A8A9E;
-  --sa-text-muted: #6A6A7E;
-  --sa-text-faint: #6A6A7E;
+  --sa-text-primary: #F8FAFC;
+  --sa-text-secondary: #CBD5E1;
+  --sa-text-muted: #94A3B8;
+  --sa-text-faint: #94A3B8;
 
   --sa-border: rgba(255, 255, 255, 0.08);
   --sa-border-subtle: rgba(255, 255, 255, 0.04);
   --sa-border-strong: rgba(255, 255, 255, 0.14);
+  --sa-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.20), 0 12px 30px rgba(0, 0, 0, 0.24);
+  --sa-shadow-elevated: 0 2px 4px rgba(0, 0, 0, 0.24), 0 16px 40px rgba(0, 0, 0, 0.30);
+  --sa-chrome: rgba(17, 24, 39, 0.88);
 
   /* ── Role Accents (same in light/dark — brand identity) ──── */
   --sa-student: #7C5CFC;
@@ -42,7 +45,7 @@
   /* ── Tint ────────────────────────────────────────────────── */
   --sa-tint: rgba(124, 92, 252, 0.10);
   --sa-tint-strong: rgba(124, 92, 252, 0.18);
-  --sa-on-tint: #F4F4FA;
+  --sa-on-tint: #F8FAFC;
   --sa-on-tint-light: #3B2FA8;
   --sa-on-accent: #0C0C14;
   --sa-on-accent-light: #FFFFFF;
@@ -88,63 +91,23 @@
 .db-promo { transition: transform 0.28s cubic-bezier(.2,.8,.2,1); }
 .db-promo:hover { transform: translateY(-4px); }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    /* ── Light Mode ────────────────────────────────────────── */
-    --sa-bg: #F4F5FA;
-    --sa-bg-elevated: #FFFFFF;
-    --sa-bg-inset: #EBEBEF;
-    --sa-bg-glass: rgba(255, 255, 255, 0.72);
-
-    --sa-text-primary: #141726;
-    --sa-text-secondary: #565B70;
-    --sa-text-muted: #8E8E93;
-    --sa-text-faint: #C7C7CC;
-
-    --sa-border: rgba(0, 0, 0, 0.08);
-    --sa-border-subtle: rgba(0, 0, 0, 0.04);
-    --sa-border-strong: rgba(0, 0, 0, 0.16);
-
-    /* ── Glass surfaces (light) ─────────────────────────────── */
-    --sa-glass-subtle: rgba(0, 0, 0, 0.03);
-    --sa-glass-light: rgba(0, 0, 0, 0.05);
-    --sa-glass-medium: rgba(0, 0, 0, 0.08);
-    --sa-glass-strong: rgba(0, 0, 0, 0.12);
-
-    /* ── Tint (light) ───────────────────────────────────────── */
-    --sa-tint: rgba(124, 92, 252, 0.08);
-    --sa-tint-strong: rgba(124, 92, 252, 0.15);
-    --sa-on-tint: #3B2FA8;
-    --sa-on-tint-light: #7C5CFC;
-    --sa-on-accent: #FFFFFF;
-    --sa-on-accent-light: #0C0C14;
-
-    /* ── Shadows (light) ────────────────────────────────────── */
-    --sa-shadow-card: 0 1px 2px rgba(20, 23, 38, 0.04), 0 12px 30px rgba(20, 23, 38, 0.06);
-    --sa-shadow-elevated: 0 2px 4px rgba(20, 23, 38, 0.06), 0 16px 40px rgba(20, 23, 38, 0.10);
-
-    /* ── Chrome (light) ─────────────────────────────────────── */
-    --sa-chrome: rgba(255, 255, 255, 0.86);
-    --sa-chrome-blur: blur(16px);
-
-    color-scheme: light;
-  }
-}
-
 html.light-mode {
-  --sa-bg: #F4F5FA !important;
+  --sa-bg: #F8FAFC !important;
   --sa-bg-elevated: #FFFFFF !important;
-  --sa-bg-inset: #EBEBEF !important;
+  --sa-bg-inset: #F1F5F9 !important;
   --sa-bg-glass: rgba(255, 255, 255, 0.72) !important;
 
-  --sa-text-primary: #141726 !important;
-  --sa-text-secondary: #565B70 !important;
-  --sa-text-muted: #8E8E93 !important;
-  --sa-text-faint: #C7C7CC !important;
+  --sa-text-primary: #0F172A !important;
+  --sa-text-secondary: #475569 !important;
+  --sa-text-muted: #64748B !important;
+  --sa-text-faint: #64748B !important;
 
   --sa-border: rgba(0, 0, 0, 0.08) !important;
   --sa-border-subtle: rgba(0, 0, 0, 0.04) !important;
   --sa-border-strong: rgba(0, 0, 0, 0.16) !important;
+  --sa-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 30px rgba(15, 23, 42, 0.06);
+  --sa-shadow-elevated: 0 2px 4px rgba(15, 23, 42, 0.06), 0 16px 40px rgba(15, 23, 42, 0.10);
+  --sa-chrome: rgba(248, 250, 252, 0.88);
 
   --sa-glass-subtle: rgba(0, 0, 0, 0.03) !important;
   --sa-glass-light: rgba(0, 0, 0, 0.05) !important;
@@ -159,8 +122,43 @@ html.light-mode {
   --sa-on-accent-light: #0C0C14 !important;
 
   color-scheme: light !important;
-  background-color: #F4F5FA !important;
-  color: #141726 !important;
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+}
+
+html,
+body,
+body > div:first-child {
+  min-height: 100%;
+  background-color: var(--sa-bg);
+  color: var(--sa-text-primary);
+}
+
+body {
+  margin: 0;
+  transition: background-color 220ms ease, color 220ms ease;
+}
+
+input,
+textarea,
+select {
+  border: 1px solid var(--sa-border-strong);
+  border-radius: 0.5rem;
+  background-color: var(--sa-bg-elevated);
+  color: var(--sa-text-primary);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--sa-text-muted);
+  opacity: 1;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--sa-student);
+  outline-offset: 2px;
 }
 
 /*
@@ -353,7 +351,7 @@ html.light-mode .text-gray-500,
 html.light-mode .text-zinc-500,
 html.light-mode .text-\[\#6E7388\],
 html.light-mode .text-\[\#6A6A7E\] {
-  color: #94A3B8 !important; /* Slate-400 (Faint) */
+  color: #64748B !important; /* Slate-500 keeps muted text readable on light surfaces. */
 }
 
 /* Opacity Text */
@@ -463,7 +461,7 @@ html.light-mode select {
 }
 
 html.light-mode ::placeholder {
-  color: #94A3B8 !important;
+  color: #64748B !important;
 }
 
 /* 10. React Native Web Element Overrides in Light Mode */
@@ -500,5 +498,57 @@ html.light-mode [style*="color: rgba(255, 255, 255, 0.6)"],
 html.light-mode [style*="color: rgba(255,255,255,0.5)"],
 html.light-mode [style*="color: rgba(255,255,255,0.6)"] {
   color: #64748B !important;
+}
+
+/* Legacy React Native Web screens use inline styles instead of semantic classes. */
+html.light-mode [style*="background-color: rgb(8, 8, 15)"],
+html.light-mode [style*="background-color: rgb(11, 18, 32)"],
+html.light-mode [style*="background-color: rgb(7, 7, 10)"],
+html.light-mode [style*="background-color: rgb(10, 15, 30)"] {
+  background-color: #F8FAFC !important;
+}
+
+html.light-mode [style*="background-color: rgb(16, 16, 25)"],
+html.light-mode [style*="background-color: rgb(17, 24, 39)"],
+html.light-mode [style*="background-color: rgb(18, 18, 24)"] {
+  background-color: #FFFFFF !important;
+}
+
+html.light-mode [style*="background-color: rgb(20, 20, 31)"],
+html.light-mode [style*="background-color: rgb(30, 41, 59)"],
+html.light-mode [style*="background-color: rgba(255, 255, 255, 0.02)"],
+html.light-mode [style*="background-color: rgba(255, 255, 255, 0.03)"],
+html.light-mode [style*="background-color: rgba(255, 255, 255, 0.04)"],
+html.light-mode [style*="background-color: rgba(255, 255, 255, 0.06)"],
+html.light-mode [style*="background-color: rgba(255, 255, 255, 0.08)"] {
+  background-color: #F1F5F9 !important;
+}
+
+html.light-mode [style*="color: rgb(244, 244, 250)"],
+html.light-mode [style*="color: rgb(244, 244, 246)"],
+html.light-mode [style*="color: rgb(248, 250, 252)"] {
+  color: #0F172A !important;
+}
+
+html.light-mode [style*="color: rgb(138, 138, 158)"],
+html.light-mode [style*="color: rgb(148, 163, 184)"],
+html.light-mode [style*="color: rgb(161, 166, 183)"] {
+  color: #475569 !important;
+}
+
+html.light-mode [style*="color: rgb(52, 211, 153)"],
+html.light-mode [style*="color: rgb(16, 185, 129)"] {
+  color: #047857 !important;
+}
+
+html.light-mode [style*="color: rgb(245, 158, 11)"],
+html.light-mode [style*="color: rgb(245, 179, 66)"] {
+  color: #92400E !important;
+}
+
+html.light-mode [style*="color: rgb(239, 68, 68)"],
+html.light-mode [style*="color: rgb(240, 97, 107)"],
+html.light-mode [style*="color: rgb(252, 165, 165)"] {
+  color: #BE123C !important;
 }
 

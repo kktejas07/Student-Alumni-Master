@@ -18,31 +18,31 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowRight } from 'lucide-react-native';
+import { ArrowRight, BookOpen, Sparkles, Target, Users } from 'lucide-react-native';
 
 const IS_WEB = Platform.OS === 'web';
 
 const SLIDES = [
   {
-    emoji: '🚀',
+    Icon: Sparkles,
     accent: ['rgba(37,99,235,0.55)', 'rgba(91,33,182,0.25)'],
     title: 'Your AI Career\nRoadmap',
     body: 'Personalized milestones, courses, and skills based on the career you want to build.',
   },
   {
-    emoji: '🤝',
+    Icon: Users,
     accent: ['rgba(16,185,129,0.55)', 'rgba(5,150,105,0.25)'],
     title: '500+ Verified\nMentors',
     body: 'Book 1:1 sessions with alumni and industry experts who actually want to help you grow.',
   },
   {
-    emoji: '🚀',
+    Icon: BookOpen,
     accent: ['rgba(245,158,11,0.55)', 'rgba(217,119,6,0.25)'],
     title: 'Skill & Career\nRoadmaps',
     body: 'Discover AI-driven learning pathways curated to your goals — from tech to creative to research.',
   },
   {
-    emoji: '🎉',
+    Icon: Target,
     accent: ['rgba(236,72,153,0.55)', 'rgba(190,24,93,0.25)'],
     title: "Let's Build\nYour Future",
     body: 'Create your free account and unlock your personalized dashboard, deals, and community.',
@@ -188,7 +188,7 @@ function Slide({
             style={styles.iconGlow}
           />
           <View style={styles.iconCircle}>
-            <Text style={{ fontSize: 64 }}>{item.emoji}</Text>
+            <item.Icon size={64} color="#FFFFFF" strokeWidth={1.6} />
           </View>
         </View>
 

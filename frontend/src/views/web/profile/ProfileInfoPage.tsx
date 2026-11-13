@@ -727,13 +727,13 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
             {draft.digilocker_verified && (
               <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                 <View style={{ backgroundColor: 'rgba(16,185,129,0.10)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)' }}>
-                  <Text style={{ color: '#34D399', fontSize: 11, fontWeight: '600' }}>✓ NAD Degree Certificate</Text>
+                  <Text style={{ color: '#34D399', fontSize: 11, fontWeight: '600' }}> NAD Degree Certificate</Text>
                 </View>
                 <View style={{ backgroundColor: 'rgba(16,185,129,0.10)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)' }}>
-                  <Text style={{ color: '#34D399', fontSize: 11, fontWeight: '600' }}>✓ ABC ID (Ministry of Education)</Text>
+                  <Text style={{ color: '#34D399', fontSize: 11, fontWeight: '600' }}> ABC ID (Ministry of Education)</Text>
                 </View>
                 <View style={{ backgroundColor: 'rgba(16,185,129,0.10)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)' }}>
-                  <Text style={{ color: '#34D399', fontSize: 11, fontWeight: '600' }}>✓ 10th & 12th Board Marksheet</Text>
+                  <Text style={{ color: '#34D399', fontSize: 11, fontWeight: '600' }}> 10th & 12th Board Marksheet</Text>
                 </View>
               </View>
             )}

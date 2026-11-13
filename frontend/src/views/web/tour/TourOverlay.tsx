@@ -14,6 +14,7 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { Sparkles, X, ArrowRight, ArrowLeft, Check } from 'lucide-react-native';
 import { useTour } from './TourProvider';
 import { TOURS } from './tours.config';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 type Rect = { x: number; y: number; w: number; h: number };
 
@@ -47,7 +48,7 @@ function measureTarget(selector: string): Rect | null {
 
 export function TourOverlay() {
   const { active, stepIdx, next, back, skip, complete } = useTour();
-  if (!active) return null;
+  const { isDark } = useTheme();
 
   const [rect, setRect] = useState<Rect | null>(null);
   const [viewport, setViewport] = useState({
@@ -99,8 +100,20 @@ export function TourOverlay() {
 
       {/* Tooltip */}
       <View pointerEvents="auto" style={[s.tipWrap, { left: tt.x, top: tt.y, maxWidth: tt.maxW }]}>
-        <View style={[s.tip, { borderColor: accent + '99' }]}>
-          <View style={[s.tipHead, { borderBottomColor: accent + '33' }]}>
+        <View style={[s.tip, {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#cbd5e1',
+          shadowColor: '#0f172a',
+          shadowOpacity: 0.08,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 2 },
+          ...(Platform.OS === 'web' ? ({
+            boxShadow: isDark
+              ? '0 12px 32px rgba(15,23,42,0.28)'
+              : '0 4px 12px rgba(15,23,42,0.08)',
+          } as any) : {}),
+        }]}>
+          <View style={[s.tipHead, { borderBottomColor: isDark ? '#334155' : '#cbd5e1' }]}>
             <View style={[s.tipBadge, { backgroundColor: accent + '22', borderColor: accent + '55' }]}>
               <Sparkles size={11} color={accent} />
               <Text style={[s.tipBadgeText, { color: accent }]}>
@@ -108,20 +121,23 @@ export function TourOverlay() {
               </Text>
             </View>
             <Pressable onPress={skip} style={s.tipClose}>
-              <X size={13} color="rgba(255,255,255,0.55)" />
+              <X size={13} color={isDark ? '#94a3b8' : '#475569'} />
             </Pressable>
           </View>
-          <Text style={s.tipTitle}>{step.title}</Text>
-          <Text style={s.tipBody}>{step.body}</Text>
+          <Text style={[s.tipTitle, { color: isDark ? '#f8fafc' : '#0f172a' }]}>{step.title}</Text>
+          <Text style={[s.tipBody, { color: isDark ? '#cbd5e1' : '#475569' }]}>{step.body}</Text>
           <View style={s.tipFoot}>
             <Pressable onPress={skip} style={s.skipBtn}>
-              <Text style={s.skipBtnText}>Skip tour</Text>
+              <Text style={[s.skipBtnText, { color: isDark ? '#94a3b8' : '#475569' }]}>Skip tour</Text>
             </Pressable>
             <View style={{ flex: 1 }} />
             {stepIdx > 0 && (
-              <Pressable onPress={back} style={s.ghostBtn}>
-                <ArrowLeft size={12} color="rgba(255,255,255,0.78)" />
-                <Text style={s.ghostBtnText}>Back</Text>
+              <Pressable onPress={back} style={[s.ghostBtn, {
+                backgroundColor: isDark ? '#1e293b' : '#f8fafc',
+                borderColor: isDark ? '#334155' : '#cbd5e1',
+              }]}>
+                <ArrowLeft size={12} color={isDark ? '#cbd5e1' : '#334155'} />
+                <Text style={[s.ghostBtnText, { color: isDark ? '#cbd5e1' : '#334155' }]}>Back</Text>
               </Pressable>
             )}
             <Pressable onPress={isLast ? complete : next}>
@@ -227,12 +243,8 @@ const s = StyleSheet.create({
   svgLayer: { position: 'absolute' as any, left: 0, top: 0 },
   tipWrap: { position: 'absolute' as any },
   tip: {
-    backgroundColor: '#0F1426',
     borderRadius: 14, borderWidth: 1,
     padding: 16,
-    ...(Platform.OS === 'web' ? ({
-      boxShadow: '0 24px 56px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06) inset',
-    } as any) : {}),
   },
   tipHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 10, borderBottomWidth: 1, marginBottom: 10 },
   tipBadge: {
@@ -241,18 +253,18 @@ const s = StyleSheet.create({
   },
   tipBadgeText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 10.5, letterSpacing: 0.4 },
   tipClose: { padding: 4, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  tipTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 15, letterSpacing: -0.3 },
-  tipBody:  { color: 'rgba(255,255,255,0.78)', fontFamily: 'DMSans_500Medium', fontSize: 12.5, lineHeight: 18, marginTop: 6 },
+  tipTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 15, letterSpacing: -0.3 },
+  tipBody:  { fontFamily: 'DMSans_500Medium', fontSize: 12.5, lineHeight: 18, marginTop: 6 },
   tipFoot:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14 },
   skipBtn:  { paddingHorizontal: 4, paddingVertical: 6, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  skipBtnText: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
+  skipBtnText: { fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
   ghostBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  ghostBtnText: { color: 'rgba(255,255,255,0.78)', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
+  ghostBtnText: { fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
   primaryBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,

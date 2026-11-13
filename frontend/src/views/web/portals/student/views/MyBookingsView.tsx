@@ -207,7 +207,7 @@ export function MyBookingsView() {
                 <Text style={[s.meta, { color: isDark ? SC.muted : '#64748B' }]}>{b.mentor_name || 'Mentor'} · {when ? when.toLocaleDateString() : 'TBD'}</Text>
               </View>
               {hasReviewed ? (
-                <Text style={{ color: '#10B981', fontFamily: FONTS.med, fontSize: 12 }}>Review Submitted ✓</Text>
+                <Text style={{ color: '#10B981', fontFamily: FONTS.med, fontSize: 12 }}>Review Submitted </Text>
               ) : (
                 <Pressable
                   onPress={() => {

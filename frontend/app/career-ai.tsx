@@ -13,7 +13,7 @@
  *   6. Row 2: AI Insights (Conversational Bubbles) & Goal Simulator (Sliders)
  *   7. Career Journey (Full-Width 5-Node Horizontal Stepper Roadmap)
  *   8. Row 3: Goal Simulator (action toggles) & Recruiter View (derived bars)
- *   9. Footer (© 2026 StudentAlumni · Privacy / Terms / Cookies)
+ *   9. Footer ( 2026 StudentAlumni · Privacy / Terms / Cookies)
  */
 import React, {
   useCallback, useEffect, useMemo, useState,

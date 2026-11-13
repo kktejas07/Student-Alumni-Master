@@ -21,7 +21,7 @@ import {
   BookOpen, Network, Star, ChevronRight, X, ZoomIn,
   Building2, Award, TrendingUp, Target, Zap, FileText, Download,
   Ticket, Globe, Link2, HelpCircle, ChevronDown,
-  Trophy, PanelTop, CheckCircle2, ExternalLink,
+  Trophy, PanelTop, CheckCircle2, ExternalLink, MessageCircle, Send,
 } from 'lucide-react-native';
 import { api, resolveImageUrl } from '@/src/models/services/api';
 import { PALETTE, usePalette, SC, FONTS, TYPO } from '../tokens';
@@ -1374,9 +1374,9 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 </View>
                 {data.prize_pool.total ? <Text style={[s.infoTitle, { color: '#F59E0B', marginBottom: 6 }]}>{data.prize_pool.total}</Text> : null}
                 <View style={{ gap: 3 }}>
-                  {data.prize_pool.first ? <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#334155' }]}>🥇 {data.prize_pool.first}</Text> : null}
-                  {data.prize_pool.second ? <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#334155' }]}>🥈 {data.prize_pool.second}</Text> : null}
-                  {data.prize_pool.third ? <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#334155' }]}>🥉 {data.prize_pool.third}</Text> : null}
+                  {data.prize_pool.first ? <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#334155' }]}> {data.prize_pool.first}</Text> : null}
+                  {data.prize_pool.second ? <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#334155' }]}> {data.prize_pool.second}</Text> : null}
+                  {data.prize_pool.third ? <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#334155' }]}> {data.prize_pool.third}</Text> : null}
                 </View>
                 {(data.prize_pool.other_prizes || []).filter(Boolean).length > 0 && (
                   <Text style={[s.infoText, { color: isDark ? PALETTE.muted : '#475569', marginTop: 6 }]}>+ {data.prize_pool.other_prizes.join(', ')}</Text>
@@ -1524,7 +1524,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                   }}
                   style={[s.shareOptionBtn, { backgroundColor: 'rgba(37,211,102,0.15)', borderColor: 'rgba(37,211,102,0.4)' }]}
                 >
-                  <Text style={{ fontSize: 18 }}></Text>
+                  <MessageCircle size={18} color="#25D366" />
                   <Text style={[s.shareOptionText, { color: '#25D366' }]}>Share on WhatsApp</Text>
                 </Pressable>
 
@@ -1541,7 +1541,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                   }}
                   style={[s.shareOptionBtn, { backgroundColor: 'rgba(0,136,204,0.15)', borderColor: 'rgba(0,136,204,0.4)' }]}
                 >
-                  <Text style={{ fontSize: 18 }}></Text>
+                  <Send size={18} color="#38BDF8" />
                   <Text style={[s.shareOptionText, { color: '#38BDF8' }]}>Share on Telegram</Text>
                 </Pressable>
 

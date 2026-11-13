@@ -220,7 +220,7 @@ export default function CareerTrackInline({
             <MaterialCommunityIcons name="check-circle-outline" size={15} color="#2563EB" />
             <Text style={s.enrollCtaText}>
               {currentWeek >= track.duration_weeks
-                ? 'Track complete 🎉'
+                ? 'Track complete '
                 : `Mark Week ${currentWeek} complete`}
             </Text>
           </Pressable>

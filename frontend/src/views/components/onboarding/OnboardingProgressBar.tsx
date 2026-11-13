@@ -148,7 +148,7 @@ export const OnboardingProgressBar: React.FC<OnboardingProgressBarProps> = ({
                       isCurrent && s.labelCurrent,
                     ]}
                   >
-                    {isCompleted ? '✓ ' : ''}
+                    {isCompleted ? ' ' : ''}
                     {label}
                   </Text>
                 </View>

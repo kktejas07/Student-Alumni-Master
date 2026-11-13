@@ -242,7 +242,7 @@ export function TalentPoolView() {
     switch (s) { case 'linkedin': return 'LI'; case 'csv': return 'CSV'; case 'platform': return 'PL'; case 'import': return 'IMP'; default: return s; }
   };
   const sourceColor = (s: string) => {
-    switch (s) { case 'linkedin': return '#0A66C2'; case 'csv': return '#22C55E'; case 'platform': return '#8B5CF6'; case 'import': return '#F59E0B'; default: return SAC.muted; }
+    switch (s) { case 'linkedin': return '#0A66C2'; case 'csv': return '#22C55E'; case 'platform': return '#8B5CF6'; case 'import': return '#F59E0B'; default: return T.muted; }
   };
 
   return (
@@ -284,32 +284,32 @@ export function TalentPoolView() {
       {message ? (
         <View style={s.msgBar}>
           <Text style={s.msgText} numberOfLines={2}>{message}</Text>
-          <Pressable onPress={() => setMessage('')}><XCircle size={14} color={SAC.muted} /></Pressable>
+          <Pressable onPress={() => setMessage('')}><XCircle size={14} color={T.muted} /></Pressable>
         </View>
       ) : null}
 
       {/* Toolbar */}
       <View style={s.toolbar}>
         <View style={s.searchWrap}>
-          <Search size={14} color={SAC.muted} />
+          <Search size={14} color={T.muted} />
           <TextInput style={s.searchInput} value={search} onChangeText={setSearch}
-            placeholder="Search by name, skills, company, location..." placeholderTextColor={SAC.muted}
+            placeholder="Search by name, skills, company, location..." placeholderTextColor={T.muted}
             onSubmitEditing={() => goToPage(1)} />
         </View>
 
         {/* View mode toggle */}
-        <View style={{ flexDirection: 'row', backgroundColor: SAC.card, borderRadius: 8, padding: 3, borderWidth: 1, borderColor: SAC.border }}>
+        <View style={{ flexDirection: 'row', backgroundColor: T.card, borderRadius: 8, padding: 3, borderWidth: 1, borderColor: T.border }}>
           <Pressable
             onPress={() => setViewMode('spreadsheet')}
             style={[s.viewModeBtn, viewMode === 'spreadsheet' && { backgroundColor: '#8B5CF6' }]}
           >
-            <Text style={[s.viewModeBtnText, viewMode === 'spreadsheet' && { color: SAC.text }]}>Spreadsheet</Text>
+            <Text style={[s.viewModeBtnText, viewMode === 'spreadsheet' && { color: '#fff' }]}>Spreadsheet</Text>
           </Pressable>
           <Pressable
             onPress={() => setViewMode('grid')}
             style={[s.viewModeBtn, viewMode === 'grid' && { backgroundColor: '#8B5CF6' }]}
           >
-            <Text style={[s.viewModeBtnText, viewMode === 'grid' && { color: SAC.text }]}>Cards</Text>
+            <Text style={[s.viewModeBtnText, viewMode === 'grid' && { color: '#fff' }]}>Cards</Text>
           </Pressable>
         </View>
 
@@ -354,7 +354,7 @@ export function TalentPoolView() {
           <Text style={s.emptySub}>Import a file or sync LinkedIn to get started</Text>
         </View>
       ) : viewMode === 'spreadsheet' ? (
-        <View style={{ backgroundColor: SAC.card, borderRadius: 12, borderWidth: 1, borderColor: SAC.border, overflow: 'hidden' }}>
+        <View style={{ backgroundColor: T.card, borderRadius: 12, borderWidth: 1, borderColor: T.border, overflow: 'hidden' }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={true}>
             <View>
               <View style={s.tableHead}>
@@ -427,7 +427,7 @@ export function TalentPoolView() {
                     <View style={{ width: 110, justifyContent: 'center' }}>
                       <View style={{ paddingHorizontal: 7, paddingVertical: 2.5, borderRadius: 999, backgroundColor: 'rgba(16,185,129,0.15)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.3)', alignSelf: 'flex-start' }}>
                         <Text style={{ color: '#10B981', fontFamily: FONTS.bold, fontSize: 10.5 }}>
-                          🟢 {Math.floor(82 + (p.full_name.length * 3) % 17)}% Fit
+                           {Math.floor(82 + (p.full_name.length * 3) % 17)}% Fit
                         </Text>
                       </View>
                     </View>
@@ -454,7 +454,7 @@ export function TalentPoolView() {
                           <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold, fontSize: 10 }}>{certId}</Text>
                         </View>
                       ) : (
-                        <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
+                        <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
                       )}
                     </View>
 
@@ -468,10 +468,10 @@ export function TalentPoolView() {
                         </View>
                       )}
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text numberOfLines={1} style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>
+                        <Text numberOfLines={1} style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 12 }}>
                           {p.full_name || 'Unknown'}
                         </Text>
-                        <Text numberOfLines={1} style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 }}>
+                        <Text numberOfLines={1} style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 10.5 }}>
                           {p.email || p.id.slice(-6)}
                         </Text>
                       </View>
@@ -484,12 +484,12 @@ export function TalentPoolView() {
                           <Text style={{ color: '#93C5FD', fontFamily: FONTS.bold, fontSize: 10 }}>{p.visa}</Text>
                         </View>
                       ) : (
-                        <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
+                        <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
                       )}
                     </View>
 
                     {/* Recruiter Evaluation: Evaluated Experience */}
-                    <Text style={[s.td, { width: 85, color: SAC.text, fontFamily: FONTS.bold }]}>
+                    <Text style={[s.td, { width: 85, color: T.text, fontFamily: FONTS.bold }]}>
                       {p.exp_level || (p.experience_years != null ? `${p.experience_years}y` : '—')}
                     </Text>
 
@@ -500,12 +500,12 @@ export function TalentPoolView() {
                           <Text style={{ color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 10 }}>{p.c2c_w2}</Text>
                         </View>
                       ) : (
-                        <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
+                        <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
                       )}
                     </View>
 
                     {/* Recruiter Evaluation: F2F Interview */}
-                    <Text style={[s.td, { width: 80, color: p.f2f?.toLowerCase().includes('yes') ? '#86EFAC' : SAC.muted }]}>
+                    <Text style={[s.td, { width: 80, color: p.f2f?.toLowerCase().includes('yes') ? T.green : T.muted }]}>
                       {p.f2f || '—'}
                     </Text>
 
@@ -516,12 +516,12 @@ export function TalentPoolView() {
                           <Text style={{ color: '#F472B6', fontFamily: FONTS.bold, fontSize: 10 }} numberOfLines={1}>{p.interest_status}</Text>
                         </View>
                       ) : (
-                        <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
+                        <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
                       )}
                     </View>
 
                     {/* Recruiter Evaluation: Preferred Location */}
-                    <Text numberOfLines={1} style={[s.td, { width: 130, color: SAC.muted }]}>
+                    <Text numberOfLines={1} style={[s.td, { width: 130, color: T.muted }]}>
                       {p.preferred_location || p.location || '—'}
                     </Text>
 
@@ -538,12 +538,12 @@ export function TalentPoolView() {
                     </Text>
 
                     {/* Company */}
-                    <Text numberOfLines={1} style={[s.td, { width: 160, color: SAC.muted }]}>
+                    <Text numberOfLines={1} style={[s.td, { width: 160, color: T.muted }]}>
                       {p.current_company || '—'}
                     </Text>
 
                     {/* Location */}
-                    <Text numberOfLines={1} style={[s.td, { width: 130, color: SAC.muted }]}>
+                    <Text numberOfLines={1} style={[s.td, { width: 130, color: T.muted }]}>
                       {p.location || '—'}
                     </Text>
 
@@ -552,7 +552,7 @@ export function TalentPoolView() {
                       onPress={(e) => { e.stopPropagation(); if (p.email) (Platform.OS === 'web' ? window.open(`mailto:${p.email}`) : Linking.openURL(`mailto:${p.email}`)); }}
                       style={{ width: 200 }}
                     >
-                      <Text numberOfLines={1} style={[s.td, { color: p.email ? '#93C5FD' : SAC.muted, width: 200 }]}>
+                      <Text numberOfLines={1} style={[s.td, { color: p.email ? T.blue : T.muted, width: 200 }]}>
                         {p.email || '—'}
                       </Text>
                     </Pressable>
@@ -568,17 +568,17 @@ export function TalentPoolView() {
                           <Text style={{ color: '#60A5FA', fontFamily: FONTS.med, fontSize: 11 }}>Profile</Text>
                         </Pressable>
                       ) : (
-                        <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
+                        <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 11 }}>—</Text>
                       )}
                     </View>
 
                     {/* Education */}
                     <View style={{ width: 180 }}>
-                      <Text numberOfLines={1} style={[s.td, { width: 180, color: SAC.text, fontSize: 11 }]}>
+                      <Text numberOfLines={1} style={[s.td, { width: 180, color: T.text, fontSize: 11 }]}>
                         {p.education || '—'}
                       </Text>
                       {p.graduation_year && (
-                        <Text numberOfLines={1} style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 }}>
+                        <Text numberOfLines={1} style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 10 }}>
                           Grad: {p.graduation_year}
                         </Text>
                       )}
@@ -611,7 +611,7 @@ export function TalentPoolView() {
                         onPress={(e) => { e.stopPropagation(); setDetailProfile(p); setDetailModalVisible(true); }}
                         style={{ paddingHorizontal: 5, paddingVertical: 2.5, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.06)' }}
                       >
-                        <Text style={{ color: SAC.text, fontSize: 10, fontFamily: FONTS.bold }}>View</Text>
+                        <Text style={{ color: T.text, fontSize: 10, fontFamily: FONTS.bold }}>View</Text>
                       </Pressable>
                       <Pressable
                         onPress={(e) => { e.stopPropagation(); openPromoteModal(p); }}
@@ -692,19 +692,19 @@ export function TalentPoolView() {
                 <View style={s.cardDetails}>
                   {p.current_company && (
                     <View style={s.detailRow}>
-                      <Briefcase size={11} color={SAC.muted} />
+                      <Briefcase size={11} color={T.muted} />
                       <Text style={s.detailText} numberOfLines={1}>{p.current_company}</Text>
                     </View>
                   )}
                   {p.location && (
                     <View style={s.detailRow}>
-                      <MapPin size={11} color={SAC.muted} />
+                      <MapPin size={11} color={T.muted} />
                       <Text style={s.detailText} numberOfLines={1}>{p.location}</Text>
                     </View>
                   )}
                   {p.education && (
                     <View style={s.detailRow}>
-                      <GraduationCap size={11} color={SAC.muted} />
+                      <GraduationCap size={11} color={T.muted} />
                       <Text style={s.detailText} numberOfLines={1}>
                         {p.education}{p.graduation_year ? ` · ${p.graduation_year}` : ''}
                       </Text>
@@ -798,12 +798,12 @@ export function TalentPoolView() {
                 <Text style={s.modalTitle}>Promote to Platform User</Text>
                 <Text style={s.sub}>Create a registered user account in the directory</Text>
               </View>
-              <Pressable onPress={() => setPromoteModalVisible(false)}><X size={16} color={SAC.muted} /></Pressable>
+              <Pressable onPress={() => setPromoteModalVisible(false)}><X size={16} color={T.muted} /></Pressable>
             </View>
             <View style={{ padding: 20, gap: 16 }}>
-              <View style={{ padding: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.border }}>
-                <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 }}>{candidateToPromote?.full_name}</Text>
-                <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 }}>{candidateToPromote?.email || 'No email provided'}</Text>
+              <View style={{ padding: 12, borderRadius: 10, backgroundColor: T.cardSolid, borderWidth: 1, borderColor: T.border }}>
+                <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 13 }}>{candidateToPromote?.full_name}</Text>
+                <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 }}>{candidateToPromote?.email || 'No email provided'}</Text>
                 {candidateToPromote?.current_company && (
                   <Text style={{ color: '#93C5FD', fontFamily: FONTS.med, fontSize: 11, marginTop: 2 }}>{candidateToPromote.current_role} @ {candidateToPromote.current_company}</Text>
                 )}
@@ -822,7 +822,7 @@ export function TalentPoolView() {
                         promoteCategory === cat && { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' }
                       ]}
                     >
-                      <Text style={[s.filterChipText, promoteCategory === cat && { color: SAC.text }]}>
+                      <Text style={[s.filterChipText, promoteCategory === cat && { color: '#fff' }]}>
                         {cat.toUpperCase()}
                       </Text>
                     </Pressable>
@@ -838,7 +838,7 @@ export function TalentPoolView() {
                 <View style={[s.checkbox, promoteSendInvite && s.checkboxActive]}>
                   {promoteSendInvite && <CheckCircle size={13} color="#8B5CF6" />}
                 </View>
-                <Text style={{ color: SAC.text, fontFamily: FONTS.med, fontSize: 12 }}>
+                <Text style={{ color: T.text, fontFamily: FONTS.med, fontSize: 12 }}>
                   Send branded account claim email immediately
                 </Text>
               </Pressable>
@@ -882,7 +882,7 @@ export function TalentPoolView() {
                   value={aiInput}
                   onChangeText={setAiInput}
                   placeholder="e.g. https://linkedin.com/in/username or https://github.com/developer"
-                  placeholderTextColor={SAC.muted}
+                  placeholderTextColor={T.muted}
                   multiline
                   style={[s.searchInput, { minHeight: 70, borderRadius: 8, padding: 10, textAlignVertical: 'top' as any }]}
                 />
@@ -894,7 +894,7 @@ export function TalentPoolView() {
                   value={aiNotes}
                   onChangeText={setAiNotes}
                   placeholder="e.g. Top hackathon finalist, strong system design background"
-                  placeholderTextColor={SAC.muted}
+                  placeholderTextColor={T.muted}
                   style={[s.searchInput, { borderRadius: 8, padding: 10 }]}
                 />
               </View>
@@ -903,7 +903,7 @@ export function TalentPoolView() {
               {aiCandidateResult && (
                 <View style={{ padding: 14, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.1)', borderColor: '#7C3AED', borderWidth: 1, gap: 8 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 14 }}>{aiCandidateResult.full_name}</Text>
+                    <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 14 }}>{aiCandidateResult.full_name}</Text>
                     <View style={{ backgroundColor: 'rgba(16,185,129,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
                       <Text style={{ color: '#34D399', fontFamily: FONTS.bold, fontSize: 11 }}>{aiCandidateResult.seniority} Level</Text>
                     </View>
@@ -960,6 +960,7 @@ function ProfileDetailModal({
   onClose: () => void;
   onPromote: (p: TalentProfile) => void;
 }) {
+  const T = useSAC();
   if (!profile) return null;
   const p = profile;
 
@@ -1034,7 +1035,7 @@ function ProfileDetailModal({
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 8, backgroundColor: '#8B5CF6' }}
               >
                 <UserPlus size={13} color="#fff" />
-                <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>
+                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
                   {p.source_platform_user_id ? 'Re-Sync Platform User' : 'Promote to Platform User'}
                 </Text>
               </Pressable>
@@ -1068,14 +1069,14 @@ function ProfileDetailModal({
               <View style={{ marginTop: 8, gap: 8 }}>
                 {p.email && (
                   <Pressable style={s.modalDetailRow} onPress={() => { if (Platform.OS === 'web') (window as any).open(`mailto:${p.email}`); else Linking.openURL(`mailto:${p.email!}`); }}>
-                    <Mail size={13} color={SAC.muted} />
+                    <Mail size={13} color={T.muted} />
                     <Text style={s.modalDetailLabel}>Email</Text>
                     <Text style={[s.modalDetailValue, { color: GRAD.to, textDecorationLine: 'underline' }]}>{p.email}</Text>
                   </Pressable>
                 )}
                 {p.location && (
                   <View style={s.modalDetailRow}>
-                    <MapPin size={13} color={SAC.muted} />
+                    <MapPin size={13} color={T.muted} />
                     <Text style={s.modalDetailLabel}>Location</Text>
                     <Text style={s.modalDetailValue}>{p.location}</Text>
                   </View>
@@ -1095,20 +1096,20 @@ function ProfileDetailModal({
               <Text style={s.modalSectionLabel}>META</Text>
               <View style={{ marginTop: 8, gap: 8 }}>
                 <View style={s.modalDetailRow}>
-                  <Calendar size={13} color={SAC.muted} />
+                  <Calendar size={13} color={T.muted} />
                   <Text style={s.modalDetailLabel}>Source</Text>
                   <Text style={s.modalDetailValue}>{p.source.toUpperCase()}</Text>
                 </View>
                 {p.imported_at && (
                   <View style={s.modalDetailRow}>
-                    <Calendar size={13} color={SAC.muted} />
+                    <Calendar size={13} color={T.muted} />
                     <Text style={s.modalDetailLabel}>Imported</Text>
                     <Text style={s.modalDetailValue}>{new Date(p.imported_at).toLocaleDateString()}</Text>
                   </View>
                 )}
                 {p.last_synced_at && (
                   <View style={s.modalDetailRow}>
-                    <Calendar size={13} color={SAC.muted} />
+                    <Calendar size={13} color={T.muted} />
                     <Text style={s.modalDetailLabel}>Last synced</Text>
                     <Text style={s.modalDetailValue}>{new Date(p.last_synced_at).toLocaleDateString()}</Text>
                   </View>
@@ -1175,8 +1176,8 @@ const s = StyleSheet.create({
   },
   modalHero: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, paddingRight: 12 },
   modalTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
-  modalRole: { color: 'rgba(255,255,255,0.75)', fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
-  modalCompany: { color: 'rgba(255,255,255,0.55)', fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
+  modalRole: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
+  modalCompany: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
   modalCloseBtn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: SAC.panel2, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   modalSectionLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.8 },
   modalBio: { color: '#CBD5E1', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 19, marginTop: 8 },

@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check, Search, AlertTriangle, Info, Loader, X } from 'lucide-react-native';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 /* ─────────────────────────────────────────────────────────────────
  * Types
@@ -439,6 +440,7 @@ export function createKit(config: KitConfig) {
   function Card({ children, style, padded = true }: {
     children: React.ReactNode; style?: any; padded?: boolean;
   }) {
+    useThemedSheet(k);
     return <View style={[k.card, padded && { padding: 18 }, style]}>{children}</View>;
   }
 
@@ -492,6 +494,8 @@ export function createKit(config: KitConfig) {
     active: T;
     onChange: (id: T) => void;
   }) {
+    useThemedSheet(k);
+    const { isDark } = useTheme();
     return (
       <View style={k.tabsOuter}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, padding: 6 }}>
@@ -519,14 +523,20 @@ export function createKit(config: KitConfig) {
                 onPress={() => onChange(t.id)}
                 style={({ hovered }: any) => [
                   k.tabInactive,
-                  hovered && Platform.OS === 'web' ? { backgroundColor: 'rgba(255,255,255,0.05)' } : null,
+                  {
+                    backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                    borderColor: isDark ? '#334155' : '#e2e8f0',
+                  },
+                  hovered && Platform.OS === 'web'
+                    ? { backgroundColor: isDark ? '#334155' : '#f8fafc' }
+                    : null,
                 ]}
               >
-                {Icon && <Icon size={12.5} color={C.muted} />}
-                <Text style={k.tabInactiveText}>{t.label}</Text>
+                {Icon && <Icon size={12.5} color={isDark ? '#cbd5e1' : '#334155'} />}
+                <Text style={[k.tabInactiveText, { color: isDark ? '#cbd5e1' : '#334155' }]}>{t.label}</Text>
                 {typeof t.count === 'number' && (
-                  <View style={k.tabCount}>
-                    <Text style={k.tabCountText}>{t.count}</Text>
+                  <View style={[k.tabCount, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]}>
+                    <Text style={[k.tabCountText, { color: isDark ? '#cbd5e1' : '#475569' }]}>{t.count}</Text>
                   </View>
                 )}
               </Pressable>
@@ -541,6 +551,7 @@ export function createKit(config: KitConfig) {
   function SearchField({ value, onChange, placeholder = 'Search…', width = 260 }: {
     value: string; onChange: (v: string) => void; placeholder?: string; width?: number | string;
   }) {
+    useThemedSheet(k);
     return (
       <View style={[k.searchBox, { width: width as any }]}>
         <Search size={13} color={C.dim} />
@@ -646,6 +657,7 @@ export function createKit(config: KitConfig) {
   function KpiTile({ Icon, label, value, delta, deltaKind = 'success' }: {
     Icon: any; label: string; value: string; delta?: string; deltaKind?: PillKind;
   }) {
+    useThemedSheet(k);
     const dC = PILL[deltaKind].c;
     return (
       <View style={k.kpiCard}>

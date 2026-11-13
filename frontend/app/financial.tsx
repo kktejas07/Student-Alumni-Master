@@ -349,7 +349,6 @@ export default function FinancialPage() {
     <FeaturePageShell
       title="Financial Services"
       subtitle="Funding, education loans, investors, insurance — matched to your profile."
-      heroEmoji="💰"
       accent="#5F259F"
       rightSlot={<View style={s.savPill}><Icon name="wallet-outline" size={12} color="#86EFAC" /><Text style={s.savPillText}>SA Savings Advisor</Text></View>}
     >
@@ -451,7 +450,7 @@ export default function FinancialPage() {
           </Pressable>
           {aiTop3.length > 0 && (
             <View style={[s.aiTop3Box, { backgroundColor: isDark ? 'rgba(34,197,94,0.08)' : '#ECFDF5', borderColor: isDark ? 'rgba(34,197,94,0.30)' : '#A7F3D0' }]}>
-              <Text style={[s.aiTop3Title, { color: isDark ? '#86EFAC' : '#065F46' }]}>✨ Top 3 matches for you</Text>
+              <Text style={[s.aiTop3Title, { color: isDark ? '#86EFAC' : '#065F46' }]}> Top 3 matches for you</Text>
               {aiTop3.map((t, i) => (
                 <View key={t.financial_id} style={s.aiTop3Row}>
                   <View style={s.aiTop3Rank}><Text style={s.aiTop3RankText}>#{i + 1}</Text></View>

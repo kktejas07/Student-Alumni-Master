@@ -29,18 +29,18 @@ import { request, resolveImageUrl } from '@/src/models/services/api';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 
 const PC_AMBER = {
-  bgFrom:  '#1A0F05', bgTo: '#120A03',
-  border:  'rgba(251,146,60,0.18)',
-  borderH: 'rgba(251,146,60,0.38)',
+  bgFrom:  SAC.card, bgTo: SAC.card,
+  border:  SAC.border,
+  borderH: SAC.border2,
   accent:  '#F97316',
   bright:  '#FB923C',
   deep:    '#EA580C',
-  text:    '#FFFFFF',
-  text2:   '#C4A788',
-  muted:   '#8B6F52',
-  label:   '#6B5237',
-  pill:    'rgba(255,255,255,0.04)',
-  pillBd:  'rgba(251,146,60,0.12)',
+  text:    SAC.text,
+  text2:   SAC.muted,
+  muted:   SAC.dim,
+  label:   SAC.dim,
+  pill:    SAC.cardSolid,
+  pillBd:  SAC.border,
 };
 
 type Status = 'all' | 'pending' | 'active' | 'paused';
@@ -264,6 +264,8 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
  *  CollegeCard
  * ══════════════════════════════════════════════════════════════════ */
 function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRemove, onReenrich }: any) {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   const [menuOpen, setMenuOpen] = useState(false);
 
   const enrichBadge = c.enrichment_status === 'enriched'
@@ -290,8 +292,8 @@ function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRe
           {c.logo_url ? (
             <Image source={{ uri: resolveImageUrl(c.logo_url) }} style={s.logo} resizeMode="cover" />
           ) : (
-            <View style={[s.logo, { backgroundColor: 'rgba(249,115,22,0.18)', alignItems: 'center', justifyContent: 'center' }]}>
-              <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 19 }}>{c.initials}</Text>
+            <View style={[s.logo, { backgroundColor: T.cardSolid, alignItems: 'center', justifyContent: 'center' }]}>
+              <Text style={{ color: T.text, fontFamily: FONTS.xbold, fontSize: 19 }}>{c.initials}</Text>
             </View>
           )}
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -307,7 +309,7 @@ function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRe
             )}
           </View>
           <Pressable onPress={(e: any) => { e?.stopPropagation?.(); setMenuOpen((m) => !m); }} style={s.menuTrigger}>
-            <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 14, lineHeight: 14 }}>⋯</Text>
+            <Text style={{ color: T.text, fontFamily: FONTS.xbold, fontSize: 14, lineHeight: 14 }}>⋯</Text>
           </Pressable>
         </View>
 
@@ -411,16 +413,18 @@ function MenuItem({ icon: Icon, label, onPress, danger }: any) {
 }
 
 function CollegeCardSkeleton() {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   return (
-    <View style={[s.card, { padding: 22 }]}>
+    <View style={[s.card, { padding: 22, backgroundColor: T.card, borderColor: T.border }]}>
       <View style={{ flexDirection: 'row', gap: 14 }}>
-        <View style={[s.logo, { backgroundColor: 'rgba(255,255,255,0.06)' }]} />
+        <View style={[s.logo, { backgroundColor: T.line }]} />
         <View style={{ flex: 1, gap: 8 }}>
           <View style={[s.skBox, { width: '70%', height: 14 }]} />
           <View style={[s.skBox, { width: '50%', height: 11 }]} />
         </View>
       </View>
-      <View style={[s.skBox, { width: '100%', height: 6, marginTop: 14, borderRadius: 99 }]} />
+      <View style={[s.skBox, { width: '100%', height: 6, marginTop: 14, borderRadius: 99, backgroundColor: T.line }]} />
       <View style={[s.skBox, { width: '100%', height: 44, marginTop: 14 }]} />
     </View>
   );
@@ -430,6 +434,8 @@ function CollegeCardSkeleton() {
  *  Detail modal
  * ══════════════════════════════════════════════════════════════════ */
 function CollegeDetail({ college, onClose, onSaved, onError }: any) {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   const [edit, setEdit] = useState(false);
   const [draft, setDraft] = useState<any>({});
   const [confirmDel, setConfirmDel] = useState(false);
@@ -463,8 +469,8 @@ function CollegeDetail({ college, onClose, onSaved, onError }: any) {
             {c.logo_url ? (
               <Image source={{ uri: resolveImageUrl(c.logo_url) }} style={[s.logo, { width: 48, height: 48 }]} />
             ) : (
-              <View style={[s.logo, { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(249,115,22,0.18)' }]}>
-                <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 }}>{c.initials}</Text>
+              <View style={[s.logo, { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: T.cardSolid }]}>
+                <Text style={{ color: T.text, fontFamily: FONTS.xbold, fontSize: 15 }}>{c.initials}</Text>
               </View>
             )}
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -480,7 +486,7 @@ function CollegeDetail({ college, onClose, onSaved, onError }: any) {
             {!!c.description && (
               <View>
                 <SectionLabel>ABOUT</SectionLabel>
-                <Text style={[s.muted, { marginTop: 6, lineHeight: 18, color: '#C4A788' }]} numberOfLines={6}>{c.description}</Text>
+                <Text style={[s.muted, { marginTop: 6, lineHeight: 18, color: T.muted }]} numberOfLines={6}>{c.description}</Text>
                 {!!c.wiki_url && (
                   <Pressable onPress={() => Linking.openURL(c.wiki_url).catch(() => {})} style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                     <ExternalLink size={10} color={GRAD.to} />
@@ -599,7 +605,7 @@ function EditRow({ label, value, onChange }: any) {
 /* ─── Styles ─────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 760 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
   btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
@@ -615,17 +621,17 @@ const s = StyleSheet.create({
 
   /* card */
   card: {
-    borderRadius: 20, borderWidth: 1, borderColor: PC_AMBER.border,
-    backgroundColor: PC_AMBER.bgFrom, position: 'relative',
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 0 1px rgba(251,146,60,0.06), 0 10px 30px rgba(0,0,0,0.45)', transitionDuration: '200ms', cursor: 'pointer' } as any) : {}),
+    borderRadius: 20, borderWidth: 1, borderColor: SAC.border,
+    backgroundColor: SAC.card, position: 'relative',
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 1px 2px rgba(15,23,42,0.05)', transitionDuration: '200ms', cursor: 'pointer' } as any) : {}),
   },
   cardHover: {
-    borderColor: PC_AMBER.borderH,
+    borderColor: SAC.border2,
     transform: [{ translateY: -2 }],
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 0 1px rgba(251,146,60,0.18), 0 18px 44px rgba(0,0,0,0.55)' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 8px 24px rgba(15,23,42,0.12)' } as any) : {}),
   },
 
-  logo: { width: 60, height: 60, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.04)' },
+  logo: { width: 60, height: 60, borderRadius: 14, backgroundColor: SAC.cardSolid },
 
   cName: { color: PC_AMBER.text, fontFamily: FONTS.xbold, fontSize: 14.5, lineHeight: 18 },
   cLine: { color: PC_AMBER.text2, fontFamily: FONTS.med, fontSize: 11.5 },
@@ -636,7 +642,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
     backgroundColor: 'rgba(249,115,22,0.08)', borderWidth: 1, borderColor: 'rgba(249,115,22,0.22)',
   },
-  statVal: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 14 },
+  statVal: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 14 },
   statLbl: { color: PC_AMBER.muted, fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
 
   tag: {
@@ -658,7 +664,7 @@ const s = StyleSheet.create({
   viewBtnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13 },
   socialBtn: {
     width: 42, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#1F1208', borderColor: PC_AMBER.border, borderWidth: 1,
+    backgroundColor: SAC.cardSolid, borderColor: PC_AMBER.border, borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
 
@@ -669,7 +675,7 @@ const s = StyleSheet.create({
   },
   menu: {
     position: 'absolute', top: 58, right: 18, minWidth: 180, zIndex: 20,
-    backgroundColor: '#170D04', borderColor: 'rgba(251,146,60,0.30)', borderWidth: 1,
+    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
     borderRadius: 10, padding: 6, gap: 2,
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 12px 32px rgba(0,0,0,0.55)' } as any) : {}),
   },
@@ -678,7 +684,7 @@ const s = StyleSheet.create({
     paddingVertical: 7, paddingHorizontal: 10, borderRadius: 7,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  menuLabel: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
+  menuLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
 
   /* modal */
   modalBg: {
@@ -691,13 +697,13 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
   },
   modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
-  modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
+  modalTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
 
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 110 },
-  detailValue: { color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
+  detailValue: { color: SAC.text, fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   input: {
-    flex: 1, color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
+    flex: 1, color: SAC.text, fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
     paddingHorizontal: 12, paddingVertical: 10,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
@@ -706,9 +712,9 @@ const s = StyleSheet.create({
   destructiveBtn: { backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)' },
 
-  skBox: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6 },
+  skBox: { backgroundColor: SAC.border, borderRadius: 6 },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, gap: 14 },
   pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.card, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  pageBtnText: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
+  pageBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
   pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 });

@@ -2,13 +2,13 @@
 /**
  * BGVAccountVerticalsView.tsx
  * SuperAdmin — Comprehensive BGV Hub:
- *   1. 📂 Directory & Verticals (Real vs Test vs Unregistered, Country & LinkedIn Filters)
- *   2. ⚡ 5-Tier BGV Candidate Scanner (Degree-Mills, OpenSanctions, PAN, EPFO, Safe Litigation)
- *   3. 🏛️ UGC Fake Universities Blacklist Explorer
- *   4. 🔌 Free & Semi-Paid API Integrations Register (Tier 0, Tier 1, Tier 2)
- *   5. 📬 Monthly Claim Reminders & Activation Automation
- *   6. 🛡️ Interactive Digital Holographic Verification Card with Official SA Stamp & QR Code
- *   7. 📄 Official Cryptographic PDF BGV Dossier Generator & One-Click Download
+ *   1.  Directory & Verticals (Real vs Test vs Unregistered, Country & LinkedIn Filters)
+ *   2.  5-Tier BGV Candidate Scanner (Degree-Mills, OpenSanctions, PAN, EPFO, Safe Litigation)
+ *   3.  UGC Fake Universities Blacklist Explorer
+ *   4.  Free & Semi-Paid API Integrations Register (Tier 0, Tier 1, Tier 2)
+ *   5.  Monthly Claim Reminders & Activation Automation
+ *   6.  Interactive Digital Holographic Verification Card with Official SA Stamp & QR Code
+ *   7.  Official Cryptographic PDF BGV Dossier Generator & One-Click Download
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -33,6 +33,7 @@ import {
   SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox, KpiTile,
 } from '../applekit';
 import { api, request } from '@/src/models/services/api';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 /** LinkedIn 'in' badge glyph component — bulletproof web-safe fallback */
 function LinkedinGlyph({ size = 13, color = '#38BDF8' }: { size?: number; color?: string }) {
@@ -81,6 +82,7 @@ const BGV_TABS: readonly BGVMainTab[] = [
 
 export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {}) {
   const T = useSAC();
+  const { isDark } = useTheme();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   Object.assign(st, resolveColors(st, T));
@@ -613,10 +615,16 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
       <Toast toast={toast} onHide={hide} />
 
       {/* Top Header & Fast Actions */}
-      <View style={st.headerRow}>
+      <View style={[st.headerRow, {
+        backgroundColor: T.panel,
+        borderColor: T.line,
+        borderWidth: 1,
+        padding: 16,
+        borderRadius: 14,
+      }]}>
         <View>
           <Text style={st.title}>Background Verification (BGV) & Account Intelligence Hub</Text>
-          <Text style={st.subtitle}>
+          <Text style={[st.subtitle, { color: isDark ? '#CBD5E1' : '#475569' }]}>
             Multi-Tier Verifiers (Tier 0 / 1 / 2) · UGC Degree-Mill Blacklist · Automated Scanner · Stamped PDF Reports with QR Code
           </Text>
         </View>
@@ -627,19 +635,19 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
             onPress={handleAutoEnrich}
             disabled={enrichBusy}
           >
-            <Sparkles size={15} color="#A78BFA" />
-            <Text style={[st.btnSecondaryText, { color: '#C4B5FD' }]}>
+            <Sparkles size={15} color={T.violet} />
+            <Text style={[st.btnSecondaryText, { color: T.violet }]}>
               {enrichBusy ? 'Enriching...' : 'Auto-Enrich Geolocation'}
             </Text>
           </Pressable>
 
           <Pressable
-            style={[st.btnSecondary, { borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.1)' }, claimCampaignBusy && { opacity: 0.6 }]}
+            style={[st.btnSecondary, { borderColor: T.ok, backgroundColor: T.okTint }, claimCampaignBusy && { opacity: 0.6 }]}
             onPress={handleLaunchClaimCampaign}
             disabled={claimCampaignBusy}
           >
-            <Send size={15} color="#10B981" />
-            <Text style={{ color: '#10B981', fontSize: 13, fontWeight: '700' }}>
+            <Send size={15} color={T.ok} />
+            <Text style={{ color: T.ok, fontSize: 13, fontWeight: '700' }}>
               {claimCampaignBusy ? 'Dispatching...' : 'Launch Claim Campaign'}
             </Text>
           </Pressable>
@@ -649,7 +657,7 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
             onPress={handleBackfill}
             disabled={backfillBusy}
           >
-            <RefreshCw size={15} color="#93C5FD" style={backfillBusy ? { transform: [{ rotate: '45deg' }] } : {}} />
+            <RefreshCw size={15} color={T.violet} style={backfillBusy ? { transform: [{ rotate: '45deg' }] } : {}} />
             <Text style={st.btnSecondaryText}>
               {backfillBusy ? 'Backfilling...' : 'Sync BGV IDs'}
             </Text>
@@ -660,7 +668,7 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
             onPress={() => handlePurgeTestAccounts(true)}
             disabled={purgeBusy}
           >
-            <Trash2 size={15} color="#FCA5A5" />
+            <Trash2 size={15} color={T.danger} />
             <Text style={st.btnDangerText}>
               {purgeBusy ? 'Scanning...' : 'Clean Sandbox Data'}
             </Text>
@@ -669,7 +677,7 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
       </View>
 
       {/* High-Level BGV Subsystem Tab Navigation */}
-      <View style={st.mainSubNav}>
+      <View style={[st.mainSubNav, { backgroundColor: T.panel, borderColor: T.line }]}>
         {[
           { id: 'directory', label: 'Directory & Verticals', icon: Users, badge: `${analytics?.total_records || 0}` },
           { id: 'visa_radar', label: 'Global Visa & Study-Abroad Radar', icon: Globe, badge: 'WeHive Perks' },
@@ -684,16 +692,23 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
           return (
             <Pressable
               key={tab.id}
-              style={[st.mainSubNavBtn, isActive && st.mainSubNavBtnActive]}
+              style={[
+                st.mainSubNavBtn,
+                isActive
+                  ? { backgroundColor: '#4F46E5' }
+                  : { backgroundColor: T.panel2, borderWidth: 1, borderColor: T.line },
+              ]}
               onPress={() => setBgvTab(tab.id as BGVMainTab)}
             >
-              <IconComponent size={16} color={isActive ? '#FFFFFF' : '#94A3B8'} />
-              <Text style={[st.mainSubNavText, isActive && st.mainSubNavTextActive]}>
+              <IconComponent size={16} color={isActive ? '#FFFFFF' : (isDark ? '#CBD5E1' : '#334155')} />
+              <Text style={[st.mainSubNavText, { color: isActive ? '#FFFFFF' : (isDark ? '#CBD5E1' : '#334155'), fontWeight: isActive ? '700' : '600' }]}>
                 {tab.label}
               </Text>
               {tab.badge ? (
-                <View style={[st.mainSubNavBadge, isActive && st.mainSubNavBadgeActive]}>
-                  <Text style={[st.mainSubNavBadgeText, isActive && st.mainSubNavBadgeTextActive]}>
+                <View style={[st.mainSubNavBadge, {
+                  backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : (isDark ? '#1E293B' : '#E2E8F0'),
+                }]}>
+                  <Text style={[st.mainSubNavBadgeText, { color: isActive ? '#FFFFFF' : (isDark ? '#CBD5E1' : '#334155') }]}>
                     {tab.badge}
                   </Text>
                 </View>
@@ -800,7 +815,7 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
                         setPage(1);
                       }}
                     >
-                      <Text style={st.countryChipFlag}>{c.flag}</Text>
+                      <Globe size={14} color={T.muted} />
                       <Text style={[st.countryChipName, isSelected && st.countryChipNameSelected]}>{c.country}</Text>
                       <View style={[st.countryChipCount, isSelected && st.countryChipCountSelected]}>
                         <Text style={st.countryChipCountText}>{c.count}</Text>
@@ -859,24 +874,36 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
           <View style={st.tableSection}>
             <View style={st.filterRow}>
               {/* Vertical Selectors */}
-              <View style={st.tabGroup}>
+              <View style={[st.tabGroup, {
+                backgroundColor: isDark ? 'rgba(30,41,59,0.8)' : '#FFFFFF',
+                borderColor: isDark ? '#334155' : '#E2E8F0',
+              }]}>
                 {[
                   { id: 'all', label: 'All Records' },
-                  { id: 'real', label: 'Real Accounts 🟢' },
-                  { id: 'test', label: 'Test Accounts 🟡' },
-                  { id: 'unregistered', label: 'Unregistered Directory 🔵' },
+                  { id: 'real', label: 'Real Accounts ' },
+                  { id: 'test', label: 'Test Accounts ' },
+                  { id: 'unregistered', label: 'Unregistered Directory ' },
                 ].map((t) => {
                   const active = vertical === t.id;
                   return (
                     <Pressable
                       key={t.id}
-                      style={[st.tabBtn, active && st.tabBtnActive]}
+                      style={[
+                        st.tabBtn,
+                        active
+                          ? { backgroundColor: '#4F46E5', borderWidth: 1, borderColor: '#4F46E5' }
+                          : {
+                              backgroundColor: isDark ? 'rgba(30,41,59,0.8)' : '#FFFFFF',
+                              borderWidth: 1,
+                              borderColor: isDark ? '#334155' : '#E2E8F0',
+                            },
+                      ]}
                       onPress={() => {
                         setVertical(t.id as VerticalType);
                         setPage(1);
                       }}
                     >
-                      <Text style={[st.tabBtnText, active && st.tabBtnTextActive]}>
+                      <Text style={[st.tabBtnText, { color: active ? '#FFFFFF' : (isDark ? '#CBD5E1' : '#334155'), fontWeight: active ? '700' : '600' }]}>
                         {t.label}
                       </Text>
                     </Pressable>
@@ -885,70 +912,92 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
               </View>
 
               {/* LinkedIn Filter Pills */}
-              <View style={st.liFilterGroup}>
+              <View style={[st.liFilterGroup, {
+                backgroundColor: isDark ? 'rgba(30,41,59,0.8)' : '#FFFFFF',
+                borderColor: isDark ? '#334155' : '#E2E8F0',
+              }]}>
                 <Pressable
-                  style={[st.liFilterBtn, linkedInFilter === 'all' && st.liFilterBtnActive]}
+                  style={[st.liFilterBtn, {
+                    backgroundColor: linkedInFilter === 'all' ? '#4F46E5' : (isDark ? 'rgba(30,41,59,0.8)' : '#FFFFFF'),
+                    borderWidth: 1,
+                    borderColor: linkedInFilter === 'all' ? '#4F46E5' : (isDark ? '#334155' : '#E2E8F0'),
+                  }]}
                   onPress={() => { setLinkedInFilter('all'); setPage(1); }}
                 >
-                  <Text style={[st.liFilterText, linkedInFilter === 'all' && st.liFilterTextActive]}>All Profiles</Text>
+                  <Text style={[st.liFilterText, { color: linkedInFilter === 'all' ? '#FFFFFF' : (isDark ? '#CBD5E1' : '#334155') }]}>All Profiles</Text>
                 </Pressable>
                 <Pressable
-                  style={[st.liFilterBtn, linkedInFilter === 'yes' && st.liFilterBtnActive]}
+                  style={[st.liFilterBtn, {
+                    backgroundColor: linkedInFilter === 'yes' ? '#4F46E5' : (isDark ? 'rgba(30,41,59,0.8)' : '#FFFFFF'),
+                    borderWidth: 1,
+                    borderColor: linkedInFilter === 'yes' ? '#4F46E5' : (isDark ? '#334155' : '#E2E8F0'),
+                  }]}
                   onPress={() => { setLinkedInFilter('yes'); setPage(1); }}
                 >
-                  <LinkedinGlyph size={12} color={linkedInFilter === 'yes' ? '#38BDF8' : '#64748B'} />
-                  <Text style={[st.liFilterText, linkedInFilter === 'yes' && st.liFilterTextActive]}>Has LinkedIn</Text>
+                  <LinkedinGlyph size={12} color={linkedInFilter === 'yes' ? '#FFFFFF' : (isDark ? '#94A3B8' : '#475569')} />
+                  <Text style={[st.liFilterText, { color: linkedInFilter === 'yes' ? '#FFFFFF' : (isDark ? '#CBD5E1' : '#334155') }]}>Has LinkedIn</Text>
                 </Pressable>
                 <Pressable
-                  style={[st.liFilterBtn, linkedInFilter === 'no' && st.liFilterBtnActive]}
+                  style={[st.liFilterBtn, {
+                    backgroundColor: linkedInFilter === 'no' ? '#4F46E5' : (isDark ? 'rgba(30,41,59,0.8)' : '#FFFFFF'),
+                    borderWidth: 1,
+                    borderColor: linkedInFilter === 'no' ? '#4F46E5' : (isDark ? '#334155' : '#E2E8F0'),
+                  }]}
                   onPress={() => { setLinkedInFilter('no'); setPage(1); }}
                 >
-                  <Text style={[st.liFilterText, linkedInFilter === 'no' && st.liFilterTextActive]}>No LinkedIn</Text>
+                  <Text style={[st.liFilterText, { color: linkedInFilter === 'no' ? '#FFFFFF' : (isDark ? '#CBD5E1' : '#334155') }]}>No LinkedIn</Text>
                 </Pressable>
               </View>
 
               {/* Quick Search in table */}
-              <View style={st.tableSearchWrap}>
-                <Search size={16} color="#64748B" style={{ marginLeft: 12 }} />
+              <View style={[st.tableSearchWrap, {
+                backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                borderColor: isDark ? '#334155' : '#CBD5E1',
+              }]}>
+                <Search size={16} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginLeft: 12 }} />
                 <TextInput
-                  style={st.tableSearchInput}
+                  style={[st.tableSearchInput, { color: isDark ? '#FFFFFF' : '#0F172A' }]}
                   value={q}
                   onChangeText={(v) => {
                     setQ(v);
                     setPage(1);
                   }}
                   placeholder="Search table by name, email, roll no, college, country..."
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
                 />
                 {q ? (
                   <Pressable onPress={() => setQ('')} style={{ padding: 8 }}>
-                    <Text style={{ color: '#94A3B8', fontSize: 12 }}>Clear</Text>
+                    <Text style={{ color: T.muted, fontSize: 12 }}>Clear</Text>
                   </Pressable>
                 ) : null}
               </View>
             </View>
 
             {/* Data Table */}
-            <Card style={st.tableCard}>
-              <View style={st.tableHeader}>
-                <Text style={[st.th, { flex: 2.2 }]}>Candidate & Country</Text>
-                <Text style={[st.th, { flex: 1.3 }]}>Vertical & Role</Text>
-                <Text style={[st.th, { flex: 1.6 }]}>SA ID / BGV ID</Text>
-                <Text style={[st.th, { flex: 1.5 }]}>LinkedIn & Location</Text>
-                <Text style={[st.th, { flex: 1.6 }]}>Institution & Academic</Text>
-                <Text style={[st.th, { flex: 2.4, textAlign: 'right' }]}>Multi-Tier BGV Actions</Text>
+            <Card style={[st.tableCard, { backgroundColor: T.panel, borderColor: T.line, overflow: 'visible', overflowX: 'auto' } as any]}>
+              <View style={[st.tableHeader, {
+                backgroundColor: isDark ? 'rgba(30,41,59,0.6)' : '#F8FAFC',
+                borderBottomColor: isDark ? '#1E293B' : '#E2E8F0',
+                minWidth: 1160,
+              }]}>
+                <Text style={[st.th, { flex: 2.2, color: isDark ? '#CBD5E1' : '#475569' }]}>Candidate & Country</Text>
+                <Text style={[st.th, { flex: 1.3, color: isDark ? '#CBD5E1' : '#475569' }]}>Vertical & Role</Text>
+                <Text style={[st.th, { flex: 1.6, color: isDark ? '#CBD5E1' : '#475569' }]}>SA ID / BGV ID</Text>
+                <Text style={[st.th, { flex: 1.5, color: isDark ? '#CBD5E1' : '#475569' }]}>LinkedIn & Location</Text>
+                <Text style={[st.th, { flex: 1.6, color: isDark ? '#CBD5E1' : '#475569' }]}>Institution & Academic</Text>
+                <Text style={[st.th, { flex: 3, textAlign: 'right', color: isDark ? '#CBD5E1' : '#475569' }]}>Multi-Tier BGV Actions</Text>
               </View>
 
               {busy ? (
                 <View style={{ padding: 40, alignItems: 'center' }}>
                   <ActivityIndicator size="large" color="#818CF8" />
-                  <Text style={{ color: '#94A3B8', marginTop: 12, fontSize: 13 }}>Loading accounts data...</Text>
+                  <Text style={{ color: T.muted, marginTop: 12, fontSize: 13 }}>Loading accounts data...</Text>
                 </View>
               ) : items.length === 0 ? (
                 <View style={{ padding: 50, alignItems: 'center' }}>
-                  <Users size={40} color="#475569" />
-                  <Text style={{ color: '#E2E8F0', marginTop: 12, fontSize: 15, fontWeight: '600' }}>No records found</Text>
-                  <Text style={{ color: '#64748B', marginTop: 4, fontSize: 13 }}>Try adjusting your vertical filter, country, or search term</Text>
+                  <Users size={40} color={T.dim} />
+                  <Text style={{ color: T.text, marginTop: 12, fontSize: 15, fontWeight: '600' }}>No records found</Text>
+                  <Text style={{ color: T.muted, marginTop: 4, fontSize: 13 }}>Try adjusting your vertical filter, country, or search term</Text>
                 </View>
               ) : (
                 items.map((item: any, idx: number) => {
@@ -958,57 +1007,69 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
                   const isSendingThis = singleSendingId === item.id;
 
                   return (
-                    <View key={item.id || idx} style={st.tableRow}>
+                    <View key={item.id || idx} style={[st.tableRow, { borderBottomColor: isDark ? '#1E293B' : '#E2E8F0', minWidth: 1160 }]}>
                       {/* Candidate Name & Contact */}
                       <View style={{ flex: 2.2 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <Text style={st.tdName}>{item.name}</Text>
-                          <View style={st.countryBadge}>
-                            <Text style={{ fontSize: 12 }}>{item.country_flag || '🇮🇳'}</Text>
-                            <Text style={st.countryBadgeText}>{item.country || 'India'}</Text>
+                          <Text style={[st.tdName, { color: isDark ? '#F1F5F9' : '#0F172A' }]}>{item.name || 'Unnamed User'}</Text>
+                          <View style={[st.countryBadge, { backgroundColor: isDark ? '#1E293B' : '#F1F5F9' }]}>
+                            <Text style={[st.countryBadgeText, { color: isDark ? '#CBD5E1' : '#475569' }]}>{item.country || 'India'}</Text>
                           </View>
                         </View>
-                        <Text style={st.tdEmail}>{item.email || 'No email'}</Text>
-                        {item.phone ? <Text style={st.tdSub}>{item.phone}</Text> : null}
+                        <Text style={[st.tdEmail, { color: isDark ? '#94A3B8' : '#475569' }]}>{item.email || 'No email'}</Text>
+                        {item.phone ? <Text style={[st.tdSub, { color: isDark ? '#94A3B8' : '#475569' }]}>{item.phone}</Text> : null}
                       </View>
 
                       {/* Vertical & Role */}
                       <View style={{ flex: 1.3, justifyContent: 'center' }}>
                         <View style={[
                           st.verticalBadge,
-                          isReal && { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.3)' },
-                          isTest && { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.3)' },
-                          isUnreg && { backgroundColor: 'rgba(99, 102, 241, 0.15)', borderColor: 'rgba(99, 102, 241, 0.3)' },
+                          isReal && { backgroundColor: isDark ? 'rgba(16,185,129,0.15)' : '#ECFDF5', borderColor: isDark ? 'rgba(16,185,129,0.3)' : '#A7F3D0' },
+                          isTest && { backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : '#FFFBEB', borderColor: isDark ? 'rgba(245,158,11,0.3)' : '#FDE68A' },
+                          isUnreg && { backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : '#EEF2FF', borderColor: isDark ? 'rgba(99,102,241,0.3)' : '#C7D2FE' },
                         ]}>
                           <Text style={[
                             st.verticalBadgeText,
-                            isReal && { color: '#34D399' },
-                            isTest && { color: '#FBBF24' },
-                            isUnreg && { color: '#818CF8' },
+                            isReal && { color: isDark ? '#6EE7B7' : '#047857' },
+                            isTest && { color: isDark ? '#FCD34D' : '#B45309' },
+                            isUnreg && { color: isDark ? '#A5B4FC' : '#3730A3' },
                           ]}>
                             {isReal ? 'Real Member' : (isTest ? 'Sandbox Test' : 'Unregistered')}
                           </Text>
                         </View>
-                        <Text style={st.tdSubRole}>{item.role || 'Student'}</Text>
+                        <Text style={[st.tdSubRole, { color: isDark ? '#94A3B8' : '#475569' }]}>{item.role || 'Student'}</Text>
                       </View>
 
                       {/* SA ID & BGV ID */}
                       <View style={{ flex: 1.6, justifyContent: 'center' }}>
                         <Pressable
-                          style={st.idChip}
+                          style={[st.idChip, {
+                            backgroundColor: isDark ? '#1E293B' : '#F1F5F9',
+                            borderColor: isDark ? '#334155' : '#E2E8F0',
+                            borderWidth: 1,
+                            maxWidth: '100%',
+                            flexWrap: 'nowrap',
+                          }]}
                           onPress={() => copyToClipboard(item.sa_id, `sa-${item.id}`)}
                         >
-                          <Text style={st.idChipLabel}>SA:</Text>
-                          <Text style={st.idChipValue}>{item.sa_id}</Text>
+                          <Text style={[st.idChipLabel, { color: isDark ? '#CBD5E1' : '#1E293B', fontFamily: 'monospace', whiteSpace: 'nowrap' }]}>SA:</Text>
+                          <Text style={[st.idChipValue, { color: isDark ? '#E2E8F0' : '#1E293B', fontFamily: 'monospace', whiteSpace: 'nowrap' }]}>{item.sa_id}</Text>
                           {copiedKey === `sa-${item.id}` ? <Check size={12} color="#10B981" /> : <Copy size={11} color="#64748B" />}
                         </Pressable>
 
                         <Pressable
-                          style={[st.idChip, { marginTop: 4 }]}
+                          style={[st.idChip, {
+                            marginTop: 4,
+                            backgroundColor: isDark ? 'rgba(30,27,75,0.5)' : '#EEF2FF',
+                            borderColor: isDark ? 'rgba(55,48,163,0.5)' : '#C7D2FE',
+                            borderWidth: 1,
+                            maxWidth: '100%',
+                            flexWrap: 'nowrap',
+                          }]}
                           onPress={() => copyToClipboard(item.bgv_id, `bgv-${item.id}`)}
                         >
-                          <Text style={[st.idChipLabel, { color: '#F472B6' }]}>BGV:</Text>
-                          <Text style={[st.idChipValue, { color: '#FBCFE8' }]}>{item.bgv_id}</Text>
+                          <Text style={[st.idChipLabel, { color: isDark ? '#A5B4FC' : '#3730A3', fontFamily: 'monospace', whiteSpace: 'nowrap' }]}>BGV:</Text>
+                          <Text style={[st.idChipValue, { color: isDark ? '#C7D2FE' : '#3730A3', fontFamily: 'monospace', whiteSpace: 'nowrap' }]}>{item.bgv_id}</Text>
                           {copiedKey === `bgv-${item.id}` ? <Check size={12} color="#10B981" /> : <Copy size={11} color="#64748B" />}
                         </Pressable>
                       </View>
@@ -1035,19 +1096,19 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
                             style={st.addLinkedInChip}
                             onPress={() => openEditModal(item)}
                           >
-                            <LinkedinGlyph size={11} color="#64748B" />
-                            <Text style={st.addLinkedInChipText}>+ Add LinkedIn</Text>
+                            <LinkedinGlyph size={11} color={isDark ? '#818CF8' : '#4F46E5'} />
+                            <Text style={[st.addLinkedInChipText, { color: isDark ? '#818CF8' : '#4F46E5', whiteSpace: 'nowrap' }]}>+ Add LinkedIn</Text>
                           </Pressable>
                         )}
-                        <Text style={st.tdLocation} numberOfLines={1}>
-                          📍 {item.location || item.country || 'Global'}
+                        <Text style={[st.tdLocation, { color: isDark ? '#94A3B8' : '#475569' }]} numberOfLines={1}>
+                           {item.location || item.country || 'Global'}
                         </Text>
                       </View>
 
                       {/* Institution & Academic */}
                       <View style={{ flex: 1.6, justifyContent: 'center' }}>
-                        <Text style={st.tdCollege} numberOfLines={1}>{item.college || 'Universal Registry'}</Text>
-                        <Text style={st.tdSub}>
+                        <Text style={[st.tdCollege, { color: isDark ? '#F1F5F9' : '#0F172A' }]} numberOfLines={1}>{item.college || 'Not Specified'}</Text>
+                        <Text style={[st.tdSub, { color: isDark ? '#94A3B8' : '#475569' }]}>
                           {[item.degree, item.graduation_year].filter(Boolean).join(' · ') || 'Degree In Progress'}
                         </Text>
                         {item.certificates_count > 0 ? (
@@ -1059,28 +1120,36 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
                       </View>
 
                       {/* Actions & Multi-Tier BGV Scan */}
-                      <View style={{ flex: 2.4, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                      <View style={{ flex: 3, minWidth: 280, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
                         {/* Run 5-Tier BGV Scan Button */}
                         <Pressable
-                          style={st.scanBtn}
+                          style={({ hovered }: any) => [st.scanBtn, {
+                            backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : (hovered ? '#FEF3C7' : '#FFFBEB'),
+                            borderColor: isDark ? 'rgba(245,158,11,0.3)' : '#FDE68A',
+                            flexShrink: 0,
+                          }]}
                           onPress={() => openScanForCandidate(item)}
                         >
-                          <Zap size={11} color="#FBBF24" />
-                          <Text style={st.scanBtnText}>Scan</Text>
+                          <Zap size={11} color={isDark ? '#FCD34D' : '#92400E'} />
+                          <Text style={[st.scanBtnText, { color: isDark ? '#FCD34D' : '#92400E', whiteSpace: 'nowrap' }]}>Scan</Text>
                         </Pressable>
 
                         {/* Download PDF Button */}
                         <Pressable
-                          style={st.pdfBtn}
+                          style={({ hovered }: any) => [st.pdfBtn, {
+                            backgroundColor: isDark ? 'rgba(16,185,129,0.15)' : (hovered ? '#D1FAE5' : '#ECFDF5'),
+                            borderColor: isDark ? 'rgba(16,185,129,0.3)' : '#A7F3D0',
+                            flexShrink: 0,
+                          }]}
                           onPress={() => handleDownloadPdf(item.bgv_id || item.sa_id || item.email)}
                         >
-                          <Download size={11} color="#34D399" />
-                          <Text style={st.pdfBtnText}>PDF</Text>
+                          <Download size={11} color={isDark ? '#6EE7B7' : '#065F46'} />
+                          <Text style={[st.pdfBtnText, { color: isDark ? '#6EE7B7' : '#065F46', whiteSpace: 'nowrap' }]}>PDF</Text>
                         </Pressable>
 
                         {isUnreg && (
                           <Pressable
-                            style={[st.claimEmailBtn, isSendingThis && { opacity: 0.6 }]}
+                            style={[st.claimEmailBtn, { flexShrink: 0 }, isSendingThis && { opacity: 0.6 }]}
                             onPress={() => handleSendSingleClaim(item)}
                             disabled={isSendingThis}
                           >
@@ -1098,25 +1167,36 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
                         )}
 
                         <Pressable
-                          style={st.verifyBtn}
+                          style={({ hovered }: any) => [st.verifyBtn, {
+                            backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : (hovered ? '#E0E7FF' : '#EEF2FF'),
+                            borderColor: isDark ? 'rgba(99,102,241,0.3)' : '#C7D2FE',
+                            flexShrink: 0,
+                          }]}
                           onPress={() => handleLookup(item.bgv_id || item.sa_id || item.email)}
                         >
-                          <ShieldCheck size={11} color="#93C5FD" />
-                          <Text style={st.verifyBtnText}>Dossier</Text>
+                          <ShieldCheck size={11} color={isDark ? '#A5B4FC' : '#3730A3'} />
+                          <Text style={[st.verifyBtnText, { color: isDark ? '#A5B4FC' : '#3730A3', whiteSpace: 'nowrap' }]}>Dossier</Text>
                         </Pressable>
 
                         <Pressable
-                          style={st.editBtn}
+                          style={[st.editBtn, { flexShrink: 0, backgroundColor: isDark ? '#1E293B' : '#F1F5F9' }]}
                           onPress={() => openEditModal(item)}
                         >
-                          <Edit3 size={11} color="#CBD5E1" />
+                          <Edit3 size={11} color={isDark ? '#CBD5E1' : '#475569'} />
                         </Pressable>
 
                         <Pressable
-                          style={[st.testToggleBtn, isTest && { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}
+                          style={({ hovered }: any) => [st.testToggleBtn, {
+                            backgroundColor: isTest
+                              ? (isDark ? 'rgba(239,68,68,0.15)' : '#FEF2F2')
+                              : (isDark ? (hovered ? '#334155' : '#1E293B') : (hovered ? '#E2E8F0' : '#F1F5F9')),
+                            borderWidth: 1,
+                            borderColor: isTest ? (isDark ? 'rgba(239,68,68,0.3)' : '#FECACA') : (isDark ? '#334155' : '#E2E8F0'),
+                            flexShrink: 0,
+                          }]}
                           onPress={() => handleToggleTest(item)}
                         >
-                          <Text style={[st.testToggleBtnText, isTest && { color: '#F87171' }]}>
+                          <Text style={[st.testToggleBtnText, { color: isTest ? (isDark ? '#FCA5A5' : '#B91C1C') : (isDark ? '#E2E8F0' : '#1E293B'), whiteSpace: 'nowrap' }]}>
                             {isTest ? 'Real' : 'Test'}
                           </Text>
                         </Pressable>
@@ -1127,24 +1207,35 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
               )}
 
               {/* Pagination */}
-              <View style={st.paginationRow}>
-                <Text style={st.paginationText}>
+              <View style={[st.paginationRow, {
+                backgroundColor: isDark ? 'rgba(30,41,59,0.3)' : '#F8FAFC',
+                borderTopWidth: 1,
+                borderTopColor: isDark ? '#1E293B' : '#E2E8F0',
+                minWidth: 1160,
+              }]}>
+                <Text style={[st.paginationText, { color: isDark ? '#94A3B8' : '#475569' }]}>
                   Showing page {page} of {pages} ({total} total records)
                 </Text>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <Pressable
-                    style={[st.pageBtn, page <= 1 && { opacity: 0.4 }]}
+                    style={({ hovered }: any) => [st.pageBtn, {
+                      backgroundColor: isDark ? (hovered ? '#334155' : '#1E293B') : (hovered ? '#F1F5F9' : '#FFFFFF'),
+                      borderColor: isDark ? '#334155' : '#CBD5E1',
+                    }, page <= 1 && { opacity: 0.4 }]}
                     disabled={page <= 1}
                     onPress={() => loadList(page - 1)}
                   >
-                    <Text style={st.pageBtnText}>Previous</Text>
+                    <Text style={[st.pageBtnText, { color: isDark ? '#CBD5E1' : '#334155' }]}>Previous</Text>
                   </Pressable>
                   <Pressable
-                    style={[st.pageBtn, page >= pages && { opacity: 0.4 }]}
+                    style={({ hovered }: any) => [st.pageBtn, {
+                      backgroundColor: isDark ? (hovered ? '#334155' : '#1E293B') : (hovered ? '#F1F5F9' : '#FFFFFF'),
+                      borderColor: isDark ? '#334155' : '#CBD5E1',
+                    }, page >= pages && { opacity: 0.4 }]}
                     disabled={page >= pages}
                     onPress={() => loadList(page + 1)}
                   >
-                    <Text style={st.pageBtnText}>Next</Text>
+                    <Text style={[st.pageBtnText, { color: isDark ? '#CBD5E1' : '#334155' }]}>Next</Text>
                   </Pressable>
                 </View>
               </View>
@@ -1398,7 +1489,7 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
                         </View>
                       </View>
                       <Text style={st.fakeUniReason}>{uni.reason}</Text>
-                      <Text style={st.fakeUniCity}>📍 {uni.city}, {uni.state} · Listed: {uni.listed_date}</Text>
+                      <Text style={st.fakeUniCity}> {uni.city}, {uni.state} · Listed: {uni.listed_date}</Text>
                     </View>
                   </View>
                 ))}
@@ -1418,52 +1509,52 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
               <View style={{ gap: 4 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Globe size={20} color="#38BDF8" />
-                  <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: FONTS.bold }}>Global Visa & BGV Study-Abroad Readiness Radar</Text>
+                  <Text style={{ color: T.text, fontSize: 18, fontFamily: FONTS.bold }}>Global Visa & BGV Study-Abroad Readiness Radar</Text>
                 </View>
-                <Text style={{ color: '#94A3B8', fontSize: 13 }}>
+                <Text style={{ color: T.muted, fontSize: 13 }}>
                   Country-wise verification telemetry, Germany WeHive sponsorship readiness, and international hiring eligibility.
                 </Text>
               </View>
 
               <Pressable
-                style={[st.btnSecondary, { borderColor: '#38BDF8', backgroundColor: 'rgba(56,189,248,0.1)' }]}
+                style={[st.btnSecondary, { borderColor: T.sky, backgroundColor: T.tint }]}
                 onPress={loadVisaReadiness}
               >
-                <RefreshCw size={14} color="#38BDF8" />
-                <Text style={{ color: '#38BDF8', fontSize: 13, fontFamily: FONTS.med }}>Refresh Radar</Text>
+                <RefreshCw size={14} color={T.sky} />
+                <Text style={{ color: T.sky, fontSize: 13, fontFamily: FONTS.med }}>Refresh Radar</Text>
               </Pressable>
             </View>
 
             {/* Country Readiness Cards Grid */}
             <View style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 14, marginTop: 8 }}>
               {(visaReadiness?.countries || [
-                { country: "Germany (WeHive Partner)", flag: "🇩🇪", total_candidates: 148, ready_percentage: 78.4, perks_active: "2 Business Visas + ₹15,00,000 Sponsorship", bgv_verified_count: 116, top_fields: ["M.Sc Computer Science", "Automotive Systems", "AI & Robotics"] },
-                { country: "United States", flag: "🇺🇸", total_candidates: 235, ready_percentage: 84.1, perks_active: "H1B & OPT STEM Verification", bgv_verified_count: 198, top_fields: ["MS Data Science", "Software Engineering", "MBA"] },
-                { country: "United Kingdom", flag: "🇬🇧", total_candidates: 112, ready_percentage: 71.2, perks_active: "Graduate Skilled Worker Route", bgv_verified_count: 80, top_fields: ["Cybersecurity", "Fintech", "Health Tech"] },
-                { country: "India (Domestic)", flag: "🇮🇳", total_candidates: 890, ready_percentage: 92.5, perks_active: "Aadhaar & DigiLocker Fast-Track", bgv_verified_count: 823, top_fields: ["B.Tech CSE/IT", "AI Engineering", "Core Engineering"] }
+                { country: "Germany (WeHive Partner)", flag: "", total_candidates: 148, ready_percentage: 78.4, perks_active: "2 Business Visas + ₹15,00,000 Sponsorship", bgv_verified_count: 116, top_fields: ["M.Sc Computer Science", "Automotive Systems", "AI & Robotics"] },
+                { country: "United States", flag: "", total_candidates: 235, ready_percentage: 84.1, perks_active: "H1B & OPT STEM Verification", bgv_verified_count: 198, top_fields: ["MS Data Science", "Software Engineering", "MBA"] },
+                { country: "United Kingdom", flag: "", total_candidates: 112, ready_percentage: 71.2, perks_active: "Graduate Skilled Worker Route", bgv_verified_count: 80, top_fields: ["Cybersecurity", "Fintech", "Health Tech"] },
+                { country: "India (Domestic)", flag: "", total_candidates: 890, ready_percentage: 92.5, perks_active: "Aadhaar & DigiLocker Fast-Track", bgv_verified_count: 823, top_fields: ["B.Tech CSE/IT", "AI Engineering", "Core Engineering"] }
               ]).map((c: any, cidx: number) => (
-                <View key={cidx} style={{ padding: 18, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, gap: 12 }}>
+                <View key={cidx} style={{ padding: 18, backgroundColor: T.panel, borderWidth: 1, borderColor: T.line, borderRadius: 14, gap: 12 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <Text style={{ fontSize: 28 }}>{c.flag}</Text>
+                      <Globe size={24} color={T.muted} />
                       <View>
-                        <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: '#FFFFFF' }}>{c.country}</Text>
+                        <Text style={{ fontSize: 16, fontFamily: FONTS.bold, color: T.text }}>{c.country}</Text>
                         <Text style={{ fontSize: 12, color: '#38BDF8', marginTop: 2 }}>{c.perks_active}</Text>
                       </View>
                     </View>
-                    <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)' }}>
+                    <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: T.okTint, borderWidth: 1, borderColor: T.ok }}>
                       <Text style={{ fontSize: 12, fontFamily: FONTS.bold, color: '#10B981' }}>{c.ready_percentage}% Ready</Text>
                     </View>
                   </View>
 
                   {/* Progress Bar */}
-                  <View style={{ width: '100%', height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                  <View style={{ width: '100%', height: 6, borderRadius: 3, backgroundColor: T.line, overflow: 'hidden' }}>
                     <View style={{ width: `${c.ready_percentage}%`, height: '100%', backgroundColor: '#10B981', borderRadius: 3 }} />
                   </View>
 
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', fontSize: 12, color: '#94A3B8' }}>
-                    <Text style={{ color: '#94A3B8', fontSize: 12 }}>Verified Candidates: <Text style={{ color: '#FFFFFF', fontWeight: 'bold' }}>{c.bgv_verified_count}/{c.total_candidates}</Text></Text>
-                    <Text style={{ color: '#C4B5FD', fontSize: 12 }}>Top Target: {c.top_fields?.[0]}</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', fontSize: 12 }}>
+                    <Text style={{ color: T.muted, fontSize: 12 }}>Verified Candidates: <Text style={{ color: T.text, fontWeight: 'bold' }}>{c.bgv_verified_count}/{c.total_candidates}</Text></Text>
+                    <Text style={{ color: T.violet, fontSize: 12 }}>Top Target: {c.top_fields?.[0]}</Text>
                   </View>
                 </View>
               ))}
@@ -1482,27 +1573,27 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
               <View style={{ gap: 4 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Key size={20} color="#F59E0B" />
-                  <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: FONTS.bold }}>Enterprise BGV API Keys & Webhook Integrations</Text>
+                  <Text style={{ color: T.text, fontSize: 18, fontFamily: FONTS.bold }}>Enterprise BGV API Keys & Webhook Integrations</Text>
                 </View>
-                <Text style={{ color: '#94A3B8', fontSize: 13 }}>
+                <Text style={{ color: T.muted, fontSize: 13 }}>
                   Issue live cryptographic API keys to background check partners, corporate recruiters, and university admissions desks.
                 </Text>
               </View>
             </View>
 
             {/* Quick Generator Box */}
-            <View style={{ padding: 16, background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: 12, gap: 10 }}>
-              <Text style={{ fontSize: 13, fontFamily: FONTS.bold, color: '#FDE68A' }}>🔑 GENERATE NEW ENTERPRISE RECRUITER API KEY</Text>
+            <View style={{ padding: 16, backgroundColor: T.warnTint, borderWidth: 1, borderColor: T.warnLine, borderRadius: 12, gap: 10 }}>
+              <Text style={{ fontSize: 13, fontFamily: FONTS.bold, color: '#FDE68A' }}> GENERATE NEW ENTERPRISE RECRUITER API KEY</Text>
               <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
                 <TextInput
-                  style={{ flex: 1, minWidth: 200, height: 38, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, color: '#FFF', fontSize: 13 }}
+                  style={{ flex: 1, minWidth: 200, height: 38, borderRadius: 8, borderWidth: 1, borderColor: T.line, backgroundColor: T.panel2, paddingHorizontal: 12, color: T.text, fontSize: 13 }}
                   placeholder="Organization Name (e.g. Acme Corp HR)"
                   placeholderTextColor="#64748B"
                   value={genKeyOrgName}
                   onChangeText={setGenKeyOrgName}
                 />
                 <TextInput
-                  style={{ flex: 1, minWidth: 220, height: 38, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, color: '#FFF', fontSize: 13 }}
+                  style={{ flex: 1, minWidth: 220, height: 38, borderRadius: 8, borderWidth: 1, borderColor: T.line, backgroundColor: T.panel2, paddingHorizontal: 12, color: T.text, fontSize: 13 }}
                   placeholder="Webhook URL (https://partner.com/webhooks)"
                   placeholderTextColor="#64748B"
                   value={genKeyWebhook}
@@ -1523,15 +1614,15 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
             {/* API Keys Table */}
             <View style={{ gap: 8, marginTop: 8 }}>
               {apiKeysList.map((k: any, kidx: number) => (
-                <View key={kidx} style={{ padding: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <View key={kidx} style={{ padding: 14, backgroundColor: T.panel, borderWidth: 1, borderColor: T.line, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                   <View style={{ gap: 2 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <Text style={{ fontSize: 14, fontFamily: FONTS.bold, color: '#FFF' }}>{k.org_name}</Text>
+                      <Text style={{ fontSize: 14, fontFamily: FONTS.bold, color: T.text }}>{k.org_name}</Text>
                       <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '100px', background: 'rgba(16,185,129,0.15)', color: '#10B981', border: '1px solid rgba(16,185,129,0.3)' }}>
                         {k.status.toUpperCase()}
                       </span>
                     </View>
-                    <Text style={{ fontSize: 12, color: '#94A3B8' }}>
+                    <Text style={{ fontSize: 12, color: T.muted }}>
                       Prefix: <Text style={{ fontFamily: 'monospace', color: '#FDE68A' }}>{k.key_prefix}</Text> · Quota: <Text style={{ color: '#C4B5FD' }}>{k.usage_count}/{k.monthly_quota} calls</Text>
                     </Text>
                     {k.webhook_url ? (
@@ -1587,7 +1678,7 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
                       <Text style={st.providerCategory}>{p.category}</Text>
                       <View style={st.providerMetaRow}>
                         <Text style={st.providerCost}>{p.cost_model}</Text>
-                        <Text style={st.providerLatency}>⚡ {p.latency_ms}ms</Text>
+                        <Text style={st.providerLatency}> {p.latency_ms}ms</Text>
                       </View>
                     </View>
                   ))}
@@ -1732,11 +1823,11 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
             <View style={st.editModalCard}>
               <View style={st.bgvModalHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Edit3 size={20} color="#38BDF8" />
+                  <Edit3 size={20} color={T.sky} />
                   <Text style={st.bgvModalHeaderTitle}>Edit Profile & Geolocation</Text>
                 </View>
                 <Pressable onPress={() => setEditProfileModal(null)} style={st.closeModalBtn}>
-                  <Text style={{ color: '#94A3B8', fontSize: 16 }}>✕</Text>
+                  <XCircle size={16} color={T.muted} />
                 </Pressable>
               </View>
 
@@ -1877,7 +1968,7 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
                   <Text style={st.bgvModalHeaderTitle}>Official Background Verification Card</Text>
                 </View>
                 <Pressable onPress={() => setBgvCardModal(null)} style={st.closeModalBtn}>
-                  <Text style={{ color: '#94A3B8', fontSize: 16 }}>✕</Text>
+                  <XCircle size={16} color={T.muted} />
                 </Pressable>
               </View>
 
@@ -1911,7 +2002,6 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
                     <View style={{ flex: 1 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         <Text style={st.holoCandidateName}>{bgvCardModal.candidate_info?.name}</Text>
-                        <Text style={{ fontSize: 15 }}>{bgvCardModal.candidate_info?.country_flag || '🇮🇳'}</Text>
                       </View>
                       <Text style={st.holoCandidateSub}>
                         {bgvCardModal.candidate_info?.role?.toUpperCase()} · {bgvCardModal.candidate_info?.location} ({bgvCardModal.candidate_info?.country || 'India'})
@@ -1966,14 +2056,14 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
                     <View style={st.checkItem}>
                       <Globe size={15} color="#A78BFA" />
                       <Text style={st.checkText}>
-                        DigiLocker / NAD: <Text style={{ color: bgvCardModal.candidate_info?.digilocker_verified ? '#C4B5FD' : '#94A3B8' }}>
+                        DigiLocker / NAD: <Text style={{ color: bgvCardModal.candidate_info?.digilocker_verified ? T.violet : T.muted }}>
                           {bgvCardModal.candidate_info?.digilocker_verified ? `LINKED (${bgvCardModal.candidate_info?.digilocker_doc_count || 3} DOCS)` : 'NOT LINKED'}
                         </Text>
                       </Text>
                     </View>
                     <View style={st.checkItem}>
                       <CheckCircle2 size={15} color="#34D399" />
-                      <Text style={st.checkText}>Academic Institution: <Text style={{ color: '#E2E8F0' }}>{bgvCardModal.candidate_info?.college}</Text></Text>
+                      <Text style={st.checkText}>Academic Institution: <Text style={{ color: T.text }}>{bgvCardModal.candidate_info?.college}</Text></Text>
                     </View>
                     <View style={st.checkItem}>
                       <CheckCircle2 size={15} color="#34D399" />
@@ -2057,7 +2147,7 @@ export function BGVAccountVerticalsView({ sub, onSub }: SubTabControlProps = {})
 
               {/* Sample Test Emails List */}
               {purgePreview?.sample_test_emails?.length ? (
-                <View style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 10, padding: 12, width: '100%', gap: 4 }}>
+                <View style={{ backgroundColor: T.dangerTint, borderColor: T.danger, borderWidth: 1, borderRadius: 10, padding: 12, width: '100%', gap: 4 }}>
                   <Text style={{ fontSize: 11, fontWeight: '700', color: '#FCA5A5', letterSpacing: 0.5, marginBottom: 4 }}>
                     SAMPLE TEST EMAILS DETECTED:
                   </Text>

@@ -1553,7 +1553,7 @@ function JobCard({
             alignItems: 'center',
             gap: 4
           }}>
-            <Text style={{ fontSize: 10 }}></Text>
+            <Sparkles size={10} color="#2563EB" />
             <Text style={{ color: '#2563EB', fontFamily: FONTS.bold, fontSize: 10 }}>Recommended</Text>
           </View>
         )}
@@ -1737,7 +1737,8 @@ function JobCard({
                         height: 22,
                         borderRadius: 11,
                         backgroundColor: '#E2E8F0',
-                        border: '1px solid #FFFFFF',
+                        borderWidth: 1,
+                        borderColor: '#FFFFFF',
                         marginLeft: i > 0 ? -8 : 0,
                         overflow: 'hidden',
                         alignItems: 'center',

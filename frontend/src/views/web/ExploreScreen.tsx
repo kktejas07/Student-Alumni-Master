@@ -21,7 +21,6 @@ const IS_WEB = Platform.OS === 'web';
 export type ExploreSection = {
   id: string;
   title: string;
-  emoji?: string;
   items: { id: string; label: string; icon: ReactNode; onPress?: () => void; glow?: string }[];
 };
 
@@ -30,7 +29,6 @@ export type ExploreHeroTile = {
   title: string;
   subtitle: string;
   cta: string;
-  emoji: string;
   gradient: string[];
   span?: 1 | 2 | 3;
   onPress?: () => void;
@@ -94,11 +92,6 @@ export function ExploreScreen({
               minHeight={isWide ? 180 : 130}
             >
               <View style={{ flex: 1, justifyContent: 'space-between' }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <View style={styles.heroEmojiBubble}>
-                    <Text style={{ fontSize: 24 }}>{h.emoji}</Text>
-                  </View>
-                </View>
                 <View>
                   <Text style={styles.heroTileTitle}>{h.title}</Text>
                   <Text style={styles.heroTileSub} numberOfLines={2}>{h.subtitle}</Text>
@@ -118,7 +111,6 @@ export function ExploreScreen({
         <CategorySection
           key={section.id}
           title={section.title}
-          emoji={section.emoji}
           items={section.items}
           columns={isWide ? 6 : 4}
         />
@@ -148,12 +140,6 @@ const styles = StyleSheet.create({
     ...({ outlineStyle: 'none' } as any),
   },
   heroRow: { flexDirection: 'row', gap: 12, marginBottom: 4 },
-  heroEmojiBubble: {
-    width: 50, height: 50, borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    borderColor: 'rgba(255,255,255,0.22)', borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center',
-  },
   heroTileTitle: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 18, letterSpacing: -0.3 },
   heroTileSub:   { color: 'rgba(255,255,255,0.78)', fontFamily: 'DMSans_400Regular', fontSize: 12.5, marginTop: 4, lineHeight: 17 },
   heroCta: {

@@ -25,9 +25,9 @@ type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 type SubCat = { key: string; label: string; icon: IconName;
                 count: number; highlighted?: boolean };
-type Section = { id: string; emoji: string; name: string;
+type Section = { id: string; name: string;
                   color: string; items: SubCat[] };
-type Hero = { id: string; emoji: string; title: string; subtitle: string;
+type Hero = { id: string; title: string; subtitle: string;
                cta_label: string; cta_href: string;
                from: string; to: string };
 
@@ -335,7 +335,6 @@ export default function CoursesPage() {
     <FeaturePageShell
       title="Courses"
       subtitle="Skill up with curated tracks, free certifications & expert mentors."
-      heroEmoji="🎓"
       accent="#7C3AED"
       rightSlot={
         <View style={s.statsPills}>
@@ -395,7 +394,7 @@ export default function CoursesPage() {
                   <Pressable key={c.id}
                     onPress={() => { setEnrollFor(c); setSearch(''); }}
                     style={s.acRow}>
-                    <Text style={{ fontSize: 18 }}>{c.thumbnail}</Text>
+                    <MaterialCommunityIcons name="book-open-variant" size={18} color={colors.text2} />
                     <View style={{ flex: 1 }}>
                       <Text style={[s.acTitle, { color: colors.text }]} numberOfLines={1}>{c.title}</Text>
                       <Text style={[s.acMeta, { color: colors.text3 }]} numberOfLines={1}>
@@ -474,7 +473,6 @@ export default function CoursesPage() {
             />
             <View style={s.heroBlur1} />
             <View style={s.heroIconCircle}>
-              <Text style={{ fontSize: 22 }}>{h.emoji}</Text>
             </View>
             <Text style={s.heroTitle}>{h.title}</Text>
             <Text style={s.heroSub} numberOfLines={2}>{h.subtitle}</Text>
@@ -711,26 +709,26 @@ export default function CoursesPage() {
 
       {/* Personal Learning Carousels */}
       {!filtersActive && myEnrollments.length > 0 && (
-        <Carousel title="📚 My Active Courses" subtitle="Pick up right where you left off"
+        <Carousel title=" My Active Courses" subtitle="Pick up right where you left off"
                    accent="#06B6D4" courses={myEnrollments.map((e: any) => e.course_snapshot || allCourses.find((c: any) => c.id === e.course_id)).filter(Boolean)} onEnroll={setEnrollFor} />
       )}
       {!filtersActive && myCertificates.length > 0 && (
-        <Carousel title="🏆 My Certificates" subtitle="Your earned credentials"
+        <Carousel title=" My Certificates" subtitle="Your earned credentials"
                    accent="#F59E0B" courses={myCertificates.map((c: any) => c.course_snapshot || allCourses.find((ac: any) => ac.id === c.course_id)).filter(Boolean)} onEnroll={() => {}} />
       )}
 
       {/* Carousels — Featured / Trending Free / Top Universities (filtered in-place) */}
       {fFeatured.length > 0 && (
-        <Carousel title="✨ Featured this month" subtitle="Hand-picked by SA editors"
+        <Carousel title=" Featured this month" subtitle="Hand-picked by SA editors"
                    accent="#7C3AED" courses={fFeatured} onEnroll={setEnrollFor} />
       )}
       {fTrendingFree.length > 0 && (
-        <Carousel title="🔥 Trending Free Courses"
+        <Carousel title=" Trending Free Courses"
                    subtitle="Most-enrolled this week — totally free"
                    accent="#10B981" courses={fTrendingFree} onEnroll={setEnrollFor} />
       )}
       {fTopUni.length > 0 && (
-        <Carousel title="🎓 Top Universities" subtitle="MIT · Stanford · Harvard · IITs · IIMs · Yale"
+        <Carousel title=" Top Universities" subtitle="MIT · Stanford · Harvard · IITs · IIMs · Yale"
                    accent="#F59E0B" courses={fTopUni} onEnroll={setEnrollFor} />
       )}
 
@@ -756,7 +754,6 @@ export default function CoursesPage() {
         return (
           <View key={sec.id} style={[s.sectionCard, { backgroundColor: colors.sectionCard, borderColor: colors.sectionBorder }]}>
             <View style={s.sectionHeader}>
-              <Text style={{ fontSize: 22 }}>{sec.emoji}</Text>
               <Text style={[s.sectionName, { color: colors.text }]}>{sec.name}</Text>
               <View style={[s.sectionCountPill,
                 { backgroundColor: sectionAccent + (isDark ? '22' : '15'),
@@ -989,7 +986,7 @@ function CourseCard({ course, onEnroll }:
     <View style={[s.courseCard, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
       <View style={s.courseTopRow}>
         <View style={s.providerStrip}>
-          <Text style={{ fontSize: 16 }}>{course.provider.logo}</Text>
+          <MaterialCommunityIcons name="school-outline" size={16} color={colors.text2} />
           <Text style={[s.providerName, { color: colors.text2 }]} numberOfLines={1}>
             {course.provider.name}
           </Text>
@@ -998,7 +995,7 @@ function CourseCard({ course, onEnroll }:
       </View>
 
       <View style={s.thumbnailBox}>
-        <Text style={s.thumbnailEmoji}>{course.thumbnail}</Text>
+        <MaterialCommunityIcons name="book-open-variant" size={28} color={colors.text2} />
       </View>
 
       <View style={{ padding: 14, gap: 8 }}>
@@ -1114,16 +1111,16 @@ function CertBadge({ cert }: { cert: Course['certification'] }) {
   let bg = isDark ? 'rgba(124,58,237,0.14)' : '#F5F3FF';
   let fg = isDark ? '#C4B5FD' : '#6D28D9';
   if (free && recognised) {
-    label = '✨ Free industry-recognised certificate';
+    label = ' Free industry-recognised certificate';
     bg = isDark ? 'rgba(16,185,129,0.14)' : '#ECFDF5'; fg = isDark ? '#6EE7B7' : '#047857';
   } else if (free) {
-    label = '✨ Free certificate of completion';
+    label = ' Free certificate of completion';
     bg = isDark ? 'rgba(16,185,129,0.14)' : '#ECFDF5'; fg = isDark ? '#6EE7B7' : '#047857';
   } else if (recognised) {
-    label = `🏆 Industry cert · ${fmtINR(cert.cost_inr)}`;
+    label = ` Industry cert · ${fmtINR(cert.cost_inr)}`;
     bg = isDark ? 'rgba(245,158,11,0.14)' : '#FFFBEB'; fg = isDark ? '#FCD34D' : '#B45309';
   } else {
-    label = `🎖 Certificate · ${fmtINR(cert.cost_inr)}`;
+    label = ` Certificate · ${fmtINR(cert.cost_inr)}`;
   }
   return (
     <View style={[s.certBadge, { backgroundColor: bg }]}>
@@ -1348,8 +1345,8 @@ function EnrollModal({ course, onClose }:
           {course && (
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={s.enrollHeader}>
-                <View style={s.enrollEmoji}>
-                  <Text style={{ fontSize: 28 }}>{course.thumbnail}</Text>
+                <View style={s.enrollIcon}>
+                  <MaterialCommunityIcons name="book-open-variant" size={28} color={colors.text2} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[s.enrollTitle, { color: colors.text }]} numberOfLines={2}>
@@ -1521,7 +1518,7 @@ function MiniCourseCard({ course, accent, onEnroll }:
       glowColor={accent + '55'}
       style={[s.miniCard, { backgroundColor: colors.cardBg, borderColor: colors.border }] as any}>
       <View style={[s.miniThumb, { backgroundColor: accent + (isDark ? '14' : '10') }]}>
-        <Text style={s.miniThumbEmoji}>{course.thumbnail}</Text>
+        <MaterialCommunityIcons name="book-open-variant" size={22} color={colors.title} />
         {course.featured && (
           <View style={[s.miniFeaturedDot, { backgroundColor: accent }]}>
             <MaterialCommunityIcons name="star" size={10} color="#fff" />
@@ -1530,7 +1527,7 @@ function MiniCourseCard({ course, accent, onEnroll }:
       </View>
       <View style={{ padding: 12, gap: 6, flex: 1 }}>
         <View style={s.miniProvider}>
-          <Text style={{ fontSize: 12 }}>{course.provider.logo}</Text>
+          <MaterialCommunityIcons name="school-outline" size={16} color={colors.provider} />
           <Text style={[s.miniProviderName, { color: colors.provider }]} numberOfLines={1}>
             {course.provider.name}
           </Text>
@@ -1784,7 +1781,6 @@ const s = StyleSheet.create({
 
   thumbnailBox: { aspectRatio: 16 / 9, alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(124,58,237,0.14)' },
-  thumbnailEmoji: { fontSize: 56 },
 
   courseTitle: { fontFamily: 'DMSans_800ExtraBold',
     fontSize: 15, lineHeight: 20 },
@@ -1825,7 +1821,7 @@ const s = StyleSheet.create({
   enrollSheet: { width: '100%', maxWidth: 540, maxHeight: '92%',
     borderRadius: 18, padding: 18, borderWidth: 1 },
   enrollHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  enrollEmoji: { width: 56, height: 56, borderRadius: 12,
+  enrollIcon: { width: 56, height: 56, borderRadius: 12,
     backgroundColor: 'rgba(124,58,237,0.14)', borderColor: 'rgba(124,58,237,0.30)',
     borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   enrollTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
@@ -1884,7 +1880,6 @@ const s = StyleSheet.create({
     overflow: 'hidden', ...({ cursor: 'pointer' } as any) },
   miniThumb: { aspectRatio: 16 / 10, alignItems: 'center', justifyContent: 'center',
     position: 'relative' },
-  miniThumbEmoji: { fontSize: 44 },
   miniFeaturedDot: { position: 'absolute', top: 8, right: 8,
     width: 22, height: 22, borderRadius: 999,
     alignItems: 'center', justifyContent: 'center' },

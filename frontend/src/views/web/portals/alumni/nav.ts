@@ -32,7 +32,6 @@ export const NAV: (NavItem & { id: AlumniNavId })[] = [
 
 export const ALUMNI_PORTAL: PortalConfig = {
   portal: 'alumni',
-  darkOnly: true, // views still hardcode dark colours; see src/ui/theme.ts
   base: 'alumni-portal',
   defaultTab: 'dashboard',
   brand: { title: 'Student Alumni', subtitle: 'Alumni Dashboard' },

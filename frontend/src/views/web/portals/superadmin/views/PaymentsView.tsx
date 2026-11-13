@@ -4,13 +4,14 @@
  * KPI tiles + Stripe ledger + balance card + payout tiers editor, all using applekit primitives.
  */
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions, TextInput, ScrollView, Modal } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions, TextInput, ScrollView, Modal, ActivityIndicator } from 'react-native';
 import { ArrowDown, ArrowUp, CreditCard, Download, IndianRupee, TrendingUp, AlertTriangle, BadgePercent, Edit3, Trash2, X, Check, Zap } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { GRAD, Card, IconBox, KpiTile, StatusPill, GradientButton, SecondaryButton, SectionLabel, useToast, Toast } from '../applekit';
 import { usePortalData } from '@/src/lib/portalApi';
 import { request } from '@/src/models/services/api';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 type Tx = { id: string; date: string; desc: string; type: string; amount: number; by: string; status: string };
 type Tier = { id?: string; tier: string; cut: string; count: number; color?: string };
@@ -154,7 +155,9 @@ const edst = StyleSheet.create({
 
 export function PaymentsView() {
   const T = useSAC();
+  const { isDark } = useTheme();
   Object.assign(edst, resolveColors(edst, T));
+  Object.assign(st, resolveColors(st, T));
   const { toast, flash, hide } = useToast();
   const [exporting, setExporting] = useState(false);
   const [payoutLoading, setPayoutLoading] = useState(false);
@@ -220,10 +223,33 @@ export function PaymentsView() {
         <View style={st.headRow}>
           <IconBox size={38}><IndianRupee size={18} color={GRAD.to} /></IconBox>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={st.title}>Payments</Text>
-            <Text style={st.sub}>Stripe ledger, mentor payouts and refund queue across the platform.</Text>
+            <Text style={[st.title, { color: isDark ? '#ffffff' : '#0f172a' }]}>Payments</Text>
+            <Text style={[st.sub, { color: isDark ? '#94a3b8' : '#475569' }]}>Stripe ledger, mentor payouts and refund queue across the platform.</Text>
           </View>
-          <SecondaryButton onPress={doExport} loading={exporting}><Download size={12} color={SAC.muted} /><Text style={st.secText}>{exporting ? 'Exporting…' : 'Export CSV'}</Text></SecondaryButton>
+          <Pressable
+            onPress={doExport}
+            disabled={exporting}
+            style={({ hovered }: any) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 7,
+              paddingHorizontal: 14,
+              paddingVertical: 9,
+              borderRadius: 10,
+              borderWidth: 1,
+              backgroundColor: isDark
+                ? (hovered ? '#334155' : '#1e293b')
+                : (hovered ? '#f8fafc' : '#ffffff'),
+              borderColor: isDark ? '#334155' : '#cbd5e1',
+              opacity: exporting ? 0.6 : 1,
+              ...(Platform.OS === 'web' ? { cursor: exporting ? 'default' : 'pointer' } as any : {}),
+            })}
+          >
+            {exporting
+              ? <ActivityIndicator size="small" color={isDark ? '#cbd5e1' : '#1e293b'} />
+              : <Download size={12} color={isDark ? '#cbd5e1' : '#1e293b'} />}
+            <Text style={[st.secText, { color: isDark ? '#cbd5e1' : '#1e293b' }]}>{exporting ? 'Exporting…' : 'Export CSV'}</Text>
+          </Pressable>
         </View>
       </Card>
 
@@ -262,7 +288,7 @@ export function PaymentsView() {
       <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
         <Card style={{ flex: stack ? undefined : 2.4 }}>
           <View style={st.cardHead}>
-            <Text style={st.cardTitle}>Stripe Ledger</Text>
+            <Text style={[st.cardTitle, { color: isDark ? '#ffffff' : '#0f172a' }]}>Stripe Ledger</Text>
             <StatusPill kind="info" label={`${data.ledger.length} txns`} />
           </View>
           <View style={{ marginTop: 14 }}>
@@ -274,13 +300,13 @@ export function PaymentsView() {
                     {isOut ? <ArrowUp size={13} color="#FCA5A5" /> : <ArrowDown size={13} color="#86EFAC" />}
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text numberOfLines={1} style={st.txDesc}>{t.desc}</Text>
-                    <Text numberOfLines={1} style={st.txMeta}>{t.id} · {t.date} · {t.by}</Text>
+                    <Text numberOfLines={1} style={[st.txDesc, { color: isDark ? '#e2e8f0' : '#1e293b' }]}>{t.desc}</Text>
+                    <Text numberOfLines={1} style={[st.txMeta, { color: isDark ? '#94a3b8' : '#64748b' }]}>{t.id} · {t.date} · {t.by}</Text>
                   </View>
                   {t.status === 'pending'
                     ? <StatusPill kind="warn" label="PENDING" />
                     : <StatusPill kind={t.type === 'refund' ? 'danger' : t.type === 'payout' ? 'info' : 'success'} label={t.type.toUpperCase()} />}
-                  <Text style={[st.txAmount, { color: isOut ? '#FCA5A5' : '#86EFAC' }]}>
+                  <Text style={[st.txAmount, { color: isOut ? (isDark ? '#fca5a5' : '#be123c') : (isDark ? '#34d399' : '#059669') }]}>
                     {isOut ? '-' : '+'}₹{t.amount.toLocaleString('en-IN')}
                   </Text>
                 </View>
@@ -293,12 +319,27 @@ export function PaymentsView() {
         </Card>
 
         <View style={{ width: stack ? '100%' : 320, gap: 12 }}>
-          <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.gradCard}>
-            <View style={[st.iconBox, { backgroundColor: 'rgba(255,255,255,0.22)', borderColor: 'rgba(255,255,255,0.30)' }]}>
-              <CreditCard size={16} color="#fff" />
+          <LinearGradient
+            colors={isDark ? ['rgba(69,26,3,0.4)', '#0f172a', '#0f172a'] : ['#fffbeb', 'rgba(255,247,237,0.7)', '#ffffff']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[
+              st.gradCard,
+              {
+                borderWidth: 1,
+                borderColor: isDark ? 'rgba(245,158,11,0.3)' : '#fde68a',
+                ...(Platform.OS === 'web' && !isDark ? { boxShadow: '0 1px 2px rgba(15,23,42,0.06)' } as any : {}),
+              },
+            ]}
+          >
+            <View style={[st.iconBox, {
+              backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : '#fef3c7',
+              borderColor: isDark ? 'rgba(245,158,11,0.3)' : '#fde68a',
+            }]}>
+              <CreditCard size={16} color={isDark ? '#fcd34d' : '#b45309'} />
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={st.gradKicker}>STRIPE BALANCE</Text>
+              <Text style={[st.gradKicker, { color: isDark ? '#fcd34d' : '#92400e' }]}>STRIPE BALANCE</Text>
               {data.has_live_stripe && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(34,197,94,0.2)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
                   <Zap size={10} color="#86EFAC" />
@@ -306,25 +347,41 @@ export function PaymentsView() {
                 </View>
               )}
             </View>
-            <Text style={st.gradVal}>{data.stripe_balance}</Text>
-            <Text style={st.gradSub}>{data.has_live_stripe ? 'Live Stripe balance' : 'Connect Stripe in Settings for live balance'}</Text>
-            <Pressable style={st.gradCta} onPress={doPayout} disabled={payoutLoading}>
+            <Text style={[st.gradVal, { color: isDark ? '#ffffff' : '#0f172a' }]}>{data.stripe_balance}</Text>
+            <Text style={[st.gradSub, { color: isDark ? '#cbd5e1' : '#475569' }]}>{data.has_live_stripe ? 'Live Stripe balance' : 'Connect Stripe in Settings for live balance'}</Text>
+            <Pressable
+              style={({ hovered }: any) => [
+                st.gradCta,
+                { backgroundColor: isDark ? (hovered ? '#d97706' : '#f59e0b') : (hovered ? '#b45309' : '#d97706') },
+              ]}
+              onPress={doPayout}
+              disabled={payoutLoading}
+            >
               {payoutLoading ? (
-                <Text style={st.gradCtaText}>Processing…</Text>
+                <Text style={[st.gradCtaText, { color: isDark ? '#0f172a' : '#ffffff' }]}>Processing…</Text>
               ) : payoutDone ? (
-                <Text style={st.gradCtaText}>Payout Initiated!</Text>
+                <Text style={[st.gradCtaText, { color: isDark ? '#0f172a' : '#ffffff' }]}>Payout Initiated!</Text>
               ) : (
-                <Text style={st.gradCtaText}>Initiate payout</Text>
+                <Text style={[st.gradCtaText, { color: isDark ? '#0f172a' : '#ffffff' }]}>Initiate payout</Text>
               )}
             </Pressable>
           </LinearGradient>
 
           <Card>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <SectionLabel>PAYOUT TIERS</SectionLabel>
-              <Pressable onPress={() => setTiersEditorOpen(true)} style={st.editBtn}>
-                <Edit3 size={11} color={GRAD.to} />
-                <Text style={st.editBtnText}>Edit</Text>
+              <SectionLabel style={{ color: isDark ? '#e2e8f0' : '#1e293b' }}>PAYOUT TIERS</SectionLabel>
+              <Pressable
+                onPress={() => setTiersEditorOpen(true)}
+                style={[
+                  st.editBtn,
+                  {
+                    backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : '#fffbeb',
+                    borderColor: isDark ? 'rgba(245,158,11,0.3)' : '#fde68a',
+                  },
+                ]}
+              >
+                <Edit3 size={11} color={isDark ? '#fcd34d' : '#92400e'} />
+                <Text style={[st.editBtnText, { color: isDark ? '#fcd34d' : '#92400e' }]}>Edit</Text>
               </Pressable>
             </View>
             <View style={{ marginTop: 12, gap: 10 }}>
@@ -332,8 +389,8 @@ export function PaymentsView() {
                 <View key={t.tier + i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <View style={[st.tierDot, { backgroundColor: t.color || GRAD.to }]} />
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text numberOfLines={1} style={st.tierName}>{t.tier}</Text>
-                    <Text numberOfLines={1} style={st.tierSub}>{t.count} active mentor{t.count === 1 ? '' : 's'}</Text>
+                    <Text numberOfLines={1} style={[st.tierName, { color: isDark ? '#e2e8f0' : '#1e293b' }]}>{t.tier}</Text>
+                    <Text numberOfLines={1} style={[st.tierSub, { color: isDark ? '#94a3b8' : '#64748b' }]}>{t.count} active mentor{t.count === 1 ? '' : 's'}</Text>
                   </View>
                   <View style={st.tierCutPill}>
                     <BadgePercent size={11} color={GRAD.to} />

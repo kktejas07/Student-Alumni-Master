@@ -203,7 +203,7 @@ export function DashboardFooter({ portal }: { portal: 'student' | 'alumni' | 'co
       <View style={{ maxWidth: 1280, width: '100%', alignSelf: 'center' }}>
         <View style={s.dashFootRow}>
           <Text style={[s.dashFootCopy, { color: isDark ? 'rgba(255,255,255,0.45)' : '#64748B' }]}>
-            © {year} StudentAlumni · All rights reserved
+             {year} StudentAlumni · All rights reserved
           </Text>
           <View style={{ flexDirection: 'row', gap: 18, flexWrap: 'wrap' }}>
             <Pressable onPress={() => router.push('/policy/privacy')}>
