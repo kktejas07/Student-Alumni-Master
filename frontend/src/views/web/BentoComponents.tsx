@@ -170,12 +170,10 @@ export function IconBubble({
  */
 export function CategorySection({
   title,
-  emoji,
   items,
   columns,
 }: {
   title: string;
-  emoji?: string;
   items: { id: string; label: string; icon: ReactNode; onPress?: () => void; glow?: string }[];
   columns?: number;
 }) {
@@ -185,9 +183,7 @@ export function CategorySection({
   return (
     <GlowCard style={{ marginBottom: 14 }}>
       <View style={sectionStyles.header}>
-        <Text style={sectionStyles.title}>
-          {emoji ? `${emoji}  ` : ''}{title}
-        </Text>
+        <Text style={sectionStyles.title}>{title}</Text>
       </View>
       <View style={sectionStyles.grid}>
         {items.map((it) => (

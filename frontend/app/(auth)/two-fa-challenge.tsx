@@ -26,7 +26,7 @@ const IS_WEB = Platform.OS === 'web';
 export default function TwoFAChallenge() {
   const router = useRouter();
   const toast = useToast();
-  const params = useLocalSearchParams<{ challenge_id: string; user_email: string; methods?: string }>();
+  const params = useLocalSearchParams<{ challenge_id: string; user_email: string; methods?: string; remember_me?: string }>();
   const verifyTwoFA = useAuthStore((s) => s.verifyTwoFA);
 
   const challengeId = String(params.challenge_id || '');

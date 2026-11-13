@@ -513,13 +513,13 @@ export function MyTicketsView() {
               
               {isDelivery && order.delivery_info && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingHorizontal: 4 }}>
-                  <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600' }}>📍 Deliver to: {order.delivery_info}</Text>
+                  <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600' }}> Deliver to: {order.delivery_info}</Text>
                 </View>
               )}
               
               {order.refund_status === 'refunded' && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingHorizontal: 4, paddingVertical: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)' }}>
-                  <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600' }}>💸 Refunded ₹{order.refund_amount}</Text>
+                  <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600' }}> Refunded ₹{order.refund_amount}</Text>
                   <Text style={{ fontSize: 10, color: isDark ? SC.muted : '#64748B' }}>— {order.refund_reason}</Text>
                 </View>
               )}
@@ -534,7 +534,7 @@ export function MyTicketsView() {
                 {!allFulfilled ? (
                   <Text style={[s.spActionText, { color: isDark ? '#A78BFA' : '#7C3AED' }]}>Show QR →</Text>
                 ) : (
-                  <Text style={[s.spActionText, { color: '#6366F1' }]}>Collected ✓</Text>
+                  <Text style={[s.spActionText, { color: '#6366F1' }]}>Collected </Text>
                 )}
               </View>
             </Pressable>
@@ -552,7 +552,7 @@ export function MyTicketsView() {
                 <View style={{ flex: 1, paddingRight: 8 }}>
                   <Text style={[s.modalTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>{previewCoupon.session_name || 'Session Pass'}</Text>
                   <Text style={[s.modalSub, { color: isDark ? SC.muted : '#64748B' }]}>
-                    {previewCoupon.used ? '✓ Availed' : previewCoupon.session_locked ? 'Session locked' : 'Show at venue counter'}
+                    {previewCoupon.used ? ' Availed' : previewCoupon.session_locked ? 'Session locked' : 'Show at venue counter'}
                   </Text>
                 </View>
                 <Pressable onPress={() => setPreviewCoupon(null)} style={[s.closeBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }]}>
@@ -570,7 +570,7 @@ export function MyTicketsView() {
                 ) : previewCoupon.used ? (
                   <View style={s.usedBox}>
                     <CheckCircle size={40} color="#10B981" />
-                    <Text style={s.usedTitle}>Pass Availed ✓</Text>
+                    <Text style={s.usedTitle}>Pass Availed </Text>
                     {previewCoupon.used_at && (
                       <Text style={[s.usedAt, { color: isDark ? SC.muted : '#64748B' }]}>
                         {new Date(previewCoupon.used_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}

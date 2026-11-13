@@ -1236,7 +1236,7 @@ export function SessionsView({ demoMode = false, setDemoMode }: { demoMode?: boo
                   
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                     {savedAt && (
-                      <Text style={s.saveSuccessText}>✓ Saved at {savedAt}</Text>
+                      <Text style={s.saveSuccessText}> Saved at {savedAt}</Text>
                     )}
                     
                     <Pressable 

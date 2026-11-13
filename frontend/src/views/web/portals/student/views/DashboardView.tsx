@@ -11,7 +11,7 @@
  *  - Opportunities 12-Column Bento Grid:
  *    • Career Readiness (36% Builder circular SVG ring + ETA ~18 weeks + Continue now)
  *    • Today's Focus · Agent K (interactive checklist with checkmark animations)
- *    • Skill Streak (0 days 🔥 + 7 week day pills)
+ *    • Skill Streak (0 days  + 7 week day pills)
  *    • Next 1:1 Session (Rahul Sharma Senior SDE @ Google with live countdown timer)
  *    • Applications Breakdown (Saved / Applied / Interviews progress bars)
  *    • Top Matches For You (Boulevard, Demandbase, Jobber with match percentage bars & Apply action)
@@ -436,7 +436,7 @@ export function DashboardView() {
                 gap: '8px'
               }}
             >
-              <span>💬</span> WhatsApp Community
+              <span></span> WhatsApp Community
             </a>
 
             <a
@@ -457,7 +457,7 @@ export function DashboardView() {
                 gap: '8px'
               }}
             >
-              <span>📸</span> Instagram (@studentalumni.ai)
+              <span></span> Instagram (@studentalumni.ai)
             </a>
 
             <a
@@ -478,7 +478,7 @@ export function DashboardView() {
                 gap: '8px'
               }}
             >
-              <span>💼</span> LinkedIn Page
+              <span></span> LinkedIn Page
             </a>
           </div>
         </div>
@@ -501,7 +501,7 @@ export function DashboardView() {
         >
           <div>
             <div style={{ fontSize: '15px', fontWeight: 700, color: C.textPrimary, marginBottom: '4px' }}>
-              🎫 Browse Marketplace & Partner Coupons
+               Browse Marketplace & Partner Coupons
             </div>
             <div style={{ fontSize: '13px', color: C.textSecondary }}>
               Find discount codes for food, beverages, partners, and more — all in your wallet.
@@ -641,7 +641,7 @@ export function DashboardView() {
                 <div style={{ fontSize: '22px', fontWeight: 700, letterSpacing: '-.6px', color: C.textPrimary }}>Builder</div>
                 <div style={{ fontSize: '13px', color: C.textSecondary, marginTop: '3px' }}> Industry Ready</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '12px', fontSize: '12px', fontWeight: 600, color: isDark ? '#34D399' : '#059669', background: isDark ? 'rgba(16, 185, 129, 0.13)' : 'rgba(16, 185, 129, 0.10)', borderRadius: '7px', padding: '5px 9px' }}>
-                  ↗ +8% this week
+                   +8% this week
                 </div>
               </div>
             </div>
@@ -751,7 +751,7 @@ export function DashboardView() {
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px' }}>
               <span style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px', color: C.textPrimary }}>{skillStreak}</span>
               <span style={{ fontSize: '14px', color: C.textSecondary }}>days</span>
-              <span style={{ fontSize: '20px', marginLeft: 'auto', animation: 'db-flame 2.2s ease-in-out infinite', display: 'inline-block' }}>🔥</span>
+              <span style={{ fontSize: '20px', marginLeft: 'auto', animation: 'db-flame 2.2s ease-in-out infinite', display: 'inline-block' }}></span>
             </div>
             <div style={{ display: 'flex', gap: '5px', marginTop: '16px' }}>
               {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => (
@@ -1016,9 +1016,9 @@ export function DashboardView() {
               explore at a Top Company in your field
             </div>
             <div style={{ display: 'flex', gap: '22px', flexWrap: 'wrap', fontSize: '13.5px', color: C.textSecondary, marginBottom: '26px' }}>
-              <span>✦ Level: <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>Builder</strong></span>
-              <span>✦ Target: <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>Industry Ready</strong></span>
-              <span>✦ ETA: <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>~18 Weeks</strong></span>
+              <span> Level: <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>Builder</strong></span>
+              <span> Target: <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>Industry Ready</strong></span>
+              <span> ETA: <strong style={{ color: isDark ? '#A78BFA' : '#7C5CFC', fontWeight: 600 }}>~18 Weeks</strong></span>
             </div>
           </div>
 
@@ -1150,7 +1150,7 @@ export function DashboardView() {
                   }}
                   style={{ fontSize: '12px', fontWeight: 700, color: isDark ? '#A78BFA' : '#7C5CFC', cursor: 'pointer', background: isDark ? 'rgba(124,92,252,0.18)' : 'rgba(124,92,252,0.12)', borderRadius: '6px', padding: '6px 12px' }}
                 >
-                  {copiedCoupon === 'SA-CAREER-PRO' ? 'COPIED ✓' : 'COPY'}
+                  {copiedCoupon === 'SA-CAREER-PRO' ? 'COPIED ' : 'COPY'}
                 </span>
               </div>
             </div>
@@ -1183,7 +1183,7 @@ export function DashboardView() {
                   }}
                   style={{ fontSize: '12px', fontWeight: 700, color: isDark ? '#34D399' : '#059669', cursor: 'pointer', background: isDark ? 'rgba(52,211,153,0.18)' : 'rgba(52,211,153,0.12)', borderRadius: '6px', padding: '6px 12px' }}
                 >
-                  {copiedCoupon === 'ECHO-VIP-500' ? 'COPIED ✓' : 'COPY'}
+                  {copiedCoupon === 'ECHO-VIP-500' ? 'COPIED ' : 'COPY'}
                 </span>
               </div>
             </div>
@@ -1216,7 +1216,7 @@ export function DashboardView() {
                   }}
                   style={{ fontSize: '12px', fontWeight: 700, color: isDark ? '#F59E0B' : '#D97706', cursor: 'pointer', background: isDark ? 'rgba(245,179,66,0.18)' : 'rgba(245,179,66,0.12)', borderRadius: '6px', padding: '6px 12px' }}
                 >
-                  {copiedCoupon === 'MENTOR-100-FREE' ? 'COPIED ✓' : 'COPY'}
+                  {copiedCoupon === 'MENTOR-100-FREE' ? 'COPIED ' : 'COPY'}
                 </span>
               </div>
             </div>
@@ -1249,7 +1249,7 @@ export function DashboardView() {
                   }}
                   style={{ fontSize: '12px', fontWeight: 700, color: isDark ? '#A78BFA' : '#7C5CFC', cursor: 'pointer', background: isDark ? 'rgba(124,92,252,0.18)' : 'rgba(124,92,252,0.12)', borderRadius: '6px', padding: '6px 12px' }}
                 >
-                  {copiedCoupon === 'AWS-CLOUD-1000' ? 'COPIED ✓' : 'COPY'}
+                  {copiedCoupon === 'AWS-CLOUD-1000' ? 'COPIED ' : 'COPY'}
                 </span>
               </div>
             </div>
@@ -1282,7 +1282,7 @@ export function DashboardView() {
                   }}
                   style={{ fontSize: '12px', fontWeight: 700, color: isDark ? '#34D399' : '#059669', cursor: 'pointer', background: isDark ? 'rgba(52,211,153,0.18)' : 'rgba(52,211,153,0.12)', borderRadius: '6px', padding: '6px 12px' }}
                 >
-                  {copiedCoupon === 'CARE-CHECKUP-FREE' ? 'COPIED ✓' : 'COPY'}
+                  {copiedCoupon === 'CARE-CHECKUP-FREE' ? 'COPIED ' : 'COPY'}
                 </span>
               </div>
             </div>

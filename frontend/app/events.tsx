@@ -337,7 +337,7 @@ export default function EventsScreen() {
         it.event_id === ev.event_id ? { ...it, is_saved: r.action === 'saved' } : it
       );
       setFeatured(upd); setMore(upd); setAiRecs(upd); setSavedItems(upd);
-      showToast(r.action === 'saved' ? '✓ Saved to your list' : 'Removed from saved');
+      showToast(r.action === 'saved' ? ' Saved to your list' : 'Removed from saved');
       if (r.action === 'unsaved' && tab === 'saved') loadSaved();
     } catch (err) { handleAuthErr(err); }
   };
@@ -424,7 +424,7 @@ export default function EventsScreen() {
   const handleApprove = async (ev: EventItem) => {
     try {
       await request<any>(`/admin/events/${ev.event_id}/approve`, { method: 'POST' });
-      showToast('✓ Event approved & published');
+      showToast(' Event approved & published');
       loadPending();
       load();
     } catch (e: any) { showToast(e?.message || 'Approve failed'); }
@@ -435,7 +435,7 @@ export default function EventsScreen() {
       await request<any>(`/admin/events/${ev.event_id}/reject`, {
         method: 'POST', body: { reason: 'Rejected by admin' },
       });
-      showToast('✗ Event rejected');
+      showToast(' Event rejected');
       loadPending();
     } catch (e: any) { showToast(e?.message || 'Reject failed'); }
   };
@@ -446,7 +446,7 @@ export default function EventsScreen() {
       if (r.needs_approval) {
         showToast('Submitted for admin approval');
       } else {
-        showToast('✓ Event published successfully!');
+        showToast(' Event published successfully!');
       }
       setShowHostModal(false);
       loadHosted();
@@ -584,7 +584,6 @@ export default function EventsScreen() {
                 onPress={() => setScope('india')}
                 style={[s.scopeBtn, scope === 'india' && s.scopeBtnActive]}
               >
-                <Text style={s.scopeFlag}>🇮🇳</Text>
                 <Text style={[s.scopeText, scope === 'india' && { color: '#fff' }]}>India</Text>
               </Pressable>
               <Pressable
@@ -681,7 +680,7 @@ export default function EventsScreen() {
               <Text style={s.sectionTitle}>
                 {tab === 'saved' ? 'Saved Events' :
                  tab === 'registered' ? 'My Registrations' :
-                 aiOn ? '✨ AI Best Events for You' : 'More Events'}
+                 aiOn ? ' AI Best Events for You' : 'More Events'}
               </Text>
               <Text style={s.sectionSub}>{listToShow.length} {listToShow.length === 1 ? 'event' : 'events'}</Text>
             </View>
@@ -923,7 +922,7 @@ function EventCard({
         <Text style={s.cardTitle} numberOfLines={2}>{ev.title}</Text>
         {ev.match_score !== undefined && (
           <View style={s.matchPill}>
-            <Text style={s.matchPillText}>★ {ev.match_score}% match</Text>
+            <Text style={s.matchPillText}> {ev.match_score}% match</Text>
           </View>
         )}
         <View style={s.metaRow}>

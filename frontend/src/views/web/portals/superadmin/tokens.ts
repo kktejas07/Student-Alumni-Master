@@ -32,6 +32,7 @@ export const DARK_SAC = {
   tintStrong:'rgba(124,92,252,.18)',
   onTint:    '#F4F4FA',
   onAccent:  '#0C0C14',
+  accentText:'#FFFFFF',
 
   // Event accents
   ev1: '#A78BFA', ev2: '#34D399', ev3: '#F1B8D9', ev4: '#F59E0B', ev5: '#6FD6FF',
@@ -117,6 +118,7 @@ export const LIGHT_SAC = {
   tintStrong:'rgba(106,79,224,.14)',
   onTint:    '#3B2FA8',
   onAccent:  '#FFFFFF',
+  accentText:'#FFFFFF',
 
   // Event accents
   ev1: '#5B4FE9', ev2: '#047857', ev3: '#A21C63', ev4: '#B45309', ev5: '#0E6E8C',
@@ -192,20 +194,88 @@ export function useSAC() {
 /** Widened type so resolveColors accepts both DARK_SAC and LIGHT_SAC. */
 export type SACTokens = { [K in keyof typeof DARK_SAC]: string };
 
+const originalStyleSheets = new WeakMap<object, Record<string, any>>();
+
 /**
  * resolveColors — takes a module-scope StyleSheet (with dark SAC colors baked in)
  * and returns a new StyleSheet where those dark colors are swapped for the
  * current theme's colors. Uses a reverse-lookup map for O(1) resolution.
  */
 export function resolveColors<T extends Record<string, any>>(sheet: T, tokens: SACTokens): T {
+  let original = originalStyleSheets.get(sheet);
+  if (!original) {
+    original = Object.fromEntries(
+      Object.entries(sheet).map(([key, style]) => [
+        key,
+        style && typeof style === 'object' ? { ...style } : style,
+      ]),
+    );
+    originalStyleSheets.set(sheet, original);
+  }
+
   const darkToToken: Record<string, string> = {};
   for (const [key, val] of Object.entries(DARK_SAC)) {
     darkToToken[val as string] = tokens[key as keyof typeof tokens] as string;
   }
 
+  const isLight = tokens.text === LIGHT_SAC.text;
+  const legacySurfaceColors: Record<string, string> = {
+    '#0f172a': tokens.panel,
+    'rgba(15, 23, 42, 0.75)': tokens.panel,
+    'rgba(15, 23, 42, 0.8)': tokens.panel,
+    'rgba(15, 23, 42, 0.85)': tokens.panel,
+    'rgba(30, 41, 59, 0.3)': tokens.panel2,
+    'rgba(30, 41, 59, 0.4)': tokens.panel2,
+    'rgba(30, 41, 59, 0.5)': tokens.panel2,
+    'rgba(30, 41, 59, 0.6)': tokens.panel2,
+    'rgba(30, 41, 59, 0.7)': tokens.panel2,
+    'rgba(30, 41, 59, 0.8)': tokens.panel2,
+    'rgba(30, 27, 75, 0.5)': tokens.tint,
+    'rgba(255, 255, 255, 0.02)': tokens.panel2,
+    'rgba(255, 255, 255, 0.03)': tokens.panel2,
+    'rgba(255, 255, 255, 0.04)': tokens.panel2,
+    'rgba(255, 255, 255, 0.05)': tokens.panel2,
+    'rgba(255, 255, 255, 0.06)': tokens.panel2,
+    'rgba(255, 255, 255, 0.08)': tokens.panel2,
+  };
+  const legacyTextColors: Record<string, string> = {
+    '#94a3b8': tokens.muted,
+    '#64748b': tokens.dim,
+    '#cbd5e1': tokens.text,
+    '#e2e8f0': tokens.text,
+    '#f1f5f9': tokens.text,
+    '#93c5fd': tokens.violet,
+    '#a78bfa': tokens.violet,
+    '#c4b5fd': tokens.violet,
+    '#10b981': tokens.ok,
+    '#34d399': tokens.ok,
+    '#fca5a5': tokens.danger,
+    '#f87171': tokens.danger,
+    '#fbbf24': tokens.amber,
+    '#38bdf8': tokens.sky,
+  };
+  const legacyBorderColors: Record<string, string> = {
+    'rgba(148, 163, 184, 0.1)': tokens.line,
+    'rgba(148, 163, 184, 0.12)': tokens.line,
+    'rgba(148, 163, 184, 0.15)': tokens.line,
+    'rgba(148, 163, 184, 0.18)': tokens.line,
+    'rgba(148, 163, 184, 0.2)': tokens.line,
+    'rgba(255, 255, 255, 0.04)': tokens.line,
+    'rgba(255, 255, 255, 0.05)': tokens.line,
+    'rgba(255, 255, 255, 0.06)': tokens.line,
+  };
+  const normalizeColorMap = (colors: Record<string, string>) =>
+    Object.fromEntries(Object.entries(colors).map(([color, replacement]) => [
+      color.replace(/\s/g, ''),
+      replacement,
+    ]));
+  const normalizedSurfaces = normalizeColorMap(legacySurfaceColors);
+  const normalizedText = normalizeColorMap(legacyTextColors);
+  const normalizedBorders = normalizeColorMap(legacyBorderColors);
+
   const result = {} as any;
-  for (const key of Object.keys(sheet)) {
-    const style = (sheet as any)[key];
+  for (const key of Object.keys(original)) {
+    const style = original[key];
     if (!style || typeof style !== 'object') {
       result[key] = style;
       continue;
@@ -213,7 +283,17 @@ export function resolveColors<T extends Record<string, any>>(sheet: T, tokens: S
     const resolved: Record<string, any> = {};
     for (const prop of Object.keys(style)) {
       const val = style[prop];
-      resolved[prop] = darkToToken[val as string] ?? val;
+      const key = typeof val === 'string' ? val.toLowerCase().replace(/\s/g, '') : '';
+      const property = prop.toLowerCase();
+      if (isLight && property.includes('border') && normalizedBorders[key]) {
+        resolved[prop] = normalizedBorders[key];
+      } else if (isLight && (property === 'color' || property === 'placeholdertextcolor') && normalizedText[key]) {
+        resolved[prop] = normalizedText[key];
+      } else if (isLight && property.includes('background') && normalizedSurfaces[key]) {
+        resolved[prop] = normalizedSurfaces[key];
+      } else {
+        resolved[prop] = darkToToken[val as string] ?? val;
+      }
     }
     result[key] = resolved;
   }

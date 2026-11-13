@@ -360,16 +360,23 @@ async def _send_via_gmail(
         return False
 
 
-def render_html_email(content_html: str) -> str:
+def render_html_email(content_html: str, theme: str = "light") -> str:
     """Wrap a content fragment in a clean, professional email shell."""
+    is_dark = theme == "dark"
+    outer_bg = "#020617" if is_dark else "#f3f4f6"
+    card_bg = "#0f172a" if is_dark else "#ffffff"
+    card_border = "#1e293b" if is_dark else "#e5e7eb"
+    text_color = "#f8fafc" if is_dark else "#111827"
+    muted_color = "#94a3b8" if is_dark else "#9ca3af"
+    footer_color = "#cbd5e1" if is_dark else "#6b7280"
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 </head>
-<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;padding:32px 0;">
+<body style="margin:0;padding:0;background-color:{outer_bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:{outer_bg};padding:32px 0;">
     <tr>
       <td align="center">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
@@ -383,10 +390,10 @@ def render_html_email(content_html: str) -> str:
           </tr>
           <!-- Body -->
           <tr>
-            <td style="background-color:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;">
+            <td style="background-color:{card_bg};border-radius:16px;overflow:hidden;border:1px solid {card_border};">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="padding:36px 36px 32px;color:#111827;font-size:15px;line-height:1.6;">
+                  <td style="padding:36px 36px 32px;color:{text_color};font-size:15px;line-height:1.6;">
                     {content_html}
                   </td>
                 </tr>
@@ -396,10 +403,10 @@ def render_html_email(content_html: str) -> str:
           <!-- Footer -->
           <tr>
             <td style="padding:20px 0 0 0;text-align:center;">
-              <p style="margin:0 0 6px 0;color:#9ca3af;font-size:12px;line-height:1.6;">
-                This is an automated confirmation from <strong style="color:#6b7280;">Student Alumni</strong>.
+              <p style="margin:0 0 6px 0;color:{muted_color};font-size:12px;line-height:1.6;">
+                This is an automated confirmation from <strong style="color:{footer_color};">Student Alumni</strong>.
               </p>
-              <p style="margin:0;color:#d1d5db;font-size:11px;">
+              <p style="margin:0;color:{muted_color};font-size:11px;">
                 Questions? Reply to this email or visit <a href="https://studentalumni.ai" style="color:#7c3aed;text-decoration:none;">studentalumni.ai</a>
               </p>
             </td>

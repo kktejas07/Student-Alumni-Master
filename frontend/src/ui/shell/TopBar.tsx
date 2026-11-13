@@ -32,7 +32,7 @@ export function useUnreadCount(enabled = true, intervalMs = 20000) {
   useEffect(() => {
     if (!enabled || !user) return;
     let on = true;
-    const tick = () => api.notifications().then((r: any) => { if (on) setUnread(r?.unread || 0); }).catch(() => {});
+    const tick = () => api.notifications().then((r: any) => { if (on) setUnread(r?.unread || 0); }).catch(() => { });
     tick();
     const id = setInterval(tick, intervalMs);
     return () => { on = false; clearInterval(id); };
@@ -62,8 +62,8 @@ function ToolbarTooltip({ label, children }: { label: string; children: React.Re
     onMouseEnter?: () => void;
     onMouseLeave?: () => void;
   } = Platform.OS === 'web'
-    ? { onMouseEnter: () => setVisible(true), onMouseLeave: () => setVisible(false) }
-    : {};
+      ? { onMouseEnter: () => setVisible(true), onMouseLeave: () => setVisible(false) }
+      : {};
 
   return (
     <View
@@ -123,7 +123,7 @@ export function TopBar({
   const badge = unread ?? polled;
   const [menu, setMenu] = useState(false);
   const [localQ, setLocalQ] = useState('');
-  const q = search ?? { value: localQ, onChange: setLocalQ, onSubmit: () => {} };
+  const q = search ?? { value: localQ, onChange: setLocalQ, onSubmit: () => { } };
 
   const profile = profileOverride || config.profile(user);
   const photo = photoOverride || profile.photo || user?.photo_data || user?.face_image_base64;
@@ -138,8 +138,10 @@ export function TopBar({
   return (
     <View
       style={[
-        { height: h, paddingHorizontal: bp.isPhone ? SPACE.base : SPACE.lg, flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
-          borderBottomWidth: 1, borderBottomColor: scrolled ? t.border : 'transparent', backgroundColor: scrolled ? t.chrome : 'transparent', zIndex: 20 },
+        {
+          height: h, paddingHorizontal: bp.isPhone ? SPACE.base : SPACE.lg, flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
+          borderBottomWidth: 1, borderBottomColor: scrolled ? t.border : 'transparent', backgroundColor: scrolled ? t.chrome : 'transparent', zIndex: 20
+        },
         web({ position: 'sticky', top: 0, backdropFilter: scrolled ? 'blur(18px) saturate(160%)' : undefined, WebkitBackdropFilter: scrolled ? 'blur(18px) saturate(160%)' : undefined, transition: 'background-color 180ms ease' }),
       ]}
     >
@@ -157,7 +159,6 @@ export function TopBar({
           </Text>
         )}
       </FadeInView>
-
       {showSearch && (
         <FadeInView delay={100}>
           <SearchField

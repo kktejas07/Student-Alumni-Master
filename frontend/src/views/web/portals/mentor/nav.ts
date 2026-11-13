@@ -25,7 +25,6 @@ export const PAGE_TITLES: Record<NavId, string> = Object.fromEntries(NAV.map((n)
 
 export const MENTOR_PORTAL: PortalConfig = {
   portal: 'mentor',
-  darkOnly: true, // views still hardcode dark colours; see src/ui/theme.ts
   base: 'mentor-portal',
   defaultTab: 'dashboard',
   brand: { title: 'Mentor Portal', subtitle: 'Student Alumni' },

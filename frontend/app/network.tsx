@@ -632,7 +632,7 @@ export default function NetworkScreen() {
                 person={selectedPerson}
                 onClose={() => setSelectedPerson(null)}
                 onConnect={() => { handleConnect(selectedPerson); setSelectedPerson(null); }}
-                onChat={() => showToast('Direct messages coming soon ✨')}
+                onChat={() => showToast('Direct messages coming soon ')}
               />
             )}
           </Pressable>

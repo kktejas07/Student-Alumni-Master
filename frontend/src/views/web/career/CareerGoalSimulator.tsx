@@ -75,7 +75,7 @@ export const CareerGoalSimulator = memo(function CareerGoalSimulator({
       setSimResult(result);
       setDirty(false);
     } catch (err: any) {
-      // ✅ No longer silent — shows a toast on failure
+      //  No longer silent — shows a toast on failure
       toastRef.current.error('Simulation Failed', err?.message || 'Could not calculate projected score. Please try again.');
       setSimResult(null);
     } finally {

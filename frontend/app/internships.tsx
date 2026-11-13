@@ -305,31 +305,31 @@ export default function JobsInternshipsScreen() {
                   </View>
 
                   <View style={styles.metaRow}>
-                    <View style={styles.metaChip}>
+                    <View style={styles.metaPill}>
                       <MapPin size={11} color="rgba(255,255,255,0.55)" />
-                      <Text style={styles.metaChipText}>{c.location || 'Remote'}</Text>
+                      <Text style={styles.metaText}>{c.location || 'Remote'}</Text>
                     </View>
-                    <View style={styles.metaChip}>
+                    <View style={styles.metaPill}>
                       <Clock size={11} color="rgba(255,255,255,0.55)" />
-                      <Text style={styles.metaChipText}>{c.work_mode}</Text>
+                      <Text style={styles.metaText}>{c.work_mode}</Text>
                     </View>
                     {c.salary_range && (
-                      <View style={[styles.metaChip, { borderColor: 'rgba(16,185,129,0.35)', backgroundColor: 'rgba(16,185,129,0.12)' }]}>
-                        <Text style={[styles.metaChipText, { color: '#10B981', fontWeight: '700' }]}>{c.salary_range}</Text>
+                      <View style={[styles.metaPill, { borderColor: 'rgba(16,185,129,0.35)', backgroundColor: 'rgba(16,185,129,0.12)' }]}>
+                        <Text style={[styles.metaText, { color: '#10B981', fontWeight: '700' }]}>{c.salary_range}</Text>
                       </View>
                     )}
                   </View>
 
                   {c.description && (
-                    <Text style={styles.desc} numberOfLines={2}>{c.description}</Text>
+                    <Text style={styles.cardDesc} numberOfLines={2}>{c.description}</Text>
                   )}
 
-                  <View style={styles.actionRow}>
+                  <View style={styles.cardFooter}>
                     <Pressable
                       onPress={() => router.push(`/careers?openingId=${c.id || c._id}` as any)}
                       style={[styles.applyBtn, { backgroundColor: '#7C5CFC', flex: 1 }]}
                     >
-                      <Text style={styles.applyBtnText}>Apply on Careers Portal</Text>
+                      <Text style={styles.applyText}>Apply on Careers Portal</Text>
                       <ExternalLink size={12} color="#fff" />
                     </Pressable>
                   </View>

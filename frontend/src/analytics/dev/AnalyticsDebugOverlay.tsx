@@ -187,7 +187,7 @@ export const AnalyticsDebugOverlay: React.FC = () => {
                   marginLeft: 4,
                 }}
               >
-                ✕
+                
               </button>
             </div>
           </div>

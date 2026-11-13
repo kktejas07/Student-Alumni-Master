@@ -24,6 +24,7 @@ import {
 } from '../applekit';
 import { api } from '@/src/models/services/api';
 import { useConfirm } from '@/src/views/components';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 type Row = {
   email?: string;
@@ -66,6 +67,7 @@ function kindColor(kind?: string): string {
 }
 
 export function EmailQualityView() {
+  const { isDark } = useTheme();
   const T = useSAC();
   Object.assign(st, resolveColors(st, T));
   const { toast, flash, hide } = useToast();
@@ -343,15 +345,15 @@ export function EmailQualityView() {
         <View style={{ gap: 12 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <IconBox size={32}><ShieldOff size={16} color={GRAD.to} /></IconBox>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>Automatic Quality Filters</Text>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: T.text }}>Automatic Quality Filters</Text>
           </View>
-          <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: SAC.muted, lineHeight: 20 }}>
+          <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: T.muted, lineHeight: 20 }}>
             The backend is permanently enforcing the following strict email checks before any email reaches Postal. These cannot be disabled:
           </Text>
           <View style={{ paddingLeft: 10, gap: 6 }}>
-            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: SAC.text }}>✓ <strong style={{ color: '#DDD6FE' }}>Disposable Domains:</strong> Automatically blocked via GitHub daily updates (e.g. Yopmail, Mailinator, etc.)</Text>
-            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: SAC.text }}>✓ <strong style={{ color: '#DDD6FE' }}>Junk Catchers:</strong> Known test addresses are dropped (e.g. test@gmail.com, asdf@...)</Text>
-            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: SAC.text }}>✓ <strong style={{ color: '#DDD6FE' }}>Duplicates:</strong> Pre-filtered at the form submission level (one registration per email).</Text>
+            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: T.text }}> <strong style={{ color: isDark ? '#ddd6fe' : '#5b21b6' }}>Disposable Domains:</strong> Automatically blocked via GitHub daily updates (e.g. Yopmail, Mailinator, etc.)</Text>
+            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: T.text }}> <strong style={{ color: isDark ? '#ddd6fe' : '#5b21b6' }}>Junk Catchers:</strong> Known test addresses are dropped (e.g. test@gmail.com, asdf@...)</Text>
+            <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: T.text }}> <strong style={{ color: isDark ? '#ddd6fe' : '#5b21b6' }}>Duplicates:</strong> Pre-filtered at the form submission level (one registration per email).</Text>
           </View>
         </View>
       </Card>
@@ -637,7 +639,7 @@ const st = StyleSheet.create({
   statLabel: { fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginTop: 2 },
   
   // Health bar
-  healthBar: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.1)', marginTop: 12, overflow: 'hidden' },
+  healthBar: { height: 8, borderRadius: 4, backgroundColor: SAC.border, marginTop: 12, overflow: 'hidden' },
   healthBarFill: { height: '100%', borderRadius: 4 },
   healthLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
   healthLabel: { fontFamily: FONTS.med, fontSize: 11, color: SAC.muted },
@@ -646,14 +648,14 @@ const st = StyleSheet.create({
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' },
   searchGo: {
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
-    borderWidth: 1, borderColor: SAC.border, backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
   },
   
   // List rows
   listRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    padding: 10, borderRadius: 8, backgroundColor: SAC.cardSolid,
+    borderWidth: 1, borderColor: SAC.border,
   },
   rowIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   emailText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
@@ -663,7 +665,7 @@ const st = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8,
     borderWidth: 1, borderColor: 'rgba(110,231,183,0.35)',
   },
-  restoreText: { color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 12 },
+  restoreText: { color: SAC.green, fontFamily: FONTS.bold, fontSize: 12 },
   
   // Selection & Restore
   listRowSelected: { backgroundColor: 'rgba(124,58,237,0.08)', borderColor: 'rgba(167,139,250,0.3)' },
@@ -672,31 +674,31 @@ const st = StyleSheet.create({
   restoreAllBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
-    borderWidth: 1, borderColor: 'rgba(110,231,183,0.35)', backgroundColor: 'rgba(110,231,183,0.1)',
+    borderWidth: 1, borderColor: SAC.green, backgroundColor: 'rgba(16,185,129,0.10)',
   },
-  restoreAllText: { color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 11 },
+  restoreAllText: { color: SAC.green, fontFamily: FONTS.bold, fontSize: 11 },
   restoreAllBtnDanger: {
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
     borderWidth: 1, borderColor: 'rgba(239,68,68,0.35)', backgroundColor: 'rgba(239,68,68,0.1)',
   },
-  restoreAllTextDanger: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 11 },
+  restoreAllTextDanger: { color: SAC.red, fontFamily: FONTS.bold, fontSize: 11 },
 
   // Audit
-  auditScoreRow: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)' },
+  auditScoreRow: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, backgroundColor: SAC.cardSolid },
   auditScoreCircle: { width: 64, height: 64, borderRadius: 32, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
   auditScoreValue: { fontFamily: FONTS.xbold, fontSize: 18 },
   auditScoreLabel: { fontFamily: FONTS.bold, fontSize: 14, color: SAC.text },
   auditStatsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   auditStatItem: {
     flex: 1, minWidth: 80, flexDirection: 'row', alignItems: 'center', gap: 6,
-    padding: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    padding: 10, borderRadius: 8, backgroundColor: SAC.cardSolid,
+    borderWidth: 1, borderColor: SAC.border,
   },
   auditStatValue: { fontFamily: FONTS.bold, fontSize: 14, color: SAC.text },
   auditStatLabel: { fontFamily: FONTS.med, fontSize: 10, color: SAC.muted },
   auditIssueRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8,
-    borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.02)',
+    borderRadius: 6, backgroundColor: SAC.cardSolid,
     marginBottom: 4,
   },
   issueBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },

@@ -79,7 +79,6 @@ export default function TrackDetail() {
       title="Career Track"
       subtitle={track ? `${track.title} · ${track.duration_weeks}-week roadmap`
                        : 'Loading career track…'}
-      heroEmoji="🚀"
       accent={track?.color || '#2563EB'}
       rightSlot={
         <Pressable onPress={() => router.push('/courses' as any)}
@@ -106,7 +105,6 @@ export default function TrackDetail() {
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill} />
             <View style={s.heroBlur} />
-            <Text style={s.heroEmoji}>🎁</Text>
             <Text style={s.heroTitle}>{track.title}</Text>
             <Text style={s.heroSub}>
               {track.duration_weeks} weeks · {track.weekly_commitment} · {totalCourses} curated courses · {track.enrolled_count.toLocaleString('en-IN')} enrolled
@@ -164,7 +162,7 @@ export default function TrackDetail() {
                   <Text style={s.dualCardLabel}>Certificates earned</Text>
                 </View>
                 {track.certificates.map((c, i) => (
-                  <Text key={i} style={s.dualItem}>✨ {c}</Text>
+                  <Text key={i} style={s.dualItem}> {c}</Text>
                 ))}
               </View>
             </View>
@@ -207,13 +205,13 @@ export default function TrackDetail() {
                         {/* Courses */}
                         {m.courses.length > 0 && (
                           <View style={{ gap: 6 }}>
-                            <Text style={s.subLabel}>📚 Courses</Text>
+                            <Text style={s.subLabel}> Courses</Text>
                             {m.courses.map((cref, i) => {
                               const c = cref.course;
                               if (!c) return null;
                               return (
                                 <View key={i} style={s.miniCourseCard}>
-                                  <Text style={{ fontSize: 22 }}>{c.thumbnail}</Text>
+                                  <MaterialCommunityIcons name="book-open-variant" size={22} color="#CBD5E1" />
                                   <View style={{ flex: 1 }}>
                                     <Text style={s.miniCourseTitle} numberOfLines={1}>
                                       {c.title}
@@ -295,7 +293,7 @@ export default function TrackDetail() {
               <Text style={s.capstoneDesc}>{track.capstone.description}</Text>
               <Text style={s.subLabel}>Deliverables</Text>
               {track.capstone.deliverables.map((d, i) => (
-                <Text key={i} style={s.dualItem}>✓ {d}</Text>
+                <Text key={i} style={s.dualItem}> {d}</Text>
               ))}
             </View>
           </Section>
@@ -352,7 +350,6 @@ const s = StyleSheet.create({
   heroBlur: { position: 'absolute', top: -50, right: -50,
     width: 220, height: 220, borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.18)' },
-  heroEmoji: { fontSize: 36 },
   heroTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
     fontSize: 26, marginTop: 8 },
   heroSub: { color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_500Medium',

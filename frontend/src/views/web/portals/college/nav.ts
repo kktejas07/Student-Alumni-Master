@@ -38,7 +38,6 @@ export const collegeNameOf = (user: any) =>
 
 export const COLLEGE_PORTAL: PortalConfig = {
   portal: 'college',
-  darkOnly: true, // views still hardcode dark colours; see src/ui/theme.ts
   base: 'college-portal',
   defaultTab: 'dashboard',
   brand: { title: 'Student Alumni', subtitle: 'College Admin' },

@@ -22,13 +22,14 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import {
   Megaphone, Plus, X, Check, RefreshCw, ImagePlus, Upload, ArrowRight, Sparkles,
 } from 'lucide-react-native';
-import { SAC, FONTS, resolveColors } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox,
 } from '../applekit';
 import { request, resolveImageUrl } from '@/src/models/services/api';
 import { PromoTone } from '@/src/views/web/components/PromoBanner';
+import { useTheme } from '@/src/theme/ThemeContext';
 import {
   crud, useThemedCrudStyles, RowActions, DeleteConfirmBar, CheckToggle, EditorModal, useWebImageInput,
 } from './shared/adminCrud';
@@ -242,12 +243,14 @@ function PromoRow({
   onToggle: () => void;
   onDelete: () => void;
 }) {
+  const { isDark } = useTheme();
+  const T = useSAC();
   const tone = TONE_PREVIEW[promo.tone] || TONE_PREVIEW.violet;
   const [confirmDel, setConfirmDel] = useState(false);
 
   return (
     <Animated.View entering={FadeIn.duration(160)}>
-      <View style={[s.row, !promo.is_active && s.rowInactive]}>
+      <View style={[s.row, !promo.is_active && { backgroundColor: isDark ? '#14141f' : '#f8fafc' }]}>
         {/* Tone stripe */}
         <LinearGradient
           colors={[tone.from, tone.to]}
@@ -274,19 +277,19 @@ function PromoRow({
           <View style={s.titleRow}>
             {promo.badge ? (
               <View style={[s.badge, { backgroundColor: tone.from + '22', borderColor: tone.from + '55' }]}>
-                <Text style={[s.badgeText, { color: tone.from }]}>{promo.badge}</Text>
+                <Text style={[s.badgeText, { color: isDark ? tone.from : '#334155' }]}>{promo.badge}</Text>
               </View>
             ) : null}
-            <Text style={s.name} numberOfLines={1}>{promo.title}</Text>
+            <Text style={[s.name, { color: T.text }]} numberOfLines={1}>{promo.title}</Text>
           </View>
-          {!!promo.body && <Text style={s.bodyText} numberOfLines={2}>{promo.body}</Text>}
+          {!!promo.body && <Text style={[s.bodyText, { color: T.muted }]} numberOfLines={2}>{promo.body}</Text>}
           <View style={s.metaRow}>
             <View style={[s.toneChip, { backgroundColor: tone.from + '15', borderColor: tone.from + '40' }]}>
-              <Text style={[s.toneChipText, { color: tone.from }]}>{tone.label}</Text>
+              <Text style={[s.toneChipText, { color: isDark ? tone.from : '#334155' }]}>{tone.label}</Text>
             </View>
             {promo.audience.slice(0, 4).map((a) => (
-              <View key={a} style={s.audChip}>
-                <Text style={s.audChipText}>{AUDIENCE_OPTIONS.find((x) => x.id === a)?.label || a}</Text>
+              <View key={a} style={[s.audChip, { borderColor: T.border, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc' }]}>
+                <Text style={[s.audChipText, { color: T.muted }]}>{AUDIENCE_OPTIONS.find((x) => x.id === a)?.label || a}</Text>
               </View>
             ))}
             {promo.audience.length > 4 && (
@@ -333,6 +336,8 @@ function PromoEditor({
   onClose: () => void;
   onSaved: (p: Promotion, mode: 'created' | 'updated') => void;
 }) {
+  const { isDark } = useTheme();
+  const T = useSAC();
   const [form, setForm] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -410,7 +415,10 @@ function PromoEditor({
             {/* Live preview */}
             <View>
               <SectionLabel>LIVE PREVIEW</SectionLabel>
-              <View style={[s.preview, { borderColor: previewTone.from + '55' }]}>
+              <View style={[s.preview, {
+                backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                borderColor: isDark ? '#334155' : '#e2e8f0',
+              }]}>
                 <LinearGradient
                   colors={[previewTone.from, previewTone.to]}
                   start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
@@ -427,12 +435,12 @@ function PromoEditor({
                   <View style={s.titleRow}>
                     {form.badge ? (
                       <View style={[s.badge, { backgroundColor: previewTone.from + '22', borderColor: previewTone.from + '55' }]}>
-                        <Text style={[s.badgeText, { color: previewTone.from }]}>{form.badge}</Text>
+                        <Text style={[s.badgeText, { color: isDark ? previewTone.from : '#334155' }]}>{form.badge}</Text>
                       </View>
                     ) : null}
-                    <Text style={s.previewTitle}>{form.title || 'Preview title'}</Text>
+                    <Text style={[s.previewTitle, { color: T.text }]}>{form.title || 'Preview title'}</Text>
                   </View>
-                  {!!form.body && <Text style={s.previewBody}>{form.body}</Text>}
+                  {!!form.body && <Text style={[s.previewBody, { color: T.muted }]}>{form.body}</Text>}
                 </View>
                 {form.cta_label ? (
                   <LinearGradient
@@ -495,7 +503,7 @@ function PromoEditor({
                     return (
                       <Pressable key={t} onPress={() => update('tone', t)} style={[s.tonePick, active && { borderColor: tp.from, backgroundColor: tp.from + '22' }]}>
                         <LinearGradient colors={[tp.from, tp.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.toneSwatch} />
-                        <Text style={[s.tonePickText, active && { color: tp.from }]}>{tp.label}</Text>
+                        <Text style={[s.tonePickText, active && { color: isDark ? tp.from : '#334155' }]}>{tp.label}</Text>
                       </Pressable>
                     );
                   })}
@@ -534,9 +542,12 @@ function PromoEditor({
                 {AUDIENCE_OPTIONS.map((a) => {
                   const active = form.audience.includes(a.id);
                   return (
-                    <Pressable key={a.id} onPress={() => toggleAudience(a.id)} style={[s.audPick, active && s.audPickOn]}>
-                      {active && <Check size={11} color={GRAD.to} />}
-                      <Text style={[s.audPickText, active && { color: GRAD.to }]}>{a.label}</Text>
+                    <Pressable key={a.id} onPress={() => toggleAudience(a.id)} style={[
+                      s.audPick,
+                      active && { borderColor: '#4f46e5', backgroundColor: '#4f46e5' },
+                    ]}>
+                      {active && <Check size={11} color="#ffffff" />}
+                      <Text style={[s.audPickText, active && { color: '#ffffff' }]}>{a.label}</Text>
                     </Pressable>
                   );
                 })}
@@ -622,7 +633,6 @@ const s = StyleSheet.create({
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12,
     overflow: 'hidden',
   },
-  rowInactive: { opacity: 0.6 },
   stripe: { position: 'absolute' as any, left: 0, top: 0, bottom: 0, width: 4 },
   thumb: { width: 56, height: 40, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)' },
   toneIconBox: {

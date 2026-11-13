@@ -3,11 +3,10 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Switch, Platform, Modal, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import {
   Workflow, Zap, Clock, ChevronRight, Plus, Play, AlertTriangle, X, Check,
-  Trash2, Pencil, Eye, Bot, Sparkles, Database, Layers, ArrowRight, ArrowDown,
+  Trash2, Pencil, Eye, Bot, Sparkles, Database, Layers, ArrowDown,
   Settings, Sliders, Split, Send, Bell, Mail, ShieldCheck, RefreshCw, Move, Code, FileText, CheckCircle2
 } from 'lucide-react-native';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
-import { Badge } from '../atoms';
 import { GradientButton, SecondaryButton, Toast, useToast, IconBox } from '../applekit';
 import { usePortalData, postPortal, patchPortal, deletePortal } from '@/src/lib/portalApi';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -107,9 +106,46 @@ const TEMPLATE_PRESETS = [
 
 const FALLBACK = { items: [] as Wf[] };
 
+type WorkflowBadgeTone = 'indigo' | 'sky' | 'green' | 'gray';
+
+function WorkflowBadge({ label, tone, isDark }: { label: string; tone: WorkflowBadgeTone; isDark: boolean }) {
+  const palettes = {
+    indigo: {
+      light: { backgroundColor: '#eef2ff', borderColor: '#c7d2fe', color: '#4338ca' },
+      dark: { backgroundColor: 'rgba(99,102,241,0.15)', borderColor: '#4338ca', color: '#a5b4fc' },
+    },
+    sky: {
+      light: { backgroundColor: '#f0f9ff', borderColor: '#bae6fd', color: '#0369a1' },
+      dark: { backgroundColor: 'rgba(14,165,233,0.15)', borderColor: '#0369a1', color: '#7dd3fc' },
+    },
+    green: {
+      light: { backgroundColor: '#ecfdf5', borderColor: '#a7f3d0', color: '#047857' },
+      dark: { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: '#047857', color: '#6ee7b7' },
+    },
+    gray: {
+      light: { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1', color: '#475569' },
+      dark: { backgroundColor: 'rgba(255,255,255,0.07)', borderColor: 'rgba(255,255,255,0.14)', color: '#cbd5e1' },
+    },
+  };
+  const palette = palettes[tone][isDark ? 'dark' : 'light'];
+
+  return (
+    <View style={{ alignSelf: 'flex-start', borderWidth: 1, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: palette.backgroundColor, borderColor: palette.borderColor }}>
+      <Text style={{ color: palette.color, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.3 }}>{label}</Text>
+    </View>
+  );
+}
+
 export function WorkflowsView() {
   const T = useSAC();
-  Object.assign(s, resolveColors(s, T));
+  const isDark = T.text === SAC.text;
+  Object.assign(s, resolveColors(s, T), {
+    canvasContainer: {
+      ...s.canvasContainer,
+      backgroundColor: isDark ? '#0f172a' : '#f8fafc',
+      borderColor: isDark ? '#1e293b' : '#e2e8f0',
+    },
+  });
   const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/workflows', FALLBACK);
   const [viewMode, setViewMode] = useState<'canvas' | 'list'>('canvas');
   const [nodes, setNodes] = useState<GraphNode[]>(DEFAULT_GRAPH_NODES);
@@ -210,7 +246,7 @@ export function WorkflowsView() {
       await new Promise((r) => setTimeout(r, 650));
       setExecutionLogs((prev) => [
         ...prev,
-        `[${new Date().toLocaleTimeString()}] ✅ Node ${i + 1} (${curr.title}) executed successfully in ${Math.floor(Math.random() * 40 + 15)}ms`
+        `[${new Date().toLocaleTimeString()}]  Node ${i + 1} (${curr.title}) executed successfully in ${Math.floor(Math.random() * 40 + 15)}ms`
       ]);
     }
 
@@ -254,10 +290,10 @@ export function WorkflowsView() {
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text style={s.bTitle}>Visual Workflow & Agent DAG Studio</Text>
-            <Badge label="DIFY-STYLE" color="purple" />
+            <WorkflowBadge label="DIFY-STYLE" tone="indigo" isDark={isDark} />
           </View>
           <Text style={s.bSub}>
-            Build event-driven agent pipelines with visual nodes: Event Triggers ➔ RAG Knowledge ➔ LLM Reasoning ➔ Action Tools.
+            Build event-driven agent pipelines with visual nodes: Event Triggers  RAG Knowledge  LLM Reasoning  Action Tools.
           </Text>
         </View>
 
@@ -268,15 +304,15 @@ export function WorkflowsView() {
               onPress={() => setViewMode('canvas')}
               style={[s.modeBtn, viewMode === 'canvas' && s.modeBtnActive]}
             >
-              <Layers size={13} color={viewMode === 'canvas' ? '#fff' : SAC.muted} />
-              <Text style={[s.modeText, viewMode === 'canvas' && { color: SAC.text }]}>Visual Canvas</Text>
+              <Layers size={13} color={viewMode === 'canvas' ? '#fff' : T.muted} />
+              <Text style={[s.modeText, viewMode === 'canvas' && { color: '#fff' }]}>Visual Canvas</Text>
             </Pressable>
             <Pressable
               onPress={() => setViewMode('list')}
               style={[s.modeBtn, viewMode === 'list' && s.modeBtnActive]}
             >
-              <Sliders size={13} color={viewMode === 'list' ? '#fff' : SAC.muted} />
-              <Text style={[s.modeText, viewMode === 'list' && { color: SAC.text }]}>Workflows List</Text>
+              <Sliders size={13} color={viewMode === 'list' ? '#fff' : T.muted} />
+              <Text style={[s.modeText, viewMode === 'list' && { color: '#fff' }]}>Workflows List</Text>
             </Pressable>
           </View>
           <Pressable onPress={() => setCreating(true)} style={s.cta}>
@@ -296,7 +332,7 @@ export function WorkflowsView() {
               {TEMPLATE_PRESETS.map((p, idx) => (
                 <Pressable key={idx} onPress={() => loadPreset(p)} style={s.presetPill}>
                   <Sparkles size={11} color={SAC.accent} />
-                  <Text style={s.presetText}>{p.name}</Text>
+                  <Text style={[s.presetText, { color: T.text }]}>{p.name}</Text>
                 </Pressable>
               ))}
             </View>
@@ -366,16 +402,28 @@ export function WorkflowsView() {
                       <View style={{ flex: 1, minWidth: 0 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                           <Text style={s.nodeTitle}>{node.title}</Text>
-                          <Badge label={node.type.toUpperCase()} color="purple" />
+                          <WorkflowBadge
+                            label={node.type.toUpperCase()}
+                            tone={node.type === 'rag' ? 'sky' : 'indigo'}
+                            isDark={isDark}
+                          />
                         </View>
                         <Text style={s.nodeSub}>{node.subtitle}</Text>
 
                         {/* Node Config Summary */}
                         <View style={s.configRow}>
                           {Object.entries(node.config).map(([k, v]) => (
-                            <View key={k} style={s.configChip}>
-                              <Text style={s.configChipKey}>{k}:</Text>
-                              <Text style={s.configChipVal}>{String(v)}</Text>
+                            <View
+                              key={k}
+                              style={[
+                                s.configChip,
+                                node.type === 'rag'
+                                  ? { backgroundColor: isDark ? 'rgba(14,165,233,0.12)' : '#f0f9ff', borderColor: isDark ? '#0369a1' : '#bae6fd' }
+                                  : { backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : '#eef2ff', borderColor: isDark ? '#4338ca' : '#c7d2fe' },
+                              ]}
+                            >
+                              <Text style={[s.configChipKey, { color: isDark ? '#cbd5e1' : '#475569' }]}>{k}:</Text>
+                              <Text style={[s.configChipVal, { color: node.type === 'rag' ? (isDark ? '#7dd3fc' : '#0369a1') : (isDark ? '#a5b4fc' : '#4338ca') }]}>{String(v)}</Text>
                             </View>
                           ))}
                         </View>
@@ -390,8 +438,8 @@ export function WorkflowsView() {
                     {index < nodes.length - 1 && (
                       <View style={s.arrowRow}>
                         <View style={s.arrowLine} />
-                        <View style={[s.arrowHead, isExecuting && { borderColor: '#10b981' }]}>
-                          <ArrowDown size={14} color={isExecuting ? '#10b981' : SAC.accent} />
+                        <View style={[s.arrowHead, { borderColor: isDark ? '#334155' : '#cbd5e1' }]}>
+                          <ArrowDown size={14} color={T.amber} />
                         </View>
                         <View style={s.arrowLine} />
                       </View>
@@ -450,7 +498,7 @@ export function WorkflowsView() {
                     } catch {}
                   }}
                   multiline
-                  style={[s.input, { height: 80, fontFamily: FONTS.med, color: '#93c5fd' }]}
+                  style={[s.input, { height: 80, fontFamily: FONTS.med, color: T.text }]}
                 />
               </View>
             </View>
@@ -486,14 +534,14 @@ export function WorkflowsView() {
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Text numberOfLines={1} style={s.name}>{w.name}</Text>
-                    {!w.on && <Badge label="PAUSED" color="gray" />}
-                    {w.on && <Badge label="ACTIVE" color="green" />}
+                    {!w.on && <WorkflowBadge label="PAUSED" tone="gray" isDark={isDark} />}
+                    {w.on && <WorkflowBadge label="ACTIVE" tone="green" isDark={isDark} />}
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                    <Zap size={11} color={SAC.muted} />
+                    <Zap size={11} color={T.muted} />
                     <Text style={s.trigger}>{w.trigger || '—'}</Text>
                     <Text style={s.dotSep}>·</Text>
-                    <Clock size={11} color={SAC.muted} />
+                    <Clock size={11} color={T.muted} />
                     <Text style={s.trigger}>{w.steps.length} steps</Text>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
@@ -514,26 +562,26 @@ export function WorkflowsView() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                     {successPct < 100 && w.runs > 0 && <AlertTriangle size={11} color={SAC.amber} />}
                     <Text style={[s.statSuccess, {
-                      color: successPct >= 99 ? SAC.green : successPct >= 90 ? SAC.amber : w.runs === 0 ? SAC.muted : SAC.red,
+                      color: successPct >= 99 ? T.green : successPct >= 90 ? T.amber : w.runs === 0 ? T.muted : T.red,
                     }]}>
                       {w.runs === 0 ? 'Never run' : `${successPct}% success`}
                     </Text>
                   </View>
                 </View>
                 <View style={{ gap: 6, alignItems: 'center' }}>
-                  <Pressable onPress={() => setViewWf(w)} style={s.iconBtn}><Eye size={13} color={SAC.muted} /></Pressable>
-                  <Pressable onPress={() => setEditWf({ ...w })} style={s.iconBtn}><Pencil size={13} color={SAC.muted} /></Pressable>
-                  <Pressable onPress={() => setDeleteWf(w)} style={[s.iconBtn, { borderColor: SAC.red + '55' }]}><Trash2 size={13} color={SAC.red} /></Pressable>
+                  <Pressable onPress={() => setViewWf(w)} style={s.iconBtn}><Eye size={13} color={T.muted} /></Pressable>
+                  <Pressable onPress={() => setEditWf({ ...w })} style={s.iconBtn}><Pencil size={13} color={T.muted} /></Pressable>
+                  <Pressable onPress={() => setDeleteWf(w)} style={[s.iconBtn, { borderColor: T.red + '55' }]}><Trash2 size={13} color={T.red} /></Pressable>
                 </View>
                 <Switch
                   value={w.on}
                   onValueChange={() => toggle(w.id, w.on)}
-                  trackColor={{ false: 'rgba(255,255,255,0.10)', true: SAC.primary }}
-                  thumbColor={w.on ? '#fff' : '#ccc'}
+                  trackColor={{ false: isDark ? 'rgba(255,255,255,0.10)' : '#e2e8f0', true: T.primary }}
+                  thumbColor={w.on ? '#fff' : (isDark ? '#ccc' : '#64748b')}
                   {...(Platform.OS === 'web' ? ({ activeThumbColor: '#fff' } as any) : {})}
                 />
                 <Pressable onPress={() => runWorkflow(w.id)} style={s.runBtn}>
-                  <Play size={11} color={SAC.accent} /><Text style={s.runText}>Run</Text>
+                  <Play size={11} color={T.amber} /><Text style={[s.runText, { color: T.amber }]}>Run</Text>
                 </Pressable>
               </View>
             );
@@ -662,7 +710,7 @@ const s = StyleSheet.create({
   arrowHead: { width: 26, height: 26, borderRadius: 13, backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', justifyContent: 'center' },
   inspectorCard: { backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 16 },
   inspectorTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13.5 },
-  inspectorLabel: { color: '#ccc', fontFamily: FONTS.bold, fontSize: 11.5 },
+  inspectorLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
   logsCard: { backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 14, gap: 6 },
   logsTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13, marginBottom: 4 },
   logLine: { color: '#a7f3d0', fontFamily: FONTS.med, fontSize: 11.5 },

@@ -1610,7 +1610,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
         notFound || (!loading && !activeEvent) ? (
           <div className="ev-anim-in" style={{ position: 'relative', zIndex: 1, maxWidth: '800px', width: '100%', margin: '0 auto', padding: '120px 24px', textAlign: 'center' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#F87171', fontSize: '28px', marginBottom: '20px' }}>
-              ✕
+              
             </div>
             <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#FFFFFF', marginBottom: '12px' }}>Showcase Not Found</h1>
             <p style={{ fontSize: '15px', color: '#94A3B8', maxWidth: '460px', margin: '0 auto 28px', lineHeight: 1.6 }}>
@@ -2208,7 +2208,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
                   <a href="https://chat.whatsapp.com/G2kc2u0gzh68DKSjlOyCxu" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', background: 'rgba(16, 185, 129, 0.14)', border: '1px solid rgba(16, 185, 129, 0.35)', borderRadius: '14px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '24px' }}>💬</span>
+                    <span style={{ fontSize: '24px' }}></span>
                     <div>
                       <div style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF' }}>WhatsApp Community</div>
                       <div style={{ fontSize: '11.5px', color: '#34D399' }}>Instant campus &amp; event alerts</div>
@@ -2216,7 +2216,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
                   </a>
 
                   <a href="https://www.instagram.com/studentalumni.ai/" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', background: 'rgba(236, 72, 153, 0.14)', border: '1px solid rgba(236, 72, 153, 0.35)', borderRadius: '14px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '24px' }}>📸</span>
+                    <span style={{ fontSize: '24px' }}></span>
                     <div>
                       <div style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF' }}>Instagram Channel</div>
                       <div style={{ fontSize: '11.5px', color: '#F472B6' }}>@studentalumni.ai</div>
@@ -2224,7 +2224,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
                   </a>
 
                   <a href="https://linkedin.com/company/student-alumni" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', background: 'rgba(56, 189, 248, 0.14)', border: '1px solid rgba(56, 189, 248, 0.35)', borderRadius: '14px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '24px' }}>💼</span>
+                    <span style={{ fontSize: '24px' }}></span>
                     <div>
                       <div style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF' }}>LinkedIn Page</div>
                       <div style={{ fontSize: '11.5px', color: '#38BDF8' }}>Student Alumni Official</div>
@@ -2398,7 +2398,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
         notFound || (!loading && !activeEvent) ? (
           <div className="ev-anim-in" style={{ position: 'relative', zIndex: 1, maxWidth: '800px', width: '100%', margin: '0 auto', padding: '120px 24px', textAlign: 'center' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#F87171', fontSize: '28px', marginBottom: '20px' }}>
-              ✕
+              
             </div>
             <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#FFFFFF', marginBottom: '12px' }}>Showcase Not Found</h1>
             <p style={{ fontSize: '15px', color: '#94A3B8', maxWidth: '460px', margin: '0 auto 28px', lineHeight: 1.6 }}>
@@ -2543,7 +2543,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
                 </div>
               </div>
               <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '12px', color: 'var(--muted)' }}>
-                🔍 Click poster image to view full high-resolution
+                 Click poster image to view full high-resolution
               </div>
             </div>
 
@@ -2553,7 +2553,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
               {/* Temporary auto-close countdown banner */}
               {activeEvent?.registration?.temporary_open && activeEvent?.registration?.temporary_close_at ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid rgba(245,158,11,.45)', borderRadius: '14px', background: 'rgba(245,158,11,.10)', padding: '14px 18px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '20px', lineHeight: 1 }}>⏳</span>
+                  <span style={{ fontSize: '20px', lineHeight: 1 }}></span>
                   <div style={{ flex: '1 1 160px', minWidth: 0 }}>
                     <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1.1px', color: 'var(--amber,#f59e0b)' }}>REGISTRATION WINDOW OPEN</div>
                     <div style={{ fontSize: '13.5px', color: 'var(--text)', marginTop: '3px' }}>
@@ -2687,7 +2687,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
                     </div>
                     <div className="ev-field" style={{ border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(124,92,252,0.14)', border: '1px solid #3A2E72', borderRadius: '8px', padding: '6px 10px', flexShrink: 0 }}>
-                        <span style={{ fontSize: '14px' }}>🇮🇳</span>
+                        <span style={{ fontSize: '14px' }}></span>
                         <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#A78BFA' }}>+91</span>
                       </div>
                       <input
@@ -2929,7 +2929,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
                             />
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--line)', borderRadius: '8px', padding: '6px 8px', flexShrink: 0 }}>
-                                <span style={{ fontSize: '12px' }}>🇮🇳</span>
+                                <span style={{ fontSize: '12px' }}></span>
                                 <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)' }}>+91</span>
                               </div>
                               <input
@@ -3136,7 +3136,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
               }}
               style={{ background: 'rgba(255,255,255,0.1)', color: '#FFF', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '100px', padding: '10px 20px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', backdropFilter: 'blur(10px)' }}
             >
-              ✕ Close Confirmation
+               Close Confirmation
             </button>
           </div>
           <EchoTicketsConfirmationPage

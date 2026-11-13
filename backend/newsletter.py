@@ -329,10 +329,33 @@ def _filter_upcoming_events(docs: list) -> list:
     return result
 
 
-def _upcoming_events_html(events: list) -> str:
+def _upcoming_events_html(events: list, is_dark: bool = False) -> str:
     events = _filter_upcoming_events(events)
     if not events:
         return ""
+    colors = (
+        {
+            "surface": "#1e293b",
+            "border": "#334155",
+            "text": "#f8fafc",
+            "secondary": "#cbd5e1",
+            "muted": "#94a3b8",
+            "badge_bg": "rgba(124,58,237,0.2)",
+            "badge_border": "rgba(167,139,250,0.3)",
+            "badge_text": "#ddd6fe",
+        }
+        if is_dark
+        else {
+            "surface": "#ffffff",
+            "border": "#e5e7eb",
+            "text": "#111827",
+            "secondary": "#4b5563",
+            "muted": "#6b7280",
+            "badge_bg": "#f5f3ff",
+            "badge_border": "#ddd6fe",
+            "badge_text": "#7c3aed",
+        }
+    )
     cards = []
     for ev in events:
         title = ev.get("title") or ev.get("slug")
@@ -345,18 +368,18 @@ def _upcoming_events_html(events: list) -> str:
         img_html = f"<img src='{img}' alt='' style='width:100%;height:auto;max-height:220px;object-fit:cover;display:block;border-radius:12px 12px 0 0;' />" if img else ""
         fee_val = float((ev.get("registration") or {}).get("fee") or 0)
         badge = "✨ FREE ENTRY" if fee_val <= 0 else f"🎟️ ₹{fee_val:,.0f} ENTRY"
-        title_html = f"<a href='{link}' style='color:#111827;text-decoration:none;font-size:16px;font-weight:700;'>{title}</a>" if link else f"<div style='font-size:16px;font-weight:700;color:#111827;'>{title}</div>"
+        title_html = f"<a href='{link}' style='color:{colors['text']};text-decoration:none;font-size:16px;font-weight:700;'>{title}</a>" if link else f"<div style='font-size:16px;font-weight:700;color:{colors['text']};'>{title}</div>"
         cards.append(
             f"""
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;background:{colors['surface']};border:1px solid {colors['border']};border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
               <tr>
                 <td>
                   {img_html}
                   <div style="padding:16px 18px;">
-                    <div style="display:inline-block;padding:3px 8px;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:6px;font-size:11px;font-weight:700;color:#7C3AED;letter-spacing:.3px;margin-bottom:8px;">{badge}</div>
+                    <div style="display:inline-block;padding:3px 8px;background:{colors['badge_bg']};border:1px solid {colors['badge_border']};border-radius:6px;font-size:11px;font-weight:700;color:{colors['badge_text']};letter-spacing:.3px;margin-bottom:8px;">{badge}</div>
                     <div>{title_html}</div>
-                    <div style="font-size:13px;color:#4B5563;margin-top:6px;line-height:1.4;">📅 {when or 'Date TBA'}{' · 📍 ' + venue if venue else ''}</div>
-                    <div style="font-size:12px;color:#9CA3AF;margin-top:2px;">🏛️ {college}</div>
+                    <div style="font-size:13px;color:{colors['secondary']};margin-top:6px;line-height:1.4;">📅 {when or 'Date TBA'}{' · 📍 ' + venue if venue else ''}</div>
+                    <div style="font-size:12px;color:{colors['muted']};margin-top:2px;">🏛️ {college}</div>
                     {f"<div style='margin-top:12px;'><a href='{link}' style='display:inline-block;padding:8px 18px;background:#7C3AED;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:12.5px;box-shadow:0 2px 4px rgba(124,58,237,0.2);'>View Event & Register →</a></div>" if link else ""}
                   </div>
                 </td>
@@ -391,7 +414,26 @@ def build_newsletter_html(
     cta_text: str,
     cta_url: str,
     upcoming_events: list,
+    theme: str = "light",
 ) -> str:
+    is_dark = theme == "dark"
+    colors = (
+        {
+            "text": "#f8fafc",
+            "secondary": "#cbd5e1",
+            "badge_bg": "rgba(124,58,237,0.2)",
+            "badge_text": "#ddd6fe",
+            "badge_border": "rgba(167,139,250,0.3)",
+        }
+        if is_dark
+        else {
+            "text": "#111827",
+            "secondary": "#374151",
+            "badge_bg": "#f3e8ff",
+            "badge_text": "#7c3aed",
+            "badge_border": "#ddd6fe",
+        }
+    )
     # Reject blob/data URLs — they only work in the browser, not in email clients
     safe_hero = hero_image if _is_server_url(hero_image) else ""
     hero_html = (
@@ -399,17 +441,17 @@ def build_newsletter_html(
         if safe_hero else ""
     )
     intro_html = (
-        f"<p style='margin:0 0 16px 0;color:#374151;font-size:16px;line-height:1.6;font-weight:500;'>{intro}</p>" if intro else ""
+        f"<p style='margin:0 0 16px 0;color:{colors['secondary']};font-size:16px;line-height:1.6;font-weight:500;'>{intro}</p>" if intro else ""
     )
     body_html = (
-        f"<div style='margin:0 0 20px 0;color:#374151;font-size:15px;line-height:1.7;'>{body}</div>"
+        f"<div style='margin:0 0 20px 0;color:{colors['secondary']};font-size:15px;line-height:1.7;'>{body}</div>"
         if body else ""
     )
-    events_html = _upcoming_events_html(upcoming_events)
+    events_html = _upcoming_events_html(upcoming_events, is_dark)
     events_section = (
         f"""
         <div style="margin:28px 0 12px 0;">
-          <h3 style="margin:0 0 14px 0;color:#111827;font-size:18px;font-weight:700;display:flex;align-items:center;">🔥 Featured Upcoming Events</h3>
+          <h3 style="margin:0 0 14px 0;color:{colors['text']};font-size:18px;font-weight:700;display:flex;align-items:center;">🔥 Featured Upcoming Events</h3>
           {events_html}
         </div>
         """
@@ -434,8 +476,8 @@ def build_newsletter_html(
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;border-bottom:2px solid #7C3AED;padding-bottom:18px;">
       <tr>
         <td>
-          <div style="display:inline-block;padding:4px 10px;background:#F3E8FF;border-radius:20px;font-size:11px;font-weight:700;color:#7C3AED;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">COMMUNITY NEWSLETTER &nbsp;·&nbsp; {send_date}</div>
-          <h1 style="margin:4px 0 0 0;font-size:24px;font-weight:800;color:#111827;line-height:1.3;letter-spacing:-0.5px;">{subject}</h1>
+          <div style="display:inline-block;padding:4px 10px;background:{colors['badge_bg']};border:1px solid {colors['badge_border']};border-radius:20px;font-size:11px;font-weight:700;color:{colors['badge_text']};letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">COMMUNITY NEWSLETTER &nbsp;·&nbsp; {send_date}</div>
+          <h1 style="margin:4px 0 0 0;font-size:24px;font-weight:800;color:{colors['text']};line-height:1.3;letter-spacing:-0.5px;">{subject}</h1>
         </td>
       </tr>
     </table>
@@ -445,7 +487,7 @@ def build_newsletter_html(
     {events_section}
     {cta_html}
     """
-    return render_html_email(content)
+    return render_html_email(content, theme)
 
 
 class SendNewsletterSchema(BaseModel):
@@ -457,6 +499,7 @@ class SendNewsletterSchema(BaseModel):
     cta_text: Optional[str] = ""
     cta_url: Optional[str] = ""
     include_upcoming: bool = True
+    preview_theme: Optional[str] = "light"
     preview_only: bool = False
     send_email: bool = True
     send_push: bool = True
@@ -882,6 +925,7 @@ async def preview_newsletter(payload: SendNewsletterSchema, request: Request, _=
         payload.cta_text or "",
         payload.cta_url or "",
         upcoming,
+        theme=payload.preview_theme or "light",
     )
     return {"html": base_html}
 

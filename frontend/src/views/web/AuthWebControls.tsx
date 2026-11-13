@@ -191,11 +191,11 @@ export function WebSectionLabel({ children }: { children: ReactNode }) {
 
 // ─── Selectable option row (for role selection / 2fa method) ─────────────────
 export function WebOptionRow({
-  selected, onPress, emoji, title, subtitle, recommended, testID,
+  selected, onPress, icon, title, subtitle, recommended, testID,
 }: {
   selected: boolean;
   onPress: () => void;
-  emoji: string;
+  icon?: ReactNode;
   title: string;
   subtitle?: string;
   recommended?: boolean;
@@ -218,7 +218,7 @@ export function WebOptionRow({
           selected && { backgroundColor: 'rgba(37,99,235,0.28)', borderColor: 'rgba(196,181,253,0.45)' },
         ]}
       >
-        <Text style={{ fontSize: 18 }}>{emoji}</Text>
+        {icon}
       </View>
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

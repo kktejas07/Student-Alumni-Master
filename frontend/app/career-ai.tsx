@@ -13,7 +13,7 @@
  *   6. Row 2: AI Insights (Conversational Bubbles) & Goal Simulator (Sliders)
  *   7. Career Journey (Full-Width 5-Node Horizontal Stepper Roadmap)
  *   8. Row 3: Goal Simulator (action toggles) & Recruiter View (derived bars)
- *   9. Footer (© 2026 StudentAlumni · Privacy / Terms / Cookies)
+ *   9. Footer ( 2026 StudentAlumni · Privacy / Terms / Cookies)
  */
 import React, {
   useCallback, useEffect, useMemo, useState,
@@ -386,9 +386,9 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
                 {targetRole} at a {targetCo}
               </Text>
               <View style={s.heroChipsRow}>
-                <Text style={s.heroChip}>✦ Level: <Text style={s.heroChipVal}>{readinessLevel}</Text></Text>
-                <Text style={s.heroChip}>✦ Target: <Text style={s.heroChipVal}>{getLevelForScore(potentialScore)}</Text></Text>
-                <Text style={s.heroChip}>✦ ETA: <Text style={s.heroChipVal}>{estimatedWeeks}</Text></Text>
+                <Text style={s.heroChip}> Level: <Text style={s.heroChipVal}>{readinessLevel}</Text></Text>
+                <Text style={s.heroChip}> Target: <Text style={s.heroChipVal}>{getLevelForScore(potentialScore)}</Text></Text>
+                <Text style={s.heroChip}> ETA: <Text style={s.heroChipVal}>{estimatedWeeks}</Text></Text>
               </View>
             </View>
 
@@ -486,7 +486,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           style={{ flex: 1 }}
         />
         <MetricCard
-          label="SKILL STREAK 🔥"
+          label="SKILL STREAK "
           value={`${skillStreak} Days`}
           color={C.red}
           subText="Start your streak!"

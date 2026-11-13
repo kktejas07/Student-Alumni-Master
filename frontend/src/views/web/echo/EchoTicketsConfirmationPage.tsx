@@ -73,7 +73,7 @@ export function EchoTicketsConfirmationPage({
               verificationCode: fallbackCode,
               title: `Certificate of Participation — ${ticketInfo?.eventName || 'Hack Wave 3.0'}`,
               verifyUrl: fallbackUrl,
-              shareUrl: `https://wa.me/?text=${encodeURIComponent(`🎓 Check out my verified certificate for ${ticketInfo?.eventName || 'Hack Wave 3.0'} on StudentAlumni!\n\nVerify URL: ${fallbackUrl}`)}`,
+              shareUrl: `https://wa.me/?text=${encodeURIComponent(` Check out my verified certificate for ${ticketInfo?.eventName || 'Hack Wave 3.0'} on StudentAlumni!\n\nVerify URL: ${fallbackUrl}`)}`,
             });
           }
         })
@@ -85,7 +85,7 @@ export function EchoTicketsConfirmationPage({
             verificationCode: fallbackCode,
             title: `Certificate of Participation — ${ticketInfo?.eventName || 'Hack Wave 3.0'}`,
             verifyUrl: fallbackUrl,
-            shareUrl: `https://wa.me/?text=${encodeURIComponent(`🎓 Check out my verified certificate for ${ticketInfo?.eventName || 'Hack Wave 3.0'} on StudentAlumni!\n\nVerify URL: ${fallbackUrl}`)}`,
+            shareUrl: `https://wa.me/?text=${encodeURIComponent(` Check out my verified certificate for ${ticketInfo?.eventName || 'Hack Wave 3.0'} on StudentAlumni!\n\nVerify URL: ${fallbackUrl}`)}`,
           });
         });
     }
@@ -446,7 +446,7 @@ END:VCALENDAR`;
                   <div style={{ display: 'flex', gap: '9px', flexWrap: 'wrap' }}>
                     <span onClick={() => { if (onViewTicket) onViewTicket(); else router.push('/platform?role=student&tab=my-tickets'); }} className="tk-btn-hover" style={{ fontSize: '13.5px', fontWeight: 700, background: 'var(--ok)', color: '#04291D', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer' }}>View my ticket</span>
                     <span onClick={handleAddToCalendar} className="tk-btn-hover" style={{ fontSize: '13.5px', fontWeight: 600, color: addedCal ? 'var(--ok)' : 'var(--muted)', border: '1px solid var(--line2)', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer' }}>
-                      {addedCal ? 'Added to calendar ✓' : 'Add to calendar'}
+                      {addedCal ? 'Added to calendar ' : 'Add to calendar'}
                     </span>
                     <span onClick={() => addToast('Invite link copied', 'Share it with your batchmates.', 'ok')} className="tk-btn-hover" style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--muted)', border: '1px solid var(--line2)', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer' }}>Invite a friend</span>
                   </div>
@@ -479,7 +479,7 @@ END:VCALENDAR`;
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <span onClick={handleDownloadInvoice} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700, color: 'var(--ok)', cursor: 'pointer' }}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M4 19.5h16" /></svg>
-                    {invState === 'downloading' ? 'Preparing PDF...' : invState === 'ready' ? 'Downloaded ✓' : 'Download invoice'}
+                    {invState === 'downloading' ? 'Preparing PDF...' : invState === 'ready' ? 'Downloaded ' : 'Download invoice'}
                   </span>
 
                 </div>
@@ -582,7 +582,7 @@ END:VCALENDAR`;
                     </svg>
                   </span>
                   <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', background: 'rgba(124,92,252,0.25)', color: '#D8B4FE', padding: '4px 10px', borderRadius: '100px', border: '1px solid rgba(167,139,250,0.4)' }}>
-                    VERIFIED ✓
+                    VERIFIED 
                   </span>
                 </div>
                 <div style={{ fontSize: '16.5px', fontWeight: 700, letterSpacing: '-.3px', color: '#FFF' }}>
@@ -612,7 +612,7 @@ END:VCALENDAR`;
                       rel="noreferrer"
                       style={{ textDecoration: 'none', padding: '8px 14px', borderRadius: '9px', background: 'rgba(37,211,102,0.18)', color: '#25D366', border: '1px solid rgba(37,211,102,0.4)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                     >
-                      📲 Share WhatsApp
+                       Share WhatsApp
                     </a>
                   </div>
 
@@ -626,7 +626,7 @@ END:VCALENDAR`;
                     }}
                     style={{ background: 'transparent', border: '1px solid var(--line2)', borderRadius: '9px', padding: '8px 14px', color: 'var(--muted)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', width: 'fit-content' }}
                   >
-                    📋 Copy Verification Link
+                     Copy Verification Link
                   </button>
                 </div>
               </div>
@@ -1029,7 +1029,7 @@ END:VCALENDAR`;
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', border: '1px dashed #3A2E72', borderRadius: '11px', padding: '13px 14px', background: copiedCode === 'MRIT-MENTOR-40' ? 'rgba(255,255,255,.04)' : 'transparent', transition: 'all .2s ease' }}>
                     <span style={{ fontSize: '13.5px', fontWeight: 600, letterSpacing: '.8px' }}>MRIT-MENTOR-40</span>
                     <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--violet-lt)', whiteSpace: 'nowrap' }}>
-                      {copiedCode === 'MRIT-MENTOR-40' ? 'COPIED ✓' : 'COPY'}
+                      {copiedCode === 'MRIT-MENTOR-40' ? 'COPIED ' : 'COPY'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--dim)', marginTop: '12px' }}>
@@ -1067,7 +1067,7 @@ END:VCALENDAR`;
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', border: '1px dashed var(--ok-line)', borderRadius: '11px', padding: '13px 14px', background: copiedCode === 'SA-RESUME-6M' ? 'rgba(255,255,255,.04)' : 'transparent', transition: 'all .2s ease' }}>
                     <span style={{ fontSize: '13.5px', fontWeight: 600, letterSpacing: '.8px' }}>SA-RESUME-6M</span>
                     <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--ok)', whiteSpace: 'nowrap' }}>
-                      {copiedCode === 'SA-RESUME-6M' ? 'COPIED ✓' : 'COPY'}
+                      {copiedCode === 'SA-RESUME-6M' ? 'COPIED ' : 'COPY'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--dim)', marginTop: '12px' }}>
@@ -1105,7 +1105,7 @@ END:VCALENDAR`;
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', border: '1px dashed var(--warn-line)', borderRadius: '11px', padding: '13px 14px', background: copiedCode === 'SA-WORKSHOP-2X' ? 'rgba(255,255,255,.04)' : 'transparent', transition: 'all .2s ease' }}>
                     <span style={{ fontSize: '13.5px', fontWeight: 600, letterSpacing: '.8px' }}>SA-WORKSHOP-2X</span>
                     <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--warn)', whiteSpace: 'nowrap' }}>
-                      {copiedCode === 'SA-WORKSHOP-2X' ? 'COPIED ✓' : 'COPY'}
+                      {copiedCode === 'SA-WORKSHOP-2X' ? 'COPIED ' : 'COPY'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--dim)', marginTop: '12px' }}>
@@ -1162,7 +1162,7 @@ END:VCALENDAR`;
                       <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>100% Free Unlimited ATS Scans</div>
                     </div>
                     <span onClick={() => handleCopyCoupon('SA-CAREER-PRO', 'saved ₹1,499')} style={{ fontSize: '12px', fontWeight: 700, color: '#A78BFA', cursor: 'pointer', background: 'rgba(124,92,252,0.18)', borderRadius: '6px', padding: '6px 12px' }}>
-                      {copiedCode === 'SA-CAREER-PRO' ? 'COPIED ✓' : 'COPY'}
+                      {copiedCode === 'SA-CAREER-PRO' ? 'COPIED ' : 'COPY'}
                     </span>
                   </div>
                 </div>
@@ -1188,7 +1188,7 @@ END:VCALENDAR`;
                       <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>₹500 OFF Premium Pass</div>
                     </div>
                     <span onClick={() => handleCopyCoupon('ECHO-VIP-500', 'saved ₹500')} style={{ fontSize: '12px', fontWeight: 700, color: '#34D399', cursor: 'pointer', background: 'rgba(52,211,153,0.18)', borderRadius: '6px', padding: '6px 12px' }}>
-                      {copiedCode === 'ECHO-VIP-500' ? 'COPIED ✓' : 'COPY'}
+                      {copiedCode === 'ECHO-VIP-500' ? 'COPIED ' : 'COPY'}
                     </span>
                   </div>
                 </div>
@@ -1214,7 +1214,7 @@ END:VCALENDAR`;
                       <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>100% OFF First 1-on-1 Booking</div>
                     </div>
                     <span onClick={() => handleCopyCoupon('MENTOR-100-FREE', 'saved ₹1,200')} style={{ fontSize: '12px', fontWeight: 700, color: 'var(--warn)', cursor: 'pointer', background: 'var(--warn-tint)', borderRadius: '6px', padding: '6px 12px' }}>
-                      {copiedCode === 'MENTOR-100-FREE' ? 'COPIED ✓' : 'COPY'}
+                      {copiedCode === 'MENTOR-100-FREE' ? 'COPIED ' : 'COPY'}
                     </span>
                   </div>
                 </div>
@@ -1240,7 +1240,7 @@ END:VCALENDAR`;
                       <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>$1,000 AWS & Cloud Vouchers</div>
                     </div>
                     <span onClick={() => handleCopyCoupon('AWS-CLOUD-1000', 'saved $1,000 credits')} style={{ fontSize: '12px', fontWeight: 700, color: '#A78BFA', cursor: 'pointer', background: 'rgba(124,92,252,0.18)', borderRadius: '6px', padding: '6px 12px' }}>
-                      {copiedCode === 'AWS-CLOUD-1000' ? 'COPIED ✓' : 'COPY'}
+                      {copiedCode === 'AWS-CLOUD-1000' ? 'COPIED ' : 'COPY'}
                     </span>
                   </div>
                 </div>
@@ -1266,7 +1266,7 @@ END:VCALENDAR`;
                       <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>100% Covered Dental & Health Scan</div>
                     </div>
                     <span onClick={() => handleCopyCoupon('CARE-CHECKUP-FREE', 'saved ₹1,999')} style={{ fontSize: '12px', fontWeight: 700, color: '#34D399', cursor: 'pointer', background: 'rgba(52,211,153,0.18)', borderRadius: '6px', padding: '6px 12px' }}>
-                      {copiedCode === 'CARE-CHECKUP-FREE' ? 'COPIED ✓' : 'COPY'}
+                      {copiedCode === 'CARE-CHECKUP-FREE' ? 'COPIED ' : 'COPY'}
                     </span>
                   </div>
                 </div>
@@ -1294,7 +1294,7 @@ END:VCALENDAR`;
             animation: 'tk-rise 1.5s cubic-bezier(.2,.7,.3,1) both',
           }}
         >
-          saved ₹899 ✓
+          saved ₹899 
         </span>
       ))}
 
@@ -1355,7 +1355,7 @@ END:VCALENDAR`;
               onClick={() => setQrModalData(null)}
               style={{ position: 'absolute', top: 18, right: 20, width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '14px', fontWeight: 700 }}
             >
-              ✕
+              
             </span>
 
             <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.6px', color: 'var(--ok)', marginBottom: '8px' }}>GATE SCANNER PASS</div>

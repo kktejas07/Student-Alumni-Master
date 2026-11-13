@@ -1,7 +1,7 @@
 /**
  * RoleCards — 2x2 grid of role selection cards.
  * Updated to match SA Auth Flow v2 spec:
- *   - Lucide icons (was emoji)
+ *   - Lucide icons
  *   - Staggered fade-in animation (0s, 0.07s, 0.14s, 0.21s)
  *   - Box-shadow glow on icon when selected
  */
@@ -67,11 +67,11 @@ export function RoleCards({ value, onChange }: { value: Role | null; onChange: (
   );
 }
 
-export const ROLE_META: Record<Role, { label: string; emoji: string; gradient: [string, string]; Icon: LucideIcon }> = {
-  student: { label: ROLES[0].label, emoji: '', gradient: ROLES[0].gradient, Icon: ROLES[0].Icon },
-  mentor:  { label: ROLES[1].label, emoji: '', gradient: ROLES[1].gradient, Icon: ROLES[1].Icon },
-  alumni:  { label: ROLES[2].label, emoji: '', gradient: ROLES[2].gradient, Icon: ROLES[2].Icon },
-  college: { label: ROLES[3].label, emoji: '', gradient: ROLES[3].gradient, Icon: ROLES[3].Icon },
+export const ROLE_META: Record<Role, { label: string; gradient: [string, string]; Icon: LucideIcon }> = {
+  student: { label: ROLES[0].label, gradient: ROLES[0].gradient, Icon: ROLES[0].Icon },
+  mentor:  { label: ROLES[1].label, gradient: ROLES[1].gradient, Icon: ROLES[1].Icon },
+  alumni:  { label: ROLES[2].label, gradient: ROLES[2].gradient, Icon: ROLES[2].Icon },
+  college: { label: ROLES[3].label, gradient: ROLES[3].gradient, Icon: ROLES[3].Icon },
 };
 
 const s = StyleSheet.create({

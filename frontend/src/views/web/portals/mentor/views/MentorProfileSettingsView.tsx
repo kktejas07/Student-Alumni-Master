@@ -1346,7 +1346,6 @@ export function MentorProfileSettingsView({
                   <View style={st.themeSelectorRow}>
                     {(['Dark', 'Light', 'System'] as const).map((t) => {
                       const isSelected = theme === t;
-                      const emoji = t === 'Dark' ? '' : t === 'Light' ? '' : '';
                       return (
                         <Pressable
                           key={t}
@@ -1357,7 +1356,7 @@ export function MentorProfileSettingsView({
                           ]}
                         >
                           <Text style={[st.themeTabText, isSelected && { color: '#1C1C1E', fontFamily: FONTS.bold }]}>
-                            {emoji} {t}
+                            {t}
                           </Text>
                         </Pressable>
                       );

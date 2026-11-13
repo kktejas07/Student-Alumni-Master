@@ -265,6 +265,20 @@ export function InternshipsView() {
   const [sendingReferral, setSendingReferral] = useState(false);
   const [myReferrals, setMyReferrals] = useState<any[]>([]);
 
+  // Dedupe referral_accepted events to one per referral per session
+  const acceptedTrackedRef = React.useRef<Set<string>>(new Set());
+  const markReferralAccepted = useCallback((req: any) => {
+    if (!req || (req.status !== 'accepted' && req.status !== 'referred')) return;
+    if (acceptedTrackedRef.current.has(req.id)) return;
+    acceptedTrackedRef.current.add(req.id);
+    track('referral_accepted', {
+      referral_id: req.id,
+      job_id: req.job_id,
+      company: req.job_company,
+      status: req.status,
+    });
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -283,20 +297,6 @@ export function InternshipsView() {
   const myReferralFor = useCallback((jobId: string, alumniId: string) => {
     return myReferrals.find((x: any) => x.job_id === jobId && x.alumni_id === alumniId) || null;
   }, [myReferrals]);
-
-  // Dedupe referral_accepted events to one per referral per session
-  const acceptedTrackedRef = React.useRef<Set<string>>(new Set());
-  const markReferralAccepted = useCallback((req: any) => {
-    if (!req || (req.status !== 'accepted' && req.status !== 'referred')) return;
-    if (acceptedTrackedRef.current.has(req.id)) return;
-    acceptedTrackedRef.current.add(req.id);
-    track('referral_accepted', {
-      referral_id: req.id,
-      job_id: req.job_id,
-      company: req.job_company,
-      status: req.status,
-    });
-  }, []);
 
   const loadFeed = useCallback(async (opts?: { append?: boolean; refresh?: boolean; pageOverride?: number }) => {
     const append = opts?.append || false;
@@ -1553,7 +1553,7 @@ function JobCard({
             alignItems: 'center',
             gap: 4
           }}>
-            <Text style={{ fontSize: 10 }}></Text>
+            <Sparkles size={10} color="#2563EB" />
             <Text style={{ color: '#2563EB', fontFamily: FONTS.bold, fontSize: 10 }}>Recommended</Text>
           </View>
         )}
@@ -1737,7 +1737,8 @@ function JobCard({
                         height: 22,
                         borderRadius: 11,
                         backgroundColor: '#E2E8F0',
-                        border: '1px solid #FFFFFF',
+                        borderWidth: 1,
+                        borderColor: '#FFFFFF',
                         marginLeft: i > 0 ? -8 : 0,
                         overflow: 'hidden',
                         alignItems: 'center',

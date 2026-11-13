@@ -57,6 +57,19 @@ export default function Root({ children }: PropsWithChildren) {
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                var mode = localStorage.getItem('apple-theme') || localStorage.getItem('theme') || 'dark';
+                var dark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                document.documentElement.classList.toggle('dark', dark);
+                document.documentElement.classList.toggle('light-mode', !dark);
+                document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+              } catch {}
+            `,
+          }}
+        />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON_LD }} />
         {/* ========================================== */}
         {/* 1. GOOGLE ANALYTICS (GA4)                   */}
@@ -93,14 +106,14 @@ export default function Root({ children }: PropsWithChildren) {
         <style
           dangerouslySetInnerHTML={{
             __html: `
-              body > div:first-child { position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; }
+              body > div:first-child { min-height: 100%; }
               [role="tablist"] [role="tab"] * { overflow: visible !important; }
               [role="heading"], [role="heading"] * { overflow: visible !important; }
               ::-webkit-scrollbar { width: 6px; height: 6px; }
-              ::-webkit-scrollbar-track { background: transparent; }
-              ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 10px; }
-              ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
-              * { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.15) transparent; }
+              ::-webkit-scrollbar-track { background: var(--sa-bg); }
+              ::-webkit-scrollbar-thumb { background: var(--sa-border-strong); border-radius: 10px; }
+              ::-webkit-scrollbar-thumb:hover { background: var(--sa-text-muted); }
+              * { scrollbar-width: thin; scrollbar-color: var(--sa-border-strong) var(--sa-bg); }
             `,
           }}
         />
@@ -112,8 +125,6 @@ export default function Root({ children }: PropsWithChildren) {
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          backgroundColor: "#08080F",
-          color: "#F4F4FA",
         }}
       >
         <noscript>

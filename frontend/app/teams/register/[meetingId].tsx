@@ -260,7 +260,6 @@ function TeamsMeetingRegisterPage() {
               <Text style={s.inputLabel}>Phone Number (10 Digits)</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 12 }}>
-                  <Text style={{ fontSize: 13 }}>🇮🇳</Text>
                   <Text style={{ fontSize: 13, fontWeight: '700', color: '#A78BFA' }}>+91</Text>
                 </View>
                 <TextInput

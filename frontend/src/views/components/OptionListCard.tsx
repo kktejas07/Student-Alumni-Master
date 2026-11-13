@@ -9,7 +9,7 @@
  *  • Each row: 14px vertical padding, 16px horizontal, full-width rounded 12px.
  *      - default: transparent, white 90% text.
  *      - hover:   bg = primary @ 22% alpha (lighter purple tint).
- *      - active:  bg = primary @ 100%, white text + ✓ check on right.
+ *      - active:  bg = primary @ 100%, white text +  check on right.
  *  • Optional bottom row "Other (type your own)" with edit icon.
  *
  * Theme-aware via RoleThemeContext — purple for student, gold for mentor,

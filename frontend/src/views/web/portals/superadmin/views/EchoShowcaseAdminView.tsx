@@ -89,7 +89,7 @@ function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v:
               />
               {Platform.OS === 'web' && (
                 <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 8, background: '#7C3AED', color: '#FFF', fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
-                  {uploadingIdx === idx ? 'Uploading Video...' : '🎥 Upload Local Video File'}
+                  {uploadingIdx === idx ? 'Uploading Video...' : ' Upload Local Video File'}
                   <input type="file" accept="video/mp4,video/webm,video/quicktime,video/x-matroska,video/*" onChange={(e) => handleFileUpload(idx, e)} style={{ display: 'none' }} />
                 </label>
               )}
@@ -125,7 +125,7 @@ function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v:
             ) : isYt ? (
               <View style={{ marginTop: 6, padding: 12, borderRadius: 8, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 1, borderColor: '#EF4444' }}>
                 <Text style={{ fontSize: 12, color: '#FCA5A5', fontFamily: FONTS.med }}>
-                  Legacy YouTube URL detected. Please click <strong>🎥 Upload Local Video File</strong> above to upload your local MP4 video.
+                  Legacy YouTube URL detected. Please click <strong> Upload Local Video File</strong> above to upload your local MP4 video.
                 </Text>
               </View>
             ) : null}
@@ -181,6 +181,7 @@ import {
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { api, request, resolveImageUrl } from '@/src/models/services/api';
 import { useConfirm } from '@/src/views/components';
+import { useTheme } from '@/src/theme/ThemeContext';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 import { DarkDropdown } from '@/src/views/web/components/DarkDropdown';
@@ -3120,6 +3121,7 @@ function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh
 
 
 function RegistrationsPanel() {
+  const { isDark } = useTheme();
   const { confirm } = useConfirm();
   const [rows, setRows] = useState<any[]>([]);
   const [revenue, setRevenue] = useState<any>({ events: [], totals: {} });
@@ -3184,7 +3186,7 @@ function RegistrationsPanel() {
       return (
         <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.4)' }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#34D399' }}>
-            SA Member ✓ (100%)
+            SA Member  (100%)
           </Text>
         </View>
       );
@@ -3579,27 +3581,27 @@ function RegistrationsPanel() {
           opacity: auditLoading ? 0.6 : 1,
         }}>
           {auditLoading ? <ActivityIndicator size="small" color="#fff" /> : <Search size={14} color="#fff" />}
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>{auditLoading ? 'Loading…' : 'Revenue Audit'}</Text>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>{auditLoading ? 'Loading…' : 'Revenue Audit'}</Text>
         </Pressable>
         <Pressable onPress={() => window.open('/echo/admin/scan', '_blank')} style={{
           flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#7C3AED',
           borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
         }}>
           <ScanLine size={14} color="#fff" />
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Scan Coupons</Text>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Scan Coupons</Text>
         </Pressable>
         <Pressable
           onPress={syncAllTeams}
           disabled={syncingTeams}
           style={{
             flexDirection: 'row', alignItems: 'center', gap: 6,
-            backgroundColor: syncingTeams ? 'rgba(16,185,129,0.2)' : 'rgba(16,185,129,0.15)',
-            borderWidth: 1, borderColor: 'rgba(52,211,153,0.35)',
+            backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
+            borderWidth: 1, borderColor: isDark ? '#334155' : '#e2e8f0',
             borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
           }}
         >
-          <RefreshCw size={14} color="#34D399" />
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#34D399' }}>
+          <RefreshCw size={14} color={isDark ? '#cbd5e1' : '#1e293b'} />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: isDark ? '#cbd5e1' : '#1e293b' }}>
             {syncingTeams ? 'Syncing...' : 'Sync & Resend Team Passes'}
           </Text>
         </Pressable>
@@ -3608,13 +3610,13 @@ function RegistrationsPanel() {
           disabled={dedupingCoupons}
           style={{
             flexDirection: 'row', alignItems: 'center', gap: 6,
-            backgroundColor: dedupingCoupons ? 'rgba(251,146,60,0.2)' : 'rgba(251,146,60,0.1)',
-            borderWidth: 1, borderColor: 'rgba(251,146,60,0.3)',
+            backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
+            borderWidth: 1, borderColor: isDark ? '#334155' : '#e2e8f0',
             borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
           }}
         >
-          <Trash2 size={14} color="#FB923C" />
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#FB923C' }}>
+          <Trash2 size={14} color={isDark ? '#cbd5e1' : '#1e293b'} />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: isDark ? '#cbd5e1' : '#1e293b' }}>
             {dedupingCoupons ? 'Removing dupes...' : 'Dedup Coupons'}
           </Text>
         </Pressable>
@@ -3657,35 +3659,41 @@ function RegistrationsPanel() {
       </View>
 
       {/* Segmented Audience Broadcasts & Notices */}
-      <Card style={{ marginBottom: 18, backgroundColor: 'rgba(15,23,42,0.65)', borderColor: 'rgba(255,255,255,0.08)' }}>
+      <Card style={{ marginBottom: 18, backgroundColor: isDark ? '#0f172a' : '#ffffff', borderColor: isDark ? '#1e293b' : '#e2e8f0', borderWidth: 1 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
           <View>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Targeted Broadcasts &amp; Notices</Text>
-            <Text style={{ fontFamily: FONTS.regular, fontSize: 12, color: SAC.muted, marginTop: 2 }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: isDark ? '#ffffff' : '#0f172a' }}>Targeted Broadcasts &amp; Notices</Text>
+            <Text style={{ fontFamily: FONTS.regular, fontSize: 12, color: isDark ? '#94a3b8' : '#475569', marginTop: 2 }}>
               Differentiate communication between unpaid cart registrants, confirmed attendees, and platform students
             </Text>
           </View>
-          <StatusPill kind="info" label="Multi-Channel Notifications" />
+          <View style={{
+            backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff',
+            borderWidth: 1, borderColor: isDark ? 'rgba(99,102,241,0.3)' : '#c7d2fe',
+            borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5,
+          }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: isDark ? '#a5b4fc' : '#4338ca' }}>Multi-Channel Notifications</Text>
+          </View>
         </View>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           {/* Card 1: Unpaid / Pending Recovery */}
           <View style={{
             flex: 1, minWidth: 260,
-            backgroundColor: 'rgba(245,158,11,0.05)',
-            borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
+            backgroundColor: isDark ? 'rgba(30,41,59,0.7)' : '#f8fafc',
+            borderWidth: 1, borderColor: isDark ? 'rgba(51,65,85,0.7)' : '#e2e8f0',
             borderRadius: 12, padding: 14, justifyContent: 'space-between', gap: 12,
           }}>
             <View>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#FCD34D' }}>Unpaid Registrants</Text>
-                <View style={{ backgroundColor: 'rgba(245,158,11,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
-                  <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: '#FBBF24' }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: isDark ? '#f8fafc' : '#0f172a' }}>Unpaid Registrants</Text>
+                <View style={{ backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : '#fef3c7', borderWidth: 1, borderColor: isDark ? 'rgba(245,158,11,0.3)' : '#fde68a', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: isDark ? '#fcd34d' : '#92400e' }}>
                     {broadcastSummary?.pending_unpaid ?? pending.length} Pending
                   </Text>
                 </View>
               </View>
-              <Text style={{ fontFamily: FONTS.regular, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
+              <Text style={{ fontFamily: FONTS.regular, fontSize: 11.5, color: isDark ? '#cbd5e1' : '#475569', lineHeight: 16 }}>
                 Users with Student Alumni accounts whose registration payment is incomplete. Sends direct payment resume link &amp; event handbook.
               </Text>
             </View>
@@ -3697,27 +3705,27 @@ function RegistrationsPanel() {
               }}
             >
               <Send size={13} color="#fff" />
-              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Send Payment Recovery Notice</Text>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Send Payment Recovery Notice</Text>
             </Pressable>
           </View>
 
           {/* Card 2: Confirmed Attendees */}
           <View style={{
             flex: 1, minWidth: 260,
-            backgroundColor: 'rgba(16,185,129,0.05)',
-            borderWidth: 1, borderColor: 'rgba(52,211,153,0.25)',
+            backgroundColor: isDark ? 'rgba(30,41,59,0.7)' : '#f8fafc',
+            borderWidth: 1, borderColor: isDark ? 'rgba(51,65,85,0.7)' : '#e2e8f0',
             borderRadius: 12, padding: 14, justifyContent: 'space-between', gap: 12,
           }}>
             <View>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#6EE7B7' }}>Confirmed Attendees</Text>
-                <View style={{ backgroundColor: 'rgba(16,185,129,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
-                  <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: '#34D399' }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: isDark ? '#f8fafc' : '#0f172a' }}>Confirmed Attendees</Text>
+                <View style={{ backgroundColor: isDark ? 'rgba(16,185,129,0.15)' : '#d1fae5', borderWidth: 1, borderColor: isDark ? 'rgba(16,185,129,0.3)' : '#a7f3d0', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: isDark ? '#6ee7b7' : '#047857' }}>
                     {broadcastSummary?.confirmed_paid ?? paid.length} Confirmed
                   </Text>
                 </View>
               </View>
-              <Text style={{ fontFamily: FONTS.regular, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
+              <Text style={{ fontFamily: FONTS.regular, fontSize: 11.5, color: isDark ? '#cbd5e1' : '#475569', lineHeight: 16 }}>
                 Attendees and teammates with active QR entry passes. Sends official timetable, track rules, meal pass guide &amp; handbook.
               </Text>
             </View>
@@ -3729,27 +3737,27 @@ function RegistrationsPanel() {
               }}
             >
               <Mail size={13} color="#fff" />
-              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Send Event Notice &amp; Updates</Text>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Send Event Notice &amp; Updates</Text>
             </Pressable>
           </View>
 
           {/* Card 3: Platform Students */}
           <View style={{
             flex: 1, minWidth: 260,
-            backgroundColor: 'rgba(99,102,241,0.05)',
-            borderWidth: 1, borderColor: 'rgba(129,140,248,0.25)',
+            backgroundColor: isDark ? 'rgba(30,41,59,0.7)' : '#f8fafc',
+            borderWidth: 1, borderColor: isDark ? 'rgba(51,65,85,0.7)' : '#e2e8f0',
             borderRadius: 12, padding: 14, justifyContent: 'space-between', gap: 12,
           }}>
             <View>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#A5B4FC' }}>Platform Students</Text>
-                <View style={{ backgroundColor: 'rgba(99,102,241,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
-                  <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: '#818CF8' }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: isDark ? '#f8fafc' : '#0f172a' }}>Platform Students</Text>
+                <View style={{ backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : '#e0e7ff', borderWidth: 1, borderColor: isDark ? 'rgba(99,102,241,0.3)' : '#c7d2fe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: isDark ? '#c7d2fe' : '#3730a3' }}>
                     {broadcastSummary?.unregistered_students ?? 0} Unregistered
                   </Text>
                 </View>
               </View>
-              <Text style={{ fontFamily: FONTS.regular, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
+              <Text style={{ fontFamily: FONTS.regular, fontSize: 11.5, color: isDark ? '#cbd5e1' : '#475569', lineHeight: 16 }}>
                 Active Student Alumni members who have not registered for this event yet. Sends invitation newsletter with direct register link.
               </Text>
             </View>
@@ -3761,7 +3769,7 @@ function RegistrationsPanel() {
               }}
             >
               <Zap size={13} color="#fff" />
-              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Send Event Invitation</Text>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Send Event Invitation</Text>
             </Pressable>
           </View>
         </View>
@@ -3806,14 +3814,14 @@ function RegistrationsPanel() {
             value={eventSlug}
             onChange={(e: any) => setEventSlug(e.target.value)}
             style={{
-              backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 8, padding: '8px 12px', color: SAC.text, fontSize: 12, fontFamily: 'DM Sans',
+              backgroundColor: isDark ? '#0f172a' : '#ffffff', border: `1px solid ${isDark ? '#1e293b' : '#e2e8f0'}`,
+              borderRadius: 8, padding: '8px 12px', color: isDark ? '#f8fafc' : '#0f172a', fontSize: 12, fontFamily: 'DM Sans',
               outline: 'none', cursor: 'pointer', minWidth: 140,
             }}
           >
-            <option value="all" style={{ background: '#1e1b4b', color: SAC.text }}>All Events</option>
+            <option value="all" style={{ background: isDark ? '#0f172a' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>All Events</option>
             {uniqueEvents.map((ev: any) => (
-              <option key={ev.slug} value={ev.slug} style={{ background: '#1e1b4b', color: SAC.text }}>{ev.title}</option>
+              <option key={ev.slug} value={ev.slug} style={{ background: isDark ? '#0f172a' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}>{ev.title}</option>
             ))}
           </select>
         )}
@@ -3827,7 +3835,7 @@ function RegistrationsPanel() {
           active={status}
           onChange={setStatus}
         />
-        <SecondaryButton onPress={load}><RefreshCw size={12} color={SAC.muted} /><Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12, marginLeft: 6 }}>Refresh</Text></SecondaryButton>
+        <SecondaryButton onPress={load}><RefreshCw size={12} color={isDark ? '#cbd5e1' : '#334155'} /><Text style={{ color: isDark ? '#cbd5e1' : '#334155', fontFamily: FONTS.bold, fontSize: 12, marginLeft: 6 }}>Refresh</Text></SecondaryButton>
         <Pressable
           onPress={() => setShowImport(true)}
           style={{
@@ -3853,7 +3861,7 @@ function RegistrationsPanel() {
       </View>
 
       {/* Registrations table */}
-      <Card style={{ overflow: 'hidden' }}>
+      <Card style={{ overflow: 'hidden', backgroundColor: isDark ? '#0f172a' : '#ffffff', borderColor: isDark ? '#1e293b' : '#e2e8f0', borderWidth: 1 }}>
         {loading ? (
           <View style={{ paddingVertical: 40, alignItems: 'center' }}>
             <ActivityIndicator size="large" color={GRAD.from} />
@@ -3861,8 +3869,8 @@ function RegistrationsPanel() {
         ) : filtered.length === 0 ? (
           <View style={{ padding: 40, alignItems: 'center', gap: 10 }}>
             <IconBox size={46}><Users size={18} color={GRAD.to} /></IconBox>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>No registrations found</Text>
-            <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: SAC.muted, textAlign: 'center', maxWidth: 320 }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: isDark ? '#f8fafc' : '#0f172a' }}>No registrations found</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: isDark ? '#94a3b8' : '#475569', textAlign: 'center', maxWidth: 320 }}>
               Registrations appear here the moment attendees sign up for an event.
             </Text>
           </View>
@@ -3870,32 +3878,32 @@ function RegistrationsPanel() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
             <View style={{ minWidth: 1050, flex: 1 }}>
               {/* Header */}
-              <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: SAC.border }}>
-                <Text style={{ flex: 1.5, minWidth: 160, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ATTENDEE</Text>
-                <Text style={{ width: 140, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SA ACCOUNT & PROFILE</Text>
-                <Text style={{ width: 60, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>TYPE</Text>
-                <Text style={{ width: 45, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SIZE</Text>
-                <Text style={{ flex: 1.3, minWidth: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>EVENT</Text>
-                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>AMOUNT</Text>
-                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>PAYMENT</Text>
-                <Text style={{ width: 130, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ECHO CERTIFICATE</Text>
-                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
-                <Text style={{ width: 110, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
+              <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: isDark ? '#111827' : '#f8fafc', borderBottomWidth: 1, borderBottomColor: isDark ? '#1e293b' : '#e2e8f0' }}>
+                <Text style={{ flex: 1.5, minWidth: 160, fontFamily: FONTS.xbold, fontSize: 10.5, color: isDark ? '#94a3b8' : '#475569', letterSpacing: 0.5 }}>ATTENDEE</Text>
+                <Text style={{ width: 140, fontFamily: FONTS.xbold, fontSize: 10.5, color: isDark ? '#94a3b8' : '#475569', letterSpacing: 0.5 }}>SA ACCOUNT & PROFILE</Text>
+                <Text style={{ width: 60, fontFamily: FONTS.xbold, fontSize: 10.5, color: isDark ? '#94a3b8' : '#475569', letterSpacing: 0.5 }}>TYPE</Text>
+                <Text style={{ width: 45, fontFamily: FONTS.xbold, fontSize: 10.5, color: isDark ? '#94a3b8' : '#475569', letterSpacing: 0.5 }}>SIZE</Text>
+                <Text style={{ flex: 1.3, minWidth: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: isDark ? '#94a3b8' : '#475569', letterSpacing: 0.5 }}>EVENT</Text>
+                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: isDark ? '#94a3b8' : '#475569', letterSpacing: 0.5 }}>AMOUNT</Text>
+                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: isDark ? '#94a3b8' : '#475569', letterSpacing: 0.5 }}>PAYMENT</Text>
+                <Text style={{ width: 130, fontFamily: FONTS.xbold, fontSize: 10.5, color: isDark ? '#94a3b8' : '#475569', letterSpacing: 0.5 }}>ECHO CERTIFICATE</Text>
+                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: isDark ? '#94a3b8' : '#475569', letterSpacing: 0.5 }}>DATE</Text>
+                <Text style={{ width: 110, fontFamily: FONTS.xbold, fontSize: 10.5, color: isDark ? '#94a3b8' : '#475569', letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
               </View>
               {paged.map((r: any, i: number) => {
                 const isTeam = r.registration_type === 'team' || !!r.team_name || (r.team_size && r.team_size > 1);
                 return (
-                <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
+                <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: isDark ? '#1e293b' : '#e2e8f0' }}>
                   <View style={{ flex: 1.5, minWidth: 160 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: SAC.text }}>{r.full_name || '—'}</Text>
+                      <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: isDark ? '#f8fafc' : '#0f172a' }}>{r.full_name || '—'}</Text>
                       {r.source && r.source !== 'our_platform' && r.source !== 'studentalumni' && (
                         <View style={{ paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4, backgroundColor: r.source === 'unstop' ? 'rgba(124,58,237,0.18)' : 'rgba(14,165,233,0.18)', borderWidth: 1, borderColor: r.source === 'unstop' ? 'rgba(124,58,237,0.45)' : 'rgba(14,165,233,0.45)' }}>
                           <Text numberOfLines={1} style={{ fontFamily: FONTS.xbold, fontSize: 8, color: r.source === 'unstop' ? '#C4B5FD' : '#7DD3FC', letterSpacing: 0.4 }}>{r.source.toUpperCase()}</Text>
                         </View>
                       )}
                     </View>
-                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{r.email || r.phone || ''}</Text>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: isDark ? '#94a3b8' : '#475569' }}>{r.email || r.phone || ''}</Text>
                     {isTeam && (
                       <View style={{ marginTop: 6, gap: 4 }}>
                         {r.team_name && (
@@ -3908,13 +3916,13 @@ function RegistrationsPanel() {
                             <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: 'rgba(167,139,250,0.2)', alignItems: 'center', justifyContent: 'center' }}>
                               <Text style={{ fontFamily: FONTS.xbold, fontSize: 7, color: '#C4B5FD' }}>{idx + 2}</Text>
                             </View>
-                            <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim, flex: 1 }}>
+                            <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9, color: isDark ? '#94a3b8' : '#475569', flex: 1 }}>
                               {member.name || member.email || '—'}
                             </Text>
                           </View>
                         ))}
                         {(r.team_members?.length || 0) > 2 && (
-                          <Text style={{ fontFamily: FONTS.med, fontSize: 8, color: SAC.dim }}>
+                          <Text style={{ fontFamily: FONTS.med, fontSize: 8, color: isDark ? '#94a3b8' : '#475569' }}>
                             +{r.team_members.length - 2} more
                           </Text>
                         )}
@@ -3940,13 +3948,13 @@ function RegistrationsPanel() {
                     </View>
                   </View>
                   <View style={{ width: 45, paddingTop: 4 }}>
-                    <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: '#e5e7eb' }}>
+                    <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: isDark ? '#e5e7eb' : '#0f172a' }}>
                       {isTeam ? (r.team_size > 1 ? r.team_size : 1) : 1}
                     </Text>
                   </View>
                   <View style={{ flex: 1.3, minWidth: 150 }}>
-                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: '#e5e7eb' }}>{r.event_title || r.slug || '—'}</Text>
-                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{r.college || ''}</Text>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: isDark ? '#e5e7eb' : '#0f172a' }}>{r.event_title || r.slug || '—'}</Text>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: isDark ? '#94a3b8' : '#475569' }}>{r.college || ''}</Text>
                   </View>
                   <View style={{ width: 90, minWidth: 0, paddingTop: 2 }}>
                     {r.is_team_member ? (
@@ -3954,13 +3962,13 @@ function RegistrationsPanel() {
                         <Text style={{ fontFamily: FONTS.xbold, fontSize: 11.5, color: '#C4B5FD' }}>
                           Team Pass
                         </Text>
-                        <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim, marginTop: 1 }}>
+                        <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9, color: isDark ? '#94a3b8' : '#475569', marginTop: 1 }}>
                           {r.team_leader_name ? `Paid by ${r.team_leader_name.split(' ')[0]}` : 'Covered in Team'}
                         </Text>
                       </View>
                     ) : (
                       <View>
-                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 12, color: SAC.text }}>
+                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 12, color: isDark ? '#f8fafc' : '#0f172a' }}>
                           {Number(r.fee || 0) > 0 ? `₹${Number(r.fee).toLocaleString('en-IN')}` : 'FREE'}
                         </Text>
                         {isTeam && (r.team_size > 1 || (r.team_members?.length || 0) > 0) && (
@@ -3997,7 +4005,7 @@ function RegistrationsPanel() {
                     )}
                   </View>
                   <View style={{ width: 90, minWidth: 0 }}>
-                    <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: isDark ? '#94a3b8' : '#475569' }}>
                       {(r.registered_at || '').slice(0, 10) || '—'}
                     </Text>
                   </View>
@@ -4087,9 +4095,9 @@ function RegistrationsPanel() {
           <View style={{
             flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
             paddingVertical: 10, paddingHorizontal: 14,
-            borderTopWidth: 1, borderTopColor: SAC.border, flexWrap: 'wrap', gap: 10,
+            borderTopWidth: 1, borderTopColor: isDark ? '#1e293b' : '#e2e8f0', flexWrap: 'wrap', gap: 10,
           }}>
-            <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: isDark ? '#94a3b8' : '#475569' }}>
               Showing {safePage * PER_PAGE + 1}–{Math.min((safePage + 1) * PER_PAGE, filtered.length)} of {filtered.length}
             </Text>
             <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
@@ -4098,12 +4106,12 @@ function RegistrationsPanel() {
                 disabled={safePage === 0}
                 style={{
                   paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7,
-                  backgroundColor: safePage === 0 ? 'rgba(255,255,255,0.04)' : 'rgba(167,139,250,0.15)',
-                  borderWidth: 1, borderColor: safePage === 0 ? SAC.border : 'rgba(167,139,250,0.3)',
+                  backgroundColor: safePage === 0 ? (isDark ? '#111827' : '#f8fafc') : (isDark ? 'rgba(167,139,250,0.15)' : '#f1f5f9'),
+                  borderWidth: 1, borderColor: safePage === 0 ? (isDark ? '#1e293b' : '#e2e8f0') : (isDark ? 'rgba(167,139,250,0.3)' : '#cbd5e1'),
                   opacity: safePage === 0 ? 0.4 : 1,
                 }}
               >
-                <ChevronLeft size={14} color={SAC.text} />
+                <ChevronLeft size={14} color={isDark ? '#f8fafc' : '#0f172a'} />
               </Pressable>
               {Array.from({ length: totalPages }, (_, p) => p).map((p) => {
                 if (totalPages > 7 && Math.abs(p - safePage) > 2 && p !== 0 && p !== totalPages - 1) {
@@ -4113,10 +4121,10 @@ function RegistrationsPanel() {
                   <Pressable key={p} onPress={() => setPage(p)} style={{
                     minWidth: 30, alignItems: 'center', justifyContent: 'center',
                     paddingVertical: 6, borderRadius: 7,
-                    backgroundColor: p === safePage ? '#7C3AED' : 'rgba(255,255,255,0.05)',
-                    borderWidth: 1, borderColor: p === safePage ? '#7C3AED' : SAC.border,
+                    backgroundColor: p === safePage ? '#7C3AED' : (isDark ? '#111827' : '#ffffff'),
+                    borderWidth: 1, borderColor: p === safePage ? '#7C3AED' : (isDark ? '#1e293b' : '#e2e8f0'),
                   }}>
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: p === safePage ? '#fff' : SAC.text }}>{p + 1}</Text>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: p === safePage ? '#fff' : (isDark ? '#f8fafc' : '#0f172a') }}>{p + 1}</Text>
                   </Pressable>
                 );
               })}
@@ -4125,12 +4133,12 @@ function RegistrationsPanel() {
                 disabled={safePage >= totalPages - 1}
                 style={{
                   paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7,
-                  backgroundColor: safePage >= totalPages - 1 ? 'rgba(255,255,255,0.04)' : 'rgba(167,139,250,0.15)',
-                  borderWidth: 1, borderColor: safePage >= totalPages - 1 ? SAC.border : 'rgba(167,139,250,0.3)',
+                  backgroundColor: safePage >= totalPages - 1 ? (isDark ? '#111827' : '#f8fafc') : (isDark ? 'rgba(167,139,250,0.15)' : '#f1f5f9'),
+                  borderWidth: 1, borderColor: safePage >= totalPages - 1 ? (isDark ? '#1e293b' : '#e2e8f0') : (isDark ? 'rgba(167,139,250,0.3)' : '#cbd5e1'),
                   opacity: safePage >= totalPages - 1 ? 0.4 : 1,
                 }}
               >
-                <ChevronRight size={14} color={SAC.text} />
+                <ChevronRight size={14} color={isDark ? '#f8fafc' : '#0f172a'} />
               </Pressable>
             </View>
           </View>
@@ -4535,7 +4543,7 @@ function RegistrationsPanel() {
 
                 {/* Included Assets info */}
                 <View style={{ padding: 12, backgroundColor: 'rgba(124,58,237,0.08)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(124,58,237,0.2)' }}>
-                  <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#C4B5FD' }}>✓ Automatic Attachments &amp; Links Included:</Text>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#C4B5FD' }}> Automatic Attachments &amp; Links Included:</Text>
                   <Text style={{ fontFamily: FONTS.regular, fontSize: 11.5, color: '#DDD6FE', marginTop: 4, lineHeight: 16 }}>
                     • Attached PDF: <strong style={{ color: SAC.text }}>HackWave_3.0_Event_Handbook.pdf</strong><br/>
                     • Personalized pass registration / checkout / ticket links<br/>
@@ -5297,7 +5305,7 @@ function LiveScanMonitorPanel() {
       return (
         <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.4)' }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#34D399' }}>
-            Profile 100% Complete ✓
+            Profile 100% Complete 
           </Text>
         </View>
       );
@@ -5427,7 +5435,7 @@ function LiveScanMonitorPanel() {
                 disabled={loopAgentLoading}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(239,68,68,0.2)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#EF4444' }}>
                 <X size={14} color="#FCA5A5" />
-                <Text style={{ color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 }}>⏸️ Pause 24h Loop</Text>
+                <Text style={{ color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 }}> Pause 24h Loop</Text>
               </Pressable>
             ) : (
               <Pressable
@@ -5435,7 +5443,7 @@ function LiveScanMonitorPanel() {
                 disabled={loopAgentLoading}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(16,185,129,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#10B981' }}>
                 <Play size={14} color="#6EE7B7" />
-                <Text style={{ color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 12 }}>▶️ Enable 24h Daily Loop</Text>
+                <Text style={{ color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 12 }}> Enable 24h Daily Loop</Text>
               </Pressable>
             )}
 
@@ -5445,7 +5453,7 @@ function LiveScanMonitorPanel() {
               style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#7C5CFC', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 }}>
               <Zap size={14} color="#FFF" />
               <Text style={{ color: '#FFF', fontFamily: FONTS.bold, fontSize: 12 }}>
-                {sendingReminders ? 'Sending Alerts...' : '⚡ Trigger Daily Alert Loop Now'}
+                {sendingReminders ? 'Sending Alerts...' : ' Trigger Daily Alert Loop Now'}
               </Text>
             </Pressable>
           </View>
@@ -5454,16 +5462,16 @@ function LiveScanMonitorPanel() {
         {loopAgentStatus?.last_run_stats && (
           <View style={{ flexDirection: 'row', gap: 16, flexWrap: 'wrap', paddingTop: 8, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
             <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
-              🕒 Last Execution: <Text style={{ color: '#FFF', fontFamily: FONTS.bold }}>{loopAgentStatus.last_run_at ? new Date(loopAgentStatus.last_run_at).toLocaleString() : 'Never'}</Text>
+               Last Execution: <Text style={{ color: '#FFF', fontFamily: FONTS.bold }}>{loopAgentStatus.last_run_at ? new Date(loopAgentStatus.last_run_at).toLocaleString() : 'Never'}</Text>
             </Text>
             <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
-              📧 Daily Emails Sent: <Text style={{ color: '#34D399', fontFamily: FONTS.bold }}>{loopAgentStatus.last_run_stats.emails_sent || 0}</Text>
+               Daily Emails Sent: <Text style={{ color: '#34D399', fontFamily: FONTS.bold }}>{loopAgentStatus.last_run_stats.emails_sent || 0}</Text>
             </Text>
             <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
-              💬 WhatsApp Alerts: <Text style={{ color: '#34D399', fontFamily: FONTS.bold }}>{loopAgentStatus.last_run_stats.whatsapp_sent || 0}</Text>
+               WhatsApp Alerts: <Text style={{ color: '#34D399', fontFamily: FONTS.bold }}>{loopAgentStatus.last_run_stats.whatsapp_sent || 0}</Text>
             </Text>
             <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
-              🔄 Total Cycles: <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold }}>{loopAgentStatus.total_cycles_executed || 0}</Text>
+               Total Cycles: <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold }}>{loopAgentStatus.total_cycles_executed || 0}</Text>
             </Text>
           </View>
         )}
@@ -5481,7 +5489,7 @@ function LiveScanMonitorPanel() {
             style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,92,252,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#7C5CFC' }}>
             <Sparkles size={14} color="#C9A7FF" />
             <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold, fontSize: 12 }}>
-              {sendingReminders ? 'Loop Agent Sending...' : '⚡ Send 100% Profile & SA Reminders'}
+              {sendingReminders ? 'Loop Agent Sending...' : ' Send 100% Profile & SA Reminders'}
             </Text>
           </Pressable>
 
@@ -5491,7 +5499,7 @@ function LiveScanMonitorPanel() {
             style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(16,185,129,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#10B981' }}>
             <Award size={14} color="#6EE7B7" />
             <Text style={{ color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 12 }}>
-              🎓 Dispatch 3 Certs to 100% Profiles
+               Dispatch 3 Certs to 100% Profiles
             </Text>
           </Pressable>
 
@@ -5501,7 +5509,7 @@ function LiveScanMonitorPanel() {
             style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(245,158,11,0.22)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#F59E0B', opacity: (bulkIssuing || sendingReminders) ? 0.6 : 1 }}>
             <Award size={14} color="#FCD34D" />
             <Text style={{ color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 12 }}>
-              {bulkIssuing ? 'Issuing to All…' : '🎓 Issue 3 Certs to ALL'}
+              {bulkIssuing ? 'Issuing to All…' : ' Issue 3 Certs to ALL'}
             </Text>
           </Pressable>
 
@@ -5510,7 +5518,7 @@ function LiveScanMonitorPanel() {
             style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(59,130,246,0.25)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#3B82F6' }}>
             <Upload size={14} color="#93C5FD" />
             <Text style={{ color: '#93C5FD', fontFamily: FONTS.bold, fontSize: 12 }}>
-              ⬆️ Upload Cert & Dual-Sync
+               Upload Cert & Dual-Sync
             </Text>
           </Pressable>
 
@@ -5587,10 +5595,10 @@ function LiveScanMonitorPanel() {
       {/* Summary Banner */}
       <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap', padding: 12, backgroundColor: 'rgba(124,92,252,0.08)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(124,92,252,0.2)' }}>
         <Text style={{ fontSize: 12, color: '#D8B4FE', fontFamily: FONTS.med }}>
-          📊 SA Accounts: <Text style={{ fontFamily: FONTS.bold, color: '#FFF' }}>{stats.saMembers}</Text> Members | <Text style={{ fontFamily: FONTS.bold, color: '#34D399' }}>{stats.sa100}</Text> 100% Completed | <Text style={{ fontFamily: FONTS.bold, color: '#FCA5A5' }}>{stats.noAccount}</Text> No Account
+           SA Accounts: <Text style={{ fontFamily: FONTS.bold, color: '#FFF' }}>{stats.saMembers}</Text> Members | <Text style={{ fontFamily: FONTS.bold, color: '#34D399' }}>{stats.sa100}</Text> 100% Completed | <Text style={{ fontFamily: FONTS.bold, color: '#FCA5A5' }}>{stats.noAccount}</Text> No Account
         </Text>
         <Text style={{ fontSize: 12, color: '#A78BFA', fontFamily: FONTS.med }}>
-          🎓 Certificates: <Text style={{ fontFamily: FONTS.bold, color: '#FFF' }}>{stats.certIssued}</Text> Issued
+           Certificates: <Text style={{ fontFamily: FONTS.bold, color: '#FFF' }}>{stats.certIssued}</Text> Issued
         </Text>
       </View>
 
@@ -5663,21 +5671,21 @@ function LiveScanMonitorPanel() {
                 {reg.certificates_3_status ? (
                   <View style={{ gap: 3 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#D8B4FE' }}>🌅 Sunset:</Text>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#D8B4FE' }}> Sunset:</Text>
                       <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: reg.certificates_3_status.built_by_sunset?.issued ? '#34D399' : 'rgba(255,255,255,0.4)' }}>
-                        {reg.certificates_3_status.built_by_sunset?.issued ? `✓ ${reg.certificates_3_status.built_by_sunset.code}` : 'Pending ⏳'}
+                        {reg.certificates_3_status.built_by_sunset?.issued ? ` ${reg.certificates_3_status.built_by_sunset.code}` : 'Pending '}
                       </Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#D8B4FE' }}>🏆 Hackwave:</Text>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#D8B4FE' }}> Hackwave:</Text>
                       <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: reg.certificates_3_status.hackwave_participation?.issued ? '#34D399' : 'rgba(255,255,255,0.4)' }}>
-                        {reg.certificates_3_status.hackwave_participation?.issued ? `✓ ${reg.certificates_3_status.hackwave_participation.code}` : 'Pending ⏳'}
+                        {reg.certificates_3_status.hackwave_participation?.issued ? ` ${reg.certificates_3_status.hackwave_participation.code}` : 'Pending '}
                       </Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#D8B4FE' }}>🛡️ Cyber:</Text>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#D8B4FE' }}> Cyber:</Text>
                       <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: reg.certificates_3_status.cyber_conclave?.issued ? '#34D399' : 'rgba(255,255,255,0.4)' }}>
-                        {reg.certificates_3_status.cyber_conclave?.issued ? `✓ ${reg.certificates_3_status.cyber_conclave.code}` : 'Pending ⏳'}
+                        {reg.certificates_3_status.cyber_conclave?.issued ? ` ${reg.certificates_3_status.cyber_conclave.code}` : 'Pending '}
                       </Text>
                     </View>
                     <Pressable
@@ -5950,7 +5958,7 @@ function LiveScanMonitorPanel() {
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
               <SecondaryButton onPress={() => setUploadModalVisible(false)}><Text style={{ color: SAC.text }}>Cancel</Text></SecondaryButton>
               <GradientButton onPress={handleCustomUploadCert} disabled={uploadingCert}>
-                <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{uploadingCert ? 'Uploading & Syncing...' : '⬆️ Upload & Dual-Sync'}</Text>
+                <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{uploadingCert ? 'Uploading & Syncing...' : ' Upload & Dual-Sync'}</Text>
               </GradientButton>
             </View>
           </Pressable>
@@ -6122,11 +6130,11 @@ function InternalHiringPanel() {
 
   const STAGES = [
     { id: 'all', label: 'All Candidates', count: candidates.length },
-    { id: 'applicant_pool', label: '📥 Applicant Pool', count: counts.applicant_pool || 0 },
-    { id: 'shortlisted', label: '⭐️ Shortlisted', count: counts.shortlisted || 0 },
-    { id: 'unpaid_intern', label: '🎓 Unpaid Intern', count: counts.unpaid_intern || 0 },
-    { id: 'paid_intern', label: '💰 Paid Intern', count: counts.paid_intern || 0 },
-    { id: 'full_time', label: '💼 Full Time', count: counts.full_time || 0 },
+    { id: 'applicant_pool', label: ' Applicant Pool', count: counts.applicant_pool || 0 },
+    { id: 'shortlisted', label: ' Shortlisted', count: counts.shortlisted || 0 },
+    { id: 'unpaid_intern', label: ' Unpaid Intern', count: counts.unpaid_intern || 0 },
+    { id: 'paid_intern', label: ' Paid Intern', count: counts.paid_intern || 0 },
+    { id: 'full_time', label: ' Full Time', count: counts.full_time || 0 },
   ];
 
   const DOMAINS = ['Technical', 'Marketing', 'Operations', 'Design', 'AI/ML', 'Event Management'];
@@ -6150,12 +6158,12 @@ function InternalHiringPanel() {
 
   const getNextStageLabel = (st: string) => {
     switch (st) {
-      case 'applicant_pool': return '✓ Shortlist Candidate';
-      case 'shortlisted': return '✓ Hire as Unpaid Intern';
-      case 'unpaid_intern': return '✓ Promote to Paid Intern';
-      case 'paid_intern': return '✓ Convert to Full Time';
-      case 'full_time': return '✓ Full Time Hired';
-      default: return '✓ Advance Stage';
+      case 'applicant_pool': return ' Shortlist Candidate';
+      case 'shortlisted': return ' Hire as Unpaid Intern';
+      case 'unpaid_intern': return ' Promote to Paid Intern';
+      case 'paid_intern': return ' Convert to Full Time';
+      case 'full_time': return ' Full Time Hired';
+      default: return ' Advance Stage';
     }
   };
 
@@ -6342,7 +6350,7 @@ function InternalHiringPanel() {
                         </Pressable>
                       ) : (
                         <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(52,211,153,0.2)', borderWidth: 1, borderColor: '#34D399' }}>
-                          <Text style={{ fontFamily: FONTS.bold, fontSize: 10.5, color: '#34D399' }}>✓ Hired Full-Time</Text>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 10.5, color: '#34D399' }}> Hired Full-Time</Text>
                         </View>
                       )}
 
@@ -6496,6 +6504,8 @@ function RegistrationPasscodeControl({
   enabled: boolean;
   onChange?: (enabled: boolean) => void;
 }) {
+  const { isDark } = useTheme();
+  const T = useSAC();
   const { flash } = useToast();
   const [pass, setPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
@@ -6541,17 +6551,17 @@ function RegistrationPasscodeControl({
   };
 
   return (
-    <Card>
+    <Card style={{ backgroundColor: isDark ? '#0f172a' : '#ffffff', borderColor: isDark ? '#1e293b' : '#e2e8f0', borderWidth: 1 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <IconBox tint={enabled ? '#F59E0B' : '#334155'}>
             <Lock size={16} color={enabled ? '#F59E0B' : '#94A3B8'} />
           </IconBox>
           <View>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>Registrations Access Passcode</Text>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: isDark ? '#f8fafc' : '#0f172a' }}>Registrations Access Passcode</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
               <StatusPill kind={enabled ? 'warn' : 'success'} label={enabled ? 'Locked' : 'Unlocked'} />
-              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: isDark ? '#94a3b8' : '#475569' }}>
                 {enabled
                   ? 'The Registrations tab requires this passcode to open.'
                   : 'No passcode required. The Registrations tab is open.'}
@@ -6563,19 +6573,19 @@ function RegistrationPasscodeControl({
           onPress={() => setShowForm((v) => !v)}
           style={{
             flexDirection: 'row', alignItems: 'center', gap: 6,
-            backgroundColor: 'rgba(139,92,246,0.15)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.35)',
+            backgroundColor: isDark ? '#1e293b' : '#f1f5f9', borderWidth: 1, borderColor: isDark ? '#334155' : '#e2e8f0',
             borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, cursor: 'pointer',
           }}
         >
-          <Lock size={13} color="#A78BFA" />
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#A78BFA' }}>
+          <Lock size={13} color={isDark ? '#cbd5e1' : '#1e293b'} />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: isDark ? '#cbd5e1' : '#1e293b' }}>
             {enabled ? 'Change Passcode' : 'Set Passcode'}
           </Text>
         </Pressable>
       </View>
 
       {showForm && (
-        <View style={{ marginTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(148,163,184,0.15)', paddingTop: 16, gap: 12 }}>
+        <View style={{ marginTop: 16, borderTopWidth: 1, borderTopColor: T.border, paddingTop: 16, gap: 12 }}>
           {enabled && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <Lock size={12} color="#F59E0B" />
@@ -6731,6 +6741,7 @@ function RegistrationPasscodeGate({
 
 // ── Main View ─────────────────────────────────────────────────────────────────
 export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const { isDark } = useTheme();
   const T = useSAC();
   Object.assign(fi, resolveColors(fi, T));
 
@@ -6931,7 +6942,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <View>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 22, color: SAC.text }}>ECHO Showcase CMS</Text>
-          <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: SAC.muted, marginTop: 3 }}>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: isDark ? '#94a3b8' : '#475569', marginTop: 3 }}>
             Create and manage showcase pages. Published showcases appear in the Student Portal.
           </Text>
         </View>

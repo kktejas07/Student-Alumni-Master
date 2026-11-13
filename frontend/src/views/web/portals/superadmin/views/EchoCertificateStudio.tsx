@@ -667,7 +667,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
               {auditResult && (
                 <View style={s.aiResultCard}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={s.aiResultTitle}>🛡️ Authenticity: {auditResult.authenticity_status}</Text>
+                    <Text style={s.aiResultTitle}> Authenticity: {auditResult.authenticity_status}</Text>
                     <Badge label={`Trust: ${auditResult.trust_score}%`} color="green" />
                   </View>
                   <Text style={s.aiResultSub}>{auditResult.recommendation}</Text>
@@ -677,7 +677,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
               {/* AI Skills Feedback Card */}
               {skillsResult && (
                 <View style={s.aiResultCard}>
-                  <Text style={s.aiResultTitle}>⚡ Extracted Competencies ({skillsResult.skills?.length || 0})</Text>
+                  <Text style={s.aiResultTitle}> Extracted Competencies ({skillsResult.skills?.length || 0})</Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
                     {skillsResult.skills?.map((sk: any, idx: number) => (
                       <Badge key={idx} label={`${sk.name} (${sk.proficiency_level})`} color="purple" />

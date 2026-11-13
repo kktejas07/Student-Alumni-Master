@@ -45,17 +45,29 @@ const CAT = {
 } as const;
 type CatKey = keyof typeof CAT;
 
+function getCategoryColor(cat: CatKey, isDark: boolean) {
+  if (isDark) return CAT[cat].color;
+  return {
+    student: '#1d4ed8',
+    masters: '#0369a1',
+    alumni: '#047857',
+    mentor: '#b45309',
+  }[cat];
+}
+
 function CategoryBadge({ cat, small }: { cat: CatKey; small?: boolean }) {
+  const T = useSAC();
   const c = CAT[cat] || CAT.student;
+  const color = getCategoryColor(cat, T.text === SAC.text);
   const Icon = c.icon;
   return (
     <View style={[
       s.catBadge,
-      { backgroundColor: c.color + '22', borderColor: c.color + '55' },
+      { backgroundColor: color + '22', borderColor: color + '55' },
       small && { paddingHorizontal: 7, paddingVertical: 2.5 },
     ]}>
-      <Icon size={small ? 10 : 11} color={c.color} />
-      <Text style={[s.catBadgeText, { color: c.color, fontSize: small ? 10 : 11 }]}>{c.label}</Text>
+      <Icon size={small ? 10 : 11} color={color} />
+      <Text style={[s.catBadgeText, { color, fontSize: small ? 10 : 11 }]}>{c.label}</Text>
     </View>
   );
 }
@@ -147,7 +159,7 @@ export function ImportsView({ sub, onSub }: { sub?: string; onSub?: (s: string) 
         </View>
         <View style={s.statCard}>
           <View style={[s.statIcon, { backgroundColor: 'rgba(239,68,68,0.15)' }]}>
-            <AlertTriangle size={18} color="#EF4444" />
+            <AlertTriangle size={18} color={T.danger} />
           </View>
           <View>
             <Text style={s.statValue}>{counts.pending_approval || 0}</Text>
@@ -174,6 +186,7 @@ export function ImportsView({ sub, onSub }: { sub?: string; onSub?: (s: string) 
  *  UPLOAD TAB
  * ══════════════════════════════════════════════════════════════════ */
 function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => void; onSwitchTab: (t: TabId) => void; bump: () => void; }) {
+  const T = useSAC();
   const fileRef = useRef<any>(null);
   const [busy, setBusy] = useState(false);
   const [data, setData] = useState<any>(null);
@@ -360,7 +373,7 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
                 </View>
                 {busy && currentFileIdx === i && <ActivityIndicator size="small" color={GRAD.to} />}
                 <Pressable onPress={() => removeFile(i)} style={s.removeFileBtn}>
-                  <X size={14} color="#F87171" />
+                  <X size={14} color={T.danger} />
                 </Pressable>
               </View>
             ))}
@@ -391,7 +404,7 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
             {importResults.map((r, i) => (
               <View key={i} style={s.fileRow}>
                 {r.error ? (
-                  <AlertTriangle size={16} color="#F87171" />
+                  <AlertTriangle size={16} color={T.danger} />
                 ) : (
                   <CheckCircle2 size={16} color="#10B981" />
                 )}
@@ -424,45 +437,45 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
                 </View>
               </View>
               <SecondaryButton size="sm" onPress={() => { setData(null); setResult(null); }}>
-                <RefreshCw size={11} color={SAC.muted} />
+                <RefreshCw size={11} color={T.muted} />
                 <Text style={s.secText}>Replace file</Text>
               </SecondaryButton>
             </View>
 
             <View style={s.summaryStats}>
-              <SumStat label="Total"      value={data.total_rows} tint="#fff" />
-              <SumStat label="Student"    value={data.summary.student || 0} tint={CAT.student.color} />
-              <SumStat label="Master's"   value={data.summary.masters || 0} tint={CAT.masters.color} />
-              <SumStat label="Alumni"     value={data.summary.alumni || 0}  tint={CAT.alumni.color}  />
-              <SumStat label="Mentor"     value={data.summary.mentor || 0}  tint={CAT.mentor.color}  />
-              <SumStat label="Errors"     value={data.summary.errors || 0}  tint={SAC.red} />
-              <SumStat label="Review"     value={data.summary.needs_review || 0} tint="#FBBF24" />
+              <SumStat label="Total"      value={data.total_rows} tint={T.text} />
+              <SumStat label="Student"    value={data.summary.student || 0} tint={getCategoryColor('student', T.text === SAC.text)} />
+              <SumStat label="Master's"   value={data.summary.masters || 0} tint={getCategoryColor('masters', T.text === SAC.text)} />
+              <SumStat label="Alumni"     value={data.summary.alumni || 0}  tint={getCategoryColor('alumni', T.text === SAC.text)} />
+              <SumStat label="Mentor"     value={data.summary.mentor || 0}  tint={getCategoryColor('mentor', T.text === SAC.text)} />
+              <SumStat label="Errors"     value={data.summary.errors || 0}  tint={T.red} />
+              <SumStat label="Review"     value={data.summary.needs_review || 0} tint={T.amber} />
             </View>
 
             {/* Pre-Flight Ingestion Quality Report */}
             {data.preflight && (
-              <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' }}>
+              <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: T.line }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <ShieldCheck size={14} color="#22C55E" />
-                    <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.5 }}>PRE-FLIGHT INGESTION IMPACT</Text>
+                    <ShieldCheck size={14} color={T.green} />
+                    <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.5 }}>PRE-FLIGHT INGESTION IMPACT</Text>
                   </View>
                   <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 5, backgroundColor: 'rgba(34,197,94,0.14)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.3)' }}>
-                    <Text style={{ color: '#86EFAC', fontFamily: FONTS.bold, fontSize: 10 }}>Ready to Commit</Text>
+                    <Text style={{ color: T.green, fontFamily: FONTS.bold, fontSize: 10 }}>Ready to Commit</Text>
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
                   <View style={{ flex: 1, minWidth: 120, padding: 10, borderRadius: 8, backgroundColor: 'rgba(34,197,94,0.08)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.2)' }}>
-                    <Text style={{ color: '#86EFAC', fontFamily: FONTS.xbold, fontSize: 16 }}>+{data.preflight.new_count}</Text>
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 }}>New Profiles to Create</Text>
+                    <Text style={{ color: T.green, fontFamily: FONTS.xbold, fontSize: 16 }}>+{data.preflight.new_count}</Text>
+                    <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 10 }}>New Profiles to Create</Text>
                   </View>
                   <View style={{ flex: 1, minWidth: 120, padding: 10, borderRadius: 8, backgroundColor: 'rgba(59,130,246,0.08)', borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)' }}>
-                    <Text style={{ color: '#93C5FD', fontFamily: FONTS.xbold, fontSize: 16 }}>~{data.preflight.update_count}</Text>
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 }}>Existing to Merge/Update</Text>
+                    <Text style={{ color: T.blue, fontFamily: FONTS.xbold, fontSize: 16 }}>~{data.preflight.update_count}</Text>
+                    <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 10 }}>Existing to Merge/Update</Text>
                   </View>
-                  <View style={{ flex: 1, minWidth: 120, padding: 10, borderRadius: 8, backgroundColor: data.preflight.invalid_count > 0 ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: data.preflight.invalid_count > 0 ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)' }}>
-                    <Text style={{ color: data.preflight.invalid_count > 0 ? '#FCA5A5' : SAC.muted, fontFamily: FONTS.xbold, fontSize: 16 }}>{data.preflight.invalid_count}</Text>
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 }}>Invalid/Filtered Rows</Text>
+                  <View style={{ flex: 1, minWidth: 120, padding: 10, borderRadius: 8, backgroundColor: data.preflight.invalid_count > 0 ? T.dangerTint : T.panel2, borderWidth: 1, borderColor: data.preflight.invalid_count > 0 ? T.danger : T.line }}>
+                    <Text style={{ color: data.preflight.invalid_count > 0 ? T.danger : T.muted, fontFamily: FONTS.xbold, fontSize: 16 }}>{data.preflight.invalid_count}</Text>
+                    <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 10 }}>Invalid/Filtered Rows</Text>
                   </View>
                 </View>
               </View>
@@ -479,7 +492,7 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
                 return (
                   <View key={h} style={s.mapRow}>
                     <Text style={s.mapSrc} numberOfLines={1}>{h || '—'}</Text>
-                    <ChevronRight size={11} color={SAC.dim} />
+                    <ChevronRight size={11} color={T.dim} />
                     {target ? (
                       <GradientPill label={target} />
                     ) : (
@@ -513,14 +526,14 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
                   const hasErr = (p.errors || []).length > 0;
                   return (
                     <View key={i} style={[s.tableRow, hasErr && s.tableRowErr]}>
-                      <Text style={[s.td, { width: 50, color: SAC.dim }]}>{p.row}</Text>
+                      <Text style={[s.td, { width: 50, color: T.dim }]}>{p.row}</Text>
                       <View style={{ width: 100 }}>{p.category && <CategoryBadge cat={p.category} small />}</View>
                       <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 200 }]}>{p.full_name || '—'}</Text>
-                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 240, color: SAC.muted }]}>{p.email || '—'}</Text>
-                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 200, color: SAC.muted }]}>{p.college || '—'}</Text>
-                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 160, color: SAC.muted }]}>{p.degree || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 240, color: T.muted }]}>{p.email || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 200, color: T.muted }]}>{p.college || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 160, color: T.muted }]}>{p.degree || '—'}</Text>
                       <Text style={[s.td, { width: 80 }]}>{(p.experience_years ?? 0).toString()}</Text>
-                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 240, color: SAC.muted }]}>{p.category_rule || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 240, color: T.muted }]}>{p.category_rule || '—'}</Text>
                       <View style={{ flex: 1, minWidth: 180 }}>
                         {hasErr ? (
                           <StatusPill kind="danger" label={(p.errors || []).join(', ')} />
@@ -570,14 +583,14 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
         <View style={s.modalBg}>
           <Animated.View entering={FadeInDown.duration(220)} style={s.modalCard}>
             <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
-              <IconBox size={40}><CheckCircle2 size={20} color={SAC.green} /></IconBox>
+              <IconBox size={40}><CheckCircle2 size={20} color={T.green} /></IconBox>
               <View style={{ flex: 1 }}>
                 <Text style={s.modalTitle}>Import complete</Text>
                 <Text style={s.muted}>
                   {result?.added} added · {result?.updated} updated · {result?.skipped} skipped
                 </Text>
               </View>
-              <Pressable onPress={() => setResult(null)}><X size={16} color={SAC.muted} /></Pressable>
+              <Pressable onPress={() => setResult(null)}><X size={16} color={T.muted} /></Pressable>
             </LinearGradient>
 
             <View style={{ padding: 18, gap: 14 }}>
@@ -597,7 +610,7 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
                     {(result?.skipped_rows || []).slice(0, 30).map((sr: any, i: number) => (
                       <View key={i} style={s.skipRow}>
                         <Text style={s.muted}>Row {sr.row}{sr.email ? ` · ${sr.email}` : ''}</Text>
-                        <Text style={[s.muted, { color: '#FCA5A5', flex: 1, textAlign: 'right' }]}>{sr.reason}</Text>
+                        <Text style={[s.muted, { color: T.danger, flex: 1, textAlign: 'right' }]}>{sr.reason}</Text>
                       </View>
                     ))}
                   </ScrollView>
@@ -634,6 +647,8 @@ function SumStat({ label, value, tint }: { label: string; value: number; tint: s
  *  MANUAL ADD TAB — live category preview
  * ══════════════════════════════════════════════════════════════════ */
 function ManualTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const T = useSAC();
+  const isDark = T.text === SAC.text;
   const [form, setForm] = useState<any>({
     first_name: '', last_name: '', email: '', phone: '', linkedin_url: '',
     college: '', degree: '', graduation_year: '', designation: '', company: '',
@@ -727,7 +742,7 @@ function ManualTab({ onSaved }: { onSaved: (s?: string) => void }) {
             <Animated.View entering={FadeIn.duration(180)} style={{ marginTop: 14, gap: 12 }}>
               <View style={{ alignItems: 'center', gap: 10, paddingVertical: 10 }}>
                 <CategoryBadge cat={preview.category} />
-                <Text style={[s.previewBigVal, { color: CAT[preview.category as CatKey]?.color || '#fff' }]}>
+                <Text style={[s.previewBigVal, { color: CAT[preview.category as CatKey] ? getCategoryColor(preview.category as CatKey, isDark) : T.text }]}>
                   → {CAT[preview.category as CatKey]?.label}
                 </Text>
               </View>
@@ -742,15 +757,15 @@ function ManualTab({ onSaved }: { onSaved: (s?: string) => void }) {
                 <PreviewRow label="Role"     value={preview.role} />
                 {preview.needs_review && (
                   <View style={s.warnBox}>
-                    <AlertTriangle size={12} color="#FBBF24" />
-                    <Text style={[s.muted, { color: '#FBBF24' }]}>Needs review · incomplete profile</Text>
+                    <AlertTriangle size={12} color={T.amber} />
+                    <Text style={[s.muted, { color: T.amber }]}>Needs review · incomplete profile</Text>
                   </View>
                 )}
               </View>
             </Animated.View>
           ) : (
             <View style={{ marginTop: 14, gap: 6, alignItems: 'center', paddingVertical: 20 }}>
-              <Sparkles size={20} color={SAC.dim} />
+              <Sparkles size={20} color={T.dim} />
               <Text style={[s.muted, { textAlign: 'center' }]}>
                 Start typing email + degree + experience{'\n'}to see the live category prediction.
               </Text>
@@ -763,12 +778,13 @@ function ManualTab({ onSaved }: { onSaved: (s?: string) => void }) {
 }
 
 function FormField({ label, value, onChange, placeholder, full, keyboardType }: any) {
+  const T = useSAC();
   return (
     <View style={[s.formField, full && { flexBasis: '100%' }]}>
       <Text style={s.formLabel}>{label}</Text>
       <TextInput
         value={value} onChangeText={onChange}
-        placeholder={placeholder} placeholderTextColor={SAC.dim}
+        placeholder={placeholder} placeholderTextColor={T.dim}
         keyboardType={keyboardType}
         autoCapitalize="none" autoCorrect={false}
         style={s.formInput}
@@ -790,9 +806,12 @@ function PreviewRow({ label, value, pill }: { label: string; value: string; pill
  *  BROWSE TAB — list imported users as Spreadsheet Data Grid or Cards
  * ══════════════════════════════════════════════════════════════════ */
 function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onAction: (text: string) => void }) {
+  const T = useSAC();
   const [cat, setCat] = useState<'all' | CatKey>('all');
   const [accountFilter, setAccountFilter] = useState<'all' | 'registered' | 'unregistered' | 'complete'>('all');
   const [q, setQ] = useState('');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(25);
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [showPendingOnly, setShowPendingOnly] = useState(false);
@@ -802,7 +821,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [bulkBusy, setBulkBusy] = useState(false);
 
-  const load = useCallback(async (pageNum = page, limit = perPage) => {
+  const load = useCallback(async () => {
     setBusy(true);
     try {
       const r = await request<any>(`/admin/users/list?category=${cat}&account_filter=${accountFilter}&q=${encodeURIComponent(q)}&limit=200`);
@@ -821,8 +840,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
     } finally { setBusy(false); }
   }, [cat, accountFilter, q]);
   useEffect(() => { load(); }, [load]);
-  
-  const totalPages = data ? Math.ceil((data.total || 0) / perPage) : 1;
+  useEffect(() => { setPage(1); }, [cat, accountFilter, q, showPendingOnly]);
 
   const counts = data?.counts || {};
   const totalDisplay = counts.all ?? 0;
@@ -853,6 +871,8 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
     if (showPendingOnly) list = list.filter((u: any) => !u.approved);
     return list;
   }, [data, showPendingOnly]);
+  const totalPages = Math.max(1, Math.ceil(items.length / perPage));
+  const pageItems = items.slice((page - 1) * perPage, page * perPage);
 
   const approve = async (id: string) => {
     try {
@@ -1034,27 +1054,27 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
       {/* Metric Summary KPI Tiles */}
       <View style={s.summaryStats}>
         <View style={s.sumStat}>
-          <Text style={[s.sumVal, { color: SAC.text }]}>{totalDisplay.toLocaleString()}</Text>
+          <Text style={[s.sumVal, { color: T.text }]}>{totalDisplay.toLocaleString()}</Text>
           <Text style={s.sumLabel}>TOTAL CONTACTS</Text>
         </View>
         <View style={s.sumStat}>
-          <Text style={[s.sumVal, { color: '#22C55E' }]}>{registeredCount.toLocaleString()}</Text>
+          <Text style={[s.sumVal, { color: T.green }]}>{registeredCount.toLocaleString()}</Text>
           <Text style={s.sumLabel}>REGISTERED USERS</Text>
         </View>
         <View style={s.sumStat}>
-          <Text style={[s.sumVal, { color: '#94A3B8' }]}>{nonUserCount.toLocaleString()}</Text>
+          <Text style={[s.sumVal, { color: T.muted }]}>{nonUserCount.toLocaleString()}</Text>
           <Text style={s.sumLabel}>PROSPECTS / NON-USERS</Text>
         </View>
         <View style={s.sumStat}>
-          <Text style={[s.sumVal, { color: CAT.student.color }]}>{studentsDisplay.toLocaleString()}</Text>
+          <Text style={[s.sumVal, { color: getCategoryColor('student', T.text === SAC.text) }]}>{studentsDisplay.toLocaleString()}</Text>
           <Text style={s.sumLabel}>STUDENTS</Text>
         </View>
         <View style={s.sumStat}>
-          <Text style={[s.sumVal, { color: CAT.mentor.color }]}>{mentorsDisplay.toLocaleString()}</Text>
+          <Text style={[s.sumVal, { color: getCategoryColor('mentor', T.text === SAC.text) }]}>{mentorsDisplay.toLocaleString()}</Text>
           <Text style={s.sumLabel}>MENTORS</Text>
         </View>
         <View style={s.sumStat}>
-          <Text style={[s.sumVal, { color: CAT.alumni.color }]}>{alumniDisplay.toLocaleString()}</Text>
+          <Text style={[s.sumVal, { color: getCategoryColor('alumni', T.text === SAC.text) }]}>{alumniDisplay.toLocaleString()}</Text>
           <Text style={s.sumLabel}>ALUMNI</Text>
         </View>
       </View>
@@ -1067,37 +1087,37 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
             <SearchField value={q} onChange={setQ} placeholder="Search name, email, college, SA-ID…" width={240} />
             
             {/* View Mode Toggle: Spreadsheet vs Grid */}
-            <View style={{ flexDirection: 'row', backgroundColor: SAC.cardSolid, borderRadius: 8, padding: 3, borderWidth: 1, borderColor: SAC.border }}>
+            <View style={{ flexDirection: 'row', backgroundColor: T.cardSolid, borderRadius: 8, padding: 3, borderWidth: 1, borderColor: T.border }}>
               <Pressable
                 onPress={() => setViewMode('spreadsheet')}
                 style={[s.viewModeBtn, viewMode === 'spreadsheet' && { backgroundColor: GRAD.to }]}
               >
-                <FileSpreadsheet size={13} color={viewMode === 'spreadsheet' ? '#fff' : SAC.muted} />
-                <Text style={[s.viewModeBtnText, viewMode === 'spreadsheet' && { color: SAC.text }]}>Grid</Text>
+                <FileSpreadsheet size={13} color={viewMode === 'spreadsheet' ? '#fff' : T.muted} />
+                <Text style={[s.viewModeBtnText, viewMode === 'spreadsheet' && { color: '#fff' }]}>Grid</Text>
               </Pressable>
               <Pressable
                 onPress={() => setViewMode('grid')}
                 style={[s.viewModeBtn, viewMode === 'grid' && { backgroundColor: GRAD.to }]}
               >
-                <LayoutGrid size={13} color={viewMode === 'grid' ? '#fff' : SAC.muted} />
-                <Text style={[s.viewModeBtnText, viewMode === 'grid' && { color: SAC.text }]}>Cards</Text>
+                <LayoutGrid size={13} color={viewMode === 'grid' ? '#fff' : T.muted} />
+                <Text style={[s.viewModeBtnText, viewMode === 'grid' && { color: '#fff' }]}>Cards</Text>
               </Pressable>
             </View>
 
             {/* Export CSV Button */}
             <Pressable
               onPress={exportFilteredCsv}
-              style={[s.toggleBtn, { backgroundColor: 'rgba(255,255,255,0.06)' }]}
+              style={[s.toggleBtn, { backgroundColor: T.card }]}
             >
-              <FileDown size={12} color="#fff" />
-              <Text style={[s.toggleBtnText, { color: SAC.text }]}>Export</Text>
+              <FileDown size={12} color={T.violet} />
+              <Text style={[s.toggleBtnText, { color: T.text }]}>Export</Text>
             </Pressable>
 
             <Pressable
               onPress={() => { setSelectMode(!selectMode); if (selectMode) clearSelection(); }}
               style={[s.toggleBtn, selectMode && { borderColor: GRAD.to, backgroundColor: 'rgba(245,158,11,0.10)' }]}
             >
-              <CheckSquare size={11} color={selectMode ? GRAD.to : SAC.muted} />
+              <CheckSquare size={11} color={selectMode ? GRAD.to : T.muted} />
               <Text style={[s.toggleBtnText, selectMode && { color: GRAD.to }]}>
                 {selectMode ? 'Cancel' : 'Select'}
               </Text>
@@ -1106,44 +1126,44 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
         </View>
 
         {/* Account Status Filter Bar (Registered vs Prospects vs Complete info) */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', flexWrap: 'wrap' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: T.line, flexWrap: 'wrap' }}>
           <Text style={[s.sumLabel, { fontSize: 10, marginRight: 4 }]}>SEGREGATION:</Text>
           
           <Pressable
             onPress={() => setAccountFilter('all')}
-            style={[s.toggleBtn, accountFilter === 'all' && { borderColor: '#fff', backgroundColor: 'rgba(255,255,255,0.12)' }]}
+            style={[s.toggleBtn, accountFilter === 'all' && { borderColor: T.violet, backgroundColor: T.tint }]}
           >
-            <Text style={[s.toggleBtnText, accountFilter === 'all' && { color: SAC.text, fontFamily: FONTS.bold }]}>
+            <Text style={[s.toggleBtnText, accountFilter === 'all' && { color: T.violet, fontFamily: FONTS.bold }]}>
               All Contacts ({totalDisplay})
             </Text>
           </Pressable>
 
           <Pressable
             onPress={() => setAccountFilter('registered')}
-            style={[s.toggleBtn, accountFilter === 'registered' && { borderColor: '#22C55E', backgroundColor: 'rgba(34,197,94,0.14)' }]}
+            style={[s.toggleBtn, accountFilter === 'registered' && { borderColor: T.okLine, backgroundColor: T.okTint }]}
           >
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#22C55E', marginRight: 4 }} />
-            <Text style={[s.toggleBtnText, accountFilter === 'registered' && { color: '#86EFAC', fontFamily: FONTS.bold }]}>
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: T.green, marginRight: 4 }} />
+            <Text style={[s.toggleBtnText, accountFilter === 'registered' && { color: T.green, fontFamily: FONTS.bold }]}>
               Registered Users ({registeredCount})
             </Text>
           </Pressable>
 
           <Pressable
             onPress={() => setAccountFilter('unregistered')}
-            style={[s.toggleBtn, accountFilter === 'unregistered' && { borderColor: '#94A3B8', backgroundColor: 'rgba(148,163,184,0.14)' }]}
+            style={[s.toggleBtn, accountFilter === 'unregistered' && { borderColor: T.line2, backgroundColor: T.panel2 }]}
           >
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#94A3B8', marginRight: 4 }} />
-            <Text style={[s.toggleBtnText, accountFilter === 'unregistered' && { color: '#CBD5E1', fontFamily: FONTS.bold }]}>
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: T.dim, marginRight: 4 }} />
+            <Text style={[s.toggleBtnText, accountFilter === 'unregistered' && { color: T.text, fontFamily: FONTS.bold }]}>
               Non-Users / Prospects ({nonUserCount})
             </Text>
           </Pressable>
 
           <Pressable
             onPress={() => setAccountFilter('complete')}
-            style={[s.toggleBtn, accountFilter === 'complete' && { borderColor: '#A78BFA', backgroundColor: 'rgba(167,139,250,0.14)' }]}
+            style={[s.toggleBtn, accountFilter === 'complete' && { borderColor: T.accentLine, backgroundColor: T.tint }]}
           >
-            <Sparkles size={11} color="#C4B5FD" style={{ marginRight: 4 }} />
-            <Text style={[s.toggleBtnText, accountFilter === 'complete' && { color: '#DDD6FE', fontFamily: FONTS.bold }]}>
+            <Sparkles size={11} color={T.violet} style={{ marginRight: 4 }} />
+            <Text style={[s.toggleBtnText, accountFilter === 'complete' && { color: T.violet, fontFamily: FONTS.bold }]}>
               Complete Profiles
             </Text>
           </Pressable>
@@ -1151,10 +1171,10 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
           {pendingCount > 0 && (
             <Pressable
               onPress={() => setShowPendingOnly(!showPendingOnly)}
-              style={[s.toggleBtn, showPendingOnly && { borderColor: '#F59E0B', backgroundColor: 'rgba(245,158,11,0.14)' }]}
+              style={[s.toggleBtn, showPendingOnly && { borderColor: T.warnLine, backgroundColor: T.warnTint }]}
             >
-              <Filter size={11} color="#FBBF24" style={{ marginRight: 4 }} />
-              <Text style={[s.toggleBtnText, { color: '#FBBF24' }]}>
+              <Filter size={11} color={T.amber} style={{ marginRight: 4 }} />
+              <Text style={[s.toggleBtnText, { color: T.amber }]}>
                 Pending Review ({pendingCount})
               </Text>
             </Pressable>
@@ -1181,7 +1201,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
             <View>
               <View style={s.tableHead}>
                 <Pressable onPress={toggleSelectAll} style={{ width: 36, justifyContent: 'center' }}>
-                  {allSelected ? <SquareCheck size={16} color={GRAD.to} /> : <Square size={16} color="rgba(255,255,255,0.4)" />}
+                  {allSelected ? <SquareCheck size={16} color={GRAD.to} /> : <Square size={16} color={T.dim} />}
                 </Pressable>
                 <Text style={[s.th, { width: 100 }]}>SA-ID</Text>
                 <Text style={[s.th, { width: 120 }]}>ACCOUNT</Text>
@@ -1189,10 +1209,10 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                 <Text style={[s.th, { width: 110 }]}>DATA QUALITY</Text>
                 <Text style={[s.th, { width: 210 }]}>NAME & EMAIL</Text>
                 <Text style={[s.th, { width: 100 }]}>CATEGORY</Text>
-                <Text style={[s.th, { width: 170 }]}>JOB ROLE ✎</Text>
-                <Text style={[s.th, { width: 150 }]}>COMPANY ✎</Text>
-                <Text style={[s.th, { width: 120 }]}>LOCATION ✎</Text>
-                <Text style={[s.th, { width: 130 }]}>PHONE ✎</Text>
+                <Text style={[s.th, { width: 170 }]}>JOB ROLE </Text>
+                <Text style={[s.th, { width: 150 }]}>COMPANY </Text>
+                <Text style={[s.th, { width: 120 }]}>LOCATION </Text>
+                <Text style={[s.th, { width: 130 }]}>PHONE </Text>
                 <Text style={[s.th, { width: 90 }]}>LINKEDIN</Text>
                 <Text style={[s.th, { width: 170 }]}>COLLEGE & DEGREE</Text>
                 <Text style={[s.th, { width: 70 }]}>EXP</Text>
@@ -1213,7 +1233,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                     onPress={() => selectMode ? toggleSelect(u.id) : onOpen(u.id)}
                     style={({ hovered }: any) => [
                       s.tableRow,
-                      hovered && { backgroundColor: 'rgba(255,255,255,0.03)' },
+                      hovered && { backgroundColor: T.panel2 },
                       isSelected && { backgroundColor: 'rgba(245,158,11,0.08)' },
                     ]}
                   >
@@ -1224,27 +1244,27 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                     >
                       {isSelected
                         ? <SquareCheck size={16} color={GRAD.to} />
-                        : <Square size={16} color="rgba(255,255,255,0.4)" />}
+                        : <Square size={16} color={T.dim} />}
                     </Pressable>
 
                     {/* SA-ID */}
                     <View style={{ width: 100, justifyContent: 'center' }}>
-                      <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.3)', alignSelf: 'flex-start' }}>
-                        <Text style={{ color: '#FBBF24', fontFamily: FONTS.bold, fontSize: 10 }}>{saId}</Text>
+                      <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: T.warnTint, borderWidth: 1, borderColor: T.warnLine, alignSelf: 'flex-start' }}>
+                        <Text style={{ color: T.amber, fontFamily: FONTS.bold, fontSize: 10 }}>{saId}</Text>
                       </View>
                     </View>
 
                     {/* Account Status */}
                     <View style={{ width: 120, justifyContent: 'center' }}>
                       {isRegistered ? (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: 'rgba(34,197,94,0.12)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.3)', alignSelf: 'flex-start' }}>
-                          <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#22C55E' }} />
-                          <Text style={{ color: '#86EFAC', fontFamily: FONTS.bold, fontSize: 9.5 }}>Registered</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: T.okTint, borderWidth: 1, borderColor: T.okLine, alignSelf: 'flex-start' }}>
+                          <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: T.green }} />
+                          <Text style={{ color: T.green, fontFamily: FONTS.bold, fontSize: 9.5 }}>Registered</Text>
                         </View>
                       ) : (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: 'rgba(148,163,184,0.12)', borderWidth: 1, borderColor: 'rgba(148,163,184,0.25)', alignSelf: 'flex-start' }}>
-                          <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#94A3B8' }} />
-                          <Text style={{ color: '#CBD5E1', fontFamily: FONTS.med, fontSize: 9.5 }}>Imported</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: T.panel2, borderWidth: 1, borderColor: T.line, alignSelf: 'flex-start' }}>
+                          <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: T.dim }} />
+                          <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 9.5 }}>Imported</Text>
                         </View>
                       )}
                     </View>
@@ -1252,20 +1272,20 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                     {/* Tags */}
                     <View style={{ width: 100, justifyContent: 'center', flexDirection: 'row', gap: 4, flexWrap: 'wrap' }}>
                       {(u.tags || []).slice(0, 1).map((t: string) => (
-                        <View key={t} style={{ paddingHorizontal: 5, paddingVertical: 1.5, borderRadius: 4, backgroundColor: 'rgba(168,85,247,0.12)', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)' }}>
-                          <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold, fontSize: 9 }}>{t}</Text>
+                        <View key={t} style={{ paddingHorizontal: 5, paddingVertical: 1.5, borderRadius: 4, backgroundColor: T.tint, borderWidth: 1, borderColor: T.accentLine }}>
+                          <Text style={{ color: T.violet, fontFamily: FONTS.bold, fontSize: 9 }}>{t}</Text>
                         </View>
                       ))}
-                      {(!u.tags || u.tags.length === 0) && <Text style={{ color: SAC.dim, fontSize: 10 }}>—</Text>}
+                      {(!u.tags || u.tags.length === 0) && <Text style={{ color: T.dim, fontSize: 10 }}>—</Text>}
                     </View>
 
                     {/* Completeness Score */}
                     <View style={{ width: 110, justifyContent: 'center' }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                        <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                          <View style={{ width: `${score}%`, height: '100%', backgroundColor: score >= 80 ? '#22C55E' : score >= 50 ? '#F59E0B' : '#64748B' }} />
+                        <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: T.panel2, overflow: 'hidden' }}>
+                          <View style={{ width: `${score}%`, height: '100%', backgroundColor: score >= 80 ? T.green : score >= 50 ? T.amber : T.dim }} />
                         </View>
-                        <Text style={{ color: score >= 80 ? '#86EFAC' : score >= 50 ? '#FCD34D' : '#94A3B8', fontFamily: FONTS.bold, fontSize: 9.5 }}>
+                        <Text style={{ color: score >= 80 ? T.green : score >= 50 ? T.amber : T.muted, fontFamily: FONTS.bold, fontSize: 9.5 }}>
                           {score}%
                         </Text>
                       </View>
@@ -1277,15 +1297,15 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                         colors={[GRAD.from, GRAD.to]}
                         style={{ width: 26, height: 26, borderRadius: 6, alignItems: 'center', justifyContent: 'center' }}
                       >
-                        <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 10 }}>
+                        <Text style={{ color: T.text, fontFamily: FONTS.xbold, fontSize: 10 }}>
                           {(u.first_name?.[0] || u.name?.[0] || 'U').toUpperCase()}
                         </Text>
                       </LinearGradient>
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text numberOfLines={1} style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 11.5 }}>
+                        <Text numberOfLines={1} style={{ color: T.text, fontFamily: FONTS.xbold, fontSize: 11.5 }}>
                           {u.name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || '—'}
                         </Text>
-                        <Text numberOfLines={1} style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 10 }}>
+                        <Text numberOfLines={1} style={{ color: T.dim, fontFamily: FONTS.med, fontSize: 10 }}>
                           {u.email || u.id.slice(-6)}
                         </Text>
                       </View>
@@ -1335,7 +1355,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                           onPress={(e) => { e.stopPropagation(); startInlineEdit(u.id, 'company', u.company); }}
                           style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
                         >
-                          <Text numberOfLines={1} style={[s.td, { width: 135, color: SAC.muted }]}>
+                          <Text numberOfLines={1} style={[s.td, { width: 135, color: T.muted }]}>
                             {u.company || '—'}
                           </Text>
                         </Pressable>
@@ -1358,7 +1378,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                           onPress={(e) => { e.stopPropagation(); startInlineEdit(u.id, 'location', u.location); }}
                           style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
                         >
-                          <Text numberOfLines={1} style={[s.td, { width: 110, color: SAC.muted }]}>
+                          <Text numberOfLines={1} style={[s.td, { width: 110, color: T.muted }]}>
                             {u.location || '—'}
                           </Text>
                         </Pressable>
@@ -1381,7 +1401,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                           onPress={(e) => { e.stopPropagation(); startInlineEdit(u.id, 'phone', u.phone); }}
                           style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
                         >
-                          <Text numberOfLines={1} style={[s.td, { width: 120, color: SAC.muted }]}>
+                          <Text numberOfLines={1} style={[s.td, { width: 120, color: T.muted }]}>
                             {u.phone || '—'}
                           </Text>
                         </Pressable>
@@ -1395,28 +1415,28 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                           onPress={(e) => { e.stopPropagation(); Platform.OS === 'web' ? (window as any).open(u.linkedin_url, '_blank') : Linking.openURL(u.linkedin_url!); }}
                           style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}
                         >
-                          <ExternalLink size={10} color="#60A5FA" />
-                          <Text style={{ color: '#60A5FA', fontFamily: FONTS.med, fontSize: 10.5 }}>Profile</Text>
+                          <ExternalLink size={10} color={T.blue} />
+                          <Text style={{ color: T.blue, fontFamily: FONTS.med, fontSize: 10.5 }}>Profile</Text>
                         </Pressable>
                       ) : (
-                        <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 }}>—</Text>
+                        <Text style={{ color: T.dim, fontFamily: FONTS.med, fontSize: 10.5 }}>—</Text>
                       )}
                     </View>
 
                     {/* College & Degree */}
                     <View style={{ width: 170 }}>
-                      <Text numberOfLines={1} style={[s.td, { width: 170, color: SAC.text, fontSize: 10.5 }]}>
+                      <Text numberOfLines={1} style={[s.td, { width: 170, color: T.text, fontSize: 10.5 }]}>
                         {u.college || '—'}
                       </Text>
                       {u.degree && (
-                        <Text numberOfLines={1} style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 9.5 }}>
+                        <Text numberOfLines={1} style={{ color: T.dim, fontFamily: FONTS.med, fontSize: 9.5 }}>
                           {u.degree}{u.graduation_year ? ` · ${u.graduation_year}` : ''}
                         </Text>
                       )}
                     </View>
 
                     {/* Experience */}
-                    <Text style={[s.td, { width: 70, color: SAC.muted }]}>
+                    <Text style={[s.td, { width: 70, color: T.muted }]}>
                       {u.experience_years != null ? `${u.experience_years}y` : '—'}
                     </Text>
 
@@ -1429,33 +1449,33 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                     <View style={{ width: 160, flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                       <Pressable
                         onPress={(e) => { e.stopPropagation(); onOpen(u.id); }}
-                        style={{ paddingHorizontal: 5, paddingVertical: 2.5, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.06)' }}
+                        style={{ paddingHorizontal: 5, paddingVertical: 2.5, borderRadius: 4, backgroundColor: T.panel2 }}
                       >
-                        <Text style={{ color: SAC.text, fontSize: 10, fontFamily: FONTS.bold }}>View</Text>
+                        <Text style={{ color: T.text, fontSize: 10, fontFamily: FONTS.bold }}>View</Text>
                       </Pressable>
                       {!u.approved ? (
                         <Pressable
                           onPress={(e) => { e.stopPropagation(); approve(u.id); }}
-                          style={{ paddingHorizontal: 5, paddingVertical: 2.5, borderRadius: 4, backgroundColor: 'rgba(34,197,94,0.12)' }}
+                          style={{ paddingHorizontal: 5, paddingVertical: 2.5, borderRadius: 4, backgroundColor: T.okTint }}
                         >
-                          <Text style={{ color: '#22C55E', fontSize: 10, fontFamily: FONTS.bold }}>Approve</Text>
+                          <Text style={{ color: T.green, fontSize: 10, fontFamily: FONTS.bold }}>Approve</Text>
                         </Pressable>
                       ) : (
                         <Pressable
                           onPress={(e) => { e.stopPropagation(); remove(u.id); }}
-                          style={{ paddingHorizontal: 5, paddingVertical: 2.5, borderRadius: 4, backgroundColor: 'rgba(239,68,68,0.1)' }}
+                          style={{ paddingHorizontal: 5, paddingVertical: 2.5, borderRadius: 4, backgroundColor: T.dangerTint }}
                         >
-                          <Text style={{ color: '#EF4444', fontSize: 10, fontFamily: FONTS.bold }}>Remove</Text>
+                          <Text style={{ color: T.danger, fontSize: 10, fontFamily: FONTS.bold }}>Remove</Text>
                         </Pressable>
                       )}
                       {/* Invite Button */}
                       {u.email ? (
                         <Pressable
                           onPress={(e) => { e.stopPropagation(); inviteSingle(u.id, u.email); }}
-                          style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 5, paddingVertical: 2.5, borderRadius: 4, backgroundColor: isInvited ? 'rgba(99,102,241,0.14)' : 'rgba(245,158,11,0.12)' }}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 5, paddingVertical: 2.5, borderRadius: 4, backgroundColor: isInvited ? T.tint : T.warnTint }}
                         >
-                          <Send size={9} color={isInvited ? '#A5B4FC' : '#FBBF24'} />
-                          <Text style={{ color: isInvited ? '#A5B4FC' : '#FBBF24', fontSize: 9.5, fontFamily: FONTS.bold }}>
+                          <Send size={9} color={isInvited ? T.violet : T.amber} />
+                          <Text style={{ color: isInvited ? T.violet : T.amber, fontSize: 9.5, fontFamily: FONTS.bold }}>
                             {isInvited ? 'Resend' : 'Invite'}
                           </Text>
                         </Pressable>
@@ -1467,14 +1487,14 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
             </View>
           </ScrollView>
           <Text style={[s.selectAllText, { textAlign: 'center', paddingVertical: 8 }]}>
-            Showing {items.length} contacts of {totalDisplay} · Double-click cells marked with ✎ to edit inline · Horizontal scroll for full columns
+            Showing {items.length} contacts of {totalDisplay} · Double-click cells marked with  to edit inline · Horizontal scroll for full columns
           </Text>
         </Card>
       ) : (
         /* Grid Cards View */
         <>
           <View style={s.cardGrid}>
-            {items.map((u: any) => (
+            {pageItems.map((u: any) => (
               <View key={u.id} style={s.gridCell}>
                 <View style={selectMode && selected[u.id] ? s.selectedHalo : null}>
                 <ProfileCard
@@ -1509,7 +1529,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                   <Pressable onPress={() => toggleSelect(u.id)} style={s.selectBox}>
                     {selected[u.id]
                       ? <SquareCheck size={20} color={GRAD.to} fill="rgba(245,158,11,0.18)" />
-                      : <Square size={20} color="rgba(255,255,255,0.6)" />}
+                      : <Square size={20} color={T.dim} />}
                   </Pressable>
                 )}
               </View>
@@ -1532,7 +1552,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
               <Text style={s.muted}>per page</Text>
             </View>
             <Text style={s.muted}>
-              Showing {((page - 1) * perPage) + 1}–{Math.min(page * perPage, data?.total || 0)} of {data?.total || 0}
+              Showing {((page - 1) * perPage) + 1}–{Math.min(page * perPage, items.length)} of {items.length}
             </Text>
             <View style={{ flexDirection: 'row', gap: 6 }}>
               <Pressable
@@ -1563,22 +1583,22 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
           </Pressable>
           <View style={{ flex: 1 }} />
           <SecondaryButton onPress={bulkApprove} disabled={bulkBusy}>
-            <ShieldCheck size={12} color={SAC.muted} /><Text style={s.secText}>{bulkBusy ? '…' : 'Approve'}</Text>
+            <ShieldCheck size={12} color={T.muted} /><Text style={s.secText}>{bulkBusy ? '…' : 'Approve'}</Text>
           </SecondaryButton>
           <SecondaryButton onPress={() => setTagModalOpen(true)} disabled={bulkBusy}>
-            <Tag size={12} color={SAC.muted} /><Text style={s.secText}>Add Tag</Text>
+            <Tag size={12} color={T.muted} /><Text style={s.secText}>Add Tag</Text>
           </SecondaryButton>
           <SecondaryButton onPress={bulkInvite} disabled={bulkBusy}>
-            <Send size={12} color="#93C5FD" /><Text style={[s.secText, { color: '#93C5FD' }]}>Send Invites</Text>
+            <Send size={12} color={T.blue} /><Text style={[s.secText, { color: T.blue }]}>Send Invites</Text>
           </SecondaryButton>
           <SecondaryButton onPress={bulkPushToTalent} disabled={bulkBusy}>
-            <Sparkles size={12} color="#FBBF24" /><Text style={[s.secText, { color: '#FBBF24' }]}>To Talent Pool</Text>
+            <Sparkles size={12} color={T.amber} /><Text style={[s.secText, { color: T.amber }]}>To Talent Pool</Text>
           </SecondaryButton>
           <SecondaryButton danger onPress={bulkDelete} disabled={bulkBusy}>
-            <Trash2 size={12} color={'#FCA5A5'} /><Text style={[s.secText, { color: '#FCA5A5' }]}>Delete</Text>
+            <Trash2 size={12} color={T.danger} /><Text style={[s.secText, { color: T.danger }]}>Delete</Text>
           </SecondaryButton>
           <Pressable onPress={clearSelection} style={s.bulkClose}>
-            <X size={13} color="#fff" />
+            <X size={13} color={T.text} />
           </Pressable>
         </Animated.View>
       )}
@@ -1593,7 +1613,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                 <Text style={s.modalTitle}>Tag Selected Profiles</Text>
                 <Text style={s.muted}>Applying tag to {selectedIds.length} candidate record(s)</Text>
               </View>
-              <Pressable onPress={() => setTagModalOpen(false)}><X size={16} color={SAC.muted} /></Pressable>
+              <Pressable onPress={() => setTagModalOpen(false)}><X size={16} color={T.muted} /></Pressable>
             </View>
             <View style={{ padding: 18, gap: 14 }}>
               <View>
@@ -1602,7 +1622,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                   value={tagInput}
                   onChangeText={setTagInput}
                   placeholder="Enter tag name…"
-                  placeholderTextColor={SAC.dim}
+                  placeholderTextColor={T.dim}
                   style={s.textInput}
                 />
               </View>
@@ -1624,6 +1644,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
  *  HISTORY TAB — past import runs
  * ══════════════════════════════════════════════════════════════════ */
 function HistoryTab() {
+  const T = useSAC();
   const [runs, setRuns] = useState<any[] | null>(null);
   const [detail, setDetail] = useState<any>(null);
 
@@ -1657,14 +1678,18 @@ function HistoryTab() {
               <StatusPill kind="success" label={`+${r.added} added`} />
               <StatusPill kind="info"    label={`${r.updated} updated`} />
               {r.skipped > 0 && <StatusPill kind="warn" label={`${r.skipped} skipped`} />}
-              {(['student', 'masters', 'alumni', 'mentor'] as CatKey[]).map((c) => r.by_category?.[c] ? (
-                <View key={c} style={[s.miniPill, { borderColor: CAT[c].color + '55', backgroundColor: CAT[c].color + '15' }]}>
-                  <Text style={[s.miniPillText, { color: CAT[c].color }]}>{CAT[c].label} {r.by_category[c]}</Text>
-                </View>
-              ) : null)}
+              {(['student', 'masters', 'alumni', 'mentor'] as CatKey[]).map((c) => {
+                if (!r.by_category?.[c]) return null;
+                const color = getCategoryColor(c, T.text === SAC.text);
+                return (
+                  <View key={c} style={[s.miniPill, { borderColor: color + '55', backgroundColor: color + '15' }]}>
+                    <Text style={[s.miniPillText, { color }]}>{CAT[c].label} {r.by_category[c]}</Text>
+                  </View>
+                );
+              })}
             </View>
           </View>
-          <ChevronRight size={14} color={SAC.dim} />
+          <ChevronRight size={14} color={T.dim} />
         </Pressable>
       ))}
 
@@ -1678,14 +1703,14 @@ function HistoryTab() {
                 <Text style={s.modalTitle}>{detail?.filename}</Text>
                 <Text style={s.muted}>{detail && new Date(detail.at).toLocaleString()}</Text>
               </View>
-              <Pressable onPress={() => setDetail(null)}><X size={16} color={SAC.muted} /></Pressable>
+              <Pressable onPress={() => setDetail(null)}><X size={16} color={T.muted} /></Pressable>
             </View>
             <View style={{ padding: 18, gap: 10 }}>
               <View style={s.resultGrid}>
-                <View style={s.resultTile}><Text style={s.miniLabel}>ADDED</Text><Text style={[s.kpiVal, { color: SAC.green }]}>{detail?.added}</Text></View>
-                <View style={s.resultTile}><Text style={s.miniLabel}>UPDATED</Text><Text style={[s.kpiVal, { color: '#93C5FD' }]}>{detail?.updated}</Text></View>
-                <View style={s.resultTile}><Text style={s.miniLabel}>SKIPPED</Text><Text style={[s.kpiVal, { color: '#FBBF24' }]}>{detail?.skipped}</Text></View>
-                <View style={s.resultTile}><Text style={s.miniLabel}>TOTAL</Text><Text style={[s.kpiVal, { color: '#F4F4FA' }]}>{detail?.total}</Text></View>
+                <View style={s.resultTile}><Text style={s.miniLabel}>ADDED</Text><Text style={[s.kpiVal, { color: T.green }]}>{detail?.added}</Text></View>
+                <View style={s.resultTile}><Text style={s.miniLabel}>UPDATED</Text><Text style={[s.kpiVal, { color: T.blue }]}>{detail?.updated}</Text></View>
+                <View style={s.resultTile}><Text style={s.miniLabel}>SKIPPED</Text><Text style={[s.kpiVal, { color: T.amber }]}>{detail?.skipped}</Text></View>
+                <View style={s.resultTile}><Text style={s.miniLabel}>TOTAL</Text><Text style={[s.kpiVal, { color: T.text }]}>{detail?.total}</Text></View>
               </View>
               {(detail?.skipped_rows || []).length > 0 && (
                 <View>
@@ -1694,7 +1719,7 @@ function HistoryTab() {
                     {(detail?.skipped_rows || []).map((sr: any, i: number) => (
                       <View key={i} style={s.skipRow}>
                         <Text style={s.muted}>Row {sr.row}{sr.email ? ` · ${sr.email}` : ''}</Text>
-                        <Text style={[s.muted, { color: '#FCA5A5', flex: 1, textAlign: 'right' }]} numberOfLines={1}>{sr.reason}</Text>
+                        <Text style={[s.muted, { color: T.danger, flex: 1, textAlign: 'right' }]} numberOfLines={1}>{sr.reason}</Text>
                       </View>
                     ))}
                   </ScrollView>
@@ -1712,6 +1737,8 @@ function HistoryTab() {
  *  PROFILE DETAIL PANEL (side-drawer modal)
  * ══════════════════════════════════════════════════════════════════ */
 function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onClose: () => void; onSaved: () => void }) {
+  const T = useSAC();
+  const isDark = T.text === SAC.text;
   const [data, setData] = useState<any>(null);
   const [edit, setEdit] = useState(false);
   const [draft, setDraft] = useState<any>({});
@@ -1750,8 +1777,8 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
             <>
               {/* Header */}
               <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
-                <View style={[s.avatarLg, { borderColor: (CAT[data.category as CatKey]?.color || GRAD.to) + '88' }]}>
-                  <Text style={[s.avatarLgText, { color: CAT[data.category as CatKey]?.color || GRAD.to }]}>
+                <View style={[s.avatarLg, { borderColor: (data.category && CAT[data.category as CatKey] ? getCategoryColor(data.category as CatKey, isDark) : GRAD.to) + '88' }]}>
+                  <Text style={[s.avatarLgText, { color: data.category && CAT[data.category as CatKey] ? getCategoryColor(data.category as CatKey, isDark) : GRAD.to }]}>
                     {(data.full_name || '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()}
                   </Text>
                 </View>
@@ -1763,7 +1790,7 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
                   </View>
                   {!!data.designation && <Text style={[s.muted, { marginTop: 4 }]}>{data.designation}{data.company ? ` @ ${data.company}` : ''}</Text>}
                 </View>
-                <Pressable onPress={onClose}><X size={16} color={SAC.muted} /></Pressable>
+                <Pressable onPress={onClose}><X size={16} color={T.muted} /></Pressable>
               </LinearGradient>
 
               <ScrollView style={{ maxHeight: 520 }} contentContainerStyle={{ padding: 20, gap: 16 }}>
@@ -1825,7 +1852,7 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
                         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                           {(['student', 'masters', 'alumni', 'mentor'] as CatKey[]).map((c) => (
                             <Pressable key={c} onPress={() => setDraft({ ...draft, category: c })}
-                              style={[s.catPick, (draft.category || data.category) === c && { borderColor: CAT[c].color, backgroundColor: CAT[c].color + '22' }]}>
+                              style={[s.catPick, (draft.category || data.category) === c && { borderColor: getCategoryColor(c, isDark), backgroundColor: getCategoryColor(c, isDark) + '22' }]}>
                               <CategoryBadge cat={c} small />
                             </Pressable>
                           ))}
@@ -1847,8 +1874,8 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
                             onSaved();
                           } catch {}
                         }}>
-                          <Send size={12} color="#93C5FD" />
-                          <Text style={[s.secText, { color: '#93C5FD' }]}>Send Invite</Text>
+                          <Send size={12} color={T.blue} />
+                          <Text style={[s.secText, { color: T.blue }]}>Send Invite</Text>
                         </SecondaryButton>
                       ) : null}
                       <SecondaryButton onPress={async () => {
@@ -1857,16 +1884,16 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
                           onSaved();
                         } catch {}
                       }}>
-                        <Sparkles size={12} color="#FBBF24" />
-                        <Text style={[s.secText, { color: '#FBBF24' }]}>To Talent Pool</Text>
+                        <Sparkles size={12} color={T.amber} />
+                        <Text style={[s.secText, { color: T.amber }]}>To Talent Pool</Text>
                       </SecondaryButton>
                       <SecondaryButton onPress={() => setEdit(true)}>
-                        <Pencil size={12} color={SAC.muted} />
+                        <Pencil size={12} color={T.muted} />
                         <Text style={s.secText}>Edit</Text>
                       </SecondaryButton>
                       <SecondaryButton danger onPress={() => setConfirmDel(true)}>
-                        <Trash2 size={12} color={'#FCA5A5'} />
-                        <Text style={[s.secText, { color: '#FCA5A5' }]}>Delete</Text>
+                        <Trash2 size={12} color={T.danger} />
+                        <Text style={[s.secText, { color: T.danger }]}>Delete</Text>
                       </SecondaryButton>
                     </>
                   ) : (
@@ -1883,9 +1910,9 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
                 </View>
 
                 {confirmDel && (
-                  <View style={[s.warnBox, { borderColor: SAC.red, backgroundColor: 'rgba(239,68,68,0.08)' }]}>
-                    <AlertTriangle size={13} color={'#FCA5A5'} />
-                    <Text style={[s.muted, { color: '#FCA5A5', flex: 1 }]}>
+                  <View style={[s.warnBox, { borderColor: T.red, backgroundColor: T.dangerTint }]}>
+                    <AlertTriangle size={13} color={T.danger} />
+                    <Text style={[s.muted, { color: T.danger, flex: 1 }]}>
                       Permanently delete this profile?
                     </Text>
                     <SecondaryButton size="sm" onPress={() => setConfirmDel(false)}>
@@ -1906,9 +1933,10 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
 }
 
 function DetailRow({ Icon, label, value }: { Icon: any; label: string; value: string }) {
+  const T = useSAC();
   return (
     <View style={s.detailRow}>
-      <Icon size={13} color={SAC.muted} />
+      <Icon size={13} color={T.muted} />
       <Text style={s.detailLabel}>{label}</Text>
       <Text style={s.detailValue} numberOfLines={2}>{value}</Text>
     </View>
@@ -1916,24 +1944,26 @@ function DetailRow({ Icon, label, value }: { Icon: any; label: string; value: st
 }
 
 function LinkRow({ Icon, label, value, href }: { Icon: any; label: string; value: string; href?: string }) {
+  const T = useSAC();
   const open = () => { if (href) Linking.openURL(href).catch(() => {}); };
   return (
     <Pressable onPress={href ? open : undefined} style={s.detailRow}>
-      <Icon size={13} color={SAC.muted} />
+      <Icon size={13} color={T.muted} />
       <Text style={s.detailLabel}>{label}</Text>
-      <Text style={[s.detailValue, href && { color: GRAD.to, textDecorationLine: 'underline' }]} numberOfLines={1}>{value}</Text>
-      {href && <ExternalLink size={11} color={GRAD.to} />}
+      <Text style={[s.detailValue, href && { color: T.blue, textDecorationLine: 'underline' }]} numberOfLines={1}>{value}</Text>
+      {href && <ExternalLink size={11} color={T.blue} />}
     </Pressable>
   );
 }
 
 function EditRow({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const T = useSAC();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
       <Text style={[s.detailLabel, { width: 120 }]}>{label}</Text>
       <TextInput
         value={value || ''} onChangeText={onChange}
-        placeholderTextColor={SAC.dim}
+        placeholderTextColor={T.dim}
         style={s.formInput}
       />
     </View>
@@ -1945,10 +1975,10 @@ function EditRow({ label, value, onChange }: { label: string; value: string; onC
  * ────────────────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
   sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
-  err: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 },
+  err: { color: SAC.danger, fontFamily: FONTS.bold, fontSize: 12 },
   
   // Stats row
   statsRow: {
@@ -1956,7 +1986,7 @@ const s = StyleSheet.create({
   },
   statCard: {
     flex: 1, minWidth: 120, flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: SAC.cardSolid, borderRadius: 12, borderWidth: 1, borderColor: SAC.border,
+    backgroundColor: SAC.card, borderRadius: 12, borderWidth: 1, borderColor: SAC.border,
     padding: 12,
   },
   statIcon: {
@@ -1978,17 +2008,17 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ transitionDuration: '150ms' } as any) : {}),
   },
   dropIcon: { width: 56, height: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  dropTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15, marginTop: 6 },
+  dropTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15, marginTop: 6 },
   dropSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 
   summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  fileName: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 14 },
+  fileName: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 14 },
   summaryStats: {
     flexDirection: 'row', gap: 8, marginTop: 14, flexWrap: 'wrap',
   },
   sumStat: {
     flex: 1, minWidth: 80, paddingVertical: 10, paddingHorizontal: 12,
-    backgroundColor: SAC.cardSolid, borderRadius: 10, borderColor: SAC.border, borderWidth: 1,
+    backgroundColor: SAC.card, borderRadius: 10, borderColor: SAC.border, borderWidth: 1,
     alignItems: 'center', gap: 2,
   },
   sumVal: { fontFamily: FONTS.xbold, fontSize: 18 },
@@ -1997,12 +2027,12 @@ const s = StyleSheet.create({
   mapRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
   mapSrc: { color: SAC.text, fontFamily: FONTS.med, fontSize: 12, width: 220,
     ...(Platform.OS === 'web' ? ({ fontFamily: 'SpaceMono, "SF Mono", monospace' } as any) : {}) },
-  mapUnused: { backgroundColor: 'rgba(255,255,255,0.04)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, borderWidth: 1, borderColor: SAC.border },
+  mapUnused: { backgroundColor: SAC.panel2, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, borderWidth: 1, borderColor: SAC.border },
   mapUnusedText: { color: SAC.dim, fontFamily: FONTS.bold, fontSize: 10.5 },
 
   tableHead: {
     flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 10,
-    backgroundColor: 'rgba(255,255,255,0.03)', borderBottomWidth: 1, borderBottomColor: SAC.border,
+    backgroundColor: SAC.panel2, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
   th: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.2, paddingRight: 10 },
   tableRow: {
@@ -2010,10 +2040,10 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
   tableRowErr: { backgroundColor: 'rgba(239,68,68,0.04)' },
-  td: { color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 11.5, paddingRight: 10 },
+  td: { color: SAC.text, fontFamily: FONTS.med, fontSize: 11.5, paddingRight: 10 },
 
   commitRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
-  commitTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13 },
+  commitTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13 },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   checkBox: { width: 16, height: 16, borderRadius: 5, borderWidth: 1.4, borderColor: SAC.border2, alignItems: 'center', justifyContent: 'center' },
   checkLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5 },
@@ -2024,7 +2054,7 @@ const s = StyleSheet.create({
   formField: { flex: 1, minWidth: 180, gap: 6 },
   formLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
   formInput: {
-    color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
+    color: SAC.text, fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
     paddingHorizontal: 12, paddingVertical: 10,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
@@ -2033,7 +2063,7 @@ const s = StyleSheet.create({
   previewRule: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, borderRadius: 9, backgroundColor: 'rgba(245,158,11,0.08)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)' },
   previewRuleText: { color: GRAD.to, fontFamily: FONTS.xbold, fontSize: 11.5, flex: 1 },
   previewLbl: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
-  previewVal: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
+  previewVal: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
   warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(251,191,36,0.08)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.30)' },
 
   // Browse
@@ -2066,7 +2096,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6,
     borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', backgroundColor: 'rgba(239,68,68,0.1)',
   },
-  clearBtnText: { color: '#F87171', fontFamily: FONTS.bold, fontSize: 11 },
+  clearBtnText: { color: SAC.danger, fontFamily: FONTS.bold, fontSize: 11 },
   removeFileBtn: {
     width: 28, height: 28, borderRadius: 14,
     backgroundColor: 'rgba(239,68,68,0.1)', alignItems: 'center', justifyContent: 'center',
@@ -2087,7 +2117,7 @@ const s = StyleSheet.create({
     borderColor: GRAD.from, backgroundColor: 'rgba(124,58,237,0.15)',
   },
   perPageText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
-  perPageTextActive: { color: '#C4B5FD' },
+  perPageTextActive: { color: SAC.violet },
   pageBtn: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
     borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
@@ -2113,19 +2143,19 @@ const s = StyleSheet.create({
     marginHorizontal: 'auto', maxWidth: 880,
     flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap',
     paddingHorizontal: 18, paddingVertical: 12,
-    backgroundColor: '#1A0E04', borderColor: 'rgba(251,146,60,0.45)', borderWidth: 1,
+    backgroundColor: SAC.card, borderColor: SAC.border2, borderWidth: 1,
     borderRadius: 14,
     ...(Platform.OS === 'web' ? ({
       boxShadow: '0 18px 50px rgba(0,0,0,0.65), 0 0 0 4px rgba(251,146,60,0.10)',
       position: 'sticky' as any, bottom: 18,
     } as any) : {}),
   },
-  bulkText:   { color: '#F4F4FA',  fontFamily: FONTS.xbold, fontSize: 13 },
+  bulkText:   { color: SAC.text,  fontFamily: FONTS.xbold, fontSize: 13 },
   bulkLinkBtn:{ ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   bulkLink:   { color: GRAD.to, fontFamily: FONTS.bold,  fontSize: 12 },
   bulkClose: {
     width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: SAC.panel2,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
@@ -2137,7 +2167,7 @@ const s = StyleSheet.create({
   },
   avatar: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   avatarInit: { fontFamily: FONTS.xbold, fontSize: 12.5 },
-  userName: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13 },
+  userName: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13 },
 
   // History
   runCard: {
@@ -2167,11 +2197,11 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
-  modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
+  modalTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
   modalLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
 
   resultGrid: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  resultTile: { flex: 1, minWidth: 100, padding: 12, borderRadius: 10, backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', gap: 2 },
+  resultTile: { flex: 1, minWidth: 100, padding: 12, borderRadius: 10, backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', gap: 2 },
   skipRow: { flexDirection: 'row', gap: 10, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: SAC.border },
 
   // Profile panel
@@ -2180,13 +2210,13 @@ const s = StyleSheet.create({
 
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 130 },
-  detailValue: { color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
+  detailValue: { color: SAC.text, fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   catPick: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, marginRight: 6, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
   actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
   destructiveBtn: { backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
-  btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
+  btnText: { color: SAC.accentText, fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   inlineInput: {
     backgroundColor: SAC.panel2,
@@ -2200,7 +2230,7 @@ const s = StyleSheet.create({
     fontFamily: FONTS.med,
   },
   textInput: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: SAC.panel2,
     borderColor: SAC.border,
     borderWidth: 1,
     borderRadius: 8,

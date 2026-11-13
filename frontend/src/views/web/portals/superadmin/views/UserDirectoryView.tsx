@@ -18,16 +18,17 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
   Users, GraduationCap, UserCheck, Sparkles, Briefcase, X, Check,
   Pencil, Trash2, ShieldCheck, ShieldOff, RefreshCw, AlertTriangle,
-  Filter, Mail, Phone, MapPin, Building2, ExternalLink, Calendar, FileText,
+  Filter, Mail, Phone, MapPin, Building2, ExternalLink, Calendar, FileText, Search,
   SquareCheck, Square, CheckSquare, LayoutGrid, List, FileDown, Eye, Copy,
   CheckCircle2, Clock, Target, ChevronRight,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { useTheme } from '@/src/theme/ThemeContext';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
-  TopTabs, SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox, KpiTile,
+  TopTabs, StatusPill, Toast, useToast, EmptyState, LoadingBox, KpiTile,
 } from '../applekit';
 import { request } from '@/src/models/services/api';
 import { ProfileCard, ProfileCardSkeleton } from './ProfileCard';
@@ -56,6 +57,7 @@ export function UserDirectoryView({
   showCategoryTabs?: boolean;
 }) {
   const T = useSAC();
+  const { isDark } = useTheme();
   Object.assign(st, resolveColors(st, T));
   const meta = CAT_META[category];
   const [cat, setCat] = useState<Cat>(category);
@@ -235,8 +237,8 @@ export function UserDirectoryView({
         <View style={st.headRow}>
           <IconBox size={38}><Icon size={18} color={GRAD.to} /></IconBox>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={st.title}>{title || meta.label + 's'}</Text>
-            <Text style={st.sub}>
+            <Text style={[st.title, { color: isDark ? '#F8FAFC' : '#0F172A' }]}>{title || meta.label + 's'}</Text>
+            <Text style={[st.sub, { color: isDark ? '#94A3B8' : '#475569' }]}>
               {subtitle || `Browse and manage ${meta.label.toLowerCase()} profiles imported into the system. Approve new arrivals, disable inactive ones, or restore any previously archived record.`}
             </Text>
           </View>
@@ -245,10 +247,10 @@ export function UserDirectoryView({
 
       {/* KPI strip */}
       <View style={st.kpiRow}>
-        <KpiTile Icon={Users}          label="TOTAL"             value={String(counts.all || 0)} />
-        <KpiTile Icon={ShieldCheck}    label="APPROVED"          value={String((counts.all || 0) - pendingCount)} delta="active" deltaKind="success" />
-        <KpiTile Icon={AlertTriangle}  label="PENDING APPROVAL"  value={String(pendingCount)} delta={pendingCount > 0 ? 'review' : 'all clear'} deltaKind={pendingCount > 0 ? 'warn' : 'success'} />
-        <KpiTile Icon={Sparkles}       label="NEW (THIS WEEK)"   value={String(Math.min(pendingCount, counts.all || 0))} />
+        <KpiTile Icon={Users} label="TOTAL" value={String(counts.all || 0)} />
+        <KpiTile Icon={ShieldCheck} label="APPROVED" value={String((counts.all || 0) - pendingCount)} delta="active" deltaKind="success" />
+        <KpiTile Icon={AlertTriangle} label="PENDING APPROVAL" value={String(pendingCount)} delta={pendingCount > 0 ? 'review' : 'all clear'} deltaKind={pendingCount > 0 ? 'warn' : 'success'} />
+        <KpiTile Icon={Sparkles} label="NEW (THIS WEEK)" value={String(Math.min(pendingCount, counts.all || 0))} />
       </View>
 
       {/* Toolbar: Tabs + Search + View Switcher + Actions */}
@@ -258,7 +260,19 @@ export function UserDirectoryView({
             <TopTabs<Cat> tabs={directoryTabs as any} active={cat} onChange={setCat} />
           ) : null}
 
-          <SearchField value={q} onChange={setQ} placeholder={`Search ${meta.label.toLowerCase()}s by name, email, college…`} width={300} />
+          <View style={[st.directorySearch, {
+            backgroundColor: isDark ? '#0F172A' : '#FFFFFF',
+            borderColor: isDark ? '#1E293B' : '#E2E8F0',
+          }]}>
+            <Search size={14} color={isDark ? '#94A3B8' : '#64748B'} />
+            <TextInput
+              value={q}
+              onChangeText={setQ}
+              placeholder={`Search ${meta.label.toLowerCase()}s by name, email, college...`}
+              placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
+              style={[st.directorySearchInput, { color: isDark ? '#FFFFFF' : '#0F172A' }]}
+            />
+          </View>
 
           {/* View Mode Switcher (Grid vs Table) */}
           <View style={st.viewSwitcher}>
@@ -266,20 +280,26 @@ export function UserDirectoryView({
               <Pressable
                 accessibilityLabel="Switch to Card Grid View"
                 onPress={() => setViewMode('grid')}
-                style={[st.viewModeBtn, viewMode === 'grid' && st.viewModeBtnActive]}
+                style={({ hovered }: any) => [st.viewModeBtn, {
+                  backgroundColor: viewMode === 'grid' ? GRAD.to : (isDark ? (hovered ? '#334155' : '#1E293B') : (hovered ? '#F1F5F9' : '#F8FAFC')),
+                  borderColor: isDark ? '#334155' : '#E2E8F0',
+                }]}
               >
-                <LayoutGrid size={13} color={viewMode === 'grid' ? '#fff' : SAC.muted} />
-                <Text style={[st.viewModeBtnText, viewMode === 'grid' && { color: '#fff' }]}>Grid</Text>
+                <LayoutGrid size={13} color={viewMode === 'grid' ? '#fff' : (isDark ? '#CBD5E1' : '#334155')} />
+                <Text style={[st.viewModeBtnText, { color: viewMode === 'grid' ? '#fff' : (isDark ? '#CBD5E1' : '#334155') }]}>Grid</Text>
               </Pressable>
             </ActionTooltip>
             <ActionTooltip text="Switch to Data Table View">
               <Pressable
                 accessibilityLabel="Switch to Data Table View"
                 onPress={() => setViewMode('table')}
-                style={[st.viewModeBtn, viewMode === 'table' && st.viewModeBtnActive]}
+                style={({ hovered }: any) => [st.viewModeBtn, {
+                  backgroundColor: viewMode === 'table' ? GRAD.to : (isDark ? (hovered ? '#334155' : '#1E293B') : (hovered ? '#F1F5F9' : '#F8FAFC')),
+                  borderColor: isDark ? '#334155' : '#E2E8F0',
+                }]}
               >
-                <List size={13} color={viewMode === 'table' ? '#fff' : SAC.muted} />
-                <Text style={[st.viewModeBtnText, viewMode === 'table' && { color: '#fff' }]}>Table</Text>
+                <List size={13} color={viewMode === 'table' ? '#fff' : (isDark ? '#CBD5E1' : '#334155')} />
+                <Text style={[st.viewModeBtnText, { color: viewMode === 'table' ? '#fff' : (isDark ? '#CBD5E1' : '#334155') }]}>Table</Text>
               </Pressable>
             </ActionTooltip>
           </View>
@@ -289,10 +309,13 @@ export function UserDirectoryView({
             <Pressable
               accessibilityLabel="Export filtered student directory to CSV"
               onPress={() => setShowExportModal(true)}
-              style={st.toggleBtn}
+              style={({ hovered }: any) => [st.toggleBtn, {
+                backgroundColor: isDark ? (hovered ? '#334155' : '#1E293B') : (hovered ? '#F1F5F9' : '#F8FAFC'),
+                borderColor: isDark ? '#334155' : '#E2E8F0',
+              }]}
             >
-              <FileDown size={12} color={SAC.muted} />
-              <Text style={st.toggleBtnText}>Export CSV</Text>
+              <FileDown size={12} color={isDark ? '#CBD5E1' : '#334155'} />
+              <Text style={[st.toggleBtnText, { color: isDark ? '#CBD5E1' : '#334155' }]}>Export CSV</Text>
             </Pressable>
           </ActionTooltip>
 
@@ -301,10 +324,15 @@ export function UserDirectoryView({
             <Pressable
               accessibilityLabel={selectMode ? "Cancel multi-select mode" : "Enable multi-select mode for bulk actions"}
               onPress={() => { setSelectMode(!selectMode); if (selectMode) clearSelection(); }}
-              style={[st.toggleBtn, selectMode && { borderColor: GRAD.to, backgroundColor: 'rgba(245,158,11,0.10)' }]}
+              style={({ hovered }: any) => [st.toggleBtn, {
+                backgroundColor: selectMode
+                  ? (isDark ? 'rgba(245,158,11,0.15)' : '#FFFBEB')
+                  : (isDark ? (hovered ? '#334155' : '#1E293B') : (hovered ? '#F1F5F9' : '#F8FAFC')),
+                borderColor: selectMode ? (isDark ? 'rgba(245,158,11,0.3)' : '#FDE68A') : (isDark ? '#334155' : '#E2E8F0'),
+              }]}
             >
-              <CheckSquare size={11} color={selectMode ? GRAD.to : SAC.muted} />
-              <Text style={[st.toggleBtnText, selectMode && { color: GRAD.to }]}>
+              <CheckSquare size={11} color={selectMode ? (isDark ? '#FCD34D' : '#B45309') : (isDark ? '#CBD5E1' : '#334155')} />
+              <Text style={[st.toggleBtnText, { color: selectMode ? (isDark ? '#FCD34D' : '#B45309') : (isDark ? '#CBD5E1' : '#334155') }]}>
                 {selectMode ? 'Cancel' : 'Select'}
               </Text>
             </Pressable>
@@ -316,10 +344,13 @@ export function UserDirectoryView({
               <Pressable
                 accessibilityLabel={pendingOnly ? "Showing accounts pending approval" : "Filter by accounts pending approval"}
                 onPress={() => setPendingOnly(!pendingOnly)}
-                style={st.toggleBtn}
+                style={({ hovered }: any) => [st.toggleBtn, {
+                  backgroundColor: isDark ? (hovered ? '#334155' : '#1E293B') : (hovered ? '#F1F5F9' : '#F8FAFC'),
+                  borderColor: isDark ? '#334155' : '#E2E8F0',
+                }]}
               >
-                <Filter size={11} color={pendingOnly ? GRAD.to : SAC.muted} />
-                <Text style={[st.toggleBtnText, pendingOnly && { color: GRAD.to }]}>
+                <Filter size={11} color={pendingOnly ? (isDark ? '#FCD34D' : '#B45309') : (isDark ? '#CBD5E1' : '#334155')} />
+                <Text style={[st.toggleBtnText, { color: pendingOnly ? (isDark ? '#FCD34D' : '#B45309') : (isDark ? '#CBD5E1' : '#334155') }]}>
                   {pendingOnly ? 'Showing pending' : 'Show pending'}
                 </Text>
               </Pressable>
@@ -462,6 +493,7 @@ function ActionTooltip({
   align?: 'center' | 'right' | 'left';
 }) {
   const [hovered, setHovered] = useState(false);
+  const { isDark } = useTheme();
 
   if (!text) return <>{children}</>;
 
@@ -479,12 +511,26 @@ function ActionTooltip({
           style={[
             st.customTooltip,
             position === 'top' ? st.tooltipTop : st.tooltipBottom,
+            {
+              backgroundColor: isDark ? '#1e293b' : '#ffffff',
+              borderColor: isDark ? '#334155' : '#cbd5e1',
+              borderWidth: 1,
+              shadowColor: '#0f172a',
+              shadowOpacity: 0.08,
+              shadowRadius: 6,
+              shadowOffset: { width: 0, height: 2 },
+              ...(Platform.OS === 'web' ? ({
+                boxShadow: isDark
+                  ? '0 4px 12px rgba(15,23,42,0.24)'
+                  : '0 4px 12px rgba(15,23,42,0.08)',
+              } as any) : {}),
+            },
             align === 'right' ? { right: 0, alignItems: 'flex-end' } :
             align === 'left' ? { left: 0, alignItems: 'flex-start' } :
             { alignSelf: 'center' },
           ]}
         >
-          <Text style={st.customTooltipText} numberOfLines={1}>
+          <Text style={[st.customTooltipText, { color: isDark ? '#f8fafc' : '#0f172a' }]} numberOfLines={1}>
             {text}
           </Text>
         </View>
@@ -643,7 +689,7 @@ function UserDirectoryTable({
                 <View style={{ width: 150, paddingHorizontal: 8 }}>
                   {u.career_path ? (
                     <View style={st.careerPill}>
-                      <Text style={st.careerPillText} numberOfLines={1}>🎯 {u.career_path}</Text>
+                      <Text style={st.careerPillText} numberOfLines={1}> {u.career_path}</Text>
                     </View>
                   ) : (
                     <Text style={{ color: SAC.muted, fontSize: 11.5, fontFamily: FONTS.med }}>—</Text>
@@ -654,7 +700,7 @@ function UserDirectoryTable({
                 <View style={{ width: 160, paddingHorizontal: 8, gap: 4 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Text style={{ color: u.onboarding_completed ? '#86EFAC' : '#FCD34D', fontSize: 10, fontFamily: FONTS.bold }}>
-                      {u.onboarding_completed ? '✓ Onboarded' : '⏳ Incomplete'}
+                      {u.onboarding_completed ? ' Onboarded' : ' Incomplete'}
                     </Text>
                     <Text style={{ color: SAC.text, fontSize: 10.5, fontFamily: FONTS.xbold }}>{completion}%</Text>
                   </View>
@@ -820,6 +866,7 @@ function ProfileCardWithActions({ user, onView, onApprove, onDisable, onRestore,
           onViewProfile={onView}
           onApprove={!user.approved && !user.disabled ? onApprove : undefined}
           onRemove={onRemove}
+          reserveTopRightMenu
         />
       </View>
 
@@ -1243,6 +1290,15 @@ const st = StyleSheet.create({
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
   kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
   browseHead: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
+  directorySearch: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    flex: 1, minWidth: 230, maxWidth: 360, height: 36,
+    paddingHorizontal: 11, borderWidth: 1, borderRadius: 10,
+  },
+  directorySearchInput: {
+    flex: 1, minWidth: 0, fontFamily: FONTS.med, fontSize: 12,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
 
   /* View Switcher */
   viewSwitcher: {
@@ -1650,13 +1706,10 @@ const st = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4.5,
     borderRadius: 6,
-    backgroundColor: '#1A0E04',
     borderWidth: 1,
-    borderColor: 'rgba(251,146,60,0.40)',
     zIndex: 99999,
     minWidth: 40,
     ...(Platform.OS === 'web' ? ({
-      boxShadow: '0 8px 22px rgba(0,0,0,0.85), 0 0 0 1px rgba(251,146,60,0.18)',
       whiteSpace: 'nowrap',
       pointerEvents: 'none',
       userSelect: 'none',
@@ -1671,7 +1724,6 @@ const st = StyleSheet.create({
     marginTop: 7,
   },
   customTooltipText: {
-    color: '#FDBA74',
     fontFamily: FONTS.bold,
     fontSize: 11,
     letterSpacing: 0.1,

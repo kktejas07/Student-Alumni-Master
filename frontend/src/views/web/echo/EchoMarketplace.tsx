@@ -448,7 +448,7 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
                     <div style={{ fontSize: 14, color: fg }}>{qty}x {item.name}</div>
                     {item.vendor_name && (
                       <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                        {isCouponAppliedToItem && <span style={{ color: '#10B981', marginRight: 4 }}>✓</span>}
+                        {isCouponAppliedToItem && <span style={{ color: '#10B981', marginRight: 4 }}></span>}
                         {item.vendor_name}
                       </div>
                     )}

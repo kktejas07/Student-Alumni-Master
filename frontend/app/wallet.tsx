@@ -648,7 +648,7 @@ export default function WalletScreen() {
             </View>
           </View>
           <Text style={[s.kpiValue, { color: colors.kpiValue }]}>{fmtINR(balanceInr)}</Text>
-          <Text style={[s.kpiSubText, { color: colors.textSub }]}>✦ {fmtCredits(balancePts)} SA Credits</Text>
+          <Text style={[s.kpiSubText, { color: colors.textSub }]}> {fmtCredits(balancePts)} SA Credits</Text>
         </View>
 
         {/* Card 2: Rewards Level */}
@@ -788,7 +788,7 @@ export default function WalletScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colors.text, fontSize: 13, fontFamily: FT.bold }}>
-                    Hi {studentName}! 👋 I'm your Money Coach.
+                    Hi {studentName}!  I'm your Money Coach.
                   </Text>
                   <Text style={{ color: colors.textSub, fontSize: 11.5, fontFamily: FT.reg, marginTop: 2 }}>
                     Ask me anything about your credits, savings, or spending patterns.
@@ -823,12 +823,12 @@ export default function WalletScreen() {
                 <Text style={{ color: colors.kpiLabel, fontSize: 10.5, fontFamily: FT.bold, letterSpacing: 0.8 }}>TRY A COMMAND</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                   {[
-                    { cmd: '/credit-plan', label: '🚀 Credit Plan' },
-                    { cmd: '/spend',       label: '📊 Spending' },
-                    { cmd: '/forecast',    label: '📅 Forecast' },
-                    { cmd: '/save 5000',   label: '🐷 Save ₹5K' },
-                    { cmd: '/cashback',    label: '💳 Cashback' },
-                    { cmd: '/tax',         label: '🧾 Tax Summary' },
+                    { cmd: '/credit-plan', label: ' Credit Plan' },
+                    { cmd: '/spend',       label: ' Spending' },
+                    { cmd: '/forecast',    label: ' Forecast' },
+                    { cmd: '/save 5000',   label: ' Save ₹5K' },
+                    { cmd: '/cashback',    label: ' Cashback' },
+                    { cmd: '/tax',         label: ' Tax Summary' },
                   ].map((chip) => (
                     <Pressable
                       key={chip.cmd}
@@ -881,7 +881,7 @@ export default function WalletScreen() {
               <View style={s.cardHeader}>
                 <Text style={[s.sectionTitle, { color: colors.kpiLabel }]}>RECENT ACTIVITY</Text>
                 <Pressable onPress={() => setTab('history')}>
-                  <Text style={[s.cardBottomLinkText, { color: colors.purpleL }]}>View All ➔</Text>
+                  <Text style={[s.cardBottomLinkText, { color: colors.purpleL }]}>View All </Text>
                 </Pressable>
               </View>
 
@@ -1033,7 +1033,7 @@ export default function WalletScreen() {
                           </View>
                         ) : null}
                         <View style={[s.statusPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }]}>
-                          <Text style={[s.statusPillText, { color: colors.dim }]}>✓ Used</Text>
+                          <Text style={[s.statusPillText, { color: colors.dim }]}> Used</Text>
                         </View>
                       </View>
 
@@ -1194,7 +1194,7 @@ export default function WalletScreen() {
                             </View>
                           ) : null}
                           <View style={[s.statusPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }]}>
-                            <Text style={[s.statusPillText, { color: colors.dim }]}>✓ Used</Text>
+                            <Text style={[s.statusPillText, { color: colors.dim }]}> Used</Text>
                           </View>
                         </View>
 

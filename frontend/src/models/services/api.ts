@@ -241,7 +241,7 @@ export async function request<T>(
   const fullUrl = `${BASE_URL}/api${path}`;
 
   // eslint-disable-next-line no-console
-  debugLog(`👉 [API REQ] ${method} ${fullUrl}`);
+  debugLog(` [API REQ] ${method} ${fullUrl}`);
 
   // Token-readiness retry: AsyncStorage may not have surfaced the saved
   // token on first paint after navigation/page reload. Wait briefly so
@@ -297,7 +297,7 @@ export async function request<T>(
         try { d = t ? JSON.parse(t) : {}; } catch { d = { raw: t }; }
         if (r2.ok) {
           // eslint-disable-next-line no-console
-          debugLog(`👈 [API RES] ${r2.status} OK (${Date.now() - t0}ms) ${method} ${fullUrl}`);
+          debugLog(` [API RES] ${r2.status} OK (${Date.now() - t0}ms) ${method} ${fullUrl}`);
           return d as T;
         }
         const detail2 = d?.detail;
@@ -322,7 +322,7 @@ export async function request<T>(
     }
 
     // eslint-disable-next-line no-console
-    debugLog(`👈 [API RES] ${res.status} OK (${duration}ms) ${method} ${fullUrl}`);
+    debugLog(` [API RES] ${res.status} OK (${duration}ms) ${method} ${fullUrl}`);
     return data as T;
   } catch (err: any) {
     const duration = t0 ? Date.now() - t0 : 0;

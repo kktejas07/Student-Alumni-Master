@@ -466,12 +466,12 @@ export function StatusPageRN({
               <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 24 }}>
                 {!removedChips['c1'] && (
                   <Pressable onPress={() => setRemovedChips({ ...removedChips, c1: true })} style={s.filterChip}>
-                    <Text style={s.filterChipText}>Remove "remote" ✕</Text>
+                    <Text style={s.filterChipText}>Remove "remote" </Text>
                   </Pressable>
                 )}
                 {!removedChips['c2'] && (
                   <Pressable onPress={() => setRemovedChips({ ...removedChips, c2: true })} style={s.filterChip}>
-                    <Text style={s.filterChipText}>Widen to 2026–2028 ✕</Text>
+                    <Text style={s.filterChipText}>Widen to 2026–2028 </Text>
                   </Pressable>
                 )}
                 {!removedChips['c3'] && (

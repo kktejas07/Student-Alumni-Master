@@ -21,6 +21,7 @@ import {
   Bell, Smartphone, Search, User, Upload, X, ImagePlus, MessageSquare,
 } from 'lucide-react-native';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
+import { useTheme } from '@/src/theme/ThemeContext';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   StatusPill, Toast, useToast, KpiTile,
@@ -73,15 +74,18 @@ type Campaign = {
   individual?: boolean;
 };
 
-function buildPreviewHtml(form: any, events: any[]): string {
+function buildPreviewHtml(form: any, events: any[], isDark: boolean): string {
+  const colors = isDark
+    ? { background: '#0f172a', surface: '#1e293b', border: '#334155', text: '#f8fafc', secondary: '#cbd5e1', muted: '#94a3b8' }
+    : { background: '#f8fafc', surface: '#ffffff', border: '#e2e8f0', text: '#0f172a', secondary: '#475569', muted: '#64748b' };
   const hero = form.hero_image
     ? `<img src="${resolveImageUrl(form.hero_image)}" alt="" style="width:100%;height:auto;display:block;border-radius:12px;margin:0 0 20px 0;" />`
     : '';
   const intro = form.intro
-    ? `<p style="margin:0 0 14px 0;color:#374151;font-size:15px;">${form.intro}</p>`
+    ? `<p style="margin:0 0 14px 0;color:${colors.secondary};font-size:15px;">${form.intro}</p>`
     : '';
   const body = form.body
-    ? `<div style="margin:0 0 18px 0;color:#374151;font-size:15px;line-height:1.65;">${form.body}</div>`
+    ? `<div style="margin:0 0 18px 0;color:${colors.secondary};font-size:15px;line-height:1.65;">${form.body}</div>`
     : '';
   const origin = typeof window !== 'undefined' && window.location ? window.location.origin : 'https://studentalumni.ai';
   const evCards = (events || []).slice(0, 4).map((ev) => {
@@ -91,33 +95,92 @@ function buildPreviewHtml(form: any, events: any[]): string {
     const badge = Number(ev.fee || 0) <= 0 ? 'FREE ENTRY' : `₹${Number(ev.fee).toLocaleString('en-IN')} ENTRY`;
     const link = ev.slug ? `${origin}/echo/${ev.slug}` : '';
     const titleHtml = link
-      ? `<a href="${link}" style="font-size:16px;font-weight:700;color:#111827;text-decoration:none;">${ev.title}</a>`
-      : `<div style="font-size:16px;font-weight:700;color:#111827;">${ev.title}</div>`;
-    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;"><tr><td style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">${img}
+      ? `<a href="${link}" style="font-size:16px;font-weight:700;color:${colors.text};text-decoration:none;">${ev.title}</a>`
+      : `<div style="font-size:16px;font-weight:700;color:${colors.text};">${ev.title}</div>`;
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;"><tr><td style="background:${colors.surface};border:1px solid ${colors.border};border-radius:12px;overflow:hidden;">${img}
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:16px 18px;">
         <div style="font-size:11px;font-weight:700;color:#7C3AED;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;">${badge}</div>
         ${titleHtml}
-        <div style="font-size:12.5px;color:#6b7280;margin-top:6px;">${ev.college || 'Student Alumni Cell'}${ev.date ? ' · ' + ev.date : ''}</div>
-        <div style="font-size:12.5px;color:#6b7280;">${ev.venue || ''}</div>
+        <div style="font-size:12.5px;color:${colors.muted};margin-top:6px;">${ev.college || 'Student Alumni Cell'}${ev.date ? ' · ' + ev.date : ''}</div>
+        <div style="font-size:12.5px;color:${colors.muted};">${ev.venue || ''}</div>
         ${link ? `<div style="margin-top:10px;"><a href="${link}" style="display:inline-block;padding:8px 18px;background:#7C3AED;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:12px;">View Event</a></div>` : ''}
       </td></tr></table></td></tr></table>`;
   }).join('');
   const eventsSection = evCards
-    ? `<h3 style="margin:24px 0 12px 0;color:#111827;font-size:17px;">Upcoming Events</h3>${evCards}`
+    ? `<h3 style="margin:24px 0 12px 0;color:${colors.text};font-size:17px;">Upcoming Events</h3>${evCards}`
     : '';
   const cta = form.cta_text && form.cta_url
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0 6px 0;"><tr><td align="center"><a href="${form.cta_url}" style="display:inline-block;padding:13px 32px;background:#7C3AED;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;">${form.cta_text}</a></td></tr></table>`
     : '';
 
-  return `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
-    <h2 style="margin:0 0 6px 0;color:#111827;">${form.subject || 'Newsletter subject'}</h2>
-    ${hero}${intro}${body}${eventsSection}${cta}
-  </div>`;
+  return `<!doctype html>
+  <html><head><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
+  <body style="margin:0;min-height:100vh;background:${colors.background};">
+  <div style="box-sizing:border-box;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:${colors.background};padding:16px;min-height:100vh;">
+    <div style="background:${colors.surface};border:1px solid ${colors.border};border-radius:16px;color:${colors.text};padding:24px;">
+      <h2 style="margin:0 0 6px 0;color:${colors.text};">${form.subject || 'Newsletter subject'}</h2>
+      ${hero}${intro}${body}${eventsSection}${cta}
+    </div>
+  </div></body></html>`;
 }
 
 export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const { isDark } = useTheme();
   const T = useSAC();
   Object.assign(st, resolveColors(st, T));
+  Object.assign(st, {
+    secText: { ...st.secText, color: isDark ? '#cbd5e1' : '#334155' },
+    label: { ...st.label, color: isDark ? '#e2e8f0' : '#1e293b' },
+    hint: { ...st.hint, color: isDark ? '#94a3b8' : '#475569' },
+    input: {
+      ...st.input,
+      backgroundColor: isDark ? '#1e293b' : '#ffffff',
+      borderColor: isDark ? '#334155' : '#cbd5e1',
+      color: isDark ? '#ffffff' : '#0f172a',
+    },
+    btnText: { ...st.btnText, color: '#ffffff' },
+    tab: {
+      ...st.tab,
+      backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
+      borderColor: isDark ? '#334155' : '#e2e8f0',
+    },
+    tabText: { ...st.tabText, color: isDark ? '#cbd5e1' : '#1e293b' },
+    tabTextActive: { ...st.tabTextActive, color: '#ffffff' },
+    channelLabel: { ...st.channelLabel, color: isDark ? '#e2e8f0' : '#1e293b' },
+    channelPill: {
+      ...st.channelPill,
+      backgroundColor: isDark ? '#1e293b' : '#ffffff',
+      borderColor: isDark ? '#334155' : '#cbd5e1',
+    },
+    channelPillActive: { ...st.channelPillActive, backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
+    channelPillText: { ...st.channelPillText, color: isDark ? '#cbd5e1' : '#334155' },
+    channelPillTextActive: { ...st.channelPillTextActive, color: '#ffffff' },
+    checkRow: {
+      ...st.checkRow,
+      backgroundColor: isDark ? '#1e293b' : '#f8fafc',
+      borderColor: isDark ? '#334155' : '#e2e8f0',
+    },
+    checkLabel: { ...st.checkLabel, color: isDark ? '#f8fafc' : '#0f172a' },
+    checkSub: { ...st.checkSub, color: isDark ? '#94a3b8' : '#475569' },
+    confirmBox: {
+      ...st.confirmBox,
+      backgroundColor: isDark ? 'rgba(252,211,77,0.08)' : '#fffbeb',
+      borderColor: isDark ? 'rgba(252,211,77,0.25)' : '#fde68a',
+    },
+    confirmText: { ...st.confirmText, color: isDark ? '#fcd34d' : '#92400e' },
+    editBanner: {
+      ...st.editBanner,
+      backgroundColor: isDark ? 'rgba(124,58,237,0.10)' : '#eef2ff',
+      borderColor: isDark ? 'rgba(124,58,237,0.35)' : '#c7d2fe',
+    },
+    editBannerCancelText: { ...st.editBannerCancelText, color: isDark ? '#cbd5e1' : '#334155' },
+    previewFrame: {
+      ...st.previewFrame,
+      backgroundColor: isDark ? 'rgba(15,23,42,0.9)' : '#f8fafc',
+      borderWidth: 1,
+      borderColor: isDark ? '#1e293b' : '#e2e8f0',
+    },
+  });
   const { toast, flash, hide } = useToast();
   const [form, setForm] = useState({
     subject: '',
@@ -152,6 +215,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const [testSending, setTestSending] = useState(false);
   const [testWhatsappSending, setTestWhatsappSending] = useState(false);
   const [previewHtmlBackend, setPreviewHtmlBackend] = useState('');
+  const [previewHtmlBackendIsDark, setPreviewHtmlBackendIsDark] = useState<boolean | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
@@ -211,7 +275,10 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   useEffect(() => { fetchRecipientCount(form.audience); }, [form.audience, fetchRecipientCount]);
 
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
-  const previewHtml = useMemo(() => buildPreviewHtml(form, events), [form, events]);
+  const previewHtml = useMemo(() => buildPreviewHtml(form, events, isDark), [form, events, isDark]);
+  const displayPreviewHtml = previewHtmlBackend && previewHtmlBackendIsDark === isDark
+    ? previewHtmlBackend
+    : previewHtml;
 
   const [aiDrafting, setAiDrafting] = useState(false);
   const [aiDraftResult, setAiDraftResult] = useState<any>(null);
@@ -289,9 +356,11 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
         cta_text: form.cta_text,
         cta_url: form.cta_url,
         include_upcoming: form.include_upcoming,
+        preview_theme: isDark ? 'dark' : 'light',
       });
       if (res?.html) {
         setPreviewHtmlBackend(res.html);
+        setPreviewHtmlBackendIsDark(isDark);
         flash('Full layout preview updated');
       }
     } catch (e: any) {
@@ -687,12 +756,12 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
           </View>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <SecondaryButton onPress={handleBroadcastCommunityInvites} disabled={commBroadcasting}>
-              <MessageSquare size={13} color="#34D399" />
-              <Text style={{ color: '#34D399', fontSize: 13, fontFamily: FONTS.bold }}>
+              <MessageSquare size={13} color={isDark ? '#cbd5e1' : '#1e293b'} />
+              <Text style={{ color: isDark ? '#cbd5e1' : '#1e293b', fontSize: 13, fontFamily: FONTS.bold }}>
                 {commBroadcasting ? 'Sending...' : 'Broadcast Community Invites'}
               </Text>
             </SecondaryButton>
-            <SecondaryButton onPress={load}><RefreshCw size={12} color={SAC.muted} /><Text style={st.secText}>Refresh</Text></SecondaryButton>
+            <SecondaryButton onPress={load}><RefreshCw size={12} color={isDark ? '#cbd5e1' : '#1e293b'} /><Text style={st.secText}>Refresh</Text></SecondaryButton>
           </View>
         </View>
       </Card>
@@ -709,18 +778,18 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
           {/* Tabs */}
           <View style={st.tabRow}>
             <Pressable onPress={() => setActiveTab('bulk')} style={[st.tab, activeTab === 'bulk' && st.tabActive]}>
-              <Megaphone size={13} color={activeTab === 'bulk' ? '#fff' : SAC.muted} />
+              <Megaphone size={13} color={activeTab === 'bulk' ? '#fff' : (isDark ? '#cbd5e1' : '#334155')} />
               <Text style={[st.tabText, activeTab === 'bulk' && st.tabTextActive]}>Bulk Newsletter</Text>
             </Pressable>
             <Pressable onPress={() => setActiveTab('individual')} style={[st.tab, activeTab === 'individual' && st.tabActive]}>
-              <User size={13} color={activeTab === 'individual' ? '#fff' : SAC.muted} />
+              <User size={13} color={activeTab === 'individual' ? '#fff' : (isDark ? '#cbd5e1' : '#334155')} />
               <Text style={[st.tabText, activeTab === 'individual' && st.tabTextActive]}>Individual</Text>
             </Pressable>
           </View>
 
           {activeTab === 'bulk' ? (
             <>
-              <SectionLabel>COMPOSE NEWSLETTER</SectionLabel>
+              <SectionLabel style={{ color: isDark ? '#cbd5e1' : '#1e293b' }}>COMPOSE NEWSLETTER</SectionLabel>
               {editingCampaign && (
                 <View style={st.editBanner}>
                   <View style={{ flex: 1, gap: 2 }}>
@@ -739,8 +808,8 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 {/* AI Agent Platform Digest Generator */}
                 <View style={{
                   padding: 14, borderRadius: 12,
-                  backgroundColor: 'rgba(99,102,241,0.08)',
-                  borderColor: 'rgba(99,102,241,0.3)',
+                  backgroundColor: isDark ? 'rgba(49,46,129,0.4)' : 'rgba(238,242,255,0.8)',
+                  borderColor: isDark ? 'rgba(99,102,241,0.3)' : '#c7d2fe',
                   borderWidth: 1, gap: 10
                 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
@@ -749,8 +818,8 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                         <Megaphone size={14} color="#A78BFA" />
                       </View>
                       <View>
-                        <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 }}>AI Live Platform Digest Drafter</Text>
-                        <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>Ingests real-time jobs, hackathons, and member updates</Text>
+                        <Text style={{ color: isDark ? '#ffffff' : '#0f172a', fontFamily: FONTS.semi, fontSize: 13 }}>AI Live Platform Digest Drafter</Text>
+                        <Text style={{ color: isDark ? '#cbd5e1' : '#334155', fontFamily: FONTS.med, fontSize: 11 }}>Ingests real-time jobs, hackathons, and member updates</Text>
                       </View>
                     </View>
 
@@ -759,14 +828,14 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                       disabled={aiDrafting}
                       style={{
                         flexDirection: 'row', alignItems: 'center', gap: 6,
-                        backgroundColor: '#7C3AED', paddingHorizontal: 12, paddingVertical: 6,
+                        backgroundColor: '#4f46e5', paddingHorizontal: 12, paddingVertical: 6,
                         borderRadius: 8, opacity: aiDrafting ? 0.6 : 1
                       }}
                     >
                       {aiDrafting ? <ActivityIndicator size="small" color="#fff" /> : (
                         <>
                           <RefreshCw size={12} color="#fff" />
-                          <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Draft with AI (Live Data)</Text>
+                          <Text style={{ color: '#ffffff', fontFamily: FONTS.med, fontSize: 12 }}>Draft with AI (Live Data)</Text>
                         </>
                       )}
                     </Pressable>
@@ -776,25 +845,25 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                   {aiDraftResult && (
                     <View style={{ gap: 8, paddingTop: 6, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <View style={{ backgroundColor: 'rgba(16,185,129,0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
-                          <Text style={{ color: '#34D399', fontFamily: FONTS.bold, fontSize: 10.5 }}>
-                            🛡️ Spam Risk: {aiDraftResult.deliverability?.spam_risk_level} ({aiDraftResult.deliverability?.spam_score}/10)
+                        <View style={{ backgroundColor: isDark ? 'rgba(16,185,129,0.15)' : '#d1fae5', borderWidth: 1, borderColor: isDark ? 'rgba(16,185,129,0.3)' : '#a7f3d0', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                          <Text style={{ color: isDark ? '#6ee7b7' : '#047857', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+                             Spam Risk: {aiDraftResult.deliverability?.spam_risk_level} ({aiDraftResult.deliverability?.spam_score}/10)
                           </Text>
                         </View>
-                        <View style={{ backgroundColor: 'rgba(124,58,237,0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
-                          <Text style={{ color: '#DDD6FE', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+                        <View style={{ backgroundColor: isDark ? 'rgba(124,58,237,0.2)' : '#ede9fe', borderWidth: 1, borderColor: isDark ? 'rgba(124,58,237,0.3)' : '#ddd6fe', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                          <Text style={{ color: isDark ? '#ddd6fe' : '#5b21b6', fontFamily: FONTS.bold, fontSize: 10.5 }}>
                             ● {aiDraftResult.realtime_data_summary?.live_jobs_count} Live Jobs
                           </Text>
                         </View>
-                        <View style={{ backgroundColor: 'rgba(245,158,11,0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
-                          <Text style={{ color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+                        <View style={{ backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : '#fef3c7', borderWidth: 1, borderColor: isDark ? 'rgba(245,158,11,0.3)' : '#fde68a', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                          <Text style={{ color: isDark ? '#fcd34d' : '#92400e', fontFamily: FONTS.bold, fontSize: 10.5 }}>
                             → {aiDraftResult.realtime_data_summary?.upcoming_events_count} ECHO Hackathons
                           </Text>
                         </View>
                       </View>
 
                       {/* A/B Subject Variant Pills */}
-                      <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5 }}>A/B Subject Variants (click to use):</Text>
+                      <Text style={{ color: isDark ? '#cbd5e1' : '#334155', fontFamily: FONTS.bold, fontSize: 10.5 }}>A/B Subject Variants (click to use):</Text>
                       <View style={{ gap: 4 }}>
                         {aiDraftResult.subject_variants?.map((v: string, idx: number) => (
                           <Pressable
@@ -802,13 +871,13 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                             onPress={() => set('subject', v)}
                             style={{
                               padding: 6, borderRadius: 6,
-                              backgroundColor: form.subject === v ? 'rgba(124,58,237,0.3)' : 'rgba(0,0,0,0.25)',
-                              borderColor: form.subject === v ? '#7C3AED' : SAC.border,
+                              backgroundColor: form.subject === v ? (isDark ? 'rgba(99,102,241,0.3)' : '#eef2ff') : (isDark ? '#1e293b' : '#ffffff'),
+                              borderColor: form.subject === v ? (isDark ? '#6366f1' : '#a5b4fc') : (isDark ? '#334155' : '#cbd5e1'),
                               borderWidth: 1
                             }}
                           >
-                            <Text style={{ color: form.subject === v ? '#fff' : '#cbd5e1', fontSize: 11.5, fontFamily: FONTS.med }}>
-                              {form.subject === v ? '✓ ' : ''}{v}
+                            <Text style={{ color: form.subject === v ? (isDark ? '#ffffff' : '#3730a3') : (isDark ? '#cbd5e1' : '#334155'), fontSize: 11.5, fontFamily: FONTS.med }}>
+                              {form.subject === v ? ' ' : ''}{v}
                             </Text>
                           </Pressable>
                         ))}
@@ -824,9 +893,9 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                     {loadingRecipientCount ? (
                       <ActivityIndicator size="small" color={GRAD.from} />
                     ) : (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,58,237,0.12)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(124,58,237,0.3)' }}>
-                        <Users size={12} color="#A78BFA" />
-                        <Text style={{ fontSize: 11.5, fontFamily: FONTS.semi, color: '#DDD6FE' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: isDark ? 'rgba(99,102,241,0.2)' : '#e0e7ff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: isDark ? 'rgba(99,102,241,0.3)' : '#c7d2fe' }}>
+                        <Users size={12} color={isDark ? '#c7d2fe' : '#3730a3'} />
+                        <Text style={{ fontSize: 11.5, fontFamily: FONTS.semi, color: isDark ? '#e0e7ff' : '#3730a3' }}>
                           {recipientBreakdown?.count ?? recipientCount ?? 0} total · {recipientBreakdown?.email_count ?? 0} emails · {recipientBreakdown?.whatsapp_count ?? 0} WhatsApp
                         </Text>
                       </View>
@@ -835,12 +904,12 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                   <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                     {[
                       { id: 'all', label: 'Whole Database (All Contacts & Prospects)', icon: '●' },
-                      { id: 'directory', label: 'Platform Users & Directory', icon: '👥' },
+                      { id: 'directory', label: 'Platform Users & Directory', icon: '' },
                       { id: 'students', label: 'Students', icon: '●' },
                       { id: 'alumni', label: 'Alumni', icon: '●' },
-                      { id: 'mentors', label: 'Mentors', icon: '🌟' },
+                      { id: 'mentors', label: 'Mentors', icon: '' },
                       { id: 'talent_pool', label: 'Talent Pool Candidates', icon: '●' },
-                      { id: 'events', label: 'Event Attendees', icon: '🎟️' },
+                      { id: 'events', label: 'Event Attendees', icon: '' },
                     ].map((aud) => {
                       const active = (form.audience || 'all') === aud.id;
                       return (
@@ -852,10 +921,14 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                           }}
                           style={[
                             st.channelPill,
-                            active && { backgroundColor: 'rgba(124,58,237,0.28)', borderColor: '#7C3AED', transform: [{ scale: 1.02 }] },
+                            {
+                              backgroundColor: active ? (isDark ? '#6366f1' : '#4f46e5') : (isDark ? '#1e293b' : '#ffffff'),
+                              borderColor: active ? (isDark ? '#6366f1' : '#4f46e5') : (isDark ? '#334155' : '#cbd5e1'),
+                              transform: active ? [{ scale: 1.02 }] : undefined,
+                            },
                           ]}
                         >
-                          <Text style={{ fontSize: 11.5, fontFamily: active ? FONTS.bold : FONTS.med, color: active ? '#fff' : SAC.muted }}>
+                          <Text style={{ fontSize: 11.5, fontFamily: active ? FONTS.bold : FONTS.med, color: active ? '#ffffff' : (isDark ? '#e2e8f0' : '#1e293b') }}>
                             {aud.icon} {aud.label}
                           </Text>
                         </Pressable>
@@ -865,7 +938,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 </View>
 
                 <Field label="Subject *" hint="Appears in the email subject line & WhatsApp bold title.">
-                  <TextInput style={st.input} value={form.subject} onChangeText={(v) => set('subject', v)} placeholder="e.g. Join us at ECHO 2026!" placeholderTextColor={SAC.dim} />
+                  <TextInput style={st.input} value={form.subject} onChangeText={(v) => set('subject', v)} placeholder="e.g. Join us at ECHO 2026!" placeholderTextColor={isDark ? '#64748b' : '#94a3b8'} />
                 </Field>
                 <Field label="Hero Image" hint="Upload a banner/poster, or paste a direct image URL. Shown full-width at top of email and as WhatsApp image header.">
                   <View style={{ gap: 8 }}>
@@ -876,7 +949,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                           {Platform.OS === 'web' && (
                             <label style={{ cursor: 'pointer' }}>
                               <span style={{
-                                backgroundColor: 'rgba(123,61,191,0.30)', color: SAC.text,
+                                backgroundColor: '#4f46e5', color: '#ffffff',
                                 padding: '5px 10px', borderRadius: '6px',
                                 fontFamily: FONTS.semi, fontSize: '11px',
                               }}>
@@ -895,18 +968,19 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                     ) : (
                       <Pressable
                         onPress={() => { if (Platform.OS === 'web') heroFileRef.current?.click?.(); }}
-                        style={{
-                          borderWidth: 2, borderColor: 'rgba(123,61,191,0.40)', borderStyle: 'dashed',
+                        style={({ hovered }: any) => ({
+                          borderWidth: 2, borderColor: isDark ? '#334155' : '#cbd5e1', borderStyle: 'dashed',
                           borderRadius: 10, padding: 20, alignItems: 'center', justifyContent: 'center',
-                          backgroundColor: 'rgba(123,61,191,0.04)', cursor: 'pointer',
-                        }}
+                          backgroundColor: hovered ? (isDark ? '#1e293b' : '#f1f5f9') : (isDark ? 'rgba(30,41,59,0.5)' : '#f8fafc'),
+                          cursor: 'pointer',
+                        })}
                       >
                         {heroUploading ? (
                           <ActivityIndicator size="small" color={GRAD.from} />
                         ) : (
                           <>
-                            <ImagePlus size={22} color={GRAD.from} />
-                            <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: GRAD.from, marginTop: 8 }}>Click to upload a hero image</Text>
+                            <ImagePlus size={22} color={isDark ? '#cbd5e1' : '#334155'} />
+                            <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: isDark ? '#cbd5e1' : '#334155', marginTop: 8 }}>Click to upload a hero image</Text>
                           </>
                         )}
                       </Pressable>
@@ -920,14 +994,14 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                       value={form.hero_image.startsWith('blob:') ? '' : form.hero_image}
                       onChangeText={(v) => set('hero_image', v)}
                       placeholder="…or paste an image URL (https://…)"
-                      placeholderTextColor={SAC.dim}
+                      placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                       autoCapitalize="none"
                       autoCorrect={false}
                     />
                   </View>
                 </Field>
                 <Field label="Intro" hint="One or two welcoming sentences.">
-                  <TextInput style={st.input} value={form.intro} onChangeText={(v) => set('intro', v)} placeholder="Hi everyone, we're excited to share what's coming up…" placeholderTextColor={SAC.dim} />
+                  <TextInput style={st.input} value={form.intro} onChangeText={(v) => set('intro', v)} placeholder="Hi everyone, we're excited to share what's coming up…" placeholderTextColor={isDark ? '#64748b' : '#94a3b8'} />
                 </Field>
                 <Field label="Message" hint="The main newsletter body (rich text).">
                   <LexicalEditor
@@ -939,12 +1013,12 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <View style={{ flex: 1 }}>
                     <Field label="CTA Text">
-                      <TextInput style={st.input} value={form.cta_text} onChangeText={(v) => set('cta_text', v)} placeholder="Register Now" placeholderTextColor={SAC.dim} />
+                      <TextInput style={st.input} value={form.cta_text} onChangeText={(v) => set('cta_text', v)} placeholder="Register Now" placeholderTextColor={isDark ? '#64748b' : '#94a3b8'} />
                     </Field>
                   </View>
                   <View style={{ flex: 1 }}>
                     <Field label="CTA URL">
-                      <TextInput style={st.input} value={form.cta_url} onChangeText={(v) => set('cta_url', v)} placeholder="https://…" placeholderTextColor={SAC.dim} autoCapitalize="none" />
+                      <TextInput style={st.input} value={form.cta_url} onChangeText={(v) => set('cta_url', v)} placeholder="https://…" placeholderTextColor={isDark ? '#64748b' : '#94a3b8'} autoCapitalize="none" />
                     </Field>
                   </View>
                 </View>
@@ -986,12 +1060,12 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                   <View style={{ flexDirection: 'row', gap: 10 }}>
                     <View style={{ flex: 1 }}>
                       <Field label="Schedule Date *" hint="Format: YYYY-MM-DD">
-                        <TextInput style={st.input} value={scheduleDate} onChangeText={setScheduleDate} placeholder="e.g. 2026-08-15" placeholderTextColor={SAC.dim} />
+                        <TextInput style={st.input} value={scheduleDate} onChangeText={setScheduleDate} placeholder="e.g. 2026-08-15" placeholderTextColor={isDark ? '#64748b' : '#94a3b8'} />
                       </Field>
                     </View>
                     <View style={{ flex: 1 }}>
                       <Field label={`Schedule Time (${platformTz}) *`} hint="Format: HH:MM (24h)">
-                        <TextInput style={st.input} value={scheduleTime} onChangeText={setScheduleTime} placeholder="e.g. 14:30" placeholderTextColor={SAC.dim} />
+                        <TextInput style={st.input} value={scheduleTime} onChangeText={setScheduleTime} placeholder="e.g. 14:30" placeholderTextColor={isDark ? '#64748b' : '#94a3b8'} />
                       </Field>
                     </View>
                   </View>
@@ -1040,7 +1114,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
             </>
           ) : (
             <>
-              <SectionLabel>SEND TO INDIVIDUAL USER</SectionLabel>
+              <SectionLabel style={{ color: isDark ? '#cbd5e1' : '#1e293b' }}>SEND TO INDIVIDUAL USER</SectionLabel>
               <View style={{ marginTop: 12, gap: 12 }}>
                 {/* User search */}
                 <Field label="Search User *" hint="Type a name or email to find the user.">
@@ -1051,7 +1125,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                       value={indUserQuery}
                       onChangeText={handleUserSearch}
                       placeholder="Search by name or email…"
-                      placeholderTextColor={SAC.dim}
+                      placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                       autoCapitalize="none"
                     />
                   </View>
@@ -1088,13 +1162,13 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 {indSelectedUser && (
                   <>
                     <Field label="Title *" hint="Notification title.">
-                      <TextInput style={st.input} value={indForm.title} onChangeText={(v) => setIndForm((f) => ({ ...f, title: v }))} placeholder="e.g. Your session is confirmed!" placeholderTextColor={SAC.dim} />
+                      <TextInput style={st.input} value={indForm.title} onChangeText={(v) => setIndForm((f) => ({ ...f, title: v }))} placeholder="e.g. Your session is confirmed!" placeholderTextColor={isDark ? '#64748b' : '#94a3b8'} />
                     </Field>
                     <Field label="Body *" hint="Notification message.">
                       <LexicalEditor value={indForm.body} onChange={(v) => setIndForm((f) => ({ ...f, body: v }))} />
                     </Field>
                     <Field label="Link URL (optional)" hint="Opens when user taps the notification.">
-                      <TextInput style={st.input} value={indForm.cta_url} onChangeText={(v) => setIndForm((f) => ({ ...f, cta_url: v }))} placeholder="https://…" placeholderTextColor={SAC.dim} autoCapitalize="none" />
+                      <TextInput style={st.input} value={indForm.cta_url} onChangeText={(v) => setIndForm((f) => ({ ...f, cta_url: v }))} placeholder="https://…" placeholderTextColor={isDark ? '#64748b' : '#94a3b8'} autoCapitalize="none" />
                     </Field>
 
                     {/* Channel toggles */}
@@ -1119,41 +1193,46 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
         </Card>
 
         {/* ── Preview ── */}
-        <Card style={{ width: Platform.OS === 'web' ? 400 : '100%' }}>
+        <Card style={{
+          width: Platform.OS === 'web' ? 400 : '100%',
+          backgroundColor: isDark ? 'rgba(15,23,42,0.9)' : '#ffffff',
+          borderColor: isDark ? '#1e293b' : '#e2e8f0',
+          borderWidth: 1,
+        }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <SectionLabel>EMAIL PREVIEW</SectionLabel>
+            <SectionLabel style={{ color: isDark ? '#cbd5e1' : '#1e293b' }}>EMAIL PREVIEW</SectionLabel>
             <SecondaryButton onPress={fetchFullPreview} loading={loadingPreview}>
               <Text style={st.secText}>Get Full Layout</Text>
             </SecondaryButton>
           </View>
           {Platform.OS === 'web' ? (
             <iframe
-              srcDoc={previewHtmlBackend || previewHtml}
+              srcDoc={displayPreviewHtml}
               style={{
                 width: '100%',
                 height: 540,
                 border: 'none',
                 borderRadius: 12,
-                backgroundColor: '#f3f4f6',
+                backgroundColor: isDark ? '#0f172a' : '#f3f4f6',
               } as any}
               title="Email Preview"
               sandbox="allow-same-origin allow-scripts"
             />
           ) : (
             <View style={st.previewFrame}>
-              <HtmlRenderer html={previewHtmlBackend || previewHtml} />
+              <HtmlRenderer html={displayPreviewHtml} />
             </View>
           )}
 
           <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: SAC.border, gap: 10 }}>
-            <SectionLabel>SEND TEST EMAIL</SectionLabel>
+            <SectionLabel style={{ color: isDark ? '#cbd5e1' : '#1e293b' }}>SEND TEST EMAIL</SectionLabel>
             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
               <TextInput
                 style={[st.input, { flex: 1, height: 36, paddingVertical: 4 }]}
                 value={testEmail}
                 onChangeText={setTestEmail}
                 placeholder="test@example.com"
-                placeholderTextColor={SAC.dim}
+                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                 autoCapitalize="none"
                 keyboardType="email-address"
               />
@@ -1161,20 +1240,20 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 <Text style={st.secText}>Send Test</Text>
               </SecondaryButton>
             </View>
-            <Text style={{ color: SAC.dim, fontSize: 11, fontFamily: 'System' }}>
+            <Text style={{ color: isDark ? '#94a3b8' : '#475569', fontSize: 11, fontFamily: 'System' }}>
               Sends a real preview email to the address above using the current form content.
             </Text>
           </View>
 
           <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: SAC.border, gap: 10 }}>
-            <SectionLabel>SEND TEST WHATSAPP</SectionLabel>
+            <SectionLabel style={{ color: isDark ? '#cbd5e1' : '#1e293b' }}>SEND TEST WHATSAPP</SectionLabel>
             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
               <TextInput
                 style={[st.input, { flex: 1, height: 36, paddingVertical: 4 }]}
                 value={testPhone}
                 onChangeText={setTestPhone}
                 placeholder="+1 609 651 4555"
-                placeholderTextColor={SAC.dim}
+                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                 autoCapitalize="none"
                 keyboardType="phone-pad"
               />
@@ -1182,7 +1261,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 <Text style={st.secText}>Send Test</Text>
               </SecondaryButton>
             </View>
-            <Text style={{ color: SAC.dim, fontSize: 11, fontFamily: 'System' }}>
+            <Text style={{ color: isDark ? '#94a3b8' : '#475569', fontSize: 11, fontFamily: 'System' }}>
               Sends a real WhatsApp message to the number above. Requires OpenWA configured in Settings → Integrations.
             </Text>
           </View>
@@ -1192,7 +1271,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       {/* ── Campaign history ── */}
       <Card>
         <View style={st.cardHead}>
-          <SectionLabel>SEND HISTORY</SectionLabel>
+          <SectionLabel style={{ color: isDark ? '#cbd5e1' : '#1e293b' }}>SEND HISTORY</SectionLabel>
           <StatusPill kind="info" label={`${campaigns.length} campaigns`} />
         </View>
         <View style={{ marginTop: 12, gap: 8 }}>
@@ -1330,20 +1409,22 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 function ChannelPill({ icon: Icon, label, active, onToggle }: { icon: any; label: string; active: boolean; onToggle: () => void }) {
+  const { isDark } = useTheme();
   return (
     <Pressable onPress={onToggle} style={[st.channelPill, active && st.channelPillActive]}>
-      <Icon size={13} color={active ? '#fff' : SAC.muted} />
+      <Icon size={13} color={active ? '#fff' : (isDark ? '#cbd5e1' : '#334155')} />
       <Text style={[st.channelPillText, active && st.channelPillTextActive]}>{label}</Text>
     </Pressable>
   );
 }
 
 function StatPill({ icon: Icon, label, kind = 'success' }: { icon: any; label: string; kind?: 'success' | 'warn' | 'danger' | 'neutral' }) {
+  const { isDark } = useTheme();
   const palette = {
-    success: { bg: 'rgba(34,197,94,0.12)', border: 'rgba(34,197,94,0.30)', color: '#4ADE80' },
-    warn: { bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.30)', color: '#FCD34D' },
-    danger: { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.30)', color: '#F87171' },
-    neutral: { bg: 'rgba(148,163,184,0.12)', border: 'rgba(148,163,184,0.30)', color: '#94A3B8' },
+    success: { bg: isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5', border: isDark ? 'rgba(16,185,129,0.3)' : '#a7f3d0', color: isDark ? '#6ee7b7' : '#047857' },
+    warn: { bg: isDark ? 'rgba(245,158,11,0.15)' : '#fffbeb', border: isDark ? 'rgba(245,158,11,0.3)' : '#fde68a', color: isDark ? '#fcd34d' : '#92400e' },
+    danger: { bg: isDark ? 'rgba(239,68,68,0.15)' : '#fff1f2', border: isDark ? 'rgba(239,68,68,0.3)' : '#fecdd3', color: isDark ? '#fca5a5' : '#be123c' },
+    neutral: { bg: isDark ? 'rgba(148,163,184,0.12)' : '#f1f5f9', border: isDark ? 'rgba(148,163,184,0.3)' : '#e2e8f0', color: isDark ? '#cbd5e1' : '#334155' },
   }[kind];
   return (
     <View style={[st.channelPill, { backgroundColor: palette.bg, borderColor: palette.border, paddingHorizontal: 8, paddingVertical: 3 }]}>

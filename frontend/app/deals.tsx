@@ -253,7 +253,6 @@ export default function DealsScreen() {
     <FeaturePageShell
       title="Exclusive SA Member Deals"
       subtitle={`${deals?.length || 0} active deals · Verified for ${user?.full_name || 'You'} · SA-ID: ${user ? formatSAID(user) : '—'}`}
-      heroEmoji="🎁"
       accent="#F59E0B"
       rightSlot={
         <View style={{ flexDirection: 'row', gap: 8 }}>

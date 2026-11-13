@@ -38,16 +38,16 @@ export const LIGHT = {
   name: 'light' as const,
 
   // Surfaces (Apple light system)
-  bg:        '#F5F5F7',                 // page background
+  bg:        '#F8FAFC',                 // page background
   bgElevated:'#FFFFFF',                 // cards, modals
   bgGlass:   'rgba(255,255,255,0.72)',  // glass topbar/sheet
-  bgInset:   '#EBEBEF',                 // inset/grouped lists
+  bgInset:   '#F1F5F9',                 // inset/grouped lists
 
   // Text
-  text:      '#1D1D1F',
-  textSec:   '#6E6E73',
-  textTer:   '#8E8E93',
-  textDis:   '#C7C7CC',
+  text:      '#0F172A',
+  textSec:   '#475569',
+  textTer:   '#64748B',
+  textDis:   '#64748B',
 
   // Borders & dividers
   hairline:  'rgba(0,0,0,0.08)',
@@ -71,15 +71,15 @@ export const LIGHT = {
 export const DARK = {
   name: 'dark' as const,
 
-  bg:        '#07070A',                 // near-black with hint of blue
-  bgElevated:'#121218',                 // cards, panels (surface-2)
+  bg:        '#0B1220',                 // near-black with hint of blue
+  bgElevated:'#111827',                 // cards, panels (surface-2)
   bgGlass:   'rgba(14,14,18,0.72)',     // glass topbar
-  bgInset:   '#0E0E12',                 // sidebar, top bar (surface-1)
+  bgInset:   '#1E293B',                 // sidebar, top bar (surface-1)
 
-  text:      '#F4F4F6',
-  textSec:   '#8A8A95',
-  textTer:   '#5A5A66',
-  textDis:   'rgba(255,255,255,0.20)',
+  text:      '#F8FAFC',
+  textSec:   '#CBD5E1',
+  textTer:   '#94A3B8',
+  textDis:   '#94A3B8',
 
   hairline:  'rgba(255,255,255,0.06)',
   divider:   'rgba(255,255,255,0.06)',
