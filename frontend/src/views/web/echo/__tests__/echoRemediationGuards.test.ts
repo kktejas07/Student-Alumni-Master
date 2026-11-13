@@ -4,8 +4,8 @@
  * These complement the behaviour tests in prizePool.test.ts and the backend
  * API suites. They assert, at the source level, that hardcoded cross-event
  * fallbacks stay removed — the exact content that wrongly leaked HackWave /
- * VNR branding onto other events. If any of those literals reappear in the
- * render paths, these tests fail.
+ * VNR branding onto other events or tickets. If any of those literals
+ * reappear in the render paths, these tests fail.
  *
  * Note: full component-mount tests for these two large files pull heavy
  * layout/graph/CSS dependencies into the jest node environment, so the
@@ -20,6 +20,9 @@ const read = (rel: string) => fs.readFileSync(path.join(FRONTEND_ROOT, rel), 'ut
 const ECHO_EVENTS = 'src/views/web/echo/EchoEventsPage.tsx';
 const SHOWCASE = 'src/views/web/portals/student/views/EchoShowcaseView.tsx';
 const EVENT_ROUTE = 'app/echo/[slug]/[event]/index.tsx';
+const GENERIC_REGISTER_ROUTE = 'app/echo/register/index.tsx';
+const MY_TICKETS = 'src/views/web/portals/student/views/MyTicketsView.tsx';
+const ECHO_ADMIN = 'src/views/web/portals/superadmin/views/EchoShowcaseAdminView.tsx';
 
 describe('EchoEventsPage — no cross-event hardcoded fallbacks', () => {
   const src = () => read(ECHO_EVENTS);
@@ -99,12 +102,86 @@ describe('Echo deep-link route — no event defaulting', () => {
   it('never falls back to SNIST for a missing slug', () => {
     const s = read(EVENT_ROUTE);
     expect(s).not.toContain("|| 'snist'");
-    expect(s).toContain("slug ? 'detail' : 'list'");
+    expect(s).toContain("canonicalSlug ? `/echo/${canonicalSlug}` : '/echo'");
   });
 
   it('null initialSlug stays absent-safe in EchoEventsPage', () => {
     const s = read(ECHO_EVENTS);
     // Graceful not-found rendering exists for a missing activeEvent.
     expect(s).toContain('notFound || (!loading && !activeEvent) ? (');
+  });
+
+  it('generic registration uses its supplied event slug and shows the event list when absent', () => {
+    const s = read(GENERIC_REGISTER_ROUTE);
+    expect(s).not.toContain('snist');
+    expect(s).toContain('const eventSlug = eventParam || slugParam ||');
+    expect(s).toContain("initialView={eventSlug ? 'reg' : 'list'}");
+    expect(s).toContain('initialSlug={eventSlug}');
+  });
+
+  it('registration banner alt text follows the selected event', () => {
+    const s = read(ECHO_EVENTS);
+    expect(s).toContain('alt={`${activeEvent.title} Poster ${regPosterIdx + 1}`}');
+  });
+});
+
+describe('MyTicketsView — ticket details follow the registered ECHO event', () => {
+  it('does not render sample event dates, times, seats, prices, or venue fallbacks', () => {
+    const s = read(MY_TICKETS);
+    expect(s).not.toContain('Sep 04–05');
+    expect(s).not.toContain('08:00 AM');
+    expect(s).not.toContain('GA · Block C');
+    expect(s).not.toContain('599');
+    expect(s).not.toContain('Sreenidhi Institute of Science & Technology, Hyderabad');
+  });
+
+  it('uses the registration event schedule and actual payment amount', () => {
+    const s = read(MY_TICKETS);
+    expect(s).toContain('ticketDateLabel(reg.date || reg.start_date, reg.end_date)');
+    expect(s).toContain("reg.time || reg.start_time || 'To be announced'");
+    expect(s).toContain('payment.amount ?? inv?.amount ?? reg.fee');
+  });
+
+  it('refreshes registered ticket details so admin event edits appear without reopening the view', () => {
+    const s = read(MY_TICKETS);
+    expect(s).toContain('const refreshRegistrations = useCallback(async () =>');
+    expect(s).toContain('setItems(nextItems)');
+    expect(s).toContain('setInterval(refreshIfVisible, 5000)');
+    expect(s).toContain("document.addEventListener('visibilitychange', refreshIfVisible)");
+    expect(s).toContain('item.registration.id === current.id');
+  });
+});
+
+describe('ECHO admin registrations — event cards filter registration details', () => {
+  it('loads all admin showcases and opens event-specific registration data from a card', () => {
+    const s = read(ECHO_ADMIN);
+    expect(s).toContain('api.adminListEchoShowcases()');
+    expect(s).toContain('onPress={() => {');
+    expect(s).toContain('setEventSlug(event.slug)');
+    expect(s).toContain('event.hero_image_url || event.banner_url || event.poster_url');
+    expect(s).toContain("height: 390");
+    expect(s).toContain("gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))'");
+    expect(s).toContain('onHoverIn={() => setHoveredEventSlug(event.slug)}');
+    expect(s).toContain("cursor: 'pointer'");
+    expect(s).not.toContain('aria-label="Select ECHO event to view registrations"');
+    expect(s).toContain("const selectedEventTitle = selectedEvent?.title?.trim().toLowerCase() || '';");
+    expect(s).toContain("const matchEvent = eventSlug === 'all' || r.slug === eventSlug;");
+    expect(s).toContain("const visibleRevenueEvents = eventSlug === 'all'");
+    expect(s).toContain('event.slug === eventSlug && (!selectedEventTitle || !eventTitle || eventTitle === selectedEventTitle)');
+    expect(s).toContain('SessionPassesOverview events={sessionEvents} onRefresh={load} eventBrowser={eventBrowser}');
+    expect(s).toContain('{eventSlug === \'all\' ? (');
+    expect(s).toContain(') : selectedEvent ? (');
+    expect(s).toContain('{eventBrowser}');
+    expect(s).toContain("{eventSlug !== 'all' ? (");
+    const eventBrowserIndex = s.indexOf('SessionPassesOverview events={sessionEvents}');
+    const registrationTableIndex = s.indexOf('{/* Search + filter */}', eventBrowserIndex);
+    expect(registrationTableIndex).toBeGreaterThan(eventBrowserIndex);
+    expect(s.indexOf("{eventSlug !== 'all' ? (")).toBeLessThan(registrationTableIndex);
+  });
+
+  it('retains events with no registrations in the event cards', () => {
+    const s = read(ECHO_ADMIN);
+    expect(s).toContain('showcases.forEach((event: any)');
+    expect(s).toContain('rows.forEach((row: any)');
   });
 });

@@ -166,6 +166,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
+  RotateCcw, CheckCircle2, SlidersHorizontal,
   Pencil, Trash2, Eye, Globe, Archive, Send, X, Zap,
   Star, BookOpen, Upload, MoveUp, MoveDown, Images, FolderOpen,
   Copy, Check, Search, RefreshCw, Plus, PlusCircle, FileText, Link2,
@@ -242,7 +243,7 @@ const GALLERY_LAYOUT_OPTIONS = ['grid', 'masonry', 'mixed', 'featured-grid', 'ca
 const VIDEO_PLATFORM_OPTIONS = ['youtube', 'vimeo', 'mp4'];
 const DOWNLOAD_CATEGORY_OPTIONS = ['Brochure', 'Schedule', 'Certificate', 'Presentation', 'Report', 'Document'];
 
-type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'interns' | 'volunteers' | 'scan-monitor';
+type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'interns' | 'volunteers' | 'scan-monitor' | 'sections-management';
 type StatusFilter = 'all' | 'published' | 'draft' | 'archived';
 type FormTab =
   | 'general' | 'hero' | 'statistics' | 'about' | 'gallery'
@@ -3003,7 +3004,7 @@ const ml = StyleSheet.create({
 
 // ── Registrations & Payments panel ───────────────────────────────────────────
 // ── Session Passes Overview ───────────────────────────────────────────────────
-function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh: () => void }) {
+function SessionPassesOverview({ events, onRefresh, eventBrowser }: { events: any[]; onRefresh: () => void; eventBrowser: React.ReactNode }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [sessionData, setSessionData] = useState<Record<string, any[]>>({});
   const [toggling, setToggling] = useState<string | null>(null);
@@ -3048,8 +3049,6 @@ function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh
     }
   };
 
-  if (events.length === 0) return null;
-
   return (
     <Card style={{ marginBottom: 16 }}>
       <Pressable onPress={() => setExpanded(expanded ? null : events[0]?.slug)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 }}>
@@ -3060,6 +3059,7 @@ function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh
         </View>
         <ChevronUp size={16} color={SAC.muted} style={{ transform: [{ rotate: expanded ? '0deg' : '180deg' }] }} />
       </Pressable>
+      {eventBrowser}
       {expanded && (
         <View style={{ padding: 16, paddingTop: 0, gap: 12 }}>
           {events.map((ev) => {
@@ -3124,11 +3124,13 @@ function RegistrationsPanel() {
   const { isDark } = useTheme();
   const { confirm } = useConfirm();
   const [rows, setRows] = useState<any[]>([]);
+  const [showcases, setShowcases] = useState<any[]>([]);
   const [revenue, setRevenue] = useState<any>({ events: [], totals: {} });
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('all');
   const [eventSlug, setEventSlug] = useState('all');
+  const [hoveredEventSlug, setHoveredEventSlug] = useState<string | null>(null);
   const [detailRow, setDetailRow] = useState<any>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [actioning, setActioning] = useState<string | null>(null);
@@ -3249,12 +3251,14 @@ function RegistrationsPanel() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [regs, rev] = await Promise.all([
+      const [regs, rev, eventList] = await Promise.all([
         api.adminEchoRegistrations(),
         api.adminEchoRevenue(),
+        api.adminListEchoShowcases(),
       ]);
       setRows(regs?.items || []);
       setRevenue(rev || { events: [], totals: {} });
+      setShowcases(eventList?.items || []);
     } catch {
       flash('Failed to load registrations');
     } finally {
@@ -3529,6 +3533,22 @@ function RegistrationsPanel() {
     }
   };
 
+  const eventBySlug = new Map<string, any>();
+  showcases.forEach((event: any) => {
+    if (event.slug) eventBySlug.set(event.slug, { ...event, slug: event.slug, title: event.title || event.slug });
+  });
+  rows.forEach((row: any) => {
+    if (row.slug && !eventBySlug.has(row.slug)) {
+      eventBySlug.set(row.slug, { slug: row.slug, title: row.event_title || row.slug });
+    }
+  });
+  const uniqueEvents = Array.from(eventBySlug.values());
+  const sessionEvents = eventSlug === 'all'
+    ? uniqueEvents
+    : uniqueEvents.filter((event) => event.slug === eventSlug);
+  const selectedEvent = uniqueEvents.find((event) => event.slug === eventSlug);
+  const selectedEventTitle = selectedEvent?.title?.trim().toLowerCase() || '';
+
   const filtered = rows.filter((r) => {
     const s = q.toLowerCase();
     const matchQ = !s
@@ -3545,10 +3565,12 @@ function RegistrationsPanel() {
   const safePage = Math.min(page, totalPages - 1);
   const paged = filtered.slice(safePage * PER_PAGE, safePage * PER_PAGE + PER_PAGE);
 
-  const uniqueEvents = Array.from(new Set(rows.map((r: any) => r.slug).filter(Boolean)))
-    .map((slug) => rows.find((r: any) => r.slug === slug))
-    .filter(Boolean)
-    .map((r: any) => ({ slug: r.slug, title: r.event_title || r.slug }));
+  const visibleRevenueEvents = eventSlug === 'all'
+    ? revenue.events
+    : revenue.events.filter((event: any) => {
+      const eventTitle = String(event.title || '').trim().toLowerCase();
+      return event.slug === eventSlug && (!selectedEventTitle || !eventTitle || eventTitle === selectedEventTitle);
+    });
 
   const fmtAmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
   const paid = filtered.filter((r) => r.payment_status === 'paid');
@@ -3565,6 +3587,179 @@ function RegistrationsPanel() {
   const pending = filtered.filter((r) => r.payment_status === 'pending');
   const failed = filtered.filter((r) => r.payment_status === 'failed');
   const revenueTotal = dedupedPayments.reduce((a, r) => a + Number(r.fee || 0), 0);
+
+  const eventBrowser = (
+      <View style={{ paddingHorizontal: 16, paddingBottom: 16, gap: 14 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <View style={{ flex: 1, minWidth: 220 }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>
+              {eventSlug === 'all' ? 'ECHO events' : selectedEvent?.title || 'Event registrations & payments'}
+            </Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted, marginTop: 3 }}>
+              {eventSlug === 'all'
+                ? 'Choose an event to open its registrations and payment details.'
+                : 'Viewing registrations, payments, and session details for this event.'}
+            </Text>
+          </View>
+          {eventSlug !== 'all' && (
+            <Pressable
+              onPress={() => {
+                setEventSlug('all');
+                setPage(0);
+              }}
+              accessibilityRole="button"
+              style={{ borderWidth: 1, borderColor: SAC.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 }}
+            >
+              <Text style={{ fontFamily: FONTS.semi, fontSize: 11.5, color: SAC.muted }}>← All events</Text>
+            </Pressable>
+          )}
+        </View>
+
+        {eventSlug === 'all' ? (
+          uniqueEvents.length > 0 ? (
+            <View style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 } as any}>
+              {uniqueEvents.map((event: any) => {
+                const poster = event.hero_image_url || event.banner_url || event.poster_url || event.hero_banners?.[0];
+                const statusLabel = event.registration?.enabled === false
+                  ? 'CLOSED'
+                  : String(event.event_status_badge || event.status || 'UPCOMING').toUpperCase();
+                const campus = event.college_name || event.college || '';
+                const description = event.subtitle || event.description || '';
+                const date = event.date || event.dates || event.event_date || '';
+                const venue = event.venue || event.city || '';
+
+                return (
+                  <Pressable
+                    key={event.slug}
+                    onPress={() => {
+                      setEventSlug(event.slug);
+                      setPage(0);
+                    }}
+                    onHoverIn={() => setHoveredEventSlug(event.slug)}
+                    onHoverOut={() => setHoveredEventSlug(null)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`View registrations for ${event.title}`}
+                    style={{
+                      height: 390,
+                      overflow: 'hidden',
+                      borderWidth: 1,
+                      borderColor: hoveredEventSlug === event.slug ? '#7C5CFC' : 'rgba(255,255,255,0.10)',
+                      borderRadius: 14,
+                      backgroundColor: '#101019',
+                      cursor: 'pointer',
+                      transform: [{ translateY: hoveredEventSlug === event.slug ? -4 : 0 }],
+                      shadowColor: '#7C5CFC',
+                      shadowOpacity: hoveredEventSlug === event.slug ? 0.28 : 0,
+                      shadowRadius: 16,
+                      shadowOffset: { width: 0, height: 8 },
+                    }}
+                  >
+                    <View style={{ height: 148, flexShrink: 0, backgroundColor: '#17152B', overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+                      {poster ? (
+                        <Image
+                          source={{ uri: resolveImageUrl(poster) }}
+                          style={{ width: '100%', height: '100%' }}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <LinearGradient
+                          colors={['#30216E', '#151326']}
+                          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <ImageIcon size={28} color="#A78BFA" />
+                        </LinearGradient>
+                      )}
+                    </View>
+                    <View style={{ flex: 1, padding: 14, justifyContent: 'space-between', overflow: 'hidden' }}>
+                      <View style={{ height: 26, flexDirection: 'row', alignItems: 'flex-start', gap: 7, overflow: 'hidden' }}>
+                        <StatusPill kind={statusLabel === 'COMPLETED' || statusLabel === 'CLOSED' ? 'neutral' : 'warn'} label={statusLabel} />
+                        {campus ? (
+                          <Text numberOfLines={1} style={{ maxWidth: '70%', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(124,92,252,0.35)', borderRadius: 7, paddingHorizontal: 8, paddingVertical: 4, fontFamily: FONTS.semi, fontSize: 10, color: '#C4B5FD', backgroundColor: 'rgba(124,92,252,0.12)' }}>
+                            {campus}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <Text numberOfLines={2} style={{ height: 42, fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>
+                        {event.title}
+                      </Text>
+                      <Text numberOfLines={2} style={{ height: 34, fontFamily: FONTS.regular, fontSize: 11.5, lineHeight: 17, color: SAC.muted }}>
+                        {description || ' '}
+                      </Text>
+                      <View style={{ height: 18, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                        <Calendar size={13} color={SAC.muted} />
+                        <Text numberOfLines={1} style={{ flex: 1, fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>{date || ' '}</Text>
+                      </View>
+                      <View style={{ height: 18, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                        <MapPin size={13} color={SAC.muted} />
+                        <Text numberOfLines={1} style={{ flex: 1, fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>{venue || ' '}</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 2 }}>
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 11.5, color: '#A78BFA' }}>View event</Text>
+                        <ChevronRight size={14} color="#A78BFA" />
+                      </View>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : (
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.dim }}>
+              No ECHO events or registrations found.
+            </Text>
+          )
+        ) : selectedEvent ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
+            {(() => {
+              const poster = selectedEvent.hero_image_url || selectedEvent.banner_url || selectedEvent.poster_url || selectedEvent.hero_banners?.[0];
+              return poster ? (
+                <Image
+                  source={{ uri: resolveImageUrl(poster) }}
+                  style={{ width: 240, height: 140, borderRadius: 10, backgroundColor: '#17152B' }}
+                  resizeMode="cover"
+                />
+              ) : null;
+            })()}
+            <View style={{ flex: 1, minWidth: 220, gap: 10 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
+                <StatusPill
+                  kind={String(selectedEvent.event_status_badge || selectedEvent.status || '').toUpperCase() === 'COMPLETED' ? 'neutral' : 'warn'}
+                  label={selectedEvent.registration?.enabled === false ? 'CLOSED' : String(selectedEvent.event_status_badge || selectedEvent.status || 'UPCOMING').toUpperCase()}
+                />
+                {(selectedEvent.college_name || selectedEvent.college) ? (
+                  <StatusPill kind="info" label={selectedEvent.college_name || selectedEvent.college} />
+                ) : null}
+              </View>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 18, color: SAC.text }}>{selectedEvent.title}</Text>
+              {(selectedEvent.subtitle || selectedEvent.description) ? (
+                <Text style={{ fontFamily: FONTS.regular, fontSize: 12, lineHeight: 18, color: SAC.muted }}>
+                  {selectedEvent.subtitle || selectedEvent.description}
+                </Text>
+              ) : null}
+              {(selectedEvent.date || selectedEvent.dates || selectedEvent.event_date) ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                  <Calendar size={13} color={SAC.muted} />
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
+                    {selectedEvent.date || selectedEvent.dates || selectedEvent.event_date}
+                  </Text>
+                </View>
+              ) : null}
+              {(selectedEvent.venue || selectedEvent.city) ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                  <MapPin size={13} color={SAC.muted} />
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted }}>
+                    {selectedEvent.venue || selectedEvent.city}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+        ) : (
+          <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.dim }}>
+            Event details are unavailable. Use “All events” to choose another event.
+          </Text>
+        )}
+      </View>
+  );
 
   return (
     <View>
@@ -3776,14 +3971,14 @@ function RegistrationsPanel() {
       </Card>
 
       {/* Per-event revenue */}
-      {revenue.events?.length > 0 && (
+      {visibleRevenueEvents?.length > 0 && (
         <Card style={{ marginBottom: 16 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Event Revenue Breakdown</Text>
-            <StatusPill kind="info" label={`${revenue.events.length} events`} />
+            <StatusPill kind="info" label={`${visibleRevenueEvents.length} events`} />
           </View>
           <View style={{ gap: 8 }}>
-            {revenue.events.map((ev: any, i: number) => (
+            {visibleRevenueEvents.map((ev: any, i: number) => (
               <View key={ev.slug + i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: GRAD.to }} />
                 <View style={{ flex: 1, minWidth: 0 }}>
@@ -3799,11 +3994,11 @@ function RegistrationsPanel() {
         </Card>
       )}
 
-      {/* Session Passes Overview */}
-      {uniqueEvents.length > 0 && (
-        <SessionPassesOverview events={uniqueEvents} onRefresh={load} />
-      )}
+      {/* Session Passes Overview and ECHO event browser */}
+      <SessionPassesOverview events={sessionEvents} onRefresh={load} eventBrowser={eventBrowser} />
 
+      {eventSlug !== 'all' ? (
+      <>
       {/* Search + filter */}
       <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <View style={{ flex: 1, minWidth: 200 }}>
@@ -4144,6 +4339,8 @@ function RegistrationsPanel() {
           </View>
         )}
       </Card>
+      </>
+      ) : null}
 
       {/* Import Tickets Modal */}
       <Modal visible={showImport} transparent animationType="fade" onRequestClose={() => setShowImport(false)}>
@@ -5078,6 +5275,729 @@ function VolunteersPanel() {
           </ScrollView>
         )}
       </Card>
+    </View>
+  );
+}
+
+
+
+// ── LANDING PAGE & EVENT SECTION MANAGEMENT PANEL ─────────────────────────────
+function LandingPageSectionsPanel() {
+  const { flash } = useToast();
+  const { confirm } = useConfirm();
+  const [sections, setSections] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [editingSection, setEditingSection] = useState<any | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const loadSections = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.getEchoSections();
+      if (res?.sections) {
+        setSections(res.sections);
+      }
+    } catch (err: any) {
+      flash?.('Failed to load sections configuration', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [flash]);
+
+  useEffect(() => {
+    loadSections();
+  }, [loadSections]);
+
+  const enabledCount = sections.filter((s) => s.enabled).length;
+  const disabledCount = sections.filter((s) => !s.enabled).length;
+
+  const handleToggle = async (sec: any) => {
+    if (togglingId) return;
+
+    // Critical section safety confirmation
+    if (sec.enabled && sec.is_critical) {
+      const ok = await confirm({
+        title: `Disable ${sec.name}?`,
+        message: `"${sec.name}" is a core event section. Disabling it will immediately hide it from both the public landing page and student dashboards. Are you sure you want to proceed?`,
+        confirmText: 'Disable Section',
+        danger: true,
+      });
+      if (!ok) return;
+    }
+
+    const nextState = !sec.enabled;
+    setTogglingId(sec.id);
+
+    try {
+      const res = await api.updateEchoSection(sec.id, { enabled: nextState });
+      if (res?.success) {
+        setSections((prev) =>
+          prev.map((item) => (item.id === sec.id ? { ...item, enabled: nextState, updated_at: res?.section?.updated_at || new Date().toISOString() } : item))
+        );
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('echo-sections-updated'));
+        }
+        flash?.(`Section "${sec.name}" is now ${nextState ? 'ENABLED' : 'DISABLED'}!`, 'success');
+      } else {
+        flash?.('Failed to update section status', 'error');
+      }
+    } catch (err: any) {
+      flash?.(err?.message || 'Failed to update section status', 'error');
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const handleEnableAll = async () => {
+    const ok = await confirm({
+      title: 'Enable All Sections?',
+      message: 'This will make all 14 landing page and event sections visible across all public pages and user dashboards.',
+      confirmText: 'Enable All',
+    });
+    if (!ok) return;
+
+    setLoading(true);
+    try {
+      const payload = {
+        sections: sections.map((s) => ({ id: s.id, enabled: true })),
+      };
+      const res = await api.updateEchoSectionsBulk(payload);
+      if (res?.success) {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('echo-sections-updated'));
+        }
+        flash?.('All sections have been enabled!', 'success');
+        await loadSections();
+      }
+    } catch (err: any) {
+      flash?.('Failed to enable all sections', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetDefaults = async () => {
+    const ok = await confirm({
+      title: 'Reset Sections to Defaults?',
+      message: 'This will reset all 14 sections back to their initial default configurations and enable all of them.',
+      confirmText: 'Reset to Defaults',
+      danger: true,
+    });
+    if (!ok) return;
+
+    setLoading(true);
+    try {
+      const res = await api.resetEchoSections();
+      if (res?.success) {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('echo-sections-updated'));
+        }
+        flash?.('All sections reset to defaults!', 'success');
+        await loadSections();
+      }
+    } catch (err: any) {
+      flash?.('Failed to reset sections', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openEditModal = (sec: any) => {
+    setEditingSection(sec);
+    setEditName(sec.name || '');
+    setEditDesc(sec.description || '');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingSection) return;
+    setSavingEdit(true);
+    try {
+      const res = await api.updateEchoSection(editingSection.id, {
+        name: editName,
+        description: editDesc,
+      });
+      if (res?.success) {
+        setSections((prev) =>
+          prev.map((item) => (item.id === editingSection.id ? { ...item, name: editName, description: editDesc, updated_at: res?.section?.updated_at || new Date().toISOString() } : item))
+        );
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('echo-sections-updated'));
+        }
+        flash?.(`Section "${editName}" updated successfully!`, 'success');
+        setEditingSection(null);
+      }
+    } catch (err: any) {
+      flash?.('Failed to update section details', 'error');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const categories = ['all', 'hero', 'content', 'highlight', 'tracks', 'speakers', 'sponsors', 'partners', 'awards', 'pricing', 'footer', 'marketplace'];
+
+  const filteredSections = useMemo(() => {
+    return sections.filter((sec) => {
+      const matchesSearch =
+        !searchQuery.trim() ||
+        sec.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        sec.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCat = categoryFilter === 'all' || sec.category === categoryFilter;
+      return matchesSearch && matchesCat;
+    });
+  }, [sections, searchQuery, categoryFilter]);
+
+  return (
+    <View style={{ gap: 24, paddingBottom: 40 }}>
+      {/* ── HEADER BANNER ── */}
+      <View style={{
+        padding: 24,
+        borderRadius: 20,
+        backgroundColor: '#131528',
+        borderWidth: 1,
+        borderColor: 'rgba(99,102,241,0.25)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <LinearGradient
+          colors={['rgba(99,102,241,0.15)', 'rgba(168,85,247,0.06)', 'transparent']}
+          style={StyleSheet.absoluteFill}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        />
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <View style={{ flex: 1, minWidth: 280 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#6366F1' }} />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1.5, color: '#A5B4FC', textTransform: 'uppercase' }}>
+                LIVE CONTROL CENTER · REAL-TIME SYNC
+              </Text>
+            </View>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 24, color: '#FFFFFF', letterSpacing: -0.5, marginBottom: 8 }}>
+              Landing Page &amp; Event Section Management
+            </Text>
+            <Text style={{ fontFamily: FONTS.regular, fontSize: 14, color: '#94A3B8', lineHeight: 20, maxWidth: 700 }}>
+              Control the visibility and content of all 14 independent sections displayed on the public ECHO Event Marketplace landing page and student dashboards. Changes synchronize instantly across the entire platform without redeploying code.
+            </Text>
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+            <Pressable
+              onPress={handleEnableAll}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                backgroundColor: 'rgba(16,185,129,0.15)',
+                borderWidth: 1,
+                borderColor: 'rgba(16,185,129,0.4)',
+                paddingVertical: 10,
+                paddingHorizontal: 16,
+                borderRadius: 12,
+              }}
+            >
+              <CheckCircle2 size={15} color="#34D399" />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#34D399' }}>Enable All</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={handleResetDefaults}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                backgroundColor: 'rgba(239,68,68,0.12)',
+                borderWidth: 1,
+                borderColor: 'rgba(239,68,68,0.35)',
+                paddingVertical: 10,
+                paddingHorizontal: 16,
+                borderRadius: 12,
+              }}
+            >
+              <RotateCcw size={15} color="#F87171" />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#F87171' }}>Reset Defaults</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={loadSections}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                backgroundColor: 'rgba(255,255,255,0.06)',
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.12)',
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                borderRadius: 12,
+              }}
+            >
+              <RefreshCw size={15} color="#E2E8F0" />
+              <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: '#E2E8F0' }}>Refresh</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* ── METRIC STATS TILES ── */}
+        <View style={{ flexDirection: 'row', gap: 16, marginTop: 24, flexWrap: 'wrap' }}>
+          <View style={{
+            flex: 1,
+            minWidth: 160,
+            backgroundColor: 'rgba(0,0,0,0.3)',
+            borderRadius: 14,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.06)',
+          }}>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+              Total Sections
+            </Text>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 28, color: '#FFFFFF', marginTop: 4 }}>
+              {sections.length}
+            </Text>
+          </View>
+
+          <View style={{
+            flex: 1,
+            minWidth: 160,
+            backgroundColor: 'rgba(16,185,129,0.08)',
+            borderRadius: 14,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: 'rgba(16,185,129,0.3)',
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10B981' }} />
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: '#34D399', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                Enabled (Visible)
+              </Text>
+            </View>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 28, color: '#34D399', marginTop: 4 }}>
+              {enabledCount}
+            </Text>
+          </View>
+
+          <View style={{
+            flex: 1,
+            minWidth: 160,
+            backgroundColor: 'rgba(100,116,139,0.08)',
+            borderRadius: 14,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: 'rgba(100,116,139,0.3)',
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#94A3B8' }} />
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                Disabled (Hidden)
+              </Text>
+            </View>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 28, color: '#94A3B8', marginTop: 4 }}>
+              {disabledCount}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* ── SEARCH & FILTER CONTROLS ── */}
+      <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+        <View style={{
+          flex: 1,
+          minWidth: 260,
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: '#131528',
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderRadius: 12,
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+          gap: 10,
+        }}>
+          <Search size={16} color="#94A3B8" />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search sections by name or description..."
+            placeholderTextColor="#64748B"
+            style={{
+              flex: 1,
+              fontFamily: FONTS.regular,
+              fontSize: 13,
+              color: '#FFFFFF',
+            }}
+          />
+          {searchQuery ? (
+            <Pressable onPress={() => setSearchQuery('')}>
+              <X size={15} color="#94A3B8" />
+            </Pressable>
+          ) : null}
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+          {categories.map((cat) => {
+            const active = categoryFilter === cat;
+            return (
+              <Pressable
+                key={cat}
+                onPress={() => setCategoryFilter(cat)}
+                style={{
+                  paddingVertical: 8,
+                  paddingHorizontal: 14,
+                  borderRadius: 100,
+                  backgroundColor: active ? '#6366F1' : 'rgba(255,255,255,0.05)',
+                  borderWidth: 1,
+                  borderColor: active ? '#6366F1' : 'rgba(255,255,255,0.1)',
+                }}
+              >
+                <Text style={{
+                  fontFamily: active ? FONTS.bold : FONTS.med,
+                  fontSize: 12,
+                  color: active ? '#FFFFFF' : '#94A3B8',
+                  textTransform: 'capitalize',
+                }}>
+                  {cat}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* ── SECTIONS CARDS LIST ── */}
+      {loading ? (
+        <View style={{ paddingVertical: 60, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color="#6366F1" />
+          <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: '#94A3B8', marginTop: 12 }}>
+            Loading section configurations...
+          </Text>
+        </View>
+      ) : filteredSections.length === 0 ? (
+        <View style={{
+          paddingVertical: 60,
+          alignItems: 'center',
+          backgroundColor: '#131528',
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.08)',
+        }}>
+          <SlidersHorizontal size={36} color="#64748B" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#FFFFFF', marginTop: 14 }}>
+            No sections match your filter
+          </Text>
+          <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: '#94A3B8', marginTop: 4 }}>
+            Try resetting your search query or selecting 'All' categories.
+          </Text>
+        </View>
+      ) : (
+        <View style={{
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: 16,
+        }}>
+          {filteredSections.map((sec, idx) => {
+            const isToggling = togglingId === sec.id;
+            const updatedDateStr = sec.updated_at ? new Date(sec.updated_at).toLocaleDateString('en-US', {
+              month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            }) : 'Initial setup';
+
+            return (
+              <View
+                key={sec.id}
+                style={{
+                  flex: 1,
+                  minWidth: 320,
+                  maxWidth: 560,
+                  backgroundColor: '#131528',
+                  borderRadius: 18,
+                  padding: 20,
+                  borderWidth: 1,
+                  borderColor: sec.enabled ? 'rgba(99,102,241,0.22)' : 'rgba(255,255,255,0.07)',
+                  gap: 14,
+                  position: 'relative',
+                }}
+              >
+                {/* Top header row */}
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                      <View style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        backgroundColor: 'rgba(99,102,241,0.2)',
+                        borderWidth: 1,
+                        borderColor: 'rgba(99,102,241,0.4)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#A5B4FC' }}>
+                          {sec.display_order || idx + 1}
+                        </Text>
+                      </View>
+
+                      <View style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                        borderRadius: 6,
+                        backgroundColor: 'rgba(255,255,255,0.06)',
+                      }}>
+                        <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                          {sec.category || 'section'}
+                        </Text>
+                      </View>
+
+                      {sec.is_critical && (
+                        <View style={{
+                          paddingHorizontal: 8,
+                          paddingVertical: 2,
+                          borderRadius: 6,
+                          backgroundColor: 'rgba(245,158,11,0.14)',
+                          borderWidth: 1,
+                          borderColor: 'rgba(245,158,11,0.3)',
+                        }}>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#FBBF24', letterSpacing: 0.5 }}>
+                            CORE
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#FFFFFF', letterSpacing: -0.3 }}>
+                      {sec.name}
+                    </Text>
+                  </View>
+
+                  {/* Status Indicator Badge */}
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    paddingHorizontal: 10,
+                    paddingVertical: 5,
+                    borderRadius: 100,
+                    backgroundColor: sec.enabled ? 'rgba(16,185,129,0.12)' : 'rgba(100,116,139,0.15)',
+                    borderWidth: 1,
+                    borderColor: sec.enabled ? 'rgba(16,185,129,0.35)' : 'rgba(100,116,139,0.3)',
+                  }}>
+                    <View style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: 3.5,
+                      backgroundColor: sec.enabled ? '#10B981' : '#64748B',
+                    }} />
+                    <Text style={{
+                      fontFamily: FONTS.bold,
+                      fontSize: 10.5,
+                      color: sec.enabled ? '#34D399' : '#94A3B8',
+                      letterSpacing: 0.4,
+                    }}>
+                      {sec.enabled ? 'ENABLED' : 'DISABLED'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Section description */}
+                <Text style={{ fontFamily: FONTS.regular, fontSize: 13, color: '#94A3B8', lineHeight: 19 }}>
+                  {sec.description}
+                </Text>
+
+                {/* Bottom action row with intuitive toggle */}
+                <View style={{
+                  paddingTop: 12,
+                  borderTopWidth: 1,
+                  borderTopColor: 'rgba(255,255,255,0.06)',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}>
+                  <View style={{ flex: 1, marginRight: 12 }}>
+                    <Text style={{ fontFamily: FONTS.regular, fontSize: 11, color: '#64748B' }}>
+                      Last updated: {updatedDateStr}
+                    </Text>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Pressable
+                      onPress={() => openEditModal(sec)}
+                      style={{
+                        padding: 7,
+                        borderRadius: 8,
+                        backgroundColor: 'rgba(255,255,255,0.05)',
+                        borderWidth: 1,
+                        borderColor: 'rgba(255,255,255,0.08)',
+                      }}
+                      accessibilityLabel="Edit section details"
+                    >
+                      <Pencil size={13} color="#94A3B8" />
+                    </Pressable>
+
+                    {/* Intuitive Enable/Disable Toggle Switch */}
+                    <Pressable
+                      onPress={() => handleToggle(sec)}
+                      disabled={isToggling}
+                      style={{
+                        width: 52,
+                        height: 28,
+                        borderRadius: 14,
+                        backgroundColor: sec.enabled ? '#10B981' : '#334155',
+                        padding: 3,
+                        justifyContent: 'center',
+                        opacity: isToggling ? 0.6 : 1,
+                      }}
+                    >
+                      {isToggling ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <View style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: 11,
+                          backgroundColor: '#FFFFFF',
+                          alignSelf: sec.enabled ? 'flex-end' : 'flex-start',
+                          shadowColor: '#000',
+                          shadowOpacity: 0.2,
+                          shadowRadius: 2,
+                          shadowOffset: { width: 0, height: 1 },
+                        }} />
+                      )}
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+      {/* ── EDIT SECTION MODAL ── */}
+      {editingSection && (
+        <Modal
+          visible={true}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setEditingSection(null)}
+        >
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.75)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}>
+            <View style={{
+              width: '100%',
+              maxWidth: 520,
+              backgroundColor: '#131528',
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: 'rgba(99,102,241,0.3)',
+              padding: 24,
+              gap: 16,
+              shadowColor: '#000',
+              shadowOpacity: 0.4,
+              shadowRadius: 20,
+              shadowOffset: { width: 0, height: 8 },
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 18, color: '#FFFFFF' }}>
+                    Edit Section Details
+                  </Text>
+                  <Text style={{ fontFamily: FONTS.regular, fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
+                    ID: {editingSection.id}
+                  </Text>
+                </View>
+                <Pressable onPress={() => setEditingSection(null)} style={{ padding: 4 }}>
+                  <X size={18} color="#94A3B8" />
+                </Pressable>
+              </View>
+
+              <View style={{ gap: 6 }}>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: '#E2E8F0' }}>
+                  Section Display Name
+                </Text>
+                <TextInput
+                  value={editName}
+                  onChangeText={setEditName}
+                  style={{
+                    backgroundColor: '#0A0A14',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.12)',
+                    borderRadius: 10,
+                    paddingHorizontal: 14,
+                    paddingVertical: 10,
+                    fontFamily: FONTS.regular,
+                    fontSize: 13.5,
+                    color: '#FFFFFF',
+                  }}
+                />
+              </View>
+
+              <View style={{ gap: 6 }}>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: '#E2E8F0' }}>
+                  Section Description
+                </Text>
+                <TextInput
+                  value={editDesc}
+                  onChangeText={setEditDesc}
+                  multiline
+                  numberOfLines={4}
+                  style={{
+                    backgroundColor: '#0A0A14',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.12)',
+                    borderRadius: 10,
+                    paddingHorizontal: 14,
+                    paddingVertical: 10,
+                    fontFamily: FONTS.regular,
+                    fontSize: 13.5,
+                    color: '#FFFFFF',
+                    minHeight: 80,
+                    textAlignVertical: 'top',
+                  }}
+                />
+              </View>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+                <Pressable
+                  onPress={() => setEditingSection(null)}
+                  style={{
+                    paddingVertical: 10,
+                    paddingHorizontal: 16,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(255,255,255,0.06)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.1)',
+                  }}
+                >
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: '#94A3B8' }}>Cancel</Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={handleSaveEdit}
+                  disabled={savingEdit}
+                  style={{
+                    paddingVertical: 10,
+                    paddingHorizontal: 18,
+                    borderRadius: 10,
+                    backgroundColor: '#6366F1',
+                    opacity: savingEdit ? 0.7 : 1,
+                  }}
+                >
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#FFFFFF' }}>
+                    {savingEdit ? 'Saving...' : 'Save Changes'}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -6961,6 +7881,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
 
       {/* ── MEDIA LIBRARY ── */}
       {pageTab === 'media' && <MediaLibraryPanel />}
+      {pageTab === 'sections-management' && <LandingPageSectionsPanel />}
       {pageTab === 'scan-monitor' && <LiveScanMonitorPanel />}
 
       {/* ── REGISTRATIONS & PAYMENTS ── */}

@@ -91,7 +91,7 @@ export function SuperAdminPortalRN() {
         {active === 'agents'          && <AutonomousAgentsView />}
         {active === 'cicd-evaluator'  && <CICDEvaluatorView />}
         {active === 'code-health'     && <CodeHealthView />}
-        {active === 'bgv'             && <BGVAccountVerticalsView />}
+        {active === 'bgv'             && <BGVAccountVerticalsView {...subFor()} />}
         {active === 'colleges'        && <CollegesView {...subFor()} />}
         {active === 'students'        && <StudentsView />}
         {active === 'mentors'         && <MentorsView />}

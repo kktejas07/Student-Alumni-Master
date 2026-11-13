@@ -7,6 +7,7 @@
 import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 interface Props {
   label: string;
@@ -18,15 +19,19 @@ interface Props {
 
 export const InfoChip = memo(function InfoChip({
   label,
-  color = COLORS.text2,
-  backgroundColor = COLORS.chipBg,
-  borderColor = COLORS.border,
+  color,
+  backgroundColor,
+  borderColor,
   icon,
 }: Props) {
+  const { isDark } = useTheme();
+  const resolvedColor = color ?? (isDark ? COLORS.text2 : 'rgba(15, 23, 42, 0.8)');
+  const resolvedBg = backgroundColor ?? (isDark ? COLORS.chipBg : 'rgba(99, 102, 241, 0.08)');
+  const resolvedBorder = borderColor ?? (isDark ? COLORS.border : 'rgba(15, 23, 42, 0.1)');
   return (
-    <View style={[s.chip, { backgroundColor, borderColor }]}>
+    <View style={[s.chip, { backgroundColor: resolvedBg, borderColor: resolvedBorder }]}>
       {icon}
-      <Text style={[s.text, { color }]}>{label}</Text>
+      <Text style={[s.text, { color: resolvedColor }]}>{label}</Text>
     </View>
   );
 });

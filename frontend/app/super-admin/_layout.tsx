@@ -7,7 +7,7 @@
 import React, { useEffect } from 'react';
 import { WebOnlyRoute } from '@/src/lib/nativeGuard';
 import { View, Text, StyleSheet, Platform } from 'react-native';
-import { Slot, useRouter } from 'expo-router';
+import { Slot, usePathname, useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { portalPathForRole } from '@/src/lib/portalHome';
 
@@ -15,6 +15,7 @@ import { SAModernLoader } from '@/src/views/components/SAModernLoader';
 
 function SuperAdminLayoutRoute() {
   const router = useRouter();
+  const pathname = usePathname();
   const user        = useAuthStore((s) => s.user);
   const loading     = useAuthStore((s) => s.loading);
   const initialized = useAuthStore((s) => s.initialized);
@@ -25,14 +26,14 @@ function SuperAdminLayoutRoute() {
   useEffect(() => {
     if (!initialized) return;
     if (!user) {
-      router.replace('/login?redirect=/super-admin');
+      router.replace(`/login?returnTo=${encodeURIComponent(pathname)}`);
       return;
     }
     const role = String(user.role || '').toLowerCase();
     if (!['admin', 'super_admin'].includes(role)) {
       router.replace(portalPathForRole(role) as any);
     }
-  }, [initialized, user]);
+  }, [initialized, pathname, user]);
 
   if (!initialized || loading) {
     return <SAModernLoader subtitle="AUTHENTICATING ADMIN ACCESS" />;

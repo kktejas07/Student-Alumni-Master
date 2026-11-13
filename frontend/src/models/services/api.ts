@@ -238,7 +238,8 @@ export async function request<T>(
 ): Promise<T> {
   const { method = 'GET', body, auth = true, headers: customHeaders } = options;
   const t0 = typeof Date !== 'undefined' ? Date.now() : 0;
-  const fullUrl = `${BASE_URL}/api${path}`;
+  const base = getBaseUrl();
+  const fullUrl = `${base}/api${path}`;
 
   // eslint-disable-next-line no-console
   debugLog(` [API REQ] ${method} ${fullUrl}`);
@@ -267,11 +268,25 @@ export async function request<T>(
   if (auth && token && !headers['Authorization']) headers['Authorization'] = `Bearer ${token}`;
 
   try {
-    const res = await fetch(fullUrl, {
-      method,
-      headers,
-      body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
-    });
+    let res: Response;
+    try {
+      res = await fetch(fullUrl, {
+        method,
+        headers,
+        body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
+      });
+    } catch (firstErr) {
+      if (fullUrl.includes('localhost')) {
+        const fallbackUrl = fullUrl.replace('localhost', '127.0.0.1');
+        res = await fetch(fallbackUrl, {
+          method,
+          headers,
+          body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
+        });
+      } else {
+        throw firstErr;
+      }
+    }
 
     const duration = t0 ? Date.now() - t0 : 0;
 
@@ -361,14 +376,22 @@ export const api = {
 
   logout: async () => {
     try {
-      const refreshToken = await tokenStore.getRefresh();
-      await request<any>('/auth/logout', {
+      const [accessToken, refreshToken] = await Promise.all([
+        tokenStore.getAccess(),
+        tokenStore.getRefresh(),
+      ]);
+      const response = await fetch(`${BASE_URL}/api/auth/logout`, {
         method: 'POST',
-        body: refreshToken ? { refresh_token: refreshToken } : {},
-        auth: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        credentials: 'include',
+        body: JSON.stringify(refreshToken ? { refresh_token: refreshToken } : {}),
       });
-    } catch {
-      // Ignore network errors on logout to allow local cleanup
+      if (!response.ok) {
+        throw new Error(`Logout request failed (${response.status})`);
+      }
     } finally {
       await tokenStore.clear();
     }
@@ -713,7 +736,7 @@ export const api = {
   myEchoInvoices: () =>
     request<any>('/echo/my-invoices'),
   myEchoRegistrations: () =>
-    request<any>('/echo/my-registrations'),
+    request<any>(`/echo/my-registrations?_t=${Date.now()}`),
   myMarketplaceOrders: () =>
     request<any>('/echo/my-marketplace-orders'),
   myMarketplaceInvoice: (orderId: string) =>
@@ -789,9 +812,19 @@ export const api = {
   getEchoInvoicePreview: (tplId: string) =>
     request<any>(`/echo/admin/settings/preview/invoice/${tplId}`),
   getEchoTicket: (regId: string) =>
-    request<any>(`/echo/tickets/${regId}?format=json`),
+    request<any>(`/echo/tickets/${regId}?format=json&_t=${Date.now()}`),
   getEchoInvoice: (invoiceNo: string) =>
     request<any>(`/echo/invoices/${invoiceNo}`),
+
+  // ── Echo Landing Page & Event Sections Management ─────────────────────────
+  getEchoSections: () =>
+    request<any>('/echo/sections', { auth: false }),
+  updateEchoSection: (id: string, payload: any) =>
+    request<any>(`/echo/admin/sections/${encodeURIComponent(id)}`, { method: 'PUT', body: payload }),
+  updateEchoSectionsBulk: (payload: any) =>
+    request<any>('/echo/admin/sections/bulk', { method: 'PUT', body: payload }),
+  resetEchoSections: () =>
+    request<any>('/echo/admin/sections/reset', { method: 'POST' }),
 
   // ── Echo Admin Sessions & Volunteers ──────────────────────────────────────
   getEchoSessions: (slug: string) =>

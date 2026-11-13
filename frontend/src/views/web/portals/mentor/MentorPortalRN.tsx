@@ -23,6 +23,7 @@ import { AvailabilityView } from './views/AvailabilityView';
 import { MentorProfileSettingsView } from './views/MentorProfileSettingsView';
 import { MentorAIStudioView } from './views/MentorAIStudioView';
 import { NotificationsPanel } from './views/NotificationsPanel';
+import { CareerAIView } from '../student/views/CareerAIView';
 
 type ProfileTab = 'manage' | 'digital-id' | 'notifications';
 
@@ -104,6 +105,7 @@ export default function MentorPortalRN() {
       )}
     >
       {active === 'dashboard'    && <DashboardView onNav={(id) => navigate(id as NavId)} />}
+      {active === 'career-ai'    && <CareerAIView />}
       {active === 'ai-studio'    && <MentorAIStudioView />}
       {active === 'students'     && <ConnectionsView />}
       {active === 'sessions'     && <SessionsView />}

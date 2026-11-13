@@ -50,7 +50,16 @@ type Registration = {
   payment_status?: string;
   registered_at?: string;
   registration_type?: string;
+  fee?: number;
   team_name?: string;
+  date?: string;
+  start_date?: string;
+  end_date?: string;
+  time?: string;
+  start_time?: string;
+  venue?: string;
+  ticket_type?: string;
+  seat?: string;
   payment?: {
     status?: string;
     amount?: number;
@@ -133,6 +142,14 @@ function sessionColor(name: string) {
 
 const inr = (n: number | undefined) => (n || 0).toLocaleString('en-IN');
 
+function ticketDateLabel(start?: string, end?: string) {
+  const startDate = start?.trim();
+  const endDate = end?.trim();
+  if (!startDate && !endDate) return 'To be announced';
+  if (!startDate || !endDate || startDate === endDate) return startDate || endDate || 'To be announced';
+  return `${startDate} – ${endDate}`;
+}
+
 export function MyTicketsView() {
   const router = useRouter();
   const { isDark } = useTheme();
@@ -144,25 +161,57 @@ export function MyTicketsView() {
   const [previewReg, setPreviewReg] = useState<Registration | null>(null);
   const [authError, setAuthError] = useState(false);
 
-  const load = useCallback(async () => {
+  const refreshRegistrations = useCallback(async () => {
     try {
       const r = await api.myEchoRegistrations();
-      setItems(r?.items || []);
+      const nextItems = r?.items || [];
+      setItems(nextItems);
+      setPreviewReg((current) => {
+        if (!current?.id) return current;
+        return nextItems.find((item: RegItem) => item.registration.id === current.id)?.registration || current;
+      });
       setAuthError(false);
     } catch (e: any) {
       if (e?.message?.includes('401') || e?.message?.includes('Authentication')) {
         setAuthError(true);
+      } else {
+        console.error('Failed to refresh ECHO registrations', e);
       }
     }
+  }, []);
+
+  const load = useCallback(async () => {
+    await refreshRegistrations();
     try {
       const o = await api.myMarketplaceOrders();
       const data = (o?.data || o?.items || []);
       setOrders(Array.isArray(data) ? data : []);
     } catch { /* not authed / empty */ }
     finally { setLoading(false); }
-  }, []);
+  }, [refreshRegistrations]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Keep event details in sync with admin edits while this view remains open.
+  useEffect(() => {
+    const refreshIfVisible = () => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        refreshRegistrations();
+      }
+    };
+    const interval = setInterval(refreshIfVisible, 5000);
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.addEventListener('focus', refreshIfVisible);
+      document.addEventListener('visibilitychange', refreshIfVisible);
+    }
+    return () => {
+      clearInterval(interval);
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.removeEventListener('focus', refreshIfVisible);
+        document.removeEventListener('visibilitychange', refreshIfVisible);
+      }
+    };
+  }, [refreshRegistrations]);
 
   // Real-time polling for order status updates (every 15 seconds)
   useEffect(() => {
@@ -305,10 +354,19 @@ export function MyTicketsView() {
         items.map((item, idx) => {
           const reg = item.registration;
           const inv = item.invoice;
-          const title = reg.event_title || reg.showcase_title || 'Hack Wave 3.0';
+          const title = reg.event_title || reg.showcase_title || 'ECHO Event';
           const payment = reg.payment || {};
           const isWeb = Platform.OS === 'web';
-          const subTitle = reg.slug?.toLowerCase().includes('test') || !reg.slug ? 'Sreenidhi Institute of Science & Technology, Hyderabad' : reg.slug?.toUpperCase();
+          const subTitle = reg.venue || 'Venue to be announced';
+          const dateLabel = ticketDateLabel(reg.date || reg.start_date, reg.end_date);
+          const timeLabel = reg.time || reg.start_time || 'To be announced';
+          const passType = reg.ticket_type || reg.seat || (
+            reg.registration_type
+              ? `${reg.registration_type.charAt(0).toUpperCase()}${reg.registration_type.slice(1)}`
+              : 'Not assigned'
+          );
+          const ticketAmount = payment.amount ?? inv?.amount ?? reg.fee;
+          const paymentLabel = ticketAmount === 0 ? 'FREE' : payment.status === 'paid' ? 'PAID' : 'AMOUNT';
 
           return (
             <View key={reg.id || idx} style={isWeb ? s.tkGrid : s.tkGridMobile}>
@@ -341,15 +399,15 @@ export function MyTicketsView() {
                   <View style={s.tkMetaGrid}>
                     <View>
                       <Text style={s.tkMetaLabel}>DATE</Text>
-                      <Text style={s.tkMetaValue}>Sep 04–05</Text>
+                      <Text style={s.tkMetaValue}>{dateLabel}</Text>
                     </View>
                     <View>
-                      <Text style={s.tkMetaLabel}>GATES OPEN</Text>
-                      <Text style={s.tkMetaValue}>08:00 AM</Text>
+                      <Text style={s.tkMetaLabel}>EVENT TIME</Text>
+                      <Text style={s.tkMetaValue}>{timeLabel}</Text>
                     </View>
                     <View>
-                      <Text style={s.tkMetaLabel}>SEAT</Text>
-                      <Text style={s.tkMetaValue}>GA · Block C</Text>
+                      <Text style={s.tkMetaLabel}>PASS TYPE</Text>
+                      <Text style={s.tkMetaValue}>{passType}</Text>
                     </View>
                   </View>
                 </View>
@@ -373,8 +431,8 @@ export function MyTicketsView() {
                     <Text style={s.tkName}>{reg.full_name || 'Guest'} - {reg.email}</Text>
                   </View>
                   <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 1.5, marginBottom: 2 }}>PAID</Text>
-                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 18 }}>₹{payment.amount || inv?.amount || 599}</Text>
+                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 1.5, marginBottom: 2 }}>{paymentLabel}</Text>
+                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 18 }}>{ticketAmount == null ? '—' : `₹${inr(ticketAmount)}`}</Text>
                   </View>
                 </View>
               </Pressable>

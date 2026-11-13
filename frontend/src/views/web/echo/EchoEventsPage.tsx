@@ -83,7 +83,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
 
   useEffect(() => {
     if (view === 'reg' && authInitialized && !authUser) {
-      router.replace({ pathname: '/login', params: { returnTo: `/student-portal/${selectedSlug}` } });
+      router.replace({ pathname: '/login', params: { returnTo: `/echo/${selectedSlug}/register` } });
     }
   }, [authInitialized, authUser, router, selectedSlug, view]);
 
@@ -95,7 +95,16 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
       const viewParam = search.get('view');
 
       if (viewParam === 'register' || viewParam === 'reg' || path.includes('/register')) {
-        const slugFromUrl = eventParam || (path.split('/').filter(Boolean)[1] !== 'register' ? path.split('/').filter(Boolean)[1] : null) || initialSlug || '';
+        const pathSegments = path.split('/').filter(Boolean);
+        const routeSlug = pathSegments[0] === 'echo' && pathSegments[1] !== 'register' && pathSegments[2] === 'register'
+          ? pathSegments[1]
+          : '';
+        const slugFromUrl = eventParam || routeSlug || initialSlug || '';
+        if (pathSegments[0] === 'echo' && pathSegments[1] === 'register' && !slugFromUrl) {
+          setSelectedSlug('');
+          setView('list');
+          return;
+        }
         setSelectedSlug(slugFromUrl);
         setView('reg');
       } else if (viewParam === 'catalog' || viewParam === 'list') {
@@ -416,6 +425,46 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
     };
   }, [selectedSlug]);
 
+  // Dynamic ECHO section enable/disable controls
+  const [sectionsMap, setSectionsMap] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchSections = () => {
+      api.getEchoSections()
+        .then((res: any) => {
+          if (mounted && res?.sections_map) {
+            setSectionsMap(res.sections_map);
+          }
+        })
+        .catch(() => {});
+    };
+    fetchSections();
+
+    const handleSync = () => fetchSections();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('echo-sections-updated', handleSync);
+      window.addEventListener('focus', handleSync);
+    }
+    return () => {
+      mounted = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('echo-sections-updated', handleSync);
+        window.removeEventListener('focus', handleSync);
+      }
+    };
+  }, []);
+
+  const isSectionEnabled = useCallback(
+    (secId: string) => {
+      if (sectionsMap[secId] !== undefined) {
+        return sectionsMap[secId];
+      }
+      return true; // Default to enabled
+    },
+    [sectionsMap]
+  );
+
   // Fetch hero config from ECHO settings
   useEffect(() => {
     let mounted = true;
@@ -431,11 +480,15 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
       setSelectedSlug(targetSlug);
     }
     if (targetView === 'detail' && nextSlug) {
-      router.push(`/echo/${nextSlug}` as any);
+      router.replace(`/echo/${nextSlug}` as any);
       return;
     }
     if (targetView === 'reg' && nextSlug) {
-      router.replace({ pathname: '/login', params: { returnTo: `/student-portal/${nextSlug}` } });
+      if (authUser) {
+        router.push(`/echo/${nextSlug}/register` as any);
+      } else {
+        router.replace({ pathname: '/login', params: { returnTo: `/echo/${nextSlug}/register` } });
+      }
       return;
     }
     setView(targetView);
@@ -465,7 +518,16 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
       const viewParam = search.get('view');
 
       if (viewParam === 'register' || viewParam === 'reg' || path.includes('/register')) {
-        const slugFromUrl = eventParam || (path.split('/').filter(Boolean)[1] !== 'register' ? path.split('/').filter(Boolean)[1] : null) || '';
+        const pathSegments = path.split('/').filter(Boolean);
+        const routeSlug = pathSegments[0] === 'echo' && pathSegments[1] !== 'register' && pathSegments[2] === 'register'
+          ? pathSegments[1]
+          : '';
+        const slugFromUrl = eventParam || routeSlug || '';
+        if (pathSegments[0] === 'echo' && pathSegments[1] === 'register' && !slugFromUrl) {
+          setSelectedSlug('');
+          setView('list');
+          return;
+        }
         setSelectedSlug(slugFromUrl);
         setView('reg');
       } else if (viewParam === 'catalog' || viewParam === 'list') {
@@ -1286,164 +1348,14 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
         </div>
       )}
 
-      {/* Top Continuous Ticker Bar */}
-      <div id="ev-tickwrap" style={{ position: 'sticky', top: 0, zIndex: 62, overflow: 'hidden', borderBottom: '1px solid var(--line)', background: '#090B18' }}>
-        <div id="ev-ticker" style={{ display: 'flex', width: 'max-content', padding: '9px 0', animation: 'ev-tick 46s linear infinite' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 'none' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>The network is a feed until it meets in person.</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>86 ECHO events across 31 campuses.</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>267 roles matched, 41 with a warm referral path.</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Verified by your college email — free forever for students.</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>ECHO Flagship Hackathons & Summits · Live across top engineering campuses</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Built with love for students across all campuses</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-          </div>
-          {/* Duplicate set for seamless infinite loop */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 'none' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>The network is a feed until it meets in person.</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>86 ECHO events across 31 campuses.</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>267 roles matched, 41 with a warm referral path.</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Verified by your college email — free forever for students.</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>ECHO Flagship Hackathons & Summits · Live across top engineering campuses</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Built with love for students across all campuses</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Fixed Sticky Navigation Header ── */}
-      <div style={{ position: 'sticky', top: '36px', zIndex: 60, background: '#0A0A14', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: '1px solid var(--line)', width: '100%' }}>
-        <div style={{ maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', rowGap: '14px' }}>
-          
-          {/* SA Brand Badge */}
-          <div
-            onClick={() => router.push('/')}
-            style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 'none', cursor: 'pointer' }}
-          >
-            <svg width="32" height="38" viewBox="0 0 300 350" style={{ display: 'block', flexShrink: 0, filter: 'drop-shadow(0 2px 8px rgba(139,92,246,0.35))' }}>
-              <defs>
-                <linearGradient id="ev-badge-grad2" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#C9A7FF" />
-                  <stop offset="48%" stopColor="#8B5CF6" />
-                  <stop offset="100%" stopColor="#5B2FD0" />
-                </linearGradient>
-                <linearGradient id="ev-badge-grad2-in" x1="0" y1="0" x2="0.4" y2="1">
-                  <stop offset="0%" stopColor="#B683F5" />
-                  <stop offset="100%" stopColor="#7331C9" />
-                </linearGradient>
-              </defs>
-              <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#ev-badge-grad2)" />
-              <path d="M150 28 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#ev-badge-grad2-in)" />
-              <text x="150" y="218" textAnchor="middle" fill="#FFFFFF" fontWeight="900" fontSize="128" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">SA</text>
-            </svg>
-            <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.5px', color: '#FFFFFF', fontFamily: "'Outfit', 'DM Sans', -apple-system, sans-serif" }}>
-              Student Alumni
-            </span>
-          </div>
-
-          {/* Centered Navigation Tabs */}
-          <div id="ev-tabs" style={{ display: 'flex', alignItems: 'center', gap: '30px', flex: '0 1 auto', flexShrink: 0, justifyContent: 'center', paddingTop: '2px' }}>
-            <a
-              className="ev-tab"
-              onClick={() => router.push('/')}
-              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
-            >
-              Home
-              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
-            </a>
-            <a
-              className="ev-tab"
-              onClick={() => go('list')}
-              style={{ position: 'relative', fontSize: '15px', fontWeight: 700, color: 'var(--text)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
-            >
-              ECHO
-              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 1 }} />
-            </a>
-            <a
-              className="ev-tab"
-              onClick={() => router.push('/marketplace')}
-              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
-            >
-              Marketplace
-              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
-            </a>
-            <a
-              className="ev-tab"
-              onClick={() => router.push('/verify')}
-              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
-            >
-              Verify
-              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
-            </a>
-            <a
-              className="ev-tab"
-              onClick={() => router.push('/contact')}
-              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
-            >
-              Contact Us
-              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
-            </a>
-          </div>
-
-          {/* Right Action Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 'none' }}>
-            <span
-              onClick={() => router.push('/login')}
-              className="ev-ghost"
-              style={{ fontSize: '14px', fontWeight: 500, color: 'var(--muted)', cursor: 'pointer', transition: 'color .2s ease' }}
-            >
-              Sign in
-            </span>
-            <span
-              onClick={() => router.push('/register')}
-              className="ev-btn"
-              style={{ fontSize: '14px', fontWeight: 600, background: 'var(--violet)', color: '#FFFFFF', borderRadius: '100px', padding: '10px 20px', cursor: 'pointer', transition: 'all .2s ease' }}
-            >
-              Get Started
-            </span>
-          </div>
-        </div>
-      </div>
+      {/* Global Standardized Public Header (AnnouncementTicker + Navbar) */}
+      <Navbar activeTab="echo" onTabChange={(tab) => { if (tab === 'echo') go('list'); }} />
 
       {/* ────────────────────────────────────────────────────────── */}
       {/* VIEW 1: EVENTS LIST VIEW                                  */}
       {/* ────────────────────────────────────────────────────────── */}
       {view === 'list' && (
-        <div className="ev-anim-in ev-main-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '96px 28px 90px' }}>
+        <div className="ev-anim-in ev-main-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '116px 28px 90px' }}>
 
           {/* ── ON THE GROUND Hero Card ── */}
           <div className="ev-hero-card" style={{ position: 'relative', overflow: 'hidden', borderRadius: '24px', background: 'linear-gradient(150deg, #FFFFFF 0%, #F4F2FF 42%, #EAF7FA 100%)', boxShadow: isDark ? '0 1px 2px rgba(16,18,32,.06), 0 26px 64px rgba(16,18,32,.24)' : '0 1px 2px rgba(0,0,0,.04), 0 8px 32px rgba(0,0,0,.08)', padding: '34px 36px 36px', marginBottom: '20px', width: '100%' }}>
@@ -1655,6 +1567,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
           </span>
 
           {/* Wide Event Hero Banner */}
+          {isSectionEnabled('hackwave_flagship') && (
           <div className="ev-detail-banner" style={{ border: '1px solid var(--line2)', borderRadius: '22px', overflow: 'hidden', background: 'var(--panel)', marginBottom: '22px', width: '100%' }}>
             
             {/* Banner Top Graphic */}
@@ -1678,7 +1591,20 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
               </div>
 
               <div className="ev-detail-title" style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.1px', color: '#FFFFFF' }}>
-                {activeEvent.title.split('–')[0]} – <span style={{ color: 'var(--violet-lt)' }}>{activeEvent.college}</span>
+                {(() => {
+                  const college = activeEvent.college || '';
+                  let cleanTitle = activeEvent.title || '';
+                  if (college) {
+                    cleanTitle = cleanTitle.replace(new RegExp(`\\s*[-–—:]\\s*${college}\\s*$`, 'i'), '').trim();
+                  }
+                  if (cleanTitle.includes('–')) cleanTitle = cleanTitle.split('–')[0].trim();
+                  else if (cleanTitle.includes(' - ')) cleanTitle = cleanTitle.split(' - ')[0].trim();
+                  return (
+                    <>
+                      {cleanTitle} – <span style={{ color: 'var(--violet-lt)' }}>{activeEvent.college}</span>
+                    </>
+                  );
+                })()}
               </div>
               <div className="ev-detail-desc" style={{ fontSize: '15px', lineHeight: 1.6, color: 'var(--muted)', margin: '8px 0 18px', maxWidth: '680px' }}>
                 {activeEvent.description}
@@ -1800,6 +1726,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
 
             </div>
           </div>
+          )}
 
           {/* Virtual Meeting Section */}
           {teamsMeeting && (
@@ -2063,9 +1990,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
           })()}
 
           {/* ────────────────────────────────────────────────────────── */}
-          {/* MEET THE SPEAKERS                                          */}
+          {/* MEET THE SPEAKERS (Section 7: meet_speakers)               */}
           {/* ────────────────────────────────────────────────────────── */}
-          {activeEvent?.speakers && activeEvent.speakers.length > 0 && (
+          {isSectionEnabled('meet_speakers') && activeEvent?.speakers && activeEvent.speakers.length > 0 && (
             <div style={{ marginBottom: '32px' }}>
               <div style={{ textAlign: 'center', marginBottom: '22px' }}>
                 <div className="ev-detail-speakers-header" style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '-1px', color: '#FFFFFF' }}>Meet the Speakers</div>
@@ -2236,9 +2163,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
           )}
 
           {/* ────────────────────────────────────────────────────────── */}
-          {/* TICKET PRICING & PRIZE POOL                                */}
+          {/* TICKET PRICING & PRIZE POOL (Section 12: pass_fee)         */}
           {/* ────────────────────────────────────────────────────────── */}
-          {(activeEvent?.prize_pool || activeEvent?.individual_fee != null) && (
+          {isSectionEnabled('pass_fee') && (activeEvent?.prize_pool || activeEvent?.individual_fee != null) && (
             <div style={{ marginBottom: '32px', border: '1px solid #F59E0B', borderRadius: '22px', background: 'linear-gradient(135deg, #2D1A04 0%, #1A130B 100%)', padding: '32px 30px' }}>
               <div style={{ textAlign: 'center', marginBottom: '24px' }}>
                 <div style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-1px', color: '#FFFFFF' }}>
@@ -2318,7 +2245,8 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
             </button>
           </div>
 
-          {/* Marketplace CTA Card */}
+          {/* Marketplace CTA Card (Section 14: event_marketplace) */}
+          {isSectionEnabled('event_marketplace') && (
           <a
             href="/marketplace"
             onClick={(e) => { e.preventDefault(); window.location.href = '/marketplace'; }}
@@ -2346,6 +2274,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
               <svg width="16" height="16" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
             </div>
           </a>
+          )}
         </div>
         )
       )}
@@ -2504,7 +2433,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = '' }: EchoE
               >
                 <img
                   src={resolveImageUrl(regPosters[regPosterIdx])}
-                  alt={`HackWave Poster ${regPosterIdx + 1}`}
+                  alt={`${activeEvent.title} Poster ${regPosterIdx + 1}`}
                   onClick={() => openLightbox(resolveImageUrl(regPosters[regPosterIdx]))}
                   style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'zoom-in', transition: 'all .4s ease' }}
                 />

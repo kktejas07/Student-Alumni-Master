@@ -73,11 +73,11 @@ class CodeHealthAgent:
         # 1. Run Rule Engine
         workspace_root = self._get_workspace_root()
         engine = CodeHealthRuleEngine(workspace_root)
-        findings: List[CodeHealthFinding] = engine.scan_all(families=families)
+        findings: List[CodeHealthFinding] = await asyncio.to_thread(engine.scan_all, families=families)
 
         # Calculate KLOC scanned across backend and frontend/src
         total_lines = 0
-        skip_dirs = {".git", "node_modules", "__pycache__", ".next", "build", "dist", ".expo", "ios", "android", "scratch", ".gemini"}
+        skip_dirs = {".git", "node_modules", "__pycache__", ".next", "build", "dist", ".expo", "ios", "android", "scratch", ".gemini", "venv", "env", ".venv", "site-packages"}
         scan_target_dirs = [os.path.join(workspace_root, "backend"), os.path.join(workspace_root, "frontend", "src")]
         for sdir in scan_target_dirs:
             if os.path.exists(sdir):

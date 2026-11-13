@@ -440,7 +440,7 @@ class CodeHealthRuleEngine:
         if not os.path.exists(backend_dir):
             return findings
 
-        skip_dirs = {".git", "node_modules", "__pycache__", ".next", "build", "dist", ".expo", "ios", "android", "scratch", ".gemini"}
+        skip_dirs = SKIP_DIRS
         for root, dirs, files in os.walk(backend_dir):
             dirs[:] = [d for d in dirs if d not in skip_dirs]
             for file in files:
@@ -557,7 +557,7 @@ class CodeHealthRuleEngine:
         if not os.path.exists(backend_dir):
             return findings
 
-        skip_dirs = {".git", "node_modules", "__pycache__", ".next", "build", "dist", ".expo", "ios", "android", "scratch", ".gemini"}
+        skip_dirs = SKIP_DIRS
         for root, dirs, files in os.walk(backend_dir):
             dirs[:] = [d for d in dirs if d not in skip_dirs]
             for file in files:

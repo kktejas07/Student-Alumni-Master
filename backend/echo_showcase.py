@@ -31,7 +31,7 @@ from pathlib import Path
 from datetime import datetime, timezone, date as _date
 from typing import Any, Dict, List, Optional
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, File, UploadFile, Query, Body
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import logging
 
@@ -1818,9 +1818,9 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
     brand = "STUDENT ALUMNI · ECHO"
     organizer = esc(showcase.get("organizer_name") or "Student Alumni Cell")
     title = esc(reg.get("showcase_title") or showcase.get("title") or "Event")
-    event_date = esc(_event_date_label(showcase))
-    event_time = esc(showcase.get("time") or "")
-    venue = esc(showcase.get("venue") or "")
+    event_date = esc(_event_date_label(showcase) or "To be announced")
+    event_time = esc(showcase.get("time") or showcase.get("start_time") or "To be announced")
+    venue = esc(showcase.get("venue") or "To be announced")
     name = esc(reg.get("full_name") or "Attendee")
     email = esc(reg.get("email") or "")
     phone = esc(reg.get("phone") or "")
@@ -4552,12 +4552,14 @@ async def my_invoices(request: Request):
 
 
 @router.get("/my-registrations")
-async def my_registrations(request: Request):
+async def my_registrations(request: Request, response: Response):
     """Return all of the user's Echo registrations with coupons and ticket info.
 
     Used by MyTicketsView to show a unified list of event registrations,
     passes, coupons, and invoices in one place.
     """
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
     db = _get_db(request)
     user = await _resolve_user(request, db)
     if not user:
@@ -4580,7 +4582,7 @@ async def my_registrations(request: Request):
         slug = reg.get("showcase_slug") or reg.get("slug", "")
 
         # Build nested payment object for frontend compatibility
-        payment = {}
+        payment = dict(reg.get("payment") or {})
         if "payment_status" in reg:
             payment["status"] = reg["payment_status"]
         if reg.get("failed_reason"):
@@ -4591,7 +4593,7 @@ async def my_registrations(request: Request):
             payment["paid_at"] = reg["paid_at"]
         if reg.get("failed_at"):
             payment["failed_at"] = reg["failed_at"]
-        if reg.get("amount"):
+        if reg.get("amount") is not None:
             payment["amount"] = reg["amount"]
         if reg.get("currency"):
             payment["currency"] = reg["currency"]
@@ -4599,7 +4601,11 @@ async def my_registrations(request: Request):
             payment["payment_id"] = reg["razorpay_payment_id"]
         if reg.get("payment_provider"):
             payment["gateway"] = reg["payment_provider"]
-        payment["method"] = reg.get("payment_provider") or "online"
+        if reg.get("payment_provider"):
+            payment["gateway"] = reg["payment_provider"]
+            payment["method"] = reg["payment_provider"]
+        elif not payment.get("method"):
+            payment["method"] = "online"
         reg_ser["payment"] = payment
 
         # Fetch coupons for this registration
@@ -4626,7 +4632,9 @@ async def my_registrations(request: Request):
         showcase = None
         try:
             if slug:
-                showcase = await db.event_showcases.find_one({"slug": slug})
+                showcase = await db.echo_showcases.find_one({"slug": slug})
+                if not showcase:
+                    showcase = await db.event_showcases.find_one({"slug": slug})
         except Exception:
             pass
 
@@ -4634,7 +4642,12 @@ async def my_registrations(request: Request):
             reg_ser["event_title"] = showcase.get("title") or showcase.get("name") or reg_ser.get("event_title")
             reg_ser["showcase_title"] = showcase.get("title") or showcase.get("name") or reg_ser.get("showcase_title")
             reg_ser["banner_url"] = showcase.get("banner_url") or showcase.get("cover_image") or reg_ser.get("banner_url")
-            reg_ser["start_date"] = showcase.get("start_date") or reg_ser.get("start_date")
+            reg_ser["date"] = showcase.get("date") or showcase.get("start_date") or reg_ser.get("date") or reg_ser.get("start_date") or ""
+            reg_ser["start_date"] = showcase.get("start_date") or reg_ser.get("start_date") or reg_ser.get("date")
+            reg_ser["end_date"] = showcase.get("end_date") or reg_ser.get("end_date") or ""
+            reg_ser["time"] = showcase.get("time") or reg_ser.get("time") or ""
+            reg_ser["start_time"] = showcase.get("start_time") or reg_ser.get("start_time") or ""
+            reg_ser["venue"] = showcase.get("venue") or reg_ser.get("venue") or ""
 
         results.append({
             "registration": reg_ser,
@@ -4678,7 +4691,7 @@ async def get_invoice(invoice_no: str, request: Request, email: Optional[str] = 
 
 
 @router.get("/tickets/{reg_id}")
-async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query(None), format: Optional[str] = Query(None)):
+async def get_ticket(reg_id: str, request: Request, response: Response, email: Optional[str] = Query(None), format: Optional[str] = Query(None)):
     """Fetch an attendee's entry pass (ticket) with QR — owner, email-match, or admin.
 
     Returns render-ready standalone HTML so the app can open a printable page,
@@ -4689,6 +4702,8 @@ async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query
     this returns 402/403 — no ticket, pass, QR, or confirmation is generated so
     unpaid attendees cannot obtain an entry pass.
     """
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
     db = _get_db(request)
     reg = await db.echo_registrations.find_one({"id": reg_id})
     if not reg:
@@ -8158,3 +8173,385 @@ async def delete_intern_candidate(candidate_id: str, request: Request, _=Depends
 
     return {"ok": True, "message": "Candidate deleted"}
 
+
+# ── LANDING PAGE & EVENT SECTION MANAGEMENT ──────────────────────────────────
+
+DEFAULT_ECHO_SECTIONS = [
+    {
+        "id": "hackwave_flagship",
+        "name": "Hack Wave 3.0 – SNIST",
+        "description": "Hero flagship banner, event status, title, countdown, brochure download, and primary registration actions.",
+        "enabled": True,
+        "display_order": 1,
+        "category": "hero",
+        "is_critical": True,
+        "custom_content": {},
+    },
+    {
+        "id": "about_event",
+        "name": "About the Event",
+        "description": "Comprehensive event overview, mission, target audience, and event moments gallery images.",
+        "enabled": True,
+        "display_order": 2,
+        "category": "content",
+        "is_critical": False,
+        "custom_content": {},
+    },
+    {
+        "id": "event_organizer",
+        "name": "Event Organized By",
+        "description": "College and partner organizers, CDC SNIST accreditation, branding logos, and contact channels.",
+        "enabled": True,
+        "display_order": 3,
+        "category": "content",
+        "is_critical": False,
+        "custom_content": {},
+    },
+    {
+        "id": "not_just_hackathon",
+        "name": "THIS IS NOT JUST A HACKATHON",
+        "description": "Special high-impact badge & tagline highlighting the multi-vertical conference format.",
+        "enabled": True,
+        "display_order": 4,
+        "category": "highlight",
+        "is_critical": False,
+        "custom_content": {},
+    },
+    {
+        "id": "tech_fest",
+        "name": "A National-Level TECH FEST",
+        "description": "National-level tech festival branding header with live stats, tracks count, and prize highlights.",
+        "enabled": True,
+        "display_order": 5,
+        "category": "highlight",
+        "is_critical": False,
+        "custom_content": {},
+    },
+    {
+        "id": "seven_verticals",
+        "name": "SEVEN VERTICALS · ONE TICKET · ONE OVERNIGHT SPRINT",
+        "description": "Interactive tracks and verticals showcase covering Web3, AI/ML, Cyber Security, DevOps, FinTech, IoT, and Open Innovation.",
+        "enabled": True,
+        "display_order": 6,
+        "category": "tracks",
+        "is_critical": True,
+        "custom_content": {},
+    },
+    {
+        "id": "meet_speakers",
+        "name": "Meet the Speakers",
+        "description": "Industry speaker spotlight profiles, designations, topics, and sessions lineup.",
+        "enabled": True,
+        "display_order": 7,
+        "category": "speakers",
+        "is_critical": False,
+        "custom_content": {},
+    },
+    {
+        "id": "sponsor_spotlight",
+        "name": "Sponsor Spotlight",
+        "description": "Ecosystem sponsors and corporate partner brand logos, benefits, and support credits.",
+        "enabled": True,
+        "display_order": 8,
+        "category": "sponsors",
+        "is_critical": False,
+        "custom_content": {},
+    },
+    {
+        "id": "visa_partner",
+        "name": "Official Visa & Study-Abroad Partner",
+        "description": "WeHive Germany study abroad partnership, sponsored visa processing perks, and overseas admission counseling.",
+        "enabled": True,
+        "display_order": 9,
+        "category": "partners",
+        "is_critical": False,
+        "custom_content": {},
+    },
+    {
+        "id": "merit_awards",
+        "name": "Awarded on Merit",
+        "description": "Official merit-based criteria badge, evaluation rules, and eligibility guidelines for winning teams.",
+        "enabled": True,
+        "display_order": 10,
+        "category": "awards",
+        "is_critical": False,
+        "custom_content": {},
+    },
+    {
+        "id": "special_rewards",
+        "name": "Special Rewards, Beyond the Prize Pool",
+        "description": "Exclusive perks beyond cash: €12,000 Master's degree sponsorships, direct interview fast-tracks, and cloud credits.",
+        "enabled": True,
+        "display_order": 11,
+        "category": "awards",
+        "is_critical": False,
+        "custom_content": {},
+    },
+    {
+        "id": "pass_fee",
+        "name": "Pass Fee: ₹599",
+        "description": "Ticket registration pricing card, full access pass breakdown, and total prize pool value summary.",
+        "enabled": True,
+        "display_order": 12,
+        "category": "pricing",
+        "is_critical": True,
+        "custom_content": {},
+    },
+    {
+        "id": "stay_tuned",
+        "name": "Stay Tuned for More Events",
+        "description": "Call-to-action strip for upcoming campus hackathons and community notifications.",
+        "enabled": True,
+        "display_order": 13,
+        "category": "footer",
+        "is_critical": False,
+        "custom_content": {},
+    },
+    {
+        "id": "event_marketplace",
+        "name": "Event Marketplace",
+        "description": "Discovery gateway card linking students to explore all college events and inter-college hackathons across campuses.",
+        "enabled": True,
+        "display_order": 14,
+        "category": "marketplace",
+        "is_critical": False,
+        "custom_content": {},
+    },
+]
+
+
+@router.get("/sections")
+async def get_echo_sections(request: Request):
+    """Public read-only: Fetch all ECHO landing page and event section configurations.
+    Returns 14 dynamic sections with enabled/disabled status and display metadata.
+    Auto-seeds from defaults if database collection is empty or missing sections.
+    """
+    db = _get_db(request)
+    now_iso = _now()
+    coll = db.echo_section_configs
+
+    # Ensure all 14 default sections exist in collection
+    existing_cursor = coll.find({})
+    existing_docs = await existing_cursor.to_list(length=100)
+    existing_by_id = {d.get("id"): d for d in existing_docs if d.get("id")}
+
+    to_insert = []
+    for def_sec in DEFAULT_ECHO_SECTIONS:
+        sec_id = def_sec["id"]
+        if sec_id not in existing_by_id:
+            doc = {
+                **def_sec,
+                "created_at": now_iso,
+                "updated_at": now_iso,
+                "updated_by": "system_seed",
+            }
+            to_insert.append(doc)
+
+    if to_insert:
+        await coll.insert_many(to_insert)
+
+    # Fetch ordered list of sections
+    cursor = coll.find({}).sort("display_order", 1)
+    all_sections = await cursor.to_list(length=100)
+
+    # Clean ObjectIds and prepare response
+    sections_list = []
+    sections_map = {}
+    enabled_count = 0
+    disabled_count = 0
+
+    for s in all_sections:
+        cleaned = _ser(s)
+        sec_id = cleaned.get("id")
+        is_enabled = bool(cleaned.get("enabled", True))
+        cleaned["enabled"] = is_enabled
+        sections_list.append(cleaned)
+        if sec_id:
+            sections_map[sec_id] = is_enabled
+        if is_enabled:
+            enabled_count += 1
+        else:
+            disabled_count += 1
+
+    return {
+        "success": True,
+        "total": len(sections_list),
+        "enabled_count": enabled_count,
+        "disabled_count": disabled_count,
+        "sections": sections_list,
+        "sections_map": sections_map,
+    }
+
+
+@router.put("/admin/sections/{section_id}")
+async def update_echo_section(
+    section_id: str,
+    request: Request,
+    admin=Depends(_require_admin),
+):
+    """Super Admin only: Enable, disable, or update configuration for a specific ECHO section.
+    Persists immediately in MongoDB and records an audit log.
+    """
+    db = _get_db(request)
+    now_iso = _now()
+    body = await request.json()
+    coll = db.echo_section_configs
+
+    existing = await coll.find_one({"id": section_id})
+    if not existing:
+        matched_def = next((s for s in DEFAULT_ECHO_SECTIONS if s["id"] == section_id), None)
+        if not matched_def:
+            raise HTTPException(status_code=404, detail=f"Section '{section_id}' not found.")
+        existing = {**matched_def, "created_at": now_iso}
+
+    admin_id = str(admin.get("user_id") or admin.get("email") or "superadmin")
+
+    update_fields = {
+        "updated_at": now_iso,
+        "updated_by": admin_id,
+    }
+
+    if "enabled" in body:
+        update_fields["enabled"] = bool(body["enabled"])
+    if "name" in body and body["name"]:
+        update_fields["name"] = str(body["name"]).strip()
+    if "description" in body and body["description"] is not None:
+        update_fields["description"] = str(body["description"]).strip()
+    if "display_order" in body and isinstance(body["display_order"], (int, float)):
+        update_fields["display_order"] = int(body["display_order"])
+    if "custom_content" in body and isinstance(body["custom_content"], dict):
+        update_fields["custom_content"] = body["custom_content"]
+
+    await coll.update_one(
+        {"id": section_id},
+        {"$set": update_fields},
+        upsert=True,
+    )
+
+    updated = await coll.find_one({"id": section_id})
+
+    # Record audit log entry
+    try:
+        await db.audit_logs.insert_one({
+            "action": "update_echo_section",
+            "section_id": section_id,
+            "section_name": updated.get("name"),
+            "enabled": updated.get("enabled"),
+            "admin_id": admin_id,
+            "admin_email": admin.get("email", ""),
+            "timestamp": now_iso,
+        })
+    except Exception as audit_err:
+        logger.warning(f"Audit log write failed: {audit_err}")
+
+    return {
+        "success": True,
+        "message": f"Section '{updated.get('name', section_id)}' successfully updated.",
+        "section": _ser(updated),
+    }
+
+
+@router.put("/admin/sections/bulk")
+async def bulk_update_echo_sections(
+    request: Request,
+    admin=Depends(_require_admin),
+):
+    """Super Admin only: Bulk enable/disable or reorder multiple ECHO sections."""
+    db = _get_db(request)
+    now_iso = _now()
+    body = await request.json()
+    coll = db.echo_section_configs
+
+    sections_data = body.get("sections", [])
+    if not isinstance(sections_data, list):
+        raise HTTPException(status_code=400, detail="'sections' must be a list.")
+
+    admin_id = str(admin.get("user_id") or admin.get("email") or "superadmin")
+
+    for item in sections_data:
+        sec_id = item.get("id")
+        if not sec_id:
+            continue
+        update_fields = {
+            "updated_at": now_iso,
+            "updated_by": admin_id,
+        }
+        if "enabled" in item:
+            update_fields["enabled"] = bool(item["enabled"])
+        if "display_order" in item:
+            update_fields["display_order"] = int(item["display_order"])
+        if "name" in item:
+            update_fields["name"] = str(item["name"]).strip()
+        if "description" in item:
+            update_fields["description"] = str(item["description"]).strip()
+
+        await coll.update_one(
+            {"id": sec_id},
+            {"$set": update_fields},
+            upsert=True,
+        )
+
+    try:
+        await db.audit_logs.insert_one({
+            "action": "bulk_update_echo_sections",
+            "count": len(sections_data),
+            "admin_id": admin_id,
+            "admin_email": admin.get("email", ""),
+            "timestamp": now_iso,
+        })
+    except Exception:
+        pass
+
+    cursor = coll.find({}).sort("display_order", 1)
+    all_sections = await cursor.to_list(length=100)
+    cleaned = [_ser(s) for s in all_sections]
+
+    return {
+        "success": True,
+        "message": f"Successfully updated {len(sections_data)} sections.",
+        "sections": cleaned,
+    }
+
+
+@router.post("/admin/sections/reset")
+async def reset_echo_sections(
+    request: Request,
+    admin=Depends(_require_admin),
+):
+    """Super Admin only: Reset all 14 ECHO sections to their initial default configurations."""
+    db = _get_db(request)
+    now_iso = _now()
+    coll = db.echo_section_configs
+    admin_id = str(admin.get("user_id") or admin.get("email") or "superadmin")
+
+    for def_sec in DEFAULT_ECHO_SECTIONS:
+        sec_id = def_sec["id"]
+        await coll.update_one(
+            {"id": sec_id},
+            {
+                "$set": {
+                    **def_sec,
+                    "updated_at": now_iso,
+                    "updated_by": admin_id,
+                }
+            },
+            upsert=True,
+        )
+
+    try:
+        await db.audit_logs.insert_one({
+            "action": "reset_echo_sections",
+            "admin_id": admin_id,
+            "admin_email": admin.get("email", ""),
+            "timestamp": now_iso,
+        })
+    except Exception:
+        pass
+
+    cursor = coll.find({}).sort("display_order", 1)
+    all_sections = await cursor.to_list(length=100)
+    return {
+        "success": True,
+        "message": "All 14 ECHO sections have been reset to default enabled states.",
+        "sections": [_ser(s) for s in all_sections],
+    }

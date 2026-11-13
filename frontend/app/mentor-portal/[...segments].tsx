@@ -5,10 +5,11 @@
  *   /mentor-portal/sessions
  *   /mentor-portal/profile
  */
+import { NAV } from '@/src/views/web/portals/mentor/nav';
 import { PortalUrlProvider } from '@/src/views/web/portals/portalUrl';
 import MentorPortalRN from '@/src/views/web/portals/mentor/MentorPortalRN';
 
-const VALID_TABS = ['dashboard', 'ai-studio', 'students', 'sessions', 'requests', 'network', 'earnings', 'feedback', 'event', 'availability', 'profile'];
+const VALID_TABS = NAV.map((n) => n.id);
 
 export default function MentorPortalCatchAll() {
   return (
